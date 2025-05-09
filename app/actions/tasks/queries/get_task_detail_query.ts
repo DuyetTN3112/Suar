@@ -1,0 +1,293 @@
+import Task from '#models/task'
+import type User from '#models/user'
+import AuditLog from '#models/audit_log'
+import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
+import type { HttpContext } from '@adonisjs/core/http'
+import redis from '@adonisjs/redis/services/main'
+import db from '@adonisjs/lucid/services/db'
+
+/**
+ * Query để lấy chi tiết một task
+ *
+ * Features:
+ * - Load full task với all relations
+ * - Optional: versions, childTasks, auditLogs
+ * - Permission check (Admin hoặc Assignee)
+ * - Redis caching (5 minutes)
+ * - Permissions object (isCreator, canEdit, canDelete, etc.)
+ *
+ * Permissions:
+ * - Admin/Superadmin: Xem tất cả
+ * - Assignee: Xem task được assign
+ * - Creator: Xem task đã tạo
+ * - Org Owner/Manager: Xem tasks trong org
+ */
+export default class GetTaskDetailQuery {
+  constructor(protected ctx: HttpContext) {}
+
+  /**
+   * Execute query
+   */
+  async execute(dto: GetTaskDetailDTO): Promise<{
+    task: Task
+    permissions: {
+      isCreator: boolean
+      isAssignee: boolean
+      canEdit: boolean
+      canDelete: boolean
+      canAssign: boolean
+    }
+    auditLogs?: unknown[]
+  }> {
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('User chưa đăng nhập')
+    }
+
+    // Try cache first (if not minimal load)
+    if (!dto.isMinimalLoad()) {
+      const cacheKey = dto.getCacheKey()
+      const cached = await this.getFromCache(cacheKey)
+      if (cached) {
+        return cached
+      }
+    }
+
+    // Load task
+    const task = await Task.query().where('id', dto.task_id).whereNull('deleted_at').firstOrFail()
+
+    // Check permission
+    await this.validateViewPermission(user, task)
+
+    // Load basic relations (always) - Using sequential loads for type safety
+    await task.load('status')
+    await task.load('label')
+    await task.load('priority')
+    await task.load('assignee')
+    await task.load('creator')
+    await task.load('updater')
+    await task.load('organization')
+    await task.load('project')
+    await task.load('parentTask')
+
+    // Load optional relations
+    if (dto.shouldLoadChildTasks()) {
+      await task.load('childTasks')
+    }
+
+    if (dto.shouldLoadVersions()) {
+      await task.load('versions')
+    }
+
+    // Calculate permissions
+    const permissions = await this.calculatePermissions(user, task)
+
+    // Load audit logs if requested
+    let auditLogs: unknown[] | undefined
+    if (dto.shouldLoadAuditLogs()) {
+      auditLogs = await this.loadAuditLogs(task.id, dto.audit_logs_limit)
+    }
+
+    const result = {
+      task,
+      permissions,
+      auditLogs,
+    }
+
+    // Cache result (if not minimal)
+    if (!dto.isMinimalLoad()) {
+      const cacheKey = dto.getCacheKey()
+      await this.saveToCache(cacheKey, result, 300) // 5 minutes
+    }
+
+    return result
+  }
+
+  /**
+   * Validate view permission
+   */
+  private async validateViewPermission(user: User, task: Task): Promise<void> {
+    // Check if user is system superadmin via system_roles table (suar.sql)
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
+
+    // Admin/Superadmin can view all
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
+    if (isSuperAdmin) {
+      return
+    }
+
+    // Creator can view
+    if (task.creator_id === user.id) {
+      return
+    }
+
+    // Assignee can view
+    if (task.assigned_to && task.assigned_to === user.id) {
+      return
+    }
+
+    // Check organization role
+    const orgUser = (await db
+      .from('organization_users')
+      .where('organization_id', task.organization_id)
+      .where('user_id', user.id)
+      .first()) as { role_id: number } | null
+
+    if (orgUser && [1, 2].includes(orgUser.role_id)) {
+      return
+    }
+
+    throw new Error('Bạn không có quyền xem task này')
+  }
+
+  /**
+   * Calculate permissions for current user
+   */
+  private async calculatePermissions(
+    user: User,
+    task: Task
+  ): Promise<{
+    isCreator: boolean
+    isAssignee: boolean
+    canEdit: boolean
+    canDelete: boolean
+    canAssign: boolean
+  }> {
+    // Check if user is system superadmin via system_roles table
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
+
+    const isCreator = task.creator_id === user.id
+    const isAssignee = task.assigned_to && task.assigned_to === user.id
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
+
+    // Check org role
+    const orgUser = (await db
+      .from('organization_users')
+      .where('organization_id', task.organization_id)
+      .where('user_id', user.id)
+      .first()) as { role_id: number } | null
+
+    const isOrgOwnerOrManager = orgUser && [1, 2].includes(orgUser.role_id)
+
+    // Permissions
+    const canEdit = Boolean(isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager)
+    const canDelete = Boolean(isSuperAdmin || isCreator || isOrgOwnerOrManager)
+    const canAssign = Boolean(isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager)
+
+    return {
+      isCreator,
+      isAssignee: !!isAssignee,
+      canEdit,
+      canDelete,
+      canAssign,
+    }
+  }
+
+  /**
+   * Load audit logs
+   */
+  private async loadAuditLogs(taskId: number, limit: number): Promise<unknown[]> {
+    const logs = await AuditLog.query()
+      .where('entity_type', 'task')
+      .where('entity_id', taskId)
+      .orderBy('created_at', 'desc')
+      .limit(limit)
+      .preload('user')
+
+    return logs.map((log) => {
+      return {
+        id: log.id,
+        action: log.action,
+        user: {
+          id: log.user.id,
+          name: log.user.username,
+          email: log.user.email,
+        },
+        timestamp: log.created_at,
+        changes: this.formatChanges(
+          (log.old_values ?? {}) as Record<string, unknown>,
+          (log.new_values ?? {}) as Record<string, unknown>
+        ),
+      }
+    })
+  }
+
+  /**
+   * Format changes for audit log
+   */
+  private formatChanges(
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>
+  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
+    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
+
+    for (const key in newValues) {
+      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
+        changes.push({
+          field: key,
+          oldValue: oldValues[key],
+          newValue: newValues[key],
+        })
+      }
+    }
+
+    return changes
+  }
+
+  /**
+   * Get from Redis cache
+   */
+  private async getFromCache(key: string): Promise<{
+    task: Task
+    permissions: {
+      isCreator: boolean
+      isAssignee: boolean
+      canEdit: boolean
+      canDelete: boolean
+      canAssign: boolean
+    }
+    auditLogs?: unknown[]
+  } | null> {
+    try {
+      const cached = await redis.get(key)
+      if (cached) {
+        const parsed = JSON.parse(cached) as {
+          task: Task
+          permissions: {
+            isCreator: boolean
+            isAssignee: boolean
+            canEdit: boolean
+            canDelete: boolean
+            canAssign: boolean
+          }
+          auditLogs?: unknown[]
+        }
+        return parsed
+      }
+    } catch (error) {
+      console.error('[GetTaskDetailQuery] Cache get error:', error)
+    }
+    return null
+  }
+
+  /**
+   * Save to Redis cache
+   */
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+    try {
+      await redis.setex(key, ttl, JSON.stringify(data))
+    } catch (error) {
+      console.error('[GetTaskDetailQuery] Cache set error:', error)
+    }
+  }
+}
