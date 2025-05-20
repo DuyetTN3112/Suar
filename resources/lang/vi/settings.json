@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "general": "Chung",
+    "account": "Tài khoản",
+    "profile": "Hồ sơ",
+    "security": "Bảo mật",
+    "notifications": "Thông báo",
+    "appearance": "Giao diện",
+    "language": "Ngôn ngữ",
+    "theme": "Chủ đề",
+    "save_changes": "Lưu thay đổi",
+    "theme_light": "Sáng",
+    "theme_dark": "Tối",
+    "theme_system": "Theo hệ thống",
+    "language_switcher": "Chuyển đổi ngôn ngữ"
+  }
+}

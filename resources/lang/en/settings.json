@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "general": "General",
+    "account": "Account",
+    "profile": "Profile",
+    "security": "Security",
+    "notifications": "Notifications",
+    "appearance": "Appearance",
+    "language": "Language",
+    "theme": "Theme"
+  }
+}
