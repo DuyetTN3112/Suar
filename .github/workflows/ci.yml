@@ -1,0 +1,538 @@
+# ==============================================================================
+# GitHub Actions CI Pipeline
+# ==============================================================================
+#
+# KIẾN TRÚC:
+#
+#   ┌──────────────────┐
+#   │   setup (shared)  │  Install + cache deps
+#   └──────┬───────────┘
+#          │
+#   ┌──────┴──────┬──────────────┬────────────┐
+#   │  lint       │  test:unit   │test:integ  │  (song song)
+#   └──────┬──────┴──────────────┴────────────┘
+#          │
+#   ┌──────┴───────────┐
+#   │   build + docker  │
+#   └──────────────────┘
+#
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '24'
+  PNPM_VERSION: '10'
+
+jobs:
+  # ===========================================================================
+  # Job 1: Install & cache dependencies
+  # ===========================================================================
+  setup:
+    name: 📦 Install
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache node_modules
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+  # ===========================================================================
+  # Job 2: Lint + TypeCheck
+  # ===========================================================================
+  lint:
+    name: 🔍 Lint & TypeCheck
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Check backend architecture boundaries
+        run: |
+          pnpm run check:arch:backend:side-effects
+          pnpm run check:arch:backend:auth-layers
+          pnpm run check:arch:backend:module-layers
+          pnpm run check:arch:backend:module-domain-boundary
+          pnpm run check:arch:backend:port-taxonomy
+          pnpm run check:arch:backend:public-contract-surface
+          pnpm run check:arch:backend:exceptions
+
+      - run: pnpm run lint
+      - run: pnpm run typecheck
+      - run: pnpm run test:inventory
+      - run: pnpm run test:inventory:modules
+
+  # ===========================================================================
+  # Job 3-4: Tests (chạy song song 2 suite)
+  # ===========================================================================
+  test-unit:
+    name: 🧪 Unit Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Run unit tests
+        run: pnpm test:unit
+        env:
+          NODE_ENV: test
+          PORT: 3333
+          HOST: 0.0.0.0
+          APP_URL: http://localhost:3333
+          APP_KEY: test-key-at-least-16-chars-long
+          APP_NAME: Suar
+          APP_LOCALE: vi
+          APP_TIMEZONE: Asia/Ho_Chi_Minh
+          LOG_LEVEL: silent
+          SESSION_DRIVER: memory
+          PG_HOST: localhost
+          PG_PORT: 5432
+          PG_USER: root
+          PG_PASSWORD: ''
+          PG_DATABASE: suar_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          LOCK_STORE: memory
+
+  test-cache-redis:
+    name: 🧪 Cache & Redis Integration
+    runs-on: ubuntu-latest
+    needs: setup
+    env:
+      NODE_ENV: test
+      PORT: 3333
+      HOST: 0.0.0.0
+      APP_URL: http://localhost:3333
+      APP_KEY: test-key-at-least-16-chars-long
+      APP_NAME: Suar
+      APP_LOCALE: vi
+      APP_TIMEZONE: Asia/Ho_Chi_Minh
+      LOG_LEVEL: silent
+      SESSION_DRIVER: memory
+      LOCK_STORE: memory
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: root
+      PG_PASSWORD: ''
+      PG_DATABASE: suar_test
+      PG_TEST_DATABASE: suar_test
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_TEST_HOST: localhost
+      REDIS_TEST_PORT: 6379
+      REDIS_TEST_DB: 14
+      REDIS_CACHE_TEST_HOST: localhost
+      REDIS_CACHE_TEST_PORT: 6381
+      REDIS_CACHE_TEST_DB: 0
+    services:
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis-cache:
+        image: redis:8.4.0-alpine
+        ports:
+          - 6381:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Build client assets
+        run: pnpm exec vite build
+
+      - name: Run real Redis behavior and authenticated metrics tests
+        run: pnpm run test:redis:integration
+
+      - name: Run bounded generation-control capacity drill
+        run: pnpm run test:redis:generation-capacity
+
+  test-integration:
+    name: 🧪 Integration Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: suar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis-cache:
+        image: redis:8.4.0-alpine
+        ports:
+          - 6381:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+          ES_JAVA_OPTS: '-Xms256m -Xmx256m'
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd="curl -fsS 'http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s'"
+          --health-interval=5s
+          --health-timeout=6s
+          --health-retries=20
+          --health-start-period=30s
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Run integration tests
+        run: |
+          pnpm run test:integration:safe
+          pnpm run test:redis:authorization
+          pnpm run test:redis:task-list-load
+        env:
+          NODE_ENV: test
+          PORT: 3333
+          HOST: 0.0.0.0
+          APP_URL: http://localhost:3333
+          APP_KEY: test-key-at-least-16-chars-long
+          APP_NAME: Suar
+          APP_LOCALE: vi
+          APP_TIMEZONE: Asia/Ho_Chi_Minh
+          LOG_LEVEL: silent
+          SESSION_DRIVER: memory
+          PG_HOST: localhost
+          PG_PORT: 5432
+          PG_USER: root
+          PG_PASSWORD: ''
+          PG_DATABASE: suar_test
+          PG_TEST_DATABASE: suar_test
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          REDIS_TEST_HOST: localhost
+          REDIS_TEST_PORT: 6379
+          REDIS_TEST_DB: 14
+          REDIS_CACHE_TEST_HOST: localhost
+          REDIS_CACHE_TEST_PORT: 6381
+          REDIS_CACHE_TEST_DB: 0
+          ELASTICSEARCH_TEST_ENABLED: 'true'
+          ELASTICSEARCH_TEST_NODE: http://localhost:9201
+          ELASTICSEARCH_TEST_INDEX_PREFIX: suar_test_ci_
+          LOCK_STORE: memory
+
+  test-component:
+    name: 🧪 Component Tests
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Run component tests
+        run: pnpm run test:ui
+
+  test-inventory:
+    name: 📊 Inventory & Matrix
+    runs-on: ubuntu-latest
+    needs: setup
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - run: pnpm run test:inventory
+      - run: pnpm run test:inventory:modules
+
+  test-e2e:
+    name: 🎭 E2E Tests
+    runs-on: ubuntu-latest
+    needs: [test-integration, test-component]
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
+    env:
+      NODE_ENV: test
+      PORT: 3333
+      HOST: 0.0.0.0
+      APP_URL: http://localhost:3333
+      APP_KEY: test-key-at-least-16-chars-long
+      APP_NAME: Suar
+      APP_LOCALE: vi
+      APP_TIMEZONE: Asia/Ho_Chi_Minh
+      LOG_LEVEL: silent
+      SESSION_DRIVER: redis
+      LOCK_STORE: redis
+      PG_HOST: localhost
+      PG_PORT: 5432
+      PG_USER: root
+      PG_PASSWORD: ''
+      PG_DATABASE: suar_test
+      PG_TEST_DATABASE: suar_test
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      REDIS_DB: 14
+      REDIS_TEST_HOST: localhost
+      REDIS_TEST_PORT: 6379
+      REDIS_TEST_DB: 14
+      REDIS_CACHE_TEST_HOST: localhost
+      REDIS_CACHE_TEST_PORT: 6381
+      REDIS_CACHE_TEST_DB: 0
+      ELASTICSEARCH_TEST_ENABLED: 'true'
+      ELASTICSEARCH_TEST_NODE: http://localhost:9201
+      ELASTICSEARCH_TEST_INDEX_PREFIX: suar_test_e2e_
+      CACHE_INTEGRATION_DRIVER: redis
+      METRICS_API_KEY: playwright-cache-metrics-test-key
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: ''
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: suar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U root"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7.4-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      redis-cache:
+        image: redis:8.4.0-alpine
+        ports:
+          - 6381:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=5
+      elasticsearch:
+        image: docker.elastic.co/elasticsearch/elasticsearch:8.15.5
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: 'false'
+          cluster.routing.allocation.disk.threshold_enabled: 'false'
+          ES_JAVA_OPTS: '-Xms256m -Xmx256m'
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd="curl -fsS 'http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s'"
+          --health-interval=5s
+          --health-timeout=6s
+          --health-retries=20
+          --health-start-period=30s
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - run: pnpm exec playwright install chromium --with-deps
+      - run: pnpm run test:e2e
+        env:
+          CI: true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ===========================================================================
+  # Job 6: Build + Docker (chỉ chạy khi tất cả test pass)
+  # ===========================================================================
+  build:
+    name: 🏗️ Build & Docker
+    runs-on: ubuntu-latest
+    needs: [lint, test-unit, test-integration, test-cache-redis, test-component, test-inventory]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+
+      - uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Restore node_modules
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: node_modules
+          key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Build
+        run: pnpm run build
+        env:
+          NODE_ENV: production
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+
+      - name: Build Docker Image
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: false
+          tags: suar:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ===== SUMMARY =====
+      - name: ✅ Summary
+        run: |
+          echo "🎉 CI completed successfully!"
+          echo "📦 Image: suar:${{ github.sha }}"
+          echo "⏱️ Target: 2-3 minutes"
