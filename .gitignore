@@ -1,0 +1,62 @@
+# Dependencies and AdonisJS build
+node_modules
+build
+tmp
+
+
+# Loại trừ tài liệu
+docs/
+# Secrets and environment files
+# QUAN TRỌNG: Không bao giờ commit các file chứa thông tin nhạy cảm
+.env
+.env.local
+.env.production
+.env.production.local
+.env.development
+.env.development.local
+.env.testing
+
+# Tệp chứa các khóa và mật khẩu
+*.pem
+*.key
+*.cert
+*.crt
+
+# Frontend assets compiled code
+public/assets
+
+# Build tools specific
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+.pnpm-store/
+.npm/
+
+# Editors specific
+.fleet
+.idea
+.vscode
+
+# Platform specific
+.DS_Store
+Thumbs.db
+
+# SQL dumps và dữ liệu
+*.sql
+*.sql.gz
+suar.sql
+suar_copy
+.sql
+*.dump
+
+# Docker
+/data
+.docker-cache/
+
+# Logs
+logs/
+*.log
+
+# Old lockfiles (using pnpm-lock.yaml)
+package-lock.json
+yarn.lock
