@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title || 'ShadcnAdmin' }}</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  
+  @vite(['inertia/app/app.tsx'])
+  @inertiaHead
+
+  <style>
+    #early-error-log {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 99999;
+      font-family: monospace;
+      font-size: 13px;
+      background: #1e1e1e;
+      color: #f5f5f5;
+      max-height: 50vh;
+      overflow: auto;
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+      display: none;
+    }
+    #early-error-log .header {
+      padding: 8px 15px;
+      background: #c41e3a;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+    #early-error-log .content {
+      padding: 10px 15px;
+    }
+    #early-error-log .log-item {
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #333;
+    }
+    #early-error-log .log-message {
+      color: #ff8080;
+      margin-bottom: 4px;
+    }
+    #early-error-log .log-source {
+      color: #aaa;
+      font-size: 12px;
+    }
+    #early-error-log .log-stack {
+      white-space: pre-wrap;
+      margin-top: 5px;
+      padding: 5px;
+      background: #2d2d2d;
+      font-size: 12px;
+      max-height: 150px;
+      overflow: auto;
+      border-radius: 3px;
+    }
+    #early-error-log .actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 10px;
+    }
+    #early-error-log button {
+      background: #0d6efd;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    #early-error-log button.secondary {
+      background: #6c757d;
+    }
+    #early-error-log button.danger {
+      background: #dc3545;
+    }
+    #early-error-log .debug-info {
+      margin-top: 15px;
+      padding: 10px;
+      background: #2d2d2d;
+      border-radius: 3px;
+    }
+    #early-error-log .debug-row {
+      display: flex;
+      margin-bottom: 5px;
+    }
+    #early-error-log .debug-label {
+      width: 150px;
+      color: #aaa;
+    }
+    #early-error-log .debug-value {
+      flex: 1;
+    }
+    #early-error-log .debug-value.success {
+      color: #4caf50;
+    }
+    #early-error-log .debug-value.error {
+      color: #f44336;
+    }
+    #vite-status {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 99999;
+      padding: 5px 10px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  @inertia
+  
+  <!-- Thêm status indicator -->
+  <div id="vite-status">Vite: <span id="vite-status-text">Checking...</span></div>
+  
+  <!-- Thêm early-error-log để hiển thị lỗi không phụ thuộc vào React -->
+  <div id="early-error-log">
+    <div class="header">
+      <div>Error Console <span id="error-count">(0)</span></div>
+      <div>
+        <button id="minimize-log" style="background: transparent; border: none; color: white; padding: 0; margin: 0; cursor: pointer;">[-]</button>
+      </div>
+    </div>
+    <div class="content">
+      <div id="log-container"></div>
+      
+      <div class="debug-info">
+        <h3 style="margin-top: 0; margin-bottom: 10px; color: #ddd;">Vite/React Debug Info</h3>
+        
+        <div class="debug-row">
+          <div class="debug-label">Vite Hot Reload:</div>
+          <div id="vite-hot" class="debug-value">Checking...</div>
+        </div>
+        
+        <div class="debug-row">
+          <div class="debug-label">React Refresh:</div>
+          <div id="react-refresh" class="debug-value">Checking...</div>
+        </div>
+        
+        <div class="debug-row">
+          <div class="debug-label">React Version:</div>
+          <div id="react-version" class="debug-value">Checking...</div>
+        </div>
+        
+        <div class="debug-row">
+          <div class="debug-label">Script Count:</div>
+          <div id="script-count" class="debug-value">Checking...</div>
+        </div>
+        
+        <div class="debug-row">
+          <div class="debug-label">Detected Issue:</div>
+          <div id="detected-issue" class="debug-value">Checking...</div>
+        </div>
+      </div>
+      
+      <div class="actions">
+        <button id="reload-page">Tải lại trang</button>
+        <button id="clear-cache" class="secondary">Xóa cache & tải lại</button>
+        <button id="scan-scripts">Quét lại scripts</button>
+        <button id="restart-dev" class="danger">Khởi động lại Dev Server</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // Mảng lưu trữ lỗi
+    const errorLogs = [];
+    let errorCount = 0;
+    let isMinimized = false;
+    
+    // Hiển thị error log container
+    function showErrorLog() {
+      document.getElementById('early-error-log').style.display = 'block';
+    }
+    
+    // Thêm một lỗi vào log
+    function addErrorLog(message, source, lineno, colno, error) {
+      errorCount++;
+      const timestamp = new Date().toLocaleTimeString();
+      const logItem = document.createElement('div');
+      logItem.className = 'log-item';
+      
+      let html = `<div class="log-message">${errorCount}. ${message}</div>`;
+      
+      if (source) {
+        html += `<div class="log-source">Tại: ${source}${lineno ? `:${lineno}` : ''}${colno ? `:${colno}` : ''} (${timestamp})</div>`;
+      }
+      
+      if (error && error.stack) {
+        html += `<div class="log-stack">${error.stack}</div>`;
+      }
+      
+      logItem.innerHTML = html;
+      document.getElementById('log-container').appendChild(logItem);
+      document.getElementById('error-count').textContent = `(${errorCount})`;
+      
+      // Lưu log
+      errorLogs.push({ message, source, lineno, colno, error, timestamp });
+      
+      // Hiển thị nếu đây là lỗi đầu tiên
+      if (errorCount === 1) {
+        showErrorLog();
+      }
+      
+      // Cập nhật trạng thái Vite
+      updateViteStatus();
+      
+      return true;
+    }
+    
+    // Quét và hiển thị trạng thái Vite/React
+    function scanViteStatus() {
+      const viteHot = typeof window.__vite_hot !== 'undefined';
+      const reactRefresh = typeof window.$RefreshReg$ !== 'undefined' && typeof window.$RefreshSig$ !== 'undefined';
+      const reactVersion = window.React ? window.React.version : 'Not loaded';
+      const scriptCount = document.querySelectorAll('script').length;
+      
+      // Phát hiện vấn đề
+      let detectedIssue = 'None detected';
+      let hasVitePlugin = false;
+      
+      // Quét scripts để tìm plugin React
+      document.querySelectorAll('script').forEach(script => {
+        if (script.textContent && script.textContent.includes('@vitejs/plugin-react')) {
+          hasVitePlugin = true;
+        }
+      });
+      
+      if (!viteHot) {
+        detectedIssue = 'Vite Hot Module Replacement không hoạt động';
+      } else if (!reactRefresh) {
+        detectedIssue = 'React Refresh không hoạt động (Fast Refresh)';
+      } else if (!hasVitePlugin) {
+        detectedIssue = 'Không tìm thấy Vite React Plugin trong scripts';
+      } else if (errorLogs.some(log => log.message && log.message.includes("can't detect preamble"))) {
+        detectedIssue = 'Lỗi Preamble - Plugin React không khởi tạo đúng';
+      }
+      
+      // Cập nhật UI
+      document.getElementById('vite-hot').textContent = viteHot ? 'Active ✅' : 'Not Found ❌';
+      document.getElementById('vite-hot').className = `debug-value ${viteHot ? 'success' : 'error'}`;
+      
+      document.getElementById('react-refresh').textContent = reactRefresh ? 'Active ✅' : 'Not Found ❌';
+      document.getElementById('react-refresh').className = `debug-value ${reactRefresh ? 'success' : 'error'}`;
+      
+      document.getElementById('react-version').textContent = reactVersion;
+      document.getElementById('script-count').textContent = scriptCount.toString();
+      document.getElementById('detected-issue').textContent = detectedIssue;
+      document.getElementById('detected-issue').className = detectedIssue === 'None detected' ? 
+        'debug-value success' : 'debug-value error';
+      
+      // Cập nhật indicator
+      updateViteStatus();
+      
+      return { viteHot, reactRefresh, reactVersion, scriptCount, detectedIssue };
+    }
+    
+    // Cập nhật trạng thái Vite indicator
+    function updateViteStatus() {
+      const hasErrors = errorLogs.length > 0;
+      const viteHot = typeof window.__vite_hot !== 'undefined';
+      const reactRefresh = typeof window.$RefreshReg$ !== 'undefined';
+      
+      let status = 'Error ❌';
+      let color = '#f44336';
+      
+      if (!hasErrors && viteHot && reactRefresh) {
+        status = 'OK ✅';
+        color = '#4caf50';
+      } else if (viteHot && !reactRefresh) {
+        status = 'Partial ⚠️';
+        color = '#ff9800';
+      }
+      
+      document.getElementById('vite-status-text').textContent = status;
+      document.getElementById('vite-status').style.backgroundColor = color;
+    }
+    
+    // Bắt lỗi toàn cục
+    window.onerror = function(message, source, lineno, colno, error) {
+      return addErrorLog(message, source, lineno, colno, error);
+    };
+    
+    window.addEventListener('unhandledrejection', function(event) {
+      addErrorLog(
+        event.reason?.message || 'Unhandled Promise Rejection', 
+        'Promise', 
+        null, 
+        null, 
+        event.reason
+      );
+    });
+    
+    // Sự kiện tắt/mở log
+    document.getElementById('minimize-log').addEventListener('click', function() {
+      const content = document.querySelector('#early-error-log .content');
+      isMinimized = !isMinimized;
+      content.style.display = isMinimized ? 'none' : 'block';
+      this.textContent = isMinimized ? '[+]' : '[-]';
+    });
+    
+    // Sự kiện reload
+    document.getElementById('reload-page').addEventListener('click', function() {
+      window.location.reload();
+    });
+    
+    // Sự kiện xóa cache
+    document.getElementById('clear-cache').addEventListener('click', function() {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    });
+    
+    // Sự kiện quét script
+    document.getElementById('scan-scripts').addEventListener('click', function() {
+      scanViteStatus();
+      
+      // Tạo báo cáo chi tiết
+      let report = "=== SCRIPT SCAN REPORT ===\n\n";
+      
+      document.querySelectorAll('script').forEach((script, index) => {
+        report += `Script #${index+1}:\n`;
+        report += `Type: ${script.type || 'text/javascript'}\n`;
+        report += `Src: ${script.src || 'inline'}\n`;
+        report += `Size: ${script.textContent?.length || 0} bytes\n`;
+        
+        if (script.textContent) {
+          if (script.textContent.includes('@vitejs/plugin-react')) {
+            report += "CONTAINS VITE PLUGIN REACT ⚠️\n";
+            report += `Excerpt: ${script.textContent.substring(0, 100)}...\n`;
+          }
+          if (script.textContent.includes('$RefreshReg$')) {
+            report += "CONTAINS REACT REFRESH ✅\n";
+          }
+          if (script.textContent.includes('__vite_hot')) {
+            report += "CONTAINS VITE HOT ✅\n";
+          }
+        }
+        
+        report += "\n";
+      });
+      
+      console.log(report);
+      alert("Chi tiết script đã được log ra console. Mở DevTools để xem.");
+    });
+    
+    // Khởi động lại dev server
+    document.getElementById('restart-dev').addEventListener('click', function() {
+      fetch('/api/dev/restart', { method: 'POST' }).catch(err => {
+        console.error('Could not restart dev server:', err);
+        addErrorLog('Không thể khởi động lại dev server', 'restart', null, null, err);
+      }).finally(() => {
+        alert('Yêu cầu khởi động lại đã được gửi. Vui lòng đợi và làm mới trang sau 5-10 giây.');
+      });
+    });
+    
+    // Quét trạng thái khi trang tải
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(scanViteStatus, 500);
+      
+      // Nếu phát hiện lỗi React Plugin, hiển thị log trước
+      if (errorLogs.some(log => log.message && log.message.includes('@vitejs/plugin-react'))) {
+        showErrorLog();
+      }
+    });
+    
+    // Thêm quét định kỳ
+    setInterval(scanViteStatus, 3000);
+  </script>
+</body>
+</html> 

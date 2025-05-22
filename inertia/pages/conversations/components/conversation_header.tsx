@@ -1,0 +1,60 @@
+import React from 'react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Phone, Video, MoreVertical } from 'lucide-react'
+import { Conversation } from './types'
+import { getAvatarInitials } from '../utils/message_utils'
+
+interface ConversationHeaderProps {
+  conversation: Conversation | null
+  otherParticipant?: any
+  loggedInUserId?: string
+}
+
+export const ConversationHeader: React.FC<ConversationHeaderProps> = ({
+  conversation,
+  otherParticipant,
+  loggedInUserId
+}) => {
+  if (!conversation) return null
+
+  return (
+    <div className="p-4 border-b flex items-center justify-between bg-card">
+      <div className="flex items-center gap-3">
+        <Avatar className="h-10 w-10">
+          <AvatarImage 
+            src={otherParticipant?.avatar || ''} 
+            alt={otherParticipant?.full_name || 'Người tham gia'} 
+          />
+          <AvatarFallback>
+            {getAvatarInitials(otherParticipant?.full_name || 'Người tham gia')}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h2 className="font-semibold">
+            {otherParticipant?.full_name || 'Cuộc trò chuyện'}
+          </h2>
+          {otherParticipant?.description ? (
+            <p className="text-sm text-muted-foreground">{otherParticipant.description}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {conversation.conversation_participants.length} người tham gia
+            </p>
+          )}
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-2">
+        <Button size="icon" variant="ghost">
+          <Phone className="h-5 w-5" />
+        </Button>
+        <Button size="icon" variant="ghost">
+          <Video className="h-5 w-5" />
+        </Button>
+        <Button size="icon" variant="ghost">
+          <MoreVertical className="h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  )
+}

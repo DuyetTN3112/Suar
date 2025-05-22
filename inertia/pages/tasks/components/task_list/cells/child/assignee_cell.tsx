@@ -1,0 +1,24 @@
+import React from 'react'
+import { User } from 'lucide-react'
+
+interface AssigneeCellProps {
+  assignee?: any
+}
+
+export function AssigneeCell({ assignee }: AssigneeCellProps) {
+  return (
+    <div className="flex items-center gap-1">
+      <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+      {assignee ? (
+        <span className="text-[11px] truncate">
+          {assignee.full_name || 
+            (assignee.first_name && assignee.last_name ? 
+            `${assignee.first_name} ${assignee.last_name}` : 
+            (assignee.first_name || assignee.last_name || 'Chưa gán'))}
+        </span>
+      ) : (
+        <span className="text-[11px] text-muted-foreground">Chưa gán</span>
+      )}
+    </div>
+  )
+} 
