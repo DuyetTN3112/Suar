@@ -1,0 +1,47 @@
+import TaskStatus from '#models/task_status'
+import TaskLabel from '#models/task_label'
+import TaskPriority from '#models/task_priority'
+import { inject } from '@adonisjs/core'
+import { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+
+@inject()
+export default class GetTaskMetadata {
+  constructor(protected ctx: HttpContext) {}
+
+  async handle() {
+    const statuses = await TaskStatus.all()
+    const labels = await TaskLabel.all()
+    const priorities = await TaskPriority.all()
+    // Lấy tổ chức hiện tại từ session
+    const currentOrganizationId = this.ctx.session.get('current_organization_id')
+    if (!currentOrganizationId) {
+      throw new Error('Không tìm thấy tổ chức hiện tại, vui lòng chọn tổ chức')
+    }
+    console.log('[GetTaskMetadata] Lấy người dùng cho tổ chức:', currentOrganizationId)
+    // Lấy danh sách người dùng thuộc cùng tổ chức
+    const usersInOrg = await db
+      .from('users as u')
+      .join('organization_users as ou', 'u.id', 'ou.user_id')
+      .where('ou.organization_id', currentOrganizationId)
+      .whereNull('u.deleted_at')
+      .select('u.id', 'u.first_name', 'u.last_name', 'u.full_name')
+      .orderBy('u.full_name', 'asc')
+    console.log('[GetTaskMetadata] Tìm thấy', usersInOrg.length, 'người dùng trong tổ chức')
+    // Xử lý trường hợp full_name có thể bị null
+    const formattedUsers = usersInOrg.map((user) => {
+      return {
+        id: user.id,
+        first_name: user.first_name || '',
+        last_name: user.last_name || '',
+        full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+      }
+    })
+    return {
+      statuses,
+      labels,
+      priorities,
+      users: formattedUsers,
+    }
+  }
+}
