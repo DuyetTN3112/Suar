@@ -2,6 +2,7 @@ import React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Message } from './types'
 import { getAvatarInitials, formatMessageDate } from '../utils/message_utils'
+import useTranslation from '@/hooks/use_translation'
 
 interface MessageItemProps {
   message: Message
@@ -18,12 +19,14 @@ export const MessageItem: React.FC<MessageItemProps> = ({
   loggedInUserName,
   showSenderInfo
 }) => {
+  const { t } = useTranslation()
+  
   return (
     <div className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isOutgoing && (
         <div className="flex-shrink-0 mr-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || 'Người dùng'} />
+            <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || t('conversation.user', {}, 'Người dùng')} />
             <AvatarFallback>{message.sender?.full_name ? getAvatarInitials(message.sender.full_name) : 'UN'}</AvatarFallback>
           </Avatar>
         </div>
@@ -33,7 +36,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         {/* Hiển thị tên người gửi cho tin nhắn đến trong cuộc trò chuyện nhóm */}
         {!isOutgoing && showSenderInfo && (
           <span className="text-xs font-medium text-slate-600 mb-1 ml-1">
-            {message.sender?.full_name || 'Người dùng'}
+            {message.sender?.full_name || t('conversation.user', {}, 'Người dùng')}
           </span>
         )}
         
@@ -47,7 +50,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
             isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'
           }`}>
             {formatMessageDate(message.timestamp)}
-            {isOutgoing && ' • Bạn'}
+            {isOutgoing && ` • ${t('conversation.you', {}, 'Bạn')}`}
           </div>
         </div>
       </div>
@@ -55,8 +58,8 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       {isOutgoing && (
         <div className="flex-shrink-0 ml-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={loggedInUserAvatar || ''} alt={loggedInUserName || 'Bạn'} />
-            <AvatarFallback>{getAvatarInitials(loggedInUserName || 'Bạn')}</AvatarFallback>
+            <AvatarImage src={loggedInUserAvatar || ''} alt={loggedInUserName || t('conversation.you', {}, 'Bạn')} />
+            <AvatarFallback>{getAvatarInitials(loggedInUserName || t('conversation.you', {}, 'Bạn'))}</AvatarFallback>
           </Avatar>
         </div>
       )}

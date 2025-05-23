@@ -209,6 +209,68 @@ export default class UserController {
       return response.redirect().back()
     }
   }
+
+  /**
+   * Phê duyệt người dùng
+   */
+  async approve({ params, response, auth, session }: HttpContext) {
+    try {
+      const currentUser = auth.user!
+      const targetUserId = params.id
+      // Chỉ cho phép superadmin phê duyệt người dùng
+      const currentOrgId = currentUser.current_organization_id
+      if (!currentOrgId) {
+        throw new Error('Không tìm thấy thông tin tổ chức hiện tại')
+      }
+      // Kiểm tra người dùng hiện tại có phải superadmin trong tổ chức không
+      const isSuperAdmin = await db
+        .from('organization_users')
+        .where('organization_id', currentOrgId)
+        .where('user_id', currentUser.id)
+        .where('role_id', 1) // role_id = 1 là superadmin
+        .first()
+      if (!isSuperAdmin) {
+        throw new Error('Chỉ superadmin mới có thể phê duyệt người dùng')
+      }
+      // Cập nhật trạng thái người dùng trong tổ chức từ 'pending' thành 'approved'
+      const updated = await db
+        .from('organization_users')
+        .where('organization_id', currentOrgId)
+        .where('user_id', targetUserId)
+        .where('status', 'pending')
+        .update({
+          status: 'approved',
+          updated_at: new Date(),
+        })
+      if (!updated) {
+        throw new Error(
+          'Không tìm thấy yêu cầu phê duyệt người dùng này hoặc người dùng đã được phê duyệt'
+        )
+      }
+      // Thêm ghi chú về việc phê duyệt vào bảng audit_logs
+      try {
+        await db.table('audit_logs').insert({
+          user_id: currentUser.id,
+          action: 'approve_user',
+          entity_type: 'user',
+          entity_id: targetUserId,
+          new_values: JSON.stringify({ status: 'approved' }),
+          ip_address: '::1', // Placeholder
+          created_at: new Date(),
+        })
+      } catch (error) {
+        // Không làm gì nếu không thể ghi log
+        console.error('Không thể ghi log phê duyệt:', error)
+      }
+      return response.json({ success: true, message: 'Người dùng đã được phê duyệt thành công' })
+    } catch (error: any) {
+      return response.status(403).json({
+        success: false,
+        message: error.message || 'Có lỗi xảy ra khi phê duyệt người dùng',
+      })
+    }
+  }
+
   /**
    * Cập nhật vai trò người dùng
    */

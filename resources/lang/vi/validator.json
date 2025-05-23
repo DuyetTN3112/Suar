@@ -1,0 +1,30 @@
+{
+  "shared": {
+    "fields": {
+      "first_name": "tên",
+      "last_name": "họ",
+      "email": "email",
+      "password": "mật khẩu",
+      "password_confirmation": "xác nhận mật khẩu",
+      "username": "tên đăng nhập",
+      "title": "tiêu đề",
+      "description": "mô tả",
+      "organization_name": "tên tổ chức",
+      "role": "vai trò",
+      "status": "trạng thái",
+      "due_date": "ngày hết hạn"
+    },
+    "messages": {
+      "required": "Vui lòng nhập {field}",
+      "email": "Email phải hợp lệ",
+      "min": "{field} phải có ít nhất {min} ký tự",
+      "max": "{field} phải ít hơn {max} ký tự",
+      "confirmed": "Xác nhận {field} không khớp",
+      "unique": "{field} đã được sử dụng",
+      "exists": "{field} không tồn tại",
+      "date": "{field} phải là ngày hợp lệ",
+      "username.required": "Vui lòng chọn tên đăng nhập cho tài khoản của bạn",
+      "password.required": "Vui lòng chọn mật khẩu cho tài khoản của bạn"
+    }
+  }
+} 

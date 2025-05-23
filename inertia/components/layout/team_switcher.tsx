@@ -27,6 +27,13 @@ import { router } from '@inertiajs/react'
 import { usePage } from '@inertiajs/react'
 import { useSidebar } from '@/components/ui/sidebar'
 
+// Hàm log debug thông tin chỉ trong môi trường development
+const debugLog = (message: string, ...args: any[]) => {
+  if (window.DEBUG_MODE) {
+    console.log(message, ...args);
+  }
+};
+
 // Định nghĩa interface cho team/organization
 interface Organization {
   id?: string
@@ -69,36 +76,42 @@ export function TeamSwitcher() {
   
   // Debug chi tiết hơn
   React.useEffect(() => {
+    // Chỉ log khi ở chế độ debug
+    if (!window.DEBUG_MODE) return;
+    
     console.group('=== TeamSwitcher Debug ===')
     
-    // Log thông tin chung
-    console.log('Page Props:', page.props)
-    console.log('User Object:', page.props.user)
-    console.log('Auth Object:', page.props.user?.auth)
+    // Log thông tin chung - ẩn thông tin nhạy cảm
+    console.log('Page Props:', 'Available')
+    console.log('User Object:', page.props.user ? 'Available' : 'Not found')
+    console.log('Auth Object:', page.props.user?.auth ? 'Available' : 'Not found')
     
     if (!authUser) {
       console.error('TeamSwitcher: Không tìm thấy thông tin người dùng trong props')
-      console.log('User props dạng JSON:', JSON.stringify(page.props.user, null, 2))
     } else {
       console.log('Auth User ID:', authUser.id)
-      console.log('Auth User Data:', authUser)
+      console.log('Auth User Data:', {
+        id: authUser.id,
+        has_orgs: !!authUser.organizations,
+        org_count: authUser.organizations?.length || 0
+      })
       
       if (authUser.organizations) {
         console.log('Số lượng tổ chức:', authUser.organizations.length)
-        console.log('Danh sách tổ chức raw:', authUser.organizations)
+        console.log('Danh sách tổ chức raw:', authUser.organizations.map(org => ({
+          id: org.id,
+          name: org.name
+        })))
         
         // Hiển thị chi tiết từng tổ chức
         authUser.organizations.forEach((org, index) => {
           console.log(`Tổ chức thứ ${index + 1}:`, {
             id: org.id,
-            name: org.name,
-            logo: org.logo,
-            plan: org.plan
+            name: org.name
           })
         })
       } else {
         console.error('Thuộc tính organizations không tồn tại hoặc là undefined')
-        console.log('Cấu trúc user:', Object.keys(authUser))
       }
     }
     
@@ -120,7 +133,7 @@ export function TeamSwitcher() {
   const organizations: Organization[] = React.useMemo(() => {
     // Chỉ sử dụng dữ liệu từ backend, không dùng dữ liệu mẫu
     if (authUser?.organizations?.length) {
-      console.log('Tìm thấy', authUser.organizations.length, 'tổ chức từ backend')
+      debugLog('Tìm thấy', authUser.organizations.length, 'tổ chức từ backend')
       
       // Chuyển đổi từ dữ liệu backend sang định dạng hiển thị
       const mappedOrgs = authUser.organizations.map(org => ({
@@ -131,7 +144,7 @@ export function TeamSwitcher() {
       }))
       
       // Kiểm tra kết quả chuyển đổi
-      console.log('Sau khi mapping:', mappedOrgs)
+      debugLog('Sau khi mapping:', mappedOrgs)
       
       return mappedOrgs
     }
@@ -143,17 +156,17 @@ export function TeamSwitcher() {
   // Lấy current_organization_id từ user
   React.useEffect(() => {
     if (authUser?.current_organization_id && organizations.length > 0) {
-      console.log('Current organization ID from auth:', authUser.current_organization_id)
+      debugLog('Current organization ID from auth:', authUser.current_organization_id)
       const currentOrg = organizations.find(org => org.id === authUser.current_organization_id)
       if (currentOrg) {
-        console.log('Found current organization in list:', currentOrg)
+        debugLog('Found current organization in list:', currentOrg)
         setSelectedTeam(currentOrg)
       } else {
-        console.log('Current organization not found in list, using first organization')
+        debugLog('Current organization not found in list, using first organization')
         setSelectedTeam(organizations[0])
       }
     } else if (organizations.length > 0) {
-      console.log('No current organization set, using first organization')
+      debugLog('No current organization set, using first organization')
       setSelectedTeam(organizations[0])
     }
   }, [organizations, authUser?.current_organization_id])
@@ -165,7 +178,7 @@ export function TeamSwitcher() {
     setError(null)
     
     if (organization.id) {
-      console.log('Đang chuyển tổ chức sang:', organization.name, '(ID:', organization.id, ')', 'Kiểu dữ liệu:', typeof organization.id)
+      debugLog('Đang chuyển tổ chức sang:', organization.name, '(ID:', organization.id, ')')
       
       // Chuyển đổi id thành chuỗi trước khi gọi trim
       const orgId = String(organization.id).trim()
@@ -295,7 +308,7 @@ export function TeamSwitcher() {
             align="end"
             sideOffset={4}
           >
-            <DropdownMenuLabel>Tổ chức của bạn</DropdownMenuLabel>
+            <DropdownMenuLabel>Tổ chức</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <div className="max-h-60 overflow-y-auto">

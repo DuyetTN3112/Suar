@@ -8,12 +8,14 @@ export default class AuthController {
   /**
    * Hiển thị form đăng nhập
    */
-  async showLogin({ inertia, auth }: HttpContext) {
+  async showLogin({ inertia, auth, session }: HttpContext) {
     // Nếu đã đăng nhập, chuyển hướng về trang chủ
     if (await auth.check()) {
       return inertia.location('/')
     }
-    return inertia.render('auth/login')
+    return inertia.render('auth/login', {
+      show_organization_required_modal: session.get('show_organization_required_modal', false),
+    })
   }
 
   /**

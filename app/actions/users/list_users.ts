@@ -1,53 +1,110 @@
 import User from '#models/user'
 import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
+import OrganizationUser from '#models/organization_user'
+import db from '@adonisjs/lucid/services/db'
 
-type FilterOptions = {
+type ListUsersOptions = {
   page?: number
   limit?: number
-  role_id?: number
-  status_id?: number
   search?: string
+  role_id?: number | string
+  status_id?: number | string
   organization_id?: number
+  exclude_status_id?: number
+  organization_user_status?: 'pending' | 'approved' | 'rejected'
+  include_all?: boolean
+  exclude_organization_members?: boolean
 }
 
 @inject()
 export default class ListUsers {
   constructor(protected ctx: HttpContext) {}
 
-  async handle({ options }: { options: FilterOptions }) {
-    const page = options.page || 1
-    const limit = options.limit || 10
-    const currentUser = this.ctx.auth.user
-    const organizationId = options.organization_id || currentUser?.current_organization_id
-    const query = User.query()
-      .whereNull('deleted_at')
+  async handle({ options }: { options: ListUsersOptions }) {
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      role_id,
+      status_id,
+      organization_id,
+      exclude_status_id,
+      organization_user_status,
+      include_all = false,
+      exclude_organization_members = false
+    } = options
+
+    let query = User.query()
       .preload('role')
       .preload('status')
-      .preload('user_detail')
-      .preload('user_profile')
-    // Lọc theo tổ chức hiện tại
-    if (organizationId) {
-      query.whereHas('organization_users', (builder) => {
-        builder.where('organization_id', organizationId)
+      .whereNull('deleted_at')
+
+    if (role_id) {
+      query = query.where('role_id', role_id)
+    }
+
+    if (status_id) {
+      query = query.where('status_id', status_id)
+    }
+
+    if (exclude_status_id) {
+      query = query.whereNot('status_id', exclude_status_id)
+    }
+
+    if (search) {
+      query = query.where((q) => {
+        q.where('first_name', 'LIKE', `%${search}%`)
+          .orWhere('last_name', 'LIKE', `%${search}%`)
+          .orWhere('full_name', 'LIKE', `%${search}%`)
+          .orWhere('email', 'LIKE', `%${search}%`)
+          .orWhere('username', 'LIKE', `%${search}%`)
       })
     }
-    if (options.role_id) {
-      query.where('role_id', options.role_id)
+
+    if (organization_id) {
+      if (exclude_organization_members) {
+        query = query.whereDoesntHave('organization_users', (q) => {
+          q.where('organization_id', organization_id)
+        })
+      } else if (!include_all) {
+        query = query.whereHas('organization_users', (q) => {
+          q.where('organization_id', organization_id)
+          
+          if (organization_user_status) {
+            q.where('status', organization_user_status)
+          }
+        })
+
+        query = query.preload('organization_users', (q) => {
+          q.where('organization_id', organization_id)
+          q.preload('role')
+        })
+      }
     }
-    if (options.status_id) {
-      query.where('status_id', options.status_id)
+
+    const paginatedUsers = await query.paginate(page, limit)
+    
+    const usersData = paginatedUsers.all().map((user) => {
+      const userData = user.toJSON()
+      
+      if (!include_all && !exclude_organization_members && organization_id && 
+          userData.organization_users && userData.organization_users.length > 0) {
+        const orgUser = userData.organization_users[0]
+        userData.organization_role = orgUser.role
+      }
+      
+      return userData
+    })
+
+    return {
+      data: usersData,
+      meta: {
+        total: paginatedUsers.getMeta().total,
+        per_page: paginatedUsers.getMeta().per_page,
+        current_page: paginatedUsers.getMeta().current_page,
+        last_page: paginatedUsers.getMeta().last_page,
+      },
     }
-    if (options.search) {
-      query.where((builder) => {
-        builder
-          .where('first_name', 'LIKE', `%${options.search}%`)
-          .orWhere('last_name', 'LIKE', `%${options.search}%`)
-          .orWhere('full_name', 'LIKE', `%${options.search}%`)
-          .orWhere('email', 'LIKE', `%${options.search}%`)
-          .orWhere('username', 'LIKE', `%${options.search}%`)
-      })
-    }
-    return await query.orderBy('created_at', 'desc').paginate(page, limit)
   }
 }

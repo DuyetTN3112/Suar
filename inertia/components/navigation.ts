@@ -3,6 +3,7 @@ import * as LucideIcons from 'lucide-react'
 
 interface BaseNavItem {
   title: string
+  titleKey?: string // Khóa dịch cho tiêu đề
   badge?: string
   icon?: React.ElementType
 }
@@ -21,6 +22,7 @@ type NavItem = NavCollapsible | NavLink
 
 interface NavGroup {
   title: string
+  titleKey?: string // Khóa dịch cho tiêu đề nhóm
   items: NavItem[]
 }
 
@@ -56,19 +58,23 @@ export const defaultOrganizations = [
 const navigationData = [
   {
     title: 'Tổng quan',
+    titleKey: 'navigation.overview',
     items: [
       {
         title: 'Nhiệm vụ',
+        titleKey: 'navigation.tasks',
         url: '/tasks',
         iconName: 'CheckSquare',
       },
       {
         title: 'Tin nhắn',
+        titleKey: 'navigation.messages',
         url: '/conversations',
         iconName: 'MessageSquare',
       },
       {
         title: 'Người dùng',
+        titleKey: 'navigation.users',
         url: '/users',
         iconName: 'Users',
       },
@@ -76,39 +82,23 @@ const navigationData = [
   },
   {
     title: 'Tổ chức',
+    titleKey: 'navigation.organizations',
     items: [
       {
-        title: 'Tổ chức của bạn',
+        title: 'Tổ chức',
+        titleKey: 'navigation.organizations',
         url: '/organizations',
         iconName: 'Building',
-      },
-      {
-        title: 'Tạo tổ chức mới',
-        url: '/organizations/create',
-        iconName: 'Plus',
-      },
-    ],
-  },
-  {
-    title: 'Ứng dụng',
-    items: [
-      {
-        title: 'Tất cả ứng dụng',
-        url: '/apps',
-        iconName: 'AppWindow',
-      },
-      {
-        title: 'Danh mục',
-        url: '/app_categories',
-        iconName: 'FolderTree',
       },
     ],
   },
   {
     title: 'Cài đặt',
+    titleKey: 'navigation.settings',
     items: [
       {
         title: 'Cài đặt',
+        titleKey: 'navigation.settings',
         url: '/settings',
         iconName: 'Settings',
       },
@@ -119,6 +109,7 @@ const navigationData = [
 // Chuyển đổi dữ liệu để có icon là component thay vì string
 export const mainNavigation: NavGroup[] = navigationData.map((group) => ({
   title: group.title,
+  titleKey: group.titleKey,
   items: group.items.map((item) => ({
     ...item,
     icon: getIconByName(item.iconName as string),

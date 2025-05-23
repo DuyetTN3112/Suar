@@ -2,19 +2,22 @@
  * Types và interfaces cho chức năng list tasks
  */
 
-export type FilterOptions = {
+import Task from '#models/task'
+import type { ModelPaginatorContract } from '@adonisjs/lucid/types/model'
+
+export interface FilterOptions {
   page?: number
   limit?: number
-  status?: number
-  priority?: number
-  label?: number
+  status?: string | string[]
+  priority?: string | string[]
+  label?: string | string[]
   search?: string
-  assigned_to?: string
-  parent_task_id?: string
-  organization_id?: string
+  assigned_to?: number
+  parent_task_id?: number
+  organization_id?: number
 }
 
-export type PaginatedResponse<T> = {
+export interface PaginatedResponse<T> {
   data: T[]
   meta: {
     total: number
@@ -25,18 +28,23 @@ export type PaginatedResponse<T> = {
     next_page_url: string | null
     previous_page_url: string | null
   }
+  message?: string
 }
 
-export interface TaskPaginator {
-  all(): any[]
-  total: number
-  perPage: number
-  currentPage: number
-  lastPage: number
-  firstPage: number
-  getNextPageUrl(): string | null
-  getPreviousPageUrl(): string | null
+// Tự định nghĩa kiểu cho phù hợp
+export interface SimplePaginatorContract<T> {
+  all(): T[]
+  first(): T | null
+  last(): T | null
+  getMeta(): {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+  }
 }
+
+export type TaskPaginator = SimplePaginatorContract<Task>
 
 export interface AuthUser {
   id: number

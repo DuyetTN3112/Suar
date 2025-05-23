@@ -4,6 +4,7 @@ import ListOrganizations from '#actions/organizations/list_organizations'
 import GetOrganization from '#actions/organizations/get_organization'
 import SwitchOrganization from '#actions/organizations/switch_organization'
 import CreateOrganization from '#actions/organizations/create_organization'
+import CreateJoinRequest from '#actions/organizations/create_join_request'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 
@@ -23,11 +24,64 @@ export default class OrganizationsController {
       .where('organization_users.user_id', user.id)
       .whereNull('organizations.deleted_at')
       .select('organizations.*', 'user_roles.name as role_name', 'user_roles.id as role_id')
+    // Lấy tất cả các tổ chức trong hệ thống
+    const allOrganizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
+    // Thêm các thông tin bổ sung cho tất cả tổ chức
+    const enhancedAllOrganizations = await Promise.all(
+      allOrganizations.map(async (org) => {
+        // Lấy thông tin chủ sở hữu
+        const ownerInfo = await db
+          .from('users')
+          .where('id', org.owner_id)
+          .select('full_name')
+          .first()
+        // Đếm số lượng thành viên trong tổ chức
+        const memberCount = await db
+          .from('organization_users')
+          .where('organization_id', org.id)
+          .count('* as count')
+          .first()
+        return {
+          ...org.toJSON(),
+          // Thêm các trường thông tin bổ sung
+          founded_date: '2023', // Giả lập năm thành lập
+          owner: ownerInfo?.full_name || 'Admin',
+          employee_count: memberCount?.count || 0,
+          project_count: null, // Để null để phía client hiện "Chưa có thông tin"
+          industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
+          location: org.id % 2 === 0 ? 'Hà Nội' : 'Hồ Chí Minh',
+          id: org.id, // Thêm ID vào dữ liệu để có thể truy cập
+        }
+      })
+    )
+    // Tạo map để tra cứu nhanh thông tin tổ chức theo ID
+    const orgMap: Record<number, any> = {}
+    enhancedAllOrganizations.forEach((org) => {
+      orgMap[org.id] = org
+    })
+    // Thêm thông tin chi tiết cho tổ chức của người dùng
+    const enhancedUserOrganizations = userOrganizations.map((userOrg) => {
+      // Lấy thông tin chi tiết từ orgMap
+      const orgDetails = orgMap[userOrg.id]
+      if (orgDetails) {
+        return {
+          ...userOrg,
+          founded_date: orgDetails.founded_date,
+          owner: orgDetails.owner,
+          employee_count: orgDetails.employee_count,
+          project_count: orgDetails.project_count,
+          industry: orgDetails.industry,
+          location: orgDetails.location,
+        }
+      }
+      return userOrg
+    })
 
     // Trả về trang hiển thị danh sách tổ chức
     return inertia.render('organizations/index', {
-      organizations: userOrganizations,
+      organizations: enhancedUserOrganizations,
       currentOrganizationId: user.current_organization_id,
+      allOrganizations: enhancedAllOrganizations,
     })
   }
 
@@ -165,5 +219,169 @@ export default class OrganizationsController {
     await session.commit()
 
     return response.redirect(intendedUrl)
+  }
+
+  /**
+   * Hiển thị danh sách tất cả tổ chức trong hệ thống
+   */
+  async allOrganizations({ inertia, auth }: HttpContext) {
+    const user = auth.user!
+    // Lấy tất cả tổ chức từ database, không phụ thuộc vào người dùng hiện tại
+    const organizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
+
+    // Lấy danh sách tổ chức mà người dùng đã tham gia hoặc đã gửi yêu cầu
+    const memberships = await db
+      .from('organization_users')
+      .where('user_id', user.id)
+      .select('organization_id', 'status')
+
+    // Ánh xạ trạng thái thành viên vào danh sách tổ chức
+    const enhancedOrganizations = organizations.map((org) => {
+      const membership = memberships.find((m) => m.organization_id === org.id)
+      return {
+        ...org.toJSON(),
+        membership_status: membership ? membership.status : null,
+      }
+    })
+
+    // Trả về trang hiển thị danh sách tất cả tổ chức
+    return inertia.render('organizations/all', {
+      organizations: enhancedOrganizations,
+      currentOrganizationId: user.current_organization_id,
+    })
+  }
+
+  /**
+   * Xử lý yêu cầu tham gia tổ chức
+   */
+  async join(ctx: HttpContext) {
+    const { params, auth, session, response, request } = ctx
+    const user = auth.user!
+    const organizationId = params.id
+    const createJoinRequest = new CreateJoinRequest(ctx)
+
+    // Kiểm tra xem tổ chức có tồn tại không
+    const organization = await Organization.find(organizationId)
+    if (!organization) {
+      // Kiểm tra nếu là request API/AJAX
+      if (
+        request.accepts(['html', 'json']) === 'json' ||
+        request.header('X-Requested-With') === 'XMLHttpRequest'
+      ) {
+        return response.status(404).json({
+          success: false,
+          message: 'Tổ chức không tồn tại',
+        })
+      }
+      session.flash('error', 'Tổ chức không tồn tại')
+      return response.redirect().back()
+    }
+
+    // Kiểm tra xem người dùng đã là thành viên của tổ chức chưa
+    const existingMembership = await db
+      .from('organization_users')
+      .where('organization_id', organizationId)
+      .where('user_id', user.id)
+      .first()
+
+    if (existingMembership) {
+      // Nếu đã là thành viên hoặc đã gửi yêu cầu
+      const status = existingMembership.status
+      let message = ''
+
+      if (status === 'approved') {
+        message = 'Bạn đã là thành viên của tổ chức này'
+      } else if (status === 'pending') {
+        message = 'Yêu cầu tham gia tổ chức của bạn đang chờ được duyệt'
+      } else if (status === 'rejected') {
+        message =
+          'Yêu cầu tham gia của bạn đã bị từ chối. Bạn có thể liên hệ với quản trị viên tổ chức'
+      }
+
+      // Kiểm tra nếu là request API/AJAX
+      if (
+        request.accepts(['html', 'json']) === 'json' ||
+        request.header('X-Requested-With') === 'XMLHttpRequest'
+      ) {
+        return response.json({
+          success: false,
+          message,
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            description: organization.description,
+            logo: organization.logo,
+            website: organization.website,
+            plan: organization.plan,
+          },
+          membership: existingMembership,
+        })
+      }
+      session.flash('info', message)
+      return response.redirect().toRoute('organizations.show', { id: organizationId })
+    }
+
+    try {
+      // Tạo yêu cầu tham gia tổ chức thay vì thêm trực tiếp
+      const result = await createJoinRequest.handle({
+        organizationId: Number(organizationId),
+      })
+
+      // Kiểm tra nếu là request API/AJAX
+      if (
+        request.accepts(['html', 'json']) === 'json' ||
+        request.header('X-Requested-With') === 'XMLHttpRequest'
+      ) {
+        return response.json({
+          success: result.success,
+          message: result.message,
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            description: organization.description,
+            logo: organization.logo,
+            website: organization.website,
+            plan: organization.plan,
+          },
+          joinRequest: result.joinRequest,
+        })
+      }
+
+      session.flash(result.success ? 'success' : 'error', result.message)
+      return response.redirect().toRoute('organizations.index')
+    } catch (error) {
+      // Kiểm tra nếu là request API/AJAX
+      if (
+        request.accepts(['html', 'json']) === 'json' ||
+        request.header('X-Requested-With') === 'XMLHttpRequest'
+      ) {
+        return response.status(500).json({
+          success: false,
+          message: 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức',
+          error: error.message,
+        })
+      }
+      session.flash('error', 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức')
+      return response.redirect().back()
+    }
+  }
+
+  /**
+   * API endpoint cung cấp danh sách tổ chức
+   */
+  async apiListOrganizations({ response }: HttpContext) {
+    try {
+      // Lấy tất cả tổ chức từ database, không phụ thuộc vào người dùng hiện tại
+      const organizations = await Organization.query()
+        .whereNull('deleted_at')
+        .orderBy('id', 'asc')
+        .select('id', 'name', 'description', 'logo', 'website', 'plan')
+      return response.json(organizations)
+    } catch (error) {
+      return response.status(500).json({
+        error: 'Có lỗi xảy ra khi lấy danh sách tổ chức',
+        details: error.message,
+      })
+    }
   }
 }

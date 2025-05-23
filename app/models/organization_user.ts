@@ -14,6 +14,10 @@ export default class OrganizationUser extends BaseModel {
   declare user_id: number
   @column()
   declare role_id: number
+  @column()
+  declare status: 'pending' | 'approved' | 'rejected'
+  @column()
+  declare invited_by: number | null
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -30,6 +34,10 @@ export default class OrganizationUser extends BaseModel {
     foreignKey: 'role_id',
   })
   declare role: BelongsTo<typeof UserRole>
+  @belongsTo(() => User, {
+    foreignKey: 'invited_by',
+  })
+  declare inviter: BelongsTo<typeof User>
 }
 
 // Tạo alias cho export default để có thể import cả trực tiếp và destructuring

@@ -6,6 +6,7 @@ import { useTaskDetailForm } from './hooks/use_task_detail_form'
 import { formatDate } from '../../../utils/task_formatter'
 import { getAvatarInitials } from '../../task_detail_utils'
 import { Calendar, User } from 'lucide-react'
+import useTranslation from '@/hooks/use_translation'
 
 export interface TaskDetailInfoTabProps {
   task: Task
@@ -44,6 +45,7 @@ export function TaskDetailInfoTab({
   canDelete = false,
   completedStatusId
 }: TaskDetailInfoTabProps) {
+  const { t } = useTranslation()
   const {
     handleChange,
     handleSelectChange,
@@ -69,20 +71,20 @@ export function TaskDetailInfoTab({
     if (task.creator) {
       // Trường hợp có thông tin creator từ API
       return task.creator.full_name || 
-             task.creator.fullName || 
-             `${task.creator.first_name || task.creator.firstName || ''} ${task.creator.last_name || task.creator.lastName || ''}`.trim();
+             task.creator.full_name || 
+             `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
     } else if (creator) {
       // Trường hợp tìm được creator từ danh sách users
       return creator.full_name || `${creator.first_name} ${creator.last_name}`.trim();
     }
-    return 'Không có thông tin';
+    return t('task.no_creator_info', {}, 'Không có thông tin');
   };
   
   // Lấy initials cho avatar
   const getCreatorInitials = () => {
     if (task.creator) {
-      const fullName = task.creator.full_name || task.creator.fullName || 
-                       `${task.creator.first_name || task.creator.firstName || ''} ${task.creator.last_name || task.creator.lastName || ''}`.trim();
+      const fullName = task.creator.full_name || task.creator.full_name || 
+                       `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
       return getAvatarInitials(fullName);
     } else if (creator) {
       return getAvatarInitials(creator.full_name || `${creator.first_name} ${creator.last_name}`);
@@ -107,7 +109,7 @@ export function TaskDetailInfoTab({
         <div className="bg-muted/30 p-3 rounded-md">
           <div className="flex items-center mb-2">
             <User className="h-4 w-4 mr-2 text-muted-foreground" />
-            <p className="text-xs font-medium text-muted-foreground">Người tạo</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('task.created_by', {}, 'Người tạo')}</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-xs">
@@ -123,7 +125,7 @@ export function TaskDetailInfoTab({
         <div className="bg-muted/30 p-3 rounded-md">
           <div className="flex items-center mb-2">
             <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-            <p className="text-xs font-medium text-muted-foreground">Ngày tạo</p>
+            <p className="text-xs font-medium text-muted-foreground">{t('task.created_at', {}, 'Ngày tạo')}</p>
           </div>
           <p className="text-sm">{formatDate(task.created_at)}</p>
         </div>

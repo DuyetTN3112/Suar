@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Search } from 'lucide-react'
+import useTranslation from '@/hooks/use_translation'
 
 interface TasksFiltersProps {
   filters: {
@@ -50,6 +51,7 @@ export function TasksFilters({
   activeTab,
   children
 }: TasksFiltersProps) {
+  const { t } = useTranslation()
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
   
   // Xử lý debounce cho search query
@@ -87,7 +89,7 @@ export function TasksFilters({
           <div className="flex items-center gap-2">
             <div className="relative">
               <Input
-                placeholder="Tìm nhiệm vụ..."
+                placeholder={t('task.search', {}, 'Tìm nhiệm vụ...')}
                 value={debouncedQuery}
                 onChange={handleSearchChange}
                 onKeyUp={handleKeyPress}
@@ -102,19 +104,19 @@ export function TasksFilters({
             </div>
             
             <TabsList className="h-7">
-              <TabsTrigger value="all" className="text-xs px-3 py-0.5">Tất cả</TabsTrigger>
-              <TabsTrigger value="pending" className="text-xs px-3 py-0.5">Đang chờ</TabsTrigger>
-              <TabsTrigger value="completed" className="text-xs px-3 py-0.5">Đã hoàn thành</TabsTrigger>
+              <TabsTrigger value="all" className="text-xs px-3 py-0.5">{t('common.all', {}, 'Tất cả')}</TabsTrigger>
+              <TabsTrigger value="pending" className="text-xs px-3 py-0.5">{t('task.status_todo', {}, 'Đang chờ')}</TabsTrigger>
+              <TabsTrigger value="completed" className="text-xs px-3 py-0.5">{t('task.status_done', {}, 'Đã hoàn thành')}</TabsTrigger>
             </TabsList>
           </div>
           
           <div className="flex gap-2">
             <Select value={selectedStatus} onValueChange={onStatusChange}>
               <SelectTrigger className="w-[120px] h-7 text-xs">
-                <SelectValue placeholder="Trạng thái" />
+                <SelectValue placeholder={t('task.status', {}, 'Trạng thái')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="all">{t('common.all', {}, 'Tất cả')}</SelectItem>
                 {metadata.statuses.map((status) => (
                   <SelectItem key={status.id} value={status.id.toString()}>
                     {status.name}
@@ -125,10 +127,10 @@ export function TasksFilters({
             
             <Select value={selectedPriority} onValueChange={onPriorityChange}>
               <SelectTrigger className="w-[120px] h-7 text-xs">
-                <SelectValue placeholder="Ưu tiên" />
+                <SelectValue placeholder={t('task.priority', {}, 'Ưu tiên')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="all">{t('common.all', {}, 'Tất cả')}</SelectItem>
                 {metadata.priorities.map((priority) => (
                   <SelectItem key={priority.id} value={priority.id.toString()}>
                     {priority.name}

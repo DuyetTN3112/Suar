@@ -7,6 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import useTranslation from '@/hooks/use_translation'
 
 interface TaskFormMetadataFieldsProps {
   formData: {
@@ -32,17 +33,19 @@ export function TaskFormMetadataFields({
   labels,
   users
 }: TaskFormMetadataFieldsProps) {
+  const { t } = useTranslation()
+  
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="status_id">Trạng thái</Label>
+          <Label htmlFor="status_id">{t('task.status', {}, 'Trạng thái')}</Label>
           <Select
             value={formData.status_id}
             onValueChange={(value) => handleSelectChange('status_id', value)}
           >
             <SelectTrigger id="status_id">
-              <SelectValue placeholder="Chọn trạng thái" />
+              <SelectValue placeholder={t('task.select_status', {}, 'Chọn trạng thái')} />
             </SelectTrigger>
             <SelectContent>
               {statuses.map((status) => (
@@ -58,13 +61,13 @@ export function TaskFormMetadataFields({
         </div>
         
         <div className="grid gap-2">
-          <Label htmlFor="priority_id">Mức độ ưu tiên</Label>
+          <Label htmlFor="priority_id">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
           <Select
             value={formData.priority_id}
             onValueChange={(value) => handleSelectChange('priority_id', value)}
           >
             <SelectTrigger id="priority_id">
-              <SelectValue placeholder="Chọn mức độ ưu tiên" />
+              <SelectValue placeholder={t('task.select_priority', {}, 'Chọn mức độ ưu tiên')} />
             </SelectTrigger>
             <SelectContent>
               {priorities.map((priority) => (
@@ -82,13 +85,13 @@ export function TaskFormMetadataFields({
       
       <div className="grid grid-cols-1 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="label_id">Nhãn</Label>
+          <Label htmlFor="label_id">{t('task.label', {}, 'Nhãn')}</Label>
           <Select
             value={formData.label_id}
             onValueChange={(value) => handleSelectChange('label_id', value)}
           >
             <SelectTrigger id="label_id">
-              <SelectValue placeholder="Chọn nhãn" />
+              <SelectValue placeholder={t('task.select_label', {}, 'Chọn nhãn')} />
             </SelectTrigger>
             <SelectContent>
               {labels.map((label) => (
@@ -105,13 +108,13 @@ export function TaskFormMetadataFields({
       </div>
       
       <div className="grid gap-2">
-        <Label htmlFor="assigned_to">Người thực hiện</Label>
+        <Label htmlFor="assigned_to">{t('task.assigned_to', {}, 'Người thực hiện')}</Label>
         <Select
           value={formData.assigned_to}
           onValueChange={(value) => handleSelectChange('assigned_to', value)}
         >
           <SelectTrigger id="assigned_to">
-            <SelectValue placeholder="Phân công cho" />
+            <SelectValue placeholder={t('task.select_assignee_short', {}, 'Phân công cho')} />
           </SelectTrigger>
           <SelectContent>
             {users.map((user) => (

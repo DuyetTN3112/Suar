@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Building, Mail, MapPin, Phone, Globe, Calendar } from 'lucide-react'
 import AppLayout from '@/layouts/app_layout'
 import { formatDate } from '@/lib/utils'
+import { usePage } from '@inertiajs/react'
 
 interface Organization {
   id: number
@@ -42,6 +43,8 @@ interface Props {
 export default function OrganizationDetail({ organization, members, userRole }: Props) {
   // Check if user has admin permissions (role_id 1 = admin, 2 = manager)
   const isAdmin = userRole === 1 || userRole === 2
+  // Kiểm tra nếu người dùng là superadmin của tổ chức
+  const isSuperAdmin = userRole === 1
 
   return (
     <>
@@ -148,7 +151,7 @@ export default function OrganizationDetail({ organization, members, userRole }: 
                             <TableHead>Tên</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Vai trò</TableHead>
-                            {isAdmin && <TableHead className="w-[100px]">Thao tác</TableHead>}
+                            {isSuperAdmin && <TableHead className="w-[100px]">Thao tác</TableHead>}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -160,7 +163,7 @@ export default function OrganizationDetail({ organization, members, userRole }: 
                               </TableCell>
                               <TableCell>{member.email}</TableCell>
                               <TableCell>{member.role_name}</TableCell>
-                              {isAdmin && (
+                              {isSuperAdmin && (
                                 <TableCell>
                                   <Button
                                     variant="ghost"

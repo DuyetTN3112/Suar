@@ -7,9 +7,15 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import AuthLayout from '@/layouts/auth_layout'
+import useTranslation from '@/hooks/use_translation'
 
 export default function Login() {
-  const { data, setData, post, processing, errors } = useForm({
+  const { t } = useTranslation()
+  const { data, setData, post, processing, errors } = useForm<{
+    email: string;
+    password: string;
+    remember: boolean;
+  }>({
     email: '',
     password: '',
     remember: false,
@@ -22,12 +28,12 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      <Head title="Đăng nhập" />
+      <Head title={t('auth.login', {}, 'Đăng nhập')} />
       <Card className="mx-auto w-full">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">Đăng nhập</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">{t('auth.login', {}, 'Đăng nhập')}</CardTitle>
           <CardDescription className="text-center">
-            Nhập thông tin đăng nhập của bạn để truy cập hệ thống
+            {t('auth.login_description', {}, 'Nhập thông tin đăng nhập của bạn để truy cập hệ thống')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -57,7 +63,7 @@ export default function Login() {
               </div>
               <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-background px-2 text-muted-foreground">
-                  Hoặc đăng nhập bằng email
+                  {t('auth.or_login_with_email', {}, 'Hoặc đăng nhập bằng email')}
                 </span>
               </div>
             </div>
@@ -77,7 +83,7 @@ export default function Login() {
                 )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Mật khẩu</Label>
+                <Label htmlFor="password">{t('auth.password', {}, 'Mật khẩu')}</Label>
                 <Input
                   id="password"
                   type="password"
@@ -90,26 +96,24 @@ export default function Login() {
                 )}
                 <div className="flex justify-end">
                   <a href="/forgot-password" className="text-sm text-primary hover:underline">
-                    Quên mật khẩu?
+                    {t('auth.forgot_password', {}, 'Quên mật khẩu?')}
                   </a>
                 </div>
               </div>
               <div className="flex items-center space-x-2">
-                <Checkbox
+                <input
+                  type="checkbox"
                   id="remember"
                   checked={data.remember}
-                  onCheckedChange={(checked) => {
-                    if (typeof checked === 'boolean') {
-                      setData('remember', checked)
-                    }
-                  }}
+                  onChange={(e) => setData('remember', e.target.checked)}
+                  className="h-4 w-4 rounded-sm border border-primary"
                 />
                 <Label htmlFor="remember" className="text-sm font-medium">
-                  Ghi nhớ đăng nhập
+                  {t('auth.remember_me', {}, 'Ghi nhớ đăng nhập')}
                 </Label>
               </div>
               <Button type="submit" className="w-full" disabled={processing}>
-                {processing ? 'Đang xử lý...' : 'Đăng nhập'}
+                {processing ? t('auth.processing', {}, 'Đang xử lý...') : t('auth.login', {}, 'Đăng nhập')}
               </Button>
             </form>
           </div>
@@ -117,7 +121,7 @@ export default function Login() {
         <CardFooter className="flex justify-center">
           <div className="text-center text-sm">
             <a href="/register" className="text-primary hover:underline">
-              Chưa có tài khoản? Đăng ký
+              {t('auth.no_account_register', {}, 'Chưa có tài khoản? Đăng ký')}
             </a>
           </div>
         </CardFooter>

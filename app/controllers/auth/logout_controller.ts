@@ -20,7 +20,10 @@ export default class LogoutController {
       // Đăng xuất
       if (auth.isAuthenticated) {
         await auth.use('web').logout()
+        // Xóa các biến session liên quan
         session.forget('auth')
+        session.forget('show_organization_required_modal')
+        session.forget('intended_url')
         // Đặt message thành công
         session.flash('success', 'Đã đăng xuất thành công')
       }

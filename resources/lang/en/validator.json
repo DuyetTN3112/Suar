@@ -1,0 +1,30 @@
+{
+  "shared": {
+    "fields": {
+      "first_name": "first name",
+      "last_name": "last name",
+      "email": "email",
+      "password": "password",
+      "password_confirmation": "password confirmation",
+      "username": "username",
+      "title": "title",
+      "description": "description",
+      "organization_name": "organization name",
+      "role": "role",
+      "status": "status",
+      "due_date": "due date"
+    },
+    "messages": {
+      "required": "Enter {field}",
+      "email": "The email must be valid",
+      "min": "The {field} must be at least {min} characters",
+      "max": "The {field} must be less than {max} characters",
+      "confirmed": "The {field} confirmation does not match",
+      "unique": "The {field} is already taken",
+      "exists": "The {field} does not exist",
+      "date": "The {field} must be a valid date",
+      "username.required": "Choose a username for your account",
+      "password.required": "Choose a password for your account"
+    }
+  }
+} 

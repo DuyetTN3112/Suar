@@ -32,4 +32,4 @@ export default class PasswordResetToken extends BaseModel {
   get isValid() {
     return this.expires_at > DateTime.now()
   }
-} 
+}

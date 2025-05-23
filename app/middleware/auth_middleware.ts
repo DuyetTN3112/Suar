@@ -4,6 +4,19 @@ import type { Authenticators } from '@adonisjs/auth/types'
 import env from '#start/env'
 
 /**
+ * Định nghĩa kiểu dữ liệu cho OrganizationUser
+ */
+interface OrganizationUser {
+  id: number
+  organization_id: number
+  user_id: number
+  role?: {
+    id: number
+    name: string
+  }
+}
+
+/**
  * Middleware kiểm tra người dùng đã đăng nhập hay chưa
  * Sử dụng middleware này cho các route cần xác thực
  */
@@ -66,6 +79,16 @@ export default class AuthMiddleware {
         // Lấy current_organization_id từ session hoặc từ model user
         const currentOrganizationId =
           ctx.session.get('current_organization_id') || ctx.auth.user.current_organization_id
+
+        // Nếu có current_organization_id, load thêm thông tin về vai trò trong tổ chức hiện tại
+        let organizationUsers: any[] = []
+        if (currentOrganizationId) {
+          await ctx.auth.user.load('organization_users', (query) => {
+            query.where('organization_id', currentOrganizationId).preload('role')
+          })
+          organizationUsers = ctx.auth.user.organization_users || []
+        }
+
         // Chia sẻ thông tin người dùng với inertia
         ctx.inertia?.share({
           auth: {
@@ -80,6 +103,7 @@ export default class AuthMiddleware {
               role: ctx.auth.user.role?.serialize(),
               isAdmin,
               current_organization_id: currentOrganizationId,
+              organization_users: organizationUsers,
               organizations: ctx.auth.user.organizations?.map((org) => ({
                 id: org.id,
                 name: org.name,

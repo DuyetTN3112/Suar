@@ -1,7 +1,8 @@
 import React from 'react'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import useTranslation from '@/hooks/use_translation'
 
 interface TaskFormBasicFieldsProps {
   formData: {
@@ -17,16 +18,20 @@ export function TaskFormBasicFields({
   handleChange,
   errors
 }: TaskFormBasicFieldsProps) {
+  const { t } = useTranslation()
+  
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="title">Tiêu đề</Label>
+        <Label htmlFor="title">{t('task.title', {}, 'Tiêu đề')}</Label>
         <Input
           id="title"
           name="title"
           value={formData.title}
           onChange={handleChange}
-          placeholder="Nhập tiêu đề nhiệm vụ"
+          placeholder={t('task.enter_title', {}, 'Nhập tiêu đề nhiệm vụ')}
+          className={errors.title ? 'border-red-500' : ''}
+          autoFocus
         />
         {errors.title && (
           <p className="text-xs text-red-500">{errors.title}</p>
@@ -34,18 +39,15 @@ export function TaskFormBasicFields({
       </div>
       
       <div className="grid gap-2">
-        <Label htmlFor="description">Mô tả</Label>
+        <Label htmlFor="description">{t('task.description', {}, 'Mô tả')}</Label>
         <Textarea
           id="description"
           name="description"
           value={formData.description}
           onChange={handleChange}
-          placeholder="Mô tả chi tiết về nhiệm vụ"
+          placeholder={t('task.enter_description', {}, 'Nhập mô tả chi tiết cho nhiệm vụ này')}
           rows={3}
         />
-        {errors.description && (
-          <p className="text-xs text-red-500">{errors.description}</p>
-        )}
       </div>
     </>
   )

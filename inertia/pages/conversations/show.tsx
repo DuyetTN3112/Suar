@@ -7,11 +7,13 @@ import { groupMessagesByDate } from './utils/message_utils'
 import { ConversationHeader } from './components/conversation_header'
 import { MessageGroupComponent } from './components/message_group'
 import { MessageInput } from './components/message_input'
+import useTranslation from '@/hooks/use_translation'
 
 export default function ShowConversation({ conversation, messages, pagination, currentUser }: ConversationProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesStartRef = useRef<HTMLDivElement>(null)
   const auth = (window as any).auth || {}
   const loggedInUserFromWindow = auth?.user || null
+  const { t } = useTranslation()
   
   // Ưu tiên sử dụng currentUser từ props, nếu không có thì dùng từ window
   const loggedInUser = currentUser || loggedInUserFromWindow || null
@@ -24,9 +26,22 @@ export default function ShowConversation({ conversation, messages, pagination, c
     }
   }, [loggedInUser])
 
-  // Cuộn xuống tin nhắn mới nhất
+  // Thêm hàm refreshMessages vào window để component MessageInput có thể gọi
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    window.refreshMessages = () => {
+      // Gọi API để làm mới tin nhắn
+      router.reload({ only: ['messages', 'pagination'] })
+    }
+    
+    // Dọn dẹp khi component unmount
+    return () => {
+      window.refreshMessages = undefined
+    }
+  }, [])
+
+  // Cuộn lên tin nhắn mới nhất (trên cùng)
+  useEffect(() => {
+    messagesStartRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
   const loadMoreMessages = () => {
@@ -57,29 +72,21 @@ export default function ShowConversation({ conversation, messages, pagination, c
 
   return (
     <>
-      <Head title={`Tin nhắn - ${conversationName}`} />
+      <Head title={`${t('conversation.messages', {}, 'Tin nhắn')} - ${conversationName}`} />
       
-      <div className="flex flex-col h-[calc(100vh-64px)]">
-        {/* Header */}
+      <div className="h-[calc(100vh-6rem)] flex flex-col">
         <ConversationHeader 
           conversation={conversation} 
           loggedInUserId={loggedInUserId}
           otherParticipant={otherParticipant}
         />
-
-        {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {pagination.hasMore && (
-            <div className="flex justify-center mb-4">
-              <Button variant="outline" onClick={loadMoreMessages} size="sm">
-                Tải thêm tin nhắn
-              </Button>
-            </div>
-          )}
-
-          {messageGroups.map((group, groupIndex) => (
+        
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div ref={messagesStartRef} />
+          
+          {messageGroups.map((group) => (
             <MessageGroupComponent 
-              key={groupIndex} 
+              key={group.date} 
               group={group}
               loggedInUserId={loggedInUserId}
               loggedInUser={loggedInUser}
@@ -87,14 +94,19 @@ export default function ShowConversation({ conversation, messages, pagination, c
             />
           ))}
           
-          <div ref={messagesEndRef} />
+          {pagination.hasMore && (
+            <div className="flex justify-center mt-4">
+              <Button variant="outline" onClick={loadMoreMessages} size="sm">
+                {t('conversation.load_more', {}, 'Tải thêm tin nhắn')}
+              </Button>
+            </div>
+          )}
         </div>
-
-        {/* Message input */}
+        
         <MessageInput conversationId={conversation.id} />
       </div>
     </>
   )
 }
 
-ShowConversation.layout = (page: React.ReactNode) => <AppLayout title="Tin nhắn">{page}</AppLayout> 
+ShowConversation.layout = (page: React.ReactNode) => <AppLayout title={useTranslation().t('conversation.messages', {}, 'Tin nhắn')}>{page}</AppLayout> 

@@ -14,7 +14,7 @@ import AuditLog from '#models/audit_log'
 export default class TasksController {
   @inject()
   async index(
-    { request, inertia }: HttpContext,
+    { request, inertia, session }: HttpContext,
     listTasksWithPermissions: ListTasksWithPermissions,
     getTaskMetadata: GetTaskMetadata
   ) {
@@ -36,13 +36,38 @@ export default class TasksController {
       assigned_to: assignedTo,
       parent_task_id: parentTaskId,
     }
-    const tasks = await listTasksWithPermissions.handle(filters)
-    const metadata = await getTaskMetadata.handle()
-    return inertia.render('tasks/index', {
-      tasks,
-      metadata,
-      filters,
-    })
+    try {
+      const tasks = await listTasksWithPermissions.handle(filters)
+      const metadata = await getTaskMetadata.handle()
+      // Kiểm tra nếu có thông báo từ action
+      if ('message' in tasks) {
+        session.flash('info', tasks.message)
+      }
+      return inertia.render('tasks/index', {
+        tasks,
+        metadata,
+        filters,
+      })
+    } catch (error) {
+      console.error('Error loading tasks:', error)
+      session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
+      return inertia.render('tasks/index', {
+        tasks: {
+          data: [],
+          meta: {
+            total: 0,
+            per_page: limit,
+            current_page: page,
+            last_page: 0,
+            first_page: 1,
+            next_page_url: null,
+            previous_page_url: null,
+          },
+        },
+        metadata: await getTaskMetadata.handle().catch(() => ({})),
+        filters,
+      })
+    }
   }
 
   @inject()

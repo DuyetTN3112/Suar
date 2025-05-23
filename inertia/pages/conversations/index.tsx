@@ -6,10 +6,12 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { formatDistance, format } from 'date-fns'
-import { vi } from 'date-fns/locale'
+import { vi, enUS } from 'date-fns/locale'
 import { Input } from '@/components/ui/input'
-import { Search, MessageSquare, Phone, Video, MoreVertical, Send, Loader2 } from 'lucide-react'
+import { Search, MessageSquare, Phone, Video, MoreVertical, Send, Loader2, Plus } from 'lucide-react'
 import axios from 'axios'
+import useTranslation from '@/hooks/use_translation'
+import CreateConversationDialog from './components/create_conversation_dialog'
 
 interface Participant {
   id: string
@@ -67,8 +69,9 @@ export default function Conversations({ conversations }: ConversationsProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [hasMore, setHasMore] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const messagesStartRef = useRef<HTMLDivElement>(null)
   const loggedInUserId = (window as any).auth?.user?.id || ''
+  const { t, locale } = useTranslation()
   
   const hasConversations = conversations?.data && conversations.data.length > 0
 
@@ -109,8 +112,10 @@ export default function Conversations({ conversations }: ConversationsProps) {
   }, [selectedId])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    if (messages.length > 0) {
+      messagesStartRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [messages.length])
 
   const loadConversation = async (conversationId: string) => {
     setIsLoading(true)
@@ -158,8 +163,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
               }
               
               return true;
-            })
-            .reverse();
+            });
         } else if (response.data.messages.data && Array.isArray(response.data.messages.data)) {
           // Kiểm tra tính hợp lệ của mỗi tin nhắn
           messagesData = [...response.data.messages.data]
@@ -178,8 +182,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
               }
               
               return true;
-            })
-            .reverse();
+            });
         }
         
         console.log('Dữ liệu tin nhắn sẽ hiển thị:', messagesData.map((m: Message) => ({id: m.id, timestamp: m.timestamp})));
@@ -237,23 +240,6 @@ export default function Conversations({ conversations }: ConversationsProps) {
     }
   }
 
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedId || !newMessage.trim()) return
-    
-    try {
-      await axios.post(`/api/conversations/${selectedId}/messages`, {
-        message: newMessage
-      })
-      
-      // Làm mới tin nhắn sau khi gửi
-      loadConversation(selectedId)
-      setNewMessage('')
-    } catch (error) {
-      console.error('Không thể gửi tin nhắn:', error)
-    }
-  }
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     router.get('/conversations', { search: searchQuery }, { preserveState: true })
@@ -287,7 +273,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
     try {
       if (!dateString) {
         console.warn('formatDate: Chuỗi thời gian rỗng');
-        return 'Không xác định';
+        return t('conversation.date_unknown', {}, 'Không xác định');
       }
       
       const date = new Date(dateString);
@@ -295,16 +281,19 @@ export default function Conversations({ conversations }: ConversationsProps) {
       // Kiểm tra xem date có hợp lệ không
       if (isNaN(date.getTime())) {
         console.warn('formatDate: Chuỗi thời gian không hợp lệ:', dateString);
-        return 'Không xác định';
+        return t('conversation.date_unknown', {}, 'Không xác định');
       }
+      
+      // Chọn ngôn ngữ phù hợp với locale hiện tại
+      const dateLocale = locale === 'vi' ? vi : enUS;
       
       return formatDistance(date, new Date(), {
         addSuffix: true,
-        locale: vi,
+        locale: dateLocale,
       });
     } catch (error) {
       console.error('formatDate: Lỗi xử lý thời gian:', error, dateString);
-      return 'Không xác định';
+      return t('conversation.date_unknown', {}, 'Không xác định');
     }
   }
 
@@ -312,7 +301,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
     try {
       if (!dateString) {
         console.warn('formatMessageDate: Chuỗi thời gian rỗng');
-        return 'Không xác định';
+        return t('conversation.date_unknown', {}, 'Không xác định');
       }
       
       const date = new Date(dateString);
@@ -320,13 +309,13 @@ export default function Conversations({ conversations }: ConversationsProps) {
       // Kiểm tra xem date có hợp lệ không
       if (isNaN(date.getTime())) {
         console.warn('formatMessageDate: Chuỗi thời gian không hợp lệ:', dateString);
-        return 'Không xác định';
+        return t('conversation.date_unknown', {}, 'Không xác định');
       }
       
       return format(date, 'HH:mm');
     } catch (error) {
       console.error('formatMessageDate: Lỗi xử lý thời gian:', error, dateString);
-      return 'Không xác định';
+      return t('conversation.date_unknown', {}, 'Không xác định');
     }
   }
 
@@ -386,286 +375,328 @@ export default function Conversations({ conversations }: ConversationsProps) {
   const messageGroups = groupMessagesByDate(messages)
   const otherParticipant = getOtherParticipant()
 
+  // Sau khi đã khai báo loadConversation, thêm useEffect vào sau đây
+  useEffect(() => {
+    window.refreshMessages = () => {
+      if (selectedId) {
+        loadConversation(selectedId)
+      }
+    }
+    
+    // Dọn dẹp khi component unmount
+    return () => {
+      window.refreshMessages = undefined
+    }
+  }, [selectedId])
+
   return (
     <>
-      <Head title="Tin nhắn" />
-      <div className="flex h-[calc(100vh-64px)]">
-        {/* Left sidebar - Conversations list */}
-        <div className="w-[350px] border-r flex flex-col">
-          <div className="p-4 border-b">
-            <div className="flex items-center justify-between mb-4">
-              <h1 className="text-xl font-bold">Hộp thư</h1>
-              <Button 
-                size="icon" 
-                variant="ghost"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  router.visit('/conversations/create', { preserveState: false });
-                }}
-              >
-                <MessageSquare className="h-5 w-5" />
+      <Head title={t('conversations.title', {}, 'Hội thoại')} />
+      <div className="container py-6">
+        <div className="flex justify-between mb-6 items-center">
+          <h1 className="text-3xl font-bold">{t('conversations.title', {}, 'Hội thoại')}</h1>
+          <CreateConversationDialog 
+            trigger={
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                {t('conversation.create_new', {}, 'Tạo cuộc trò chuyện mới')}
               </Button>
-            </div>
-            <form onSubmit={handleSearch}>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            }
+          />
+        </div>
+        
+        <div className="grid md:grid-cols-[300px_1fr] gap-6">
+          {/* Danh sách cuộc trò chuyện */}
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+              <form onSubmit={handleSearch}>
                 <Input
-                  type="search"
-                  placeholder="Tìm kiếm đoạn chat..."
-                  className="pl-8"
+                  placeholder={t('conversations.search', {}, 'Tìm kiếm cuộc trò chuyện...')}
+                  className="pl-9"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </div>
-            </form>
-          </div>
+              </form>
+            </div>
 
-          <div className="flex-1 overflow-y-auto">
-            {!hasConversations ? (
-              <div className="p-4 text-center text-muted-foreground">
-                Chưa có cuộc trò chuyện nào
-              </div>
-            ) : (
-              <div>
-                {conversations.data.map((conversation) => (
-                  <div 
-                    key={conversation.id}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setSelectedId(conversation.id);
-                      loadConversation(conversation.id);
-                    }}
-                    className={`p-4 hover:bg-muted/50 transition-colors flex items-center gap-3 cursor-pointer ${
-                      selectedId === conversation.id ? 'bg-muted/50' : ''
-                    }`}
-                  >
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src="" alt={getConversationName(conversation)} />
-                      <AvatarFallback>
-                        {getAvatarInitials(getConversationName(conversation))}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">{getConversationName(conversation)}</h3>
-                        <span className="text-xs text-muted-foreground">
-                          {conversation.updated_at && formatDate(conversation.updated_at)}
-                        </span>
-                      </div>
+            <div className="flex-1 overflow-y-auto">
+              {!hasConversations ? (
+                <div className="p-4 text-center text-muted-foreground">
+                  {t('conversation.no_conversations', {}, 'Chưa có cuộc trò chuyện nào')}
+                </div>
+              ) : (
+                <div>
+                  {conversations.data.map((conversation) => (
+                    <div 
+                      key={conversation.id}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setSelectedId(conversation.id);
+                        loadConversation(conversation.id);
+                      }}
+                      className={`p-4 hover:bg-muted/50 transition-colors flex items-center gap-3 cursor-pointer ${
+                        selectedId === conversation.id ? 'bg-muted/50' : ''
+                      }`}
+                    >
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src="" alt={getConversationName(conversation)} />
+                        <AvatarFallback>
+                          {getAvatarInitials(getConversationName(conversation))}
+                        </AvatarFallback>
+                      </Avatar>
                       
-                      <div className="flex items-center justify-between mt-1">
-                        <p className="text-sm text-muted-foreground truncate">
-                          {conversation.conversation_participants.length > 2 
-                            ? `${conversation.conversation_participants.length} người tham gia` 
-                            : ''}
-                        </p>
-                        {conversation.$extras && conversation.$extras.unreadCount > 0 && (
-                          <Badge variant="destructive" className="rounded-full">
-                            {conversation.$extras.unreadCount}
-                          </Badge>
-                        )}
+                      <div className="flex-1 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-medium truncate">{getConversationName(conversation)}</h3>
+                          <span className="text-xs text-muted-foreground">
+                            {conversation.updated_at && formatDate(conversation.updated_at)}
+                          </span>
+                        </div>
+                        
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-sm text-muted-foreground truncate">
+                            {conversation.conversation_participants.length > 2 
+                              ? t('conversation.participant_count', { count: conversation.conversation_participants.length }, `${conversation.conversation_participants.length} người tham gia`) 
+                              : ''}
+                          </p>
+                          {conversation.$extras && conversation.$extras.unreadCount > 0 && (
+                            <Badge variant="destructive" className="rounded-full">
+                              {conversation.$extras.unreadCount}
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                     </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right section - Chat view */}
+          <div className="flex-1 flex flex-col">
+            {selectedId && selectedConversation ? (
+              <div className="flex-1 flex flex-col">
+                {/* Chat header */}
+                <div className="p-4 border-b flex items-center justify-between bg-card">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage 
+                        src={otherParticipant?.avatar || ''} 
+                        alt={otherParticipant?.full_name || getConversationName(selectedConversation)} 
+                      />
+                      <AvatarFallback>
+                        {getAvatarInitials(otherParticipant?.full_name || getConversationName(selectedConversation))}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <h2 className="font-semibold">
+                        {otherParticipant?.full_name || getConversationName(selectedConversation)}
+                      </h2>
+                      {otherParticipant?.description ? (
+                        <p className="text-sm text-muted-foreground">{otherParticipant.description}</p>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">
+                          {t('conversation.participant_count', { count: selectedConversation.conversation_participants.length }, `${selectedConversation.conversation_participants.length} người tham gia`)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                ))}
+                  <div className="flex items-center gap-2">
+                    <Button size="icon" variant="ghost" title={t('conversation.call', {}, 'Gọi điện')}>
+                      <Phone className="h-5 w-5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" title={t('conversation.video_call', {}, 'Gọi video')}>
+                      <Video className="h-5 w-5" />
+                    </Button>
+                    <Button size="icon" variant="ghost" title={t('common.more', {}, 'Thêm')}>
+                      <MoreVertical className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Chat messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                  {isLoading && messages.length === 0 ? (
+                    <div className="flex justify-center items-center h-full">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : (
+                    <>
+                      <div ref={messagesStartRef} />
+                      
+                      {messageGroups.map((group, groupIndex) => (
+                        <div key={groupIndex} className="space-y-4">
+                          <div className="flex items-center justify-center my-4">
+                            <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
+                              {group.date}
+                            </div>
+                          </div>
+
+                          {group.messages.map((message) => {
+                            try {
+                              // Kiểm tra dữ liệu tin nhắn trước khi render
+                              if (!message.id || !message.sender_id) {
+                                console.warn('Tin nhắn thiếu thông tin cần thiết:', message);
+                                return null; // Bỏ qua tin nhắn không đủ thông tin
+                              }
+                              
+                              // Sử dụng is_current_user từ backend nếu có, nếu không có thì so sánh sender_id
+                              const isOutgoing = message.is_current_user === true || message.sender_id === loggedInUserId;
+                              
+                              // Xác định xem có hiển thị thông tin người gửi hay không
+                              // Luôn hiển thị cho tin nhắn từ người khác trong cuộc trò chuyện nhiều người
+                              const showSenderInfo = !isOutgoing && (selectedConversation?.conversation_participants.length > 2);
+                              
+                              return (
+                                <div key={message.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
+                                  {!isOutgoing && (
+                                    <div className="flex-shrink-0 mr-2">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || t('conversation.user', {}, 'Người dùng')} />
+                                        <AvatarFallback>{message.sender?.full_name ? getAvatarInitials(message.sender.full_name) : 'UN'}</AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                  )}
+                                  
+                                  <div className="flex flex-col max-w-[70%]">
+                                    {/* Luôn hiển thị tên người gửi cho tin nhắn đến trong cuộc trò chuyện nhóm */}
+                                    {!isOutgoing && (
+                                      <span className="text-xs font-medium text-slate-600 mb-1 ml-1">
+                                        {message.sender?.full_name || t('conversation.user', {}, 'Người dùng')}
+                                      </span>
+                                    )}
+                                    
+                                    <div className={`px-3 py-2 rounded-2xl ${
+                                      isOutgoing 
+                                        ? 'bg-primary text-primary-foreground rounded-br-none' 
+                                        : 'bg-muted text-foreground rounded-bl-none'
+                                    }`}>
+                                      <p className="break-words">{message.message}</p>
+                                      <div className={`text-xs mt-1 text-right ${
+                                        isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'
+                                      }`}>
+                                        {formatMessageDate(message.timestamp)}
+                                        {isOutgoing && ` • ${t('conversation.you', {}, 'Bạn')}`}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {isOutgoing && (
+                                    <div className="flex-shrink-0 ml-2">
+                                      <Avatar className="h-8 w-8">
+                                        <AvatarImage src={(window as any).auth?.user?.avatar || ''} alt={(window as any).auth?.user?.full_name || t('conversation.you', {}, 'Bạn')} />
+                                        <AvatarFallback>{getAvatarInitials((window as any).auth?.user?.full_name || t('conversation.you', {}, 'Bạn'))}</AvatarFallback>
+                                      </Avatar>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            } catch (error) {
+                              console.error('Lỗi rendering tin nhắn:', error, message);
+                              return null; // Bỏ qua tin nhắn gây lỗi khi render
+                            }
+                          })}
+                        </div>
+                      ))}
+                      
+                      {hasMore && (
+                        <div className="flex justify-center mt-4">
+                          <Button 
+                            variant="outline" 
+                            onClick={loadMoreMessages}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : null}
+                            {t('conversation.load_more', {}, 'Tải thêm tin nhắn')}
+                          </Button>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                {/* Message input */}
+                <div className="p-4 border-t">
+                  <form 
+                    method="POST" 
+                    action={`/conversations/${selectedId}/messages`}
+                    target="hidden-frame" 
+                    onSubmit={() => {
+                      if (newMessage.trim()) {
+                        // Reset form sau 1 giây để giả lập gửi tin nhắn
+                        setTimeout(() => {
+                          setNewMessage('')
+                          // Tải lại tin nhắn sau khi gửi
+                          loadConversation(selectedId)
+                        }, 1000)
+                      }
+                    }}
+                  >
+                    {/* Thêm CSRF token field - quan trọng cho Laravel */}
+                    <input 
+                      type="hidden" 
+                      name="_token" 
+                      value={document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''}
+                    />
+                    
+                    {/* Field tin nhắn */}
+                    <input type="hidden" name="content" value={newMessage} />
+                    <input type="hidden" name="message" value={newMessage} />
+                    
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        name="message_display"
+                        placeholder={t('conversation.message_placeholder', {}, 'Nhập tin nhắn của bạn...')}
+                        className="flex-1"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                      />
+                      <Button 
+                        type="submit" 
+                        disabled={!newMessage.trim()} 
+                        size="icon"
+                        className="h-10 w-10 rounded-full"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </form>
+                  
+                  {/* iframe ẩn để nhận phản hồi từ form submit mà không làm mới trang */}
+                  <iframe name="hidden-frame" style={{display: 'none'}}></iframe>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="text-center space-y-2">
+                      <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                      <h3 className="text-lg font-medium">{t('conversation.no_messages_selected', {}, 'Chưa có tin nhắn nào được chọn')}</h3>
+                      <p className="text-muted-foreground">{t('conversation.select_or_create', {}, 'Chọn một cuộc trò chuyện từ danh sách để bắt đầu hoặc tạo mới')}</p>
+                      <CreateConversationDialog 
+                        trigger={
+                          <Button className="mt-4">
+                            {t('conversation.create_button', {}, 'Tạo cuộc trò chuyện mới')}
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Right section - Chat view */}
-        <div className="flex-1 flex flex-col">
-          {selectedId && selectedConversation ? (
-            <div className="flex-1 flex flex-col">
-              {/* Chat header */}
-              <div className="p-4 border-b flex items-center justify-between bg-card">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={otherParticipant?.avatar || ''} 
-                      alt={otherParticipant?.full_name || getConversationName(selectedConversation)} 
-                    />
-                    <AvatarFallback>
-                      {getAvatarInitials(otherParticipant?.full_name || getConversationName(selectedConversation))}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <h2 className="font-semibold">
-                      {otherParticipant?.full_name || getConversationName(selectedConversation)}
-                    </h2>
-                    {otherParticipant?.description ? (
-                      <p className="text-sm text-muted-foreground">{otherParticipant.description}</p>
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        {selectedConversation.conversation_participants.length} người tham gia
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="icon" variant="ghost">
-                    <Phone className="h-5 w-5" />
-                  </Button>
-                  <Button size="icon" variant="ghost">
-                    <Video className="h-5 w-5" />
-                  </Button>
-                  <Button size="icon" variant="ghost">
-                    <MoreVertical className="h-5 w-5" />
-                  </Button>
-                </div>
-              </div>
-
-              {/* Chat messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                {isLoading && messages.length === 0 ? (
-                  <div className="flex justify-center items-center h-full">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <>
-                    {hasMore && (
-                      <div className="flex justify-center">
-                        <Button 
-                          variant="outline" 
-                          onClick={loadMoreMessages}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : null}
-                          Tải thêm tin nhắn
-                        </Button>
-                      </div>
-                    )}
-
-                    {messageGroups.map((group, groupIndex) => (
-                      <div key={groupIndex} className="space-y-4">
-                        <div className="flex items-center justify-center my-4">
-                          <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">
-                            {group.date}
-                          </div>
-                        </div>
-
-                        {group.messages.map((message) => {
-                          try {
-                            // Kiểm tra dữ liệu tin nhắn trước khi render
-                            if (!message.id || !message.sender_id) {
-                              console.warn('Tin nhắn thiếu thông tin cần thiết:', message);
-                              return null; // Bỏ qua tin nhắn không đủ thông tin
-                            }
-                            
-                            // Sử dụng is_current_user từ backend nếu có, nếu không có thì so sánh sender_id
-                            const isOutgoing = message.is_current_user === true || message.sender_id === loggedInUserId;
-                            
-                            // Xác định xem có hiển thị thông tin người gửi hay không
-                            // Luôn hiển thị cho tin nhắn từ người khác trong cuộc trò chuyện nhiều người
-                            const showSenderInfo = !isOutgoing && (selectedConversation?.conversation_participants.length > 2);
-                            
-                            return (
-                              <div key={message.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
-                                {!isOutgoing && (
-                                  <div className="flex-shrink-0 mr-2">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || 'Người dùng'} />
-                                      <AvatarFallback>{message.sender?.full_name ? getAvatarInitials(message.sender.full_name) : 'UN'}</AvatarFallback>
-                                    </Avatar>
-                                  </div>
-                                )}
-                                
-                                <div className="flex flex-col max-w-[70%]">
-                                  {/* Luôn hiển thị tên người gửi cho tin nhắn đến trong cuộc trò chuyện nhóm */}
-                                  {!isOutgoing && (
-                                    <span className="text-xs font-medium text-slate-600 mb-1 ml-1">
-                                      {message.sender?.full_name || 'Người dùng'}
-                                    </span>
-                                  )}
-                                  
-                                  <div className={`px-3 py-2 rounded-2xl ${
-                                    isOutgoing 
-                                      ? 'bg-primary text-primary-foreground rounded-br-none' 
-                                      : 'bg-muted text-foreground rounded-bl-none'
-                                  }`}>
-                                    <p className="break-words">{message.message}</p>
-                                    <div className={`text-xs mt-1 text-right ${
-                                      isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                                    }`}>
-                                      {formatMessageDate(message.timestamp)}
-                                      {isOutgoing && ' • Bạn'}
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {isOutgoing && (
-                                  <div className="flex-shrink-0 ml-2">
-                                    <Avatar className="h-8 w-8">
-                                      <AvatarImage src={(window as any).auth?.user?.avatar || ''} alt={(window as any).auth?.user?.full_name || 'Bạn'} />
-                                      <AvatarFallback>{getAvatarInitials((window as any).auth?.user?.full_name || 'Bạn')}</AvatarFallback>
-                                    </Avatar>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          } catch (error) {
-                            console.error('Lỗi rendering tin nhắn:', error, message);
-                            return null; // Bỏ qua tin nhắn gây lỗi khi render
-                          }
-                        })}
-                      </div>
-                    ))}
-                    
-                    <div ref={messagesEndRef} />
-                  </>
-                )}
-              </div>
-
-              {/* Message input */}
-              <div className="p-4 border-t">
-                <form onSubmit={handleSendMessage}>
-                  <div className="flex items-center gap-2">
-                    <Input 
-                      placeholder="Nhập tin nhắn của bạn..." 
-                      className="flex-1"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                    />
-                    <Button 
-                      type="submit" 
-                      disabled={!newMessage.trim()} 
-                      size="icon"
-                      className="h-10 w-10 rounded-full"
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="text-center space-y-2">
-                    <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                    <h3 className="text-lg font-medium">Chưa có tin nhắn nào được chọn</h3>
-                    <p className="text-muted-foreground">Chọn một cuộc trò chuyện từ danh sách để bắt đầu hoặc tạo mới</p>
-                    <Button 
-                      onClick={() => router.visit('/conversations/create', { preserveState: false })} 
-                      className="mt-4"
-                    >
-                      Tạo cuộc trò chuyện mới
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
         </div>
       </div>
     </>
   )
 }
 
+// Không sử dụng useTranslation trong layout function
 Conversations.layout = (page: React.ReactNode) => <AppLayout title="Tin nhắn">{page}</AppLayout> 

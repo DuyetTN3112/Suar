@@ -9,6 +9,8 @@ interface ManageMembersResult {
   message?: string
   organization?: Organization
   roles?: UserRole[]
+  members?: any[]
+  userRole?: number
 }
 
 @inject()
@@ -30,6 +32,7 @@ export default class ManageMembers {
       .from('organization_users')
       .where('organization_id', organization.id)
       .where('user_id', user.id)
+      .where('status', 'approved')
       .select('role_id')
       .first()
 
@@ -40,10 +43,24 @@ export default class ManageMembers {
       }
     }
 
-    // Lấy danh sách thành viên và vai trò
-    await organization.load('users', (query) => {
-      query.preload('role')
-    })
+    // Lấy danh sách thành viên đã được duyệt
+    const members = await db
+      .from('users')
+      .join('organization_users', 'users.id', '=', 'organization_users.user_id')
+      .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
+      .where('organization_users.organization_id', organization.id)
+      .where('organization_users.status', 'approved')
+      .whereNull('users.deleted_at')
+      .select(
+        'users.id',
+        'users.first_name',
+        'users.last_name',
+        'users.full_name',
+        'users.email',
+        'users.username',
+        'organization_users.role_id',
+        'user_roles.name as role_name'
+      )
 
     // Lấy thông tin về vai trò
     const roles = await UserRole.all()
@@ -52,6 +69,8 @@ export default class ManageMembers {
       success: true,
       organization,
       roles,
+      members,
+      userRole: userRole.role_id,
     }
   }
 }

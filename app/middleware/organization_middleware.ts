@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
+import User from '#models/user'
 
 export default class OrganizationMiddleware {
   async handle({ session, auth, response }: HttpContext, next: () => Promise<void>) {
@@ -9,12 +10,17 @@ export default class OrganizationMiddleware {
       return next()
     }
     const user = auth.user!
-    console.log('User ID:', user.id)
-    // Lấy tổ chức hiện tại từ session
-    const currentOrganizationId = session.get('current_organization_id')
-    console.log('Current organization ID from session:', currentOrganizationId)
-    // Nếu không có tổ chức hiện tại, kiểm tra xem người dùng có tổ chức nào không
-    if (!currentOrganizationId) {
+    console.log('OrganizationMiddleware - User ID:', user.id)
+    // Lấy tổ chức hiện tại từ session và từ user model
+    const sessionOrgId = session.get('current_organization_id')
+    const userOrgId = user.current_organization_id
+    console.log('OrganizationMiddleware - Current organization ID from session:', sessionOrgId)
+    console.log('OrganizationMiddleware - Current organization ID from user model:', userOrgId)
+    // Xử lý trường hợp không có tổ chức trong cả session và user model
+    if (!sessionOrgId && !userOrgId) {
+      console.log(
+        'OrganizationMiddleware - Không tìm thấy tổ chức hiện tại trong cả session và user object'
+      )
       // Lấy tổ chức đầu tiên của người dùng
       const userOrganization = await db
         .from('organization_users')
@@ -24,20 +30,52 @@ export default class OrganizationMiddleware {
         .select('organizations.id')
         .first()
       if (userOrganization) {
-        // Cập nhật session với tổ chức đầu tiên
-        session.put('current_organization_id', userOrganization.id)
+        const firstOrgId = userOrganization.id
+        console.log('OrganizationMiddleware - Tìm thấy tổ chức mặc định:', firstOrgId)
+        // Cập nhật cả session và user model
+        session.put('current_organization_id', firstOrgId)
         await session.commit()
-        console.log('Set default organization:', userOrganization.id)
+        try {
+          await user.merge({ current_organization_id: firstOrgId }).save()
+          console.log('OrganizationMiddleware - Đã lưu current_organization_id vào user model')
+        } catch (error) {
+          console.error(
+            'OrganizationMiddleware - Lỗi khi lưu current_organization_id vào user model:',
+            error
+          )
+        }
       }
-      // Nếu người dùng không có tổ chức nào, vẫn cho phép tiếp tục
-      return next()
-    } else {
+    }
+    // Xử lý trường hợp có sự khác biệt giữa session và user model
+    else if (sessionOrgId !== userOrgId) {
+      console.log('OrganizationMiddleware - Phát hiện sự không đồng bộ giữa session và user model')
+      // Ưu tiên giá trị từ session nếu có
+      if (sessionOrgId) {
+        try {
+          console.log('OrganizationMiddleware - Đồng bộ từ session vào user model:', sessionOrgId)
+          await user.merge({ current_organization_id: sessionOrgId }).save()
+        } catch (error) {
+          console.error('OrganizationMiddleware - Lỗi khi cập nhật user model:', error)
+        }
+      }
+      // Nếu không có session nhưng có userOrgId thì cập nhật session
+      else if (userOrgId) {
+        console.log('OrganizationMiddleware - Đồng bộ từ user model vào session:', userOrgId)
+        session.put('current_organization_id', userOrgId)
+        await session.commit()
+      }
+    }
+    // Tiếp tục kiểm tra tính hợp lệ của tổ chức hiện tại (nếu có)
+    const currentOrganizationId =
+      session.get('current_organization_id') || user.current_organization_id
+    if (currentOrganizationId) {
       // Kiểm tra tổ chức có tồn tại không
       const organization = await Organization.find(currentOrganizationId)
       if (!organization) {
-        console.error('Organization not found:', currentOrganizationId)
+        console.error('OrganizationMiddleware - Organization not found:', currentOrganizationId)
         session.forget('current_organization_id')
         await session.commit()
+        await user.merge({ current_organization_id: null }).save()
       } else {
         // Kiểm tra người dùng có quyền truy cập tổ chức không
         const hasAccess = await db
@@ -46,9 +84,13 @@ export default class OrganizationMiddleware {
           .where('user_id', user.id)
           .first()
         if (!hasAccess) {
-          console.error('User has no access to organization:', currentOrganizationId)
+          console.error(
+            'OrganizationMiddleware - User has no access to organization:',
+            currentOrganizationId
+          )
           session.forget('current_organization_id')
           await session.commit()
+          await user.merge({ current_organization_id: null }).save()
         }
       }
     }

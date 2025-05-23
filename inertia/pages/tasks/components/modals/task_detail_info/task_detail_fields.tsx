@@ -12,6 +12,7 @@ import {
 import { Task } from '../../../types'
 import { DatePicker } from '@/components/ui/date-picker'
 import { cn } from '@/lib/utils'
+import useTranslation from '@/hooks/use_translation'
 
 interface TaskDetailFieldsProps {
   task: Task
@@ -40,6 +41,8 @@ export function TaskDetailFields({
   handleSelectChange,
   handleDateChange
 }: TaskDetailFieldsProps) {
+  const { t } = useTranslation()
+  
   // Format lại ngày hạn để hiển thị trong DatePicker
   const dueDate = formData.due_date ? new Date(formData.due_date) : undefined
   
@@ -75,12 +78,12 @@ export function TaskDetailFields({
   
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
   const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Chưa thiết lập';
+    if (!dateString) return t('task.due_date_not_set', {}, 'Chưa thiết lập');
     try {
       const date = new Date(dateString);
       return date.toLocaleDateString('vi-VN');
     } catch (error) {
-      return 'Không xác định';
+      return t('task.due_date_unknown', {}, 'Không xác định');
     }
   };
   
@@ -110,7 +113,7 @@ export function TaskDetailFields({
       {/* Tiêu đề và mô tả */}
       <section>
         <div className="space-y-2">
-          <Label htmlFor="title">Tiêu đề</Label>
+          <Label htmlFor="title">{t('task.title', {}, 'Tiêu đề')}</Label>
           {isEditing ? (
             <>
               <Input
@@ -118,7 +121,7 @@ export function TaskDetailFields({
                 name="title"
                 value={formData.title || ''}
                 onChange={handleChange}
-                placeholder="Nhập tiêu đề nhiệm vụ"
+                placeholder={t('task.enter_title', {}, 'Nhập tiêu đề nhiệm vụ')}
                 className={errors.title ? 'border-red-500' : ''}
               />
               {errors.title && (
@@ -131,19 +134,19 @@ export function TaskDetailFields({
         </div>
         
         <div className="space-y-2 mt-4">
-          <Label htmlFor="description">Mô tả</Label>
+          <Label htmlFor="description">{t('task.description', {}, 'Mô tả')}</Label>
           {isEditing ? (
             <Textarea
               id="description"
               name="description"
               value={formData.description || ''}
               onChange={handleChange}
-              placeholder="Mô tả chi tiết về nhiệm vụ"
+              placeholder={t('task.enter_description', {}, 'Mô tả chi tiết về nhiệm vụ')}
               rows={3}
             />
           ) : (
             <div className="text-sm border px-3 py-2 rounded-md bg-muted/20 whitespace-pre-wrap min-h-[60px]">
-              {formData.description || 'Không có mô tả'}
+              {formData.description || t('task.no_description', {}, 'Không có mô tả')}
             </div>
           )}
         </div>
@@ -155,7 +158,7 @@ export function TaskDetailFields({
         <div className="space-y-4">
           {/* Status */}
           <div className="space-y-2">
-            <Label htmlFor="status_id">Trạng thái</Label>
+            <Label htmlFor="status_id">{t('task.status', {}, 'Trạng thái')}</Label>
             {isEditing ? (
               <>
                 <Select
@@ -163,7 +166,7 @@ export function TaskDetailFields({
                   onValueChange={(value) => handleSelectChange('status_id', value)}
                 >
                   <SelectTrigger id="status_id" className={errors.status_id ? 'border-red-500' : ''}>
-                    <SelectValue placeholder="Chọn trạng thái" />
+                    <SelectValue placeholder={t('task.select_status', {}, 'Chọn trạng thái')} />
                   </SelectTrigger>
                   <SelectContent>
                     {statuses.map((status) => (
@@ -191,21 +194,21 @@ export function TaskDetailFields({
                     style={{ backgroundColor: currentStatus.color || '#888' }}
                   ></div>
                 )}
-                <span>{currentStatus?.name || 'Không có trạng thái'}</span>
+                <span>{currentStatus?.name || t('task.no_status', {}, 'Không có trạng thái')}</span>
               </div>
             )}
           </div>
           
           {/* Priority */}
           <div className="space-y-2">
-            <Label htmlFor="priority_id">Độ ưu tiên</Label>
+            <Label htmlFor="priority_id">{t('task.priority', {}, 'Độ ưu tiên')}</Label>
             {isEditing ? (
               <Select
                 value={getPriorityIdValue()}
                 onValueChange={(value) => handleSelectChange('priority_id', value)}
               >
                 <SelectTrigger id="priority_id">
-                  <SelectValue placeholder="Chọn độ ưu tiên" />
+                  <SelectValue placeholder={t('task.select_priority', {}, 'Chọn độ ưu tiên')} />
                 </SelectTrigger>
                 <SelectContent>
                   {priorities.map((priority) => (
@@ -229,7 +232,7 @@ export function TaskDetailFields({
                     style={{ backgroundColor: currentPriority.color || '#888' }}
                   ></div>
                 )}
-                <span>{currentPriority?.name || 'Không có độ ưu tiên'}</span>
+                <span>{currentPriority?.name || t('task.no_priority', {}, 'Không có độ ưu tiên')}</span>
               </div>
             )}
           </div>
@@ -239,14 +242,14 @@ export function TaskDetailFields({
         <div className="space-y-4">
           {/* Label */}
           <div className="space-y-2">
-            <Label htmlFor="label_id">Nhãn</Label>
+            <Label htmlFor="label_id">{t('task.label', {}, 'Nhãn')}</Label>
             {isEditing ? (
               <Select
                 value={getLabelIdValue()}
                 onValueChange={(value) => handleSelectChange('label_id', value)}
               >
                 <SelectTrigger id="label_id">
-                  <SelectValue placeholder="Chọn nhãn" />
+                  <SelectValue placeholder={t('task.select_label', {}, 'Chọn nhãn')} />
                 </SelectTrigger>
                 <SelectContent>
                   {labels.map((label) => (
@@ -270,36 +273,37 @@ export function TaskDetailFields({
                     style={{ backgroundColor: currentLabel.color || '#888' }}
                   ></div>
                 )}
-                <span>{currentLabel?.name || 'Không có nhãn'}</span>
+                <span>{currentLabel?.name || t('task.no_label', {}, 'Không có nhãn')}</span>
               </div>
             )}
           </div>
           
           {/* Assigned To */}
           <div className="space-y-2">
-            <Label htmlFor="assigned_to">Giao cho</Label>
+            <Label htmlFor="assigned_to">{t('task.assigned_to', {}, 'Giao cho')}</Label>
             {isEditing ? (
               <Select
                 value={getAssignedToValue()}
                 onValueChange={(value) => handleSelectChange('assigned_to', value)}
               >
                 <SelectTrigger id="assigned_to">
-                  <SelectValue placeholder="Chọn người thực hiện" />
+                  <SelectValue placeholder={t('task.select_assignee', {}, 'Chọn người thực hiện')} />
                 </SelectTrigger>
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={String(user.id)}>
-                      {user.full_name || `${user.first_name} ${user.last_name}`}
+                      {user.full_name || `${user.first_name} ${user.last_name}`.trim()}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             ) : (
               <div className="border px-3 py-2 rounded-md bg-muted/20">
-                {currentAssignee ? 
-                  (currentAssignee.full_name || currentAssignee.fullName || `${currentAssignee.first_name || currentAssignee.firstName || ''} ${currentAssignee.last_name || currentAssignee.lastName || ''}`.trim()) : 
-                  'Chưa giao cho ai'
-                }
+                <span>
+                  {currentAssignee ? 
+                    (currentAssignee.full_name || `${currentAssignee.first_name} ${currentAssignee.last_name}`.trim())
+                    : t('task.unassigned', {}, 'Chưa giao')}
+                </span>
               </div>
             )}
           </div>
@@ -309,15 +313,16 @@ export function TaskDetailFields({
       {/* Due Date */}
       <section>
         <div className="space-y-2">
-          <Label htmlFor="due_date">Ngày hạn</Label>
+          <Label htmlFor="due_date">{t('task.due_date', {}, 'Ngày hết hạn')}</Label>
           {isEditing ? (
             <DatePicker
               date={dueDate}
               onSelect={handleDateChange}
+              placeholder={t('task.select_due_date', {}, 'Chọn ngày hết hạn')}
             />
           ) : (
             <div className="border px-3 py-2 rounded-md bg-muted/20">
-              {formData.due_date ? formatDate(formData.due_date) : 'Chưa thiết lập ngày hạn'}
+              {formData.due_date ? formatDate(formData.due_date) : t('task.due_date_not_set', {}, 'Chưa thiết lập')}
             </div>
           )}
         </div>

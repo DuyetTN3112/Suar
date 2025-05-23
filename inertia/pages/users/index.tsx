@@ -28,6 +28,19 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import useTranslation from '@/hooks/use_translation'
+import { ArrowPathIcon, UserPlusIcon } from '@heroicons/react/24/outline'
+import { UsersProps } from './types'
+import { isSuperAdminInCurrentOrg } from './utils/user_utils'
+import { useUserPermissions } from './hooks/use_user_permissions'
+import { useUserApproval } from './hooks/use_user_approval'
+import { useAddUsers } from './hooks/use_add_users'
+import { useDeleteUser } from './hooks/use_delete_user'
+import UsersList from './components/UsersList'
+import EditRoleModal from './components/EditRoleModal'
+import DeleteUserModal from './components/DeleteUserModal'
+import ApprovalModal from './components/ApprovalModal'
+import AddUserModal from './components/AddUserModal'
 
 type User = {
   id: number
@@ -48,323 +61,214 @@ type User = {
     id: number
     name: string
   }
-}
-
-type UsersProps = {
-  users: {
-    data: User[]
-    meta: {
-      total: number
-      per_page: number
-      current_page: number
-      last_page: number
+  organization_users?: { 
+    organization_id: number
+    role_id: number 
+    role?: {
+      id: number
+      name: string
     }
-  }
-  filters: {
-    search?: string
-    role_id?: number
-    status_id?: number
-  }
-  metadata: {
-    roles: { id: number, name: string }[]
-    statuses: { id: number, name: string }[]
-  }
+  }[]
+  created_at?: string
 }
 
 export default function Users({ users, filters, metadata }: UsersProps) {
   const [search, setSearch] = React.useState(filters.search || '')
   const { auth } = usePage().props as any
+  const { t, locale } = useTranslation()
   
-  // State cho dialog chỉnh sửa quyền
-  const [editModalOpen, setEditModalOpen] = React.useState(false)
-  const [selectedUserId, setSelectedUserId] = React.useState<number | null>(null)
-  const [selectedUser, setSelectedUser] = React.useState<User | null>(null)
-  const [selectedRoleId, setSelectedRoleId] = React.useState<string>('')
-  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  // Debug thông tin translations
+  console.log('[UsersPage] Current locale:', locale)
+  console.log('[UsersPage] Translations available:', !!usePage().props.translations)
+  console.log('[UsersPage] Auth user:', auth?.user)
+  
+  // Debug translations key
+  const testKeys = [
+    'user.users', 
+    'user.add_user', 
+    'user.search_users',
+    'user.name',
+    'user.email',
+    'user.role',
+    'user.status',
+    'common.actions'
+  ]
+  
+  console.log('[UsersPage] Testing translation keys:')
+  testKeys.forEach(key => {
+    const translated = t(key, {}, `Default for ${key}`)
+    console.log(`- ${key}: "${translated}"`)
+  })
+  
+  // Xác định user có phải là superadmin trong tổ chức không
+  const currentUserIsSuperAdmin = isSuperAdminInCurrentOrg(auth.user)
+  
+  // Sử dụng các custom hooks
+  const {
+    editModalOpen,
+    selectedUser,
+    selectedRoleId,
+    setSelectedRoleId,
+    isSubmitting,
+    openEditPermissionsModal,
+    handleUpdatePermissions,
+    handleCloseModal
+  } = useUserPermissions()
+  
+  const {
+    approvalModalOpen,
+    setApprovalModalOpen,
+    pendingUsers,
+    pendingCount,
+    isLoadingPendingUsers,
+    isApprovingUser,
+    loadPendingCount,
+    openApprovalModal,
+    approveUser,
+    approveAllUsers
+  } = useUserApproval()
+  
+  const {
+    deleteModalOpen,
+    setDeleteModalOpen,
+    userToDelete,
+    isDeleting,
+    openDeleteConfirmModal,
+    handleDeleteUser
+  } = useDeleteUser(auth.user.id)
+  
+  const {
+    addUserModalOpen,
+    setAddUserModalOpen,
+    allSystemUsers,
+    selectedUserIds,
+    searchUserTerm,
+    setSearchUserTerm,
+    isLoadingSystemUsers,
+    isAddingUsers,
+    currentPage,
+    totalPages,
+    loadAllSystemUsers,
+    openAddUserModal,
+    handleSearchUsers,
+    toggleUserSelection,
+    handleAddUsersToOrganization
+  } = useAddUsers()
+  
+  // Tải số lượng người dùng chờ duyệt khi component được mounted
+  React.useEffect(() => {
+    if (currentUserIsSuperAdmin) {
+      loadPendingCount()
+    }
+  }, [])
   
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     window.location.href = `/users?search=${search}`
   }
-  
-  // Hàm mở dialog chỉnh sửa quyền
-  const openEditPermissionsModal = (user: User) => {
-    if (!user || !user.id) {
-      toast.error("Không tìm thấy thông tin người dùng")
-      return
-    }
-    
-    setSelectedUserId(user.id)
-    setSelectedUser(user)
-    // Ưu tiên sử dụng organization_role nếu có
-    setSelectedRoleId(user.organization_role?.id ? String(user.organization_role.id) : '')
-    setEditModalOpen(true)
-    
-    console.log('Mở modal chỉnh sửa quyền với thông tin:', {
-      userId: user.id,
-      currentOrgRoleId: user.organization_role?.id,
-      currentOrgRoleName: user.organization_role?.name,
-      currentRoleId: user.role?.id,
-      currentRoleName: user.role?.name,
-      selectedRoleId: user.organization_role?.id ? String(user.organization_role.id) : ''
-    })
-  }
-  
-  // Hàm xử lý cập nhật quyền
-  const handleUpdatePermissions = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUserId || !selectedRoleId) {
-      toast.error("Vui lòng chọn vai trò")
-      return
-    }
-    
-    setIsSubmitting(true)
-    
-    // Đảm bảo roleId là số nguyên
-    const roleIdNumber = parseInt(selectedRoleId, 10);
-    
-    console.log('Gửi request cập nhật quyền:', {
-      userId: selectedUserId,
-      roleId: roleIdNumber,
-      roleIdType: typeof roleIdNumber,
-      isForOrganization: true
-    })
-    
-    // Sử dụng router.put để gửi PUT request
-    router.put(
-      `/organizations/users/${selectedUserId}/update-permissions`,
-      { 
-        role_id: roleIdNumber
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        preserveScroll: false,
-        preserveState: false,
-        onSuccess: (page) => {
-          setEditModalOpen(false)
-          setIsSubmitting(false)
-          toast.success("Đã cập nhật quyền người dùng trong tổ chức thành công")
-          
-          // Tải lại toàn bộ trang thay vì chỉ tải lại một phần
-          window.location.reload();
-        },
-        onError: (errors) => {
-          setIsSubmitting(false)
-          console.error("Lỗi cập nhật quyền:", errors)
-          const errorMessage = errors.message || "Không thể cập nhật quyền. Vui lòng thử lại."
-          toast.error(errorMessage)
-        },
-        onFinish: () => {
-          setIsSubmitting(false)
-        }
-      }
-    )
-  }
-  
-  // Hàm lấy tên hiển thị của người dùng
-  const getUserDisplayName = (user: User): string => {
-    if (user.full_name && user.full_name.trim() !== '') {
-      return user.full_name;
-    }
-    
-    const firstName = user.first_name || '';
-    const lastName = user.last_name || '';
-    
-    if (firstName.trim() !== '' || lastName.trim() !== '') {
-      return `${firstName} ${lastName}`.trim();
-    }
-    
-    if (user.username && user.username.trim() !== '') {
-      return user.username;
-    }
-    
-    // Sử dụng phần đầu của email nếu không có tên
-    return user.email.split('@')[0];
-  }
-
-  // Reset modal state khi đóng dialog
-  const handleCloseModal = () => {
-    setEditModalOpen(false)
-    // Đảm bảo state được reset khi modal đóng
-    setTimeout(() => {
-      setSelectedUserId(null)
-      setSelectedUser(null)
-      setSelectedRoleId('')
-    }, 100)
-  }
 
   return (
     <>
-      <Head title="Người dùng" />
+      <Head title={t('user.users', {}, "Người dùng")} />
       <div className="container py-8">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Người dùng</h1>
-          <Link href="/users/create">
-            <Button>Thêm người dùng</Button>
-          </Link>
+          <h1 className="text-3xl font-bold">
+            {t('user.users', {}, "Người dùng")} 
+            <span className="ml-2 text-sm text-gray-500">({locale})</span>
+          </h1>
+          <div className="flex gap-2">
+            {currentUserIsSuperAdmin && (
+              <Button variant="secondary" onClick={openApprovalModal}>
+                {t('user.approve_users', {}, "Phê duyệt người dùng")} {pendingCount > 0 && <span className="ml-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">{pendingCount}</span>}
+              </Button>
+            )}
+            {currentUserIsSuperAdmin && (
+              <Button onClick={openAddUserModal}>
+                {t('user.add_user', {}, "Thêm người dùng")}
+              </Button>
+            )}
+          </div>
         </div>
+        
+        {/* Hiển thị debug info trong môi trường development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-2 p-2 bg-gray-100 text-xs rounded">
+            <p>Debug: Current locale: {locale}</p>
+            <p>Has translations: {Object.keys(usePage().props.translations || {}).length > 0 ? 'Yes' : 'No'}</p>
+          </div>
+        )}
         
         <div className="mt-6">
           <form onSubmit={handleSearch} className="flex items-center gap-4">
             <Input 
-              placeholder="Tìm kiếm người dùng..." 
+              placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
               className="max-w-sm" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Button variant="outline" type="submit">Tìm kiếm</Button>
+            <Button variant="outline" type="submit">{t('common.search', {}, "Tìm kiếm")}</Button>
           </form>
         </div>
         
-        <div className="mt-6 rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tên</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Vai trò</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.data.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{getUserDisplayName(user)}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.organization_role?.name || user.role?.name}</TableCell>
-                  <TableCell>{user.status?.name}</TableCell>
-                  <TableCell className="text-right">
-                    {user.id !== auth.user.id && (
-                      <>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="mr-2"
-                          onClick={() => openEditPermissionsModal(user)}
-                        >
-                          Sửa quyền
-                        </Button>
-                        <form
-                          action={`/organizations/users/${user.id}/remove`}
-                          method="post"
-                          className="inline"
-                          onSubmit={(e) => {
-                            e.preventDefault()
-                            if (confirm('Bạn có chắc chắn muốn xóa người dùng này khỏi tổ chức không?')) {
-                              const form = e.target as HTMLFormElement
-                              const csrfToken = document.querySelector<HTMLInputElement>('meta[name="csrf-token"]')?.value
-                              
-                              const methodInput = document.createElement('input')
-                              methodInput.type = 'hidden'
-                              methodInput.name = '_method'
-                              methodInput.value = 'DELETE'
-                              form.appendChild(methodInput)
-                              
-                              if (csrfToken) {
-                                const csrfInput = document.createElement('input')
-                                csrfInput.type = 'hidden'
-                                csrfInput.name = '_csrf'
-                                csrfInput.value = csrfToken
-                                form.appendChild(csrfInput)
-                              }
-                              
-                              form.submit()
-                            }
-                          }}
-                        >
-                          <Button variant="destructive" size="sm" type="submit">
-                            Xóa khỏi tổ chức
-                          </Button>
-                        </form>
-                      </>
-                    )}
-                    {user.id === auth.user.id && (
-                      <Link href={`/users/${user.id}/edit`}>
-                        <Button variant="outline" size="sm" className="mr-2">
-                          Tài khoản của tôi
-                        </Button>
-                      </Link>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+        <div className="mt-6">
+          <UsersList 
+            users={users}
+            filters={filters}
+            currentUserId={auth.user.id}
+            isSuperAdmin={currentUserIsSuperAdmin}
+            onEditPermissions={openEditPermissionsModal}
+            onDeleteUser={openDeleteConfirmModal}
+          />
         </div>
         
-        {users.meta.last_page > 1 && (
-          <div className="mt-4">
-            <Pagination
-              currentPage={users.meta.current_page}
-              totalPages={users.meta.last_page}
-              baseUrl="/users"
-              queryParams={filters}
-            />
-          </div>
-        )}
+        {/* Modals */}
+        <EditRoleModal
+          open={editModalOpen}
+          onClose={handleCloseModal}
+          selectedUser={selectedUser}
+          selectedRoleId={selectedRoleId}
+          setSelectedRoleId={setSelectedRoleId}
+          isSubmitting={isSubmitting}
+          onSubmit={handleUpdatePermissions}
+        />
         
-        {/* Modal chỉnh sửa quyền */}
-        <Dialog open={editModalOpen} onOpenChange={handleCloseModal}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Chỉnh sửa quyền hạn</DialogTitle>
-              <DialogDescription>
-                {selectedUser && `Thay đổi quyền hạn cho ${getUserDisplayName(selectedUser)}`}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleUpdatePermissions}>
-              <div className="grid gap-4 py-4">
-                <div className="flex flex-col gap-2">
-                  <label htmlFor="role" className="font-medium">
-                    Vai trò trong tổ chức
-                  </label>
-                  <Select value={selectedRoleId} onValueChange={setSelectedRoleId} required>
-                    <SelectTrigger id="role">
-                      <SelectValue placeholder="Chọn vai trò" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">Superadmin</SelectItem>
-                      <SelectItem value="2">Admin</SelectItem>
-                      <SelectItem value="3">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Vai trò quyết định các quyền mà người dùng có trong tổ chức.
-                  </p>
-                  {process.env.NODE_ENV === 'development' && selectedUser && (
-                    <div className="mt-2 text-xs text-gray-500 border border-gray-200 p-2 rounded">
-                      <p>UserID: {selectedUser.id}</p>
-                      <p>Vai trò trong tổ chức: {selectedUser.organization_role?.name || 'Không có'} (ID: {selectedUser.organization_role?.id || 'N/A'})</p>
-                      <p>Vai trò hệ thống: {selectedUser.role?.name} (ID: {selectedUser.role?.id})</p>
-                      <p>Vai trò đã chọn: {selectedRoleId} (Number: {parseInt(selectedRoleId, 10)})</p>
-                      <p>Role Type: {typeof parseInt(selectedRoleId, 10)}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <DialogFooter>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setEditModalOpen(false)}
-                  disabled={isSubmitting}
-                >
-                  Hủy
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? 'Đang xử lý...' : 'Lưu thay đổi'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <DeleteUserModal
+          open={deleteModalOpen}
+          onClose={() => setDeleteModalOpen(false)}
+          user={userToDelete}
+          isDeleting={isDeleting}
+          onConfirm={handleDeleteUser}
+        />
+        
+        <ApprovalModal
+          open={approvalModalOpen}
+          onClose={() => setApprovalModalOpen(false)}
+          pendingUsers={pendingUsers}
+          isLoadingPendingUsers={isLoadingPendingUsers}
+          isApprovingUser={isApprovingUser}
+          onApproveUser={approveUser}
+          onApproveAll={approveAllUsers}
+        />
+        
+        <AddUserModal
+          open={addUserModalOpen}
+          onClose={() => setAddUserModalOpen(false)}
+          allSystemUsers={allSystemUsers}
+          selectedUserIds={selectedUserIds}
+          searchUserTerm={searchUserTerm}
+          setSearchUserTerm={setSearchUserTerm}
+          isLoadingSystemUsers={isLoadingSystemUsers}
+          isAddingUsers={isAddingUsers}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onSearch={handleSearchUsers}
+          onToggleUserSelection={toggleUserSelection}
+          onAddUsers={handleAddUsersToOrganization}
+          onChangePage={(page) => loadAllSystemUsers(page, searchUserTerm)}
+        />
       </div>
     </>
   )
 }
 
-Users.layout = (page: React.ReactNode) => <AppLayout title="Người dùng">{page}</AppLayout> 
+Users.layout = (page: React.ReactNode) => <AppLayout title="Người dùng">{page}</AppLayout>

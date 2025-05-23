@@ -16,4 +16,4 @@ export default class ExpirePasswordResetTokens {
         updated_at: DateTime.now().toSQL(),
       })
   }
-} 
+}

@@ -1,0 +1,27 @@
+{
+  "organization": {
+    "name": "Tên",
+    "description": "Mô tả",
+    "website": "Website",
+    "logo": "Logo",
+    "members": "Thành viên",
+    "owner": "Chủ sở hữu",
+    "created_at": "Tạo lúc",
+    "new_organization": "Tổ chức mới",
+    "edit_organization": "Chỉnh sửa tổ chức",
+    "organization_list": "Danh sách tổ chức",
+    "organization_details": "Chi tiết tổ chức",
+    "no_organizations": "Không tìm thấy tổ chức nào",
+    "add_organization": "Thêm tổ chức",
+    "invite_members": "Mời thành viên",
+    "roles": "Vai trò",
+    "role_owner": "Chủ sở hữu",
+    "role_admin": "Quản trị viên",
+    "role_member": "Thành viên",
+    "delete_confirmation": "Bạn có chắc chắn muốn xóa tổ chức này không?",
+    "switch_organization": "Chuyển đổi tổ chức",
+    "current_organization": "Tổ chức hiện tại",
+    "debug_tool": "Công cụ kiểm tra tổ chức",
+    "debug_tool_description": "Công cụ này giúp kiểm tra và sửa các vấn đề liên quan đến tổ chức hiện tại"
+  }
+} 

@@ -16,7 +16,18 @@ export default class GetTaskMetadata {
     // Lấy tổ chức hiện tại từ session
     const currentOrganizationId = this.ctx.session.get('current_organization_id')
     if (!currentOrganizationId) {
-      throw new Error('Không tìm thấy tổ chức hiện tại, vui lòng chọn tổ chức')
+      console.log('[GetTaskMetadata] No current organization found')
+      // Không ném ngoại lệ, thay vào đó đánh dấu session để hiển thị modal
+      this.ctx.session.put('show_organization_required_modal', true)
+      await this.ctx.session.commit()
+      // Trả về metadata cơ bản với danh sách người dùng rỗng
+      return {
+        statuses,
+        labels,
+        priorities,
+        users: [],
+        message: 'Cần chọn hoặc tham gia một tổ chức để xem danh sách người dùng',
+      }
     }
     console.log('[GetTaskMetadata] Lấy người dùng cho tổ chức:', currentOrganizationId)
     // Lấy danh sách người dùng thuộc cùng tổ chức
@@ -24,10 +35,15 @@ export default class GetTaskMetadata {
       .from('users as u')
       .join('organization_users as ou', 'u.id', 'ou.user_id')
       .where('ou.organization_id', currentOrganizationId)
+      .where('ou.status', 'approved')
       .whereNull('u.deleted_at')
       .select('u.id', 'u.first_name', 'u.last_name', 'u.full_name')
       .orderBy('u.full_name', 'asc')
-    console.log('[GetTaskMetadata] Tìm thấy', usersInOrg.length, 'người dùng trong tổ chức')
+    console.log(
+      '[GetTaskMetadata] Tìm thấy',
+      usersInOrg.length,
+      'người dùng đã được phê duyệt trong tổ chức'
+    )
     // Xử lý trường hợp full_name có thể bị null
     const formattedUsers = usersInOrg.map((user) => {
       return {

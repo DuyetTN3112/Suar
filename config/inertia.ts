@@ -58,6 +58,20 @@ const inertiaConfig = defineConfig({
   rootView: 'inertia_layout',
 
   sharedData: {
+    // Thêm biến session showOrganizationRequiredModal
+    async showOrganizationRequiredModal(ctx: HttpContext) {
+      if (ctx.session) {
+        // Lấy giá trị từ session
+        const showModal = Boolean(ctx.session.get('show_organization_required_modal', false))
+        if (showModal) {
+          // Nếu đã hiển thị modal, xóa khỏi session để không hiển thị lại
+          ctx.session.forget('show_organization_required_modal')
+          await ctx.session.commit()
+        }
+        return { showOrganizationRequiredModal: showModal }
+      }
+      return { showOrganizationRequiredModal: false }
+    },
     async user(ctx: HttpContext) {
       try {
         const shouldLogInfo = shouldLog(ctx)

@@ -10,6 +10,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { router } from '@inertiajs/react'
 import { CreateTaskForm } from './create_task_form'
+import useTranslation from '@/hooks/use_translation'
 
 interface CreateTaskModalProps {
   open: boolean
@@ -28,6 +29,7 @@ export function CreateTaskModal({
   labels = [],
   users = [],
 }: CreateTaskModalProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -45,11 +47,11 @@ export function CreateTaskModal({
     const newErrors: Record<string, string> = {}
     
     if (!formData.title.trim()) {
-      newErrors.title = 'Tiêu đề là bắt buộc'
+      newErrors.title = t('task.title') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
     
     if (!formData.status_id) {
-      newErrors.status_id = 'Trạng thái là bắt buộc'
+      newErrors.status_id = t('task.status') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
     
     if (Object.keys(newErrors).length > 0) {
@@ -94,9 +96,9 @@ export function CreateTaskModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
-          <DialogTitle>Tạo nhiệm vụ mới</DialogTitle>
+          <DialogTitle>{t('task.new_task', {}, 'Tạo nhiệm vụ mới')}</DialogTitle>
           <DialogDescription>
-            Thêm nhiệm vụ mới bằng cách điền thông tin bên dưới.
+            {t('task.add_task_description', {}, 'Thêm nhiệm vụ mới bằng cách điền thông tin bên dưới.')}
           </DialogDescription>
         </DialogHeader>
         
@@ -116,13 +118,13 @@ export function CreateTaskModal({
             onClick={handleClose}
             disabled={submitting}
           >
-            Hủy
+            {t('common.cancel', {}, 'Hủy')}
           </Button>
           <Button 
             onClick={handleSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Đang tạo...' : 'Tạo nhiệm vụ'}
+            {submitting ? t('common.creating', {}, 'Đang tạo...') : t('task.add_task', {}, 'Tạo nhiệm vụ')}
           </Button>
         </DialogFooter>
       </DialogContent>

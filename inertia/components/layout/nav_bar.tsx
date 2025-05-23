@@ -14,6 +14,15 @@ import {
 import { useSidebar, SidebarTrigger } from '../ui/sidebar/index'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import useTranslation from '@/hooks/use_translation'
+
+// Hàm debug log chỉ hiển thị trong chế độ phát triển
+const debugLog = (message: string, ...args: any[]) => {
+  if (window.DEBUG_MODE) {
+    console.log(message, ...args);
+  }
+};
 
 interface AuthUser {
   id?: string
@@ -33,6 +42,8 @@ interface PageProps {
     }
   }
   csrfToken?: string
+  locale?: string
+  supportedLocales?: string[]
   [key: string]: any
 }
 
@@ -41,17 +52,20 @@ export default function Navbar() {
   const page = usePage<PageProps>()
   const user = page.props.user?.auth?.user
   const csrfToken = page.props.csrfToken || ''
+  const { t } = useTranslation()
   
   // Thêm log chi tiết để debug
   useEffect(() => {
+    // Chỉ log khi ở chế độ debug
+    if (!window.DEBUG_MODE) return;
+    
     console.group('=== NavBar Authentication Debug ===')
-    console.log('Page Props:', page.props)
-    console.log('User Object:', page.props.user)
-    console.log('Auth Object:', page.props.user?.auth)
+    console.log('Page Props:', 'Available')
+    console.log('User Object:', page.props.user ? 'Available' : 'Not found')
+    console.log('Auth Object:', page.props.user?.auth ? 'Available' : 'Not found')
     
     if (!user) {
       console.error('NavBar: Không có thông tin người dùng')
-      console.log('User auth props:', JSON.stringify(page.props.user?.auth, null, 2))
     } else {
       console.log('Đã tìm thấy thông tin người dùng:', {
         id: user.id,
@@ -97,12 +111,14 @@ export default function Navbar() {
           </Button>
           
           <div className="relative h-9 w-60 lg:w-80 hidden sm:flex">
-            <Search placeholder="Tìm kiếm..." />
+            <Search placeholder={t('common.search', {}, 'Tìm kiếm...')} />
           </div>
         </div>
         
         <div className="flex items-center gap-2">
           <ThemeSwitch />
+          
+          <LanguageSwitcher />
           
           <Button variant="ghost" size="icon" className="text-muted-foreground">
             <Bell className="h-5 w-5" />
@@ -117,24 +133,24 @@ export default function Navbar() {
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-                <span className="font-normal hidden md:inline-block">{displayName || 'Tài khoản'}</span>
+                <span className="font-normal hidden md:inline-block">{displayName || t('user.account', {}, 'Tài khoản')}</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>{displayName}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
-                <Link href="/settings/profile">Hồ sơ</Link>
+                <Link href="/settings/profile">{t('settings.profile', {}, 'Hồ sơ')}</Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/settings/account">Cài đặt tài khoản</Link>
+                <Link href="/settings/account">{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <form action="/logout" method="POST" className="w-full">
                   <input type="hidden" name="_csrf" value={csrfToken} />
                   <button type="submit" className="w-full text-left flex items-center cursor-pointer">
-                    Đăng xuất
+                    {t('auth.logout', {}, 'Đăng xuất')}
                   </button>
                 </form>
               </DropdownMenuItem>

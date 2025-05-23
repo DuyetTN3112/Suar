@@ -79,10 +79,26 @@ export const groupMessagesByDate = (msgs: Message[] | undefined): MessageGroup[]
       // Bỏ qua tin nhắn gây lỗi
     }
   })
-  return Object.entries(groups).map(([date, messages]) => ({
-    date,
-    messages,
-  }))
+  // Sắp xếp tin nhắn trong mỗi nhóm theo thời gian giảm dần (mới nhất lên trên)
+  Object.keys(groups).forEach((dateKey) => {
+    groups[dateKey].sort((a, b) => {
+      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    })
+  })
+  // Sắp xếp các nhóm theo thứ tự ngày giảm dần (ngày mới nhất lên trên)
+  return Object.entries(groups)
+    .sort(([dateA], [dateB]) => {
+      const [dayA, monthA, yearA] = dateA.split('/').map(Number)
+      const [dayB, monthB, yearB] = dateB.split('/').map(Number)
+      // So sánh theo năm, tháng, ngày
+      if (yearA !== yearB) return yearB - yearA
+      if (monthA !== monthB) return monthB - monthA
+      return dayB - dayA
+    })
+    .map(([date, messages]) => ({
+      date,
+      messages,
+    }))
 }
 
 /**

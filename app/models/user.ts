@@ -13,7 +13,6 @@ import UserUrl from './user_url.js'
 import Organization from './organization.js'
 import Task from './task.js'
 import Conversation from './conversation.js'
-import UserApp from './user_app.js'
 import UserSetting from './user_setting.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
@@ -126,9 +125,6 @@ export default class User extends compose(BaseModel, AuthFinder) {
     pivotTable: 'conversation_participants',
   })
   declare conversations: ManyToMany<typeof Conversation>
-
-  @hasMany(() => UserApp)
-  declare user_apps: HasMany<typeof UserApp>
 
   @hasMany(() => UserOAuthProvider, {
     foreignKey: 'user_id',

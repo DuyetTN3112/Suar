@@ -13,6 +13,7 @@ import { router } from '@inertiajs/react'
 import { ChevronDown, ChevronRight, GitMerge, Clock, CalendarIcon, User, Trash2 } from 'lucide-react'
 import { TaskListRow } from './task_list_row'
 import { Button } from '@/components/ui/button'
+import useTranslation from '@/hooks/use_translation'
 
 type TaskListProps = {
   tasks: Task[]
@@ -51,6 +52,7 @@ export function TaskList({
   onToggleStatus,
   onTaskClick
 }: TaskListProps) {
+  const { t } = useTranslation()
   
   // Helper để xác định task đã hoàn thành
   const isTaskCompleted = (task: Task) => {
@@ -63,8 +65,8 @@ export function TaskList({
   };
 
   // Kiểm tra có task con hay không
-  const hasChildTasks = (task: Task) => {
-    return task.childTasks && task.childTasks.length > 0;
+  const hasChildTasks = (task: Task): boolean => {
+    return Boolean(task.childTasks && task.childTasks.length > 0);
   };
 
   // Chuyển đến trang task cha
@@ -86,17 +88,17 @@ export function TaskList({
               checked={isAllSelected}
               onCheckedChange={handleSelectAll}
               className="h-4 w-4"
-              aria-label="Select all tasks"
+              aria-label={t('common.select_all', {}, 'Select all tasks')}
             />
           </TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Task</TableHead>
-          <TableHead className="px-2 py-2 text-xs">Title</TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Status</TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Label</TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Priority</TableHead>
-          <TableHead className="w-[150px] px-2 py-2 text-xs">Assigned To</TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Created At</TableHead>
-          <TableHead className="w-[100px] px-2 py-2 text-xs">Due Date</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.task', {}, 'Task')}</TableHead>
+          <TableHead className="px-2 py-2 text-xs">{t('task.title', {}, 'Title')}</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.status', {}, 'Status')}</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.label', {}, 'Label')}</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.priority', {}, 'Priority')}</TableHead>
+          <TableHead className="w-[150px] px-2 py-2 text-xs">{t('task.assigned_to', {}, 'Assigned To')}</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.created_at', {}, 'Created At')}</TableHead>
+          <TableHead className="w-[100px] px-2 py-2 text-xs">{t('task.due_date', {}, 'Due Date')}</TableHead>
           <TableHead className="w-[30px] px-2 py-2"></TableHead>
         </TableRow>
       </TableHeader>
@@ -104,7 +106,7 @@ export function TaskList({
         {tasks.length === 0 ? (
           <TableRow>
             <TableCell colSpan={9} className="h-12 text-center text-xs">
-              Không có nhiệm vụ nào phù hợp với bộ lọc
+              {t('task.no_tasks', {}, 'Không có nhiệm vụ nào phù hợp với bộ lọc')}
             </TableCell>
           </TableRow>
         ) : (

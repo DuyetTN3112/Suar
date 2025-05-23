@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import useTranslation from '@/hooks/use_translation'
 
 interface Participant {
   id: string
@@ -32,6 +33,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
   const [initialMessage, setInitialMessage] = useState('')
   const [loading, setLoading] = useState(false)
+  const { t } = useTranslation()
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -65,15 +67,15 @@ export default function CreateConversation({ metadata, errors }: Props) {
 
   return (
     <>
-      <Head title="Tạo cuộc trò chuyện mới" />
+      <Head title={t('conversation.new_conversation', {}, 'Tạo cuộc trò chuyện mới')} />
       <div className="container py-8">
         <div className="max-w-2xl mx-auto">
-          <h1 className="text-3xl font-bold mb-6">Tạo cuộc trò chuyện mới</h1>
+          <h1 className="text-3xl font-bold mb-6">{t('conversation.new_conversation', {}, 'Tạo cuộc trò chuyện mới')}</h1>
 
           {errors && Object.keys(errors).length > 0 && (
             <Alert variant="destructive" className="mb-6">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Lỗi</AlertTitle>
+              <AlertTitle>{t('common.error', {}, 'Lỗi')}</AlertTitle>
               <AlertDescription>
                 {Object.values(errors).map((error, index) => (
                   <div key={index}>{error}</div>
@@ -85,27 +87,27 @@ export default function CreateConversation({ metadata, errors }: Props) {
           <Card>
             <form onSubmit={handleSubmit}>
               <CardHeader>
-                <CardTitle>Thông tin cuộc trò chuyện</CardTitle>
+                <CardTitle>{t('conversation.info', {}, 'Thông tin cuộc trò chuyện')}</CardTitle>
                 <CardDescription>
-                  Tạo một cuộc trò chuyện mới và mời những người bạn muốn nói chuyện.
+                  {t('conversation.create_description', {}, 'Tạo một cuộc trò chuyện mới và mời những người bạn muốn nói chuyện.')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="title">Tiêu đề cuộc trò chuyện (không bắt buộc)</Label>
+                  <Label htmlFor="title">{t('conversation.title_optional', {}, 'Tiêu đề cuộc trò chuyện (không bắt buộc)')}</Label>
                   <Input
                     id="title"
-                    placeholder="Nhập tiêu đề cuộc trò chuyện"
+                    placeholder={t('conversation.title_placeholder', {}, 'Nhập tiêu đề cuộc trò chuyện')}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
                   <p className="text-sm text-muted-foreground">
-                    Nếu không nhập tiêu đề, tên cuộc trò chuyện sẽ là tên của những người tham gia.
+                    {t('conversation.title_help', {}, 'Nếu không nhập tiêu đề, tên cuộc trò chuyện sẽ là tên của những người tham gia.')}
                   </p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Người tham gia</Label>
+                  <Label>{t('conversation.participants', {}, 'Người tham gia')}</Label>
                   <div className="border rounded-md p-4 max-h-64 overflow-y-auto">
                     {metadata.users && metadata.users.length > 0 ? (
                       <div className="space-y-2">
@@ -134,7 +136,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
                       </div>
                     ) : (
                       <p className="text-center text-muted-foreground">
-                        Không tìm thấy người dùng nào để thêm vào cuộc trò chuyện.
+                        {t('conversation.no_users', {}, 'Không tìm thấy người dùng nào để thêm vào cuộc trò chuyện.')}
                       </p>
                     )}
                   </div>
@@ -144,10 +146,10 @@ export default function CreateConversation({ metadata, errors }: Props) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="initial_message">Tin nhắn đầu tiên</Label>
+                  <Label htmlFor="initial_message">{t('conversation.first_message', {}, 'Tin nhắn đầu tiên')}</Label>
                   <Textarea
                     id="initial_message"
-                    placeholder="Nhập tin nhắn đầu tiên của bạn..."
+                    placeholder={t('conversation.first_message_placeholder', {}, 'Nhập tin nhắn đầu tiên của bạn...')}
                     value={initialMessage}
                     onChange={(e) => setInitialMessage(e.target.value)}
                     rows={4}
@@ -159,10 +161,10 @@ export default function CreateConversation({ metadata, errors }: Props) {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline" type="button" onClick={() => router.visit('/conversations')}>
-                  Hủy
+                  {t('common.cancel', {}, 'Hủy')}
                 </Button>
                 <Button type="submit" disabled={selectedParticipants.length === 0 || !initialMessage.trim() || loading}>
-                  {loading ? 'Đang tạo...' : 'Tạo cuộc trò chuyện'}
+                  {loading ? t('common.creating', {}, 'Đang tạo...') : t('conversation.create_button', {}, 'Tạo cuộc trò chuyện')}
                 </Button>
               </CardFooter>
             </form>

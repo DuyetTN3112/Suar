@@ -21,8 +21,10 @@ export default defineConfig({
 
     ses: transports.ses({
       region: env.get('SES_REGION', 'us-east-1'),
-      key: env.get('SES_ACCESS_KEY', ''),
-      secret: env.get('SES_ACCESS_SECRET', ''),
+      credentials: {
+        accessKeyId: env.get('SES_ACCESS_KEY', ''),
+        secretAccessKey: env.get('SES_ACCESS_SECRET', ''),
+      },
     }),
 
     mailgun: transports.mailgun({
@@ -36,4 +38,4 @@ export default defineConfig({
       baseUrl: env.get('RESEND_BASE_URL', 'https://api.resend.com'),
     }),
   },
-}) 
+})

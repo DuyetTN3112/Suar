@@ -59,7 +59,7 @@ export default class UpdateMemberRole {
         }
       }
 
-      // Kiểm tra quyền (chỉ admin hoặc superadmin mới có thể cập nhật vai trò)
+      // Kiểm tra quyền (chỉ superadmin của tổ chức mới có thể cập nhật vai trò)
       const userRole = await db
         .from('organization_users')
         .where('organization_id', organization.id)
@@ -68,8 +68,8 @@ export default class UpdateMemberRole {
         .first()
       console.log('[UpdateMemberRole] User role check:', userRole)
 
-      // Chỉ có superadmin (1) hoặc admin (2) mới có quyền cập nhật vai trò
-      if (!userRole || ![1, 2].includes(Number(userRole.role_id))) {
+      // Chỉ có superadmin tổ chức (1) mới có quyền cập nhật vai trò
+      if (!userRole || userRole.role_id !== 1) {
         console.log('[UpdateMemberRole] User does not have permission to update roles')
         return {
           success: false,

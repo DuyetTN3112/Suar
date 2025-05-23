@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
-import { vi } from 'date-fns/locale'
 import { CalendarIcon } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import useTranslation from '@/hooks/use_translation'
 
 interface TaskFormDueDateFieldProps {
   dueDate?: Date
@@ -19,6 +19,7 @@ export function TaskFormDueDateField({
   onDateChange,
   error
 }: TaskFormDueDateFieldProps) {
+  const { t, locale } = useTranslation()
   const [date, setDate] = useState<Date | undefined>(dueDate)
   
   // Sync local state with prop
@@ -34,7 +35,7 @@ export function TaskFormDueDateField({
   
   return (
     <div className="grid gap-2">
-      <Label>Ngày đến hạn</Label>
+      <Label>{t('task.due_date', {}, 'Ngày đến hạn')}</Label>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -45,7 +46,7 @@ export function TaskFormDueDateField({
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {date ? format(date, 'PPP', { locale: vi }) : "Chọn ngày"}
+            {date ? format(date, 'PPP') : t('task.select_due_date', {}, 'Chọn ngày')}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-auto p-0">
@@ -53,7 +54,6 @@ export function TaskFormDueDateField({
             mode="single"
             selected={date}
             onSelect={handleSelect}
-            locale={vi}
           />
         </PopoverContent>
       </Popover>

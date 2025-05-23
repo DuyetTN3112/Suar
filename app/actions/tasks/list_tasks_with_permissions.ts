@@ -34,7 +34,14 @@ export default class ListTasksWithPermissions {
     console.log('[ListTasksWithPermissions] Current Organization ID:', currentOrganizationId)
     if (!currentOrganizationId) {
       console.log('[ListTasksWithPermissions] No current organization found')
-      throw new Error('Không tìm thấy tổ chức hiện tại, vui lòng chọn tổ chức')
+      // Không ném ngoại lệ, thay vào đó đánh dấu session để hiển thị modal
+      this.ctx.session.put('show_organization_required_modal', true)
+      await this.ctx.session.commit()
+      // Trả về danh sách trống với thông báo
+      return {
+        ...this.getEmptyResponse(limit, page),
+        message: 'Cần chọn hoặc tham gia một tổ chức để xem danh sách công việc',
+      }
     }
 
     // Truy vấn cơ bản

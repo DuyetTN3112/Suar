@@ -24,6 +24,12 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar/index'
+import useTranslation from '@/hooks/use_translation'
+
+interface PageProps {
+  csrfToken: string
+  [key: string]: any
+}
 
 export function NavUser({
   user,
@@ -35,8 +41,9 @@ export function NavUser({
   }
 }) {
   const { isMobile } = useSidebar()
-  const page = usePage()
+  const page = usePage<PageProps>()
   const csrfToken = page.props.csrfToken || ''
+  const { t } = useTranslation()
   
   // Tạo initials từ tên người dùng
   const getInitials = (name: string) => {
@@ -93,7 +100,7 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem>
                 <Sparkles />
-                Upgrade to Pro
+                {t('user.upgrade_to_pro', {}, 'Nâng cấp lên Pro')}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -101,29 +108,29 @@ export function NavUser({
               <DropdownMenuItem asChild>
                 <Link href='/settings/account'>
                   <BadgeCheck />
-                  Account
+                  {t('settings.account', {}, 'Tài khoản')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/settings'>
                   <CreditCard />
-                  Billing
+                  {t('user.billing', {}, 'Thanh toán')}
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href='/settings/notifications'>
                   <Bell />
-                  Notifications
+                  {t('settings.notifications', {}, 'Thông báo')}
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <form action="/logout" method="POST" className="w-full">
-                <input type="hidden" name="_csrf" value={csrfToken || ""} />
+                <input type="hidden" name="_csrf" value={csrfToken} />
                 <button type="submit" className="w-full text-left flex items-center cursor-pointer">
                   <LogOut className="mr-2 h-4 w-4" />
-                  Đăng xuất
+                  {t('auth.logout', {}, 'Đăng xuất')}
                 </button>
               </form>
             </DropdownMenuItem>

@@ -17,11 +17,26 @@ import { SearchProvider } from '@/context/search_context'
 // Cấu hình Axios để tự động gửi CSRF token
 axios.defaults.withCredentials = true
 
+// Thêm cơ chế quản lý debug info
+window.DEBUG_MODE = process.env.NODE_ENV === 'development';
+
+// Tạo hàm log chỉ hiện trong development mode
+const debugLog = (message: string, ...args: any[]) => {
+  if (window.DEBUG_MODE) {
+    console.log(message, ...args);
+  }
+};
+
+// Tạo hàm log lỗi hiện trong mọi môi trường
+const errorLog = (message: string, ...args: any[]) => {
+  console.error(message, ...args);
+};
+
 // Lấy CSRF token từ meta tag
 const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 if (csrfToken) {
   axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken
-  console.log('Đã cấu hình CSRF token:', csrfToken)
+  debugLog('Đã cấu hình CSRF token', '[hidden for security]')
 } else {
   console.warn('Không tìm thấy CSRF token trong meta tags')
 }
@@ -47,13 +62,14 @@ window.DEBUG = {
     console.info('Environment:', import.meta.env.MODE);
     console.info('Node Env:', import.meta.env.NODE_ENV);
     console.info('Vite HMR:', import.meta.hot ? 'Enabled' : 'Disabled');
-    
-    // Kiểm tra các plugin đã tải
-    console.info('Loaded scripts:', 
-      Array.from(document.querySelectorAll('script'))
-        .map(s => s.src || `[inline] ${s.type || 'unknown type'}`)
-        .join('\n')
-    );
+  },
+  enableLogging: () => {
+    window.DEBUG_MODE = true;
+    console.info('Debug logging enabled');
+  },
+  disableLogging: () => {
+    window.DEBUG_MODE = false;
+    console.info('Debug logging disabled');
   }
 };
 
@@ -62,7 +78,10 @@ declare global {
   interface Window {
     DEBUG: {
       showReactVersionInfo: () => void;
+      enableLogging: () => void;
+      disableLogging: () => void;
     };
+    DEBUG_MODE: boolean;
     auth?: any;
   }
 }
@@ -85,22 +104,23 @@ router.on('before', (event) => {
 
 // Thêm log để kiểm tra thông tin auth
 document.addEventListener('DOMContentLoaded', () => {
-  console.group('=== Auth Debug Info ===');
-  console.log('Window Auth Object:', (window as any).auth);
-  if ((window as any).auth?.user) {
-    console.log('Auth User ID:', (window as any).auth.user.id);
-    console.log('Auth User Name:', (window as any).auth.user.full_name);
-  } else {
-    console.error('Không tìm thấy auth.user trong window!');
+  if (window.DEBUG_MODE) {
+    console.group('=== Auth Debug Info ===');
+    console.log('Window Auth Object:', window.auth ? 'Initialized' : 'undefined');
+    if (window.auth?.user) {
+      console.log('Auth User ID:', window.auth.user.id);
+    } else {
+      console.error('Không tìm thấy auth.user trong window!');
+    }
+    console.groupEnd();
   }
-  console.groupEnd();
 });
 
 // Component wrapper để đảm bảo auth được đặt vào window từ props
 const AuthInitializer = ({ children, auth }: { children: React.ReactNode, auth: any }) => {
   React.useEffect(() => {
     if (auth?.user && !window.auth) {
-      console.log('Khởi tạo window.auth từ props:', auth);
+      debugLog('Khởi tạo window.auth từ props', 'Successful');
       window.auth = auth;
     }
   }, [auth]);
@@ -117,7 +137,7 @@ createInertiaApp({
     const authData = props.initialPage?.props?.user?.auth;
     if (authData) {
       window.auth = authData;
-      console.log('Khởi tạo window.auth từ initialPage:', authData);
+      debugLog('Khởi tạo window.auth từ initialPage', 'Successful');
     }
     
     createRoot(el).render(

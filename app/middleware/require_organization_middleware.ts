@@ -4,7 +4,7 @@ import db from '@adonisjs/lucid/services/db'
 export default class RequireOrganizationMiddleware {
   /**
    * Middleware kiểm tra người dùng đã thuộc tổ chức nào chưa
-   * Nếu chưa, sẽ điều hướng đến trang thông báo yêu cầu tham gia tổ chức
+   * Nếu chưa, sẽ đặt một flag trong session để hiển thị modal popup
    */
   async handle({ auth, response, session, request }: HttpContext, next: () => Promise<void>) {
     // Bỏ qua kiểm tra nếu người dùng chưa đăng nhập
@@ -13,8 +13,26 @@ export default class RequireOrganizationMiddleware {
     }
 
     // Kiểm tra xem đường dẫn hiện tại có thuộc danh sách được miễn không
-    const exemptPaths = ['/organizations', '/organizations/*', '/auth/*', '/logout', '/errors/*']
+    const exemptPaths = [
+      '/organizations',
+      '/organizations/*',
+      '/auth/*',
+      '/logout',
+      '/errors/*',
+      '/api/organizations',
+      '/api/organizations/*',
+    ]
     const currentPath = request.url(true)
+    // Kiểm tra nếu đang truy cập trang organizations, cho phép truy cập trực tiếp
+    // Đồng thời xóa flag hiển thị modal nếu có
+    if (currentPath === '/organizations' || currentPath.startsWith('/organizations/')) {
+      // Xóa flag hiển thị modal nếu người dùng đang truy cập trang tổ chức
+      if (session.has('show_organization_required_modal')) {
+        session.forget('show_organization_required_modal')
+        await session.commit()
+      }
+      return next()
+    }
 
     // Cho phép truy cập các trang được miễn
     for (const path of exemptPaths) {
@@ -29,47 +47,55 @@ export default class RequireOrganizationMiddleware {
     }
 
     const user = auth.user!
+    // Kiểm tra xem người dùng có current_organization_id hay không
+    if (user.current_organization_id) {
+      // Xác minh rằng current_organization_id là hợp lệ
+      const validOrg = await db
+        .from('organization_users')
+        .where('user_id', user.id)
+        .where('organization_id', user.current_organization_id)
+        .first()
+      if (validOrg) {
+        // Người dùng đã có tổ chức hợp lệ và đang được chọn, xóa flag nếu có
+        if (session.has('show_organization_required_modal')) {
+          session.forget('show_organization_required_modal')
+          await session.commit()
+        }
+        return next()
+      }
+    }
     // Đầu tiên kiểm tra xem người dùng có tổ chức nào không
     const anyOrganization = await db.from('organization_users').where('user_id', user.id).first()
 
-    // Nếu không có tổ chức nào, điều hướng đến trang thông báo
+    // Nếu không có tổ chức nào, đặt flag để hiển thị modal
     if (!anyOrganization) {
       // Lưu URL hiện tại để sau khi tạo/tham gia tổ chức có thể quay lại
       session.put('intended_url', request.url(true))
+      // Đánh dấu là cần hiển thị modal tổ chức thay vì redirect
+      session.put('show_organization_required_modal', true)
       await session.commit()
-      if (request.accepts(['html'])) {
-        return response.redirect('/errors/require-organization')
+      // Nếu là API request, vẫn trả về lỗi JSON
+      if (request.accepts(['html', 'json']) === 'json') {
+        return response.status(403).json({
+          error: 'Bạn cần tham gia một tổ chức trước khi thực hiện thao tác này',
+          redirectTo: '/organizations',
+        })
       }
-      return response.status(403).json({
-        error: 'Bạn cần tham gia một tổ chức trước khi thực hiện thao tác này',
-        redirectTo: '/errors/require-organization',
-      })
-    }
-    // Kiểm tra tổ chức hiện tại có hợp lệ không
-    const currentOrganizationId =
-      session.get('current_organization_id') || user.current_organization_id
-    if (currentOrganizationId) {
-      const hasCurrentOrganization = await db
-        .from('organization_users')
-        .where('user_id', user.id)
-        .where('organization_id', currentOrganizationId)
-        .first()
-      if (!hasCurrentOrganization) {
-        // Tổ chức hiện tại không hợp lệ, cập nhật thành tổ chức đầu tiên của user
-        const firstOrg = await db.from('organization_users').where('user_id', user.id).first()
-        if (firstOrg) {
-          session.put('current_organization_id', firstOrg.organization_id)
-          await user.merge({ current_organization_id: firstOrg.organization_id }).save()
-          await session.commit()
-        }
+      // Đối với yêu cầu HTML, cho phép tiếp tục để xử lý modal trong frontend
+      return next()
+    } else {
+      // Người dùng đã có tổ chức nhưng chưa đặt current_organization_id
+      // Đặt tổ chức đầu tiên làm tổ chức hiện tại
+      const firstOrgId = anyOrganization.organization_id
+      // Cập nhật current_organization_id trong database và session
+      await user.merge({ current_organization_id: firstOrgId }).save()
+      session.put('current_organization_id', firstOrgId)
+      // Xóa flag hiển thị modal nếu có
+      if (session.has('show_organization_required_modal')) {
+        session.forget('show_organization_required_modal')
       }
-    } else if (anyOrganization) {
-      // Có tổ chức nhưng chưa đặt tổ chức hiện tại
-      session.put('current_organization_id', anyOrganization.organization_id)
-      await user.merge({ current_organization_id: anyOrganization.organization_id }).save()
       await session.commit()
     }
-
     // Tiếp tục xử lý
     return next()
   }

@@ -63,17 +63,38 @@ export default class AddMember {
         .first()
 
       if (existingMember) {
-        return {
-          success: false,
-          message: 'Người dùng này đã là thành viên của tổ chức',
+        if (existingMember.status === 'approved') {
+          return {
+            success: false,
+            message: 'Người dùng này đã là thành viên của tổ chức',
+          }
+        } else if (existingMember.status === 'pending') {
+          // Cập nhật trạng thái nếu đã có yêu cầu đang chờ
+          await db
+            .from('organization_users')
+            .where('organization_id', organization.id)
+            .where('user_id', memberToAdd.id)
+            .update({
+              status: 'approved',
+              role_id: roleId || 3,
+              invited_by: user.id,
+              updated_at: new Date(),
+            })
+
+          return {
+            success: true,
+            message: 'Đã duyệt và thêm thành viên thành công',
+          }
         }
       }
 
-      // Thêm thành viên
+      // Thêm thành viên mới
       await db.table('organization_users').insert({
         organization_id: organization.id,
         user_id: memberToAdd.id,
         role_id: roleId || 3, // Mặc định là user thường
+        status: 'approved',
+        invited_by: user.id,
         created_at: new Date(),
         updated_at: new Date(),
       })

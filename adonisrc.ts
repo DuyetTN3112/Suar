@@ -23,6 +23,9 @@ export default defineConfig({
     () => import('@adonisjs/limiter/limiter_provider'),
     () => import('@adonisjs/mail/mail_provider'),
     () => import('@adonisjs/ally/ally_provider'),
+    () => import('@adonisjs/i18n/i18n_provider'),
+    () => import('@adonisjs/transmit/transmit_provider'),
+    () => import('@adonisjs/lock/lock_provider'),
   ],
   preloads: [() => import('#start/routes'), () => import('#start/kernel')],
   tests: {
@@ -47,6 +50,10 @@ export default defineConfig({
     },
     {
       pattern: 'public/**',
+      reloadServer: false,
+    },
+    {
+      pattern: 'resources/lang/**/*.{json,yaml,yml}',
       reloadServer: false,
     },
   ],

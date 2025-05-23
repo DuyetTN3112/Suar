@@ -1,6 +1,7 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
+import { inject } from '@adonisjs/core'
 
 interface RemoveMemberParams {
   organizationId: number
@@ -12,12 +13,9 @@ interface RemoveMemberResult {
   message: string
 }
 
+@inject()
 export default class RemoveMember {
-  protected ctx: HttpContext
-
-  constructor(ctx: HttpContext) {
-    this.ctx = ctx
-  }
+  constructor(protected ctx: HttpContext) {}
 
   async handle({ organizationId, memberId }: RemoveMemberParams): Promise<RemoveMemberResult> {
     try {
@@ -27,7 +25,6 @@ export default class RemoveMember {
           message: 'Thiếu thông tin cần thiết',
         }
       }
-      
       const user = this.ctx.auth.user
       if (!user) {
         return {
@@ -35,7 +32,6 @@ export default class RemoveMember {
           message: 'Bạn chưa đăng nhập',
         }
       }
-      
       const organization = await Organization.find(organizationId)
       if (!organization) {
         return {
@@ -52,7 +48,7 @@ export default class RemoveMember {
         }
       }
 
-      // Kiểm tra quyền (chỉ admin hoặc owner mới có thể xóa thành viên)
+      // Kiểm tra quyền (chỉ superadmin của tổ chức mới có thể xóa thành viên)
       const userRole = await db
         .from('organization_users')
         .where('organization_id', organization.id)
@@ -60,7 +56,8 @@ export default class RemoveMember {
         .select('role_id')
         .first()
 
-      if (!userRole || ![1, 2].includes(Number(userRole.role_id))) {
+      // Chỉ có superadmin tổ chức (1) mới có quyền xóa thành viên
+      if (!userRole || userRole.role_id !== 1) {
         return {
           success: false,
           message: 'Bạn không có quyền xóa thành viên',

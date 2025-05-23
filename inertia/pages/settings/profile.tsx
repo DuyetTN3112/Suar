@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useRef, useState } from 'react'
 import { Head, useForm, usePage } from '@inertiajs/react'
 import { Link } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
@@ -8,9 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 // Import icons
-import { User, CreditCard, Bell, Eye, Palette } from 'lucide-react'
+import { User, CreditCard, Bell, Eye, Palette, Upload } from 'lucide-react'
 
 // Define sidebar item type
 interface SidebarItem {
@@ -55,6 +56,7 @@ export default function Profile() {
     username: '',
     email: '',
     full_name: '',
+    avatar: '',
     user_profile: { bio: '' },
     user_urls: []
   }
@@ -64,6 +66,58 @@ export default function Profile() {
     bio: user.user_profile?.bio || '',
     urls: user.user_urls?.map(item => item.url) || []
   })
+  
+  // Avatar upload
+  const [isUploading, setIsUploading] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    
+    // Tạo preview URL
+    const objectUrl = URL.createObjectURL(file)
+    setPreviewUrl(objectUrl)
+    
+    // Upload file
+    const formData = new FormData()
+    formData.append('avatar', file)
+    
+    setIsUploading(true)
+    
+    // Gửi request upload avatar
+    fetch('/profile/avatar', {
+      method: 'POST',
+      body: formData,
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+      credentials: 'same-origin',
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Upload failed')
+      }
+      return response.json()
+    })
+    .then(() => {
+      // Reload page để hiển thị avatar mới
+      window.location.reload()
+    })
+    .catch(error => {
+      console.error('Error uploading avatar:', error)
+      // Reset preview
+      setPreviewUrl(null)
+    })
+    .finally(() => {
+      setIsUploading(false)
+    })
+  }
+  
+  const triggerFileInput = () => {
+    fileInputRef.current?.click()
+  }
 
   // Define sidebar items
   const sidebarItems: SidebarItem[] = [
@@ -136,6 +190,38 @@ export default function Profile() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Avatar section */}
+                <div className="mb-6 pb-6 border-b border-border">
+                  <Label className="block mb-2">Ảnh đại diện</Label>
+                  <div className="flex items-center gap-5">
+                    <Avatar className="w-24 h-24">
+                      <AvatarImage src={previewUrl || user.avatar} alt={user.full_name} />
+                      <AvatarFallback>{user.first_name?.[0]}{user.last_name?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <input 
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        className="hidden"
+                        accept="image/jpeg,image/png,image/jpg"
+                      />
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={triggerFileInput}
+                        disabled={isUploading}
+                      >
+                        {isUploading ? 'Đang tải lên...' : 'Tải lên ảnh mới'}
+                        {!isUploading && <Upload className="ml-2 h-4 w-4" />}
+                      </Button>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Chấp nhận JPG, PNG. Kích thước tối đa 2MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   {/* Thông tin hiển thị public */}
                   <div className="space-y-2">

@@ -1,14 +1,19 @@
 import React from 'react'
 import { Link } from '@inertiajs/react'
 import { Toaster } from 'sonner'
+import { ThemeSwitch } from '@/components/theme-switch'
+import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import useTranslation from '@/hooks/use_translation'
 
 interface AuthLayoutProps {
   children: React.ReactNode
 }
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
+  const { t } = useTranslation()
+  
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 dark:text-white transition-colors duration-300">
       <header>
         <nav className="flex items-center justify-between p-6 lg:px-8">
           <div className="flex lg:flex-1">
@@ -33,12 +38,16 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               </svg>
             </a>
           </div>
-          <div className="flex flex-1 justify-end gap-4">
-            <Link href="/register" className="text-sm font-semibold leading-6 text-slate-900">
-              Đăng ký
+          <div className="flex flex-1 justify-end gap-4 items-center">
+            <div className="flex items-center space-x-1">
+              <ThemeSwitch />
+              <LanguageSwitcher />
+            </div>
+            <Link href="/register" className="text-sm font-semibold leading-6 text-slate-900 dark:text-slate-200 hover:text-primary transition-colors">
+              {t('auth.register', {}, 'Đăng ký')}
             </Link>
-            <Link href="/login" className="text-sm font-semibold leading-6 text-slate-900">
-              Đăng nhập
+            <Link href="/login" className="text-sm font-semibold leading-6 text-slate-900 dark:text-slate-200 hover:text-primary transition-colors">
+              {t('auth.login', {}, 'Đăng nhập')}
             </Link>
           </div>
         </nav>

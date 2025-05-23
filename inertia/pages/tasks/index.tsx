@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { useTaskState } from './hooks/use_task_state'
 import { formatDate } from './utils/task_formatter'
 import { getRoleFromAuth, canCreateTask } from './utils/task_permissions'
+import useTranslation from '@/hooks/use_translation'
 
 // Import các thành phần đã tái cấu trúc
 import { TasksFilters } from './components/filters/tasks_filters'
@@ -16,6 +17,8 @@ import { ImportTasksModal } from './components/modals/import_tasks_modal'
 import { TaskDetailModal } from './components/modals/task_detail_modal'
 
 export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
+  const { t } = useTranslation()
+  
   const {
     searchQuery,
     setSearchQuery,
@@ -74,13 +77,15 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
     )
   }
 
+  const pageTitle = t('task.task_list', {}, 'Quản lý nhiệm vụ')
+
   return (
-    <AppLayout title="Quản lý nhiệm vụ">
-      <Head title="Quản lý nhiệm vụ" />
+    <AppLayout title={pageTitle}>
+      <Head title={pageTitle} />
 
       <div className="p-4 sm:p-6 space-y-4">
         <div className="flex justify-between items-center">
-          <h1 className="text-xl font-semibold">Quản lý nhiệm vụ</h1>
+          <h1 className="text-xl font-semibold">{pageTitle}</h1>
           
           <div className="flex items-center gap-2">
             <Button 
@@ -88,14 +93,14 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
               variant="outline" 
               onClick={handleImportClick}
             >
-              Nhập
+              {t('common.import', {}, 'Nhập')}
             </Button>
             
             <Button 
               size="sm"
               onClick={handleCreateClick}
             >
-              Tạo mới
+              {t('task.add_task', {}, 'Tạo mới')}
             </Button>
           </div>
         </div>

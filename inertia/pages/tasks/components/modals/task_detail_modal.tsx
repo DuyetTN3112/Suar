@@ -16,6 +16,7 @@ import { TaskDetailHistoryTab } from './task_detail_info/task_detail_history_tab
 import { getPermissions } from '../task_detail_utils'
 import { loadAuditLogs } from '../task_detail_api'
 import { X, Info, History } from 'lucide-react'
+import useTranslation from '@/hooks/use_translation'
 
 interface TaskDetailModalProps {
   open: boolean
@@ -40,6 +41,7 @@ export function TaskDetailModal({
   onUpdate,
   currentUser = {}
 }: TaskDetailModalProps) {
+  const { t } = useTranslation()
   const [formData, setFormData] = useState<Partial<Task>>({})
   const [activeTab, setActiveTab] = useState('info')
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -151,7 +153,7 @@ export function TaskDetailModal({
         <span className="line-clamp-1">{task.title}</span>
       </div>
     )
-    : 'Chi tiết nhiệm vụ';
+    : t('task.task_details', {}, 'Chi tiết nhiệm vụ');
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={true}>
@@ -165,15 +167,15 @@ export function TaskDetailModal({
                   <DialogDescription>
                     {canEdit 
                       ? <span className="flex items-center gap-1">
-                          <span>Xem và chỉnh sửa thông tin nhiệm vụ</span>
-                          <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">Chỉnh sửa</span>
+                          <span>{t('task.view_and_edit_task', {}, 'Xem và chỉnh sửa thông tin nhiệm vụ')}</span>
+                          <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">{t('common.edit', {}, 'Chỉnh sửa')}</span>
                         </span> 
-                      : 'Xem thông tin nhiệm vụ'}
+                      : t('task.view_task_info', {}, 'Xem thông tin nhiệm vụ')}
                   </DialogDescription>
                 </DialogHeader>
                 <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                   <X className="h-4 w-4" />
-                  <span className="sr-only">Đóng</span>
+                  <span className="sr-only">{t('common.close', {}, 'Đóng')}</span>
                 </DialogClose>
               </div>
             </div>
@@ -183,11 +185,11 @@ export function TaskDetailModal({
                 <TabsList className="grid w-full grid-cols-2">
                   <TabsTrigger value="info" className="flex items-center gap-2">
                     <Info className="h-4 w-4" />
-                    <span>Thông tin</span>
+                    <span>{t('task.information', {}, 'Thông tin')}</span>
                   </TabsTrigger>
                   <TabsTrigger value="history" className="flex items-center gap-2">
                     <History className="h-4 w-4" />
-                    <span>Lịch sử</span>
+                    <span>{t('task.history', {}, 'Lịch sử')}</span>
                   </TabsTrigger>
                 </TabsList>
               </div>
@@ -228,7 +230,7 @@ export function TaskDetailModal({
                 variant="outline"
                 onClick={handleClose}
               >
-                Đóng
+                {t('common.close', {}, 'Đóng')}
               </Button>
             </DialogFooter>
           </>
@@ -236,4 +238,4 @@ export function TaskDetailModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react'
+import { ReactNode } from 'react'
 
 interface User {
   name: string
@@ -14,24 +15,27 @@ interface Team {
 
 interface BaseNavItem {
   title: string
+  titleKey?: string
   badge?: string
   icon?: React.ElementType
+  iconName?: string
 }
 
-type NavLink = BaseNavItem & {
+export type NavLink = BaseNavItem & {
   url: string
   items?: never
 }
 
-type NavCollapsible = BaseNavItem & {
-  items: (BaseNavItem & { url: string })[]
-  url?: never
+export type NavCollapsible = BaseNavItem & {
+  items: (BaseNavItem & { url: string; titleKey?: string })[]
+  url?: string
 }
 
-type NavItem = NavCollapsible | NavLink
+export type NavItem = NavCollapsible | NavLink
 
-interface NavGroup {
+export interface NavGroup {
   title: string
+  titleKey?: string
   items: NavItem[]
 }
 
@@ -41,4 +45,4 @@ interface SidebarData {
   navGroups: NavGroup[]
 }
 
-export type { SidebarData, NavGroup, NavItem, NavCollapsible, NavLink }
+export type { SidebarData, User, Team }
