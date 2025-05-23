@@ -66,4 +66,20 @@ export default await Env.create(new URL('../', import.meta.url), {
   APP_LOGO: Env.schema.string.optional(),
   APP_LOCALE: Env.schema.string(),
   APP_TIMEZONE: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring ally package
+  |----------------------------------------------------------
+  */
+  GOOGLE_CLIENT_ID: Env.schema.string(),
+  GOOGLE_CLIENT_SECRET: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring ally package
+  |----------------------------------------------------------
+  */
+  GITHUB_CLIENT_ID: Env.schema.string(),
+  GITHUB_CLIENT_SECRET: Env.schema.string()
 })

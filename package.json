@@ -69,6 +69,7 @@
     "vite": "^6.1.0"
   },
   "dependencies": {
+    "@adonisjs/ally": "^5.1.0",
     "@adonisjs/auth": "^9.4.0",
     "@adonisjs/core": "^6.17.2",
     "@adonisjs/cors": "^2.2.1",
@@ -118,7 +119,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
-    "date-fns": "^4.1.0",
+    "date-fns": "^3.0.0",
     "edge.js": "^6.2.1",
     "embla-carousel-react": "^8.6.0",
     "feather-icons": "^4.29.2",

@@ -72,51 +72,6 @@ export function AppSidebar(props: AppSidebarProps) {
     console.error('Lỗi khi truy cập dữ liệu người dùng:', error)
   }
   
-  // Tạo menu settings riêng với các submenu
-  const settingsNavigation: NavGroupType = {
-    title: 'Cài đặt',
-    items: [
-      {
-        title: 'Cài đặt',
-        icon: mainNavigation[2].items[0].icon, // Lấy icon Settings từ navigation chính
-        items: [
-          {
-            title: 'Hồ sơ',
-            url: '/settings/profile',
-            icon: undefined,
-          },
-          {
-            title: 'Tài khoản',
-            url: '/settings/account',
-            icon: undefined,
-          },
-          {
-            title: 'Giao diện',
-            url: '/settings/appearance',
-            icon: undefined,
-          },
-          {
-            title: 'Thông báo',
-            url: '/settings/notifications',
-            icon: undefined,
-          },
-          {
-            title: 'Hiển thị',
-            url: '/settings/display',
-            icon: undefined,
-          },
-        ],
-      },
-    ],
-  };
-  
-  // Tạo mảng navigation mới với các mục tổng quan, ứng dụng và menu settings mới
-  const modifiedNavigation = [
-    mainNavigation[0], // Tổng quan
-    mainNavigation[1], // Ứng dụng
-    settingsNavigation,
-  ];
-  
   // Debug và xử lý lỗi trong useEffect
   useEffect(() => {
     console.log('=== AppSidebar State ===')
@@ -136,7 +91,7 @@ export function AppSidebar(props: AppSidebarProps) {
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent className="px-2">
-        {modifiedNavigation.map((navGroup: NavGroupType) => (
+        {mainNavigation.map((navGroup: NavGroupType) => (
           <NavGroup key={navGroup.title} {...navGroup} />
         ))}
       </SidebarContent>

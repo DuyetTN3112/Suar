@@ -65,4 +65,5 @@ export const middleware = router.named({
   silentAuth: () => import('#middleware/silent_auth_middleware'),
   cache: () => import('#middleware/cache_middleware'),
   authorizeRole: () => import('#middleware/authorize_role'),
+  requireOrg: () => import('#middleware/require_organization_middleware'),
 })

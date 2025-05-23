@@ -43,6 +43,7 @@ export async function checkUserPermissions(ctx, organizationId) {
 export function createBaseTaskQuery(organizationId) {
   return Task.query()
     .where('organization_id', organizationId)
+    .whereNull('deleted_at')
     .orderBy('created_at', 'desc')
 }
 
@@ -105,6 +106,7 @@ export function applyTaskRelations(taskQuery) {
   
   // Preload task con
   taskQuery.preload('childTasks', (childQuery) => {
+    childQuery.whereNull('deleted_at')
     childQuery.preload('status')
     childQuery.preload('priority')
     childQuery.preload('label')

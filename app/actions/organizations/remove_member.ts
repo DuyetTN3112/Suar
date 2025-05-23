@@ -1,5 +1,4 @@
-import { inject } from '@adonisjs/core'
-import type { HttpContext } from '@adonisjs/core/http'
+import { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 
@@ -13,13 +12,30 @@ interface RemoveMemberResult {
   message: string
 }
 
-@inject()
 export default class RemoveMember {
-  constructor(protected ctx: HttpContext) {}
+  protected ctx: HttpContext
+
+  constructor(ctx: HttpContext) {
+    this.ctx = ctx
+  }
 
   async handle({ organizationId, memberId }: RemoveMemberParams): Promise<RemoveMemberResult> {
     try {
-      const user = this.ctx.auth.user!
+      if (!organizationId || !memberId) {
+        return {
+          success: false,
+          message: 'Thiếu thông tin cần thiết',
+        }
+      }
+      
+      const user = this.ctx.auth.user
+      if (!user) {
+        return {
+          success: false,
+          message: 'Bạn chưa đăng nhập',
+        }
+      }
+      
       const organization = await Organization.find(organizationId)
       if (!organization) {
         return {
@@ -48,6 +64,20 @@ export default class RemoveMember {
         return {
           success: false,
           message: 'Bạn không có quyền xóa thành viên',
+        }
+      }
+
+      // Kiểm tra thành viên có tồn tại trong tổ chức không
+      const memberExists = await db
+        .from('organization_users')
+        .where('organization_id', organization.id)
+        .where('user_id', memberId)
+        .first()
+
+      if (!memberExists) {
+        return {
+          success: false,
+          message: 'Thành viên này không thuộc tổ chức',
         }
       }
 

@@ -33,4 +33,4 @@ router
       .put('/profile/settings', [ProfileController, 'updateSettings'])
       .as('profile.update_settings')
   })
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.requireOrg()])

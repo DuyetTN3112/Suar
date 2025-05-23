@@ -19,6 +19,7 @@ type TaskData = {
   estimated_time?: number
   actual_time?: number
   organization_id?: number
+  updated_by?: number
 }
 
 @inject()
@@ -51,7 +52,7 @@ export default class UpdateTask {
     const updateData: Record<string, any> = {}
     if (data.title) updateData.title = data.title
     if (data.description) updateData.description = data.description
-    if (data.status_id) updateData.status_id = data.status_id
+    if (data.status_id !== undefined) updateData.status_id = data.status_id
     if (data.label_id) updateData.label_id = data.label_id
     if (data.priority_id) updateData.priority_id = data.priority_id
     if (data.assigned_to !== undefined) updateData.assigned_to = data.assigned_to
@@ -59,11 +60,15 @@ export default class UpdateTask {
       updateData.parent_task_id = data.parent_task_id === 0 ? null : data.parent_task_id
     if (data.estimated_time !== undefined) updateData.estimated_time = data.estimated_time
     if (data.actual_time !== undefined) updateData.actual_time = data.actual_time
+    // Thêm updated_by nếu có
+    if (data.updated_by) updateData.updated_by = data.updated_by
     // Cập nhật dueDate nếu có
     if (data.due_date) {
       updateData.due_date =
         typeof data.due_date === 'string' ? DateTime.fromISO(data.due_date) : data.due_date
     }
+
+    console.log('Update task data:', updateData)
 
     // Cập nhật task
     task.merge(updateData)
@@ -111,6 +116,22 @@ export default class UpdateTask {
         })
       }
     }
+
+    // Tải đầy đủ các mối quan hệ để trả về task đã được cập nhật hoàn chỉnh
+    await task.load((loader) => {
+      loader
+        .load('status')
+        .load('label')
+        .load('priority')
+        .load('creator')
+        .load('assignee')
+        .load('parentTask')
+        .load('childTasks')
+        .load('organization')
+        .load('versions', (query) => {
+          query.orderBy('created_at', 'desc')
+        })
+    })
 
     return task
   }

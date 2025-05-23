@@ -4,15 +4,78 @@ import ListOrganizations from '#actions/organizations/list_organizations'
 import GetOrganization from '#actions/organizations/get_organization'
 import SwitchOrganization from '#actions/organizations/switch_organization'
 import CreateOrganization from '#actions/organizations/create_organization'
+import Organization from '#models/organization'
+import db from '@adonisjs/lucid/services/db'
 
 @inject()
 export default class OrganizationsController {
   /**
-   * Hiển thị danh sách tổ chức của người dùng
+   * Hiển thị danh sách tổ chức của người dùng hiện tại
    */
-  async index({ inertia }: HttpContext, listOrganizations: ListOrganizations) {
-    const result = await listOrganizations.handle()
-    return inertia.render('organizations/index', result)
+  async index({ auth, inertia }: HttpContext) {
+    const user = auth.user!
+
+    // Lấy tất cả tổ chức mà người dùng đang là thành viên
+    const userOrganizations = await db
+      .from('organizations')
+      .join('organization_users', 'organizations.id', '=', 'organization_users.organization_id')
+      .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
+      .where('organization_users.user_id', user.id)
+      .whereNull('organizations.deleted_at')
+      .select('organizations.*', 'user_roles.name as role_name', 'user_roles.id as role_id')
+
+    // Trả về trang hiển thị danh sách tổ chức
+    return inertia.render('organizations/index', {
+      organizations: userOrganizations,
+      currentOrganizationId: user.current_organization_id,
+    })
+  }
+
+  /**
+   * Hiển thị thông tin chi tiết của tổ chức
+   */
+  async show({ params, inertia, auth, response }: HttpContext) {
+    const organization = await Organization.find(params.id)
+
+    if (!organization) {
+      return response.status(404).redirect('/errors/not-found')
+    }
+
+    // Kiểm tra xem người dùng có phải là thành viên của tổ chức không
+    const user = auth.user!
+    const membership = await db
+      .from('organization_users')
+      .where('organization_id', organization.id)
+      .where('user_id', user.id)
+      .first()
+
+    if (!membership) {
+      return response.status(403).redirect('/errors/forbidden')
+    }
+
+    // Lấy danh sách thành viên của tổ chức
+    const members = await db
+      .from('users')
+      .join('organization_users', 'users.id', '=', 'organization_users.user_id')
+      .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
+      .where('organization_users.organization_id', organization.id)
+      .whereNull('users.deleted_at')
+      .select(
+        'users.id',
+        'users.first_name',
+        'users.last_name',
+        'users.full_name',
+        'users.email',
+        'users.username',
+        'organization_users.role_id',
+        'user_roles.name as role_name'
+      )
+
+    return inertia.render('organizations/show', {
+      organization,
+      members,
+      userRole: membership.role_id,
+    })
   }
 
   /**
@@ -51,24 +114,6 @@ export default class OrganizationsController {
   }
 
   /**
-   * Hiển thị chi tiết tổ chức
-   */
-  async show(
-    { params, inertia, response, session }: HttpContext,
-    getOrganization: GetOrganization
-  ) {
-    const result = await getOrganization.handle(Number(params.id))
-    if (!result.success) {
-      session.flash('error', result.message || '')
-      return response.redirect().toRoute('organizations.index')
-    }
-    return inertia.render('organizations/show', {
-      organization: result.organization,
-      userRole: result.userRole,
-    })
-  }
-
-  /**
    * Chuyển đổi tổ chức hiện tại cho người dùng
    */
   async switchOrganization(
@@ -92,28 +137,33 @@ export default class OrganizationsController {
   }
 
   /**
-   * Chuyển đổi tổ chức và chuyển hướng (phương thức GET)
+   * Xử lý chuyển đổi tổ chức và chuyển hướng
    */
-  async switchAndRedirect(
-    { params, response, session, auth }: HttpContext,
-    switchOrganization: SwitchOrganization
-  ) {
-    const result = await switchOrganization.handle({ organizationId: Number(params.id) })
-    if (result.success) {
-      // Cập nhật current_organization_id trong database (đề phòng action không cập nhật)
-      try {
-        const user = auth.user!
-        await user.merge({ current_organization_id: Number(params.id) }).save()
-        console.log(
-          `[OrganizationsController] Đã cập nhật current_organization_id trong database: ${Number(params.id)}`
-        )
-      } catch (error) {
-        console.error('[OrganizationsController] Lỗi khi cập nhật database:', error)
-      }
-      session.flash('success', result.message || 'Đã chuyển đổi tổ chức thành công')
-      return response.redirect('/tasks')
+  async switchAndRedirect({ params, auth, session, response }: HttpContext) {
+    const user = auth.user!
+    const organizationId = params.id
+
+    // Kiểm tra quyền truy cập vào tổ chức
+    const membership = await db
+      .from('organization_users')
+      .where('organization_id', organizationId)
+      .where('user_id', user.id)
+      .first()
+
+    if (!membership) {
+      return response.status(403).redirect('/errors/forbidden')
     }
-    session.flash('error', result.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
-    return response.redirect().back()
+
+    // Cập nhật session và database
+    session.put('current_organization_id', Number(organizationId))
+    await session.commit()
+    await user.merge({ current_organization_id: Number(organizationId) }).save()
+
+    // Chuyển hướng đến trang chủ hoặc trang được lưu trước đó
+    const intendedUrl = session.get('intended_url', '/')
+    session.forget('intended_url')
+    await session.commit()
+
+    return response.redirect(intendedUrl)
   }
 }

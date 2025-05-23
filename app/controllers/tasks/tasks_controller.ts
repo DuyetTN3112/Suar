@@ -101,22 +101,45 @@ export default class TasksController {
   }
 
   @inject()
-  async update({ params, request, response, session }: HttpContext, updateTask: UpdateTask) {
-    const data = request.only([
-      'title',
-      'description',
-      'status_id',
-      'label_id',
-      'priority_id',
-      'assigned_to',
-      'due_date',
-      'parent_task_id',
-      'estimated_time',
-      'actual_time',
-    ])
-    await updateTask.handle({ id: Number(params.id), data })
-    session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
-    return response.redirect().toRoute('tasks.show', { id: Number(params.id) })
+  async update(
+    { params, request, response, session, auth, inertia }: HttpContext,
+    updateTask: UpdateTask
+  ) {
+    try {
+      const data: any = request.only([
+        'title',
+        'description',
+        'status_id',
+        'label_id',
+        'priority_id',
+        'assigned_to',
+        'due_date',
+        'parent_task_id',
+        'estimated_time',
+        'actual_time',
+      ])
+      // Thêm ID người dùng hiện tại làm người cập nhật
+      const user = auth.user
+      if (user) {
+        data.updated_by = user.id
+      }
+      const updatedTask = await updateTask.handle({ id: Number(params.id), data })
+      // Kiểm tra xem request có phải từ Inertia không
+      if (request.header('X-Inertia')) {
+        session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
+        return response.status(200).json({
+          success: true,
+          task: updatedTask,
+        })
+      }
+      // Điều hướng trang như trước đối với yêu cầu thông thường
+      session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
+      return response.redirect().toRoute('tasks.show', { id: Number(params.id) })
+    } catch (error) {
+      console.error('Error updating task:', error)
+      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
+      return response.redirect().back()
+    }
   }
 
   @inject()
@@ -136,20 +159,62 @@ export default class TasksController {
   }
 
   @inject()
-  async destroy({ params, response, session }: HttpContext, deleteTask: DeleteTask) {
+  async destroy(
+    { params, response, session, request, inertia }: HttpContext,
+    deleteTask: DeleteTask,
+    listTasksWithPermissions: ListTasksWithPermissions,
+    getTaskMetadata: GetTaskMetadata
+  ) {
     try {
+      console.log(`Bắt đầu xóa task với ID: ${params.id}`)
       const result = await deleteTask.handle({ id: Number(params.id) })
-      
       if (!result.success) {
+        console.log('Lỗi khi xóa task:', result.message)
         session.flash('error', result.message)
+        if (request.header('X-Inertia')) {
+          // Đối với request từ Inertia, trả về lỗi nhưng không reload trang
+          return response.status(400).json({
+            success: false,
+            message: result.message,
+          })
+        }
         return response.redirect().back()
       }
-      
-      session.flash('success', 'Nhiệm vụ đã được xóa')
+
+      console.log(`Task ${params.id} đã được xóa thành công`)
+      session.flash('success', 'Nhiệm vụ đã được xóa thành công')
+      if (request.header('X-Inertia')) {
+        // Đối với request từ Inertia, cần reload dữ liệu
+        console.log('Đang reload dữ liệu sau khi xóa task thành công')
+        const page = request.input('page', 1)
+        const limit = request.input('limit', 10)
+        const filters = {
+          page,
+          limit,
+          status: request.input('status'),
+          priority: request.input('priority'),
+          label: request.input('label'),
+          search: request.input('search'),
+          assigned_to: request.input('assigned_to'),
+          parent_task_id: request.input('parent_task_id'),
+        }
+        const tasks = await listTasksWithPermissions.handle(filters)
+        const metadata = await getTaskMetadata.handle()
+        console.log(`Đã tải lại ${tasks.data.length} tasks sau khi xóa`)
+        // Trả về dữ liệu mới cho Inertia
+        return inertia.render('tasks/index', {
+          tasks,
+          metadata,
+          filters,
+        })
+      }
       return response.redirect().toRoute('tasks.index')
     } catch (error: any) {
       console.error('Error deleting task:', error)
       session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
+      if (request.header('X-Inertia')) {
+        return inertia.location(request.header('Referer') || '/tasks')
+      }
       return response.redirect().back()
     }
   }
@@ -175,17 +240,66 @@ export default class TasksController {
               email: log.user.email,
             }
           : null,
-        old_values: log.old_values,
-        new_values: log.new_values,
-        created_at: log.created_at,
-        ip_address: log.ip_address,
-        user_agent: log.user_agent,
+        timestamp: log.created_at,
+        changes: log.new_values
+          ? this.formatChanges(log.old_values || {}, log.new_values || {})
+          : [],
       }))
-      return response.json(formattedLogs)
+      return response.json({
+        success: true,
+        data: formattedLogs,
+      })
     } catch (error) {
-      console.error('Lỗi khi lấy audit logs:', error)
+      console.error('Error loading audit logs:', error)
       return response.status(500).json({
-        error: 'Đã xảy ra lỗi khi lấy nhật ký thay đổi',
+        success: false,
+        message: 'Có lỗi xảy ra khi tải lịch sử thay đổi',
+      })
+    }
+  }
+
+  /**
+   * Format changes for audit logs
+   */
+  private formatChanges(oldValues: Record<string, any>, newValues: Record<string, any>) {
+    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
+    // Compare old and new values
+    for (const key in newValues) {
+      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
+        changes.push({
+          field: key,
+          oldValue: oldValues[key],
+          newValue: newValues[key],
+        })
+      }
+    }
+    return changes
+  }
+
+  /**
+   * Cập nhật trạng thái task
+   */
+  @inject()
+  async updateStatus({ params, request, response, auth }: HttpContext, updateTask: UpdateTask) {
+    try {
+      const { status_id: statusId } = request.only(['status_id'])
+      const data: any = { status_id: Number(statusId) }
+      // Thêm ID người dùng hiện tại làm người cập nhật
+      const user = auth.user
+      if (user) {
+        data.updated_by = user.id
+      }
+      const updatedTask = await updateTask.handle({ id: Number(params.id), data })
+      return response.status(200).json({
+        success: true,
+        message: 'Trạng thái nhiệm vụ đã được cập nhật',
+        data: updatedTask,
+      })
+    } catch (error) {
+      console.error('Error updating task status:', error)
+      return response.status(500).json({
+        success: false,
+        message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
       })
     }
   }
@@ -197,38 +311,34 @@ export default class TasksController {
     try {
       // Lấy thông tin người dùng đã đăng nhập
       const user = auth.user
-      
       if (!user) {
         return response.status(403).json({
           success: false,
           message: 'Bạn cần đăng nhập để thực hiện hành động này',
-          canCreate: false
+          canCreate: false,
         })
       }
-      
       // Kiểm tra quyền
       const userRole = user.role?.name?.toLowerCase() || ''
       const isAdmin = user.isAdmin === true
       const roleId = user.role?.id || user.role_id
-      
       // Log để debug
       console.log('CHECK PERMISSION - User:', {
         id: user.id,
         username: user.username,
         role: userRole,
         isAdmin,
-        roleId
+        roleId,
       })
-      
       // Chỉ superadmin hoặc admin mới có quyền tạo task
-      const canCreate = isAdmin || 
-                      roleId === 1 || 
-                      roleId === 2 || 
-                      userRole === 'superadmin' || 
-                      userRole === 'admin' ||
-                      user.username === 'superadmin' ||
-                      user.username === 'admin'
-      
+      const canCreate =
+        isAdmin ||
+        roleId === 1 ||
+        roleId === 2 ||
+        userRole === 'superadmin' ||
+        userRole === 'admin' ||
+        user.username === 'superadmin' ||
+        user.username === 'admin'
       return response.json({
         success: true,
         canCreate,
@@ -238,15 +348,15 @@ export default class TasksController {
           email: user.email,
           role: user.role,
           roleId,
-          isAdmin
-        }
+          isAdmin,
+        },
       })
     } catch (error) {
       console.error('Error in checkCreatePermission:', error)
       return response.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi khi kiểm tra quyền',
-        canCreate: false
+        canCreate: false,
       })
     }
   }

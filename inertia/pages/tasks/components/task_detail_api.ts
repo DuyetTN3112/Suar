@@ -24,17 +24,22 @@ export const markTaskAsCompleted = async (
 ): Promise<number | null> => {
   if (!task?.id) return null
 
-  const completedStatusId = statuses.find(
+  // Tìm trạng thái hoàn thành
+  const completedStatus = statuses.find(
     (status) =>
       status.name.toLowerCase().includes('done') ||
       status.name.toLowerCase().includes('complete') ||
       status.name.toLowerCase().includes('hoàn thành')
-  )?.id
-
-  if (!completedStatusId) {
+  )
+  // Nếu không tìm thấy trạng thái hoàn thành, thử tìm trạng thái "done"
+  if (!completedStatus) {
+    const doneStatus = statuses.find((status) => status.name.toLowerCase() === 'done')
+    if (doneStatus) {
+      return doneStatus.id
+    }
     console.error('Không tìm thấy trạng thái hoàn thành')
     return null
   }
 
-  return completedStatusId
+  return completedStatus.id
 }

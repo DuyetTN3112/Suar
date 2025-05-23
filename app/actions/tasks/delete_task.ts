@@ -16,21 +16,40 @@ export default class DeleteTask {
 
   async handle({ id }: { id: number }) {
     const user = this.ctx.auth.user!
+    console.log(
+      `[DeleteTask] Bắt đầu xóa task ID: ${id}, người dùng: ${user.id} (${user.username})`
+    )
+
     try {
       // Tìm task để lưu thông tin trước khi xóa
       const task = await Task.findOrFail(id)
+      console.log(`[DeleteTask] Đã tìm thấy task: ${task.id} - ${task.title}`)
 
       // Kiểm tra quyền xóa task
       const hasPermission = await this.checkDeletePermission(user.id, task)
+      console.log(`[DeleteTask] Người dùng có quyền xóa: ${hasPermission}`)
       if (!hasPermission) {
+        console.log(`[DeleteTask] Từ chối quyền xóa task cho người dùng ${user.id}`)
         return {
           success: false,
           message: 'Bạn không có quyền xóa nhiệm vụ này',
         }
       }
 
-      // Sử dụng stored procedure để thực hiện soft delete
-      await db.rawQuery('CALL soft_delete_task(?)', [id])
+      // Cập nhật trực tiếp trường deleted_at thay vì gọi stored procedure
+      const now = DateTime.now().toSQL({ includeOffset: false })
+      console.log(`[DeleteTask] Đang xóa task với timestamp: ${now}`)
+      const updatedRows = await Task.query().where('id', id).update({ deleted_at: now })
+      console.log(`[DeleteTask] Số hàng đã cập nhật: ${updatedRows}`)
+      // Kiểm tra xem task đã thực sự bị xóa chưa
+      const checkAfterDelete = await Task.query().where('id', id).first()
+      console.log(
+        `[DeleteTask] Kiểm tra sau khi xóa:`,
+        checkAfterDelete
+          ? `Task còn tồn tại, deleted_at: ${checkAfterDelete.deleted_at}`
+          : 'Không tìm thấy task (có thể đã bị xóa hoàn toàn)',
+        'Không tìm thấy task (có thể đã bị xóa hoàn toàn)'
+      )
 
       // Ghi log hành động
       await AuditLog.create({
@@ -42,6 +61,7 @@ export default class DeleteTask {
         ip_address: this.ctx.request.ip(),
         user_agent: this.ctx.request.header('user-agent'),
       })
+      console.log(`[DeleteTask] Đã ghi log audit`)
       // Gửi thông báo cho người được giao task và người tạo
       if (task.assigned_to && task.assigned_to !== user.id) {
         await this.createNotification.handle({
@@ -63,9 +83,10 @@ export default class DeleteTask {
           related_entity_id: id,
         })
       }
+      console.log(`[DeleteTask] Xóa task hoàn tất thành công`)
       return { success: true, message: 'Nhiệm vụ đã được xóa thành công' }
     } catch (error: any) {
-      console.error('Error deleting task:', error)
+      console.error('[DeleteTask] Lỗi khi xóa task:', error)
       return {
         success: false,
         message: error.message || 'Có lỗi khi xóa nhiệm vụ',

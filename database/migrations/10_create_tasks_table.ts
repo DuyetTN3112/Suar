@@ -52,6 +52,7 @@ export default class extends BaseSchema {
         .references('id')
         .inTable('users')
         .onDelete('SET NULL')
+        .onUpdate('CASCADE')
       table.dateTime('due_date').notNullable()
       table
         .integer('parent_task_id')
@@ -131,13 +132,47 @@ export default class extends BaseSchema {
       BEFORE UPDATE ON tasks
       FOR EACH ROW
       BEGIN
-          INSERT INTO task_versions (
-              task_id, title, description, status_id, 
-              label_id, priority_id, assigned_to, changed_by
-          ) VALUES (
-              OLD.id, OLD.title, OLD.description, OLD.status_id,
-              OLD.label_id, OLD.priority_id, OLD.assigned_to, OLD.updated_by
-          );
+          IF NEW <> OLD THEN -- Chỉ lưu khi có thay đổi
+              INSERT INTO task_versions (
+                  task_id, title, description, status_id, 
+                  label_id, priority_id, assigned_to, changed_by
+              ) VALUES (
+                  OLD.id, OLD.title, OLD.description, OLD.status_id,
+                  OLD.label_id, OLD.priority_id, OLD.assigned_to, OLD.updated_by
+              );
+          END IF;
+      END
+    `)
+
+    // Create trigger to check update constraints
+    this.db.rawQuery(`
+      CREATE TRIGGER before_task_update
+      BEFORE UPDATE ON tasks
+      FOR EACH ROW
+      BEGIN
+          -- Kiểm tra assigned_to có thuộc tổ chức không
+          IF NEW.assigned_to IS NOT NULL THEN
+              IF NOT EXISTS (
+                  SELECT 1 FROM organization_users 
+                  WHERE user_id = NEW.assigned_to 
+                      AND organization_id = NEW.organization_id
+              ) THEN
+                  SIGNAL SQLSTATE '45000' 
+                  SET MESSAGE_TEXT = 'Người được gán phải thuộc cùng tổ chức';
+              END IF;
+          END IF;
+
+          -- Kiểm tra creator_id có thuộc tổ chức không (nếu organization_id thay đổi)
+          IF NEW.organization_id <> OLD.organization_id THEN
+              IF NOT EXISTS (
+                  SELECT 1 FROM organization_users 
+                  WHERE user_id = NEW.creator_id 
+                      AND organization_id = NEW.organization_id
+              ) THEN
+                  SIGNAL SQLSTATE '45000' 
+                  SET MESSAGE_TEXT = 'Người tạo task phải thuộc tổ chức mới';
+              END IF;
+          END IF;
       END
     `)
   }

@@ -34,8 +34,8 @@ export default class extends BaseSchema {
             m.read_at,
             u.id AS user_id,
             u.full_name,
-            u.username,
-            u.email
+            u.email,
+            u.avatar
         FROM 
             messages m
         JOIN 
@@ -190,6 +190,153 @@ export default class extends BaseSchema {
       END
     `)
 
+    await this.db.rawQuery(`
+      CREATE PROCEDURE change_user_role_with_permission(
+        IN p_current_user_id INT, 
+        IN p_target_user_id INT, 
+        IN p_new_role_id INT
+      )
+      BEGIN
+        DECLARE current_role_id INT;
+        DECLARE target_role_id INT;
+
+        -- Lấy role_id của người dùng hiện tại
+        SELECT role_id INTO current_role_id
+        FROM users
+        WHERE id = p_current_user_id;
+
+        -- Lấy role_id hiện tại của người dùng mục tiêu
+        SELECT role_id INTO target_role_id
+        FROM users
+        WHERE id = p_target_user_id;
+
+        -- Kiểm tra quyền thay đổi vai trò
+        IF current_role_id = 1 THEN  -- Chỉ superadmin mới có thể thay đổi vai trò
+            -- Cho phép thay đổi sang bất kỳ role hợp lệ
+            UPDATE users
+            SET 
+                role_id = p_new_role_id,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = p_target_user_id;
+        ELSE
+            -- Báo lỗi nếu không phải superadmin
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Chỉ superadmin mới có thể thay đổi vai trò';
+        END IF;
+      END
+    `)
+
+    await this.db.rawQuery(`
+      CREATE PROCEDURE delete_user_with_permission(
+        IN p_current_user_id INT, 
+        IN p_target_user_id INT
+      )
+      BEGIN
+        DECLARE current_role_id INT;
+        DECLARE target_role_id INT;
+
+        -- Lấy role_id của người dùng hiện tại
+        SELECT role_id INTO current_role_id
+        FROM users
+        WHERE id = p_current_user_id;
+
+        -- Lấy role_id của người dùng mục tiêu
+        SELECT role_id INTO target_role_id
+        FROM users
+        WHERE id = p_target_user_id;
+
+        -- Kiểm tra quyền xóa
+        IF (current_role_id = 2 AND target_role_id = 3) -- Admin xóa User
+          OR (current_role_id = 1 AND target_role_id IN (2, 3)) -- Superadmin xóa Admin hoặc User
+        THEN
+            -- Thực hiện xóa mềm
+            UPDATE users
+            SET deleted_at = CURRENT_TIMESTAMP
+            WHERE id = p_target_user_id;
+        ELSE
+            -- Báo lỗi nếu không có quyền
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Không có quyền xóa người dùng này';
+        END IF;
+      END
+    `)
+
+    await this.db.rawQuery(`
+      CREATE PROCEDURE edit_user_with_permission(
+        IN p_current_user_id INT, 
+        IN p_target_user_id INT, 
+        IN p_new_data JSON
+      )
+      BEGIN
+        DECLARE current_role_id INT;
+        DECLARE target_role_id INT;
+
+        -- Lấy role_id của người dùng hiện tại
+        SELECT role_id INTO current_role_id
+        FROM users
+        WHERE id = p_current_user_id;
+
+        -- Lấy role_id của người dùng mục tiêu
+        SELECT role_id INTO target_role_id
+        FROM users
+        WHERE id = p_target_user_id;
+
+        -- Kiểm tra quyền chỉnh sửa
+        IF p_current_user_id = p_target_user_id -- Người dùng chỉnh sửa chính mình
+          OR (current_role_id = 2 AND target_role_id = 3) -- Admin chỉnh sửa User
+          OR (current_role_id = 1 AND target_role_id IN (2, 3)) -- Superadmin chỉnh sửa Admin hoặc User
+        THEN
+            -- Thực hiện cập nhật (giả sử dữ liệu mới được truyền dưới dạng JSON)
+            UPDATE users
+            SET
+                first_name = JSON_UNQUOTE(JSON_EXTRACT(p_new_data, '$.first_name')),
+                last_name = JSON_UNQUOTE(JSON_EXTRACT(p_new_data, '$.last_name')),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = p_target_user_id;
+        ELSE
+            -- Báo lỗi nếu không có quyền
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Không có quyền chỉnh sửa người dùng này';
+        END IF;
+      END
+    `)
+
+    await this.db.rawQuery(`
+      CREATE PROCEDURE update_task_with_permission(
+        IN p_user_id INT, 
+        IN p_task_id INT, 
+        IN p_new_data JSON
+      )
+      BEGIN
+        DECLARE v_creator_id INT;
+        DECLARE v_is_admin BOOLEAN;
+
+        -- Lấy creator_id của task
+        SELECT creator_id INTO v_creator_id FROM tasks WHERE id = p_task_id;
+
+        -- Kiểm tra quyền: Người tạo task hoặc admin
+        SELECT is_admin_user(p_user_id) INTO v_is_admin;
+
+        IF (v_creator_id = p_user_id OR v_is_admin) THEN
+            UPDATE tasks
+            SET 
+                title = JSON_UNQUOTE(JSON_EXTRACT(p_new_data, '$.title')),
+                description = JSON_UNQUOTE(JSON_EXTRACT(p_new_data, '$.description')),
+                status_id = JSON_EXTRACT(p_new_data, '$.status_id'),
+                label_id = JSON_EXTRACT(p_new_data, '$.label_id'),
+                priority_id = JSON_EXTRACT(p_new_data, '$.priority_id'),
+                assigned_to = JSON_EXTRACT(p_new_data, '$.assigned_to'),
+                due_date = JSON_EXTRACT(p_new_data, '$.due_date'),
+                updated_by = p_user_id,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = p_task_id;
+        ELSE
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Không có quyền cập nhật task này';
+        END IF;
+      END
+    `)
+
     // Thêm functions
     await this.db.rawQuery(`
       CREATE FUNCTION is_admin_user(p_user_id INT) RETURNS TINYINT(1) DETERMINISTIC
@@ -328,6 +475,10 @@ export default class extends BaseSchema {
     await this.db.rawQuery('DROP FUNCTION IF EXISTS is_admin_user')
 
     // Xóa stored procedures
+    await this.db.rawQuery('DROP PROCEDURE IF EXISTS update_task_with_permission')
+    await this.db.rawQuery('DROP PROCEDURE IF EXISTS edit_user_with_permission')
+    await this.db.rawQuery('DROP PROCEDURE IF EXISTS delete_user_with_permission')
+    await this.db.rawQuery('DROP PROCEDURE IF EXISTS change_user_role_with_permission')
     await this.db.rawQuery('DROP PROCEDURE IF EXISTS soft_delete_user')
     await this.db.rawQuery('DROP PROCEDURE IF EXISTS soft_delete_task')
     await this.db.rawQuery('DROP PROCEDURE IF EXISTS search_users')

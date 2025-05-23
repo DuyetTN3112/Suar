@@ -90,6 +90,21 @@ export type TasksProps = {
       avatar?: string
     }>
   }
+  auth?: {
+    user?: {
+      id: number
+      email: string
+      username: string
+      first_name: string
+      last_name: string
+      name?: string
+      role?: string
+      role_id?: number
+      isAdmin?: boolean
+      organization_id?: number
+      [key: string]: any
+    }
+  }
 }
 
 export type TaskFilterProps = {

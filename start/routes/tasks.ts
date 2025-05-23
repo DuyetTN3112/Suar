@@ -16,13 +16,15 @@ router
     router.get('/tasks/:id', [TasksController, 'show']).as('tasks.show')
     router.get('/tasks/:id/edit', [TasksController, 'edit']).as('tasks.edit')
     router.put('/tasks/:id', [TasksController, 'update']).as('tasks.update')
+    router.put('/tasks/:id/status', [TasksController, 'updateStatus']).as('tasks.update.status')
     router.patch('/tasks/:id/time', [TasksController, 'updateTime']).as('tasks.update.time')
     router.delete('/tasks/:id', [TasksController, 'destroy']).as('tasks.destroy')
     // Audit logs routes for tasks
     router.get('/tasks/:id/audit-logs', [TasksController, 'getAuditLogs']).as('tasks.audit_logs')
-    
     // API route to check task creation permission
-    router.get('/api/tasks/check-create-permission', [TasksController, 'checkCreatePermission']).as('api.tasks.check_permission')
+    router
+      .get('/api/tasks/check-create-permission', [TasksController, 'checkCreatePermission'])
+      .as('api.tasks.check_permission')
 
     // Legacy task routes
     router.get('/task', [TaskController, 'index']).as('task.index')
@@ -33,4 +35,4 @@ router
     router.put('/task/:id', [TaskController, 'update']).as('task.update')
     router.delete('/task/:id', [TaskController, 'destroy']).as('task.destroy')
   })
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.requireOrg()])

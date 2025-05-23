@@ -18,6 +18,8 @@ import UserSetting from './user_setting.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
+import PasswordResetToken from './password_reset_token.js'
+import UserOAuthProvider from './user_oauth_provider.js'
 
 const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
   uids: ['email', 'username'],
@@ -67,6 +69,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare current_organization_id: number | null
+
+  @column()
+  declare auth_method: 'email' | 'google' | 'github'
 
   @belongsTo(() => UserRole, {
     foreignKey: 'role_id',
@@ -125,11 +130,16 @@ export default class User extends compose(BaseModel, AuthFinder) {
   @hasMany(() => UserApp)
   declare user_apps: HasMany<typeof UserApp>
 
+  @hasMany(() => UserOAuthProvider, {
+    foreignKey: 'user_id',
+  })
+  declare oauth_providers: HasMany<typeof UserOAuthProvider>
+
   /**
    * Lấy avatar URL của người dùng
    */
   get avatar() {
-    return this.user_detail?.avatar_url || `/avatars/${this.username || 'default'}.jpg`
+    return this.user_detail?.avatar_url || '/images/default-avatar.png'
   }
 
   /**
@@ -152,4 +162,9 @@ export default class User extends compose(BaseModel, AuthFinder) {
     foreignKey: 'user_id',
   })
   declare organization_users: HasMany<typeof OrganizationUser>
+
+  @hasMany(() => PasswordResetToken, {
+    foreignKey: 'user_id',
+  })
+  declare passwordResetTokens: HasMany<typeof PasswordResetToken>
 }

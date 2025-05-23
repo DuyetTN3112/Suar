@@ -13,16 +13,34 @@ export default class UserController {
   /**
    * Hiển thị danh sách người dùng
    */
-  async index({ inertia, request }: HttpContext) {
+  async index({ inertia, request, auth }: HttpContext) {
     const page = request.input('page', 1)
     const limit = request.input('limit', 10)
     const search = request.input('search', '')
+    const currentOrganizationId = auth.user?.current_organization_id
 
     if (search) {
       // Sử dụng stored procedure để tìm kiếm người dùng
       const result = await db.rawQuery('CALL search_users(?)', [search])
       // Kết quả từ stored procedure MySQL thường nằm ở phần tử đầu tiên của mảng
       const searchResults = result && Array.isArray(result) && result[0] ? result[0] : []
+
+      // Lấy thông tin về vai trò trong tổ chức cho mỗi người dùng
+      if (currentOrganizationId) {
+        for (const user of searchResults) {
+          const orgUserRole = await db
+            .from('organization_users as ou')
+            .join('user_roles as ur', 'ou.role_id', 'ur.id')
+            .where('ou.organization_id', currentOrganizationId)
+            .where('ou.user_id', user.id)
+            .select('ou.role_id as id', 'ur.name')
+            .first()
+          if (orgUserRole) {
+            user.organization_role = orgUserRole
+          }
+        }
+      }
+
       const roles = await UserRole.all()
       const statuses = await UserStatus.all()
       return inertia.render('users/index', {
@@ -42,7 +60,28 @@ export default class UserController {
     } else {
       // Sử dụng truy vấn thông thường nếu không có tìm kiếm
       const usersQuery = User.query().preload('role').preload('status').whereNull('deleted_at')
+      // Nếu có tổ chức hiện tại, lấy tất cả người dùng của tổ chức đó
+      if (currentOrganizationId) {
+        usersQuery.whereHas('organizations', (query) => {
+          query.where('organizations.id', currentOrganizationId)
+        })
+      }
       const users = await usersQuery.paginate(page, limit)
+      // Lấy thông tin vai trò trong tổ chức cho mỗi người dùng
+      if (currentOrganizationId) {
+        for (const user of users.all()) {
+          const orgUserRole = await db
+            .from('organization_users as ou')
+            .join('user_roles as ur', 'ou.role_id', 'ur.id')
+            .where('ou.organization_id', currentOrganizationId)
+            .where('ou.user_id', user.id)
+            .select('ou.role_id as id', 'ur.name')
+            .first()
+          if (orgUserRole) {
+            user.$extras.organization_role = orgUserRole
+          }
+        }
+      }
       const roles = await UserRole.all()
       const statuses = await UserStatus.all()
       return inertia.render('users/index', {

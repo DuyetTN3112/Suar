@@ -4,7 +4,7 @@
 import React from 'react'
 import '@/css/app.css'
 import { createRoot } from 'react-dom/client'
-import { createInertiaApp, router } from '@inertiajs/react'
+import { createInertiaApp, router, usePage } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { initErrorLogging } from '@/lib/error-logger'
 import axios from 'axios'
@@ -63,6 +63,7 @@ declare global {
     DEBUG: {
       showReactVersionInfo: () => void;
     };
+    auth?: any;
   }
 }
 
@@ -95,19 +96,43 @@ document.addEventListener('DOMContentLoaded', () => {
   console.groupEnd();
 });
 
+// Component wrapper để đảm bảo auth được đặt vào window từ props
+const AuthInitializer = ({ children, auth }: { children: React.ReactNode, auth: any }) => {
+  React.useEffect(() => {
+    if (auth?.user && !window.auth) {
+      console.log('Khởi tạo window.auth từ props:', auth);
+      window.auth = auth;
+    }
+  }, [auth]);
+
+  return <>{children}</>;
+};
+
 createInertiaApp({
   resolve: async (name) => {
     return resolvePageComponent(`../pages/${name}.tsx`, import.meta.glob('../pages/**/*.tsx'))
   },
-  setup({ el, App, props }) {
+  setup({ el, App, props }: { el: HTMLElement, App: any, props: any }) {
+    // Lấy thông tin auth từ props và đặt vào window
+    const authData = props.initialPage?.props?.user?.auth;
+    if (authData) {
+      window.auth = authData;
+      console.log('Khởi tạo window.auth từ initialPage:', authData);
+    }
+    
     createRoot(el).render(
       React.createElement(React.StrictMode, null,
         React.createElement(ThemeProvider, null,
           React.createElement(SearchProvider, null,
-            React.createElement(UIToasterProvider),
-            React.createElement(NavigationProgress),
-            React.createElement(CommandMenu),
-            React.createElement(App, props)
+            React.createElement(AuthInitializer, { 
+              auth: authData, 
+              children: [
+                React.createElement(UIToasterProvider, { key: 'toaster' }),
+                React.createElement(NavigationProgress, { key: 'navigation-progress' }),
+                React.createElement(CommandMenu, { key: 'command-menu' }),
+                React.createElement(App, { ...props, key: 'app' })
+              ]
+            })
           )
         )
       )

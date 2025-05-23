@@ -26,6 +26,16 @@ export default class CurrentOrganizationMiddleware {
           sessionOrgIdType: typeof sessionOrgId,
           dbOrgIdType: typeof dbOrgId,
         })
+        
+        // Nếu cả session và database đều không có organization_id, điều này là hợp lệ
+        if (!sessionOrgId && !dbOrgId) {
+          this.log('Người dùng không có tổ chức nào, điều này là hợp lệ')
+          await next()
+          const endTime = performance.now()
+          this.log(`Thời gian xử lý: ${Math.round(endTime - startTime)}ms`)
+          return
+        }
+        
         // Nếu session có organization_id nhưng database không có hoặc khác
         if (sessionOrgId && (!dbOrgId || String(sessionOrgId) !== String(dbOrgId))) {
           this.log('Phát hiện khác biệt giữa session và database, session có ID: ' + sessionOrgId)

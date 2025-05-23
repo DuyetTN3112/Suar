@@ -74,13 +74,13 @@ export function useTaskDetailModal({
   }
 
   // Xử lý sự kiện thay đổi ngày
-  const handleDateChange = (date: Date | undefined) => {
+  const handleDateChange = (dateValue: Date | undefined) => {
     if (!isEditing) return
-    setDate(date)
-    if (date) {
+    setDate(dateValue)
+    if (dateValue) {
       setFormData((prev) => ({
         ...prev,
-        due_date: date.toISOString().split('T')[0],
+        due_date: dateValue.toISOString().split('T')[0],
       }))
       if (errors.due_date) {
         setErrors((prev) => {
@@ -113,9 +113,9 @@ export function useTaskDetailModal({
           onUpdate({ ...task, ...formData } as Task)
         }
       },
-      onError: (errors) => {
+      onError: (errorData) => {
         setSubmitting(false)
-        setErrors(errors as Record<string, string>)
+        setErrors(errorData as Record<string, string>)
       },
     })
   }
@@ -167,6 +167,6 @@ export function useTaskDetailModal({
     handleSoftDelete,
     canEdit,
     canDelete,
-    canMarkAsCompleted
+    canMarkAsCompleted,
   }
-} 
+}

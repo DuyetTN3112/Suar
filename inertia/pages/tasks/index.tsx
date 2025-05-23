@@ -15,7 +15,7 @@ import { CreateTaskModal } from './components/modals/create_task_modal'
 import { ImportTasksModal } from './components/modals/import_tasks_modal'
 import { TaskDetailModal } from './components/modals/task_detail_modal'
 
-export default function Tasks({ tasks, filters, metadata }: TasksProps) {
+export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
   const {
     searchQuery,
     setSearchQuery,
@@ -43,23 +43,11 @@ export default function Tasks({ tasks, filters, metadata }: TasksProps) {
   // Thêm debug logs để kiểm tra thông tin auth
   useEffect(() => {
     console.log('---- AUTH DEBUG IN TASKS COMPONENT ----');
-    console.log('window.auth exist:', typeof window !== 'undefined' && !!(window as any).auth);
-    
-    if (typeof window !== 'undefined' && (window as any).auth) {
-      console.log('auth object:', JSON.stringify((window as any).auth, null, 2));
-      
-      if ((window as any).auth.user) {
-        const user = (window as any).auth.user;
-        console.log('auth.user:', JSON.stringify(user, null, 2));
-        console.log('User properties:');
-        console.log('- isAdmin:', user.isAdmin);
-        console.log('- role:', user.role);
-        console.log('- role_id:', user.role_id);
-        console.log('- username:', user.username);
-      }
-    }
+    console.log('window.auth exist:', !!(window as any).auth);
+    console.log('Provided auth prop:', auth);
+    console.log('Page props auth user:', auth?.user);
     console.log('-------------------------------------');
-  }, []);
+  }, [auth]);
 
   // Cập nhật searchQuery từ URL khi component mount
   useEffect(() => {
@@ -163,7 +151,7 @@ export default function Tasks({ tasks, filters, metadata }: TasksProps) {
         priorities={metadata.priorities}
         labels={metadata.labels}
         users={metadata.users}
-        currentUser={(window as any).auth?.user}
+        currentUser={auth?.user || {}}
       />
     </AppLayout>
   )

@@ -10,6 +10,7 @@ import './conversations.js'
 import './apps.js'
 import './api.js'
 import './organizations.js'
+import './errors.js'
 
 // Route test đơn giản
 router.get('/test', async ({ inertia }) => {

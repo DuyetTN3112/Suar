@@ -8,6 +8,7 @@ type FilterOptions = {
   role_id?: number
   status_id?: number
   search?: string
+  organization_id?: number
 }
 
 @inject()
@@ -17,12 +18,20 @@ export default class ListUsers {
   async handle({ options }: { options: FilterOptions }) {
     const page = options.page || 1
     const limit = options.limit || 10
+    const currentUser = this.ctx.auth.user
+    const organizationId = options.organization_id || currentUser?.current_organization_id
     const query = User.query()
       .whereNull('deleted_at')
       .preload('role')
       .preload('status')
       .preload('user_detail')
       .preload('user_profile')
+    // Lọc theo tổ chức hiện tại
+    if (organizationId) {
+      query.whereHas('organization_users', (builder) => {
+        builder.where('organization_id', organizationId)
+      })
+    }
     if (options.role_id) {
       query.where('role_id', options.role_id)
     }

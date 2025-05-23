@@ -28,56 +28,13 @@ export function TaskDetailActions({
   canDelete = false,
   completedStatusId
 }: TaskDetailActionsProps) {
-  const handleSubmit = async () => {
-    if (!task?.id) return
-    
-    const newErrors: Record<string, string> = {}
-    
-    if (!formData.title?.trim()) {
-      newErrors.title = 'Tiêu đề là bắt buộc'
-    }
-    
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
-      return
-    }
-    
-    setSubmitting(true)
-    
-    try {
-      const response = await fetch(`/api/tasks/${task.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
-        },
-        body: JSON.stringify(formData)
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        if (onUpdate) {
-          onUpdate(data.data)
-        }
-      } else {
-        const errorData = await response.json()
-        setErrors(errorData.errors || {})
-      }
-    } catch (error) {
-      console.error('Lỗi khi cập nhật nhiệm vụ:', error)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
   const handleMarkCompleted = async () => {
     if (!task?.id || !completedStatusId) return
     
     setSubmitting(true)
     
     try {
-      const response = await fetch(`/api/tasks/${task.id}/status`, {
+      const response = await fetch(`/tasks/${task.id}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

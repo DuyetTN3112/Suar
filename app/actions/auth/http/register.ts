@@ -7,8 +7,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
 type RegisterData = {
-  first_name: string
-  last_name: string
+  firstName: string
+  lastName: string
   username: string
   email: string
   password: string
@@ -19,58 +19,87 @@ export default class Register {
   constructor(protected ctx: HttpContext) {}
 
   async handle({ data }: { data: RegisterData }) {
-    return await db.transaction(async (trx) => {
-      // Tìm status_id và role_id mặc định
-      const defaultStatusId = await db
-        .from('user_status')
-        .where('name', 'active')
-        .select('id')
-        .first()
-      const defaultRoleId = await db.from('user_roles').where('name', 'user').select('id').first()
+    console.log('[REGISTER ACTION] Starting user creation with transaction')
+    try {
+      return await db.transaction(async (trx) => {
+        // Tìm status_id và role_id mặc định
+        console.log('[REGISTER ACTION] Finding default status and role')
+        const defaultStatusId = await db
+          .from('user_status')
+          .where('name', 'active')
+          .select('id')
+          .first()
+        const defaultRoleId = await db.from('user_roles').where('name', 'user').select('id').first()
+        console.log('[REGISTER ACTION] Default IDs:', {
+          statusId: defaultStatusId?.id || 'not found',
+          roleId: defaultRoleId?.id || 'not found',
+        })
 
-      // Tạo user mới
-      const user = await User.create(
-        {
-          first_name: data.first_name,
-          last_name: data.last_name,
-          username: data.username,
-          email: data.email,
-          password: data.password,
-          status_id: defaultStatusId ? defaultStatusId.id : 1,
-          role_id: defaultRoleId ? defaultRoleId.id : 2, // Mặc định là user role
-        },
-        { client: trx }
-      )
+        if (!defaultStatusId || !defaultRoleId) {
+          console.error('[REGISTER ACTION] Missing default status or role')
+          throw new Error('Default status or role not found. Database may not be properly set up.')
+        }
 
-      // Tạo profile và thông tin chi tiết
-      await UserDetail.create(
-        {
-          user_id: user.id,
-        },
-        { client: trx }
-      )
+        // Tạo user mới
+        console.log('[REGISTER ACTION] Creating new user')
+        const user = await User.create(
+          {
+            first_name: data.firstName,
+            last_name: data.lastName,
+            username: data.username,
+            email: data.email,
+            password: data.password,
+            status_id: defaultStatusId.id,
+            role_id: defaultRoleId.id,
+            current_organization_id: null,
+          },
+          { client: trx }
+        )
+        console.log('[REGISTER ACTION] User created', { id: user.id })
 
-      await UserProfile.create(
-        {
-          user_id: user.id,
-          language: 'vi',
-        },
-        { client: trx }
-      )
+        try {
+          // Tạo profile và thông tin chi tiết
+          console.log('[REGISTER ACTION] Creating user detail')
+          await UserDetail.create(
+            {
+              user_id: user.id,
+            },
+            { client: trx }
+          )
 
-      // Tạo cài đặt người dùng mặc định
-      await UserSetting.create(
-        {
-          user_id: user.id,
-          theme: 'light',
-          notifications_enabled: true,
-          display_mode: 'grid',
-        },
-        { client: trx }
-      )
-      // Đăng nhập người dùng mới tạo
-      await this.ctx.auth.use('web').login(user)
-      return user
-    })
+          console.log('[REGISTER ACTION] Creating user profile')
+          await UserProfile.create(
+            {
+              user_id: user.id,
+              language: 'vi',
+            },
+            { client: trx }
+          )
+
+          console.log('[REGISTER ACTION] Creating user settings')
+          // Tạo cài đặt người dùng mặc định
+          await UserSetting.create(
+            {
+              user_id: user.id,
+              theme: 'light',
+              notifications_enabled: true,
+              display_mode: 'grid',
+            },
+            { client: trx }
+          )
+        } catch (error) {
+          console.error('[REGISTER ACTION] Error creating related user data:', error)
+          throw error
+        }
+        // Đăng nhập người dùng mới tạo
+        console.log('[REGISTER ACTION] Logging in new user')
+        await this.ctx.auth.use('web').login(user)
+        console.log('[REGISTER ACTION] User logged in successfully')
+        return user
+      })
+    } catch (error) {
+      console.error('[REGISTER ACTION] Transaction failed:', error)
+      throw error
+    }
   }
 }

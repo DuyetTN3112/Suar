@@ -54,4 +54,4 @@ router
       .delete('/conversation/:id', [ConversationController, 'destroy'])
       .as('conversation.destroy')
   })
-  .use(middleware.auth())
+  .use([middleware.auth(), middleware.requireOrg()])

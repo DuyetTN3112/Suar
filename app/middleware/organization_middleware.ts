@@ -29,6 +29,8 @@ export default class OrganizationMiddleware {
         await session.commit()
         console.log('Set default organization:', userOrganization.id)
       }
+      // Nếu người dùng không có tổ chức nào, vẫn cho phép tiếp tục
+      return next()
     } else {
       // Kiểm tra tổ chức có tồn tại không
       const organization = await Organization.find(currentOrganizationId)

@@ -75,6 +75,21 @@ const navigationData = [
     ],
   },
   {
+    title: 'Tổ chức',
+    items: [
+      {
+        title: 'Tổ chức của bạn',
+        url: '/organizations',
+        iconName: 'Building',
+      },
+      {
+        title: 'Tạo tổ chức mới',
+        url: '/organizations/create',
+        iconName: 'Plus',
+      },
+    ],
+  },
+  {
     title: 'Ứng dụng',
     items: [
       {
