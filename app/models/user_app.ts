@@ -11,7 +11,7 @@ export default class UserApp extends BaseModel {
   declare id: number
 
   @column()
-  declare user_id: string
+  declare user_id: number
 
   @column()
   declare app_id: number

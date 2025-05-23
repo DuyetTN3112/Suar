@@ -7,7 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.bigIncrements('id').primary()
       table
-        .uuid('user_id')
+        .integer('user_id')
+        .unsigned()
         .nullable()
         .references('id')
         .inTable('users')
@@ -31,7 +32,7 @@ export default class extends BaseSchema {
     // Create procedure for logging audit
     this.db.rawQuery(`
       CREATE PROCEDURE log_audit(
-        IN p_user_id CHAR(36),
+        IN p_user_id INT UNSIGNED,
         IN p_action VARCHAR(50),
         IN p_entity_type VARCHAR(50),
         IN p_entity_id VARCHAR(36),

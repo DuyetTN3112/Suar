@@ -11,11 +11,14 @@ export default class extends BaseSchema {
 
       table.timestamp('expires_at').notNullable()
       table.timestamp('created_at').notNullable().defaultTo(this.raw('CURRENT_TIMESTAMP'))
-      table.timestamp('updated_at').nullable().defaultTo(this.raw('NULL ON UPDATE CURRENT_TIMESTAMP'))
+      table
+        .timestamp('updated_at')
+        .nullable()
+        .defaultTo(this.raw('NULL ON UPDATE CURRENT_TIMESTAMP'))
     })
   }
 
   async down() {
     this.schema.dropTable(this.tableName)
   }
-} 
+}

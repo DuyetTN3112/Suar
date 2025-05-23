@@ -19,19 +19,17 @@ export default class UsersController {
     const roleId = request.input('role_id')
     const statusId = request.input('status_id')
     const search = request.input('search')
-    
     // Lấy organization_id của người dùng hiện tại
     const organizationId = auth.user?.current_organization_id
-    
-    const options = { 
-      page, 
-      limit, 
-      role_id: roleId, 
-      status_id: statusId, 
+    const options = {
+      page,
+      limit,
+      role_id: roleId,
+      status_id: statusId,
       search,
-      organization_id: organizationId
+      organization_id: organizationId ?? undefined,
     }
-    
+
     const users = await listUsers.handle({ options })
     const metadata = await getUserMetadata.handle()
     return inertia.render('users/index', {

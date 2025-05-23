@@ -1,0 +1,30 @@
+# Loại trừ thư mục node_modules (sẽ được cài đặt lại trong container)
+node_modules
+
+# Build
+build
+tmp
+
+# Logs và cache
+npm-debug.log
+*.log
+.npm
+
+# Quản lý mã nguồn
+.git
+.github
+.vscode
+
+# Các file cấu hình môi trường
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Các file không cần thiết cho Docker
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+tests 

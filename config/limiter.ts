@@ -2,23 +2,12 @@ import { defineConfig, stores } from '@adonisjs/limiter'
 import env from '#start/env'
 
 export default defineConfig({
-  default: env.get('LIMITER_STORE', 'memory'),
+  default: env.get('LIMITER_STORE', 'memory') as 'memory' | 'redis',
 
   stores: {
-    memory: stores.memory(),
+    memory: stores.memory({}),
     redis: stores.redis({
       connectionName: 'main',
     }),
-  },
-
-  limiters: {
-    auth: {
-      requests: 10,
-      duration: '5 mins',
-    },
-    api: {
-      requests: 60,
-      duration: '1 min',
-    },
   },
 })

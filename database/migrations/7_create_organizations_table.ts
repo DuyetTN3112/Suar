@@ -53,23 +53,9 @@ export default class extends BaseSchema {
         END IF;
       END
     `)
-
-    // Thêm foreign key constraint cho users.current_organization_id
-    this.db.rawQuery(`
-      ALTER TABLE users
-      ADD COLUMN current_organization_id INT UNSIGNED NULL,
-      ADD CONSTRAINT fk_users_current_org FOREIGN KEY (current_organization_id) 
-      REFERENCES organizations(id) ON DELETE SET NULL
-    `)
   }
 
   async down() {
-    // Xóa foreign key và column từ users table trước
-    this.db.rawQuery(`
-      ALTER TABLE users
-      DROP FOREIGN KEY fk_users_current_org,
-      DROP COLUMN current_organization_id
-    `)
     // Xóa triggers
     this.db.rawQuery('DROP TRIGGER IF EXISTS after_organization_insert')
     this.db.rawQuery('DROP TRIGGER IF EXISTS before_organization_insert')

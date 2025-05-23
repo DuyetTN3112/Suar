@@ -3,11 +3,21 @@ node_modules
 build
 tmp
 
-# Secrets
+# Secrets and environment files
+# QUAN TRỌNG: Không bao giờ commit các file chứa thông tin nhạy cảm
 .env
 .env.local
+.env.production
 .env.production.local
+.env.development
 .env.development.local
+.env.testing
+
+# Tệp chứa các khóa và mật khẩu
+*.pem
+*.key
+*.cert
+*.crt
 
 # Frontend assets compiled code
 public/assets
@@ -23,6 +33,19 @@ yarn-error.log
 
 # Platform specific
 .DS_Store
+Thumbs.db
+
+# SQL dumps và dữ liệu
+*.sql
+shadcn_admin.sql
+*.dump
+
+# Docker volumes
+/data
+
+# Logs
+logs
+*.log
 
 package-lock.json
 shadcn_admin.sql

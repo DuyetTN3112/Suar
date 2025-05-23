@@ -37,4 +37,4 @@ export default class UserOAuthProvider extends BaseModel {
     foreignKey: 'user_id',
   })
   declare user: BelongsTo<typeof User>
-} 
+}

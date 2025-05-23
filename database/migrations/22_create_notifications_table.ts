@@ -7,7 +7,8 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.bigIncrements('id').primary()
       table
-        .uuid('user_id')
+        .integer('user_id')
+        .unsigned()
         .notNullable()
         .references('id')
         .inTable('users')
@@ -27,7 +28,7 @@ export default class extends BaseSchema {
     // Create procedure for creating notifications
     this.db.rawQuery(`
       CREATE PROCEDURE create_notification(
-        IN p_user_id CHAR(36),
+        IN p_user_id INT UNSIGNED,
         IN p_title VARCHAR(255),
         IN p_message TEXT,
         IN p_type VARCHAR(50),

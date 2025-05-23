@@ -29,7 +29,7 @@ const viteDebugPlugin = {
     // Thêm comment để debug
     return html.replace('</head>', '<!-- Vite Debug Info: React Plugin Enabled --></head>')
   },
-  handleHotUpdate({ file, server }: { file: string; server: any }) {
+  handleHotUpdate({ file }: { file: string; server: any }) {
     // Log thông tin hot update
     console.log('Hot update:', file)
     return []
@@ -56,8 +56,6 @@ export default defineConfig(({ mode }) => {
           babelrc: false,
           configFile: false,
         },
-        // Đảm bảo refresh hoạt động đúng
-        fastRefresh: true,
       }),
       adonisjs({
         entrypoints: ['inertia/app/app.tsx'],

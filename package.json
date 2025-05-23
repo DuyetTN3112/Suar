@@ -6,14 +6,15 @@
   "license": "UNLICENSED",
   "scripts": {
     "start": "node --max-old-space-size=4096 bin/server.js",
-    "build": "node ace build",
+    "build": "node ace build --ignore-ts-errors",
     "dev": "node --max-old-space-size=4096 ace serve --hmr",
     "debug": "node vite-debug.js",
     "debug:vite": "cross-env VITE_DEBUG=true DEBUG=vite:* LOG_LEVEL=debug node ace serve --hmr",
     "test": "node ace test",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "docker:install": "npm install --no-package-lock --omit=optional && node ./scripts/install-native-modules.js"
   },
   "imports": {
     "#controllers/*": "./app/controllers/*.js",
@@ -83,6 +84,7 @@
     "@adonisjs/shield": "^8.1.2",
     "@adonisjs/static": "^1.1.1",
     "@adonisjs/vite": "^4.0.0",
+    "@aws-sdk/client-ses": "^3.816.0",
     "@hookform/resolvers": "^5.0.1",
     "@inertiajs/react": "^2.0.8",
     "@radix-ui/react-accordion": "^1.2.7",

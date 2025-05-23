@@ -388,7 +388,7 @@ export default class extends BaseSchema {
     await this.db.rawQuery(`
       CREATE VIEW active_users_with_details AS
       SELECT 
-          u.id, u.full_name, u.username, u.email,
+          u.id, CONCAT(u.first_name, ' ', u.last_name) AS full_name, u.username, u.email,
           ud.phone_number, ur.name AS role, us.name AS status,
           up.date_of_birth, up.language, 
           uset.theme, uset.display_mode

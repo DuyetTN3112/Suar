@@ -13,7 +13,6 @@ export default class SocialAuthController {
   async redirect({ params, ally }: HttpContext) {
     const { provider } = params
     console.log(`[SOCIAL AUTH] Redirecting to ${provider}...`)
-    
     // Kiểm tra provider hợp lệ
     if (!['google', 'github'].includes(provider)) {
       console.error(`[SOCIAL AUTH] Invalid provider: ${provider}`)
@@ -33,15 +32,12 @@ export default class SocialAuthController {
   async callback({ params, ally, auth, response }: HttpContext) {
     const { provider } = params
     console.log(`[SOCIAL AUTH] Callback received from ${provider}`)
-    
     // Kiểm tra provider hợp lệ
     if (!['google', 'github'].includes(provider)) {
       console.error(`[SOCIAL AUTH] Invalid provider: ${provider}`)
       return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
     }
-    
     const socialAuth = ally.use(provider)
-    
     // Xử lý các trường hợp lỗi
     if (socialAuth.accessDenied()) {
       console.error(`[SOCIAL AUTH] Access denied for ${provider}`)
@@ -55,7 +51,6 @@ export default class SocialAuthController {
       console.error(`[SOCIAL AUTH] Error from ${provider}:`, socialAuth.getError())
       return response.redirect().withQs({ error: socialAuth.getError() }).toPath('/login')
     }
-    
     try {
       // Lấy thông tin người dùng từ nhà cung cấp xác thực
       console.log(`[SOCIAL AUTH] Getting user info from ${provider}`)
@@ -67,7 +62,6 @@ export default class SocialAuthController {
         nickName: socialUser.nickName,
         avatarUrl: socialUser.avatarUrl ? 'Available' : 'Not available',
       })
-      
       // Kiểm tra xem đã có OAuth provider record chưa
       console.log(`[SOCIAL AUTH] Checking for existing OAuth provider record`)
       let oauthProvider
@@ -76,7 +70,6 @@ export default class SocialAuthController {
           .where('provider', provider)
           .where('provider_id', socialUser.id)
           .first()
-        
         console.log(`[SOCIAL AUTH] OAuth provider record ${oauthProvider ? 'found' : 'not found'}`)
       } catch (error) {
         console.error(`[SOCIAL AUTH] Error checking OAuth provider:`, error)
@@ -86,10 +79,11 @@ export default class SocialAuthController {
         }
         // Tiếp tục xử lý với oauthProvider là undefined
       }
-      
       if (oauthProvider) {
         // Nếu đã có, lấy user tương ứng và đăng nhập
-        console.log(`[SOCIAL AUTH] Found existing OAuth provider, getting user with ID ${oauthProvider.user_id}`)
+        console.log(
+          `[SOCIAL AUTH] Found existing OAuth provider, getting user with ID ${oauthProvider.user_id}`
+        )
         const user = await User.find(oauthProvider.user_id)
         if (user) {
           // Cập nhật token mới nếu cần
@@ -102,7 +96,6 @@ export default class SocialAuthController {
           } catch (error) {
             console.error(`[SOCIAL AUTH] Error updating tokens:`, error)
           }
-          
           console.log(`[SOCIAL AUTH] Logging in user ${user.id}`)
           await auth.use('web').login(user)
           console.log(`[SOCIAL AUTH] User logged in, redirecting to /tasks`)
@@ -111,7 +104,6 @@ export default class SocialAuthController {
           console.error(`[SOCIAL AUTH] User with ID ${oauthProvider.user_id} not found`)
         }
       }
-      
       // Tìm người dùng với email từ xã hội
       console.log(`[SOCIAL AUTH] Looking for user with email ${socialUser.email}`)
       let user = await User.findBy('email', socialUser.email)
@@ -135,7 +127,6 @@ export default class SocialAuthController {
             console.error(`[SOCIAL AUTH] Table user_oauth_providers does not exist`)
           }
         }
-        
         // Cập nhật auth_method nếu đang là email
         try {
           if (user.auth_method === 'email' || !user.auth_method) {
@@ -151,14 +142,12 @@ export default class SocialAuthController {
             console.error(`[SOCIAL AUTH] Column auth_method does not exist in users table`)
           }
         }
-        
         // Đăng nhập người dùng hiện có
         console.log(`[SOCIAL AUTH] Logging in existing user ${user.id}`)
         await auth.use('web').login(user)
         console.log(`[SOCIAL AUTH] User logged in, redirecting to /tasks`)
         return response.redirect('/tasks') // Chuyển hướng đến trang chính sau khi đăng nhập
       }
-      
       // Nếu chưa có user, tạo mới
       console.log(`[SOCIAL AUTH] No user found with email ${socialUser.email}, creating new user`)
       try {
@@ -175,9 +164,10 @@ export default class SocialAuthController {
             .where('name', 'user')
             .select('id')
             .first()
-            
-          console.log(`[SOCIAL AUTH] Default status ID: ${defaultStatusId?.id}, default role ID: ${defaultRoleId?.id}`)
-          
+          console.log(
+            `[SOCIAL AUTH] Default status ID: ${defaultStatusId?.id}, default role ID: ${defaultRoleId?.id}`
+          )
+
           if (!defaultStatusId || !defaultRoleId) {
             throw new Error('Default status or role not found')
           }
@@ -196,12 +186,24 @@ export default class SocialAuthController {
           // Tạo username từ email nếu không có
           const username =
             socialUser.nickName || socialUser.email?.split('@')[0] || `user_${Date.now()}`
-            
-          console.log(`[SOCIAL AUTH] Creating user with username ${username}, email ${socialUser.email}`)
-          
+          console.log(
+            `[SOCIAL AUTH] Creating user with username ${username}, email ${socialUser.email}`
+          )
+
           // Tạo user mới
           try {
-            const userData = {
+            interface UserData {
+              email: any
+              first_name: string
+              last_name: string
+              username: any
+              password: string
+              status_id: any
+              role_id: any
+              current_organization_id: null
+              auth_method?: 'google' | 'github' | 'email'
+            }
+            const userData: UserData = {
               email: socialUser.email,
               first_name: firstName,
               last_name: lastName,
@@ -212,21 +214,18 @@ export default class SocialAuthController {
               role_id: defaultRoleId.id,
               current_organization_id: null,
             }
-            
             // Thêm auth_method nếu cột tồn tại
             try {
-              userData['auth_method'] = provider
+              userData.auth_method = provider
             } catch (error) {
               console.error(`[SOCIAL AUTH] Error setting auth_method:`, error)
             }
-            
             user = await User.create(userData, { client: trx })
             console.log(`[SOCIAL AUTH] User created with ID ${user.id}`)
           } catch (error) {
             console.error(`[SOCIAL AUTH] Error creating user:`, error)
             throw error
           }
-          
           // Tạo OAuth provider record nếu bảng tồn tại
           try {
             console.log(`[SOCIAL AUTH] Creating OAuth provider record`)
@@ -249,9 +248,10 @@ export default class SocialAuthController {
               throw error
             }
           }
-          
           // Tạo profile và thông tin chi tiết
-          console.log(`[SOCIAL AUTH] Creating user detail with avatar URL: ${socialUser.avatarUrl || 'None'}`)
+          console.log(
+            `[SOCIAL AUTH] Creating user detail with avatar URL: ${socialUser.avatarUrl || 'None'}`
+          )
           await UserDetail.create(
             {
               user_id: user.id,
@@ -259,7 +259,6 @@ export default class SocialAuthController {
             },
             { client: trx }
           )
-          
           console.log(`[SOCIAL AUTH] Creating user profile`)
           await UserProfile.create(
             {
@@ -268,7 +267,6 @@ export default class SocialAuthController {
             },
             { client: trx }
           )
-          
           console.log(`[SOCIAL AUTH] Creating user settings`)
           await UserSetting.create(
             {
@@ -279,7 +277,6 @@ export default class SocialAuthController {
             },
             { client: trx }
           )
-          
           console.log(`[SOCIAL AUTH] Transaction completed successfully`)
         })
         // Đăng nhập người dùng mới
