@@ -48,7 +48,7 @@ export default class ListConversations {
       SELECT 
         c.id, 
         COUNT(m.id) as unread_count,
-        MAX(m.timestamp) as last_message_at
+        MAX(m.created_at) as last_message_at
       FROM 
         conversations c
       JOIN 

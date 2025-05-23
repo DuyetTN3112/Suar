@@ -34,6 +34,28 @@
     "participant_count": "{count} người tham gia",
     "date_unknown": "Không xác định",
     "no_messages_selected": "Chưa có tin nhắn nào được chọn",
-    "select_or_create": "Chọn một cuộc trò chuyện từ danh sách để bắt đầu hoặc tạo mới"
+    "select_or_create": "Chọn một cuộc trò chuyện từ danh sách để bắt đầu hoặc tạo mới",
+    "unknown_user": "Người dùng không xác định",
+    "group_chat": "Trò chuyện nhóm",
+    "send_error": "Không thể gửi tin nhắn. Vui lòng thử lại.",
+    "copy": "Sao chép",
+    "share": "Chia sẻ",
+    "recall_message": "Thu hồi tin nhắn",
+    "recall_message_description": "Bạn muốn thu hồi tin nhắn này ở phía ai?",
+    "recall_for_everyone": "Thu hồi với mọi người",
+    "recall_for_everyone_desc": "Tin nhắn này sẽ bị thu hồi với mọi người trong đoạn chat.",
+    "recall_for_self": "Thu hồi với bạn",
+    "recall_for_self_desc": "Tin nhắn này sẽ bị gỡ khỏi thiết bị của bạn, nhưng vẫn hiển thị với các thành viên khác trong đoạn chat.",
+    "recall": "Thu hồi",
+    "recall_error": "Không thể thu hồi tin nhắn. Vui lòng thử lại.",
+    "existing_conversation": "Cuộc hội thoại đã tồn tại",
+    "already_exists": "Cuộc hội thoại với những người này đã tồn tại: \"{title}\"",
+    "open_existing": "Mở cuộc hội thoại",
+    "no_participants_selected": "Vui lòng chọn ít nhất một người tham gia",
+    "create_error": "Đã xảy ra lỗi khi tạo cuộc hội thoại. Vui lòng thử lại sau."
+  },
+  "conversations": {
+    "title": "Hội thoại",
+    "search": "Tìm kiếm cuộc trò chuyện..."
   }
 } 

@@ -12,6 +12,7 @@ import UserProfile from './user_profile.js'
 import UserUrl from './user_url.js'
 import Organization from './organization.js'
 import Task from './task.js'
+import Project from './project.js'
 import Conversation from './conversation.js'
 import UserSetting from './user_setting.js'
 import AuditLog from './audit_log.js'
@@ -114,6 +115,31 @@ export default class User extends compose(BaseModel, AuthFinder) {
     foreignKey: 'assigned_to',
   })
   declare assigned_tasks: HasMany<typeof Task>
+
+  @hasMany(() => Project, {
+    foreignKey: 'creator_id',
+  })
+  declare created_projects: HasMany<typeof Project>
+
+  @hasMany(() => Project, {
+    foreignKey: 'manager_id',
+  })
+  declare managed_projects: HasMany<typeof Project>
+
+  @hasMany(() => Project, {
+    foreignKey: 'owner_id',
+  })
+  declare owned_projects: HasMany<typeof Project>
+
+  @manyToMany(() => Project, {
+    pivotTable: 'project_members',
+    pivotColumns: ['role'],
+    pivotTimestamps: {
+      createdAt: 'created_at',
+      updatedAt: false,
+    },
+  })
+  declare projects: ManyToMany<typeof Project>
 
   @hasMany(() => Notification)
   declare notifications: HasMany<typeof Notification>

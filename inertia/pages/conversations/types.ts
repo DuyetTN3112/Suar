@@ -31,9 +31,13 @@ export interface Message {
   message: string
   sender_id: string
   timestamp: string
+  created_at?: string
   sender: Participant
   read_at: string | null
   is_current_user?: boolean
+  is_recalled?: boolean
+  recalled_at?: string | null
+  recall_scope?: 'self' | 'all' | null
 }
 
 export interface ConversationProps {
@@ -58,4 +62,23 @@ export interface ConversationProps {
 export interface MessageGroup {
   date: string
   messages: Message[]
+}
+
+export interface ConversationsProps {
+  conversations?: {
+    data: Conversation[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+    }
+  }
+}
+
+export interface RecallDialogProps {
+  open: boolean
+  onClose: () => void
+  onRecallForEveryone: () => Promise<void>
+  onRecallForSelf: () => Promise<void>
 }

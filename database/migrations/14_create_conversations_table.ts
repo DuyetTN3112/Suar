@@ -10,6 +10,13 @@ export default class extends BaseSchema {
       table.timestamp('created_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('updated_at', { useTz: true }).notNullable().defaultTo(this.now())
       table.timestamp('deleted_at', { useTz: true }).nullable()
+      table.bigInteger('last_message_id').nullable()
+      table
+        .integer('organization_id')
+        .unsigned()
+        .nullable()
+        .references('id')
+        .inTable('organizations')
     })
   }
 

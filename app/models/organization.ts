@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, manyToMany, hasMany } from '@adonisjs/lucid/orm'
 import User from './user.js'
 import Task from './task.js'
+import Project from './project.js'
 import type { ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class Organization extends BaseModel {
@@ -49,4 +50,7 @@ export default class Organization extends BaseModel {
 
   @hasMany(() => Task)
   declare tasks: HasMany<typeof Task>
+
+  @hasMany(() => Project)
+  declare projects: HasMany<typeof Project>
 }

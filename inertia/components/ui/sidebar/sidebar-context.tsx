@@ -9,16 +9,16 @@ const SIDEBAR_KEYBOARD_SHORTCUT = 'b'
 
 // Các biến kích thước sidebar
 export const SIDEBAR_WIDTH = '16rem'
-export const SIDEBAR_WIDTH_MOBILE = '18rem'
-export const SIDEBAR_WIDTH_ICON = '4rem'
+export const SIDEBAR_WIDTH_ICON = '3.5rem'
+export const SIDEBAR_WIDTH_MOBILE = '100%'
 
-type SidebarContextProps = {
-  state: 'expanded' | 'collapsed'
+export interface SidebarContextProps {
   open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
+  setOpen: React.Dispatch<React.SetStateAction<boolean>>
+  state: 'expanded' | 'collapsed'
   isMobile: boolean
+  openMobile: boolean
+  setOpenMobile: React.Dispatch<React.SetStateAction<boolean>>
   toggleSidebar: () => void
 }
 
@@ -26,8 +26,9 @@ const SidebarContext = React.createContext<SidebarContextProps | null>(null)
 
 export function useSidebar() {
   const context = React.useContext(SidebarContext)
+
   if (!context) {
-    throw new Error('useSidebar must be used within a SidebarProvider.')
+    throw new Error('useSidebar hook must be used within a SidebarProvider component')
   }
 
   return context
@@ -46,7 +47,12 @@ export function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  console.log('SidebarProvider initialized with defaultOpen:', defaultOpen)
+  // Chỉ ghi log khi debug mode được bật
+  const debugLog = (message: string, ...args: any[]) => {
+    if (window.DEBUG_MODE && process.env.NODE_ENV === 'development') {
+      console.log(message, ...args);
+    }
+  };
   
   const isMobile = useMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
@@ -55,15 +61,10 @@ export function SidebarProvider({
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
   
-  // Log state effect
-  React.useEffect(() => {
-    console.log('SidebarProvider state effect - open:', open)
-  }, [open])
-  
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const newOpenState = typeof value === 'function' ? value(open) : value
-      console.log(`Sidebar state changing from ${open ? 'expanded' : 'collapsed'} to ${newOpenState ? 'expanded' : 'collapsed'}`)
+      debugLog(`Sidebar state changing: ${open ? 'expanded' : 'collapsed'} -> ${newOpenState ? 'expanded' : 'collapsed'}`)
       
       if (setOpenProp) {
         setOpenProp(newOpenState)
@@ -79,7 +80,7 @@ export function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    console.log('Toggle sidebar called! Current state:', open ? 'expanded' : 'collapsed')
+    debugLog('Toggle sidebar called')
     if (isMobile) {
       setOpenMobile(!openMobile)
     } else {
@@ -105,7 +106,6 @@ export function SidebarProvider({
 
   // Đảm bảo state được set đúng
   const state = open ? 'expanded' : 'collapsed'
-  console.log('Current sidebar state is:', state)
 
   const contextValue = React.useMemo<SidebarContextProps>(
     () => ({

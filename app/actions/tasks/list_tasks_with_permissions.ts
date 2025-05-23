@@ -19,11 +19,9 @@ export default class ListTasksWithPermissions {
 
     // Lấy user hiện tại từ context
     const user = this.ctx.auth.user
-    console.log('[ListTasksWithPermissions] User:', user?.id, 'Name:', user?.full_name)
-
+    
     // Nếu không có người dùng đăng nhập, trả về danh sách trống
     if (!user) {
-      console.log('[ListTasksWithPermissions] No authenticated user found')
       return this.getEmptyResponse(limit, page)
     }
 
@@ -31,9 +29,7 @@ export default class ListTasksWithPermissions {
     const currentOrganizationId =
       options.organization_id || this.ctx.session.get('current_organization_id')
 
-    console.log('[ListTasksWithPermissions] Current Organization ID:', currentOrganizationId)
     if (!currentOrganizationId) {
-      console.log('[ListTasksWithPermissions] No current organization found')
       // Không ném ngoại lệ, thay vào đó đánh dấu session để hiển thị modal
       this.ctx.session.put('show_organization_required_modal', true)
       await this.ctx.session.commit()
@@ -53,14 +49,11 @@ export default class ListTasksWithPermissions {
       currentOrganizationId
     )
 
-    console.log('[ListTasksWithPermissions] User role data:', { isAdmin, organizationRole })
-
     // Áp dụng giới hạn theo quyền người dùng
     if (!isAdmin) {
       const userHasOrgAdminRole = organizationRole === 1 || organizationRole === 2
 
       if (!userHasOrgAdminRole) {
-        console.log('[ListTasksWithPermissions] Regular user, filtering tasks')
         // Người dùng thường chỉ xem được task của mình
         taskQuery.where((query) => {
           query.where('creator_id', user.id).orWhere('assigned_to', user.id)
@@ -68,8 +61,6 @@ export default class ListTasksWithPermissions {
       }
     }
 
-    // Debug SQL query
-    console.log('[ListTasksWithPermissions] SQL Query:', taskQuery.toSQL().sql)
     // Áp dụng các bộ lọc
     applyTaskFilters(taskQuery, options)
 

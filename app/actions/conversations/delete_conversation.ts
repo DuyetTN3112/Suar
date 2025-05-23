@@ -2,6 +2,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import Conversation from '#models/conversation'
 import AuditLog from '#models/audit_log'
 import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 
 export default class DeleteConversation {
   constructor(private ctx: HttpContext) {}
@@ -24,20 +25,22 @@ export default class DeleteConversation {
         })
         .firstOrFail()
 
-      // Đánh dấu cuộc trò chuyện đã bị xóa
-      conversation.deleted_at = DateTime.now()
-      await conversation.save()
+      // Sử dụng truy vấn trực tiếp để đánh dấu cuộc trò chuyện đã bị xóa
+      await db.rawQuery('UPDATE conversations SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [
+        conversation.id,
+      ])
 
-      // Ghi log
-      await AuditLog.create({
-        user_id: auth.user.id,
-        action: 'delete',
-        entity_type: 'conversation',
-        entity_id: conversation.id,
-        old_values: conversation.toJSON(),
-        ip_address: request.ip(),
-        user_agent: request.header('user-agent'),
-      })
+      // Sử dụng stored procedure để ghi log
+      await db.rawQuery('CALL log_audit(?, ?, ?, ?, ?, ?, ?, ?)', [
+        auth.user.id,
+        'delete',
+        'conversation',
+        conversation.id,
+        JSON.stringify(conversation.toJSON()),
+        null,
+        request.ip(),
+        request.header('user-agent'),
+      ])
 
       session.flash('success', 'Cuộc trò chuyện đã được xóa')
       return response.redirect().toRoute('conversations.index')

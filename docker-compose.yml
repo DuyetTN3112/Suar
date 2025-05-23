@@ -17,7 +17,7 @@ services:
     environment:
       # QUAN TRỌNG: Tất cả thông tin nhạy cảm nên được đặt trong file .env
       # Các giá trị ở đây sẽ ghi đè lên file .env trong container
-      - TZ=UTC
+      - TZ=Asia/Ho_Chi_Minh
       - PORT=3333
       # Sử dụng 0.0.0.0 thay vì localhost để có thể truy cập từ bên ngoài container
       - HOST=0.0.0.0 
@@ -43,8 +43,8 @@ services:
       # Các biến môi trường ứng dụng
       - APP_URL=http://localhost:3333
       - APP_NAME=shadcn_admin
-      - APP_LOCALE=en
-      - APP_TIMEZONE=UTC
+      - APP_LOCALE=vi
+      - APP_TIMEZONE=Asia/Ho_Chi_Minh
       
       # QUAN TRỌNG: Các khóa API và thông tin nhạy cảm nên được đặt trong file .env
       # và KHÔNG nên commit vào git repository

@@ -28,44 +28,64 @@ export default class GetConversationMessages {
         }
       }
 
-      // Sử dụng truy vấn thông thường thay vì stored procedure
-      const messages = await Message.query()
-        .where('conversation_id', conversationId)
-        .select(
-          'messages.id',
-          'messages.message',
-          'messages.sender_id',
-          'messages.timestamp',
-          'messages.read_at'
-        )
-        .join('users', 'messages.sender_id', 'users.id')
-        .select('users.id as user_id', 'users.full_name', 'users.username', 'users.email')
-        .orderBy('messages.timestamp', 'asc')
+      // Sử dụng stored procedure get_conversation_messages
+      // Cập nhật: Truyền thêm currentUserId để lọc tin nhắn đã thu hồi
+      const result = await db.rawQuery('CALL get_conversation_messages(?, ?)', [
+        conversationId,
+        currentUserId,
+      ])
+
+      // Stored procedure trả về kết quả trong mảng 2 chiều [resultSet][rows]
+      const messageData =
+        Array.isArray(result) && result[0] && Array.isArray(result[0][0])
+          ? result[0][0]
+          : Array.isArray(result) && result[0]
+            ? result[0]
+            : []
 
       // Chuyển đổi dữ liệu thành định dạng cần thiết cho frontend
       const formattedMessages = {
-        data: messages.map((msg: any) => {
-          // Xác định người dùng hiện tại
-          const isCurrentUser = msg.sender_id === currentUserId
-          // Trả về đối tượng tin nhắn đã được định dạng
-          return {
-            id: msg.id,
-            message: msg.message,
-            sender_id: msg.sender_id,
-            timestamp: msg.timestamp,
-            read_at: msg.read_at,
-            is_current_user: isCurrentUser,
-            sender: {
-              id: msg.user_id,
-              full_name: msg.full_name,
-              email: msg.email,
-              avatar: `/avatars/${msg.username || 'default'}.jpg`,
-            },
-          }
-        }),
+        data: Array.isArray(messageData)
+          ? messageData
+              .map((msg: any) => {
+                // Kiểm tra nếu msg là undefined hoặc null
+                if (!msg || typeof msg !== 'object') {
+                  console.warn('Dòng tin nhắn không hợp lệ')
+                  return null
+                }
+
+                // Xác định người dùng hiện tại
+                const isCurrentUser = msg.sender_id === currentUserId
+                // Đảm bảo trường timestamp luôn có giá trị hợp lệ
+                const timestamp = msg.created_at
+                  ? new Date(msg.created_at).toISOString()
+                  : new Date().toISOString()
+                // Trả về đối tượng tin nhắn đã được định dạng
+                return {
+                  id: msg.id,
+                  message: msg.message,
+                  sender_id: msg.sender_id,
+                  created_at: timestamp,
+                  timestamp: timestamp, // Giữ lại timestamp để tương thích
+                  read_at: msg.read_at ? new Date(msg.read_at).toISOString() : null,
+                  is_current_user: isCurrentUser,
+                  is_recalled: msg.is_recalled === 1 || msg.is_recalled === true,
+                  recalled_at: msg.recalled_at ? new Date(msg.recalled_at).toISOString() : null,
+                  recall_scope: msg.recall_scope || null,
+                  sender: {
+                    id: msg.user_id,
+                    full_name: msg.full_name,
+                    email: msg.email,
+                    avatar:
+                      msg.sender_avatar || `/avatars/${msg.email?.split('@')[0] || 'default'}.jpg`,
+                  },
+                }
+              })
+              .filter(Boolean)
+          : [], // Lọc bỏ các phần tử null/undefined
         meta: {
-          total: messages.length,
-          per_page: messages.length,
+          total: Array.isArray(messageData) ? messageData.length : 0,
+          per_page: Array.isArray(messageData) ? messageData.length : 0,
           current_page: 1,
           last_page: 1,
         },

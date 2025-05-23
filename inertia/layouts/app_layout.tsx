@@ -5,6 +5,7 @@ import { AppSidebar } from '@/components/layout/app_sidebar'
 import { SidebarProvider, useSidebar } from '@/components/ui/sidebar/index'
 import OrganizationRequiredSimpleDialog from '@/components/ui/organization_required_simple_dialog'
 import { SharedProps } from '@adonisjs/inertia/types'
+import { Toaster } from 'sonner'
 
 type AppLayoutProps = {
   title: string
@@ -52,13 +53,40 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 export default function AppLayout({ title, children }: AppLayoutProps) {
   return (
     <>
-      <Head title={title} />
+      <Head>
+        <title>{title || 'ShadcnAdmin'}</title>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Content Security Policy */}
+        <meta 
+          httpEquiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
+                   style-src 'self' 'unsafe-inline'; 
+                   img-src 'self' data: https:; 
+                   font-src 'self' data:; 
+                   connect-src 'self' https:; 
+                   frame-src 'self'; 
+                   object-src 'none'; 
+                   base-uri 'self'; 
+                   form-action 'self';"
+        />
+        {/* Prevent XSS attacks */}
+        <meta httpEquiv="X-XSS-Protection" content="1; mode=block" />
+        {/* Prevent clickjacking */}
+        <meta httpEquiv="X-Frame-Options" content="SAMEORIGIN" />
+        {/* Prevent MIME type sniffing */}
+        <meta httpEquiv="X-Content-Type-Options" content="nosniff" />
+        {/* Referrer Policy */}
+        <meta name="referrer" content="strict-origin-when-cross-origin" />
+      </Head>
       <SidebarProvider defaultOpen={true}>
         <div className="relative flex min-h-screen w-full">
           <AppSidebar />
           <AppLayoutContent>{children}</AppLayoutContent>
         </div>
       </SidebarProvider>
+      <Toaster />
     </>
   )
 } 

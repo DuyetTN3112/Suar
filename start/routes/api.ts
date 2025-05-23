@@ -175,6 +175,127 @@ router
       }
     })
 
+    // API để kiểm tra cuộc hội thoại đã tồn tại
+    router.post('/check-existing-conversation', async ({ request, auth, response, session }) => {
+      try {
+        console.log('=== API DEBUG: KIỂM TRA HỘI THOẠI TỒN TẠI ===')
+        console.log('API: Bắt đầu kiểm tra cuộc hội thoại đã tồn tại')
+        console.log('API: Request headers:', request.headers())
+        console.log('API: Request body:', request.body())
+        console.log('API: Session ID:', session.sessionId)
+        
+        if (!auth.user) {
+          console.log('API: Người dùng chưa đăng nhập')
+          return response.status(401).json({
+            success: false,
+            message: 'Chưa đăng nhập',
+          })
+        }
+        
+        console.log('API: Thông tin người dùng đã đăng nhập:', {
+          id: auth.user.id,
+          email: auth.user.email,
+          current_organization_id: auth.user.current_organization_id
+        })
+        
+        const { participants } = request.body()
+        console.log('API: Danh sách người tham gia cần kiểm tra:', participants)
+        
+        if (!participants || !Array.isArray(participants) || participants.length === 0) {
+          console.log('API: Danh sách người tham gia không hợp lệ')
+          return response.status(400).json({
+            success: false,
+            message: 'Danh sách người tham gia không hợp lệ',
+          })
+        }
+        
+        // Sắp xếp ID người tham gia để đảm bảo so sánh chính xác
+        const sortedParticipantIds = [...participants].sort()
+        console.log('API: Danh sách người tham gia đã sắp xếp:', sortedParticipantIds)
+        
+        const db = await import('@adonisjs/lucid/services/db')
+        
+        // Lấy tất cả cuộc hội thoại trong tổ chức hiện tại
+        const organizationId = auth.user.current_organization_id
+        console.log('API: Tổ chức hiện tại:', organizationId)
+        
+        if (!organizationId) {
+          console.log('API: Không tìm thấy ID tổ chức hiện tại')
+          return response.status(400).json({
+            success: false,
+            message: 'Không tìm thấy ID tổ chức hiện tại',
+          })
+        }
+        
+        // Lấy tất cả cuộc hội thoại mà người dùng hiện tại tham gia
+        console.log('API: Truy vấn cuộc hội thoại của người dùng trong tổ chức')
+        const conversations = await db.default
+          .query()
+          .from('conversations as c')
+          .join('conversation_participants as cp', 'c.id', 'cp.conversation_id')
+          .where('c.organization_id', organizationId)
+          .where('cp.user_id', auth.user.id)
+          .select('c.id', 'c.title')
+          .distinct()
+        
+        console.log(`API: Tìm thấy ${conversations.length} cuộc hội thoại của người dùng:`, conversations)
+        
+        // Với mỗi cuộc hội thoại, kiểm tra xem nó có cùng danh sách người tham gia không
+        for (const conversation of conversations) {
+          console.log(`API: Kiểm tra cuộc hội thoại ${conversation.id} - ${conversation.title}`)
+          
+          // Lấy danh sách người tham gia của cuộc hội thoại
+          const conversationParticipants = await db.default
+            .query()
+            .from('conversation_participants')
+            .where('conversation_id', conversation.id)
+            .select('user_id')
+          
+          // Chuyển đổi thành mảng ID
+          const participantIds = conversationParticipants.map(p => p.user_id.toString())
+          
+          // Sắp xếp để so sánh
+          const sortedIds = [...participantIds].sort()
+          
+          console.log(`API: Cuộc hội thoại ${conversation.id} có ${participantIds.length} người tham gia:`, sortedIds)
+          
+          // So sánh hai mảng đã sắp xếp
+          console.log('API: So sánh:', JSON.stringify(sortedIds), 'với', JSON.stringify(sortedParticipantIds))
+          
+          if (sortedIds.length === sortedParticipantIds.length &&
+              JSON.stringify(sortedIds) === JSON.stringify(sortedParticipantIds)) {
+            console.log(`API: Tìm thấy cuộc hội thoại trùng khớp: ${conversation.id} - ${conversation.title}`)
+            return response.json({
+              exists: true,
+              conversation: {
+                id: conversation.id,
+                title: conversation.title || 'Cuộc hội thoại không có tiêu đề'
+              }
+            })
+          } else {
+            console.log(`API: Cuộc hội thoại ${conversation.id} không trùng khớp`)
+          }
+        }
+        
+        // Không tìm thấy cuộc hội thoại trùng khớp
+        console.log('API: Không tìm thấy cuộc hội thoại trùng khớp')
+        return response.json({
+          exists: false
+        })
+      } catch (error) {
+        console.error('=== API ERROR: KIỂM TRA HỘI THOẠI TỒN TẠI ===')
+        console.error('API: Lỗi khi kiểm tra cuộc hội thoại đã tồn tại:', error)
+        console.error('API: Stack trace:', error.stack)
+        
+        return response.status(500).json({
+          success: false,
+          message: 'Lỗi khi kiểm tra cuộc hội thoại đã tồn tại',
+          error: error.message,
+          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        })
+      }
+    })
+
     // API để kiểm tra thông tin tổ chức hiện tại
     router.get('/debug-organization-info', async ({ auth, session, response }) => {
       try {

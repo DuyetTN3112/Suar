@@ -218,13 +218,6 @@ const SidebarMenuButton = React.forwardRef<
 }, ref) => {
   const Comp = asChild ? Slot : 'button'
   const { isMobile, state } = useSidebar()
-  
-  // Log để debug trạng thái sidebar và tooltip
-  React.useEffect(() => {
-    if (tooltip) {
-      console.log('SidebarMenuButton tooltip:', tooltip, 'Sidebar state:', state, 'Show tooltip:', state === 'collapsed')
-    }
-  }, [tooltip, state])
 
   // Lấy className dựa trên variants và size
   const buttonClassName = cn(

@@ -7,14 +7,6 @@ const i18nConfig = defineConfig({
   formatter: formatters.icu(),
 
   loaders: [
-    /**
-     * The fs loader will read translations from the
-     * "resources/lang" directory.
-     *
-     * Each subdirectory represents a locale. For example:
-     *   - "resources/lang/en"
-     *   - "resources/lang/vi"
-     */
     loaders.fs({
       location: app.languageFilesPath(),
     }),

@@ -90,6 +90,12 @@ const navigationData = [
         url: '/organizations',
         iconName: 'Building',
       },
+      {
+        title: 'Dự án',
+        titleKey: 'navigation.projects',
+        url: '/projects',
+        iconName: 'Briefcase',
+      },
     ],
   },
   {

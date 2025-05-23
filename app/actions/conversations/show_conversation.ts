@@ -37,26 +37,36 @@ export default class ShowConversation {
       const messagesQuery = Message.query()
         .where('conversation_id', conversation.id)
         .preload('sender')
-        .orderBy('timestamp', 'desc')
+        .orderBy('created_at', 'desc')
 
       // Thêm điều kiện filter thời gian
       if (validatedData.before) {
-        const beforeDateTime =
-          validatedData.before instanceof Date
-            ? DateTime.fromJSDate(validatedData.before)
-            : DateTime.fromISO(validatedData.before)
-        if (beforeDateTime.isValid) {
-          messagesQuery.where('timestamp', '<', beforeDateTime.toSQL())
+        try {
+          const beforeId = Number(validatedData.before)
+          const beforeMessage = await Message.find(beforeId)
+          if (beforeMessage && beforeMessage.created_at) {
+            const isoDate = beforeMessage.created_at.toISO()
+            if (isoDate) {
+              messagesQuery.where('created_at', '<', isoDate)
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi xử lý before ID:', error)
         }
       }
 
       if (validatedData.after) {
-        const afterDateTime =
-          validatedData.after instanceof Date
-            ? DateTime.fromJSDate(validatedData.after)
-            : DateTime.fromISO(validatedData.after)
-        if (afterDateTime.isValid) {
-          messagesQuery.where('timestamp', '>', afterDateTime.toSQL())
+        try {
+          const afterId = Number(validatedData.after)
+          const afterMessage = await Message.find(afterId)
+          if (afterMessage && afterMessage.created_at) {
+            const isoDate = afterMessage.created_at.toISO()
+            if (isoDate) {
+              messagesQuery.where('created_at', '>', isoDate)
+            }
+          }
+        } catch (error) {
+          console.error('Lỗi xử lý after ID:', error)
         }
       }
 

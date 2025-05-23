@@ -15,11 +15,16 @@ type SimpleOrganization = {
 let logCounter = 0
 const LOG_LIMIT = 10 // Chỉ log tối đa 10 lần mỗi phiên khởi động
 
+// Lựa chọn mức độ log
+type LogLevel = 'none' | 'minimal' | 'normal' | 'verbose'
+const LOG_LEVEL: LogLevel = env.get('INERTIA_LOG_LEVEL', 'minimal') as LogLevel
+
 // Hàm kiểm tra có nên log hay không, cải tiến để giảm số lượng log
 function shouldLog(ctx: HttpContext): boolean {
   if (logCounter >= LOG_LIMIT) return false
   const isDevMode = env.get('NODE_ENV') === 'development'
-  if (!isDevMode) return false
+  if (!isDevMode || LOG_LEVEL === 'none') return false
+
   // Lấy URL và method của request
   const url = ctx.request.url()
   const method = ctx.request.method()
@@ -54,6 +59,35 @@ function shouldLog(ctx: HttpContext): boolean {
   return shouldLogRequest
 }
 
+// Hàm log riêng cho inertia data, hỗ trợ các mức độ log
+function inertiaLog(level: LogLevel, message: string, data?: any) {
+  const logLevels: Record<LogLevel, number> = {
+    none: 0,
+    minimal: 1,
+    normal: 2,
+    verbose: 3,
+  }
+
+  if (logLevels[LOG_LEVEL] >= logLevels[level]) {
+    if (data !== undefined) {
+      if (level === 'minimal') {
+        // Với minimal, chỉ log thông tin tổng quát
+        if (Array.isArray(data)) {
+          console.log(message, `[Mảng với ${data.length} phần tử]`)
+        } else if (typeof data === 'object' && data !== null) {
+          console.log(message, `[Object với ${Object.keys(data).length} thuộc tính]`)
+        } else {
+          console.log(message, data)
+        }
+      } else {
+        console.log(message, data)
+      }
+    } else {
+      console.log(message)
+    }
+  }
+}
+
 const inertiaConfig = defineConfig({
   rootView: 'inertia_layout',
 
@@ -76,14 +110,14 @@ const inertiaConfig = defineConfig({
       try {
         const shouldLogInfo = shouldLog(ctx)
         if (shouldLogInfo) {
-          console.log('===== INERTIA SHARED DATA =====')
-          console.log('Session ID:', ctx.session?.sessionId || 'Không có session')
+          inertiaLog('minimal', '===== INERTIA SHARED DATA =====')
+          inertiaLog('minimal', 'Session ID:', ctx.session?.sessionId || 'Không có session')
         }
         if (ctx.auth && (await ctx.auth.check())) {
           // Mở rộng thông tin user để đảm bảo các thông tin quan trọng được gửi đến client
           const user = ctx.auth.user!
           if (shouldLogInfo) {
-            console.log('Đã tìm thấy người dùng đã xác thực:', user.id)
+            inertiaLog('minimal', 'Đã tìm thấy người dùng đã xác thực:', user.id)
           }
 
           // Đảm bảo load các relationship cần thiết
@@ -119,18 +153,19 @@ const inertiaConfig = defineConfig({
             organizations: [] as SimpleOrganization[],
           }
           if (shouldLogInfo) {
-            console.log('Dữ liệu người dùng cơ bản:', userData)
+            inertiaLog('normal', 'Dữ liệu người dùng cơ bản:', userData)
           }
 
           // Truy vấn thêm thông tin về organizations của người dùng
           try {
             if (shouldLogInfo) {
-              console.log('Đang tải thông tin tổ chức...')
+              inertiaLog('minimal', 'Đang tải thông tin tổ chức...')
             }
             await user.load('organizations')
             if (shouldLogInfo) {
-              console.log('Số lượng tổ chức tải được:', user.organizations?.length || 0)
-              console.log('Dữ liệu tổ chức thô:', user.organizations)
+              inertiaLog('minimal', `Đã tải được ${user.organizations?.length || 0} tổ chức`)
+              // Chỉ log chi tiết ở mức verbose
+              inertiaLog('verbose', 'Dữ liệu tổ chức thô:', user.organizations)
             }
 
             if (user.organizations && user.organizations.length > 0) {
@@ -141,22 +176,27 @@ const inertiaConfig = defineConfig({
                 plan: org.plan || null,
               }))
               if (shouldLogInfo) {
-                console.log('Đã chuyển đổi dữ liệu tổ chức thành công')
+                inertiaLog('minimal', `Đã chuyển đổi ${userData.organizations.length} tổ chức`)
               }
             } else if (shouldLogInfo) {
-              console.warn('Người dùng không có tổ chức nào')
+              inertiaLog('minimal', 'Người dùng không có tổ chức nào')
             }
           } catch (error) {
             if (shouldLogInfo) {
-              console.error('LỖI: Không thể tải thông tin tổ chức:', error)
-              console.error('Chi tiết lỗi:', error.message)
-              console.error('Stack trace:', error.stack)
+              inertiaLog('minimal', 'LỖI: Không thể tải thông tin tổ chức')
+              inertiaLog('normal', 'Chi tiết lỗi:', error.message)
+              inertiaLog('verbose', 'Stack trace:', error.stack)
             }
             // Vẫn giữ mảng rỗng cho organizations nếu có lỗi
           }
           if (shouldLogInfo) {
-            console.log('Dữ liệu cuối cùng của người dùng (bao gồm tổ chức):', userData)
-            console.log('===== KẾT THÚC INERTIA SHARED DATA =====')
+            // Chỉ log tổng quan về dữ liệu cuối cùng
+            inertiaLog(
+              'normal',
+              'Dữ liệu người dùng đã sẵn sàng với các tổ chức:',
+              `[${userData.organizations.length} tổ chức]`
+            )
+            inertiaLog('minimal', '===== KẾT THÚC INERTIA SHARED DATA =====')
           }
           return {
             auth: {
@@ -165,14 +205,14 @@ const inertiaConfig = defineConfig({
           }
         } else {
           if (shouldLogInfo) {
-            console.log('Không có người dùng đã xác thực')
-            console.log('===== KẾT THÚC INERTIA SHARED DATA =====')
+            inertiaLog('minimal', 'Không có người dùng đã xác thực')
+            inertiaLog('minimal', '===== KẾT THÚC INERTIA SHARED DATA =====')
           }
         }
       } catch (error) {
-        console.error('LỖI NGHIÊM TRỌNG khi kiểm tra xác thực:', error)
-        console.error('Chi tiết lỗi:', error.message)
-        console.error('Stack trace:', error.stack)
+        inertiaLog('minimal', 'LỖI NGHIÊM TRỌNG khi kiểm tra xác thực:', error)
+        inertiaLog('normal', 'Chi tiết lỗi:', error.message)
+        inertiaLog('verbose', 'Stack trace:', error.stack)
       }
       // Trả về null nếu người dùng chưa đăng nhập
       return { auth: { user: null } }

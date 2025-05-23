@@ -20,6 +20,10 @@ Settings.defaultZone = env.get('APP_TIMEZONE', 'Asia/Ho_Chi_Minh')
 Settings.defaultLocale = env.get('APP_LOCALE', 'vi-VN')
 console.log('Timezone configured:', Settings.defaultZone)
 console.log('Current DateTime:', DateTime.now().toISO())
+console.log(
+  'Formatted DateTime (Vietnam):',
+  DateTime.now().setZone('Asia/Ho_Chi_Minh').toFormat('dd/MM/yyyy HH:mm:ss')
+)
 
 /**
  * The error handler is used to convert an exception
@@ -68,4 +72,5 @@ export const middleware = router.named({
   cache: () => import('#middleware/cache_middleware'),
   authorizeRole: () => import('#middleware/authorize_role'),
   requireOrg: () => import('#middleware/require_organization_middleware'),
+  messageSanitizer: () => import('#middleware/message_sanitizer'),
 })

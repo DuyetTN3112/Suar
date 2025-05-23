@@ -26,6 +26,7 @@ router
     router
       .post('/conversations/:id/messages', [ConversationsMessageController, 'sendMessage'])
       .as('conversations.send_message')
+      .use([middleware.messageSanitizer()])
     router
       .post('/conversations/:id/mark-as-read', [ConversationsMessageController, 'markAsRead'])
       .as('conversations.mark_as_read')
@@ -35,6 +36,14 @@ router
     router
       .post('/api/conversations/:id/mark-as-read', [ConversationsMessageController, 'markAsRead'])
       .as('api.conversations.mark_as_read')
+
+    // Thêm route để thu hồi tin nhắn
+    router
+      .post('/api/conversations/:id/messages/:messageId/recall', [
+        ConversationsMessageController,
+        'recallMessage',
+      ])
+      .as('api.conversations.recall_message')
 
     // Legacy conversation routes
     router.get('/conversation', [ConversationController, 'index']).as('conversation.index')
@@ -47,6 +56,7 @@ router
     router
       .post('/conversation/:id/messages', [ConversationController, 'sendMessage'])
       .as('conversation.send_message')
+      .use([middleware.messageSanitizer()])
     router
       .post('/conversation/:id/mark-as-read', [ConversationController, 'markAsRead'])
       .as('conversation.mark_as_read')

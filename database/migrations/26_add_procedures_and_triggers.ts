@@ -30,20 +30,22 @@ export default class extends BaseSchema {
             m.id,
             m.message,
             m.sender_id,
-            m.timestamp,
+            m.created_at,
             m.read_at,
             u.id AS user_id,
             u.full_name,
             u.email,
-            u.avatar
+            ud.avatar_url AS sender_avatar
         FROM 
             messages m
         JOIN 
             users u ON m.sender_id = u.id
+        LEFT JOIN 
+            user_details ud ON u.id = ud.user_id
         WHERE 
             m.conversation_id = p_conversation_id
         ORDER BY 
-            m.timestamp ASC;
+            m.created_at ASC;
       END
     `)
 

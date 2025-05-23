@@ -22,6 +22,9 @@ export default class UserSetting extends BaseModel {
   declare display_mode: 'grid' | 'list'
 
   @column()
+  declare timezone: string
+
+  @column()
   declare font: string
 
   @column()

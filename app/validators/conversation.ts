@@ -1,5 +1,17 @@
 import vine from '@vinejs/vine'
 
+// Hàm chuẩn hóa Unicode và cắt chuỗi
+function normalizeAndLimit(value: string) {
+  if (typeof value === 'string') {
+    let normalized = value.normalize('NFKC')
+    if (normalized.length > 5000) {
+      normalized = normalized.slice(0, 5000)
+    }
+    return normalized
+  }
+  return value
+}
+
 /**
  * Validator cho tạo cuộc trò chuyện mới
  */
@@ -33,7 +45,13 @@ export const addParticipantValidator = vine.compile(
  */
 export const sendMessageValidator = vine.compile(
   vine.object({
-    message: vine.string().minLength(1).maxLength(5000),
+    message: vine
+      .string()
+      .minLength(1)
+      .maxLength(5000)
+      .trim()
+      .escape()
+      .transform(normalizeAndLimit),
   })
 )
 
@@ -44,8 +62,8 @@ export const messagesPaginationValidator = vine.compile(
   vine.object({
     page: vine.number().optional(),
     limit: vine.number().optional(),
-    before: vine.date().optional(),
-    after: vine.date().optional(),
+    before: vine.string().optional(),
+    after: vine.string().optional(),
   })
 )
 
@@ -69,3 +87,12 @@ export const markAsReadValidator = vine.compile(
     conversationId: vine.string().optional(),
   })
 )
+
+/**
+ * Kiểm tra spam
+ */
+export const checkSpam = async (userId: string, messageCount: number, timeWindow: number) => {
+  // TODO: Implement spam checking logic using Redis or database
+  // For now, return false to allow all messages
+  return false
+}

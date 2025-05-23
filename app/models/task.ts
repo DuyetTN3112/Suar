@@ -7,6 +7,7 @@ import TaskLabel from './task_label.js'
 import TaskPriority from './task_priority.js'
 import TaskVersion from './task_version.js'
 import Organization from './organization.js'
+import Project from './project.js'
 
 export default class Task extends BaseModel {
   static table = 'tasks'
@@ -62,6 +63,9 @@ export default class Task extends BaseModel {
   @column()
   declare organization_id: number
 
+  @column()
+  declare project_id: number | null
+
   @belongsTo(() => TaskStatus, {
     foreignKey: 'status_id',
   })
@@ -101,6 +105,11 @@ export default class Task extends BaseModel {
     foreignKey: 'organization_id',
   })
   declare organization: BelongsTo<typeof Organization>
+
+  @belongsTo(() => Project, {
+    foreignKey: 'project_id',
+  })
+  declare project: BelongsTo<typeof Project>
 
   @hasMany(() => Task, {
     foreignKey: 'parent_task_id',

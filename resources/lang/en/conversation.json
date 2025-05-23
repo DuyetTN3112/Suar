@@ -34,6 +34,28 @@
     "participant_count": "{count} participants",
     "date_unknown": "Unknown date",
     "no_messages_selected": "No messages selected",
-    "select_or_create": "Select a conversation from the list to start or create a new one"
+    "select_or_create": "Select a conversation from the list to start or create a new one",
+    "unknown_user": "Unknown User",
+    "group_chat": "Group Chat",
+    "send_error": "Failed to send message. Please try again.",
+    "copy": "Copy",
+    "share": "Share",
+    "recall_message": "Recall Message",
+    "recall_message_description": "Who would you like to recall this message for?",
+    "recall_for_everyone": "Recall for everyone",
+    "recall_for_everyone_desc": "This message will be recalled for everyone in the chat.",
+    "recall_for_self": "Recall for yourself",
+    "recall_for_self_desc": "This message will be removed from your device, but will still be visible to other members in the chat.",
+    "recall": "Recall",
+    "recall_error": "Failed to recall message. Please try again.",
+    "existing_conversation": "Conversation already exists",
+    "already_exists": "A conversation with these participants already exists: \"{title}\"",
+    "open_existing": "Open conversation",
+    "no_participants_selected": "Please select at least one participant",
+    "create_error": "An error occurred while creating the conversation. Please try again later."
+  },
+  "conversations": {
+    "title": "Conversations",
+    "search": "Search conversations..."
   }
 } 

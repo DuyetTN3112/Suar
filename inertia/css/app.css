@@ -91,6 +91,97 @@
   .settings-link.active {
     @apply bg-white shadow-sm m-0 border;
   }
+  /* Lớp bảo vệ chống tấn công Zalgo và các tin nhắn độc hại */
+  .user-content {
+    /* Ngăn chặn text tràn ra ngoài container */
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+    
+    /* Cắt bỏ nội dung nếu vượt quá */
+    max-width: 100% !important;
+    overflow: hidden !important;
+    
+    /* Kiểm soát cách hiển thị text */
+    white-space: pre-wrap !important;
+    hyphens: auto !important;
+    
+    /* Đảm bảo khoảng cách dòng phù hợp tránh chồng lấn */
+    line-height: 1.5 !important;
+    
+    /* Giới hạn chiều cao tối đa của một khối text */
+    max-height: 70vh !important;
+      
+    /* Chặn các ký tự Zalgo làm thay đổi chiều cao dòng */
+    line-height-step: 0 !important;
+  }
+  
+  /* Bộ CSS bảo vệ đặc biệt cho tin nhắn Zalgo */
+  .zalgo-message {
+    position: relative;
+    isolation: isolate;
+    container-type: inline-size;
+    max-height: 80px; /* Giới hạn chiều cao mặc định */
+    box-shadow: 0 0 5px rgba(255, 200, 0, 0.2);
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    background-color: rgba(255, 248, 225, 0.1);
+    contain: content; /* Cách ly nội dung */
+    content-visibility: auto; /* Tối ưu hóa rendering */
+  }
+  
+  /* Hiển thị overlay cho tin nhắn Zalgo khi chưa mở rộng */
+  .zalgo-message:not(.expanded)::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, var(--background));
+    pointer-events: none;
+    z-index: 1;
+  }
+  
+  /* Cách ly nội dung nguy hiểm */
+  .zalgo-container {
+    /* Sử dụng CSS containment để ngăn nội dung ảnh hưởng đến bố cục */
+    contain: layout paint style size;
+    isolation: isolate;
+    
+    /* Giới hạn chiều cao */
+    max-height: var(--max-zalgo-height, 60px);
+    overflow: hidden;
+    
+    /* Hiệu ứng làm mờ */
+    filter: var(--zalgo-filter, none);
+    
+    /* Cắt nội dung khi tràn */
+    text-overflow: ellipsis;
+    
+    /* Ngăn chặn tràn ra ngoài */
+    overflow-anchor: none;
+    
+    /* Sử dụng backdrop-filter để tạo hiệu ứng làm mờ khác */
+    position: relative;
+  }
+  
+  /* Shadow DOM bao bọc nội dung nguy hiểm */
+  @supports (display: contents) {
+    .zalgo-isolate {
+      display: contents;
+      isolation: isolate;
+    }
+  }
+  
+  /* Giới hạn độ dài hiển thị của inline-text */
+  .user-content-inline {
+    display: inline-block !important;
+    max-width: 100% !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    vertical-align: bottom !important;
+  }
 }
 
 /* Kiểu tin nhắn đến và tin nhắn đi */

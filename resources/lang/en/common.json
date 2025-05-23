@@ -68,6 +68,7 @@
     "messages": "Messages",
     "users": "Users",
     "organizations": "Organizations",
+    "projects": "Projects",
     "settings": "Settings"
   }
 } 

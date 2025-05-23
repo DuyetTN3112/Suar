@@ -1,20 +1,18 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
-import { PanelLeft } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { SheetContent, SheetDescription, SheetHeader, SheetTitle, Sheet } from '@/components/ui/sheet'
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
-import { useSidebar, SIDEBAR_WIDTH, SIDEBAR_WIDTH_MOBILE, SIDEBAR_WIDTH_ICON } from './sidebar-context'
+  useSidebar,
+  SIDEBAR_WIDTH,
+  SIDEBAR_WIDTH_MOBILE,
+  SIDEBAR_WIDTH_ICON,
+} from './sidebar-context'
 
-interface SidebarProps extends React.ComponentProps<'div'> {
+export interface SidebarProps
+  extends React.HTMLAttributes<HTMLDivElement> {
   side?: 'left' | 'right'
-  variant?: 'sidebar' | 'floating' | 'inset'
-  collapsible?: 'offcanvas' | 'icon' | 'none'
+  variant?: 'sidebar' | 'inset'
+  collapsible?: 'offcanvas' | 'collapse' | 'none'
 }
 
 export function Sidebar({
@@ -26,11 +24,6 @@ export function Sidebar({
   ...props
 }: SidebarProps) {
   const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
-
-  // Thêm debug log
-  React.useEffect(() => {
-    console.log('Sidebar rendering with state:', state)
-  }, [state])
 
   if (collapsible === 'none') {
     return (
@@ -74,72 +67,38 @@ export function Sidebar({
 
   // Desktop sidebar with explicit width setting
   const sidebarWidth = state === 'expanded' ? SIDEBAR_WIDTH : SIDEBAR_WIDTH_ICON
-  
+
   return (
     <div
+      data-sidebar='sidebar'
+      data-slot='sidebar'
+      data-state={state}
       className={cn(
-        'bg-sidebar text-sidebar-foreground flex-shrink-0 h-full transition-[width] duration-300 ease-in-out z-10 border-r',
+        'bg-sidebar text-sidebar-foreground h-full transition-[width] duration-300 ease-in-out',
         className
       )}
-      style={{ width: sidebarWidth }}
-      data-state={state}
-      data-collapsible={collapsible}
-      data-slot='sidebar'
+      style={
+        {
+          '--sidebar-width': sidebarWidth,
+          width: sidebarWidth,
+        } as React.CSSProperties
+      }
       {...props}
     >
-      <div className={cn(
-        "flex h-full w-full flex-col",
-        state === 'collapsed' && 'items-center [&_span]:hidden [&_div.grid]:hidden [&>.px-2]:!px-0 [&_div.group-data-[collapsible=icon\\:hidden]]:!hidden [&_*[data-sidebar=group-label]]:hidden'
-      )}>
-        {children}
-      </div>
+      {children}
     </div>
   )
 }
 
-export function SidebarTrigger({
-  className,
-  onClick,
-  ...props
-}: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+export interface SidebarRailProps
+  extends React.HTMLAttributes<HTMLDivElement> {}
 
+export function SidebarRail({ className, ...props }: SidebarRailProps) {
   return (
-    <Button
-      data-sidebar='trigger'
-      data-slot='sidebar-trigger'
-      variant='ghost'
-      size='icon'
-      className={cn('size-7', className)}
-      onClick={(event) => {
-        onClick?.(event)
-        toggleSidebar()
-      }}
-      {...props}
-    >
-      <PanelLeft />
-      <span className='sr-only'>Toggle Sidebar</span>
-    </Button>
-  )
-}
-
-export function SidebarRail({ className, ...props }: React.ComponentProps<'button'>) {
-  const { toggleSidebar } = useSidebar()
-
-  return (
-    <button
-      data-sidebar='rail'
+    <div
       data-slot='sidebar-rail'
-      aria-label='Toggle Sidebar'
-      tabIndex={-1}
-      onClick={toggleSidebar}
-      title='Toggle Sidebar'
       className={cn(
-        'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex',
-        'in-data-[side=left][data-state=collapsed]_&]:cursor-e-resize in-data-[side=right][data-state=collapsed]_&]:cursor-w-resize',
-        'hover:group-data-[collapsible=offcanvas]:bg-sidebar group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full',
-        '[[data-side=left][data-collapsible=offcanvas]_&]:-right-2',
-        '[[data-side=right][data-collapsible=offcanvas]_&]:-left-2',
+        'border-sidebar-muted bg-sidebar h-full w-mini border-r border-solid z-20 flex-none',
         className
       )}
       {...props}
@@ -147,15 +106,35 @@ export function SidebarRail({ className, ...props }: React.ComponentProps<'butto
   )
 }
 
-export function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
+export interface SidebarInsetProps
+  extends React.HTMLAttributes<HTMLDivElement> {}
+
+export function SidebarInset({ className, ...props }: SidebarInsetProps) {
   return (
-    <main
+    <div
       data-slot='sidebar-inset'
       className={cn(
-        'bg-background relative flex w-full flex-1 flex-col',
-        'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
+        'bg-sidebar-inset h-full w-full overflow-auto border-0 border-solid z-10',
         className
       )}
+      {...props}
+    />
+  )
+}
+
+export interface SidebarTriggerProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
+
+export function SidebarTrigger({ className, ...props }: SidebarTriggerProps) {
+  const { toggleSidebar } = useSidebar()
+
+  return (
+    <button
+      type='button'
+      data-slot='sidebar-trigger'
+      aria-label='Toggle sidebar'
+      className={cn('hidden p-2 text-muted-foreground hover:text-foreground', className)}
+      onClick={toggleSidebar}
       {...props}
     />
   )

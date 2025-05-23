@@ -9,6 +9,7 @@ import './notifications.js'
 import './conversations.js'
 import './api.js'
 import './organizations.js'
+import './projects.js'
 import './errors.js'
 
 // Health checks controller

@@ -2,6 +2,7 @@ import { HttpContext } from '@adonisjs/core/http'
 import { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
 import env from '#start/env'
+import loggerService from '#services/logger_service'
 
 /**
  * Định nghĩa kiểu dữ liệu cho OrganizationUser
@@ -41,16 +42,10 @@ export default class AuthMiddleware {
     next: NextFn,
     options: { guards?: (keyof Authenticators)[] } = {}
   ) {
-    const startTime = this.isDevMode ? Date.now() : 0
+    const startTime = performance.now()
 
     try {
-      this.log('--- [AUTH MIDDLEWARE] ---')
-      this.log('Request URL:', ctx.request.url())
-      // Chỉ log thông tin cơ bản để tránh tràn RAM
-      if (this.isDevMode) {
-        this.log('Session ID:', ctx.session.sessionId)
-        // Không log toàn bộ session data và cookies nữa
-      }
+      loggerService.info('Xác thực người dùng', { url: ctx.request.url() })
 
       // Kiểm tra xác thực
       await ctx.auth.authenticateUsing(options.guards || ['web'], {
@@ -67,14 +62,11 @@ export default class AuthMiddleware {
           ctx.auth.user.role?.name?.toLowerCase() === 'admin' ||
           ctx.auth.user.role?.name?.toLowerCase() === 'superadmin' ||
           [1, 2].includes(ctx.auth.user.role_id)
-        // In ra log để debug
-        if (this.isDevMode) {
-          this.log('User Organizations:', ctx.auth.user.organizations?.length || 0)
-          this.log(
-            'Organization IDs:',
-            ctx.auth.user.organizations?.map((org) => org.id)
-          )
-        }
+        // Log chỉ số lượng tổ chức và ID, không log chi tiết
+        loggerService.debug('Thông tin tổ chức người dùng', {
+          count: ctx.auth.user.organizations?.length || 0,
+          ids: ctx.auth.user.organizations?.map((org) => org.id),
+        })
 
         // Lấy current_organization_id từ session hoặc từ model user
         const currentOrganizationId =
@@ -115,27 +107,15 @@ export default class AuthMiddleware {
         })
       }
 
-      if (this.isDevMode) {
-        this.log('Authentication successful', {
-          userId: ctx.auth.user?.id,
-          userName: ctx.auth.user?.username,
-          userRole: ctx.auth.user?.role?.name,
-          isAdmin: ctx.auth.user?.isAdmin,
-          orgCount: ctx.auth.user?.organizations?.length,
-          current_organization_id: ctx.session.get('current_organization_id'),
-          duration: `${Date.now() - startTime}ms`,
-        })
-      }
+      // Log thông tin xác thực thành công (thông tin tối giản)
+      loggerService.info('Xác thực thành công', {
+        userId: ctx.auth.user?.id,
+        duration: `${Math.round(performance.now() - startTime)}ms`,
+      })
 
       return next()
     } catch (error) {
-      this.logError('Auth error:', error.message)
-      if (this.isDevMode) {
-        this.logError('Auth failure details:', {
-          url: ctx.request.url(),
-          sessionId: ctx.session.sessionId,
-        })
-      }
+      loggerService.error('Lỗi xác thực:', error.message)
 
       // Lưu URL hiện tại để chuyển hướng sau khi đăng nhập
       ctx.session.put('intended_url', ctx.request.url())
@@ -147,16 +127,12 @@ export default class AuthMiddleware {
       })
 
       if (ctx.request.header('x-inertia')) {
-        this.log('Inertia redirect to login')
+        loggerService.debug('Inertia redirect to login')
         return ctx.inertia.location(this.redirectTo)
       }
 
-      this.log('HTTP redirect to login')
+      loggerService.debug('HTTP redirect to login')
       return ctx.response.redirect().toPath(this.redirectTo)
-    } finally {
-      if (this.isDevMode) {
-        this.log('--- [AUTH MIDDLEWARE END] --- Duration:', Date.now() - startTime, 'ms')
-      }
     }
   }
 }

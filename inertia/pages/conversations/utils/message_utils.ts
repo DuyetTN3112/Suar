@@ -28,7 +28,7 @@ export const formatDate = (dateString: string): string => {
 }
 
 /**
- * Format giờ của tin nhắn
+ * Format giờ của tin nhắn - điều chỉnh cho múi giờ +7 (Việt Nam)
  */
 export const formatMessageDate = (dateString: string): string => {
   try {
@@ -42,7 +42,14 @@ export const formatMessageDate = (dateString: string): string => {
       console.warn('formatMessageDate: Chuỗi thời gian không hợp lệ:', dateString)
       return 'Không xác định'
     }
-    return format(date, 'HH:mm')
+
+    // Điều chỉnh giờ theo múi giờ Việt Nam (+7)
+    // Lấy giờ UTC và chuyển đổi sang múi giờ Việt Nam (+7)
+    const localDate = new Date(date.getTime())
+    // Thêm offset 7 giờ cho múi giờ Việt Nam
+    localDate.setHours(localDate.getHours() + 7)
+
+    return format(localDate, 'HH:mm')
   } catch (error) {
     console.error('formatMessageDate: Lỗi xử lý thời gian:', error, dateString)
     return 'Không xác định'
@@ -63,13 +70,16 @@ export const groupMessagesByDate = (msgs: Message[] | undefined): MessageGroup[]
         console.warn('Tin nhắn không có timestamp:', message)
         return // Bỏ qua tin nhắn không có timestamp
       }
+      // Chuyển đổi sang giờ địa phương Việt Nam (+7)
       const date = new Date(message.timestamp)
+      const localDate = new Date(date.getTime())
+      localDate.setHours(localDate.getHours() + 7)
       // Kiểm tra xem date có hợp lệ không
-      if (Number.isNaN(date.getTime())) {
+      if (Number.isNaN(localDate.getTime())) {
         console.warn('Timestamp không hợp lệ:', message.timestamp)
         return // Bỏ qua timestamp không hợp lệ
       }
-      const dateKey = format(date, 'dd/MM/yyyy')
+      const dateKey = format(localDate, 'dd/MM/yyyy')
       if (!groups[dateKey]) {
         groups[dateKey] = []
       }
@@ -79,21 +89,21 @@ export const groupMessagesByDate = (msgs: Message[] | undefined): MessageGroup[]
       // Bỏ qua tin nhắn gây lỗi
     }
   })
-  // Sắp xếp tin nhắn trong mỗi nhóm theo thời gian giảm dần (mới nhất lên trên)
+  // Sắp xếp tin nhắn trong mỗi nhóm theo thời gian tăng dần (cũ nhất lên trên)
   Object.keys(groups).forEach((dateKey) => {
     groups[dateKey].sort((a, b) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     })
   })
-  // Sắp xếp các nhóm theo thứ tự ngày giảm dần (ngày mới nhất lên trên)
+  // Sắp xếp các nhóm theo thứ tự ngày tăng dần (ngày cũ nhất lên trên)
   return Object.entries(groups)
     .sort(([dateA], [dateB]) => {
       const [dayA, monthA, yearA] = dateA.split('/').map(Number)
       const [dayB, monthB, yearB] = dateB.split('/').map(Number)
       // So sánh theo năm, tháng, ngày
-      if (yearA !== yearB) return yearB - yearA
-      if (monthA !== monthB) return monthB - monthA
-      return dayB - dayA
+      if (yearA !== yearB) return yearA - yearB
+      if (monthA !== monthB) return monthA - monthB
+      return dayA - dayB
     })
     .map(([date, messages]) => ({
       date,
@@ -138,4 +148,23 @@ export const getOtherParticipant = (conversation: Conversation | null, currentUs
     return otherParticipant?.user
   }
   return null
+}
+
+/**
+ * Tính toán dung lượng của tin nhắn (tính bằng bytes)
+ * @param message Nội dung tin nhắn
+ * @returns Dung lượng tin nhắn dưới dạng chuỗi (ví dụ: "1.5 KB")
+ */
+export function calculateMessageSize(message: string): string {
+  // Mỗi ký tự trong chuỗi JS = 2 bytes (UTF-16)
+  const bytes = message.length * 2;
+  
+  // Chuyển đổi bytes thành định dạng dễ đọc
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  } else if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  } else {
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
 }

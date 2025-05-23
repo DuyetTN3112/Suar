@@ -1,9 +1,10 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, hasMany, manyToMany, belongsTo } from '@adonisjs/lucid/orm'
+import type { HasMany, ManyToMany, BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 import Message from './message.js'
 import ConversationParticipant from './conversation_participant.js'
+import Organization from './organization.js'
 
 export default class Conversation extends BaseModel {
   static table = 'conversations'
@@ -23,6 +24,12 @@ export default class Conversation extends BaseModel {
   @column.dateTime()
   declare deleted_at: DateTime | null
 
+  @column()
+  declare last_message_id: number | null
+
+  @column()
+  declare organization_id: number | null
+
   @hasMany(() => Message)
   declare messages: HasMany<typeof Message>
 
@@ -35,4 +42,9 @@ export default class Conversation extends BaseModel {
     foreignKey: 'conversation_id',
   })
   declare conversation_participants: HasMany<typeof ConversationParticipant>
+
+  @belongsTo(() => Organization, {
+    foreignKey: 'organization_id',
+  })
+  declare organization: BelongsTo<typeof Organization>
 }
