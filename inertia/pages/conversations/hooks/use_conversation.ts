@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import { toast } from 'sonner'
 import { Conversation, Message } from '../types'
@@ -13,10 +13,16 @@ export const useConversation = () => {
   const [newMessage, setNewMessage] = useState('')
   const [currentMessage, setCurrentMessage] = useState<Message | null>(null)
   const [recallDialogOpen, setRecallDialogOpen] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Lấy CSRF token từ meta tag
   const getCsrfToken = () => {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  }
+
+  // Cuộn xuống tin nhắn mới nhất
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // Tải cuộc trò chuyện
@@ -94,8 +100,7 @@ export const useConversation = () => {
             },
           }
         )
-        .then(() => {
-        })
+        .then(() => {})
         .catch((err) => {
           console.warn('Lỗi khi đánh dấu đã đọc:', err)
         })
@@ -113,6 +118,10 @@ export const useConversation = () => {
       setHasMore(false)
     } finally {
       setIsLoading(false)
+      // Cuộn xuống tin nhắn mới nhất sau khi tải xong
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
     }
   }
 
@@ -162,6 +171,10 @@ export const useConversation = () => {
       // Xử lý lỗi ở đây
     } finally {
       setIsLoading(false)
+      // Cuộn xuống tin nhắn mới nhất sau khi gửi xong
+      setTimeout(() => {
+        scrollToBottom()
+      }, 100)
     }
   }
 
@@ -223,8 +236,7 @@ export const useConversation = () => {
         setTimeout(async () => {
           try {
             await loadConversation(selectedId)
-          } catch (secondReloadError) {
-          }
+          } catch (secondReloadError) {}
         }, 1000)
       }
 
@@ -363,5 +375,7 @@ export const useConversation = () => {
     handleRecallMessage,
     handleRecallForEveryone,
     handleRecallForSelf,
+    messagesEndRef,
+    scrollToBottom,
   }
 }

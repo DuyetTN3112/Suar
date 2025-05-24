@@ -22,6 +22,9 @@ export default class ConversationsMessageController {
       await sendMessage.handle({ data })
       return response.redirect().back()
     } catch (error) {
+      // Log lỗi chi tiết để debug
+      console.error('Lỗi khi gửi tin nhắn:', error)
+      
       session.flash('error', error.message || 'Có lỗi xảy ra khi gửi tin nhắn')
       return response.redirect().back()
     }
@@ -44,6 +47,9 @@ export default class ConversationsMessageController {
         message,
       })
     } catch (error) {
+      // Log lỗi chi tiết để debug
+      console.error('Lỗi khi gửi tin nhắn (API):', error)
+      
       return response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi gửi tin nhắn',
@@ -85,47 +91,27 @@ export default class ConversationsMessageController {
       if (!(await auth.check())) {
         return response.status(401).json({
           success: false,
-          error: 'Bạn cần đăng nhập để thực hiện thao tác này',
+          error: 'Vui lòng đăng nhập để thực hiện thao tác này',
         })
       }
 
-      // Kiểm tra dữ liệu đầu vào
-      if (!messageId) {
-        return response.status(400).json({
-          success: false,
-          error: 'Thiếu ID tin nhắn cần thu hồi',
-        })
-      }
+      const user = auth.user!
 
-      // Kiểm tra scope hợp lệ
-      if (scope !== 'all' && scope !== 'self') {
-        return response.status(400).json({
-          success: false,
-          error: 'Scope không hợp lệ. Chỉ chấp nhận "all" hoặc "self"',
-        })
-      }
-
-      const startTime = Date.now()
-      const result = await recallMessage.handle({
-        messageId: Number(messageId),
-        scope,
-        userId: auth.user!.id,
+      // Thực hiện thu hồi tin nhắn
+      await recallMessage.handle({
+        messageId: parseInt(messageId),
+        userId: user.id,
+        scope: scope as 'self' | 'all',
       })
-      const endTime = Date.now()
 
       return response.json({
         success: true,
-        result,
-        processingTime: `${endTime - startTime}ms`,
+        message: 'Tin nhắn đã được thu hồi thành công',
       })
     } catch (error) {
-      // Trả về một response có cấu trúc rõ ràng
-      const statusCode = error.status || 500
-      return response.status(statusCode).json({
+      return response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi thu hồi tin nhắn',
-        code: error.code || 'E_UNKNOWN',
-        detail: process.env.NODE_ENV === 'development' ? error.stack : undefined,
       })
     }
   }

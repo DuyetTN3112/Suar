@@ -31,13 +31,13 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   onLoadMore,
   onRecallMessage
 }) => {
-  const messagesStartRef = useRef<HTMLDivElement>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
 
-  // Cuộn lên tin nhắn mới nhất
+  // Cuộn xuống tin nhắn mới nhất
   useEffect(() => {
-    messagesStartRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
 
   // Nhóm tin nhắn theo ngày
@@ -114,8 +114,6 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                 </Button>
               </div>
             )}
-
-            <div ref={messagesStartRef} />
 
             {messageGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="space-y-4">
@@ -253,6 +251,9 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                 })}
               </div>
             ))}
+
+            {/* Phần tử để cuộn đến cuối danh sách tin nhắn */}
+            <div ref={messagesEndRef} />
           </>
         )}
       </div>

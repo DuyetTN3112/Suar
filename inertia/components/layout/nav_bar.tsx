@@ -15,13 +15,15 @@ import { useSidebar, SidebarTrigger } from '../ui/sidebar/index'
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
+import { NotificationDropdown } from './notification_dropdown'
 import useTranslation from '@/hooks/use_translation'
 
 // Hàm debug log chỉ hiển thị trong chế độ phát triển
 const debugLog = (message: string, ...args: any[]) => {
   if (window.DEBUG_MODE) {
+    console.log(`[DEBUG] ${message}`, ...args)
   }
-};
+}
 
 interface AuthUser {
   id?: string
@@ -56,10 +58,13 @@ export default function Navbar() {
   // Thêm log chi tiết để debug
   useEffect(() => {
     // Chỉ log khi ở chế độ debug
-    if (!window.DEBUG_MODE) return;
+    if (!window.DEBUG_MODE) return
 
+    debugLog('NavBar: Page props', page.props)
     if (!user) {
       console.error('NavBar: Không có thông tin người dùng')
+    } else {
+      debugLog('NavBar: User info', user)
     }
   }, [user, page.props])
 
@@ -76,10 +81,10 @@ export default function Navbar() {
 
   // Chỉ tạo tên hiển thị khi có thông tin người dùng
   const displayName = user
-    ? (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim())
+    ? user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim()
     : ''
 
-  const avatarUrl = user ? (user.avatar || `/avatars/${user.username || 'unknown'}.jpg`) : ''
+  const avatarUrl = user ? user.avatar || `/avatars/${user.username || 'unknown'}.jpg` : ''
   const initials = user ? getInitials(displayName) : 'SN'
 
   return (
@@ -106,20 +111,19 @@ export default function Navbar() {
 
           <LanguageSwitcher />
 
-          <Button variant="ghost" size="icon" className="text-muted-foreground">
-            <Bell className="h-5 w-5" />
-          </Button>
+          {/* Chỉ hiển thị dropdown thông báo nếu có người dùng đăng nhập */}
+          {user && <NotificationDropdown />}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={avatarUrl} alt={displayName} />
-                  <AvatarFallback>
-                    {initials}
-                  </AvatarFallback>
+                  <AvatarFallback>{initials}</AvatarFallback>
                 </Avatar>
-                <span className="font-normal hidden md:inline-block">{displayName || t('user.account', {}, 'Tài khoản')}</span>
+                <span className="font-normal hidden md:inline-block">
+                  {displayName || t('user.account', {}, 'Tài khoản')}
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -135,7 +139,10 @@ export default function Navbar() {
               <DropdownMenuItem>
                 <form action="/logout" method="POST" className="w-full">
                   <input type="hidden" name="_csrf" value={csrfToken} />
-                  <button type="submit" className="w-full text-left flex items-center cursor-pointer">
+                  <button
+                    type="submit"
+                    className="w-full text-left flex items-center cursor-pointer"
+                  >
                     {t('auth.logout', {}, 'Đăng xuất')}
                   </button>
                 </form>

@@ -18,11 +18,11 @@ const scrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background-color: rgba(155, 155, 155, 0.5);
     border-radius: 20px;
@@ -32,7 +32,7 @@ const scrollbarStyles = `
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: rgba(155, 155, 155, 0.7);
   }
-  
+
   .custom-scrollbar {
     scrollbar-width: thin;
     scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
@@ -49,7 +49,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
   const { t } = useTranslation()
   const loggedInUserId = (window as any).auth?.user?.id || ''
   const hasConversations = conversations?.data && conversations.data.length > 0
-  
+
   const {
     selectedId,
     setSelectedId,
@@ -66,7 +66,8 @@ export default function Conversations({ conversations }: ConversationsProps) {
     sendMessage,
     handleRecallMessage,
     handleRecallForEveryone,
-    handleRecallForSelf
+    handleRecallForSelf,
+    messagesEndRef
   } = useConversation()
 
   return (
@@ -77,26 +78,27 @@ export default function Conversations({ conversations }: ConversationsProps) {
       <div className="container py-6">
         <div className="flex justify-between mb-6 items-center">
           <h1 className="text-3xl font-bold">{t('conversations.title', {}, 'Hội thoại')}</h1>
-          <CreateConversationDialog 
+          <CreateConversationDialog
             trigger={
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                {t('conversation.create_new', {}, 'Tạo cuộc trò chuyện mới')}
+                {t('conversation.new_conversation', {}, 'Cuộc trò chuyện mới')}
               </Button>
             }
           />
         </div>
-        
-        <div className="grid md:grid-cols-[300px_1fr] gap-6">
+
+        <div className="flex gap-6 h-[calc(100vh-12rem)]">
           {/* Danh sách cuộc trò chuyện */}
-          <div className="space-y-4">
-            <ConversationList 
+          <div className="w-1/3 border rounded-lg flex flex-col">
+            <ConversationList
               conversations={conversations?.data || []}
               selectedId={selectedId}
               onSelectConversation={(conversation) => {
                 setSelectedId(conversation.id)
                 loadConversation(conversation.id)
               }}
+              loggedInUserId={loggedInUserId}
             />
           </div>
 
@@ -113,7 +115,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
                   onLoadMore={loadMoreMessages}
                   onRecallMessage={handleRecallMessage}
                 />
-                
+
                 <MessageInputForm
                   message={newMessage}
                   setMessage={setNewMessage}
@@ -140,4 +142,4 @@ export default function Conversations({ conversations }: ConversationsProps) {
 }
 
 // Không sử dụng useTranslation trong layout function
-Conversations.layout = (page: React.ReactNode) => <AppLayout title="Tin nhắn">{page}</AppLayout> 
+Conversations.layout = (page: React.ReactNode) => <AppLayout title="Tin nhắn">{page}</AppLayout>

@@ -36,18 +36,50 @@ export default class NotificationsController {
 
   @inject()
   async latest({ request, response }: HttpContext, getUserNotifications: GetUserNotifications) {
-    const limit = request.input('limit', 5)
+    const limit = request.input('limit', 10) // Tăng limit để hiển thị nhiều thông báo hơn
     try {
       const result = await getUserNotifications.handle({
         page: 1,
         limit,
-        unread_only: true,
+        unread_only: false, // Hiển thị tất cả thông báo, không chỉ thông báo chưa đọc
       })
+      
+      // Log dữ liệu để debug
+      console.log('Notifications data:', result.notifications.toJSON())
+      
+      // Xử lý dữ liệu notification để đảm bảo định dạng ngày tháng hợp lệ
+      const notificationsData = result.notifications.toJSON().data.map((notification: any) => {
+        // Log từng notification để debug
+        console.log('Individual notification:', notification)
+        
+        return {
+          id: notification.id,
+          user_id: notification.user_id,
+          title: notification.title,
+          message: notification.message,
+          is_read: notification.is_read,
+          type: notification.type,
+          related_entity_type: notification.related_entity_type,
+          related_entity_id: notification.related_entity_id,
+          metadata: notification.metadata,
+          created_at: notification.created_at ? 
+            (typeof notification.created_at === 'string' ? notification.created_at : notification.created_at.toISO()) : 
+            new Date().toISOString(),
+          updated_at: notification.updated_at ? 
+            (typeof notification.updated_at === 'string' ? notification.updated_at : notification.updated_at.toISO()) : 
+            new Date().toISOString(),
+          read_at: notification.read_at ? 
+            (typeof notification.read_at === 'string' ? notification.read_at : notification.read_at.toISO()) : 
+            null,
+        }
+      })
+      
       return response.json({
-        notifications: result.notifications.toJSON().data,
+        notifications: notificationsData,
         unread_count: result.unread_count,
       })
     } catch (error) {
+      console.error('Error in latest notifications:', error)
       return response.status(500).json({
         error: error.message || 'Có lỗi xảy ra khi tải thông báo',
       })

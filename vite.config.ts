@@ -14,7 +14,6 @@ const viteDebugPlugin = {
   name: 'vite-debug-plugin',
   configResolved(config: any) {
     // Log thông tin cấu hình khi khởi động
-
   },
   transformIndexHtml(html: string) {
     // Thêm comment để debug

@@ -1,5 +1,5 @@
 {
-  "greeting": "Hello world",
+  "greeting": "Hello",
   "welcome": "Welcome to our application",
   "app_name": "ShadcnAdmin",
   "login": "Login",
@@ -8,17 +8,30 @@
   "dashboard": "Dashboard",
   "settings": "Settings",
   "profile": "Profile",
+  "tasks": "Tasks",
   "organizations": "Organizations",
   "users": "Users",
   "conversations": "Conversations",
   "notifications": "Notifications",
+  "save": "Save",
+  "cancel": "Cancel",
+  "submit": "Submit",
+  "delete": "Delete",
+  "edit": "Edit",
+  "create": "Create",
+  "search": "Search...",
+  "no_results": "No results found",
+  "loading": "Loading...",
   "error": "An error occurred",
-  "login_description": "Enter your credentials to access the system",
+  "login_description": "Enter your login credentials to access the system",
   "or_login_with_email": "Or login with email",
   "forgot_password": "Forgot password?",
   "remember_me": "Remember me",
-  "no_account_register": "Don't have an account? Register",
+  "no_account_register": "No account? Register",
   "account": "Account",
+  "unknown_time": "Unknown time",
+  "invalid_date": "Invalid date",
+  "refresh": "Refresh",
 
   "common": {
     "error": "Error",
@@ -58,8 +71,8 @@
     "processing": "Processing...",
     "close": "Close",
     "warning": "Warning",
-    "info": "Information",
-    "page_of": "Page {current} of {total}"
+    "info": "Info",
+    "page_of": "Page {current} / {total}"
   },
 
   "navigation": {
@@ -71,4 +84,4 @@
     "projects": "Projects",
     "settings": "Settings"
   }
-} 
+}

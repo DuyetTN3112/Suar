@@ -11,28 +11,26 @@ ShadcnAdmin represents a versatile enterprise management platform developed with
 Technologies Utilized
 
 Backend
-- AdonisJS v6: Modern Node.js framework with comprehensive TypeScript support
-- Lucid ORM: Robust ORM system with advanced features
-- MySQL: Relational database optimized for high performance
-- Redis: Caching system and session management
-- VineJS: Data validation library with TypeScript support
-- I18n: Integrated multilingual solution (English, Vietnamese)
-- Firebase: Integration of notifications and cloud services
+- AdonisJS v6
+- Lucid ORM
+- MySQL
+- Redis
+- VineJS
+- I18n:(English, Vietnamese)
+- Firebase
 
 Frontend
-- React 18: Modern UI library with enhanced features
+- React 18
 - Inertia.js: Framework connecting frontend and backend without requiring separate API
-- Tailwind CSS: Utility-first CSS framework for rapid development
+- Tailwind CSS
 - Shadcn UI: Component system based on Radix UI and Tailwind
-- Radix UI: Unstyled component library with high accessibility
-- React Hook Form: Efficient and user-friendly form management
-- TanStack Table: High-performance and flexible table solution
+- Radix UI
+- TanStack Table
 - Recharts: Interactive data visualization library
 
 DevOps & Tools
-- Vite: Fast frontend build tool with hot module replacement
-- Docker & Docker Compose: Containerization support for consistent environments
-- TypeScript: Type safety support throughout the project
+- Vite
+- Docker & Docker Compose
 - ESLint & Prettier: Tools ensuring code quality and consistency
 
 Key Features
@@ -44,7 +42,6 @@ Key Features
 - Multilingual Support: Support for multiple languages with easy extension
 - Responsive Interface: Responsive design functioning across all screen dimensions
 - Light/Dark Mode: Automatic adaptation to system mode or user preference
-- Dashboard Analytics: Visualization of analytical data with interactive charts
 
 Authentication System
 
