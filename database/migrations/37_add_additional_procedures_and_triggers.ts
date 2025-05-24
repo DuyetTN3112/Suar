@@ -14,11 +14,11 @@ import { BaseSchema } from '@adonisjs/lucid/schema'
 export default class extends BaseSchema {
   async up() {
     // File này đã được chia nhỏ thành các file riêng biệt
-    console.log('File này đã được chia nhỏ thành các file riêng biệt')
+    // Removed debug log: console.log('File này đã được chia nhỏ thành các file riêng biệt')
   }
 
   async down() {
     // File này đã được chia nhỏ thành các file riêng biệt
-    console.log('File này đã được chia nhỏ thành các file riêng biệt')
+    // Removed debug log: console.log('File này đã được chia nhỏ thành các file riêng biệt')
   }
 }

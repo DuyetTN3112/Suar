@@ -46,7 +46,6 @@ export default class CreateAuditLog {
 
       return true
     } catch (error) {
-      console.error('Lỗi khi tạo audit log:', error)
       return false
     }
   }

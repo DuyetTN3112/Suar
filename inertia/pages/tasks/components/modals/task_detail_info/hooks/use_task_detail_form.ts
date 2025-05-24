@@ -106,12 +106,10 @@ export function useTaskDetailForm({
       const windowAuth = (window as any).auth
       if (windowAuth?.user?.id) {
         userId = windowAuth.user.id
-        console.log('Lấy user ID từ window.auth:', userId)
       }
 
       if (windowAuth?.user?.current_organization_id) {
         organizationId = windowAuth.user.current_organization_id
-        console.log('Lấy organization ID từ window.auth:', organizationId)
       }
     }
 
@@ -126,8 +124,6 @@ export function useTaskDetailForm({
       // Giữ lại organization_id của task nếu đã có, nếu không thì sử dụng organization của người dùng hiện tại
       organization_id: task.organization_id || organizationId,
     }
-
-    console.log('Task update data:', dataToSubmit)
 
     // Gửi request cập nhật task
     router.put(`/tasks/${task.id}`, dataToSubmit, {

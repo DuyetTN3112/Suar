@@ -65,13 +65,13 @@ export function TaskDetailInfoTab({
 
   // Tìm thông tin người tạo từ danh sách users
   const creator = users.find(user => Number(user.id) === Number(task.created_by));
-  
+
   // Lấy tên đầy đủ của người tạo
   const getCreatorFullName = () => {
     if (task.creator) {
       // Trường hợp có thông tin creator từ API
-      return task.creator.full_name || 
-             task.creator.full_name || 
+      return task.creator.full_name ||
+             task.creator.full_name ||
              `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
     } else if (creator) {
       // Trường hợp tìm được creator từ danh sách users
@@ -79,11 +79,11 @@ export function TaskDetailInfoTab({
     }
     return t('task.no_creator_info', {}, 'Không có thông tin');
   };
-  
+
   // Lấy initials cho avatar
   const getCreatorInitials = () => {
     if (task.creator) {
-      const fullName = task.creator.full_name || task.creator.full_name || 
+      const fullName = task.creator.full_name || task.creator.full_name ||
                        `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
       return getAvatarInitials(fullName);
     } else if (creator) {
@@ -91,16 +91,9 @@ export function TaskDetailInfoTab({
     }
     return 'U';
   };
-  
-  // Debug thông tin người tạo task
-  useEffect(() => {
-    console.log('TaskDetailInfoTab - Task creator_id:', task.created_by);
-    console.log('TaskDetailInfoTab - Available users:', users);
-    console.log('TaskDetailInfoTab - Found creator:', creator);
-    console.log('TaskDetailInfoTab - Task creator info:', task.creator);
-    console.log('TaskDetailInfoTab - Creator full name:', getCreatorFullName());
-  }, [task, users, creator]);
-  
+
+
+
   return (
     <div className="space-y-6">
       {/* Thông tin người tạo và ngày tạo */}
@@ -120,7 +113,7 @@ export function TaskDetailInfoTab({
             </span>
           </div>
         </div>
-        
+
         {/* Ngày tạo */}
         <div className="bg-muted/30 p-3 rounded-md">
           <div className="flex items-center mb-2">
@@ -130,10 +123,10 @@ export function TaskDetailInfoTab({
           <p className="text-sm">{formatDate(task.created_at)}</p>
         </div>
       </div>
-      
+
       {/* Fields chính của task */}
       <div className="grid gap-4 py-4">
-        <TaskDetailFields 
+        <TaskDetailFields
           task={task}
           formData={formData}
           isEditing={isEditing}
@@ -146,9 +139,9 @@ export function TaskDetailInfoTab({
           handleSelectChange={handleSelectChange}
           handleDateChange={handleDateChange}
         />
-        
+
         {isEditing && (
-          <TaskDetailActions 
+          <TaskDetailActions
             task={task}
             formData={formData}
             submitting={submitting}

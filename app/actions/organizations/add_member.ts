@@ -104,7 +104,6 @@ export default class AddMember {
         message: 'Đã thêm thành viên thành công',
       }
     } catch (error) {
-      console.error('Lỗi khi thêm thành viên:', error)
       return {
         success: false,
         message: 'Đã xảy ra lỗi khi thêm thành viên',

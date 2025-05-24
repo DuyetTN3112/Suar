@@ -1,7 +1,6 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
-import AuditLog from '#models/audit_log'
 import CreateAuditLog from '#actions/common/create_audit_log'
 
 interface OrganizationData {
@@ -56,7 +55,6 @@ export default class CreateOrganization {
         organization,
       }
     } catch (error) {
-      console.error('Lỗi khi tạo tổ chức:', error)
       return {
         success: false,
         message: error.message || 'Đã xảy ra lỗi khi tạo tổ chức',

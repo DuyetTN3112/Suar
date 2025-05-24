@@ -68,8 +68,6 @@ export default class UpdateTask {
         typeof data.due_date === 'string' ? DateTime.fromISO(data.due_date) : data.due_date
     }
 
-    console.log('Update task data:', updateData)
-
     // Cập nhật task
     task.merge(updateData)
     await task.save()

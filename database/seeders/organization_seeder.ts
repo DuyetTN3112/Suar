@@ -9,7 +9,10 @@ export class OrganizationSeeder extends BaseSeeder {
     // Lấy các user hiện có
     const users = await User.all()
     if (users.length === 0) {
-      console.warn('Không tìm thấy user nào để tạo tổ chức')
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Không tìm thấy user nào để tạo tổ chức')
+      }
       return
     }
 
@@ -25,7 +28,10 @@ export class OrganizationSeeder extends BaseSeeder {
     const davidm = await User.findBy('username', 'davidm')
 
     if (!superadmin || !admin || !johndoe || !janesmith) {
-      console.warn('Không tìm thấy đủ user để tạo tổ chức')
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Không tìm thấy đủ user để tạo tổ chức')
+      }
       return
     }
 
@@ -132,7 +138,5 @@ export class OrganizationSeeder extends BaseSeeder {
         }
       }
     }
-
-    console.log('Tạo tổ chức mẫu thành công')
   }
 }

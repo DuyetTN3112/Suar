@@ -20,26 +20,22 @@ export default class MemoryMonitorMiddleware {
     const memoryUsage = process.memoryUsage()
     // Chuyển đổi bytes sang MB để dễ đọc
     const formatMemory = (bytes: number) => Math.round((bytes / 1024 / 1024) * 100) / 100
-    console.log('=== Memory Usage ===')
-    console.log(`RSS: ${formatMemory(memoryUsage.rss)} MB`)
-    console.log(`Heap Total: ${formatMemory(memoryUsage.heapTotal)} MB`)
-    console.log(`Heap Used: ${formatMemory(memoryUsage.heapUsed)} MB`)
-    console.log(`External: ${formatMemory(memoryUsage.external)} MB`)
+    // Removed debug logs: console.log statements for memory monitoring
     // Phát hiện rò rỉ bộ nhớ tiềm ẩn
     if (memoryUsage.heapUsed > 1024 * 1024 * 1024) {
       // > 1GB heap
-      console.warn('WARNING: Heap usage exceeds 1GB. Possible memory leak!')
+      // Only log actual errors in production
+      if (process.env.NODE_ENV !== 'development') {
+        console.warn('WARNING: Heap usage exceeds 1GB. Possible memory leak!')
+      }
     }
     // Gợi ý thu gom rác
     if (global.gc) {
-      console.log('Triggering garbage collection...')
+      // Removed debug log: console.log('Triggering garbage collection...')
       global.gc()
       // Log lại sau khi GC
       const afterGC = process.memoryUsage()
-      console.log('=== After GC ===')
-      console.log(
-        `Heap Used: ${formatMemory(afterGC.heapUsed)} MB (Freed: ${formatMemory(memoryUsage.heapUsed - afterGC.heapUsed)} MB)`
-      )
+      // Removed debug logs: console.log statements after GC
     }
   }
 }

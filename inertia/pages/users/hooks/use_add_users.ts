@@ -31,11 +31,11 @@ export const useAddUsers = () => {
       )
       if (!response.ok) {
         const errorText = await response.text()
+        // Keep error logging for actual errors
         console.error(`HTTP error! status: ${response.status}, response:`, errorText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       const result = await response.json()
-      console.log('API response for system users:', result)
       if (!result.success) {
         throw new Error(result.message || 'Không thể tải danh sách người dùng')
       }
@@ -49,6 +49,7 @@ export const useAddUsers = () => {
         setTotalPages(1)
       }
     } catch (error) {
+      // Keep error logging for actual errors
       console.error('Lỗi khi lấy danh sách người dùng trong hệ thống:', error)
       toast.error(t('user.error.load_users_failed', {}, 'Không thể tải danh sách người dùng'))
       setAllSystemUsers([])

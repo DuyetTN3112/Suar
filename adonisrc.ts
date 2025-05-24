@@ -7,7 +7,7 @@ export default defineConfig({
     () => import('@adonisjs/core/providers/hash_provider'),
     {
       file: () => import('@adonisjs/core/providers/repl_provider'),
-      environment: ['repl', 'test'],
+      environment: ['repl'],
     },
     () => import('@adonisjs/core/providers/vinejs_provider'),
     () => import('@adonisjs/core/providers/edge_provider'),
@@ -28,21 +28,6 @@ export default defineConfig({
     () => import('@adonisjs/lock/lock_provider'),
   ],
   preloads: [() => import('#start/routes'), () => import('#start/kernel')],
-  tests: {
-    suites: [
-      {
-        files: ['tests/unit/**/*.spec(.ts|.js)'],
-        name: 'unit',
-        timeout: 2000,
-      },
-      {
-        files: ['tests/functional/**/*.spec(.ts|.js)'],
-        name: 'functional',
-        timeout: 30000,
-      },
-    ],
-    forceExit: false,
-  },
   metaFiles: [
     {
       pattern: 'resources/views/**/*.edge',

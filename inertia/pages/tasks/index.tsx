@@ -18,7 +18,7 @@ import { TaskDetailModal } from './components/modals/task_detail_modal'
 
 export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
   const { t } = useTranslation()
-  
+
   const {
     searchQuery,
     setSearchQuery,
@@ -43,15 +43,6 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
     handleDetailClose
   } = useTaskState({ initialTasks: tasks, filters, metadata })
 
-  // Thêm debug logs để kiểm tra thông tin auth
-  useEffect(() => {
-    console.log('---- AUTH DEBUG IN TASKS COMPONENT ----');
-    console.log('window.auth exist:', !!(window as any).auth);
-    console.log('Provided auth prop:', auth);
-    console.log('Page props auth user:', auth?.user);
-    console.log('-------------------------------------');
-  }, [auth]);
-
   // Cập nhật searchQuery từ URL khi component mount
   useEffect(() => {
     if (filters.search) {
@@ -60,15 +51,13 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
   }, [filters.search]);
 
   const userRole = getRoleFromAuth()
-  console.log('Current user role:', userRole)
-  console.log('Current user data:', (window as any).auth?.user)
-  
+
   // Kiểm tra quyền tạo task trực tiếp từ dữ liệu auth
   const hasCreatePermission = () => {
     const user = (window as any).auth?.user
     return user && (
-      user.isAdmin === true || 
-      user.role_id === 1 || 
+      user.isAdmin === true ||
+      user.role_id === 1 ||
       user.role_id === 2 ||
       (user.role && user.role.id === 1) ||
       (user.role && user.role.name === 'superadmin') ||
@@ -86,17 +75,17 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
       <div className="p-4 sm:p-6 space-y-4">
         <div className="flex justify-between items-center">
           <h1 className="text-xl font-semibold">{pageTitle}</h1>
-          
+
           <div className="flex items-center gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
+            <Button
+              size="sm"
+              variant="outline"
               onClick={handleImportClick}
             >
               {t('common.import', {}, 'Nhập')}
             </Button>
-            
-            <Button 
+
+            <Button
               size="sm"
               onClick={handleCreateClick}
             >
@@ -104,7 +93,7 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
             </Button>
           </div>
         </div>
-        
+
         <Card>
           <TasksFilters
             filters={filters}
@@ -142,13 +131,13 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
         labels={metadata.labels}
         users={metadata.users}
       />
-      
-      <ImportTasksModal 
+
+      <ImportTasksModal
         open={importModalOpen}
         onOpenChange={setImportModalOpen}
       />
-      
-      <TaskDetailModal 
+
+      <TaskDetailModal
         open={detailModalOpen}
         onOpenChange={handleDetailClose}
         task={selectedTask}
@@ -160,4 +149,4 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
       />
     </AppLayout>
   )
-} 
+}

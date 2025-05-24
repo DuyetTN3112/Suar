@@ -260,7 +260,6 @@ export default class UserController {
         })
       } catch (error) {
         // Không làm gì nếu không thể ghi log
-        console.error('Không thể ghi log phê duyệt:', error)
       }
       return response.json({ success: true, message: 'Người dùng đã được phê duyệt thành công' })
     } catch (error: any) {

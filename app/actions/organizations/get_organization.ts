@@ -1,7 +1,5 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 
 interface GetOrganizationParams {

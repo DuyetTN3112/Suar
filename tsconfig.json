@@ -47,9 +47,6 @@
       "#database/*": [
         "./database/*"
       ],
-      "#tests/*": [
-        "./tests/*"
-      ],
       "#start/*": [
         "./start/*"
       ],

@@ -4,18 +4,6 @@ import db from '@adonisjs/lucid/services/db'
 
 export default class CurrentOrganizationMiddleware {
   private isDevMode = env.get('NODE_ENV') === 'development'
-  private log(...args: any[]) {
-    if (this.isDevMode) {
-      // Chỉ log lỗi hoặc thông tin quan trọng
-      const isError = args.some(arg => 
-        (typeof arg === 'string' && arg.includes('Lỗi')) || 
-        (typeof arg === 'object' && arg instanceof Error)
-      )
-      if (isError) {
-        console.log('[ORGANIZATION MIDDLEWARE]', ...args)
-      }
-    }
-  }
 
   async handle({ session, auth }: HttpContext, next: () => Promise<void>) {
     try {
@@ -47,10 +35,20 @@ export default class CurrentOrganizationMiddleware {
               await user.merge({ current_organization_id: orgIdNumeric }).save()
               await user.refresh() // Làm mới thông tin user sau khi cập nhật
             } catch (error) {
-              this.log('Lỗi khi cập nhật current_organization_id vào database:', error)
+              // Only log actual errors in production
+              if (!this.isDevMode) {
+                console.error(
+                  `Người dùng không có quyền truy cập tổ chức ${sessionOrgId} trong session, đang xóa khỏi session`
+                )
+              }
             }
           } else {
-            this.log(`Người dùng không có quyền truy cập tổ chức ${sessionOrgId} trong session, đang xóa khỏi session`)
+            // Only log actual errors in production
+            if (!this.isDevMode) {
+              console.error(
+                `Người dùng không có quyền truy cập tổ chức ${sessionOrgId} trong session, đang xóa khỏi session`
+              )
+            }
             // Xóa organization_id không hợp lệ khỏi session
             session.forget('current_organization_id')
             await session.commit()
@@ -72,7 +70,12 @@ export default class CurrentOrganizationMiddleware {
             session.put('current_organization_id', Number(dbOrgId))
             await session.commit()
           } else {
-            this.log(`Người dùng không có quyền truy cập tổ chức ${dbOrgId} trong database, đang xóa khỏi database và session`)
+            // Only log actual errors in production
+            if (!this.isDevMode) {
+              console.error(
+                `Người dùng không có quyền truy cập tổ chức ${dbOrgId} trong database, đang xóa khỏi database và session`
+              )
+            }
             // Xóa organization_id không hợp lệ khỏi database
             try {
               await user.merge({ current_organization_id: null }).save()
@@ -81,13 +84,19 @@ export default class CurrentOrganizationMiddleware {
               session.forget('current_organization_id')
               await session.commit()
             } catch (error) {
-              this.log('Lỗi khi xóa current_organization_id từ database:', error)
+              // Only log actual errors in production
+              if (!this.isDevMode) {
+                console.error('Lỗi khi xóa current_organization_id từ database:', error)
+              }
             }
           }
         }
       }
     } catch (error) {
-      this.log('Lỗi trong middleware:', error)
+      // Only log actual errors in production
+      if (!this.isDevMode) {
+        console.error('Lỗi trong middleware:', error)
+      }
     }
     await next()
   }

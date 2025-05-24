@@ -9,7 +9,7 @@ import env from '#start/env'
 
 // Mức độ log cho i18n
 type I18nLogLevel = 'none' | 'minimal' | 'normal' | 'verbose'
-const I18N_LOG_LEVEL: I18nLogLevel = env.get('I18N_LOG_LEVEL', 'minimal') as I18nLogLevel
+const I18N_LOG_LEVEL: I18nLogLevel = env.get('I18N_LOG_LEVEL', 'none') as I18nLogLevel
 
 // Hàm log tùy chỉnh cho i18n
 function i18nLog(level: I18nLogLevel, message: string, ...args: any[]) {
@@ -21,17 +21,16 @@ function i18nLog(level: I18nLogLevel, message: string, ...args: any[]) {
   }
   // Chỉ log trong môi trường dev và khi mức độ log phù hợp
   if (process.env.NODE_ENV === 'development' && logLevels[I18N_LOG_LEVEL] >= logLevels[level]) {
-    if (args && args.length > 0) {
-      console.log(`[i18n] ${message}`, ...args)
-    } else {
-      console.log(`[i18n] ${message}`)
-    }
+    // Removed debug logs: console.log(`[i18n] ${message}`, ...args)
   }
 }
 
 // Luôn log lỗi bất kể mức độ log hiện tại
 function i18nError(message: string, ...args: any[]) {
-  console.error(`[i18n] ${message}`, ...args)
+  // Keep error logging but disable in production by default
+  if (process.env.NODE_ENV === 'development') {
+    console.error(`[i18n] ${message}`, ...args)
+  }
 }
 
 /**
@@ -63,6 +62,7 @@ export default class DetectUserLocaleMiddleware {
     const isValid = supportedLocales.includes(locale)
     // Chỉ log khi locale không hợp lệ
     if (!isValid) {
+      // Keep error logging but disable in production
       i18nError(`Locale '${locale}' is not valid. Supported: ${supportedLocales.join(', ')}`)
     }
     return isValid
@@ -85,7 +85,7 @@ export default class DetectUserLocaleMiddleware {
       await fs.access(localeDir)
       // Đọc tất cả các file trong thư mục
       const files = await fs.readdir(localeDir)
-      i18nLog('minimal', `Loading ${files.length} translation files for locale '${locale}'`)
+      // Removed debug log: i18nLog('minimal', `Loading ${files.length} translation files for locale '${locale}'`)
       for (const file of files) {
         if (file.endsWith('.json')) {
           const filePath = path.join(localeDir, file)
@@ -94,6 +94,7 @@ export default class DetectUserLocaleMiddleware {
           try {
             translations[namespace] = JSON.parse(content)
           } catch (error) {
+            // Keep error logging but disable in production
             i18nError(`Error parsing translation file ${filePath}:`, error)
           }
         }
@@ -103,6 +104,7 @@ export default class DetectUserLocaleMiddleware {
       DetectUserLocaleMiddleware.translationsCache[locale] = translations
       return translations
     } catch (error) {
+      // Keep error logging but disable in production
       i18nError(`Cannot load translations for locale '${locale}':`, error)
       return {}
     }
@@ -150,9 +152,8 @@ export default class DetectUserLocaleMiddleware {
       url.includes('/assets/') ||
       url.includes('/public/') ||
       url.includes('/favicon.ico')
-    if (!isStaticResource) {
-      i18nLog('verbose', `Processing request: ${ctx.request.method()} ${url}`)
-    }
+    // Removed debug log: i18nLog('verbose', `Processing request: ${ctx.request.method()} ${url}`)
+
     /**
      * Xóa cache dịch nếu đang trong môi trường phát triển để đảm bảo nhận được bản dịch mới nhất
      */
@@ -164,9 +165,7 @@ export default class DetectUserLocaleMiddleware {
      */
     const language = this.getRequestLocale(ctx)
     const locale = language || i18nManager.defaultLocale
-    if (!isStaticResource) {
-      i18nLog('normal', `Selected locale: ${locale}`)
-    }
+    // Removed debug log: i18nLog('normal', `Selected locale: ${locale}`)
 
     /**
      * Assigning i18n property to the HTTP context

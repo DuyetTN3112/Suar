@@ -45,23 +45,23 @@ export function AppSidebar(props: AppSidebarProps) {
   // Lấy toàn bộ props từ Inertia
   const page = usePage<PageProps>()
   const { state } = useSidebar()
-  
+
   // Xử lý an toàn để truy cập dữ liệu người dùng
   let authUser: AuthUser | null = null
   let userInfo = null
-  
+
   try {
     // Cấu trúc đúng của props từ Inertia
     const user = page.props.user?.auth?.user
     authUser = user || null
-    
+
     if (authUser) {
       // Chỉ tạo userInfo khi có dữ liệu người dùng thực
       const userEmail = authUser.email || '';
       const userName = authUser.username || '';
-      
+
       userInfo = {
-        name: authUser.full_name || 
+        name: authUser.full_name ||
               `${authUser.first_name || ''} ${authUser.last_name || ''}`.trim(),
         email: userEmail,
         avatar: authUser.avatar || `/avatars/${userName}.jpg`,
@@ -69,21 +69,21 @@ export function AppSidebar(props: AppSidebarProps) {
     }
   } catch (error) {
     // Chỉ ghi nhận lỗi, không thực hiện thay đổi state ở đây
-    console.error('Lỗi khi truy cập dữ liệu người dùng:', error)
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Lỗi khi truy cập dữ liệu người dùng:', error)
+    }
   }
-  
+
   // Debug và xử lý lỗi trong useEffect
   useEffect(() => {
-    console.log('=== AppSidebar State ===')
-    console.log('Sidebar state:', state)
-    console.log('User data:', userInfo)
   }, [state, userInfo])
-  
+
   // Nếu không có userInfo (người dùng chưa đăng nhập), không hiển thị NavUser
   return (
-    <Sidebar 
-      className="h-screen overflow-hidden" 
-      collapsible="icon" 
+    <Sidebar
+      className="h-screen overflow-hidden"
+      collapsible="icon"
       variant="sidebar"
       {...props}
     >

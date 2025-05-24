@@ -3,13 +3,13 @@ import { Head, Link, router, usePage } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import {
@@ -61,9 +61,9 @@ type User = {
     id: number
     name: string
   }
-  organization_users?: { 
+  organization_users?: {
     organization_id: number
-    role_id: number 
+    role_id: number
     role?: {
       id: number
       name: string
@@ -76,33 +76,12 @@ export default function Users({ users, filters, metadata }: UsersProps) {
   const [search, setSearch] = React.useState(filters.search || '')
   const { auth } = usePage().props as any
   const { t, locale } = useTranslation()
-  
-  // Debug thông tin translations
-  console.log('[UsersPage] Current locale:', locale)
-  console.log('[UsersPage] Translations available:', !!usePage().props.translations)
-  console.log('[UsersPage] Auth user:', auth?.user)
-  
-  // Debug translations key
-  const testKeys = [
-    'user.users', 
-    'user.add_user', 
-    'user.search_users',
-    'user.name',
-    'user.email',
-    'user.role',
-    'user.status',
-    'common.actions'
-  ]
-  
-  console.log('[UsersPage] Testing translation keys:')
-  testKeys.forEach(key => {
-    const translated = t(key, {}, `Default for ${key}`)
-    console.log(`- ${key}: "${translated}"`)
-  })
-  
+
+
+
   // Xác định user có phải là superadmin trong tổ chức không
   const currentUserIsSuperAdmin = isSuperAdminInCurrentOrg(auth.user)
-  
+
   // Sử dụng các custom hooks
   const {
     editModalOpen,
@@ -114,7 +93,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
     handleUpdatePermissions,
     handleCloseModal
   } = useUserPermissions()
-  
+
   const {
     approvalModalOpen,
     setApprovalModalOpen,
@@ -127,7 +106,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
     approveUser,
     approveAllUsers
   } = useUserApproval()
-  
+
   const {
     deleteModalOpen,
     setDeleteModalOpen,
@@ -136,7 +115,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
     openDeleteConfirmModal,
     handleDeleteUser
   } = useDeleteUser(auth.user.id)
-  
+
   const {
     addUserModalOpen,
     setAddUserModalOpen,
@@ -154,14 +133,14 @@ export default function Users({ users, filters, metadata }: UsersProps) {
     toggleUserSelection,
     handleAddUsersToOrganization
   } = useAddUsers()
-  
+
   // Tải số lượng người dùng chờ duyệt khi component được mounted
   React.useEffect(() => {
     if (currentUserIsSuperAdmin) {
       loadPendingCount()
     }
   }, [])
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     window.location.href = `/users?search=${search}`
@@ -173,7 +152,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
       <div className="container py-8">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">
-            {t('user.users', {}, "Người dùng")} 
+            {t('user.users', {}, "Người dùng")}
             <span className="ml-2 text-sm text-gray-500">({locale})</span>
           </h1>
           <div className="flex gap-2">
@@ -189,7 +168,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
             )}
           </div>
         </div>
-        
+
         {/* Hiển thị debug info trong môi trường development */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mt-2 p-2 bg-gray-100 text-xs rounded">
@@ -197,21 +176,21 @@ export default function Users({ users, filters, metadata }: UsersProps) {
             <p>Has translations: {Object.keys(usePage().props.translations || {}).length > 0 ? 'Yes' : 'No'}</p>
           </div>
         )}
-        
+
         <div className="mt-6">
           <form onSubmit={handleSearch} className="flex items-center gap-4">
-            <Input 
+            <Input
               placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
-              className="max-w-sm" 
+              className="max-w-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
             <Button variant="outline" type="submit">{t('common.search', {}, "Tìm kiếm")}</Button>
           </form>
         </div>
-        
+
         <div className="mt-6">
-          <UsersList 
+          <UsersList
             users={users}
             filters={filters}
             currentUserId={auth.user.id}
@@ -220,7 +199,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
             onDeleteUser={openDeleteConfirmModal}
           />
         </div>
-        
+
         {/* Modals */}
         <EditRoleModal
           open={editModalOpen}
@@ -231,7 +210,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
           isSubmitting={isSubmitting}
           onSubmit={handleUpdatePermissions}
         />
-        
+
         <DeleteUserModal
           open={deleteModalOpen}
           onClose={() => setDeleteModalOpen(false)}
@@ -239,7 +218,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
           isDeleting={isDeleting}
           onConfirm={handleDeleteUser}
         />
-        
+
         <ApprovalModal
           open={approvalModalOpen}
           onClose={() => setApprovalModalOpen(false)}
@@ -249,7 +228,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
           onApproveUser={approveUser}
           onApproveAll={approveAllUsers}
         />
-        
+
         <AddUserModal
           open={addUserModalOpen}
           onClose={() => setAddUserModalOpen(false)}

@@ -37,7 +37,6 @@ export default class MembersController {
   async index({ params, inertia, response, session }: HttpContext) {
     const { id } = params
     if (!this.manageMembers) {
-      console.error('ManageMembers service không được inject đúng cách')
       session.flash('error', 'Đã xảy ra lỗi khi tải dữ liệu')
       return response.redirect().toRoute('organizations.index')
     }
@@ -49,7 +48,6 @@ export default class MembersController {
 
     // Lấy thêm danh sách yêu cầu đang chờ duyệt cho superadmin
     if (!this.getPendingRequests) {
-      console.error('GetPendingRequests service không được inject đúng cách')
       return inertia.render('organizations/members/index', {
         organization: result.organization,
         members: result.members,
@@ -379,7 +377,6 @@ export default class MembersController {
       // Chuyển hướng về trang danh sách thành viên của tổ chức
       return response.redirect().toRoute('organizations.members.index', { id: organizationId })
     } catch (error) {
-      console.error('Lỗi khi thêm người dùng vào tổ chức:', error)
       if (request.accepts(['html', 'json']) === 'json') {
         return response.status(500).json({
           success: false,

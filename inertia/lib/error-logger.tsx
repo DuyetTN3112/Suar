@@ -25,12 +25,12 @@ export function scanReactPlugin(): Record<string, any> {
     reactRefreshSig: typeof (window as any).$RefreshSig$ !== 'undefined',
     reactVersion: (window as any).React?.version || 'unknown',
   };
-  
+
   // Quét tất cả script tags
   try {
     const scriptTags = document.querySelectorAll('script');
     results.scriptCount = scriptTags.length;
-    
+
     scriptTags.forEach((script, index) => {
       const scriptInfo: Record<string, any> = {
         index,
@@ -41,7 +41,7 @@ export function scanReactPlugin(): Record<string, any> {
         defer: script.defer,
         length: script.textContent?.length || 0,
       };
-      
+
       // Kiểm tra nội dung script cho Vite/React plugin
       if (script.textContent && !script.src) {
         if (script.textContent.includes('@vitejs/plugin-react')) {
@@ -55,13 +55,13 @@ export function scanReactPlugin(): Record<string, any> {
           scriptInfo.containsReactRefresh = true;
         }
       }
-      
+
       results.scripts.push(scriptInfo);
     });
   } catch (e) {
     results.scanError = String(e);
   }
-  
+
   return results;
 }
 
@@ -69,7 +69,7 @@ export function scanReactPlugin(): Record<string, any> {
 const errorLogs: ErrorLog[] = [];
 let errorCounter = 0;
 
-// Số lượng lỗi tối đa được lưu trữ để tránh tràn bộ nhớ 
+// Số lượng lỗi tối đa được lưu trữ để tránh tràn bộ nhớ
 const MAX_ERROR_LOGS = 30;
 // Đánh dấu trạng thái đang xử lý lỗi để tránh gọi đệ quy vô tận
 let loggingInProgress = false;
@@ -82,21 +82,27 @@ let recentErrorMessages: string[] = [];
 export function logVitePluginError(message: string) {
   try {
     // Kiểm tra xem Vite HMR có hoạt động không
-    const viteHot = Boolean(window.__vite_hot__)
-    const vitePlugins = Boolean(window.__vite_plugin_react_preamble_installed__)
-    
-    console.warn('Vite plugin status:', {
-      viteHot,
-      vitePlugins,
-      message
-    })
-    
+    const viteHot = Boolean((window as any).__vite_hot__)
+    const vitePlugins = Boolean((window as any).__vite_plugin_react_preamble_installed__)
+
+    // Only log in development
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('Vite plugin status:', {
+        viteHot,
+        vitePlugins,
+        message
+      })
+    }
+
     // Nếu không phải lỗi nghiêm trọng, chỉ log warning
     if (message.includes('preamble') && !vitePlugins) {
-      console.warn('Vite React plugin preamble not detected. This is expected during initial load.')
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Vite React plugin preamble not detected. This is expected during initial load.')
+      }
       return
     }
-    
+
     // Log lỗi nếu nghiêm trọng
     logError({
       type: 'vitePlugin',
@@ -106,12 +112,15 @@ export function logVitePluginError(message: string) {
         scripts: Array.from(document.scripts).map(s => s.src),
         viteHot,
         vitePlugins,
-        reactRefresh: Boolean(window.__REACT_REFRESH_RUNTIME_SIGNATURE__),
+        reactRefresh: Boolean((window as any).__REACT_REFRESH_RUNTIME_SIGNATURE__),
         url: window.location.href
       }
     })
   } catch (err) {
-    console.error('Error in logVitePluginError:', err)
+    // Only log actual errors in production
+    if (process.env.NODE_ENV !== 'development') {
+      console.error('Error in logVitePluginError:', err)
+    }
   }
 }
 
@@ -121,27 +130,27 @@ export function logError(error: Partial<ErrorLog>): ErrorLog {
   if (loggingInProgress) {
     return { id: -1, timestamp: new Date(), message: "Logging skipped - recursive error", type: 'error' } as ErrorLog;
   }
-  
+
   try {
     loggingInProgress = true;
-    
+
     // Kiểm tra nếu lỗi này giống các lỗi gần đây
     const errorMessage = error.message || 'Unknown Error';
-    
+
     if (recentErrorMessages.includes(errorMessage)) {
       // Lỗi trùng lặp, không cần ghi log để tránh tràn bộ nhớ
       return { id: -1, timestamp: new Date(), message: "Duplicate error skipped", type: 'error' } as ErrorLog;
     }
-    
+
     // Thêm thông báo lỗi vào danh sách gần đây
     recentErrorMessages.push(errorMessage);
     if (recentErrorMessages.length > MAX_DUPLICATE_ERRORS) {
       recentErrorMessages.shift(); // Giữ giới hạn lỗi gần đây
     }
-    
+
     // Tạo ID cho lỗi mới
     const errorId = errorCounter++;
-    
+
     // Tạo object ErrorLog
     const errorLog: ErrorLog = {
       id: errorId,
@@ -155,15 +164,15 @@ export function logError(error: Partial<ErrorLog>): ErrorLog {
       type: error.type || 'error',
       details: error.details,
     };
-    
+
     // Thêm vào đầu mảng
     errorLogs.unshift(errorLog);
-    
+
     // Giới hạn số lượng lỗi được lưu trữ để tránh tràn bộ nhớ
     if (errorLogs.length > MAX_ERROR_LOGS) {
       errorLogs.length = MAX_ERROR_LOGS;
     }
-    
+
     // Trong môi trường development, log ra console
     if (process.env.NODE_ENV === 'development') {
       // Chỉ sử dụng originalConsoleError nếu đã được định nghĩa
@@ -171,14 +180,14 @@ export function logError(error: Partial<ErrorLog>): ErrorLog {
         originalConsoleError('Logged Error:', errorLog);
       }
     }
-    
+
     // Kích hoạt sự kiện để cập nhật UI nhưng không gây lỗi mới
     try {
       window.dispatchEvent(new CustomEvent('error-logged', { detail: errorLog }));
     } catch (dispatchError) {
       // Bỏ qua lỗi khi dispatch event
     }
-    
+
     return errorLog;
   } finally {
     loggingInProgress = false;
@@ -202,20 +211,20 @@ export function clearErrorLogs(): void {
 // Hook để theo dõi lỗi
 export function useErrorLogs() {
   const [logs, setLogs] = useState<ErrorLog[]>(getErrorLogs());
-  
+
   useEffect(() => {
     const handleNewError = () => setLogs(getErrorLogs());
     const handleClearedErrors = () => setLogs([]);
-    
+
     window.addEventListener('error-logged', handleNewError);
     window.addEventListener('errors-cleared', handleClearedErrors);
-    
+
     return () => {
       window.removeEventListener('error-logged', handleNewError);
       window.removeEventListener('errors-cleared', handleClearedErrors);
     };
   }, []);
-  
+
   return logs;
 }
 
@@ -225,28 +234,28 @@ export function ErrorDisplay() {
   const [isVisible, setIsVisible] = useState(true); // Đổi thành true để hiển thị mặc định
   const [activeTab, setActiveTab] = useState<'errors' | 'viteCheck'>('errors');
   const [pluginDetails, setPluginDetails] = useState<Record<string, any> | null>(null);
-  
+
   useEffect(() => {
     // Chủ động quét plugin khi component được tạo
     setPluginDetails(scanReactPlugin());
-    
+
     // Thiết lập interval để quét lại định kỳ
     const interval = setInterval(() => {
       setPluginDetails(scanReactPlugin());
     }, 5000);
-    
+
     return () => clearInterval(interval);
   }, []);
-  
+
   // Tách các loại lỗi
   const vitePluginLogs = logs.filter(log => log.type === 'vitePlugin');
   const otherLogs = logs.filter(log => log.type !== 'vitePlugin');
-  
+
   // Nếu không có lỗi và không hiển thị tab Vite Check, không hiển thị gì cả
   if (logs.length === 0 && activeTab !== 'viteCheck') return null;
-  
+
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         bottom: isVisible ? '0' : '-600px',
@@ -263,7 +272,7 @@ export function ErrorDisplay() {
         overflow: 'hidden',
       }}
     >
-      <div 
+      <div
         style={{
           padding: '10px 15px',
           backgroundColor: '#c41e3a',
@@ -280,7 +289,7 @@ export function ErrorDisplay() {
         <div style={{ display: 'flex', gap: '10px' }}>
           {isVisible && (
             <>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setPluginDetails(scanReactPlugin());
@@ -296,7 +305,7 @@ export function ErrorDisplay() {
               >
                 Quét React Plugin
               </button>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   clearErrorLogs();
@@ -316,15 +325,15 @@ export function ErrorDisplay() {
           )}
         </div>
       </div>
-      
+
       {isVisible && (
         <>
-          <div style={{ 
-            display: 'flex', 
-            backgroundColor: '#333', 
-            borderBottom: '1px solid #555' 
+          <div style={{
+            display: 'flex',
+            backgroundColor: '#333',
+            borderBottom: '1px solid #555'
           }}>
-            <button 
+            <button
               onClick={() => setActiveTab('errors')}
               style={{
                 padding: '8px 15px',
@@ -337,7 +346,7 @@ export function ErrorDisplay() {
             >
               Lỗi ({otherLogs.length})
             </button>
-            <button 
+            <button
               onClick={() => setActiveTab('viteCheck')}
               style={{
                 padding: '8px 15px',
@@ -370,24 +379,24 @@ export function ErrorDisplay() {
               )}
             </button>
           </div>
-          
+
           <div style={{ overflowY: 'auto', maxHeight: 'calc(80vh - 90px)' }}>
             {activeTab === 'errors' ? (
               // Hiển thị tab lỗi
               otherLogs.length > 0 ? (
                 otherLogs.map((log) => (
-                  <div 
-                    key={log.id} 
+                  <div
+                    key={log.id}
                     style={{
                       padding: '15px',
                       borderBottom: '1px solid #333',
                     }}
                   >
                     <div style={{ marginBottom: '5px', color: '#f88' }}>
-                      <strong>{log.type === 'unhandledRejection' ? 'Unhandled Promise' : 'Error'}: </strong> 
+                      <strong>{log.type === 'unhandledRejection' ? 'Unhandled Promise' : 'Error'}: </strong>
                       {log.message}
                     </div>
-                    
+
                     {(log.source || log.lineno) && (
                       <div style={{ fontSize: '14px', color: '#aaa', marginBottom: '5px' }}>
                         {log.source && `Tại: ${log.source}`}
@@ -395,12 +404,12 @@ export function ErrorDisplay() {
                         {log.colno && `:${log.colno}`}
                       </div>
                     )}
-                    
+
                     {log.stack && (
-                      <pre style={{ 
-                        fontSize: '13px', 
-                        backgroundColor: '#2d2d2d', 
-                        padding: '10px', 
+                      <pre style={{
+                        fontSize: '13px',
+                        backgroundColor: '#2d2d2d',
+                        padding: '10px',
                         borderRadius: '4px',
                         overflow: 'auto',
                         maxHeight: '200px',
@@ -410,7 +419,7 @@ export function ErrorDisplay() {
                         {log.stack}
                       </pre>
                     )}
-                    
+
                     <div style={{ fontSize: '12px', color: '#888', marginTop: '5px' }}>
                       {log.timestamp.toLocaleString()}
                     </div>
@@ -425,7 +434,7 @@ export function ErrorDisplay() {
               // Hiển thị tab kiểm tra Vite plugin
               <div style={{ padding: '15px' }}>
                 <h3 style={{ marginTop: 0 }}>Thông tin Vite/React Plugin</h3>
-                
+
                 <div style={{ marginBottom: '20px' }}>
                   <button
                     onClick={() => {
@@ -443,7 +452,7 @@ export function ErrorDisplay() {
                   >
                     Quét lại
                   </button>
-                  
+
                   <button
                     onClick={() => {
                       logVitePluginError("Manual scan triggered by user");
@@ -460,46 +469,46 @@ export function ErrorDisplay() {
                     Log kết quả quét
                   </button>
                 </div>
-                
+
                 {pluginDetails && (
                   <div>
                     <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '10px', marginBottom: '20px' }}>
                       <div style={{ fontWeight: 'bold' }}>Timestamp:</div>
                       <div>{pluginDetails.timestamp}</div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>React Version:</div>
                       <div>{pluginDetails.reactVersion}</div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>Vite Hot:</div>
                       <div style={{ color: pluginDetails.viteHot ? '#4caf50' : '#f44336' }}>
                         {pluginDetails.viteHot ? 'Đã tải' : 'Không tìm thấy'}
                       </div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>Vite Plugins:</div>
                       <div style={{ color: pluginDetails.vitePlugins ? '#4caf50' : '#f44336' }}>
                         {pluginDetails.vitePlugins ? 'Đã tải' : 'Không tìm thấy'}
                       </div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>React Refresh:</div>
                       <div style={{ color: pluginDetails.reactRefresh ? '#4caf50' : '#f44336' }}>
                         {pluginDetails.reactRefresh ? 'Đã tải' : 'Không tìm thấy'}
                       </div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>React Refresh Sig:</div>
                       <div style={{ color: pluginDetails.reactRefreshSig ? '#4caf50' : '#f44336' }}>
                         {pluginDetails.reactRefreshSig ? 'Đã tải' : 'Không tìm thấy'}
                       </div>
-                      
+
                       <div style={{ fontWeight: 'bold' }}>Script Count:</div>
                       <div>{pluginDetails.scriptCount}</div>
                     </div>
-                    
+
                     <h4>Script Tags</h4>
                     <div style={{ maxHeight: '300px', overflow: 'auto' }}>
                       {pluginDetails.scripts.map((script: any, index: number) => (
-                        <div key={index} style={{ 
-                          padding: '10px', 
-                          marginBottom: '10px', 
+                        <div key={index} style={{
+                          padding: '10px',
+                          marginBottom: '10px',
                           backgroundColor: '#2d2d2d',
                           borderRadius: '4px',
                           border: script.containsVitePlugin ? '1px solid #ffc107' : 'none'
@@ -513,10 +522,10 @@ export function ErrorDisplay() {
                             <span>Length: {script.length}</span>
                           </div>
                           {script.excerpt && (
-                            <pre style={{ 
-                              marginTop: '5px', 
-                              padding: '5px', 
-                              backgroundColor: '#222', 
+                            <pre style={{
+                              marginTop: '5px',
+                              padding: '5px',
+                              backgroundColor: '#222',
                               fontSize: '12px',
                               maxHeight: '100px',
                               overflow: 'auto'
@@ -542,7 +551,7 @@ export function ErrorDisplay() {
 export function initErrorLogging() {
   // Lưu lại console.error gốc
   originalConsoleError = console.error;
-  
+
   // Bắt lỗi cụ thể của Vite/React plugin
   window.addEventListener('error', function(event) {
     if (event.message && event.message.includes('@vitejs/plugin-react')) {
@@ -576,14 +585,14 @@ export function initErrorLogging() {
   console.error = (...args) => {
     // Gọi hàm console.error gốc
     originalConsoleError(...args);
-    
+
     // Chỉ log lỗi trong môi trường development hoặc nếu đặc biệt quan trọng
     if (process.env.NODE_ENV === 'development') {
       try {
-        const message = args.map(arg => 
+        const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg) : String(arg)
         ).join(' ');
-        
+
         logError({
           message,
           type: 'error'
@@ -593,4 +602,4 @@ export function initErrorLogging() {
       }
     }
   };
-} 
+}

@@ -2,7 +2,6 @@ import User from '#models/user'
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import hash from '@adonisjs/core/services/hash'
 
 type ResetPasswordData = {
   token: string

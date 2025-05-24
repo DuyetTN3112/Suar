@@ -53,7 +53,6 @@ export default class CreateProject {
 
       return project
     } catch (error) {
-      console.error('Lỗi khi tạo dự án:', error)
       throw error
     }
   }

@@ -2,7 +2,6 @@ import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
-import Message from '#models/message'
 
 @inject()
 export default class GetConversationMessages {
@@ -50,7 +49,6 @@ export default class GetConversationMessages {
               .map((msg: any) => {
                 // Kiểm tra nếu msg là undefined hoặc null
                 if (!msg || typeof msg !== 'object') {
-                  console.warn('Dòng tin nhắn không hợp lệ')
                   return null
                 }
 
@@ -96,7 +94,6 @@ export default class GetConversationMessages {
         messages: formattedMessages,
       }
     } catch (error: any) {
-      console.error('Lỗi khi lấy tin nhắn của cuộc trò chuyện:', error)
       return {
         success: false,
         message: error.message || 'Đã xảy ra lỗi khi lấy tin nhắn',

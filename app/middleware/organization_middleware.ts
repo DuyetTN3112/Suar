@@ -10,17 +10,14 @@ export default class OrganizationMiddleware {
       return next()
     }
     const user = auth.user!
-    console.log('OrganizationMiddleware - User ID:', user.id)
+    // Removed debug log: console.log('OrganizationMiddleware - User ID:', user.id)
     // Lấy tổ chức hiện tại từ session và từ user model
     const sessionOrgId = session.get('current_organization_id')
     const userOrgId = user.current_organization_id
-    console.log('OrganizationMiddleware - Current organization ID from session:', sessionOrgId)
-    console.log('OrganizationMiddleware - Current organization ID from user model:', userOrgId)
+    // Removed debug logs: console.log statements for session and user org IDs
     // Xử lý trường hợp không có tổ chức trong cả session và user model
     if (!sessionOrgId && !userOrgId) {
-      console.log(
-        'OrganizationMiddleware - Không tìm thấy tổ chức hiện tại trong cả session và user object'
-      )
+      // Removed debug log: console.log('OrganizationMiddleware - Không tìm thấy tổ chức hiện tại trong cả session và user object')
       // Lấy tổ chức đầu tiên của người dùng
       const userOrganization = await db
         .from('organization_users')
@@ -31,13 +28,13 @@ export default class OrganizationMiddleware {
         .first()
       if (userOrganization) {
         const firstOrgId = userOrganization.id
-        console.log('OrganizationMiddleware - Tìm thấy tổ chức mặc định:', firstOrgId)
+        // Removed debug log: console.log('OrganizationMiddleware - Tìm thấy tổ chức mặc định:', firstOrgId)
         // Cập nhật cả session và user model
         session.put('current_organization_id', firstOrgId)
         await session.commit()
         try {
           await user.merge({ current_organization_id: firstOrgId }).save()
-          console.log('OrganizationMiddleware - Đã lưu current_organization_id vào user model')
+          // Removed debug log: console.log('OrganizationMiddleware - Đã lưu current_organization_id vào user model')
         } catch (error) {
           console.error(
             'OrganizationMiddleware - Lỗi khi lưu current_organization_id vào user model:',
@@ -48,11 +45,11 @@ export default class OrganizationMiddleware {
     }
     // Xử lý trường hợp có sự khác biệt giữa session và user model
     else if (sessionOrgId !== userOrgId) {
-      console.log('OrganizationMiddleware - Phát hiện sự không đồng bộ giữa session và user model')
+      // Removed debug log: console.log('OrganizationMiddleware - Phát hiện sự không đồng bộ giữa session và user model')
       // Ưu tiên giá trị từ session nếu có
       if (sessionOrgId) {
         try {
-          console.log('OrganizationMiddleware - Đồng bộ từ session vào user model:', sessionOrgId)
+          // Removed debug log: console.log('OrganizationMiddleware - Đồng bộ từ session vào user model:', sessionOrgId)
           await user.merge({ current_organization_id: sessionOrgId }).save()
         } catch (error) {
           console.error('OrganizationMiddleware - Lỗi khi cập nhật user model:', error)
@@ -60,7 +57,7 @@ export default class OrganizationMiddleware {
       }
       // Nếu không có session nhưng có userOrgId thì cập nhật session
       else if (userOrgId) {
-        console.log('OrganizationMiddleware - Đồng bộ từ user model vào session:', userOrgId)
+        // Removed debug log: console.log('OrganizationMiddleware - Đồng bộ từ user model vào session:', userOrgId)
         session.put('current_organization_id', userOrgId)
         await session.commit()
       }

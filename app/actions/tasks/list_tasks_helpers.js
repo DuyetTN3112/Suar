@@ -26,9 +26,11 @@ export async function checkUserPermissions(ctx, organizationId) {
     )
 
     organizationRole = userInOrg?.role_id
-    console.log('[checkUserPermissions] User organization role:', organizationRole)
   } catch (error) {
-    console.error('[checkUserPermissions] Error checking organization role:', error)
+    // Only log actual errors in production
+    if (process.env.NODE_ENV !== 'development') {
+      console.error('[checkUserPermissions] Error checking organization role:', error)
+    }
   }
 
   return {
@@ -103,7 +105,7 @@ export function applyTaskRelations(taskQuery) {
   taskQuery.preload('creator', (query) => {
     query.select('id', 'first_name', 'last_name', 'full_name')
   })
-  
+
   // Preload task con
   taskQuery.preload('childTasks', (childQuery) => {
     childQuery.whereNull('deleted_at')
@@ -114,4 +116,4 @@ export function applyTaskRelations(taskQuery) {
       query.select('id', 'first_name', 'last_name', 'full_name')
     })
   })
-} 
+}

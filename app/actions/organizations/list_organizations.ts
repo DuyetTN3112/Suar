@@ -1,9 +1,6 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
-import env from '#start/env'
-
 @inject()
 export default class ListOrganizations {
   constructor(protected ctx: HttpContext) {}

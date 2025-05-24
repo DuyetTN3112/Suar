@@ -35,53 +35,29 @@ export default class ConversationsController {
    */
   @inject()
   async store({ request, response, session, auth }: HttpContext, createConversation: CreateConversation) {
-    console.log('=== DEBUG CONTROLLER: TẠO HỘI THOẠI ===');
-    console.log('Request body:', request.body());
-    console.log('Request headers:', request.headers());
-    
     try {
-      console.log('Người dùng hiện tại:', auth.user?.id);
-      console.log('Tổ chức hiện tại:', auth.user?.current_organization_id);
-      
       const data = {
         title: request.input('title'),
         participants: request.input('participants', []),
         initial_message: request.input('initial_message'),
       }
-      
-      console.log('Dữ liệu nhận được từ request:', data);
-      console.log('Kiểu dữ liệu của participants:', typeof data.participants);
-      console.log('Participants là mảng:', Array.isArray(data.participants));
-      
-      if (Array.isArray(data.participants)) {
-        console.log('Số lượng người tham gia:', data.participants.length);
-        console.log('Danh sách người tham gia:', data.participants);
-      } else {
-        console.log('Participants không phải là mảng:', data.participants);
-        // Thử chuyển đổi nếu là chuỗi JSON
+
+      // Thử chuyển đổi nếu là chuỗi JSON
+      if (!Array.isArray(data.participants) && typeof data.participants === 'string') {
         try {
-          if (typeof data.participants === 'string') {
-            data.participants = JSON.parse(data.participants);
-            console.log('Đã chuyển đổi participants từ chuỗi JSON:', data.participants);
-          }
+          data.participants = JSON.parse(data.participants)
         } catch (parseError) {
-          console.error('Lỗi khi chuyển đổi participants:', parseError);
+          // Nếu không thể parse, giữ nguyên giá trị
         }
       }
-      
-      console.log('Bắt đầu tạo cuộc trò chuyện...');
-      const conversation = await createConversation.handle({ data });
-      console.log('Đã tạo cuộc trò chuyện thành công:', conversation.id);
-      
-      session.flash('success', 'Cuộc trò chuyện đã được tạo thành công');
-      return response.redirect().toRoute('conversations.show', { id: conversation.id });
+
+      const conversation = await createConversation.handle({ data })
+
+      session.flash('success', 'Cuộc trò chuyện đã được tạo thành công')
+      return response.redirect().toRoute('conversations.show', { id: conversation.id })
     } catch (error) {
-      console.error('=== LỖI KHI TẠO HỘI THOẠI ===');
-      console.error('Chi tiết lỗi:', error.message);
-      console.error('Stack trace:', error.stack);
-      
-      session.flash('error', error.message || 'Có lỗi xảy ra khi tạo cuộc trò chuyện');
-      return response.redirect().back();
+      session.flash('error', error.message || 'Có lỗi xảy ra khi tạo cuộc trò chuyện')
+      return response.redirect().back()
     }
   }
 }

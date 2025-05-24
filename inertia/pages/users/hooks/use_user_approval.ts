@@ -47,13 +47,11 @@ export const useUserApproval = () => {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       const result = await response.json()
-      console.log('API response for pending users:', result)
 
       if (!result.users || !Array.isArray(result.users)) {
         console.warn('Invalid users data format:', result)
         setPendingUsers([])
       } else {
-        console.log('Setting pending users:', result.users.length, 'users')
         setPendingUsers(result.users || [])
       }
     } catch (error) {

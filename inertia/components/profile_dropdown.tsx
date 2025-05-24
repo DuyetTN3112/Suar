@@ -20,7 +20,10 @@ export function ProfileDropdown() {
   // Di chuyển console.error vào useEffect
   useEffect(() => {
     if (!user) {
-      console.error('ProfileDropdown: Không có thông tin người dùng')
+      // Only log in development
+      if (process.env.NODE_ENV === 'development') {
+        console.error('ProfileDropdown: Không có thông tin người dùng')
+      }
     }
   }, [user])
 
@@ -48,7 +51,7 @@ export function ProfileDropdown() {
 
   // Tạo tên hiển thị từ thông tin người dùng
   const displayName = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim()
-  
+
   const userEmail = user.email || ''
   const avatarUrl = user.avatar || `/avatars/${user.username || 'unknown'}.jpg`
   const initials = getInitials(displayName)

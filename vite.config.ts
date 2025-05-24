@@ -14,16 +14,7 @@ const viteDebugPlugin = {
   name: 'vite-debug-plugin',
   configResolved(config: any) {
     // Log thông tin cấu hình khi khởi động
-    console.log('\n=== VITE CONFIG DEBUG ===')
-    console.log('Mode:', config.mode)
-    console.log('Base:', config.base)
-    console.log('Plugins:', config.plugins.map((p: any) => p.name).join(', '))
-    console.log(
-      'React plugin options:',
-      config.plugins.find((p: any) => p.name === 'vite:react-babel')
-    )
-    console.log('Node version:', process.version)
-    console.log('===========================\n')
+
   },
   transformIndexHtml(html: string) {
     // Thêm comment để debug
@@ -31,7 +22,6 @@ const viteDebugPlugin = {
   },
   handleHotUpdate({ file }: { file: string; server: any }) {
     // Log thông tin hot update
-    console.log('Hot update:', file)
     return []
   },
 }

@@ -20,7 +20,6 @@ import useTranslation from '@/hooks/use_translation'
 // Hàm debug log chỉ hiển thị trong chế độ phát triển
 const debugLog = (message: string, ...args: any[]) => {
   if (window.DEBUG_MODE) {
-    console.log(message, ...args);
   }
 };
 
@@ -53,30 +52,17 @@ export default function Navbar() {
   const user = page.props.user?.auth?.user
   const csrfToken = page.props.csrfToken || ''
   const { t } = useTranslation()
-  
+
   // Thêm log chi tiết để debug
   useEffect(() => {
     // Chỉ log khi ở chế độ debug
     if (!window.DEBUG_MODE) return;
-    
-    console.group('=== NavBar Authentication Debug ===')
-    console.log('Page Props:', 'Available')
-    console.log('User Object:', page.props.user ? 'Available' : 'Not found')
-    console.log('Auth Object:', page.props.user?.auth ? 'Available' : 'Not found')
-    
+
     if (!user) {
       console.error('NavBar: Không có thông tin người dùng')
-    } else {
-      console.log('Đã tìm thấy thông tin người dùng:', {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        name: user.full_name
-      })
     }
-    console.groupEnd()
   }, [user, page.props])
-  
+
   // Tạo initials từ tên người dùng
   const getInitials = (name: string) => {
     if (!name) return 'ND'
@@ -89,10 +75,10 @@ export default function Navbar() {
   }
 
   // Chỉ tạo tên hiển thị khi có thông tin người dùng
-  const displayName = user 
+  const displayName = user
     ? (user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim())
     : ''
-  
+
   const avatarUrl = user ? (user.avatar || `/avatars/${user.username || 'unknown'}.jpg`) : ''
   const initials = user ? getInitials(displayName) : 'SN'
 
@@ -100,30 +86,30 @@ export default function Navbar() {
     <header className="border-b bg-background px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 lg:gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="text-muted-foreground" 
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground"
             onClick={toggleSidebar}
           >
             <Menu className="h-5 w-5" />
             <span className="sr-only">Toggle Sidebar</span>
           </Button>
-          
+
           <div className="relative h-9 w-60 lg:w-80 hidden sm:flex">
             <Search placeholder={t('common.search', {}, 'Tìm kiếm...')} />
           </div>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <ThemeSwitch />
-          
+
           <LanguageSwitcher />
-          
+
           <Button variant="ghost" size="icon" className="text-muted-foreground">
             <Bell className="h-5 w-5" />
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-2">
@@ -160,4 +146,4 @@ export default function Navbar() {
       </div>
     </header>
   )
-} 
+}

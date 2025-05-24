@@ -44,7 +44,6 @@ export default class SendMessage {
         .first()
       return message
     } catch (error) {
-      console.error('Lỗi khi gửi tin nhắn:', error)
       throw error
     }
   }

@@ -1,21 +1,13 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { NextFn } from '@adonisjs/core/types/http'
-import { inject } from '@adonisjs/core'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
 import AuditLog from '#models/audit_log'
 
-/**
- * Middleware tự động ghi log hoạt động người dùng
- * Sử dụng middleware này cho các route cần ghi lại hoạt động
- */
-@inject()
 export default class AuditLogMiddleware {
-  /**
-   * Xử lý request
-   * @param entityType Loại entity được thao tác (user, task, app, ...)
-   * @param action Hành động (view, create, update, delete, ...)
-   */
-  async handle(ctx: HttpContext, next: NextFn, options: { entityType: string; action: string }) {
-    // Ghi thời gian bắt đầu
+  async handle(
+    ctx: HttpContext,
+    next: NextFn,
+    options: { action?: string; entityType?: string } = {}
+  ) {
     const startTime = Date.now()
 
     // Xử lý request
@@ -55,8 +47,10 @@ export default class AuditLogMiddleware {
         },
       })
     } catch (error) {
-      // Ghi log lỗi nhưng không ảnh hưởng đến response
-      console.error('Error logging audit:', error)
+      // Only log actual errors in production
+      if (process.env.NODE_ENV !== 'development') {
+        console.error('Error logging audit:', error)
+      }
     }
 
     return result

@@ -50,28 +50,27 @@ export function SidebarProvider({
   // Chỉ ghi log khi debug mode được bật
   const debugLog = (message: string, ...args: any[]) => {
     if (window.DEBUG_MODE && process.env.NODE_ENV === 'development') {
-      console.log(message, ...args);
+
     }
   };
-  
+
   const isMobile = useMobile()
   const [openMobile, setOpenMobile] = React.useState(false)
 
   // This is the internal state of the sidebar.
   const [_open, _setOpen] = React.useState(defaultOpen)
   const open = openProp ?? _open
-  
+
   const setOpen = React.useCallback(
     (value: boolean | ((value: boolean) => boolean)) => {
       const newOpenState = typeof value === 'function' ? value(open) : value
-      debugLog(`Sidebar state changing: ${open ? 'expanded' : 'collapsed'} -> ${newOpenState ? 'expanded' : 'collapsed'}`)
-      
+
       if (setOpenProp) {
         setOpenProp(newOpenState)
       } else {
         _setOpen(newOpenState)
       }
-      
+
       // This sets the cookie to keep the sidebar state.
       document.cookie = `${SIDEBAR_COOKIE_NAME}=${newOpenState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
     },
@@ -80,7 +79,6 @@ export function SidebarProvider({
 
   // Helper to toggle the sidebar.
   const toggleSidebar = React.useCallback(() => {
-    debugLog('Toggle sidebar called')
     if (isMobile) {
       setOpenMobile(!openMobile)
     } else {
@@ -140,4 +138,4 @@ export function SidebarProvider({
       </TooltipProvider>
     </SidebarContext.Provider>
   )
-} 
+}

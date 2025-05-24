@@ -28,7 +28,8 @@ export class LoggerService {
 
   constructor() {
     this.isDevMode = env.get('NODE_ENV') === 'development'
-    this.currentLogLevel = env.get('LOG_LEVEL', 'info') as LogLevel
+    // In production, set default log level to 'warn' to reduce noise
+    this.currentLogLevel = this.isDevMode ? (env.get('LOG_LEVEL', 'info') as LogLevel) : 'warn'
   }
 
   /**

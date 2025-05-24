@@ -22,7 +22,7 @@ export default class LangStaticMiddleware {
 
         // Đảm bảo định dạng URL hợp lệ: /lang/{locale}/{file.json}
         if (parts.length < 4) {
-          console.log(`[LangStaticMiddleware] Invalid URL format: ${url}`)
+          // Removed debug log: console.log(`[LangStaticMiddleware] Invalid URL format: ${url}`)
           return response.status(404).send('Not Found')
         }
 
@@ -31,7 +31,7 @@ export default class LangStaticMiddleware {
 
         // Kiểm tra tệp có hợp lệ không
         if (!file.endsWith('.json')) {
-          console.log(`[LangStaticMiddleware] Not a JSON file: ${file}`)
+          // Removed debug log: console.log(`[LangStaticMiddleware] Not a JSON file: ${file}`)
           return response.status(404).send('Not Found')
         }
 
@@ -41,7 +41,7 @@ export default class LangStaticMiddleware {
 
         // Kiểm tra tệp có tồn tại không
         if (!existsSync(langPath)) {
-          console.log(`[LangStaticMiddleware] File not found: ${langPath}`)
+          // Removed debug log: console.log(`[LangStaticMiddleware] File not found: ${langPath}`)
           return response.status(404).send('Not Found')
         }
 
@@ -50,6 +50,7 @@ export default class LangStaticMiddleware {
         // Phục vụ file ngôn ngữ
         return response.download(langPath)
       } catch (error) {
+        // Keep error logging for actual errors
         console.error(`[LangStaticMiddleware] Error:`, error)
         return response.status(500).send('Internal Server Error')
       }

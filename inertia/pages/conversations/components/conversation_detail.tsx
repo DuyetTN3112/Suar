@@ -34,15 +34,15 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   const messagesStartRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const { t } = useTranslation()
-  
+
   // Cuộn lên tin nhắn mới nhất
   useEffect(() => {
     messagesStartRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
-  
+
   // Nhóm tin nhắn theo ngày
   const messageGroups = groupMessagesByDate(messages)
-  
+
   // Lấy thông tin cuộc trò chuyện
   const conversationInfo = getConversationInfo(conversation, loggedInUserId, t)
 
@@ -62,8 +62,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
               {conversationInfo.title}
             </h2>
             <p className="text-sm text-muted-foreground">
-              {t('conversation.participant_count', 
-                { count: conversationInfo.participantCount }, 
+              {t('conversation.participant_count',
+                { count: conversationInfo.participantCount },
                 `${conversationInfo.participantCount} người tham gia`)}
             </p>
           </div>
@@ -101,8 +101,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
           <>
             {hasMore && (
               <div className="flex justify-center mb-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={onLoadMore}
                   disabled={isLoading}
                   size="sm"
@@ -114,9 +114,9 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                 </Button>
               </div>
             )}
-            
+
             <div ref={messagesStartRef} />
-            
+
             {messageGroups.map((group, groupIndex) => (
               <div key={groupIndex} className="space-y-4">
                 <div className="flex items-center justify-center my-4">
@@ -129,17 +129,20 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                   try {
                     // Kiểm tra dữ liệu tin nhắn trước khi render
                     if (!message.id || !message.sender_id) {
-                      console.warn('Tin nhắn thiếu thông tin cần thiết')
+                      // Only log in development
+                      if (process.env.NODE_ENV === 'development') {
+                        console.warn('Tin nhắn thiếu thông tin cần thiết')
+                      }
                       return null // Bỏ qua tin nhắn không đủ thông tin
                     }
-                    
+
                     // Sử dụng is_current_user từ backend nếu có, nếu không có thì so sánh sender_id
                     const isOutgoing = message.is_current_user === true || message.sender_id === loggedInUserId
-                    
+
                     // Xác định xem có hiển thị thông tin người gửi hay không
                     // Luôn hiển thị cho tin nhắn từ người khác trong cuộc trò chuyện nhiều người
                     const showSenderInfo = !isOutgoing && (conversation.conversation_participants.length > 2)
-                    
+
                     return (
                       <div key={message.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
                         {!isOutgoing && (
@@ -150,7 +153,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                             </Avatar>
                           </div>
                         )}
-                        
+
                         <div className="flex flex-col max-w-[70%] min-w-0">
                           {/* Luôn hiển thị tên người gửi cho tin nhắn đến trong cuộc trò chuyện nhóm */}
                           {!isOutgoing && showSenderInfo && (
@@ -158,15 +161,15 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                               {message.sender?.full_name || t('conversation.user', {}, 'Người dùng')}
                             </span>
                           )}
-                          
+
                           <div className={`group relative px-3 py-2 rounded-2xl ${
-                            isOutgoing 
-                              ? 'bg-primary text-primary-foreground rounded-br-none' 
+                            isOutgoing
+                              ? 'bg-primary text-primary-foreground rounded-br-none'
                               : 'bg-muted text-foreground rounded-bl-none'
                           }`}>
                             {message.is_recalled ? (
                               <p className="break-words italic text-muted-foreground">
-                                {message.recall_scope === 'all' 
+                                {message.recall_scope === 'all'
                                   ? t('conversation.message_recalled_all', {}, 'Tin nhắn này đã bị thu hồi')
                                   : t('conversation.message_recalled_self', {}, 'Bạn đã thu hồi tin nhắn này')}
                               </p>
@@ -179,7 +182,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                                 width: '100%',
                               }}>{message.message}</p>
                             )}
-                            
+
                             <div className={`flex items-center justify-end text-xs mt-1 ${
                               isOutgoing ? 'text-primary-foreground/70' : 'text-muted-foreground'
                             }`}>
@@ -189,14 +192,14 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                                 {/* Hiển thị dung lượng tin nhắn */}
                                 <span className="ml-1">• {calculateMessageSize(message.message)}</span>
                               </span>
-                              
+
                               {!message.is_recalled && isOutgoing && (
                                 <div className={`absolute ${isOutgoing ? 'right-[calc(100%+2px)]' : 'left-[calc(100%+2px)]'} top-1/2 -translate-y-1/2`}>
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
                                         className="h-5 w-5 p-0 rounded-full bg-background shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
                                       >
                                         <MoreHorizontal className="h-3 w-3" />
@@ -204,7 +207,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align={isOutgoing ? "start" : "end"}>
                                       {isOutgoing && (
-                                        <DropdownMenuItem 
+                                        <DropdownMenuItem
                                           onClick={() => onRecallMessage(message)}
                                           className="text-destructive"
                                         >
@@ -229,7 +232,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                             </div>
                           </div>
                         </div>
-                        
+
                         {isOutgoing && (
                           <div className="flex-shrink-0 ml-2">
                             <Avatar className="h-8 w-8">
@@ -241,7 +244,10 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                       </div>
                     )
                   } catch (error) {
-                    console.error('Lỗi rendering tin nhắn')
+                    // Only log in development
+                    if (process.env.NODE_ENV === 'development') {
+                      console.error('Lỗi rendering tin nhắn')
+                    }
                     return null // Bỏ qua tin nhắn gây lỗi khi render
                   }
                 })}
@@ -254,4 +260,4 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
   )
 }
 
-export default ConversationDetail 
+export default ConversationDetail

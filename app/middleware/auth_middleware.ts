@@ -25,18 +25,6 @@ export default class AuthMiddleware {
   public redirectTo = '/login'
   private isDevMode = env.get('NODE_ENV') === 'development'
 
-  private log(...args: any[]) {
-    if (this.isDevMode) {
-      console.log(...args)
-    }
-  }
-
-  private logError(...args: any[]) {
-    if (this.isDevMode) {
-      console.error(...args)
-    }
-  }
-
   public async handle(
     ctx: HttpContext,
     next: NextFn,
@@ -62,11 +50,6 @@ export default class AuthMiddleware {
           ctx.auth.user.role?.name?.toLowerCase() === 'admin' ||
           ctx.auth.user.role?.name?.toLowerCase() === 'superadmin' ||
           [1, 2].includes(ctx.auth.user.role_id)
-        // Log chỉ số lượng tổ chức và ID, không log chi tiết
-        loggerService.debug('Thông tin tổ chức người dùng', {
-          count: ctx.auth.user.organizations?.length || 0,
-          ids: ctx.auth.user.organizations?.map((org) => org.id),
-        })
 
         // Lấy current_organization_id từ session hoặc từ model user
         const currentOrganizationId =
@@ -127,11 +110,9 @@ export default class AuthMiddleware {
       })
 
       if (ctx.request.header('x-inertia')) {
-        loggerService.debug('Inertia redirect to login')
         return ctx.inertia.location(this.redirectTo)
       }
 
-      loggerService.debug('HTTP redirect to login')
       return ctx.response.redirect().toPath(this.redirectTo)
     }
   }

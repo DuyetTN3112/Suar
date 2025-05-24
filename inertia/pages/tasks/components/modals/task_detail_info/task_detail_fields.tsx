@@ -42,40 +42,22 @@ export function TaskDetailFields({
   handleDateChange
 }: TaskDetailFieldsProps) {
   const { t } = useTranslation()
-  
+
   // Format lại ngày hạn để hiển thị trong DatePicker
   const dueDate = formData.due_date ? new Date(formData.due_date) : undefined
-  
-  // Debug log để xem dữ liệu task đang có
-  console.log("TaskDetailFields - formData:", formData);
-  console.log("TaskDetailFields - task:", task);
-  
+
   // Lấy ID từ các trường khác nhau (hỗ trợ nhiều định dạng backend)
   const statusId = formData.status_id || formData.statusId || task.status?.id;
   const priorityId = formData.priority_id || formData.priorityId || task.priority?.id;
   const labelId = formData.label_id || formData.labelId || task.label?.id;
   const assignedToId = formData.assigned_to || formData.assignedTo || formData.assignedToId;
-  
-  console.log("TaskDetailFields - IDs:", { 
-    statusId, 
-    priorityId, 
-    labelId, 
-    assignedToId
-  });
-  
+
   // Tìm các đối tượng hiện tại để hiển thị
   const currentStatus = statuses.find(s => s.id === Number(statusId)) || task.status;
   const currentPriority = priorities.find(p => p.id === Number(priorityId)) || task.priority;
   const currentLabel = labels.find(l => l.id === Number(labelId)) || task.label;
   const currentAssignee = users.find(u => u.id === Number(assignedToId)) || task.assignee;
-  
-  console.log("TaskDetailFields - Current objects:", { 
-    currentStatus, 
-    currentPriority, 
-    currentLabel, 
-    currentAssignee 
-  });
-  
+
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
   const formatDate = (dateString?: string) => {
     if (!dateString) return t('task.due_date_not_set', {}, 'Chưa thiết lập');
@@ -86,28 +68,28 @@ export function TaskDetailFields({
       return t('task.due_date_unknown', {}, 'Không xác định');
     }
   };
-  
+
   // Xử lý giá trị mặc định cho các trường Select
   const getStatusIdValue = () => {
     const value = formData.status_id || formData.statusId || (task.status ? task.status.id : '');
     return String(value);
   };
-  
+
   const getPriorityIdValue = () => {
     const value = formData.priority_id || formData.priorityId || (task.priority ? task.priority.id : '');
     return String(value);
   };
-  
+
   const getLabelIdValue = () => {
     const value = formData.label_id || formData.labelId || (task.label ? task.label.id : '');
     return String(value);
   };
-  
+
   const getAssignedToValue = () => {
     const value = formData.assigned_to || formData.assignedTo || formData.assignedToId || '';
     return String(value);
   };
-  
+
   return (
     <div className="space-y-6">
       {/* Tiêu đề và mô tả */}
@@ -132,7 +114,7 @@ export function TaskDetailFields({
             <p className="text-sm border px-3 py-2 rounded-md bg-muted/20">{formData.title}</p>
           )}
         </div>
-        
+
         <div className="space-y-2 mt-4">
           <Label htmlFor="description">{t('task.description', {}, 'Mô tả')}</Label>
           {isEditing ? (
@@ -151,7 +133,7 @@ export function TaskDetailFields({
           )}
         </div>
       </section>
-      
+
       {/* Các trường thông tin khác */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Cột trái */}
@@ -172,8 +154,8 @@ export function TaskDetailFields({
                     {statuses.map((status) => (
                       <SelectItem key={status.id} value={String(status.id)}>
                         <div className="flex items-center gap-2">
-                          <div 
-                            className="h-3 w-3 rounded-full" 
+                          <div
+                            className="h-3 w-3 rounded-full"
                             style={{ backgroundColor: status.color || '#888' }}
                           ></div>
                           {status.name}
@@ -189,8 +171,8 @@ export function TaskDetailFields({
             ) : (
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
                 {currentStatus && (
-                  <div 
-                    className="h-3 w-3 rounded-full" 
+                  <div
+                    className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: currentStatus.color || '#888' }}
                   ></div>
                 )}
@@ -198,7 +180,7 @@ export function TaskDetailFields({
               </div>
             )}
           </div>
-          
+
           {/* Priority */}
           <div className="space-y-2">
             <Label htmlFor="priority_id">{t('task.priority', {}, 'Độ ưu tiên')}</Label>
@@ -214,8 +196,8 @@ export function TaskDetailFields({
                   {priorities.map((priority) => (
                     <SelectItem key={priority.id} value={String(priority.id)}>
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="h-3 w-3 rounded-full" 
+                        <div
+                          className="h-3 w-3 rounded-full"
                           style={{ backgroundColor: priority.color || '#888' }}
                         ></div>
                         {priority.name}
@@ -227,8 +209,8 @@ export function TaskDetailFields({
             ) : (
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
                 {currentPriority && (
-                  <div 
-                    className="h-3 w-3 rounded-full" 
+                  <div
+                    className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: currentPriority.color || '#888' }}
                   ></div>
                 )}
@@ -237,7 +219,7 @@ export function TaskDetailFields({
             )}
           </div>
         </div>
-        
+
         {/* Cột phải */}
         <div className="space-y-4">
           {/* Label */}
@@ -255,8 +237,8 @@ export function TaskDetailFields({
                   {labels.map((label) => (
                     <SelectItem key={label.id} value={String(label.id)}>
                       <div className="flex items-center gap-2">
-                        <div 
-                          className="h-3 w-3 rounded-full" 
+                        <div
+                          className="h-3 w-3 rounded-full"
                           style={{ backgroundColor: label.color || '#888' }}
                         ></div>
                         {label.name}
@@ -268,8 +250,8 @@ export function TaskDetailFields({
             ) : (
               <div className="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
                 {currentLabel && (
-                  <div 
-                    className="h-3 w-3 rounded-full" 
+                  <div
+                    className="h-3 w-3 rounded-full"
                     style={{ backgroundColor: currentLabel.color || '#888' }}
                   ></div>
                 )}
@@ -277,7 +259,7 @@ export function TaskDetailFields({
               </div>
             )}
           </div>
-          
+
           {/* Assigned To */}
           <div className="space-y-2">
             <Label htmlFor="assigned_to">{t('task.assigned_to', {}, 'Giao cho')}</Label>
@@ -300,7 +282,7 @@ export function TaskDetailFields({
             ) : (
               <div className="border px-3 py-2 rounded-md bg-muted/20">
                 <span>
-                  {currentAssignee ? 
+                  {currentAssignee ?
                     (currentAssignee.full_name || `${currentAssignee.first_name} ${currentAssignee.last_name}`.trim())
                     : t('task.unassigned', {}, 'Chưa giao')}
                 </span>
@@ -309,7 +291,7 @@ export function TaskDetailFields({
           </div>
         </div>
       </section>
-      
+
       {/* Due Date */}
       <section>
         <div className="space-y-2">
@@ -329,4 +311,4 @@ export function TaskDetailFields({
       </section>
     </div>
   )
-} 
+}

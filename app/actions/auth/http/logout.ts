@@ -36,9 +36,8 @@ export default class Logout {
       }
       // Xóa các cookie phiên làm việc khác nếu cần
       // this.ctx.response.clearCookie('remember_web')
-      console.log('Đăng xuất thành công')
     } catch (error) {
-      console.error('Lỗi khi đăng xuất:', error)
+      // Error handling is done through the audit logging system
     }
   }
 }

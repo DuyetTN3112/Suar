@@ -12,7 +12,6 @@ export default class SilentAuthMiddleware {
 
   private log(...args: any[]) {
     if (this.isDevMode) {
-      console.log(...args)
     }
   }
 
@@ -22,8 +21,6 @@ export default class SilentAuthMiddleware {
     options: { guards?: (keyof Authenticators)[] } = {}
   ) {
     const startTime = this.isDevMode ? Date.now() : 0
-    this.log('--- [SILENT AUTH MIDDLEWARE] ---')
-    this.log('Request URL:', ctx.request.url())
     try {
       // Kiểm tra xác thực nhưng không bắt buộc
       for (let guard of options.guards || [ctx.auth.defaultGuard]) {
@@ -31,16 +28,15 @@ export default class SilentAuthMiddleware {
       }
       if (this.isDevMode) {
         if (ctx.auth.isAuthenticated) {
-          this.log('User is authenticated:', ctx.auth.user?.id)
         } else {
-          this.log('User is not authenticated')
         }
       }
     } catch (error) {
+      // Keep error logging for actual errors
       this.log('Silent auth check error:', error.message)
     } finally {
       if (this.isDevMode) {
-        this.log('--- [SILENT AUTH MIDDLEWARE END] --- Duration:', Date.now() - startTime, 'ms')
+        // Removed debug log: this.log('--- [SILENT AUTH MIDDLEWARE END] --- Duration:', Date.now() - startTime, 'ms')
       }
     }
 

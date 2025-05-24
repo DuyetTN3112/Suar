@@ -1,4 +1,5 @@
 import Redis from '@adonisjs/redis/services/main'
+import SingleFlightService from '#services/single_flight_service'
 
 /**
  * Service quản lý Redis cache
@@ -84,21 +85,29 @@ export default class CacheService {
   }
 
   /**
-   * Lấy hoặc thiết lập cache
+   * Lấy hoặc thiết lập cache với Single Flight Pattern
    * Nếu key không tồn tại, sẽ gọi callback để lấy dữ liệu và lưu vào cache
+   * Nếu có nhiều request cùng key, chỉ request đầu tiên thực hiện callback,
+   * các request khác sẽ chờ và nhận kết quả từ request đầu tiên
    */
   static async remember<T>(key: string, ttl: number, callback: () => Promise<T>): Promise<T> {
-    // Kiểm tra xem key đã có trong cache chưa
-    const cachedData = await this.get<T>(key)
-    if (cachedData !== null) {
-      return cachedData
-    }
+    // Tạo key duy nhất cho single flight pattern
+    const singleFlightKey = `singleflight:${key}`
 
-    // Nếu không, lấy dữ liệu mới
-    const data = await callback()
-    // Lưu dữ liệu vào cache
-    await this.set(key, data, ttl)
-    return data
+    // Sử dụng Single Flight Pattern để ngăn chặn thundering herd
+    return SingleFlightService.execute(singleFlightKey, async () => {
+      // Kiểm tra xem key đã có trong cache chưa
+      const cachedData = await this.get<T>(key)
+      if (cachedData !== null) {
+        return cachedData
+      }
+
+      // Nếu không, lấy dữ liệu mới
+      const data = await callback()
+      // Lưu dữ liệu vào cache
+      await this.set(key, data, ttl)
+      return data
+    })
   }
 
   /**

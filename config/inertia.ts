@@ -73,17 +73,12 @@ function inertiaLog(level: LogLevel, message: string, data?: any) {
       if (level === 'minimal') {
         // Với minimal, chỉ log thông tin tổng quát
         if (Array.isArray(data)) {
-          console.log(message, `[Mảng với ${data.length} phần tử]`)
         } else if (typeof data === 'object' && data !== null) {
-          console.log(message, `[Object với ${Object.keys(data).length} thuộc tính]`)
         } else {
-          console.log(message, data)
         }
       } else {
-        console.log(message, data)
       }
     } else {
-      console.log(message)
     }
   }
 }

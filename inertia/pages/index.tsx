@@ -3,7 +3,6 @@ import { Head } from '@inertiajs/react'
 
 export default function Index() {
   React.useEffect(() => {
-    console.log('Component đã mount, kiểm tra lỗi React');
   }, []);
 
   return (
@@ -15,4 +14,4 @@ export default function Index() {
       </div>
     </>
   )
-} 
+}

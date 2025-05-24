@@ -51,7 +51,7 @@ export default class ShowConversation {
             }
           }
         } catch (error) {
-          console.error('Lỗi xử lý before ID:', error)
+          // Silently ignore errors in before ID processing
         }
       }
 
@@ -66,7 +66,7 @@ export default class ShowConversation {
             }
           }
         } catch (error) {
-          console.error('Lỗi xử lý after ID:', error)
+          // Silently ignore errors in after ID processing
         }
       }
 

@@ -21,7 +21,6 @@ export default class GetTaskStatistics {
       }
       return []
     } catch (error) {
-      console.error('Lỗi khi lấy thống kê task:', error)
       return []
     }
   }

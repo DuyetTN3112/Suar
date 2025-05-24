@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { 
-  TableRow, 
+import {
+  TableRow,
   TableCell
 } from "@/components/ui/table"
 import { Checkbox } from '@/components/ui/checkbox'
@@ -52,22 +52,17 @@ export function TaskListRow({
   const priorityName = task.priority?.name?.toLowerCase() || '';
   const hasChildren = hasChildTasks(task);
   const isExpanded = isTaskExpanded(task.id);
-  
+
   // Xác định class và style dựa vào trạng thái
   const titleClass = isCompleted ? 'line-through text-muted-foreground' : '';
-  
+
   // Hàm xử lý click vào task
   const handleTaskClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    console.log('Task clicked:', task.id, task.title);
-    
+
     if (onTaskClick) {
-      console.log('Calling onTaskClick handler');
       onTaskClick(task);
-    } else {
-      console.log('No onTaskClick handler provided');
     }
   };
 
@@ -75,7 +70,7 @@ export function TaskListRow({
     <React.Fragment>
       <TableRow className="min-h-[44px]">
         <TableCell className="px-2 py-1">
-          <Checkbox 
+          <Checkbox
             id={`select-task-${task.id}`}
             checked={isTaskSelected(task.id)}
             onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
@@ -130,16 +125,16 @@ export function TaskListRow({
           <TaskDueDateCell task={task} formatDate={formatDate} />
         </TableCell>
         <TableCell className="px-2 py-1">
-          <TaskItemDeleteButton 
-            task={task} 
-            currentUser={currentUserInfo} 
+          <TaskItemDeleteButton
+            task={task}
+            currentUser={currentUserInfo}
           />
         </TableCell>
       </TableRow>
-      
+
       {/* Hiển thị Task con nếu có và đang mở rộng */}
       {isExpanded && hasChildren && task.childTasks && task.childTasks.map(childTask => (
-        <ChildTaskRow 
+        <ChildTaskRow
           key={`subtask-${childTask.id}`}
           childTask={childTask}
           isTaskSelected={isTaskSelected}
@@ -152,4 +147,4 @@ export function TaskListRow({
       ))}
     </React.Fragment>
   )
-} 
+}

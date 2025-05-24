@@ -98,6 +98,7 @@ Design Patterns
 - Singleton: Applied to shared services
 - Observer: Implementation of notification and event systems
 - Strategy Pattern: Allowing algorithm changes when necessary
+- Single Flight Pattern: Prevention of thundering herd/cache stampede issues
 
 Database Design
 
@@ -124,6 +125,8 @@ Performance Optimization
 - Efficient Pagination: Optimal handling of large datasets
 - Connection Pooling: Efficient connection management
 - Transaction Management: Ensuring integrity in complex operations
+- Single Flight Pattern: Prevention of thundering herd/cache stampede issues
+- Request Collapsing: Combining similar requests to reduce backend load
 
 Schema Management
 - Migration System: System for managing schema changes

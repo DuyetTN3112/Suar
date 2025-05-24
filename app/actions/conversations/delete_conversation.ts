@@ -1,9 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Conversation from '#models/conversation'
-import AuditLog from '#models/audit_log'
-import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
-
 export default class DeleteConversation {
   constructor(private ctx: HttpContext) {}
 

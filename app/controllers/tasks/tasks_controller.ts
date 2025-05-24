@@ -49,7 +49,6 @@ export default class TasksController {
         filters,
       })
     } catch (error) {
-      console.error('Error loading tasks:', error)
       session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
       return inertia.render('tasks/index', {
         tasks: {
@@ -161,7 +160,6 @@ export default class TasksController {
       session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
       return response.redirect().toRoute('tasks.show', { id: Number(params.id) })
     } catch (error) {
-      console.error('Error updating task:', error)
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
       return response.redirect().back()
     }
@@ -191,10 +189,8 @@ export default class TasksController {
     getTaskMetadata: GetTaskMetadata
   ) {
     try {
-      console.log(`Bắt đầu xóa task với ID: ${params.id}`)
       const result = await deleteTask.handle({ id: Number(params.id) })
       if (!result.success) {
-        console.log('Lỗi khi xóa task:', result.message)
         session.flash('error', result.message)
         if (request.header('X-Inertia')) {
           // Đối với request từ Inertia, trả về lỗi nhưng không reload trang
@@ -206,11 +202,9 @@ export default class TasksController {
         return response.redirect().back()
       }
 
-      console.log(`Task ${params.id} đã được xóa thành công`)
       session.flash('success', 'Nhiệm vụ đã được xóa thành công')
       if (request.header('X-Inertia')) {
         // Đối với request từ Inertia, cần reload dữ liệu
-        console.log('Đang reload dữ liệu sau khi xóa task thành công')
         const page = request.input('page', 1)
         const limit = request.input('limit', 10)
         const filters = {
@@ -225,7 +219,6 @@ export default class TasksController {
         }
         const tasks = await listTasksWithPermissions.handle(filters)
         const metadata = await getTaskMetadata.handle()
-        console.log(`Đã tải lại ${tasks.data.length} tasks sau khi xóa`)
         // Trả về dữ liệu mới cho Inertia
         return inertia.render('tasks/index', {
           tasks,
@@ -235,7 +228,6 @@ export default class TasksController {
       }
       return response.redirect().toRoute('tasks.index')
     } catch (error: any) {
-      console.error('Error deleting task:', error)
       session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
       if (request.header('X-Inertia')) {
         return inertia.location(request.header('Referer') || '/tasks')
@@ -275,7 +267,6 @@ export default class TasksController {
         data: formattedLogs,
       })
     } catch (error) {
-      console.error('Error loading audit logs:', error)
       return response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi tải lịch sử thay đổi',
@@ -321,7 +312,6 @@ export default class TasksController {
         data: updatedTask,
       })
     } catch (error) {
-      console.error('Error updating task status:', error)
       return response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
@@ -347,14 +337,6 @@ export default class TasksController {
       const userRole = user.role?.name?.toLowerCase() || ''
       const isAdmin = user.isAdmin === true
       const roleId = user.role?.id || user.role_id
-      // Log để debug
-      console.log('CHECK PERMISSION - User:', {
-        id: user.id,
-        username: user.username,
-        role: userRole,
-        isAdmin,
-        roleId,
-      })
       // Chỉ superadmin hoặc admin mới có quyền tạo task
       const canCreate =
         isAdmin ||
@@ -377,7 +359,6 @@ export default class TasksController {
         },
       })
     } catch (error) {
-      console.error('Error in checkCreatePermission:', error)
       return response.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi khi kiểm tra quyền',

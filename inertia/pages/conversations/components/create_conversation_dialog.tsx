@@ -27,9 +27,11 @@ interface Participant {
 
 interface CreateConversationDialogProps {
   trigger?: React.ReactNode
+  onClose: () => void
+  onConversationCreated?: () => void
 }
 
-export function CreateConversationDialog({ trigger }: CreateConversationDialogProps) {
+export function CreateConversationDialog({ trigger, onClose, onConversationCreated }: CreateConversationDialogProps) {
   const [open, setOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>([])
@@ -44,44 +46,35 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
   useEffect(() => {
     if (open) {
       // Debug thông tin người dùng và tổ chức hiện tại
-      console.log('Auth user debug:', {
-        user_id: page.props.auth?.user?.id,
-        current_organization_id: page.props.auth?.user?.current_organization_id,
-      })
-      
+
       fetchOrganizationUsers()
     }
   }, [open])
 
   const fetchOrganizationUsers = async () => {
     try {
-      console.log('Đang tải danh sách người dùng trong tổ chức...')
-      console.log('Tổ chức hiện tại:', page.props.auth?.user?.current_organization_id)
-      
       // Sử dụng API endpoint mới đơn giản hơn
       const response = await axios.get('/api/users-in-organization')
-      
+
       if (response.data.success && response.data.users && Array.isArray(response.data.users)) {
         // Lọc ra người dùng hiện tại để không hiển thị trong danh sách
         const currentUserId = page.props.auth?.user?.id
         const filteredUsers = response.data.users.filter((user: Participant) => user.id !== currentUserId)
-        
+
         setUsers(filteredUsers)
-        console.log('Đã tải', filteredUsers.length, 'người dùng trong tổ chức (đã loại trừ người dùng hiện tại)')
-        console.log('Danh sách người dùng:', filteredUsers)
       } else {
         console.warn('Định dạng dữ liệu không đúng hoặc không có người dùng:', response.data)
         setUsers([])
       }
     } catch (error) {
       console.error('Không thể tải danh sách người dùng trong tổ chức:', error)
-      
+
       // Hiển thị lỗi trong component thay vì dùng dữ liệu mẫu
       setUsers([])
       setErrors({
         api_error: `Lỗi khi lấy danh sách người dùng: ${error.message || 'Lỗi không xác định'}`
       })
-      
+
       // Nếu là lỗi phản hồi từ API, hiển thị thông tin chi tiết hơn
       if (error.response && error.response.data) {
         console.error('Chi tiết lỗi từ API:', error.response.data)
@@ -102,36 +95,25 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
   // Kiểm tra xem cuộc hội thoại với những người tham gia đã chọn đã tồn tại hay chưa
   const checkExistingConversation = async () => {
     if (selectedParticipants.length === 0) {
-      console.log('Không có người tham gia nào được chọn, bỏ qua kiểm tra')
       return false;
     }
 
     try {
-      console.log('=== DEBUG KIỂM TRA HỘI THOẠI TỒN TẠI ===');
-      console.log('Đang kiểm tra cuộc hội thoại đã tồn tại...');
-      console.log('Người tham gia đã chọn:', selectedParticipants);
-      
       // Thêm ID người dùng hiện tại vào danh sách kiểm tra nếu chưa có
       const currentUserId = page.props.auth?.user?.id;
-      console.log('ID người dùng hiện tại:', currentUserId);
-      
+
       let participantsToCheck = [...selectedParticipants];
-      
+
       if (currentUserId && !participantsToCheck.includes(currentUserId)) {
-        console.log('Thêm người dùng hiện tại vào danh sách kiểm tra:', currentUserId);
         participantsToCheck.push(currentUserId);
       }
-      
-      console.log('Danh sách người tham gia cuối cùng để kiểm tra:', participantsToCheck);
-      
+
       // Tạo payload để gửi đi
       const payload = {
         participants: participantsToCheck
       };
-      console.log('Payload gửi đi:', payload);
-      
+
       // Sử dụng withCredentials để đảm bảo cookie được gửi đi
-      console.log('Gửi request kiểm tra cuộc hội thoại đã tồn tại...');
       const response = await axios.post('/api/check-existing-conversation', payload, {
         withCredentials: true,
         headers: {
@@ -141,32 +123,25 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
         }
       });
-      
-      console.log('Nhận được phản hồi từ API kiểm tra cuộc hội thoại:');
-      console.log('Status:', response.status);
-      console.log('Headers:', response.headers);
-      console.log('Data:', response.data);
-      
+
       if (response.data.exists && response.data.conversation) {
-        console.log('Đã tìm thấy cuộc hội thoại tương tự:', response.data.conversation);
         setExistingConversation(response.data.conversation);
         return true;
       } else {
-        console.log('Không tìm thấy cuộc hội thoại tương tự');
         setExistingConversation(null);
         return false;
       }
     } catch (error) {
       console.error('=== LỖI KIỂM TRA HỘI THOẠI TỒN TẠI ===');
       console.error('Lỗi khi kiểm tra cuộc hội thoại đã tồn tại:', error);
-      
+
       // Log chi tiết lỗi
       if (error.response) {
         console.error('Chi tiết lỗi từ API:');
         console.error('Status:', error.response.status);
         console.error('Headers:', error.response.headers);
         console.error('Data:', error.response.data);
-        
+
         // Nếu lỗi là 302 Found hoặc 401 Unauthorized, có thể là vấn đề xác thực
         if (error.response.status === 302 || error.response.status === 401) {
           console.error('Có vẻ như có vấn đề với xác thực hoặc chuyển hướng');
@@ -187,7 +162,7 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
           api_error: `Lỗi khi gửi yêu cầu: ${error.message}`
         });
       }
-      
+
       return false;
     }
   }
@@ -196,31 +171,20 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
     e.preventDefault()
     setLoading(true)
     setErrors(null)
-    
-    console.log('=== DEBUG TẠO HỘI THOẠI ===')
-    console.log('Bắt đầu tạo cuộc hội thoại mới...')
-    console.log('Tiêu đề:', title)
-    console.log('Người tham gia đã chọn:', selectedParticipants)
-    console.log('Thông tin người dùng hiện tại:', page.props.auth?.user)
-    console.log('Tổ chức hiện tại:', page.props.auth?.user?.current_organization_id)
-    
+
     if (selectedParticipants.length === 0) {
-      console.log('Lỗi: Không có người tham gia nào được chọn')
       setLoading(false)
       setErrors({
         participants: t('conversation.no_participants_selected', {}, 'Vui lòng chọn ít nhất một người tham gia')
       })
       return
     }
-    
+
     try {
       // Kiểm tra xem cuộc hội thoại đã tồn tại chưa
-      console.log('Bắt đầu kiểm tra cuộc hội thoại đã tồn tại...')
       const conversationExists = await checkExistingConversation()
-      console.log('Kết quả kiểm tra cuộc hội thoại đã tồn tại:', conversationExists)
-      
+
       if (conversationExists && existingConversation) {
-        console.log('Đã tìm thấy cuộc hội thoại tương tự đã tồn tại:', existingConversation)
         setLoading(false)
         setErrors({
           existing_conversation: t(
@@ -231,70 +195,58 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
         })
         return
       }
-      
-      console.log('Không tìm thấy cuộc hội thoại tương tự, tiến hành tạo mới...')
-      
+
       // Tạo payload để gửi đi
       const payload = {
         title,
         participants: selectedParticipants,
-        initial_message: ' ' // Gửi khoảng trắng để tránh lỗi validation nếu cần
-      }
-      
-      console.log('Payload gửi đi:', payload)
-      
-      // Thử gửi request trực tiếp bằng axios trước để debug
+      };
+
       try {
-        console.log('Thử gửi request trực tiếp bằng axios...')
         const axiosResponse = await axios.post('/conversations', payload, {
           withCredentials: true,
           headers: {
             'Content-Type': 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
           }
-        })
-        console.log('Kết quả từ axios:', axiosResponse)
-      } catch (axiosError) {
-        console.error('Lỗi khi gửi request trực tiếp bằng axios:', axiosError)
-        if (axiosError.response) {
-          console.error('Chi tiết lỗi từ API:', axiosError.response.data)
-          console.error('Mã lỗi HTTP:', axiosError.response.status)
+        });
+
+        onClose();
+        if (onConversationCreated) {
+          onConversationCreated();
         }
+        return;
+      } catch (axiosError) {
+        console.warn('Axios request failed, falling back to router.post:', axiosError);
       }
-      
-      // Tiếp tục sử dụng router.post
-      console.log('Tiếp tục sử dụng router.post...')
+
       router.post('/conversations', payload, {
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: (page) => {
-          console.log('Tạo cuộc hội thoại thành công:', page)
-          setOpen(false)
-          setTitle('')
-          setSelectedParticipants([])
-          setLoading(false)
+          onClose();
+          if (onConversationCreated) {
+            onConversationCreated();
+          }
         },
         onError: (errors) => {
-          console.error('Lỗi khi tạo cuộc hội thoại:', errors)
-          console.error('Chi tiết lỗi:', JSON.stringify(errors))
-          setErrors(errors)
-          setLoading(false)
+          console.error('Lỗi khi tạo cuộc hội thoại:', errors);
+          setErrors(errors);
+        },
+        onFinish: () => {
+          setLoading(false);
         }
-      })
+      });
     } catch (error) {
-      console.error('Lỗi không xác định khi tạo cuộc hội thoại:', error)
-      console.error('Chi tiết lỗi:', error.message)
-      if (error.response) {
-        console.error('Chi tiết lỗi từ API:', error.response.data)
-        console.error('Mã lỗi HTTP:', error.response.status)
-      } else if (error.request) {
-        console.error('Không nhận được phản hồi từ server:', error.request)
-      }
-      setLoading(false)
+      console.error('Lỗi không xác định khi tạo cuộc hội thoại:', error);
       setErrors({
-        api_error: t('conversation.create_error', {}, 'Đã xảy ra lỗi khi tạo cuộc hội thoại. Vui lòng thử lại sau.')
-      })
+        general: t('conversation.create_error', {}, 'Có lỗi xảy ra khi tạo cuộc hội thoại')
+      });
+      setLoading(false);
     }
-  }
+  };
 
   const toggleParticipant = (id: string) => {
     if (selectedParticipants.includes(id)) {
@@ -378,8 +330,8 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
               {users && users.length > 0 ? (
                 <div className="space-y-1">
                   {users.map((user) => (
-                    <div 
-                      key={user.id} 
+                    <div
+                      key={user.id}
                       className={`flex items-center space-x-2 p-2 rounded cursor-pointer ${
                         selectedParticipants.includes(user.id) ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
@@ -412,7 +364,7 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
             {errors?.participants && (
               <p className="text-sm text-destructive">{errors.participants}</p>
             )}
-            
+
             {selectedParticipants.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {selectedParticipants.map(id => {
@@ -420,8 +372,8 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
                   return user ? (
                     <div key={id} className="bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs flex items-center">
                       {user.full_name}
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         className="ml-1 text-muted-foreground hover:text-foreground"
                         onClick={(e) => {
                           e.stopPropagation()
@@ -451,4 +403,4 @@ export function CreateConversationDialog({ trigger }: CreateConversationDialogPr
   )
 }
 
-export default CreateConversationDialog 
+export default CreateConversationDialog

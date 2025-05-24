@@ -10,7 +10,7 @@ export default class CsrfDebugMiddleware {
 
   private log(...args: any[]) {
     if (this.isDevMode) {
-      console.log(...args)
+      // Removed debug log: console.log(...args)
     }
   }
 
@@ -22,18 +22,11 @@ export default class CsrfDebugMiddleware {
       const sessionToken = ctx.session.get('csrf-secret')
       const csrfHeader = ctx.request.header('x-csrf-token')
 
-      this.log('=== CSRF Debug ===')
-      this.log('Request method:', ctx.request.method())
-      this.log('Request path:', ctx.request.url(true))
-      this.log('Request token from form:', requestToken)
-      this.log('CSRF token from header:', csrfHeader)
-      this.log('Session token (hashed):', sessionToken)
+      // Removed all debug logs in this section
       // Log chọn lọc thay vì toàn bộ session data
       const sessionKeys = Object.keys(ctx.session.all())
-      this.log('Session keys:', sessionKeys)
       // Log cookie keys thay vì toàn bộ cookie data
       const cookieKeys = Object.keys(ctx.request.cookiesList())
-      this.log('Cookie keys:', cookieKeys)
     }
 
     return next()

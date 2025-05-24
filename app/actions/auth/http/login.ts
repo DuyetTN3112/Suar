@@ -24,30 +24,21 @@ export default class Login {
 
   async handle({ data }: { data: LoginData }) {
     const key = this.getRateKey(data.email)
-    console.log('[LOGIN] Attempting login for:', data.email)
 
     try {
       const [error, foundUser] = await this.limit.penalize(key, async () => {
         const user = await User.findBy('email', data.email)
         if (!user) {
-          console.log('[LOGIN] User not found for email:', data.email)
           throw new Error('Tài khoản không tồn tại')
         }
         // Kiểm tra trực tiếp mật khẩu - plain text
-        console.log('[LOGIN] Comparing passwords:', {
-          dbPassword: user.password,
-          inputPassword: data.password,
-          match: user.password === data.password,
-        })
         if (user.password !== data.password) {
-          console.log('[LOGIN] Password does not match')
           throw new Error('Mật khẩu không đúng')
         }
         return user
       })
 
       if (error) {
-        console.log('[LOGIN] Authentication error:', error.message)
         this.ctx.session.flashAll()
         this.ctx.session.flashErrors({
           email: 'Thông tin đăng nhập không chính xác',
@@ -55,21 +46,10 @@ export default class Login {
         return null
       }
 
-      // Kiểm tra session trước khi login
-      console.log('[LOGIN] Session before login:', {
-        sessionId: this.ctx.session.sessionId,
-        hasSession: !!this.ctx.session,
-      })
       // Thực hiện đăng nhập
-      await this.ctx.auth.use('web').login(foundUser, data.remember)
-      // Kiểm tra session sau khi login
-      console.log('[LOGIN] Session after login:', {
-        sessionId: this.ctx.session.sessionId,
-        userId: foundUser.id,
-      })
+      await this.ctx.auth.use('web').login(foundUser)
       return foundUser
     } catch (err) {
-      console.error('[LOGIN] Unexpected error:', err)
       return null
     }
   }

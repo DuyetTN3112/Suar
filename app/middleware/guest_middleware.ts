@@ -14,7 +14,7 @@ export default class GuestMiddleware {
 
   private log(...args: any[]) {
     if (this.isDevMode) {
-      console.log(...args)
+      // Removed debug log: console.log(...args)
     }
   }
 
@@ -23,14 +23,10 @@ export default class GuestMiddleware {
     next: NextFn,
     options: { guards?: (keyof Authenticators)[] } = {}
   ) {
-    this.log('--- [GUEST MIDDLEWARE] ---')
-    this.log('Request URL:', ctx.request.url())
-
+    // Removed all debug logs in this section
     // Kiểm tra người dùng đã đăng nhập chưa, nếu rồi thì chuyển hướng
     for (let guard of options.guards || [ctx.auth.defaultGuard]) {
-      this.log('Checking guard:', guard)
       if (await ctx.auth.use(guard).check()) {
-        this.log('User already authenticated, redirecting to:', this.redirectTo)
         if (ctx.request.header('x-inertia')) {
           return ctx.inertia.location(this.redirectTo)
         }
@@ -38,7 +34,6 @@ export default class GuestMiddleware {
       }
     }
 
-    this.log('User is a guest, continuing')
     return next()
   }
 }

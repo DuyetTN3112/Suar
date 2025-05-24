@@ -30,7 +30,6 @@ import { useSidebar } from '@/components/ui/sidebar'
 // Hàm log debug thông tin chỉ trong môi trường development và chỉ khi cần thiết
 const debugLog = (message: string, ...args: any[]) => {
   if (window.DEBUG_MODE && process.env.NODE_ENV === 'development') {
-    console.log(message, ...args);
   }
 };
 
@@ -70,21 +69,21 @@ export function TeamSwitcher() {
   const [error, setError] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(false)
   const { isMobile } = useSidebar()
-  
+
   // Truy cập an toàn props của auth - Đường dẫn truy cập đúng từ props
   const authUser: AuthUser | null = page.props.user?.auth?.user || null
-  
+
   // Kiểm tra thông tin user nhưng không log chi tiết
   React.useEffect(() => {
     if (!window.DEBUG_MODE || process.env.NODE_ENV !== 'development') return;
-    
+
     if (!authUser) {
       console.error('TeamSwitcher: Không tìm thấy thông tin người dùng trong props')
     } else if (!authUser.organizations?.length) {
       console.error('TeamSwitcher: Không tìm thấy thông tin tổ chức')
     }
   }, [authUser])
-  
+
   // Di chuyển việc cập nhật state error vào useEffect
   React.useEffect(() => {
     if (!authUser) {
@@ -95,7 +94,7 @@ export function TeamSwitcher() {
       setError(null)
     }
   }, [authUser])
-  
+
   // Lấy danh sách tổ chức từ backend
   const organizations: Organization[] = React.useMemo(() => {
     // Chỉ sử dụng dữ liệu từ backend, không dùng dữ liệu mẫu
@@ -104,12 +103,11 @@ export function TeamSwitcher() {
       return authUser.organizations.map(org => ({
         id: org.id,
         name: org.name,
-        logo: org.logo || 'Building', 
+        logo: org.logo || 'Building',
         plan: org.plan || 'Miễn phí'
       }));
     }
-    
-    debugLog('Không tìm thấy thông tin tổ chức từ backend');
+
     return [] // Trả về mảng rỗng thay vì dữ liệu mẫu
   }, [authUser?.organizations])
 
@@ -132,7 +130,7 @@ export function TeamSwitcher() {
     setSelectedTeam(organization)
     setOpen(false)
     setError(null)
-    
+
     if (organization.id) {
       // Chuyển đổi id thành chuỗi trước khi gọi trim
       const orgId = String(organization.id).trim()
@@ -141,20 +139,19 @@ export function TeamSwitcher() {
         setError('ID tổ chức không hợp lệ')
         return
       }
-      
+
       // Ngăn chặn nhiều lần nhấp
       if (isLoading) return
       setIsLoading(true)
-      
+
       // Sử dụng router.post theo cách SPA
-      router.post('/switch-organization', 
+      router.post('/switch-organization',
         { organization_id: orgId },
-        { 
+        {
           preserveState: true, // Giữ trạng thái của các props không cập nhật
           preserveScroll: true, // Giữ vị trí cuộn trang
           only: ['auth'], // Chỉ cập nhật auth trong props
           onBefore: () => {
-            debugLog('Đang chuyển tổ chức sang ID:', orgId)
             if (!orgId) {
               console.error('ID tổ chức trống, hủy request')
               setError('ID tổ chức không hợp lệ')
@@ -164,7 +161,6 @@ export function TeamSwitcher() {
             return true
           },
           onSuccess: () => {
-            debugLog('Chuyển đổi tổ chức thành công')
             // Tải lại toàn bộ trang để đảm bảo dữ liệu mới từ server
             window.location.reload()
           },
@@ -267,7 +263,7 @@ export function TeamSwitcher() {
             <DropdownMenuGroup>
               <div className="max-h-60 overflow-y-auto">
                 {organizations.map((organization) => (
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     key={organization.id || organization.name}
                     onSelect={() => handleSelect(organization)}
                     className={cn(

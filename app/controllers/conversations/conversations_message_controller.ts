@@ -77,27 +77,12 @@ export default class ConversationsMessageController {
     { params, request, response, auth }: HttpContext,
     recallMessage: RecallMessage
   ) {
-    console.log(`[ConversationsMessageController] Bắt đầu xử lý API recall message`, {
-      messageId: params.messageId,
-      conversationId: params.id,
-      requestBody: request.all(),
-      headers: request.headers(),
-    })
-
     try {
       const messageId = params.messageId
       const scope = request.input('scope', 'all') // 'all' hoặc 'self'
 
-      console.log(`[ConversationsMessageController] Thông tin thu hồi:`, {
-        messageId,
-        scope,
-        authenticated: await auth.check(),
-        user: auth.user ? { id: auth.user.id, email: auth.user.email } : null,
-      })
-
       // Kiểm tra xác thực người dùng
       if (!(await auth.check())) {
-        console.error('[ConversationsMessageController] Người dùng chưa xác thực')
         return response.status(401).json({
           success: false,
           error: 'Bạn cần đăng nhập để thực hiện thao tác này',
@@ -106,7 +91,6 @@ export default class ConversationsMessageController {
 
       // Kiểm tra dữ liệu đầu vào
       if (!messageId) {
-        console.error('[ConversationsMessageController] Thiếu message ID')
         return response.status(400).json({
           success: false,
           error: 'Thiếu ID tin nhắn cần thu hồi',
@@ -115,7 +99,6 @@ export default class ConversationsMessageController {
 
       // Kiểm tra scope hợp lệ
       if (scope !== 'all' && scope !== 'self') {
-        console.error(`[ConversationsMessageController] Scope không hợp lệ: ${scope}`)
         return response.status(400).json({
           success: false,
           error: 'Scope không hợp lệ. Chỉ chấp nhận "all" hoặc "self"',
@@ -130,19 +113,12 @@ export default class ConversationsMessageController {
       })
       const endTime = Date.now()
 
-      console.log(
-        `[ConversationsMessageController] Xử lý thu hồi hoàn tất sau ${endTime - startTime}ms:`,
-        result
-      )
-
       return response.json({
         success: true,
         result,
         processingTime: `${endTime - startTime}ms`,
       })
     } catch (error) {
-      console.error('[ConversationsMessageController] Lỗi thu hồi tin nhắn:', error)
-
       // Trả về một response có cấu trúc rõ ràng
       const statusCode = error.status || 500
       return response.status(statusCode).json({

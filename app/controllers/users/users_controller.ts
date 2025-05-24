@@ -56,7 +56,7 @@ export default class UsersController {
           message: 'Unauthorized',
         })
       }
-      
+
       const organizationId = user.current_organization_id
       if (!organizationId) {
         return response.status(400).json({
@@ -64,7 +64,7 @@ export default class UsersController {
           message: 'Không tìm thấy tổ chức hiện tại',
         })
       }
-      
+
       // Kiểm tra xem người dùng có phải là superadmin của tổ chức không
       const isSuperAdmin = await db
         .from('organization_users')
@@ -72,7 +72,7 @@ export default class UsersController {
         .where('user_id', user.id)
         .where('role_id', 1) // role_id = 1 là superadmin
         .first()
-        
+
       if (!isSuperAdmin) {
         return response.status(403).json({
           success: false,
@@ -93,13 +93,12 @@ export default class UsersController {
       }
 
       const users = await listUsers.handle({ options })
-      
+
       return response.json({
         success: true,
         users,
       })
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách người dùng:', error)
       return response.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi khi lấy danh sách người dùng',
@@ -261,9 +260,6 @@ export default class UsersController {
           'us.name as status_name',
           'u.created_at'
         )
-      console.log(
-        `Tìm thấy ${pendingUsers.length} người dùng chờ phê duyệt trong tổ chức ${organizationId}`
-      )
       // Định dạng lại dữ liệu để phù hợp với frontend
       const formattedUsers = pendingUsers.map((user) => ({
         id: user.id,
@@ -295,7 +291,6 @@ export default class UsersController {
         },
       })
     } catch (error) {
-      console.error('Lỗi khi lấy danh sách người dùng chờ phê duyệt:', error)
       return response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi lấy danh sách người dùng chờ phê duyệt.',
@@ -343,7 +338,6 @@ export default class UsersController {
         count: result?.count || 0,
       })
     } catch (error) {
-      console.error('Lỗi khi đếm số lượng người dùng chờ phê duyệt:', error)
       return response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi đếm số lượng người dùng chờ phê duyệt.',

@@ -14,22 +14,9 @@ export default class ProjectsController {
    * Liệt kê danh sách dự án
    */
   async index({ inertia, auth, session, request }: HttpContext) {
-    console.log('\n=== [ProjectsController.index] Bắt đầu xử lý request ===')
-    console.log('[ProjectsController.index] Thời gian bắt đầu:', new Date().toISOString())
-    console.log('[ProjectsController.index] Request URL:', request.url())
-    console.log('[ProjectsController.index] Request method:', request.method())
-    console.log('[ProjectsController.index] Request headers:', JSON.stringify(request.headers()))
     const user = auth.user!
-    console.log('[ProjectsController.index] User:', user.id, user.email)
-    console.log('[ProjectsController.index] Current organization ID:', user.current_organization_id)
     // Kiểm tra xem có flag show_organization_required_modal trong session không
     const showOrganizationRequiredModal = session.has('show_organization_required_modal')
-    console.log(
-      '[ProjectsController.index] Show organization required modal flag in session:',
-      showOrganizationRequiredModal
-    )
-    console.log('[ProjectsController.index] Bắt đầu truy vấn danh sách dự án')
-    const startQueryTime = Date.now()
     // Sử dụng view để lấy danh sách dự án
     const projects = await db
       .query()
@@ -60,41 +47,10 @@ export default class ProjectsController {
       .whereNull('p.deleted_at')
       .groupBy('p.id')
       .orderBy('p.created_at', 'desc')
-    const queryDuration = Date.now() - startQueryTime
-    console.log('[ProjectsController.index] Truy vấn hoàn thành trong:', queryDuration, 'ms')
-    console.log('[ProjectsController.index] Projects count:', projects.length)
-    // Log thông tin chi tiết về các dự án (giới hạn để tránh log quá dài)
-    if (projects.length > 0) {
-      console.log(
-        '[ProjectsController.index] Thông tin dự án đầu tiên:',
-        JSON.stringify(projects[0])
-      )
-      if (projects.length > 1) {
-        console.log('[ProjectsController.index] Số lượng dự án còn lại:', projects.length - 1)
-      }
-    }
-    console.log(
-      '[ProjectsController.index] Rendering với showOrganizationRequiredModal:',
-      showOrganizationRequiredModal
-    )
-    const renderStartTime = Date.now()
-    console.log('[ProjectsController.index] Bắt đầu render trang projects/index')
-    const result = inertia.render('projects/index', {
+    return inertia.render('projects/index', {
       projects,
       showOrganizationRequiredModal,
     })
-    console.log(
-      '[ProjectsController.index] Render hoàn thành trong:',
-      Date.now() - renderStartTime,
-      'ms'
-    )
-    console.log(
-      '[ProjectsController.index] Tổng thời gian xử lý:',
-      Date.now() - startQueryTime + queryDuration,
-      'ms'
-    )
-    console.log('=== [ProjectsController.index] Kết thúc xử lý request ===\n')
-    return result
   }
 
   /**

@@ -29,8 +29,6 @@ export const formatDate = (dateString: string): string => {
  */
 export const getPermissions = (currentUser: any, task: Task | null) => {
   // Log để debug
-  console.log('getPermissions - currentUser:', currentUser)
-  console.log('getPermissions - task:', task)
 
   if (!task) {
     return {
@@ -43,7 +41,6 @@ export const getPermissions = (currentUser: any, task: Task | null) => {
 
   // Xác định người dùng có phải là superadmin hay không
   const isSuperadmin = checkIsSuperadmin(currentUser)
-  console.log('getPermissions - isSuperadmin:', isSuperadmin)
   // Superadmin luôn có tất cả các quyền
   if (isSuperadmin) {
     return {
@@ -65,7 +62,6 @@ export const getPermissions = (currentUser: any, task: Task | null) => {
 
   // Xác định role từ currentUser
   const isAdmin = checkIsAdmin(currentUser)
-  console.log('getPermissions - isAdmin:', isAdmin)
   // Kiểm tra tổ chức
   const isSameOrganization = Number(currentUser?.organization_id) === Number(task?.organization_id)
   // Kiểm tra người tạo và người được giao

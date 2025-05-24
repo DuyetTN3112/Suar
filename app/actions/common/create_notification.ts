@@ -38,7 +38,6 @@ export default class CreateNotification {
 
       return notification
     } catch (error) {
-      console.error('Lỗi khi tạo thông báo:', error)
       return null
     }
   }

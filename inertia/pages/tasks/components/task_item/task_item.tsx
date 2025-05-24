@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { TaskItemProps } from '../../types'
-import { Trash2 } from 'lucide-react' 
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { canDeleteTask } from '../../utils/task_permissions'
 import { TaskDetailModal } from '../modals/task_detail_modal'
@@ -16,11 +16,11 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert_dialog'
 
-export function TaskItem({ 
-  task, 
-  completedStatusId, 
-  pendingStatusId, 
-  onToggleStatus, 
+export function TaskItem({
+  task,
+  completedStatusId,
+  pendingStatusId,
+  onToggleStatus,
   formatDate,
   statuses = [],
   priorities = [],
@@ -31,25 +31,25 @@ export function TaskItem({
   const isCompleted = task.status_id === completedStatusId;
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
+
   const handleTaskUpdate = (updatedTask: any) => {
-    console.log('Task đã được cập nhật:', updatedTask);
+    // Handle task update
   };
-  
+
   // Hàm mở modal chi tiết task
   const openTaskDetail = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowDetailModal(true);
   };
-  
+
   // Mở dialog xác nhận xóa
   const openDeleteConfirm = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setDeleteDialogOpen(true);
   };
-  
+
   // Xử lý xóa task
   const confirmDeleteTask = () => {
     router.delete(`/tasks/${task.id}`, {
@@ -62,18 +62,18 @@ export function TaskItem({
         console.error('Lỗi khi xóa task:', errors);
         alert('Có lỗi xảy ra khi xóa nhiệm vụ. Vui lòng thử lại.');
       },
-      preserveScroll: true, 
+      preserveScroll: true,
       preserveState: false,
       replace: true,
       only: ['tasks']
     });
   };
-  
+
   return (
     <>
       <div className="flex items-center justify-between w-full">
-        <div 
-          className="flex-1 cursor-pointer" 
+        <div
+          className="flex-1 cursor-pointer"
           onClick={openTaskDetail}
         >
           <div className="flex flex-col">
@@ -87,11 +87,11 @@ export function TaskItem({
             )}
           </div>
         </div>
-        
+
         {canDeleteTask(task, currentUser) && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-5 w-5 ml-2"
             onClick={openDeleteConfirm}
             title="Xóa nhiệm vụ"
@@ -100,7 +100,7 @@ export function TaskItem({
           </Button>
         )}
       </div>
-      
+
       {/* Modal Chi tiết Task */}
       <TaskDetailModal
         open={showDetailModal}
@@ -113,20 +113,20 @@ export function TaskItem({
         onUpdate={handleTaskUpdate}
         currentUser={currentUser}
       />
-      
+
       {/* Dialog xác nhận xóa task */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận xóa nhiệm vụ</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn xóa nhiệm vụ "{task.title}"? 
+              Bạn có chắc chắn muốn xóa nhiệm vụ "{task.title}"?
               Hành động này không thể hoàn tác.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Hủy</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={confirmDeleteTask}
               className="bg-red-500 hover:bg-red-600"
             >
@@ -137,4 +137,4 @@ export function TaskItem({
       </AlertDialog>
     </>
   )
-} 
+}

@@ -14,7 +14,6 @@ export default class MarkMessagesAsRead {
       await db.rawQuery('CALL mark_messages_as_read(?, ?)', [conversationId, user.id])
       return true
     } catch (error) {
-      console.error('Lỗi khi đánh dấu tin nhắn đã đọc:', error)
       return false
     }
   }

@@ -47,38 +47,25 @@ export function TaskDetailModal({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
   const [auditLogs, setAuditLogs] = useState<any[]>([])
-  
-  // Debug logs
-  useEffect(() => {
-    console.log('TaskDetailModal - Modal open state changed:', open);
-    console.log('TaskDetailModal - Selected task:', task);
-    console.log('TaskDetailModal - Current User:', currentUser);
-  }, [open, task, currentUser]);
-  
+
   // Tìm ID của trạng thái hoàn thành (thường là "Completed" hoặc "Done")
   const completedStatusId = useMemo(() => {
-    const completedStatus = statuses.find(status => 
-      status.name.toLowerCase().includes('hoàn thành') || 
+    const completedStatus = statuses.find(status =>
+      status.name.toLowerCase().includes('hoàn thành') ||
       status.name.toLowerCase().includes('completed') ||
       status.name.toLowerCase().includes('done')
     );
     return completedStatus?.id;
   }, [statuses]);
-  
+
   // Xác định quyền người dùng
-  const { canView, canEdit, canDelete, canMarkAsCompleted } = 
+  const { canView, canEdit, canDelete, canMarkAsCompleted } =
     getPermissions(currentUser, task);
-    
-  // Debug quyền hạn
-  useEffect(() => {
-    console.log('TaskDetailModal - User permissions:', { canView, canEdit, canDelete, canMarkAsCompleted });
-    console.log('TaskDetailModal - isEditing value:', canEdit);
-  }, [canView, canEdit, canDelete, canMarkAsCompleted]);
-  
+
   // Chuẩn hóa dữ liệu task từ các định dạng khác nhau của backend
   const normalizeTaskData = (taskData: Task | null) => {
     if (!taskData) return null;
-    
+
     // Chuẩn hóa các ID thành dạng đồng nhất
     return {
       ...taskData,
@@ -97,23 +84,24 @@ export function TaskDetailModal({
       assignee: taskData.assignee
     };
   };
-  
+
   // Cập nhật dữ liệu khi task thay đổi
   useEffect(() => {
     if (task) {
-      console.log('TaskDetailModal - Setting form data from task:', task);
-      
       // Chuẩn hóa dữ liệu trước khi đặt vào formData
       const normalizedTask = normalizeTaskData(task);
-      console.log('TaskDetailModal - Normalized task data:', normalizedTask);
-      
       setFormData(normalizedTask || {});
-      
+
       // Tải lịch sử thay đổi
       if (task.id) {
         loadAuditLogs(task.id)
           .then(logs => setAuditLogs(logs))
-          .catch(error => console.error('Error loading audit logs:', error));
+          .catch(error => {
+            // Only log in development
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error loading audit logs:', error);
+            }
+          });
       }
     }
   }, [task])
@@ -125,7 +113,6 @@ export function TaskDetailModal({
 
   // Đóng modal
   const handleClose = () => {
-    console.log('TaskDetailModal - Closing modal manually');
     onOpenChange(false)
   }
 
@@ -140,13 +127,13 @@ export function TaskDetailModal({
   };
 
   // Tìm phần hiển thị tiêu đề modal và sửa đổi để hiển thị rõ hơn
-  const modalTitle = task 
+  const modalTitle = task
     ? (
       <div className="flex items-center gap-2">
         <span className="text-sm font-medium text-muted-foreground">#{task.id}</span>
         {task.status && (
-          <span 
-            className="inline-block w-3 h-3 rounded-full" 
+          <span
+            className="inline-block w-3 h-3 rounded-full"
             style={{ backgroundColor: task.status.color }}
           ></span>
         )}
@@ -165,11 +152,11 @@ export function TaskDetailModal({
                 <DialogHeader className="flex-1">
                   <DialogTitle className="pr-8">{modalTitle}</DialogTitle>
                   <DialogDescription>
-                    {canEdit 
+                    {canEdit
                       ? <span className="flex items-center gap-1">
                           <span>{t('task.view_and_edit_task', {}, 'Xem và chỉnh sửa thông tin nhiệm vụ')}</span>
                           <span className="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400 rounded-full font-medium">{t('common.edit', {}, 'Chỉnh sửa')}</span>
-                        </span> 
+                        </span>
                       : t('task.view_task_info', {}, 'Xem thông tin nhiệm vụ')}
                   </DialogDescription>
                 </DialogHeader>
@@ -179,7 +166,7 @@ export function TaskDetailModal({
                 </DialogClose>
               </div>
             </div>
-            
+
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
               <div className="sticky top-[76px] z-10 bg-background border-b">
                 <TabsList className="grid w-full grid-cols-2">
@@ -193,7 +180,7 @@ export function TaskDetailModal({
                   </TabsTrigger>
                 </TabsList>
               </div>
-              
+
               <div className="p-6 pt-4">
                 <TabsContent value="info" className="mt-0">
                   <TaskDetailInfoTab
@@ -215,16 +202,16 @@ export function TaskDetailModal({
                     completedStatusId={completedStatusId}
                   />
                 </TabsContent>
-                
+
                 <TabsContent value="history" className="mt-0">
-                  <TaskDetailHistoryTab 
-                    auditLogs={auditLogs} 
+                  <TaskDetailHistoryTab
+                    auditLogs={auditLogs}
                     task={task}
                   />
                 </TabsContent>
               </div>
             </Tabs>
-            
+
             <DialogFooter className="p-6 pt-2 border-t">
               <Button
                 variant="outline"

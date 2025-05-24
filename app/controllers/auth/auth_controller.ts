@@ -44,7 +44,6 @@ export default class AuthController {
       session.forget('intended_url')
       return response.redirect().toPath(intendedUrl)
     } catch (error) {
-      console.error('Lỗi đăng nhập:', error.message)
       session.flash('error', 'Có lỗi xảy ra khi đăng nhập')
       return response.redirect().back()
     }
@@ -89,7 +88,6 @@ export default class AuthController {
         },
       }
     } catch (error) {
-      console.error('Lỗi khi lấy thông tin user:', error)
       return response.status(500).json({
         success: false,
         message: 'Lỗi khi lấy thông tin người dùng',
@@ -137,7 +135,6 @@ export default class AuthController {
         },
       })
     } catch (error) {
-      console.error('Lỗi đăng nhập dev:', error.message)
       return response.status(500).json({
         success: false,
         message: `Lỗi: ${error.message}`,

@@ -7,11 +7,6 @@ import env from '#start/env'
 @inject()
 export default class SwitchOrganizationController {
   private isDevMode = env.get('NODE_ENV') === 'development'
-  private log(...args: any[]) {
-    if (this.isDevMode) {
-      console.log('[SwitchOrganizationController]', ...args)
-    }
-  }
 
   @inject()
   async handle({ request, response, session, auth, inertia }: HttpContext) {
@@ -20,13 +15,9 @@ export default class SwitchOrganizationController {
       'organization_id',
       'current_path',
     ])
-    // Chỉ log thông tin cơ bản trong môi trường phát triển
-    this.log('Switching to organization ID:', organizationId)
-    this.log('Current path:', currentPath)
     try {
       // Kiểm tra nếu organizationId không tồn tại hoặc là null
       if (!organizationId) {
-        this.log('Organization ID is missing or null')
         if (request.accepts(['html', 'json']) === 'json') {
           return response.status(400).json({ success: false, message: 'Thiếu ID tổ chức' })
         }
@@ -35,7 +26,6 @@ export default class SwitchOrganizationController {
       // Kiểm tra tổ chức có tồn tại không
       const organization = await Organization.find(organizationId)
       if (!organization) {
-        this.log('Organization not found:', organizationId)
         if (request.accepts(['html', 'json']) === 'json') {
           return response.status(404).json({ success: false, message: 'Không tìm thấy tổ chức' })
         }
@@ -50,7 +40,6 @@ export default class SwitchOrganizationController {
         .first()
 
       if (!hasAccess) {
-        this.log('User has no access to organization:', organizationId)
         if (request.accepts(['html', 'json']) === 'json') {
           return response.status(403).json({
             success: false,
@@ -71,7 +60,6 @@ export default class SwitchOrganizationController {
         await user.merge({ current_organization_id: orgIdNumeric }).save()
         await user.refresh()
       } catch (error) {
-        this.log('Error updating database:', error)
         // Lỗi database không gây lỗi toàn bộ thao tác
       }
       // Xử lý phản hồi dựa trên loại request
@@ -88,7 +76,6 @@ export default class SwitchOrganizationController {
       session.flash('success', successMessage)
       return inertia.location(redirectPath)
     } catch (error) {
-      this.log('Error updating session:', error)
       if (request.accepts(['html', 'json']) === 'json') {
         return response.status(500).json({
           success: false,

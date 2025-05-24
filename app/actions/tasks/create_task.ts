@@ -35,9 +35,6 @@ export default class CreateTask {
       throw new Error('Không tìm thấy tổ chức hiện tại, vui lòng chọn tổ chức')
     }
 
-    console.log('[CreateTask] Creating task in organization:', currentOrganizationId)
-    console.log('[CreateTask] Data:', data)
-
     // Tạo task mới
     const task = await Task.create({
       ...data,
@@ -52,8 +49,6 @@ export default class CreateTask {
       estimated_time: data.estimated_time || 0,
       actual_time: data.actual_time || 0,
     })
-
-    console.log('[CreateTask] Created task:', task.id)
 
     // Ghi log hành động
     await AuditLog.create({
@@ -99,8 +94,6 @@ export default class CreateTask {
     const labelId = 1 // Công việc
     const priorityId = 2 // Trung bình
 
-    console.log('[CreateTask] Creating sample task for organization:', organizationId)
-
     const task = await Task.create({
       title: 'Task mẫu demo',
       description: 'Đây là task mẫu được tạo tự động cho mục đích demo',
@@ -115,7 +108,6 @@ export default class CreateTask {
       organization_id: organizationId,
     })
 
-    console.log('[CreateTask] Created sample task:', task.id)
     return task
   }
 }
