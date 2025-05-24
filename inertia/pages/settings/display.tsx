@@ -28,11 +28,8 @@ interface UserSetting {
 
 interface UserData {
   id: string
-  first_name: string
-  last_name: string
   username: string
   email: string
-  full_name: string
   user_setting?: UserSetting
 }
 
@@ -49,13 +46,10 @@ export default function Display() {
   const auth = page.props.auth
   const user = auth?.user || {
     id: '',
-    first_name: '',
-    last_name: '',
     username: '',
     email: '',
-    full_name: '',
-    user_setting: { 
-      layout: 'default', 
+    user_setting: {
+      layout: 'default',
       density: 'default',
       animations_enabled: true,
       custom_scrollbars: true
@@ -134,10 +128,10 @@ export default function Display() {
                       className="grid grid-cols-3 gap-4 pt-2"
                     >
                       <div>
-                        <RadioGroupItem 
-                          value="default" 
-                          id="layout-default" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="default"
+                          id="layout-default"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="layout-default"
@@ -148,10 +142,10 @@ export default function Display() {
                       </div>
 
                       <div>
-                        <RadioGroupItem 
-                          value="compact" 
-                          id="layout-compact" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="compact"
+                          id="layout-compact"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="layout-compact"
@@ -162,10 +156,10 @@ export default function Display() {
                       </div>
 
                       <div>
-                        <RadioGroupItem 
-                          value="wide" 
-                          id="layout-wide" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="wide"
+                          id="layout-wide"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="layout-wide"
@@ -186,10 +180,10 @@ export default function Display() {
                       className="grid grid-cols-3 gap-4 pt-2"
                     >
                       <div>
-                        <RadioGroupItem 
-                          value="default" 
-                          id="density-default" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="default"
+                          id="density-default"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="density-default"
@@ -200,10 +194,10 @@ export default function Display() {
                       </div>
 
                       <div>
-                        <RadioGroupItem 
-                          value="comfortable" 
-                          id="density-comfortable" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="comfortable"
+                          id="density-comfortable"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="density-comfortable"
@@ -214,10 +208,10 @@ export default function Display() {
                       </div>
 
                       <div>
-                        <RadioGroupItem 
-                          value="compact" 
-                          id="density-compact" 
-                          className="peer sr-only" 
+                        <RadioGroupItem
+                          value="compact"
+                          id="density-compact"
+                          className="peer sr-only"
                         />
                         <Label
                           htmlFor="density-compact"
@@ -265,4 +259,4 @@ export default function Display() {
   )
 }
 
-Display.layout = (page: React.ReactNode) => <AppLayout title="Hiển thị">{page}</AppLayout> 
+Display.layout = (page: React.ReactNode) => <AppLayout title="Hiển thị">{page}</AppLayout>

@@ -147,8 +147,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                         {!isOutgoing && (
                           <div className="flex-shrink-0 mr-2">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || t('conversation.user', {}, 'Người dùng')} />
-                              <AvatarFallback>{message.sender?.full_name ? getAvatarInitials(message.sender.full_name) : 'UN'}</AvatarFallback>
+                              <AvatarFallback>{message.sender?.username?.[0]?.toUpperCase() || message.sender?.email?.[0]?.toUpperCase() || 'UN'}</AvatarFallback>
                             </Avatar>
                           </div>
                         )}
@@ -157,7 +156,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                           {/* Luôn hiển thị tên người gửi cho tin nhắn đến trong cuộc trò chuyện nhóm */}
                           {!isOutgoing && showSenderInfo && (
                             <span className="text-xs font-medium text-slate-600 mb-1 ml-1">
-                              {message.sender?.full_name || t('conversation.user', {}, 'Người dùng')}
+                              {message.sender?.username || message.sender?.email || t('conversation.user', {}, 'Người dùng')}
                             </span>
                           )}
 
@@ -235,8 +234,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                         {isOutgoing && (
                           <div className="flex-shrink-0 ml-2">
                             <Avatar className="h-8 w-8">
-                              <AvatarImage src={(window as any).auth?.user?.avatar || ''} alt={(window as any).auth?.user?.full_name || t('conversation.you', {}, 'Bạn')} />
-                              <AvatarFallback>{getAvatarInitials((window as any).auth?.user?.full_name || t('conversation.you', {}, 'Bạn'))}</AvatarFallback>
+                              <AvatarFallback>{(window as any).auth?.user?.username?.[0]?.toUpperCase() || (window as any).auth?.user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                             </Avatar>
                           </div>
                         )}

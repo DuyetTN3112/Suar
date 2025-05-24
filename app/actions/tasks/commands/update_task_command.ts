@@ -200,7 +200,7 @@ export default class UpdateTaskCommand {
             await this.createNotification.handle({
               user_id: assignee.id,
               title: 'Bạn có nhiệm vụ mới',
-              message: `${updater.full_name || updater.username} đã giao cho bạn nhiệm vụ: ${task.title}`,
+              message: `${updater.username || updater.email} đã giao cho bạn nhiệm vụ: ${task.title}`,
               type: 'task_assigned',
               related_entity_type: 'task',
               related_entity_id: task.id,
@@ -215,7 +215,7 @@ export default class UpdateTaskCommand {
           await this.createNotification.handle({
             user_id: task.creator_id,
             title: 'Cập nhật nhiệm vụ',
-            message: `${updater.full_name || updater.username} đã cập nhật trạng thái nhiệm vụ: ${task.title}`,
+            message: `${updater.username || updater.email} đã cập nhật trạng thái nhiệm vụ: ${task.title}`,
             type: 'task_status_updated',
             related_entity_type: 'task',
             related_entity_id: task.id,
@@ -230,7 +230,7 @@ export default class UpdateTaskCommand {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
             title: 'Cập nhật nhiệm vụ',
-            message: `${updater.full_name || updater.username} đã bỏ giao nhiệm vụ: ${task.title}`,
+            message: `${updater.username || updater.email} đã bỏ giao nhiệm vụ: ${task.title}`,
             type: 'task_updated',
             related_entity_type: 'task',
             related_entity_id: task.id,

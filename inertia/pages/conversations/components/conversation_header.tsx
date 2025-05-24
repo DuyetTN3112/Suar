@@ -18,24 +18,20 @@ export const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   loggedInUserId
 }) => {
   const { t } = useTranslation()
-  
+
   if (!conversation) return null
 
   return (
     <div className="p-4 border-b flex items-center justify-between bg-card">
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarImage 
-            src={otherParticipant?.avatar || ''} 
-            alt={otherParticipant?.full_name || t('conversation.participant', {}, 'Người tham gia')} 
-          />
           <AvatarFallback>
-            {getAvatarInitials(otherParticipant?.full_name || t('conversation.participant', {}, 'Người tham gia'))}
+            {otherParticipant?.username?.[0]?.toUpperCase() || otherParticipant?.email?.[0]?.toUpperCase() || 'U'}
           </AvatarFallback>
         </Avatar>
         <div>
           <h2 className="font-semibold">
-            {otherParticipant?.full_name || t('conversation.title_default', {}, 'Cuộc trò chuyện')}
+            {otherParticipant?.username || otherParticipant?.email || t('conversation.title_default', {}, 'Cuộc trò chuyện')}
           </h2>
           {otherParticipant?.description ? (
             <p className="text-sm text-muted-foreground">{otherParticipant.description}</p>
@@ -46,7 +42,7 @@ export const ConversationHeader: React.FC<ConversationHeaderProps> = ({
           )}
         </div>
       </div>
-      
+
       <div className="flex items-center gap-2">
         <Button size="icon" variant="ghost" title={t('conversation.call', {}, 'Gọi điện')}>
           <Phone className="h-5 w-5" />

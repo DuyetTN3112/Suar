@@ -84,10 +84,10 @@ export default class GetTasksListQuery {
       .preload('label')
       .preload('priority')
       .preload('assignee', (assigneeQuery) => {
-        assigneeQuery.select(['id', 'first_name', 'last_name', 'full_name', 'email'])
+        assigneeQuery.select(['id', 'username', 'email'])
       })
       .preload('creator', (creatorQuery) => {
-        creatorQuery.select(['id', 'first_name', 'last_name', 'full_name'])
+        creatorQuery.select(['id', 'username'])
       })
       .preload('parentTask', (parentQuery) => {
         parentQuery.select(['id', 'title', 'status_id']).preload('status')

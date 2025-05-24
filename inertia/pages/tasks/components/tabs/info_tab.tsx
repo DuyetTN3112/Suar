@@ -20,7 +20,7 @@ export interface InfoTabProps {
   statuses: Array<{ id: number; name: string; color: string }>
   priorities: Array<{ id: number; name: string; color: string; value: number }>
   labels: Array<{ id: number; name: string; color: string }>
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string; avatar?: string }>
+  users: Array<{ id: number; username: string; email: string }>
 }
 
 export const InfoTab: React.FC<InfoTabProps> = ({
@@ -41,7 +41,7 @@ export const InfoTab: React.FC<InfoTabProps> = ({
   return (
     <div className="grid gap-4">
       <TaskCreatorInfo task={task} />
-      
+
       <div className="grid gap-2">
         <Label htmlFor="title">Tiêu đề</Label>
         <Input
@@ -57,7 +57,7 @@ export const InfoTab: React.FC<InfoTabProps> = ({
           <p className="text-xs text-red-500">{errors.title}</p>
         )}
       </div>
-      
+
       <div className="grid gap-2">
         <Label htmlFor="description">Mô tả</Label>
         <Textarea
@@ -74,48 +74,48 @@ export const InfoTab: React.FC<InfoTabProps> = ({
           <p className="text-xs text-red-500">{errors.description}</p>
         )}
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <StatusField 
-          formData={formData} 
-          handleSelectChange={handleSelectChange} 
-          isEditing={isEditing} 
-          statuses={statuses} 
-          task={task} 
+        <StatusField
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          isEditing={isEditing}
+          statuses={statuses}
+          task={task}
         />
-        
-        <PriorityField 
-          formData={formData} 
-          handleSelectChange={handleSelectChange} 
-          canEdit={canEdit} 
-          priorities={priorities} 
-          task={task} 
+
+        <PriorityField
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          canEdit={canEdit}
+          priorities={priorities}
+          task={task}
         />
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <LabelField 
-          formData={formData} 
-          handleSelectChange={handleSelectChange} 
-          canEdit={canEdit} 
-          labels={labels} 
-          task={task} 
+        <LabelField
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          canEdit={canEdit}
+          labels={labels}
+          task={task}
         />
-        
-        <AssigneeField 
-          formData={formData} 
-          handleSelectChange={handleSelectChange} 
-          canEdit={canEdit} 
-          users={users} 
-          task={task} 
+
+        <AssigneeField
+          formData={formData}
+          handleSelectChange={handleSelectChange}
+          canEdit={canEdit}
+          users={users}
+          task={task}
         />
       </div>
-      
-      <TaskDueDateField 
-        date={date} 
+
+      <TaskDueDateField
+        date={date}
         canEdit={canEdit}
         handleDateChange={handleDateChange}
       />
     </div>
   )
-} 
+}

@@ -1,17 +1,12 @@
 import vine from '@vinejs/vine'
 import { newEmailRule, newUsernameRule } from './auth.js'
 
-/**
- * Validator cho tạo người dùng mới
- */
 export const createUserValidator = vine.compile(
   vine.object({
     firstName: vine.string().maxLength(100),
     lastName: vine.string().maxLength(100),
     username: newUsernameRule.clone(),
     email: newEmailRule.clone(),
-    password: vine.string().minLength(8),
-    passwordConfirmation: vine.string().confirmed({ confirmationField: 'password' }),
     statusId: vine.number(),
     roleId: vine.number(),
   })
@@ -57,14 +52,8 @@ export const updateUserValidator = (userId: number) =>
   )
 
 /**
- * Validator cho cập nhật mật khẩu
+ * NOTE: Removed updatePasswordValidator - no password updates in OAuth-only system
  */
-export const updatePasswordValidator = vine.compile(
-  vine.object({
-    password: vine.string().minLength(8),
-    passwordConfirmation: vine.string().confirmed({ confirmationField: 'password' }),
-  })
-)
 
 /**
  * Validator cho cập nhật thông tin chi tiết

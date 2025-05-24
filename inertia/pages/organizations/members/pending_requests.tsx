@@ -1,20 +1,20 @@
 import React from 'react'
 import { Head, router } from '@inertiajs/react'
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { UserCheck, UserX, ArrowLeft } from 'lucide-react'
@@ -24,7 +24,7 @@ import { toast } from 'sonner'
 // Định nghĩa các kiểu dữ liệu
 interface PendingRequest {
   user_id: number
-  full_name: string
+  username: string
   email: string
   invited_by: number | null
   inviter_name: string | null
@@ -84,7 +84,7 @@ const PendingRequests = ({ organization, pendingRequests }: PendingRequestsProps
       <div className="container mx-auto py-6 space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Yêu cầu tham gia tổ chức chờ duyệt</h1>
-          
+
           <Button variant="outline" onClick={() => router.get(`/organizations/${organization.id}/members`)}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay lại quản lý thành viên
@@ -117,7 +117,7 @@ const PendingRequests = ({ organization, pendingRequests }: PendingRequestsProps
                 <TableBody>
                   {pendingRequests.map((request) => (
                     <TableRow key={request.user_id}>
-                      <TableCell className="font-medium">{request.full_name}</TableCell>
+                      <TableCell className="font-medium">{request.username || request.email}</TableCell>
                       <TableCell>{request.email}</TableCell>
                       <TableCell>
                         {request.invited_by ? (
@@ -158,4 +158,4 @@ const PendingRequests = ({ organization, pendingRequests }: PendingRequestsProps
   )
 }
 
-export default PendingRequests 
+export default PendingRequests

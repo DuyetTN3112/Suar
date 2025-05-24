@@ -1,17 +1,6 @@
 import vine from '@vinejs/vine'
 
 /**
- * Validator cho đăng nhập
- */
-export const loginValidator = vine.compile(
-  vine.object({
-    email: vine.string().email().normalizeEmail(),
-    password: vine.string(),
-    remember: vine.boolean().optional(),
-  })
-)
-
-/**
  * Rule cơ bản cho email
  */
 export const emailRule = vine.string().maxLength(254).email().normalizeEmail()
@@ -36,36 +25,11 @@ export const newUsernameRule = vine
   })
 
 /**
- * Validator cho đăng ký
+ * NOTE: Removed password-related validators:
+ * - loginValidator (no more email/password login)
+ * - registerValidator (no more manual registration)
+ * - forgotPasswordValidator (no more password reset)
+ * - resetPasswordValidator (no more password reset)
+ *
+ * Authentication is now OAuth-only (Google, GitHub)
  */
-export const registerValidator = vine.compile(
-  vine.object({
-    firstName: vine.string().maxLength(100),
-    lastName: vine.string().maxLength(100),
-    username: newUsernameRule.clone(),
-    email: newEmailRule.clone(),
-    password: vine.string().minLength(8),
-    passwordConfirmation: vine.string().confirmed({ confirmationField: 'password' }),
-  })
-)
-
-/**
- * Validator cho gửi yêu cầu đặt lại mật khẩu
- */
-export const forgotPasswordValidator = vine.compile(
-  vine.object({
-    email: vine.string().email().normalizeEmail(),
-  })
-)
-
-/**
- * Validator cho đặt lại mật khẩu
- */
-export const resetPasswordValidator = vine.compile(
-  vine.object({
-    token: vine.string(),
-    email: vine.string().email().normalizeEmail(),
-    password: vine.string().minLength(8),
-    passwordConfirmation: vine.string().confirmed({ confirmationField: 'password' }),
-  })
-)

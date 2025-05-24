@@ -1,11 +1,20 @@
 import { HttpContext } from '@adonisjs/core/http'
-import UserSetting from '#models/user_setting'
+
+/**
+ * Get user settings
+ * Note: Settings are now stored client-side (localStorage/cookies)
+ * This returns default values for server-side rendering
+ */
 export default class GetUserSettings {
   constructor(protected ctx: HttpContext) {}
 
   async handle() {
-    const user = this.ctx.auth.user!
-    const settings = await UserSetting.query().where('user_id', user.id).first()
-    return settings || {}
+    // Return default settings for SSR
+    // Actual settings are managed client-side
+    return {
+      theme: 'light',
+      notifications_enabled: true,
+      display_mode: 'grid',
+    }
   }
 }

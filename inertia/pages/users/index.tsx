@@ -44,11 +44,8 @@ import AddUserModal from './components/AddUserModal'
 
 type User = {
   id: number
-  first_name: string | null
-  last_name: string | null
-  full_name: string | null
+  username: string
   email: string
-  username?: string
   role: {
     id: number
     name: string

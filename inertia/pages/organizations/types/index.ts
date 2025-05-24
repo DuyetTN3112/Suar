@@ -19,11 +19,8 @@ export interface Organization {
 
 export interface User {
   id: number
-  first_name: string | null
-  last_name: string | null
-  full_name: string | null
+  username: string
   email: string
-  username?: string
 }
 
 export interface OrganizationUser {

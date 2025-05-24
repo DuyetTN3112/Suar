@@ -3,6 +3,8 @@
  *
  * Provides detailed logging for authentication flows
  * - OAuth (GitHub, Google)
+ *
+ * NOTE: Removed password-related logging (OAuth-only system):
  * - Email/Password login
  * - Registration
  * - Password reset

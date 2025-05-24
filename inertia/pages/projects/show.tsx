@@ -180,11 +180,10 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
                     safeMembers.map((member) => (
                       <div key={member.id} className="flex items-center space-x-3 p-3 border rounded-md">
                         <Avatar>
-                          <AvatarImage src={member.avatar_url} />
-                          <AvatarFallback>{getInitials(member.full_name)}</AvatarFallback>
+                          <AvatarFallback>{member.username?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium">{member.full_name}</p>
+                          <p className="font-medium">{member.username || member.email}</p>
                           <p className="text-sm text-muted-foreground">{member.email}</p>
                           <p className="text-xs text-muted-foreground">{member.role}</p>
                         </div>

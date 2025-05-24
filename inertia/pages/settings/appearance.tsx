@@ -25,11 +25,8 @@ interface UserSetting {
 
 interface UserData {
   id: string
-  first_name: string
-  last_name: string
   username: string
   email: string
-  full_name: string
   user_setting?: UserSetting
 }
 
@@ -46,11 +43,8 @@ export default function Appearance() {
   const auth = page.props.auth
   const user = auth?.user || {
     id: '',
-    first_name: '',
-    last_name: '',
     username: '',
     email: '',
-    full_name: '',
     user_setting: { theme: 'light', font: 'inter' }
   }
 
@@ -129,8 +123,8 @@ export default function Appearance() {
                   {/* Font */}
                   <div className="space-y-2">
                     <Label>Font</Label>
-                    <Select 
-                      value={form.data.font} 
+                    <Select
+                      value={form.data.font}
                       onValueChange={(value) => form.setData('font', value)}
                     >
                       <SelectTrigger className="w-[200px]">
@@ -153,10 +147,10 @@ export default function Appearance() {
                     <p className="text-sm text-muted-foreground">
                       Chọn chủ đề cho bảng điều khiển.
                     </p>
-                    
+
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       {/* Light theme */}
-                      <div 
+                      <div
                         className={`flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary ${selectedTheme === 'light' ? 'border-primary' : 'border-border'}`}
                         onClick={() => handleThemeChange('light')}
                       >
@@ -171,7 +165,7 @@ export default function Appearance() {
                       </div>
 
                       {/* Dark theme */}
-                      <div 
+                      <div
                         className={`flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary ${selectedTheme === 'dark' ? 'border-primary' : 'border-border'}`}
                         onClick={() => handleThemeChange('dark')}
                       >
@@ -203,4 +197,4 @@ export default function Appearance() {
   )
 }
 
-Appearance.layout = (page: React.ReactNode) => <AppLayout title="Giao diện">{page}</AppLayout> 
+Appearance.layout = (page: React.ReactNode) => <AppLayout title="Giao diện">{page}</AppLayout>

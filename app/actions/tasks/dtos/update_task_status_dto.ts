@@ -68,10 +68,7 @@ export default class UpdateTaskStatusDTO {
    * @param statusRules - Rules cho transitions (optional)
    * @returns true nếu transition hợp lệ
    */
-  public validateTransition(
-    currentStatusId: number,
-    statusRules?: Map<number, number[]>
-  ): boolean {
+  public validateTransition(currentStatusId: number, statusRules?: Map<number, number[]>): boolean {
     // Nếu không có rules, cho phép mọi transition
     if (!statusRules) {
       return true

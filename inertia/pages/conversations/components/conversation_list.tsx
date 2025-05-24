@@ -60,23 +60,22 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               // Nếu là cuộc trò chuyện 1-1, lấy thông tin người còn lại
               if (isDirectMessage && !conversation.title) {
                 const otherParticipant = participants.find(
-                  p => p.user_id !== loggedInUserId
+                  p => p.id !== loggedInUserId
                 )
 
                 if (otherParticipant) {
-                  displayName = otherParticipant.user_name || t('conversation.unknown_user', {}, 'Người dùng không xác định')
-                  displayAvatar = otherParticipant.user_avatar || ''
+                  displayName = otherParticipant.username || otherParticipant.email || t('conversation.unknown_user', {}, 'Người dùng không xác định')
                 }
               }
 
               // Nếu là nhóm không có tiêu đề, tạo tiêu đề từ danh sách thành viên
               if (!isDirectMessage && !conversation.title) {
                 const otherParticipants = participants
-                  .filter(p => p.user_id !== loggedInUserId)
+                  .filter(p => p.id !== loggedInUserId)
 
                 const names = otherParticipants
                   .slice(0, 2)
-                  .map(p => p.user_name)
+                  .map(p => p.username || p.email)
                   .filter(Boolean)
                   .join(", ")
 

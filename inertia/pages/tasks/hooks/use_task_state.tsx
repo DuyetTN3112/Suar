@@ -27,9 +27,8 @@ type TasksStateProps = {
     labels: Array<{ id: number; name: string; color: string }>
     users: Array<{
       id: number
-      first_name: string
-      last_name: string
-      full_name: string
+      username: string
+      email: string
     }>
   }
 }
@@ -38,7 +37,7 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
   // Sử dụng các hooks đã tách
   const taskFilters = useTaskFilters({ initialFilters: filters, metadata });
   const taskModals = useTaskModals();
-  
+
   // Lấy các giá trị và hàm từ taskFilters
   const {
     searchQuery,
@@ -53,7 +52,7 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
     handlePriorityChange,
     handleTabChange
   } = taskFilters;
-  
+
   // Lấy các giá trị và hàm từ taskModals
   const {
     createModalOpen,
@@ -69,7 +68,7 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
     handleDetailClick,
     handleDetailClose
   } = taskModals;
-  
+
   // Chuyển đổi trạng thái task
   const toggleTaskStatus = (task: Task, newStatusId: number) => {
     // Gửi request cập nhật trạng thái
@@ -80,7 +79,7 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
       only: ['tasks']
     });
   };
-  
+
   return {
     // Search và filter
     searchQuery,
@@ -90,7 +89,7 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
     selectedPriority,
     completedStatusId,
     pendingStatusId,
-    
+
     // Modal states
     createModalOpen,
     setCreateModalOpen,
@@ -98,11 +97,11 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
     setImportModalOpen,
     detailModalOpen,
     setDetailModalOpen,
-    
+
     // Task data
     selectedTaskId,
     selectedTask,
-    
+
     // Handler functions
     handleSearch,
     handleStatusChange,
@@ -114,4 +113,4 @@ export function useTaskState({ initialTasks, filters, metadata }: TasksStateProp
     handleDetailClick,
     handleDetailClose
   };
-} 
+}

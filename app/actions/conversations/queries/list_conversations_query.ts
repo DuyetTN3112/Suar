@@ -11,10 +11,9 @@ interface ConversationListItem {
   unread_count: number
   participant_count: number
   participants: Array<{
-    user_id: number
-    user_name: string | null
-    user_email: string | null
-    user_avatar: string | null
+    id: number
+    username: string | null
+    email: string | null
   }>
   last_message: {
     id: number
@@ -95,8 +94,7 @@ export default class ListConversationsQuery {
               .whereRaw('cp2.conversation_id = conversations.id')
               .where((nameBuilder) => {
                 nameBuilder
-                  .where('users.first_name', 'like', searchTerm)
-                  .orWhere('users.last_name', 'like', searchTerm)
+                  .where('users.username', 'like', searchTerm)
                   .orWhere('users.email', 'like', searchTerm)
               })
           })
@@ -124,8 +122,7 @@ export default class ListConversationsQuery {
               .whereRaw('cp2.conversation_id = conversations.id')
               .where((nameBuilder) => {
                 nameBuilder
-                  .where('users.first_name', 'like', searchTerm)
-                  .orWhere('users.last_name', 'like', searchTerm)
+                  .where('users.username', 'like', searchTerm)
                   .orWhere('users.email', 'like', searchTerm)
               })
           })
@@ -196,6 +193,7 @@ export default class ListConversationsQuery {
 
   /**
    * Get unread message counts for conversations
+   * Exclude messages recalled by sender for self
    */
   private async getUnreadCounts(
     conversationIds: number[],
@@ -207,13 +205,10 @@ export default class ListConversationsQuery {
       .whereIn('messages.conversation_id', conversationIds)
       .where('messages.sender_id', '!=', userId)
       .whereNull('messages.read_at')
-      .leftJoin('deleted_messages', function () {
-        this.on('deleted_messages.message_id', 'messages.id').andOnVal(
-          'deleted_messages.user_id',
-          userId
-        )
-      })
-      .whereNull('deleted_messages.id')
+      .whereRaw(
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        [userId]
+      )
       .groupBy('messages.conversation_id')
 
     const map = new Map<number, number>()
@@ -232,12 +227,10 @@ export default class ListConversationsQuery {
       .select(
         'conversation_participants.conversation_id',
         'conversation_participants.user_id',
-        Database.raw("CONCAT(users.first_name, ' ', users.last_name) as user_name"),
-        'users.email as user_email',
-        'user_details.avatar_url as user_avatar'
+        'users.username as username',
+        'users.email as email'
       )
       .join('users', 'conversation_participants.user_id', 'users.id')
-      .leftJoin('user_details', 'users.id', 'user_details.user_id')
       .whereIn('conversation_participants.conversation_id', conversationIds)
 
     const map = new Map<number, any[]>()
@@ -249,10 +242,9 @@ export default class ListConversationsQuery {
       }
 
       map.get(conversationId)!.push({
-        user_id: result.user_id,
-        user_name: result.user_name,
-        user_email: result.user_email,
-        user_avatar: result.user_avatar,
+        id: result.user_id,
+        username: result.username,
+        email: result.email,
       })
     })
 
@@ -261,7 +253,7 @@ export default class ListConversationsQuery {
 
   /**
    * Get last messages for conversations
-   * Filter out recalled messages (show replacement text) and deleted messages
+   * Filter out messages recalled by current user for self
    */
   private async getLastMessages(
     conversationIds: number[],
@@ -277,7 +269,7 @@ export default class ListConversationsQuery {
         'messages.is_recalled',
         'messages.recall_scope',
         'messages.created_at',
-        Database.raw("CONCAT(users.first_name, ' ', users.last_name) as sender_name")
+        'users.username as sender_name'
       )
       .join('users', 'messages.sender_id', 'users.id')
       .joinRaw(
@@ -289,13 +281,10 @@ export default class ListConversationsQuery {
         ) as latest ON messages.conversation_id = latest.conversation_id
           AND messages.created_at = latest.max_created_at`
       )
-      .leftJoin('deleted_messages', function () {
-        this.on('deleted_messages.message_id', 'messages.id').andOnVal(
-          'deleted_messages.user_id',
-          userId
-        )
-      })
-      .whereNull('deleted_messages.id')
+      .whereRaw(
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        [userId]
+      )
 
     const map = new Map<number, any>()
 

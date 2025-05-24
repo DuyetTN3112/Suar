@@ -39,16 +39,16 @@ function LogEntry({ log }: { log: AuditLog }) {
         {formatDate(log.created_at)}
       </div>
       <div>
-        <div className="font-medium">{log.user?.full_name || 'Người dùng'}</div>
+        <div className="font-medium">{log.user?.username || 'Người dùng'}</div>
         <div className="text-xs">{log.action}</div>
         {log.changes && (
           <div className="text-xs mt-1 text-muted-foreground">
-            {typeof log.changes === 'string' 
-              ? log.changes 
+            {typeof log.changes === 'string'
+              ? log.changes
               : JSON.stringify(log.changes)}
           </div>
         )}
       </div>
     </div>
   )
-} 
+}

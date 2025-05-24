@@ -50,7 +50,7 @@ export default class OrganizationsController {
         const ownerInfo = await db
           .from('users')
           .where('id', org.owner_id)
-          .select('full_name')
+          .select('username')
           .first()
 
         const memberCount = await db
@@ -62,7 +62,7 @@ export default class OrganizationsController {
         return {
           ...org.toJSON(),
           founded_date: '2023',
-          owner: ownerInfo?.full_name || 'Admin',
+          owner: ownerInfo?.username || 'Admin',
           employee_count: memberCount?.count || 0,
           project_count: null,
           industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
@@ -112,11 +112,8 @@ export default class OrganizationsController {
         .whereNull('users.deleted_at')
         .select(
           'users.id',
-          'users.first_name',
-          'users.last_name',
-          'users.full_name',
-          'users.email',
           'users.username',
+          'users.email',
           'organization_users.role_id',
           'user_roles.name as role_name'
         )

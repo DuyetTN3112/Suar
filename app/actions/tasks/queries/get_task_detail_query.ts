@@ -66,13 +66,13 @@ export default class GetTaskDetailQuery {
         .load('label')
         .load('priority')
         .load('assignee', (q: any) => {
-          q.select(['id', 'first_name', 'last_name', 'full_name', 'email'])
+          q.select(['id', 'username', 'email'])
         })
         .load('creator', (q: any) => {
-          q.select(['id', 'first_name', 'last_name', 'full_name'])
+          q.select(['id', 'username'])
         })
         .load('updater', (q: any) => {
-          q.select(['id', 'first_name', 'last_name', 'full_name'])
+          q.select(['id', 'username'])
         })
         .load('organization')
         .load('project')
@@ -88,7 +88,7 @@ export default class GetTaskDetailQuery {
           .whereNull('deleted_at')
           .preload('status')
           .preload('assignee', (q: any) => {
-            q.select(['id', 'first_name', 'last_name', 'full_name'])
+            q.select(['id', 'username'])
           })
       })
     }
@@ -212,7 +212,7 @@ export default class GetTaskDetailQuery {
       .orderBy('created_at', 'desc')
       .limit(limit)
       .preload('user', (userQuery: any) => {
-        userQuery.select(['id', 'first_name', 'last_name', 'full_name', 'email'])
+        userQuery.select(['id', 'username', 'email'])
       })
 
     return logs.map((log) => ({
@@ -221,7 +221,7 @@ export default class GetTaskDetailQuery {
       user: log.user
         ? {
             id: log.user.id,
-            name: log.user.full_name || `${log.user.first_name} ${log.user.last_name}`.trim(),
+            name: log.user.username,
             email: log.user.email,
           }
         : null,

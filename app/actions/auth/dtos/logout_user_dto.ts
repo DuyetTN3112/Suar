@@ -1,11 +1,4 @@
 import type { Command } from '../../shared/interfaces.js'
-
-/**
- * LogoutUserDTO
- *
- * Data Transfer Object for user logout.
- * Simple DTO as logout only needs user ID (from session).
- */
 export class LogoutUserDTO implements Command {
   public readonly userId: number
   public readonly sessionId?: string

@@ -6,7 +6,7 @@ import User from '#models/user'
  * GetUserDetailQuery
  *
  * Retrieves detailed information about a specific user by ID.
- * Includes all relations: role, status, detail, profile, settings.
+ * Includes relations: role, status.
  *
  * This is a Query (Read operation) that does NOT change system state.
  * Results can be cached for performance.
@@ -30,9 +30,6 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
         .whereNull('deleted_at')
         .preload('role')
         .preload('status')
-        .preload('user_detail')
-        .preload('user_profile')
-        .preload('user_setting')
         .firstOrFail()
 
       return user

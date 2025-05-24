@@ -4,7 +4,6 @@ import { middleware } from '../kernel.js'
 // User controllers (Refactored with CQRS)
 const UsersController = () => import('#controllers/users/users_controller')
 const ProfileController = () => import('#controllers/users/profile_controller')
-const AvatarController = () => import('#controllers/users/avatar_controller')
 
 router
   .group(() => {
@@ -39,7 +38,5 @@ router
     router
       .put('/profile/settings', [ProfileController, 'updateSettings'])
       .as('profile.update_settings')
-    // Avatar routes
-    router.post('/profile/avatar', [AvatarController, 'update']).as('profile.update_avatar')
   })
   .use([middleware.auth(), middleware.requireOrg()])

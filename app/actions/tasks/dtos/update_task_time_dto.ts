@@ -22,7 +22,8 @@ export default class UpdateTaskTimeDTO {
     // At least one time field must be provided
     if (data.estimated_time === undefined && data.actual_time === undefined) {
       throw new Error(
-        'Phải cung cấp ít nhất một trong hai: thời gian ước tính hoặc thời gian thực tế')
+        'Phải cung cấp ít nhất một trong hai: thời gian ước tính hoặc thời gian thực tế'
+      )
     }
 
     // Validate estimated_time if provided

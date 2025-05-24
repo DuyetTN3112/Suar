@@ -50,11 +50,11 @@ export function ProfileDropdown() {
   }
 
   // Tạo tên hiển thị từ thông tin người dùng
-  const displayName = user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim()
+  const displayName = user.username || user.email || 'User'
 
   const userEmail = user.email || ''
-  const avatarUrl = user.avatar || `/avatars/${user.username || 'unknown'}.jpg`
-  const initials = getInitials(displayName)
+  const avatarUrl = `/avatars/${user.username || 'unknown'}.jpg`
+  const initials = user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'
 
   return (
     <DropdownMenu modal={false}>

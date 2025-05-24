@@ -113,7 +113,7 @@ export const getConversationName = (conversation: Conversation): string => {
 
   // Nếu không có title, lấy tên người tham gia
   return conversation.conversation_participants
-    .map((cp) => cp.user.full_name)
+    .map((cp) => cp.user.username || cp.user.email)
     .filter((name) => name)
     .join(', ')
 }
@@ -151,14 +151,14 @@ export const getOtherParticipant = (conversation: Conversation | null, currentUs
  */
 export function calculateMessageSize(message: string): string {
   // Mỗi ký tự trong chuỗi JS = 2 bytes (UTF-16)
-  const bytes = message.length * 2;
+  const bytes = message.length * 2
 
   // Chuyển đổi bytes thành định dạng dễ đọc
   if (bytes < 1024) {
-    return `${bytes} B`;
+    return `${bytes} B`
   } else if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024).toFixed(1)} KB`
   } else {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 }

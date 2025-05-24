@@ -95,10 +95,10 @@ export default class GetUserTasksQuery {
       .preload('label')
       .preload('priority')
       .preload('assignee', (q) => {
-        q.select(['id', 'first_name', 'last_name', 'full_name'])
+        q.select(['id', 'username'])
       })
       .preload('creator', (q) => {
-        q.select(['id', 'first_name', 'last_name', 'full_name'])
+        q.select(['id', 'username'])
       })
       .preload('project', (q) => {
         q.select(['id', 'name'])

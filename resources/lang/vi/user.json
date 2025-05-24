@@ -1,11 +1,7 @@
 {
   "user": {
-    "first_name": "Tên",
-    "last_name": "Họ",
     "email": "Email",
     "username": "Tên đăng nhập",
-    "password": "Mật khẩu",
-    "confirm_password": "Xác nhận mật khẩu",
     "role": "Vai trò",
     "status": "Trạng thái",
     "created_at": "Tạo lúc",

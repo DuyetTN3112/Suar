@@ -34,12 +34,5 @@ export const notificationSettingValidator = vine.compile(
 )
 
 /**
- * Validator cho thay đổi mật khẩu
+ * NOTE: Removed passwordUpdateValidator - no password changes in OAuth-only system
  */
-export const passwordUpdateValidator = vine.compile(
-  vine.object({
-    currentPassword: vine.string(),
-    password: vine.string().minLength(8),
-    passwordConfirmation: vine.string().confirmed({ confirmationField: 'password' }),
-  })
-)

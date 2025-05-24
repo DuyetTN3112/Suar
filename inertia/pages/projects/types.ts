@@ -2,9 +2,8 @@ import { DateTime } from 'luxon'
 
 export interface User {
   id: number
-  full_name: string
+  username: string
   email: string
-  avatar_url?: string
   current_organization_id?: number | null
 }
 
@@ -21,10 +20,9 @@ export interface ProjectStatus {
 
 export interface ProjectMember {
   id: number
-  full_name: string
+  username: string
   email: string
   role: string
-  avatar_url?: string
 }
 
 export interface Task {

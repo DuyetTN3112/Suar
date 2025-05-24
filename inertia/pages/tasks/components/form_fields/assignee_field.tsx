@@ -9,12 +9,12 @@ interface AssigneeFieldProps {
   formData: Partial<Task>
   handleSelectChange: (name: string, value: string) => void
   canEdit: boolean
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string; avatar?: string }>
+  users: Array<{ id: number; username: string; email: string }>
   task: Task
 }
 
-export const AssigneeField: React.FC<AssigneeFieldProps> = ({ 
-  formData, handleSelectChange, canEdit, users, task 
+export const AssigneeField: React.FC<AssigneeFieldProps> = ({
+  formData, handleSelectChange, canEdit, users, task
 }) => {
   return (
     <div className="grid gap-2">
@@ -32,10 +32,9 @@ export const AssigneeField: React.FC<AssigneeFieldProps> = ({
               <SelectItem key={user.id} value={String(user.id)}>
                 <div className="flex items-center">
                   <Avatar className="h-5 w-5">
-                    <AvatarImage src={user.avatar || ''} alt={user.full_name} />
-                    <AvatarFallback>{user.full_name ? getAvatarInitials(user.full_name) : ''}</AvatarFallback>
+                    <AvatarFallback>{user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                   </Avatar>
-                  <span className="ml-2">{user.full_name}</span>
+                  <span className="ml-2">{user.username || user.email}</span>
                 </div>
               </SelectItem>
             ))}
@@ -46,10 +45,11 @@ export const AssigneeField: React.FC<AssigneeFieldProps> = ({
           {task.assignee ? (
             <>
               <Avatar className="h-7 w-7">
-                <AvatarImage src={task.assignee.avatar || ''} alt={task.assignee.full_name} />
-                <AvatarFallback>{task.assignee.full_name ? getAvatarInitials(task.assignee.full_name) : ''}</AvatarFallback>
+                <AvatarFallback>
+                  {task.assignee.username?.[0]?.toUpperCase() || task.assignee.email?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
               </Avatar>
-              <span className="ml-2">{task.assignee.full_name}</span>
+              <span className="ml-2">{task.assignee.username || task.assignee.email}</span>
             </>
           ) : (
             "Không xác định"
@@ -58,4 +58,4 @@ export const AssigneeField: React.FC<AssigneeFieldProps> = ({
       )}
     </div>
   )
-} 
+}

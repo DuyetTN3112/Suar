@@ -62,10 +62,8 @@ export default class GetOrganizationMembersQuery {
         'ou.role_id',
         'ou.joined_at',
         'ou.created_at',
-        'u.first_name',
-        'u.last_name',
+        'u.username',
         'u.email',
-        'u.avatar',
         'u.is_active',
         'r.name as role_name',
         'r.display_name as role_display_name'
@@ -79,8 +77,7 @@ export default class GetOrganizationMembersQuery {
     if (dto.search) {
       query.where((searchQuery) => {
         searchQuery
-          .whereILike('u.first_name', `%${dto.search}%`)
-          .orWhereILike('u.last_name', `%${dto.search}%`)
+          .whereILike('u.username', `%${dto.search}%`)
           .orWhereILike('u.email', `%${dto.search}%`)
       })
     }
@@ -110,11 +107,8 @@ export default class GetOrganizationMembersQuery {
         created_at: member.created_at,
         user: {
           id: member.user_id,
-          first_name: member.first_name,
-          last_name: member.last_name,
-          full_name: `${member.first_name} ${member.last_name}`.trim(),
+          username: member.username,
           email: member.email,
-          avatar: member.avatar,
           is_active: member.is_active,
         },
       })),

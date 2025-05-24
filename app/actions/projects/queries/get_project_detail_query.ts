@@ -10,9 +10,8 @@ export interface GetProjectDetailResult {
   project: any
   members: Array<{
     user_id: number
-    full_name: string
+    username: string
     email: string
-    avatar_url: string | null
     role: string
     joined_at: Date
     task_count: number
@@ -124,16 +123,8 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   private async getMembers(projectId: number): Promise<any[]> {
     const members = await db
       .from('project_members as pm')
-      .select(
-        'pm.user_id',
-        'pm.role',
-        'pm.created_at as joined_at',
-        'u.full_name',
-        'u.email',
-        'ud.avatar_url'
-      )
+      .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
       .leftJoin('users as u', 'pm.user_id', 'u.id')
-      .leftJoin('user_details as ud', 'u.id', 'ud.user_id')
       .where('pm.project_id', projectId)
       .orderBy('pm.created_at', 'asc')
 
@@ -210,7 +201,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   private async getRecentActivity(projectId: number): Promise<any[]> {
     const activities = await db
       .from('audit_logs')
-      .select('audit_logs.*', 'users.full_name as user_name')
+      .select('audit_logs.*', 'users.username as username')
       .leftJoin('users', 'audit_logs.user_id', 'users.id')
       .where('entity_type', 'project')
       .where('entity_id', projectId)

@@ -19,9 +19,8 @@ export interface GetProjectMembersDTO {
 export interface GetProjectMembersResult {
   data: Array<{
     user_id: number
-    full_name: string
+    username: string
     email: string
-    avatar_url: string | null
     role: string
     joined_at: Date
     task_count: number
@@ -71,16 +70,8 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Build base query
     let query = db
       .from('project_members as pm')
-      .select(
-        'pm.user_id',
-        'pm.role',
-        'pm.created_at as joined_at',
-        'u.full_name',
-        'u.email',
-        'ud.avatar_url'
-      )
+      .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
       .leftJoin('users as u', 'pm.user_id', 'u.id')
-      .leftJoin('user_details as ud', 'u.id', 'ud.user_id')
       .where('pm.project_id', dto.project_id)
 
     // Apply role filter
@@ -92,7 +83,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     if (dto.search && dto.search.trim().length > 0) {
       const searchTerm = `%${dto.search.trim()}%`
       query = query.where((builder) => {
-        builder.where('u.full_name', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
+        builder.where('u.username', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
       })
     }
 

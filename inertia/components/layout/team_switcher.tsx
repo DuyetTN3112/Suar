@@ -1,17 +1,7 @@
 import * as React from 'react'
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-} from '@/components/ui/command'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,12 +17,6 @@ import { router } from '@inertiajs/react'
 import { usePage } from '@inertiajs/react'
 import { useSidebar } from '@/components/ui/sidebar'
 
-// Hàm log debug thông tin chỉ trong môi trường development và chỉ khi cần thiết
-const debugLog = (message: string, ...args: any[]) => {
-  if (window.DEBUG_MODE && process.env.NODE_ENV === 'development') {
-  }
-};
-
 // Định nghĩa interface cho team/organization
 interface Organization {
   id?: string
@@ -43,12 +27,8 @@ interface Organization {
 
 interface AuthUser {
   id?: string
-  first_name?: string
-  last_name?: string
-  full_name?: string
-  email?: string
-  avatar?: string
   username?: string
+  email?: string
   organizations?: Organization[]
   current_organization_id?: string
 }

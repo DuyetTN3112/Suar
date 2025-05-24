@@ -202,10 +202,7 @@ export default class AssignTaskCommand {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
             title: 'Cập nhật nhiệm vụ',
-            message: dto.getNotificationMessage(
-              task.title,
-              assigner.full_name || assigner.username
-            ),
+            message: dto.getNotificationMessage(task.title, assigner.username || assigner.email),
             type: 'task_unassigned',
             related_entity_type: 'task',
             related_entity_id: task.id,
@@ -220,10 +217,7 @@ export default class AssignTaskCommand {
           await this.createNotification.handle({
             user_id: newAssignee.id,
             title: 'Bạn có nhiệm vụ mới',
-            message: dto.getNotificationMessage(
-              task.title,
-              assigner.full_name || assigner.username
-            ),
+            message: dto.getNotificationMessage(task.title, assigner.username || assigner.email),
             type: 'task_assigned',
             related_entity_type: 'task',
             related_entity_id: task.id,
@@ -237,7 +231,7 @@ export default class AssignTaskCommand {
             await this.createNotification.handle({
               user_id: oldAssignee.id,
               title: 'Cập nhật nhiệm vụ',
-              message: `${assigner.full_name || assigner.username} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
+              message: `${assigner.username || assigner.email} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
               type: 'task_reassigned',
               related_entity_type: 'task',
               related_entity_id: task.id,

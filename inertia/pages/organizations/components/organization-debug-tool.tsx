@@ -18,7 +18,7 @@ export function OrganizationDebugTool() {
     setLoading(true)
     setError(null)
     setFixed(false)
-    
+
     try {
       const response = await axios.get('/api/debug-organization-info')
       if (response.data.success) {
@@ -36,17 +36,17 @@ export function OrganizationDebugTool() {
   const fixOrganizationIssues = async () => {
     setLoading(true)
     setError(null)
-    
+
     try {
       // Nếu người dùng chưa có tổ chức hiện tại nhưng có tổ chức trong danh sách
       if (debugInfo && !debugInfo.user_current_organization_id && !debugInfo.session_organization_id && debugInfo.organizations.length > 0) {
         const firstOrg = debugInfo.organizations[0]
-        
+
         // Gọi API chuyển sang tổ chức đầu tiên
         const response = await axios.post('/switch-organization', {
           organization_id: firstOrg.id
         })
-        
+
         if (response.data.success) {
           toast({
             title: 'Đã sửa thành công',
@@ -54,7 +54,7 @@ export function OrganizationDebugTool() {
             type: 'success'
           })
           setFixed(true)
-          
+
           // Tải lại trang để áp dụng thay đổi
           setTimeout(() => {
             router.reload()
@@ -62,17 +62,17 @@ export function OrganizationDebugTool() {
         } else {
           setError(response.data.message || 'Không thể chuyển tổ chức')
         }
-      } 
+      }
       // Nếu session và user model có sự khác biệt
       else if (debugInfo && debugInfo.user_current_organization_id !== debugInfo.session_organization_id) {
         // Sử dụng giá trị từ session nếu có, ngược lại dùng từ user
         const orgId = debugInfo.session_organization_id || debugInfo.user_current_organization_id
-        
+
         // Gọi API để đồng bộ
         const response = await axios.post('/switch-organization', {
           organization_id: orgId
         })
-        
+
         if (response.data.success) {
           toast({
             title: 'Đã đồng bộ thành công',
@@ -80,7 +80,7 @@ export function OrganizationDebugTool() {
             type: 'success'
           })
           setFixed(true)
-          
+
           setTimeout(() => {
             router.reload()
           }, 1000)
@@ -117,7 +117,7 @@ export function OrganizationDebugTool() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
-        
+
         {fixed && (
           <Alert variant="default" className="mb-4 bg-green-50 text-green-800 border-green-200">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -125,7 +125,7 @@ export function OrganizationDebugTool() {
             <AlertDescription>Vấn đề đã được sửa thành công. Đang tải lại trang...</AlertDescription>
           </Alert>
         )}
-        
+
         {debugInfo && (
           <div className="space-y-2 text-sm">
             <div className="grid grid-cols-2 gap-2 border-b pb-2">
@@ -134,7 +134,7 @@ export function OrganizationDebugTool() {
             </div>
             <div className="grid grid-cols-2 gap-2 border-b pb-2">
               <div className="font-medium">Tên người dùng:</div>
-              <div>{debugInfo.user_name}</div>
+              <div>{debugInfo.username}</div>
             </div>
             <div className="grid grid-cols-2 gap-2 border-b pb-2">
               <div className="font-medium">Tổ chức từ user model:</div>
@@ -181,7 +181,7 @@ export function OrganizationDebugTool() {
         >
           {loading && !fixed ? 'Đang tải...' : 'Kiểm tra'}
         </Button>
-        
+
         <Button
           onClick={fixOrganizationIssues}
           disabled={loading || !debugInfo}
@@ -193,4 +193,4 @@ export function OrganizationDebugTool() {
   )
 }
 
-export default OrganizationDebugTool 
+export default OrganizationDebugTool

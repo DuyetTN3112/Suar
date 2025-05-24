@@ -62,7 +62,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         project.id,
         {
           user_id: dto.user_id,
-          user_name: userToRemove.full_name,
+          username: userToRemove.username,
           role: memberRole,
         },
         {

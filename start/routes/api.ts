@@ -63,13 +63,10 @@ router
             'ou.joined_at',
             'r.name as role_name',
             'u.id as user_id',
-            'u.first_name',
-            'u.last_name',
-            'u.full_name',
-            'u.email',
-            'u.avatar'
+            'u.username',
+            'u.email'
           )
-          .orderBy('u.full_name', 'asc')
+          .orderBy('u.username', 'asc')
         const formattedMembers = members.map((member) => ({
           id: member.id,
           role_id: member.role_id,
@@ -77,12 +74,8 @@ router
           joined_at: member.joined_at,
           user: {
             id: member.user_id,
-            first_name: member.first_name,
-            last_name: member.last_name,
-            full_name:
-              member.full_name || `${member.first_name || ''} ${member.last_name || ''}`.trim(),
+            username: member.username,
             email: member.email,
-            avatar: member.avatar,
           },
         }))
         return response.json({
@@ -134,12 +127,12 @@ router
           .join('organization_users as ou', 'u.id', 'ou.user_id')
           .where('ou.organization_id', organizationId)
           .whereNot('u.id', auth.user.id) // Loại trừ người dùng hiện tại
-          .select('u.id', 'u.first_name', 'u.last_name', 'u.full_name', 'u.email')
-          .orderBy('u.full_name', 'asc')
+          .select('u.id', 'u.username', 'u.email')
+          .orderBy('u.username', 'asc')
         // Format lại dữ liệu trả về
         const formattedUsers = users.map((user) => ({
           id: user.id.toString(),
-          full_name: user.full_name || `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+          username: user.username,
           email: user.email,
         }))
         return response.json({
@@ -282,7 +275,7 @@ router
           success: true,
           debug: {
             user_id: user.id,
-            user_name: user.full_name,
+            username: user.username,
             user_current_organization_id: user.current_organization_id,
             session_organization_id: sessionOrgId,
             organizations: userOrganizations,

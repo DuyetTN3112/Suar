@@ -1,5 +1,4 @@
-import React from 'react'
-import { Link, usePage, router } from '@inertiajs/react'
+import { Link, router } from '@inertiajs/react'
 import {
   BadgeCheck,
   Bell,
@@ -8,7 +7,7 @@ import {
   LogOut,
   Sparkles,
 } from 'lucide-react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,33 +25,25 @@ import {
 } from '@/components/ui/sidebar/index'
 import useTranslation from '@/hooks/use_translation'
 
-interface PageProps {
-  csrfToken: string
-  [key: string]: any
-}
-
 export function NavUser({
   user,
 }: {
   user: {
     name: string
     email: string
-    avatar: string
   }
 }) {
   const { isMobile } = useSidebar()
-  const page = usePage<PageProps>()
-  const csrfToken = page.props.csrfToken || ''
   const { t } = useTranslation()
 
-  // Tạo initials từ tên người dùng
+  // Tạo initials từ tên người dùng hoặc email
   const getInitials = (name: string) => {
     return name
       .split(' ')
       .map((part) => part[0])
       .join('')
       .toUpperCase()
-      .substring(0, 2);
+      .substring(0, 2) || name.substring(0, 2).toUpperCase();
   }
 
   const initials = getInitials(user.name)
@@ -68,7 +59,6 @@ export function NavUser({
               tooltip={user.name}
             >
               <Avatar className='h-8 w-8 rounded-lg !block'>
-                <AvatarImage src={user.avatar} alt={user.name} className="!block" />
                 <AvatarFallback className='rounded-lg !block'>{initials}</AvatarFallback>
               </Avatar>
               <div className='grid flex-1 text-left text-sm leading-tight'>
@@ -87,7 +77,6 @@ export function NavUser({
             <DropdownMenuLabel className='p-0 font-normal'>
               <div className='flex items-center gap-2 px-1 py-1.5 text-left text-sm'>
                 <Avatar className='h-8 w-8 rounded-lg'>
-                  <AvatarImage src={user.avatar} alt={user.name} />
                   <AvatarFallback className='rounded-lg'>{initials}</AvatarFallback>
                 </Avatar>
                 <div className='grid flex-1 text-left text-sm leading-tight'>

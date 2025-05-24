@@ -22,7 +22,7 @@ interface TaskDetailFieldsProps {
   statuses: Array<{ id: number; name: string; color: string }>
   priorities: Array<{ id: number; name: string; color: string; value: number }>
   labels: Array<{ id: number; name: string; color: string }>
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string; avatar?: string }>
+  users: Array<{ id: number; username: string; email: string }>
   handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void
   handleSelectChange: (name: string, value: string) => void
   handleDateChange: (date: Date | undefined) => void
@@ -274,7 +274,7 @@ export function TaskDetailFields({
                 <SelectContent>
                   {users.map((user) => (
                     <SelectItem key={user.id} value={String(user.id)}>
-                      {user.full_name || `${user.first_name} ${user.last_name}`.trim()}
+                      {user.username || user.email}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -283,7 +283,7 @@ export function TaskDetailFields({
               <div className="border px-3 py-2 rounded-md bg-muted/20">
                 <span>
                   {currentAssignee ?
-                    (currentAssignee.full_name || `${currentAssignee.first_name} ${currentAssignee.last_name}`.trim())
+                    (currentAssignee.username || currentAssignee.email)
                     : t('task.unassigned', {}, 'Chưa giao')}
                 </span>
               </div>

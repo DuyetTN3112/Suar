@@ -23,19 +23,15 @@ export type Task = {
   }
   assignee?: {
     id: number
-    first_name: string
-    last_name: string
-    full_name: string
-    avatar?: string
+    username: string
+    email: string
   }
   assigned_to?: number
   created_by: number
   creator?: {
     id: number
-    first_name: string
-    last_name: string
-    full_name: string
-    avatar?: string
+    username: string
+    email: string
   }
   due_date: string
   created_at: string
@@ -84,10 +80,8 @@ export type TasksProps = {
     priorities: Array<{ id: number; name: string; color: string; value: number }>
     users: Array<{
       id: number
-      first_name: string
-      last_name: string
-      full_name: string
-      avatar?: string
+      username: string
+      email: string
     }>
   }
   auth?: {
@@ -95,9 +89,6 @@ export type TasksProps = {
       id: number
       email: string
       username: string
-      first_name: string
-      last_name: string
-      name?: string
       role?: string
       role_id?: number
       isAdmin?: boolean
@@ -132,10 +123,8 @@ export type TaskItemProps = {
   labels?: Array<{ id: number; name: string; color: string }>
   users?: Array<{
     id: number
-    first_name: string
-    last_name: string
-    full_name: string
-    avatar?: string
+    username: string
+    email: string
   }>
   currentUser?: {
     id?: string | number

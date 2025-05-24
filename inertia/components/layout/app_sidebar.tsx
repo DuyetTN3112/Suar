@@ -15,12 +15,8 @@ import type { NavGroup as NavGroupType } from '@/components/navigation'
 
 interface AuthUser {
   id?: string
-  first_name?: string
-  last_name?: string
-  full_name?: string
-  email?: string
-  avatar?: string
   username?: string
+  email?: string
   organizations?: Array<{
     id: string
     name: string
@@ -58,13 +54,11 @@ export function AppSidebar(props: AppSidebarProps) {
     if (authUser) {
       // Chỉ tạo userInfo khi có dữ liệu người dùng thực
       const userEmail = authUser.email || '';
-      const userName = authUser.username || '';
+      const userName = authUser.username || authUser.email || 'User';
 
       userInfo = {
-        name: authUser.full_name ||
-              `${authUser.first_name || ''} ${authUser.last_name || ''}`.trim(),
+        name: userName,
         email: userEmail,
-        avatar: authUser.avatar || `/avatars/${userName}.jpg`,
       };
     }
   } catch (error) {
@@ -83,7 +77,7 @@ export function AppSidebar(props: AppSidebarProps) {
   return (
     <Sidebar
       className="h-screen overflow-hidden"
-      collapsible="icon"
+      collapsible="offcanvas"
       variant="sidebar"
       {...props}
     >

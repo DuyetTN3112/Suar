@@ -99,15 +99,15 @@ export default class GetTaskMetadataQuery {
     organizationId: number
   ): Promise<Array<{ id: number; name: string; email: string }>> {
     const users = await User.query()
-      .select(['users.id', 'users.first_name', 'users.last_name', 'users.full_name', 'users.email'])
+      .select(['users.id', 'users.username', 'users.email'])
       .join('organization_users', 'users.id', 'organization_users.user_id')
       .where('organization_users.organization_id', organizationId)
       .whereNull('users.deleted_at')
-      .orderBy('users.full_name', 'asc')
+      .orderBy('users.username', 'asc')
 
     return users.map((user) => ({
       id: user.id,
-      name: user.full_name || `${user.first_name} ${user.last_name}`.trim() || user.email,
+      name: user.username,
       email: user.email,
     }))
   }

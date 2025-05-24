@@ -291,12 +291,8 @@ export default class UsersController {
         .whereNull('u.deleted_at')
         .select(
           'u.id',
-          'u.first_name',
-          'u.last_name',
-          'u.full_name',
           'u.email',
           'u.username',
-          'ud.avatar_url',
           'ur.id as role_id',
           'ur.name as role_name',
           'us.id as status_id',
@@ -307,9 +303,6 @@ export default class UsersController {
       // Format response
       const formattedUsers = pendingUsers.map((user) => ({
         id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        full_name: user.full_name,
         email: user.email,
         username: user.username,
         role: {
@@ -544,17 +537,10 @@ export default class UsersController {
    */
   private buildRegisterUserDTO(request: HttpContext['request']): RegisterUserDTO {
     return new RegisterUserDTO(
-      request.input('first_name'),
-      request.input('last_name'),
       request.input('username'),
       request.input('email'),
-      request.input('password'),
       Number(request.input('role_id')),
-      Number(request.input('status_id')),
-      request.input('phone_number'),
-      request.input('bio'),
-      request.input('date_of_birth'),
-      request.input('language')
+      Number(request.input('status_id'))
     )
   }
 
@@ -568,15 +554,7 @@ export default class UsersController {
     userId: number,
     request: HttpContext['request']
   ): UpdateUserProfileDTO {
-    return new UpdateUserProfileDTO(
-      userId,
-      request.input('first_name'),
-      request.input('last_name'),
-      request.input('phone_number'),
-      request.input('bio'),
-      request.input('date_of_birth'),
-      request.input('language')
-    )
+    return new UpdateUserProfileDTO(userId, request.input('username'), request.input('email'))
   }
 
   /**

@@ -152,7 +152,7 @@ export default class UpdateTaskStatusCommand {
         await this.createNotification.handle({
           user_id: task.creator_id,
           title: 'Cập nhật trạng thái nhiệm vụ',
-          message: dto.getNotificationMessage(task.title, updater.full_name || updater.username),
+          message: dto.getNotificationMessage(task.title, updater.username || updater.email),
           type: 'task_status_updated',
           related_entity_type: 'task',
           related_entity_id: task.id,

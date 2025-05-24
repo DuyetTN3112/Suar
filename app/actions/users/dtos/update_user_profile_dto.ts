@@ -3,18 +3,14 @@ import type { Command } from '../../shared/interfaces.js'
 /**
  * UpdateUserProfileDTO
  *
- * Data Transfer Object for updating user profile information.
+ * Data Transfer Object for updating user profile information (username, email).
  * Used by UpdateUserProfileCommand.
  */
 export class UpdateUserProfileDTO implements Command {
   constructor(
     public readonly userId: number,
-    public readonly firstName?: string,
-    public readonly lastName?: string,
-    public readonly phoneNumber?: string,
-    public readonly bio?: string,
-    public readonly dateOfBirth?: string,
-    public readonly language?: string
+    public readonly username?: string,
+    public readonly email?: string
   ) {
     this.validate()
   }
@@ -24,12 +20,20 @@ export class UpdateUserProfileDTO implements Command {
       throw new Error('Invalid user ID')
     }
 
-    if (this.firstName !== undefined && this.firstName.trim().length === 0) {
-      throw new Error('First name cannot be empty')
+    if (this.username !== undefined && this.username.trim().length === 0) {
+      throw new Error('Username cannot be empty')
     }
 
-    if (this.lastName !== undefined && this.lastName.trim().length === 0) {
-      throw new Error('Last name cannot be empty')
+    if (this.email !== undefined && this.email.trim().length === 0) {
+      throw new Error('Email cannot be empty')
+    }
+
+    // Basic email validation
+    if (this.email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!emailRegex.test(this.email)) {
+        throw new Error('Invalid email format')
+      }
     }
   }
 }

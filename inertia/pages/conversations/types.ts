@@ -4,8 +4,7 @@
 
 export interface Participant {
   id: string
-  full_name: string
-  avatar?: string
+  username: string
   email: string
   description?: string
 }

@@ -25,11 +25,8 @@ interface Organization {
 
 interface Member {
   id: number
-  first_name: string
-  last_name: string
-  full_name: string
-  email: string
   username: string
+  email: string
   role_id: number
   role_name: string
 }
@@ -124,7 +121,7 @@ export default function OrganizationDetail({ organization, members, userRole }: 
                   Dự án
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="members">
                 <Card>
                   <CardHeader>
@@ -158,7 +155,7 @@ export default function OrganizationDetail({ organization, members, userRole }: 
                           {members.map((member) => (
                             <TableRow key={member.id}>
                               <TableCell>
-                                <div className="font-medium">{member.full_name}</div>
+                                <div className="font-medium">{member.username || member.email}</div>
                                 <div className="text-sm text-muted-foreground">@{member.username}</div>
                               </TableCell>
                               <TableCell>{member.email}</TableCell>
@@ -198,7 +195,7 @@ export default function OrganizationDetail({ organization, members, userRole }: 
                   </CardContent>
                 </Card>
               </TabsContent>
-              
+
               <TabsContent value="projects">
                 <Card>
                   <CardHeader>
@@ -222,4 +219,4 @@ export default function OrganizationDetail({ organization, members, userRole }: 
   )
 }
 
-OrganizationDetail.layout = (page: React.ReactNode) => <AppLayout title="Chi tiết tổ chức">{page}</AppLayout> 
+OrganizationDetail.layout = (page: React.ReactNode) => <AppLayout title="Chi tiết tổ chức">{page}</AppLayout>

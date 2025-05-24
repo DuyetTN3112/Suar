@@ -77,19 +77,17 @@ export default class GetConversationDetailQuery {
 
   /**
    * Get unread message count for a user in conversation
+   * Exclude messages recalled by sender for self (recall_scope = 'self' AND sender_id = userId)
    */
   private async getUnreadCount(conversationId: number, userId: number): Promise<number> {
     const result = await Database.from('messages')
-      .leftJoin('deleted_messages', function () {
-        this.on('deleted_messages.message_id', 'messages.id').andOnVal(
-          'deleted_messages.user_id',
-          userId
-        )
-      })
       .where('messages.conversation_id', conversationId)
       .where('messages.sender_id', '!=', userId)
       .whereNull('messages.read_at')
-      .whereNull('deleted_messages.id')
+      .whereRaw(
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        [userId]
+      )
       .count('messages.id as total')
       .first()
 
@@ -98,9 +96,7 @@ export default class GetConversationDetailQuery {
 
   /**
    * Get last message in conversation
-   * Filter out:
-   * - Messages recalled by sender (is_recalled = true, recall_scope = 'all')
-   * - Messages deleted by current user (exists in deleted_messages for this user)
+   * Filter out messages recalled by current user for self (recall_scope = 'self' AND sender_id = userId)
    */
   private async getLastMessage(conversationId: number, userId: number) {
     const result = await Database.from('messages')
@@ -111,19 +107,14 @@ export default class GetConversationDetailQuery {
         'messages.is_recalled',
         'messages.recall_scope',
         'messages.created_at',
-        Database.raw(
-          "CONCAT(COALESCE(users.first_name, ''), ' ', COALESCE(users.last_name, '')) as sender_name"
-        )
+        'users.username as sender_name'
       )
       .leftJoin('users', 'messages.sender_id', 'users.id')
-      .leftJoin('deleted_messages', function () {
-        this.on('deleted_messages.message_id', 'messages.id').andOnVal(
-          'deleted_messages.user_id',
-          userId
-        )
-      })
       .where('messages.conversation_id', conversationId)
-      .whereNull('deleted_messages.id')
+      .whereRaw(
+        `(messages.is_recalled = false OR (messages.is_recalled = true AND NOT (messages.recall_scope = 'self' AND messages.sender_id = ?)))`,
+        [userId]
+      )
       .orderBy('messages.created_at', 'desc')
       .first()
 

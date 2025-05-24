@@ -57,7 +57,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {
         user_id: dto.user_id,
-        user_name: userToAdd.full_name,
+        username: userToAdd.username,
         role: dto.role,
       })
     })

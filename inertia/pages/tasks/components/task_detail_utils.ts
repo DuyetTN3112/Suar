@@ -99,13 +99,7 @@ function checkIsSuperadmin(currentUser: any): boolean {
     // Trường hợp role_id là 1 (thường dùng cho superadmin)
     currentUser?.role_id === 1 ||
     // Trường hợp sử dụng username
-    currentUser?.username?.toLowerCase() === 'superadmin' ||
-    // Trường hợp sử dụng name
-    currentUser?.name?.toLowerCase().includes('super') ||
-    // Trường hợp tên đầy đủ có chứa "super admin"
-    `${currentUser?.first_name || ''} ${currentUser?.last_name || ''}`
-      .toLowerCase()
-      .includes('super admin')
+    currentUser?.username?.toLowerCase() === 'superadmin'
   )
 }
 

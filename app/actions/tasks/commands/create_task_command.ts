@@ -140,7 +140,7 @@ export default class CreateTaskCommand {
       await this.createNotification.handle({
         user_id: assignee.id,
         title: 'Bạn có nhiệm vụ mới',
-        message: `${creator.full_name || creator.username} đã giao cho bạn nhiệm vụ: ${task.title}`,
+        message: `${creator.username || creator.email} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
         type: 'task_assigned',
         related_entity_type: 'task',
         related_entity_id: task.id,

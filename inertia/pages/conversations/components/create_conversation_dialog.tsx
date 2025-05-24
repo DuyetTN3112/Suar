@@ -20,8 +20,7 @@ import axios from 'axios'
 
 interface Participant {
   id: string
-  full_name: string
-  avatar?: string
+  username: string
   email: string
 }
 
@@ -338,11 +337,10 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
                     >
                       <div className="flex items-center gap-2 flex-1">
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={user.avatar || ''} alt={user.full_name} />
-                          <AvatarFallback>{getAvatarInitials(user.full_name)}</AvatarFallback>
+                          <AvatarFallback>{user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
-                          <div>{user.full_name}</div>
+                          <div>{user.username || user.email}</div>
                           <div className="text-sm text-muted-foreground">{user.email}</div>
                         </div>
                         {selectedParticipants.includes(user.id) && (
@@ -370,7 +368,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
                   const user = users.find(u => u.id === id)
                   return user ? (
                     <div key={id} className="bg-accent text-accent-foreground px-2 py-1 rounded-full text-xs flex items-center">
-                      {user.full_name}
+                      {user.username || user.email}
                       <button
                         type="button"
                         className="ml-1 text-muted-foreground hover:text-foreground"

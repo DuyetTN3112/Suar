@@ -23,12 +23,8 @@ interface SidebarItem {
 // Define các type dữ liệu từ backend
 interface UserData {
   id: string
-  first_name: string
-  last_name: string
   username: string
   email: string
-  full_name: string
-  avatar?: string
   user_profile?: {
     bio?: string
   }
@@ -51,12 +47,8 @@ export default function Profile() {
   const auth = page.props.auth
   const user = auth?.user || {
     id: '',
-    first_name: '',
-    last_name: '',
     username: '',
     email: '',
-    full_name: '',
-    avatar: '',
     user_profile: { bio: '' },
     user_urls: []
   }
@@ -66,26 +58,26 @@ export default function Profile() {
     bio: user.user_profile?.bio || '',
     urls: user.user_urls?.map(item => item.url) || []
   })
-  
+
   // Avatar upload
   const [isUploading, setIsUploading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    
+
     // Tạo preview URL
     const objectUrl = URL.createObjectURL(file)
     setPreviewUrl(objectUrl)
-    
+
     // Upload file
     const formData = new FormData()
     formData.append('avatar', file)
-    
+
     setIsUploading(true)
-    
+
     // Gửi request upload avatar
     fetch('/profile/avatar', {
       method: 'POST',
@@ -114,7 +106,7 @@ export default function Profile() {
       setIsUploading(false)
     })
   }
-  
+
   const triggerFileInput = () => {
     fileInputRef.current?.click()
   }
@@ -195,20 +187,20 @@ export default function Profile() {
                   <Label className="block mb-2">Ảnh đại diện</Label>
                   <div className="flex items-center gap-5">
                     <Avatar className="w-24 h-24">
-                      <AvatarImage src={previewUrl || user.avatar} alt={user.full_name} />
-                      <AvatarFallback>{user.first_name?.[0]}{user.last_name?.[0]}</AvatarFallback>
+                      <AvatarImage src={previewUrl || undefined} alt={user.username} />
+                      <AvatarFallback>{user.username?.[0]?.toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <input 
+                      <input
                         type="file"
                         ref={fileInputRef}
                         onChange={handleFileChange}
                         className="hidden"
                         accept="image/jpeg,image/png,image/jpg"
                       />
-                      <Button 
-                        type="button" 
-                        variant="outline" 
+                      <Button
+                        type="button"
+                        variant="outline"
                         onClick={triggerFileInput}
                         disabled={isUploading}
                       >
@@ -247,7 +239,7 @@ export default function Profile() {
                       Bạn có thể quản lý địa chỉ email đã xác minh trong phần cài đặt email.
                     </p>
                   </div>
-                
+
                   {/* Bio section */}
                   <div className="space-y-2">
                     <Label htmlFor="bio">Giới thiệu</Label>
@@ -266,7 +258,7 @@ export default function Profile() {
                     <p className="text-sm text-muted-foreground">
                       Thêm liên kết đến website, blog, hoặc mạng xã hội của bạn.
                     </p>
-                    
+
                     <div className="space-y-2">
                       {form.data.urls.map((url, index) => (
                         <div key={index} className="flex gap-2">
@@ -320,4 +312,4 @@ export default function Profile() {
   )
 }
 
-Profile.layout = (page: React.ReactNode) => <AppLayout title="Hồ sơ cá nhân">{page}</AppLayout> 
+Profile.layout = (page: React.ReactNode) => <AppLayout title="Hồ sơ cá nhân">{page}</AppLayout>

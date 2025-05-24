@@ -91,7 +91,7 @@ export const getConversationName = (conversation: Conversation) => {
   // Nếu không có title, lấy tên người tham gia
   const participants = conversation.conversation_participants || []
   return participants
-    .map((cp) => cp.user.full_name)
+    .map((cp) => cp.user.username || cp.user.email)
     .filter((name) => name)
     .join(', ')
 }
@@ -138,9 +138,7 @@ export const getOtherParticipants = (conversation: Conversation | null, currentU
   const participants = conversation.conversation_participants || []
 
   // Lọc ra những người tham gia khác ngoài người dùng hiện tại
-  return participants
-    .filter((cp) => cp.user && cp.user.id !== currentUserId)
-    .map((cp) => cp.user)
+  return participants.filter((cp) => cp.user && cp.user.id !== currentUserId).map((cp) => cp.user)
 }
 
 /**
@@ -168,7 +166,9 @@ export const getConversationInfo = (
     const otherUser = getOtherParticipant(conversation, currentUserId)
     return {
       title:
-        otherUser?.full_name || t('conversation.unknown_user', {}, 'Người dùng không xác định'),
+        otherUser?.username ||
+        otherUser?.email ||
+        t('conversation.unknown_user', {}, 'Người dùng không xác định'),
       participantCount: 2,
     }
   }
@@ -176,7 +176,7 @@ export const getConversationInfo = (
   const otherUsers = getOtherParticipants(conversation, currentUserId)
   const participantNames = otherUsers
     .slice(0, 3)
-    .map((p) => p.full_name)
+    .map((p) => p.username || p.email)
     .join(', ')
 
   const remainingCount = otherUsers.length - 3

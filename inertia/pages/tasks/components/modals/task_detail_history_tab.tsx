@@ -21,10 +21,8 @@ interface AuditLogEntry {
   updated_at: string
   user?: {
     id: number
-    first_name: string
-    last_name: string
-    full_name?: string
-    avatar?: string
+    username: string
+    email: string
   }
 }
 
@@ -78,14 +76,14 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
   const getUserName = (userId: number): string => {
     if (!userId) return 'Không có'
     if (task?.assignee && task.assignee.id === userId) {
-      return task.assignee.full_name
+      return task.assignee.username || task.assignee.email
     }
     return `Người dùng #${userId}`
   }
 
   const getValueText = (fieldName: string, value: any): string => {
     if (value === null || value === undefined) return 'Không có'
-    
+
     switch (fieldName) {
       case 'status_id':
         return getStatusName(value)
@@ -103,13 +101,13 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
   return (
     <div className="space-y-4 py-4">
       <h3 className="text-sm font-medium">Lịch sử thay đổi</h3>
-      
+
       {auditLogs.length === 0 && (
         <div className="text-center text-muted-foreground py-4">
           Không có lịch sử thay đổi
         </div>
       )}
-      
+
       {auditLogs.map((log) => (
         <Card key={log.id} className="mb-2">
           <CardContent className="p-4">
@@ -118,19 +116,19 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-medium text-sm">
-                    {log.user?.full_name || 'Người dùng không xác định'}
+                    {log.user?.username || log.user?.email || 'Người dùng không xác định'}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {formatDate(log.created_at)}
                   </span>
                 </div>
-                
+
                 <p className="text-sm mt-1">
                   {log.event === 'created' && 'đã tạo nhiệm vụ này'}
                   {log.event === 'updated' && 'đã cập nhật nhiệm vụ này'}
                   {log.event === 'deleted' && 'đã xóa nhiệm vụ này'}
                 </p>
-                
+
                 {log.event === 'updated' && log.old_values && log.new_values && (
                   <div className="mt-2 space-y-2">
                     {Object.keys(log.new_values).map(key => (
@@ -153,4 +151,4 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
       ))}
     </div>
   )
-} 
+}

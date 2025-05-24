@@ -25,7 +25,7 @@ interface TaskDetailModalProps {
   statuses: Array<{ id: number; name: string; color: string }>
   priorities: Array<{ id: number; name: string; color: string; value: number }>
   labels: Array<{ id: number; name: string; color: string }>
-  users?: Array<{ id: number; first_name: string; last_name: string; full_name: string; avatar?: string }>
+  users?: Array<{ id: number; username: string; email: string }>
   onUpdate?: (updatedTask: Task) => void
   currentUser?: any
 }

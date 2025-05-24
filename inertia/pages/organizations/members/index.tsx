@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { Head, router, useForm } from '@inertiajs/react'
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
 } from '@/components/ui/card'
 import {
   Dialog,
@@ -27,14 +27,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import {
   DropdownMenu,
@@ -52,18 +52,15 @@ import { toast } from 'sonner'
 // Định nghĩa các kiểu dữ liệu
 interface OrganizationMember {
   id: number
-  first_name: string
-  last_name: string
-  full_name: string
-  email: string
   username: string
+  email: string
   role_id: number
   role_name: string
 }
 
 interface PendingRequest {
   user_id: number
-  full_name: string
+  username: string
   email: string
   invited_by: number | null
   inviter_name: string | null
@@ -224,12 +221,12 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
   const [showInviteDialog, setShowInviteDialog] = useState(false)
   const [showPendingRequestsDialog, setShowPendingRequestsDialog] = useState(false)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(pendingRequests.length)
-  
+
   // Cập nhật số lượng yêu cầu chờ duyệt khi prop thay đổi
   useEffect(() => {
     setPendingRequestsCount(pendingRequests.length)
   }, [pendingRequests])
-  
+
   // Kiểm tra quyền (chỉ superadmin mới có thể phê duyệt thành viên)
   const canManageRequests = userRole === 1 || userRole === 2
   const isSuperAdmin = userRole === 1
@@ -240,7 +237,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
       only: ['members', 'pendingRequests'],
     })
   }
-  
+
   // Xử lý duyệt/từ chối yêu cầu
   const handleProcessRequest = (userId: number, action: 'approve' | 'reject') => {
     router.post(`/organizations/${organization.id}/members/process-request/${userId}`, {
@@ -255,7 +252,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
       },
     })
   }
-  
+
   // Xử lý cập nhật vai trò
   const handleUpdateRole = (memberId: number, roleId: string) => {
     router.post(`/organizations/${organization.id}/members/update-role/${memberId}`, {
@@ -270,7 +267,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
       },
     })
   }
-  
+
   // Xử lý xóa thành viên
   const handleRemoveMember = (memberId: number) => {
     if (confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi tổ chức?')) {
@@ -312,7 +309,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
           <div className="flex items-center gap-2">
             {/* Nút phê duyệt thành viên chỉ dành cho superadmin */}
             {isSuperAdmin && pendingRequestsCount > 0 && (
-              <Button 
+              <Button
                 variant="destructive"
                 onClick={() => setShowPendingRequestsDialog(true)}
                 className="font-medium"
@@ -324,19 +321,19 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                 </Badge>
               </Button>
             )}
-            
+
             <Button onClick={() => setShowInviteDialog(true)}>
               <Mail className="h-4 w-4 mr-2" />
               Mời người dùng
             </Button>
-            
+
             <Button onClick={() => setShowAddMemberDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Thêm thành viên
             </Button>
           </div>
         </div>
-        
+
         {/* Hiển thị danh sách thành viên */}
         <Card>
           <CardHeader className="pb-2">
@@ -359,7 +356,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
               <TableBody>
                 {members.map((member) => (
                   <TableRow key={member.id}>
-                    <TableCell className="font-medium">{member.full_name}</TableCell>
+                    <TableCell className="font-medium">{member.username || member.email}</TableCell>
                     <TableCell>{member.username}</TableCell>
                     <TableCell>{member.email}</TableCell>
                     <TableCell>
@@ -373,8 +370,8 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                         </SelectTrigger>
                         <SelectContent>
                           {roles.map((role) => (
-                            <SelectItem 
-                              key={role.id} 
+                            <SelectItem
+                              key={role.id}
                               value={role.id.toString()}
                               disabled={role.id === 1 && userRole !== 1} // Chỉ superadmin mới có thể đặt vai trò superadmin
                             >
@@ -385,8 +382,8 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                       </Select>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => handleRemoveMember(member.id)}
                         disabled={userRole !== 1 || member.id === userRole} // Chỉ superadmin mới có thể xóa và không thể tự xóa mình
@@ -402,7 +399,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
           </CardContent>
         </Card>
       </div>
-      
+
       {/* Dialog thêm thành viên */}
       <Dialog open={showAddMemberDialog} onOpenChange={setShowAddMemberDialog}>
         <DialogContent>
@@ -422,7 +419,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Dialog mời người dùng */}
       <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
         <DialogContent>
@@ -442,7 +439,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Modal hiển thị yêu cầu đang chờ duyệt - chỉ hiển thị cho superadmin */}
       {isSuperAdmin && (
         <Dialog open={showPendingRequestsDialog} onOpenChange={setShowPendingRequestsDialog}>
@@ -456,7 +453,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                 Duyệt hoặc từ chối các yêu cầu tham gia tổ chức {organization.name}
               </DialogDescription>
             </DialogHeader>
-            
+
             {pendingRequests.length === 0 ? (
               <div className="text-center py-6">
                 <p className="text-muted-foreground">Không có yêu cầu tham gia tổ chức nào đang chờ duyệt</p>
@@ -475,7 +472,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                 <TableBody>
                   {pendingRequests.map((request) => (
                     <TableRow key={request.user_id}>
-                      <TableCell className="font-medium">{request.full_name}</TableCell>
+                      <TableCell className="font-medium">{request.username || request.email}</TableCell>
                       <TableCell>{request.email}</TableCell>
                       <TableCell>
                         {request.invited_by ? (
@@ -511,7 +508,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                 </TableBody>
               </Table>
             )}
-            
+
             <DialogFooter>
               <Button variant="outline" onClick={() => setShowPendingRequestsDialog(false)}>Đóng</Button>
             </DialogFooter>
@@ -522,4 +519,4 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
   )
 }
 
-export default MembersIndex 
+export default MembersIndex

@@ -18,7 +18,7 @@ export interface TaskDetailInfoTabProps {
   statuses: Array<{ id: number; name: string; color: string }>
   priorities: Array<{ id: number; name: string; color: string; value: number }>
   labels: Array<{ id: number; name: string; color: string }>
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string; avatar?: string }>
+  users: Array<{ id: number; username: string; email: string }>
   submitting: boolean
   setSubmitting: React.Dispatch<React.SetStateAction<boolean>>
   onUpdate?: (updatedTask: Task) => void
@@ -69,13 +69,9 @@ export function TaskDetailInfoTab({
   // Lấy tên đầy đủ của người tạo
   const getCreatorFullName = () => {
     if (task.creator) {
-      // Trường hợp có thông tin creator từ API
-      return task.creator.full_name ||
-             task.creator.full_name ||
-             `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
+      return task.creator.username || task.creator.email || t('task.no_creator_info', {}, 'Không có thông tin');
     } else if (creator) {
-      // Trường hợp tìm được creator từ danh sách users
-      return creator.full_name || `${creator.first_name} ${creator.last_name}`.trim();
+      return creator.username || creator.email || t('task.no_creator_info', {}, 'Không có thông tin');
     }
     return t('task.no_creator_info', {}, 'Không có thông tin');
   };
@@ -83,11 +79,9 @@ export function TaskDetailInfoTab({
   // Lấy initials cho avatar
   const getCreatorInitials = () => {
     if (task.creator) {
-      const fullName = task.creator.full_name || task.creator.full_name ||
-                       `${task.creator.first_name || task.creator.first_name || ''} ${task.creator.last_name || task.creator.last_name || ''}`.trim();
-      return getAvatarInitials(fullName);
+      return task.creator.username?.[0]?.toUpperCase() || task.creator.email?.[0]?.toUpperCase() || 'U';
     } else if (creator) {
-      return getAvatarInitials(creator.full_name || `${creator.first_name} ${creator.last_name}`);
+      return creator.username?.[0]?.toUpperCase() || creator.email?.[0]?.toUpperCase() || 'U';
     }
     return 'U';
   };

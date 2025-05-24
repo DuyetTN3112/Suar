@@ -55,7 +55,7 @@ export default function ShowConversation({ conversation, messages, pagination, c
 
   // Tên của cuộc trò chuyện để hiển thị trong tiêu đề
   const conversationName = conversation.title || conversation.conversation_participants
-    .map(cp => cp.user.full_name)
+    .map(cp => cp.user.username || cp.user.email)
     .filter(name => name)
     .join(', ')
 

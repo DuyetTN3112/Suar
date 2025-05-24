@@ -126,11 +126,7 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
    */
   private applySearchFilter(query: any, searchTerm: string) {
     return query.where((q: any) => {
-      q.where('first_name', 'LIKE', `%${searchTerm}%`)
-        .orWhere('last_name', 'LIKE', `%${searchTerm}%`)
-        .orWhere('full_name', 'LIKE', `%${searchTerm}%`)
-        .orWhere('email', 'LIKE', `%${searchTerm}%`)
-        .orWhere('username', 'LIKE', `%${searchTerm}%`)
+      q.where('email', 'LIKE', `%${searchTerm}%`).orWhere('username', 'LIKE', `%${searchTerm}%`)
     })
   }
 }

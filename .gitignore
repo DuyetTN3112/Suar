@@ -3,6 +3,11 @@ node_modules
 build
 tmp
 
+# Loại trừ file hướng dẫn Copilot
+.github/copilot-instructions.md
+
+# Loại trừ tài liệu
+docs/
 # Secrets and environment files
 # QUAN TRỌNG: Không bao giờ commit các file chứa thông tin nhạy cảm
 .env

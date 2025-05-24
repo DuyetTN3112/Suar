@@ -52,7 +52,7 @@ export default class GetTaskAuditLogsQuery {
       .orderBy('created_at', 'desc')
       .limit(limit)
       .preload('user', (userQuery: any) => {
-        userQuery.select(['id', 'first_name', 'last_name', 'full_name', 'email'])
+        userQuery.select(['id', 'username', 'email'])
       })
 
     // Format logs
@@ -62,10 +62,7 @@ export default class GetTaskAuditLogsQuery {
       user: log.user
         ? {
             id: log.user.id,
-            name:
-              log.user.full_name ||
-              `${log.user.first_name} ${log.user.last_name}`.trim() ||
-              'Unknown',
+            name: log.user.username || 'Unknown',
             email: log.user.email,
           }
         : null,

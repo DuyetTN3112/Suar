@@ -111,10 +111,10 @@ export default class GetOrganizationTasksQuery {
       .preload('priority')
       .preload('label')
       .preload('assignee', (q) => {
-        q.select(['id', 'first_name', 'last_name', 'full_name', 'email', 'avatar'])
+        q.select(['id', 'username', 'email'])
       })
       .preload('creator', (q) => {
-        q.select(['id', 'first_name', 'last_name', 'full_name'])
+        q.select(['id', 'username'])
       })
       .preload('project', (q) => {
         q.select(['id', 'name', 'status_id'])

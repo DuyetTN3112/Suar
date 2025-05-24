@@ -89,9 +89,9 @@ export default class GetProjectsListQuery extends BaseQuery<
         'ps.name as status_name',
         'ps.id as status_id',
         'o.name as organization_name',
-        'u1.full_name as creator_name',
+        'u1.username as creator_name',
         'u1.id as creator_id',
-        'u2.full_name as manager_name',
+        'u2.username as manager_name',
         'u2.id as manager_id'
       )
       .leftJoin('project_status as ps', 'p.status_id', 'ps.id')

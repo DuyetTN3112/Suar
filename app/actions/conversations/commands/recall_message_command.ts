@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
-import DeletedMessage from '#models/deleted_message'
 import { DateTime } from 'luxon'
 import { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -24,8 +23,8 @@ class UnauthorizedError extends Exception {
  * Pattern: Message recall with scope control
  * Business rules:
  * - Only sender can recall message
- * - Scope 'all': Updates message content, sets is_recalled = true
- * - Scope 'self': Adds entry to deleted_messages table
+ * - Scope 'all': Updates message content, sets is_recalled = true, recall_scope = 'all'
+ * - Scope 'self': Sets is_recalled = true, recall_scope = 'self' (only visible to sender)
  * - Cannot recall already recalled messages
  * - Transaction for data consistency
  * - Invalidate cache after recall
@@ -44,8 +43,8 @@ export default class RecallMessageCommand {
    * 1. Find message
    * 2. Verify sender is current user
    * 3. Begin transaction
-   * 4. If scope='all': Update message content and flags
-   * 5. If scope='self': Add to deleted_messages table
+   * 4. If scope='all': Update message content, is_recalled, recall_scope, recalled_at
+   * 5. If scope='self': Update is_recalled, recall_scope, recalled_at
    * 6. Commit transaction
    * 7. Invalidate cache
    */
@@ -63,8 +62,8 @@ export default class RecallMessageCommand {
       throw new UnauthorizedError('Bạn không có quyền thu hồi tin nhắn này')
     }
 
-    // Check if already recalled (for scope='all')
-    if (dto.isRecallForEveryone && message.is_recalled) {
+    // Check if already recalled
+    if (message.is_recalled) {
       throw new Error('Tin nhắn này đã được thu hồi trước đó')
     }
 
@@ -73,30 +72,20 @@ export default class RecallMessageCommand {
     try {
       message.useTransaction(trx)
 
+      // Update message with recall information
+      message.is_recalled = true
+      message.recalled_at = DateTime.now()
+
       if (dto.isRecallForEveryone) {
-        // Recall for everyone: Update message content
-        message.is_recalled = true
-        message.recalled_at = DateTime.now()
+        // Recall for everyone: Update message content and set scope
         message.recall_scope = 'all'
         message.message = dto.replacementMessage
-
-        await message.save()
       } else if (dto.isRecallForSelf) {
-        // Recall for self: Add to deleted_messages
-        // Check if already exists to avoid unique constraint error
-        const existingRecord = await DeletedMessage.query({ client: trx })
-          .where('message_id', dto.messageId)
-          .where('user_id', user.id)
-          .first()
-
-        if (!existingRecord) {
-          const deletedMessage = new DeletedMessage()
-          deletedMessage.message_id = dto.messageId
-          deletedMessage.user_id = user.id
-          deletedMessage.useTransaction(trx)
-          await deletedMessage.save()
-        }
+        // Recall for self: Set scope to self
+        message.recall_scope = 'self'
       }
+
+      await message.save()
 
       await trx.commit()
 

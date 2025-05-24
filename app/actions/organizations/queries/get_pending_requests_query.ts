@@ -59,10 +59,8 @@ export default class GetPendingRequestsQuery {
         'ojr.status',
         'ojr.created_at',
         'ojr.updated_at',
-        'u.first_name',
-        'u.last_name',
+        'u.username',
         'u.email',
-        'u.avatar',
         'o.name as organization_name'
       )
       .orderBy('ojr.created_at', 'desc')
@@ -79,11 +77,8 @@ export default class GetPendingRequestsQuery {
       updated_at: request.updated_at,
       user: {
         id: request.user_id,
-        first_name: request.first_name,
-        last_name: request.last_name,
-        full_name: `${request.first_name} ${request.last_name}`.trim(),
+        username: request.username,
         email: request.email,
-        avatar: request.avatar,
       },
     }))
 

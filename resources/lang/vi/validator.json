@@ -1,11 +1,7 @@
 {
   "shared": {
     "fields": {
-      "first_name": "tên",
-      "last_name": "họ",
       "email": "email",
-      "password": "mật khẩu",
-      "password_confirmation": "xác nhận mật khẩu",
       "username": "tên đăng nhập",
       "title": "tiêu đề",
       "description": "mô tả",
@@ -27,4 +23,4 @@
       "password.required": "Vui lòng chọn mật khẩu cho tài khoản của bạn"
     }
   }
-} 
+}

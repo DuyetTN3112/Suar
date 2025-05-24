@@ -14,8 +14,7 @@ import useTranslation from '@/hooks/use_translation'
 
 interface Participant {
   id: string
-  full_name: string
-  avatar?: string
+  username: string
   email: string
 }
 
@@ -120,14 +119,13 @@ export default function CreateConversation({ metadata, errors }: Props) {
                             />
                             <div className="flex items-center gap-2 flex-1">
                               <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.avatar || ''} alt={user.full_name} />
-                                <AvatarFallback>{getAvatarInitials(user.full_name)}</AvatarFallback>
+                                <AvatarFallback>{user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
                               </Avatar>
                               <Label
                                 htmlFor={`user-${user.id}`}
                                 className="cursor-pointer flex-1"
                               >
-                                <div>{user.full_name}</div>
+                                <div>{user.username || user.email}</div>
                                 <div className="text-sm text-muted-foreground">{user.email}</div>
                               </Label>
                             </div>
@@ -175,4 +173,4 @@ export default function CreateConversation({ metadata, errors }: Props) {
   )
 }
 
-CreateConversation.layout = (page: React.ReactNode) => <AppLayout title="Tạo cuộc trò chuyện mới">{page}</AppLayout> 
+CreateConversation.layout = (page: React.ReactNode) => <AppLayout title="Tạo cuộc trò chuyện mới">{page}</AppLayout>

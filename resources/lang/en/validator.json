@@ -1,8 +1,6 @@
 {
   "shared": {
     "fields": {
-      "first_name": "first name",
-      "last_name": "last name",
       "email": "email",
       "password": "password",
       "password_confirmation": "password confirmation",
@@ -27,4 +25,4 @@
       "password.required": "Choose a password for your account"
     }
   }
-} 
+}

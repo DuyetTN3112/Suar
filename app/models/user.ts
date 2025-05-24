@@ -1,17 +1,14 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasOne, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasOne, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import UserRole from './user_role.js'
 import UserStatus from './user_status.js'
-import UserDetail from './user_detail.js'
-import UserProfile from './user_profile.js'
 import UserUrl from './user_url.js'
 import Organization from './organization.js'
 import Task from './task.js'
 import Project from './project.js'
 import Conversation from './conversation.js'
-import UserSetting from './user_setting.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
@@ -26,12 +23,6 @@ export default class User extends BaseModel {
   declare id: number
 
   @column()
-  declare first_name: string
-
-  @column()
-  declare last_name: string
-
-  @column()
   declare username: string
 
   @column()
@@ -42,9 +33,6 @@ export default class User extends BaseModel {
 
   @column()
   declare role_id: number
-
-  @column()
-  declare full_name: string
 
   @column.dateTime()
   declare deleted_at: DateTime | null
@@ -75,21 +63,6 @@ export default class User extends BaseModel {
     foreignKey: 'current_organization_id',
   })
   declare current_organization: BelongsTo<typeof Organization>
-
-  @hasOne(() => UserDetail, {
-    foreignKey: 'user_id',
-  })
-  declare user_detail: HasOne<typeof UserDetail>
-
-  @hasOne(() => UserProfile, {
-    foreignKey: 'user_id',
-  })
-  declare user_profile: HasOne<typeof UserProfile>
-
-  @hasOne(() => UserSetting, {
-    foreignKey: 'user_id',
-  })
-  declare user_setting: HasOne<typeof UserSetting>
 
   @hasMany(() => UserUrl)
   declare user_urls: HasMany<typeof UserUrl>
@@ -144,13 +117,6 @@ export default class User extends BaseModel {
     foreignKey: 'user_id',
   })
   declare oauth_providers: HasMany<typeof UserOAuthProvider>
-
-  /**
-   * Lấy avatar URL của người dùng
-   */
-  get avatar() {
-    return this.user_detail?.avatar_url || '/images/default-avatar.png'
-  }
 
   /**
    * Kiểm tra xem user có quyền admin hay không

@@ -26,19 +26,19 @@ export const MessageItem: React.FC<MessageItemProps> = ({
 }) => {
   const { t } = useTranslation()
   const [isExpanded, setIsExpanded] = useState(false)
-  
+
   // Kiểm tra xem tin nhắn có khả năng là Zalgo text không
   const isPotentialZalgo = React.useMemo(() => {
     // Phát hiện các ký tự đặc biệt Unicode hoặc các mẫu lặp lại
     const hasCombiningChars = /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F\u02EC\u20DD]{3,}/g.test(message.message)
     const hasRepeatingPattern = /([\u02EC\u20DD\u0300-\u036F])\1{10,}/g.test(message.message)
-    
+
     // Các tin nhắn có quá nhiều Unicode đặc biệt
     const tooManySpecialChars = Array.from(message.message).filter(ch => ch.codePointAt(0)! > 0xffff).length > 10
-    
+
     // Phát hiện ký tự Zalgo cụ thể (꙰)
     const hasZalgoChar = /꙰/.test(message.message)
-    
+
     // Kiểm tra mật độ ký tự đặc biệt
     const specialCharDensity = () => {
       // Chia nhỏ tin nhắn thành các đoạn 50 ký tự
@@ -46,7 +46,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
       for (let i = 0; i < message.message.length; i += 50) {
         chunks.push(message.message.substring(i, i + 50))
       }
-      
+
       // Kiểm tra mật độ trong từng đoạn
       return chunks.some(chunk => {
         const specialChars = Array.from(chunk).filter(ch => {
@@ -57,10 +57,10 @@ export const MessageItem: React.FC<MessageItemProps> = ({
         return specialChars.length > chunk.length * 0.2
       })
     }
-    
+
     // Phát hiện mẫu hình mờ nhạt có thể gây hại
     const suspiciousPatterns = /(.)\1{20,}|([^\x00-\x7F]){50,}/g.test(message.message)
-    
+
     return hasCombiningChars ||
            hasRepeatingPattern ||
            tooManySpecialChars ||
@@ -68,36 +68,35 @@ export const MessageItem: React.FC<MessageItemProps> = ({
            specialCharDensity() ||
            suspiciousPatterns
   }, [message.message])
-  
+
   // Sử dụng độ dài nhỏ hơn cho tin nhắn Zalgo
   const previewLength = isPotentialZalgo ? MAX_ZALGO_PREVIEW_LENGTH : MAX_PREVIEW_LENGTH
-  
+
   const shouldShowExpand = message.message.length > previewLength
   const displayMessage = isExpanded
     ? message.message
     : message.message.slice(0, previewLength) + (shouldShowExpand ? (isPotentialZalgo ? '... (Nội dung đã được cắt giảm)' : '...') : '')
-  
+
   return (
     <div className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
       {!isOutgoing && (
         <div className="flex-shrink-0 mr-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={message.sender?.avatar || ''} alt={message.sender?.full_name || t('conversation.user', {}, 'Người dùng')} />
-            <AvatarFallback>{message.sender?.full_name ? getAvatarInitials(message.sender.full_name) : 'UN'}</AvatarFallback>
+            <AvatarFallback>{message.sender?.username?.[0]?.toUpperCase() || message.sender?.email?.[0]?.toUpperCase() || 'UN'}</AvatarFallback>
           </Avatar>
         </div>
       )}
-      
+
       <div className="flex flex-col max-w-[70%] min-w-0">
         {!isOutgoing && showSenderInfo && (
           <span className="text-xs font-medium text-slate-600 mb-1 ml-1">
-            {message.sender?.full_name || t('conversation.user', {}, 'Người dùng')}
+            {message.sender?.username || message.sender?.email || t('conversation.user', {}, 'Người dùng')}
           </span>
         )}
-        
+
         <div className={`px-3 py-2 rounded-2xl ${
-          isOutgoing 
-            ? 'bg-primary text-primary-foreground rounded-br-none' 
+          isOutgoing
+            ? 'bg-primary text-primary-foreground rounded-br-none'
             : 'bg-muted text-foreground rounded-bl-none'
         }`}>
           <div
@@ -128,7 +127,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
                       Tin nhắn này có thể chứa nội dung độc hại
                     </p>
                   </div>
-                  
+
                   {!isExpanded ? (
                     // Khi chưa mở rộng - hiển thị tóm tắt an toàn
                     <div className="relative">
@@ -210,7 +209,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
           </div>
         </div>
       </div>
-      
+
       {isOutgoing && (
         <div className="flex-shrink-0 ml-2">
           <Avatar className="h-8 w-8">

@@ -14,11 +14,7 @@ export type UserSettings = {
 export type User = {
   id: number
   email: string
-  first_name: string
-  last_name: string
-  full_name: string
-  phone_number?: string
-  address?: string
+  username: string
 }
 
 export type SettingsProps = {
@@ -27,10 +23,8 @@ export type SettingsProps = {
 }
 
 export type ProfileFormData = {
-  first_name: string
-  last_name: string
-  phone_number: string
-  address: string
+  username: string
+  email: string
 }
 
 export type AccountFormData = {

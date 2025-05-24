@@ -30,7 +30,7 @@ export default class SettingsController {
 
     try {
       const user = auth.user!
-      const data = request.only(['first_name', 'last_name', 'phone_number', 'address'])
+      const data = request.only(['username', 'email'])
       await user.merge(data).save()
       session.flash('success', 'Thông tin hồ sơ đã được cập nhật thành công')
       return response.redirect().back()
@@ -45,22 +45,15 @@ export default class SettingsController {
 
     try {
       const user = auth.user!
-      const data = request.only(['email', 'current_password', 'password', 'password_confirmation'])
-      // Thực hiện xác thực password hiện tại và cập nhật mật khẩu/email
-      // Đây chỉ là code mẫu, bạn cần thêm xác thực mật khẩu
-      if (data.password && data.password !== data.password_confirmation) {
-        session.flash('error', 'Mật khẩu xác nhận không khớp')
-        return response.redirect().back()
-      }
+      const data = request.only(['email'])
+
+      // NOTE: Removed password update logic - OAuth-only system
       await user
         .merge({
           email: data.email || user.email,
         })
         .save()
-      if (data.password) {
-        // Cập nhật mật khẩu, cần thêm hash password ở đây
-        // await user.merge({ password: hashPassword(data.password) }).save()
-      }
+
       session.flash('success', 'Thông tin tài khoản đã được cập nhật thành công')
       return response.redirect().back()
     } catch (error) {

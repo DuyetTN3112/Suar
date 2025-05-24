@@ -22,12 +22,8 @@ interface SidebarItem {
 // Define các type dữ liệu từ backend
 interface UserData {
   id: string
-  first_name: string
-  last_name: string
   username: string
   email: string
-  full_name: string
-  avatar?: string
   user_profile?: {
     bio?: string
   }
@@ -50,11 +46,8 @@ export default function Settings() {
   const auth = page.props.auth
   const user = auth?.user || {
     id: '',
-    first_name: '',
-    last_name: '',
     username: '',
     email: '',
-    full_name: '',
     user_profile: { bio: '' },
     user_urls: []
   }

@@ -1,8 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
-import UserDetail from '#models/user_detail'
-import UserProfile from '#models/user_profile'
-import UserSetting from '#models/user_setting'
 import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
 import { AuthLogger } from '../../helpers/auth_logger.js'
@@ -203,8 +200,6 @@ export default class SocialAuthController {
           try {
             interface UserData {
               email: any
-              first_name: string
-              last_name: string
               username: any
               status_id: any
               role_id: any
@@ -213,8 +208,6 @@ export default class SocialAuthController {
             }
             const userData: UserData = {
               email: socialUser.email,
-              first_name: firstName,
-              last_name: lastName,
               username: username,
               status_id: defaultStatusId.id,
               role_id: defaultRoleId.id,
@@ -254,30 +247,7 @@ export default class SocialAuthController {
               throw error
             }
           }
-          // Tạo profile và thông tin chi tiết
-          await UserDetail.create(
-            {
-              user_id: user.id,
-              avatar_url: socialUser.avatarUrl,
-            },
-            { client: trx }
-          )
-          await UserProfile.create(
-            {
-              user_id: user.id,
-              language: 'vi',
-            },
-            { client: trx }
-          )
-          await UserSetting.create(
-            {
-              user_id: user.id,
-              theme: 'light',
-              notifications_enabled: true,
-              display_mode: 'grid',
-            },
-            { client: trx }
-          )
+
           AuthLogger.dbTransaction('create-user-complete', true, { userId: user.id })
         })
 

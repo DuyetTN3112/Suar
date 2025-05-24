@@ -16,11 +16,7 @@ const envVars = {
   LOG_LEVEL: 'debug',
 };
 
-console.log('=== KHỞI ĐỘNG CHỨC NĂNG DEBUG VITE ===');
-console.log('Đang bật chế độ debug với biến môi trường:');
-console.log('VITE_DEBUG=true');
-console.log('DEBUG=vite:*,adonis:*');
-console.log('LOG_LEVEL=debug');
+
 
 // Tạo file báo cáo lỗi
 const logDir = path.join(__dirname, 'tmp', 'logs');
@@ -40,9 +36,9 @@ function timestamp() {
 }
 
 // Khởi động Vite với chế độ debug
-const vite = spawn('node', ['ace', 'serve', '--watch'], { 
+const vite = spawn('node', ['ace', 'serve', '--watch'], {
   env: envVars,
-  shell: true 
+  shell: true
 });
 
 // Ghi log stdout
@@ -72,4 +68,4 @@ process.on('SIGINT', () => {
   console.log('\nĐang dừng Vite debug...');
   vite.kill('SIGINT');
   setTimeout(() => process.exit(0), 500);
-}); 
+});

@@ -1,9 +1,7 @@
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+﻿import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { ProfileTabProps } from './types'
 
 export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
@@ -17,50 +15,27 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="first_name">Họ</Label>
-              <Input 
-                id="first_name" 
-                value={form.data.first_name}
-                onChange={e => form.setData('first_name', e.target.value)}
-              />
-              {form.errors.first_name && (
-                <p className="text-sm text-destructive">{form.errors.first_name}</p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="last_name">Tên</Label>
-              <Input 
-                id="last_name" 
-                value={form.data.last_name}
-                onChange={e => form.setData('last_name', e.target.value)}
-              />
-              {form.errors.last_name && (
-                <p className="text-sm text-destructive">{form.errors.last_name}</p>
-              )}
-            </div>
-          </div>
           <div className="space-y-2">
-            <Label htmlFor="phone">Số điện thoại</Label>
+            <Label htmlFor="username">Tên người dùng</Label>
             <Input 
-              id="phone" 
-              value={form.data.phone_number}
-              onChange={e => form.setData('phone_number', e.target.value)}
+              id="username" 
+              value={form.data.username}
+              onChange={e => form.setData('username', e.target.value)}
             />
-            {form.errors.phone_number && (
-              <p className="text-sm text-destructive">{form.errors.phone_number}</p>
+            {form.errors.username && (
+              <p className="text-sm text-destructive">{form.errors.username}</p>
             )}
           </div>
           <div className="space-y-2">
-            <Label htmlFor="address">Địa chỉ</Label>
-            <Textarea 
-              id="address" 
-              value={form.data.address}
-              onChange={e => form.setData('address', e.target.value)}
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              type="email"
+              value={form.data.email}
+              onChange={e => form.setData('email', e.target.value)}
             />
-            {form.errors.address && (
-              <p className="text-sm text-destructive">{form.errors.address}</p>
+            {form.errors.email && (
+              <p className="text-sm text-destructive">{form.errors.email}</p>
             )}
           </div>
           <Button type="submit" disabled={processing}>
@@ -70,4 +45,4 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
       </CardContent>
     </Card>
   )
-} 
+}

@@ -5,8 +5,8 @@
  * Business rules:
  * - Only sender can recall message
  * - Two scopes: 'all' (everyone) or 'self' (only sender)
- * - Scope 'all': Changes message content to "Tin nhắn này đã bị thu hồi"
- * - Scope 'self': Adds entry to deleted_messages table
+ * - Scope 'all': Changes message content to "Tin nhắn này đã bị thu hồi" and sets recall flags
+ * - Scope 'self': Sets recall flags with scope 'self' (message hidden only for sender)
  * - Cannot recall already recalled messages
  *
  * @example

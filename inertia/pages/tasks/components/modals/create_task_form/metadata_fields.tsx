@@ -21,7 +21,7 @@ interface TaskFormMetadataFieldsProps {
   statuses: Array<{ id: number; name: string }>
   priorities: Array<{ id: number; name: string }>
   labels: Array<{ id: number; name: string }>
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string }>
+  users: Array<{ id: number; username: string; email: string }>
 }
 
 export function TaskFormMetadataFields({
@@ -34,7 +34,7 @@ export function TaskFormMetadataFields({
   users
 }: TaskFormMetadataFieldsProps) {
   const { t } = useTranslation()
-  
+
   return (
     <>
       <div className="grid grid-cols-2 gap-4">
@@ -59,7 +59,7 @@ export function TaskFormMetadataFields({
             <p className="text-xs text-red-500">{errors.status_id}</p>
           )}
         </div>
-        
+
         <div className="grid gap-2">
           <Label htmlFor="priority_id">{t('task.priority', {}, 'Mức độ ưu tiên')}</Label>
           <Select
@@ -82,7 +82,7 @@ export function TaskFormMetadataFields({
           )}
         </div>
       </div>
-      
+
       <div className="grid grid-cols-1 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="label_id">{t('task.label', {}, 'Nhãn')}</Label>
@@ -106,7 +106,7 @@ export function TaskFormMetadataFields({
           )}
         </div>
       </div>
-      
+
       <div className="grid gap-2">
         <Label htmlFor="assigned_to">{t('task.assigned_to', {}, 'Người thực hiện')}</Label>
         <Select
@@ -119,7 +119,7 @@ export function TaskFormMetadataFields({
           <SelectContent>
             {users.map((user) => (
               <SelectItem key={user.id} value={String(user.id)}>
-                {user.full_name || `${user.first_name} ${user.last_name}`}
+                {user.username || user.email}
               </SelectItem>
             ))}
           </SelectContent>
@@ -127,4 +127,4 @@ export function TaskFormMetadataFields({
       </div>
     </>
   )
-} 
+}

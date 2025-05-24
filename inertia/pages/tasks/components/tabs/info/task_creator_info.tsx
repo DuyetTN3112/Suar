@@ -17,17 +17,18 @@ export function TaskCreatorInfo({ task }: TaskCreatorInfoProps) {
           {task.creator ? (
             <>
               <Avatar className="h-7 w-7">
-                <AvatarImage src={task.creator.avatar || ''} alt={task.creator.full_name} />
-                <AvatarFallback>{task.creator.full_name ? getAvatarInitials(task.creator.full_name) : 'NA'}</AvatarFallback>
+                <AvatarFallback>
+                  {task.creator.username?.[0]?.toUpperCase() || task.creator.email?.[0]?.toUpperCase() || 'NA'}
+                </AvatarFallback>
               </Avatar>
-              <span>{task.creator.full_name}</span>
+              <span>{task.creator.username || task.creator.email}</span>
             </>
           ) : (
             <span>Không xác định</span>
           )}
         </div>
       </div>
-      
+
       <div className="grid gap-2">
         <Label>Ngày tạo</Label>
         <div className="p-2 border rounded-md">
@@ -36,4 +37,4 @@ export function TaskCreatorInfo({ task }: TaskCreatorInfoProps) {
       </div>
     </div>
   )
-} 
+}

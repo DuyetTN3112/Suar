@@ -18,11 +18,11 @@ interface CreateTaskModalProps {
   statuses: Array<{ id: number; name: string }>
   priorities: Array<{ id: number; name: string }>
   labels: Array<{ id: number; name: string }>
-  users?: Array<{ id: number; first_name: string; last_name: string; full_name: string }>
+  users?: Array<{ id: number; username: string; email: string }>
 }
 
-export function CreateTaskModal({ 
-  open, 
+export function CreateTaskModal({
+  open,
   onOpenChange,
   statuses = [],
   priorities = [],
@@ -45,22 +45,22 @@ export function CreateTaskModal({
   const handleSubmit = () => {
     // Validate form
     const newErrors: Record<string, string> = {}
-    
+
     if (!formData.title.trim()) {
       newErrors.title = t('task.title') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
-    
+
     if (!formData.status_id) {
       newErrors.status_id = t('task.status') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
     }
-    
+
     setSubmitting(true)
-    
+
     router.post('/tasks', formData, {
       onSuccess: () => {
         setSubmitting(false)
@@ -101,7 +101,7 @@ export function CreateTaskModal({
             {t('task.add_task_description', {}, 'Thêm nhiệm vụ mới bằng cách điền thông tin bên dưới.')}
           </DialogDescription>
         </DialogHeader>
-        
+
         <CreateTaskForm
           formData={formData}
           setFormData={setFormData}
@@ -111,16 +111,16 @@ export function CreateTaskModal({
           labels={labels}
           users={users}
         />
-        
+
         <DialogFooter>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleClose}
             disabled={submitting}
           >
             {t('common.cancel', {}, 'Hủy')}
           </Button>
-          <Button 
+          <Button
             onClick={handleSubmit}
             disabled={submitting}
           >
@@ -130,4 +130,4 @@ export function CreateTaskModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

@@ -69,12 +69,8 @@ export default class AuthMiddleware {
           auth: {
             user: {
               ...ctx.auth.user?.serialize(),
-              first_name: ctx.auth.user.first_name,
-              last_name: ctx.auth.user.last_name,
-              full_name:
-                ctx.auth.user.full_name || `${ctx.auth.user.first_name} ${ctx.auth.user.last_name}`,
-              email: ctx.auth.user.email,
               username: ctx.auth.user.username,
+              email: ctx.auth.user.email,
               role: ctx.auth.user.role?.serialize(),
               isAdmin,
               current_organization_id: currentOrganizationId,

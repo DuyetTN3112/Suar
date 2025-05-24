@@ -8,20 +8,7 @@ export const usePendingApproval = (users: { data: User[]; meta: any }) => {
 
   // Hàm lấy tên hiển thị của người dùng
   const getUserDisplayName = (user: User): string => {
-    if (user.full_name && user.full_name.trim() !== '') {
-      return user.full_name
-    }
-    const firstName = user.first_name || ''
-    const lastName = user.last_name || ''
-
-    if (firstName.trim() !== '' || lastName.trim() !== '') {
-      return `${firstName} ${lastName}`.trim()
-    }
-    if (user.username && user.username.trim() !== '') {
-      return user.username
-    }
-    // Sử dụng phần đầu của email nếu không có tên
-    return user.email.split('@')[0]
+    return user.username || user.email || 'Unknown'
   }
   // Hàm xử lý phê duyệt người dùng
   const approveUser = (user: User) => {

@@ -26,7 +26,7 @@ export interface CreateTaskFormProps {
   statuses: Array<{ id: number; name: string }>
   priorities: Array<{ id: number; name: string }>
   labels: Array<{ id: number; name: string }>
-  users: Array<{ id: number; first_name: string; last_name: string; full_name: string }>
+  users: Array<{ id: number; username: string; email: string }>
 }
 
 export function CreateTaskForm({
@@ -49,8 +49,8 @@ export function CreateTaskForm({
 
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
-      setFormData(prev => ({ 
-        ...prev, 
+      setFormData(prev => ({
+        ...prev,
         due_date: date.toISOString().split('T')[0]
       }))
     } else {
@@ -60,12 +60,12 @@ export function CreateTaskForm({
 
   return (
     <div className="grid gap-4 py-4">
-      <TaskFormBasicFields 
+      <TaskFormBasicFields
         formData={formData}
         handleChange={handleChange}
         errors={errors}
       />
-      
+
       <TaskFormMetadataFields
         formData={formData}
         handleSelectChange={handleSelectChange}
@@ -75,7 +75,7 @@ export function CreateTaskForm({
         labels={labels}
         users={users}
       />
-      
+
       <TaskFormDueDateField
         dueDate={formData.due_date ? new Date(formData.due_date) : undefined}
         onDateChange={handleDateChange}
@@ -83,4 +83,4 @@ export function CreateTaskForm({
       />
     </div>
   )
-} 
+}

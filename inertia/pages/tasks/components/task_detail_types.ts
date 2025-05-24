@@ -9,10 +9,8 @@ export interface TaskDetailModalProps {
   labels: Array<{ id: number; name: string; color: string }>
   users?: Array<{
     id: number
-    first_name: string
-    last_name: string
-    full_name: string
-    avatar?: string
+    username: string
+    email: string
   }>
   onUpdate?: (updatedTask: Task) => void
   currentUser?: {
@@ -26,7 +24,7 @@ export interface AuditLog {
   id: number
   user?: {
     id: number
-    full_name: string
+    username: string
   }
   action: string
   changes?: any
