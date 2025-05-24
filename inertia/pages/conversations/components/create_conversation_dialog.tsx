@@ -63,7 +63,6 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
 
         setUsers(filteredUsers)
       } else {
-        console.warn('Định dạng dữ liệu không đúng hoặc không có người dùng:', response.data)
         setUsers([])
       }
     } catch (error) {
@@ -219,7 +218,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
         }
         return;
       } catch (axiosError) {
-        console.warn('Axios request failed, falling back to router.post:', axiosError);
+        // Fallback to router.post if axios fails
       }
 
       router.post('/conversations', payload, {

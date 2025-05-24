@@ -152,7 +152,7 @@ export const getOtherParticipant = (conversation: Conversation | null, currentUs
 export function calculateMessageSize(message: string): string {
   // Mỗi ký tự trong chuỗi JS = 2 bytes (UTF-16)
   const bytes = message.length * 2;
-  
+
   // Chuyển đổi bytes thành định dạng dễ đọc
   if (bytes < 1024) {
     return `${bytes} B`;
