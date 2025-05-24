@@ -63,12 +63,12 @@ export const useAddUsers = () => {
   const openAddUserModal = () => {
     setAddUserModalOpen(true)
     setSelectedUserIds([])
-    loadAllSystemUsers(1, searchUserTerm)
+    void loadAllSystemUsers(1, searchUserTerm)
   }
   // Xử lý tìm kiếm người dùng
   const handleSearchUsers = (e: React.FormEvent) => {
     e.preventDefault()
-    loadAllSystemUsers(1, searchUserTerm)
+    void loadAllSystemUsers(1, searchUserTerm)
   }
   // Xử lý chọn/bỏ chọn người dùng
   const toggleUserSelection = (userId: number) => {
@@ -95,7 +95,7 @@ export const useAddUsers = () => {
       },
       {
         preserveState: true,
-        onSuccess: (page) => {
+        onSuccess: () => {
           toast.success(
             t('user.success.users_added', {}, 'Đã thêm người dùng vào tổ chức thành công')
           )

@@ -1,11 +1,10 @@
-import React from 'react'
-import { useEffect, useState, useCallback } from 'react'
+
+import { useEffect, useCallback } from 'react'
 import { router } from '@inertiajs/react'
 import { DialogProps } from '@radix-ui/react-dialog'
-import { ArrowRightIcon, CommandIcon } from 'lucide-react'
+import { ArrowRightIcon } from 'lucide-react'
 import { useTheme } from '@/hooks/theme'
 import { useSearch } from '@/context/search_context'
-import { Button } from '@/components/ui/button'
 import {
   CommandDialog,
   CommandEmpty,
@@ -23,7 +22,7 @@ const sidebarData = {
 }
 
 export function CommandMenu({ ...props }: DialogProps) {
-  const { theme, setTheme } = useTheme()
+  const { setTheme } = useTheme()
   const { isOpen, setIsOpen, query, setQuery } = useSearch()
 
   useEffect(() => {
@@ -45,8 +44,8 @@ export function CommandMenu({ ...props }: DialogProps) {
 
   return (
     <CommandDialog open={isOpen} onOpenChange={setIsOpen} {...props}>
-      <CommandInput 
-        placeholder="Nhập lệnh hoặc tìm kiếm..." 
+      <CommandInput
+        placeholder="Nhập lệnh hoặc tìm kiếm..."
         value={query}
         onValueChange={setQuery}
       />
@@ -62,7 +61,7 @@ export function CommandMenu({ ...props }: DialogProps) {
                       key={`${navItem.url}-${i}`}
                       value={navItem.title}
                       onSelect={() => {
-                        runCommand(() => 
+                        runCommand(() =>
                           router.visit(navItem.url, {
                             preserveState: true,
                             preserveScroll: true
@@ -82,7 +81,7 @@ export function CommandMenu({ ...props }: DialogProps) {
                     key={`${subItem.url}-${i}`}
                     value={subItem.title}
                     onSelect={() => {
-                      runCommand(() => 
+                      runCommand(() =>
                         router.visit(subItem.url, {
                           preserveState: true,
                           preserveScroll: true

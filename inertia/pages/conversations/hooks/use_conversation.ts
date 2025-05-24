@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
-import { toast } from 'sonner'
+
 import { Conversation, Message } from '../types'
 
 export const useConversation = () => {
@@ -297,7 +297,7 @@ export const useConversation = () => {
       // Đảm bảo conversationId không phải là "create"
       if (conversationId && conversationId !== 'create') {
         setSelectedId(conversationId)
-        loadConversation(conversationId)
+        void loadConversation(conversationId)
         // Thay đổi URL mà không reload trang
         const newUrl = `/conversations`
         window.history.pushState({}, '', newUrl)
@@ -308,7 +308,7 @@ export const useConversation = () => {
   // Tải cuộc trò chuyện khi selectedId thay đổi
   useEffect(() => {
     if (selectedId) {
-      loadConversation(selectedId)
+      void loadConversation(selectedId)
     }
   }, [selectedId])
 
@@ -316,7 +316,7 @@ export const useConversation = () => {
   useEffect(() => {
     window.refreshMessages = () => {
       if (selectedId) {
-        loadConversation(selectedId)
+        void loadConversation(selectedId)
       }
     }
     // Dọn dẹp khi component unmount

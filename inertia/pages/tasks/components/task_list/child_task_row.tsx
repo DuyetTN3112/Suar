@@ -1,10 +1,9 @@
 import React, { useState } from 'react'
-import { 
-  TableRow, 
+import {
+  TableRow,
   TableCell
 } from "@/components/ui/table"
 import { Checkbox } from '@/components/ui/checkbox'
-import { User, Clock, CalendarIcon } from 'lucide-react'
 import { Task } from '../../types'
 import { TaskItemDeleteButton } from './task_item_delete_button'
 import { StatusCell } from './cells/child/status_cell'
@@ -28,26 +27,25 @@ export function ChildTaskRow({
   childTask,
   isTaskSelected,
   handleSelectTask,
-  isTaskCompleted,
   formatDate,
   currentUserInfo
 }: ChildTaskRowProps) {
   const statusName = childTask.status?.name?.toLowerCase() || '';
   const priorityName = childTask.priority?.name?.toLowerCase() || '';
   const [showDetailModal, setShowDetailModal] = useState(false);
-  
+
   // Hàm mở modal chi tiết task
   const openTaskDetail = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setShowDetailModal(true);
   };
-  
+
   return (
     <>
       <TableRow className="min-h-[40px] bg-muted/30">
         <TableCell className="px-2 py-1">
-          <Checkbox 
+          <Checkbox
             id={`select-subtask-${childTask.id}`}
             checked={isTaskSelected(childTask.id)}
             onCheckedChange={(checked) => handleSelectTask(childTask.id, !!checked)}
@@ -87,9 +85,9 @@ export function ChildTaskRow({
           <DueDateCell dueDate={childTask.due_date} formatDate={formatDate} />
         </TableCell>
         <TableCell className="px-2 py-1">
-          <TaskItemDeleteButton 
-            task={childTask} 
-            currentUser={currentUserInfo} 
+          <TaskItemDeleteButton
+            task={childTask}
+            currentUser={currentUserInfo}
           />
         </TableCell>
       </TableRow>
@@ -107,4 +105,4 @@ export function ChildTaskRow({
       />
     </>
   );
-} 
+}

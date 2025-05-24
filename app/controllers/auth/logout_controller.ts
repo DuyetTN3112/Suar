@@ -35,7 +35,7 @@ export default class LogoutController {
       })
 
       // 2. Execute command
-      const command = new LogoutUserCommand({ request, response, inertia, session, auth } as any)
+      const command = new LogoutUserCommand({ request, response, inertia, session, auth } as unknown)
       await command.handle(dto)
 
       // 3. Clear additional session data
@@ -58,7 +58,7 @@ export default class LogoutController {
    * Redirect to login page
    * Supports both Inertia and regular redirects
    */
-  private redirectToLogin(request: any, response: any, inertia: any) {
+  private redirectToLogin(request: unknown, response: unknown, inertia: unknown) {
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
       return inertia.location('/login')

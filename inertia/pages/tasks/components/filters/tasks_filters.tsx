@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useState } from 'react'
-import { Button } from '@/components/ui/button'
+
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -38,14 +38,13 @@ interface TasksFiltersProps {
 }
 
 export function TasksFilters({
-  filters,
+
   metadata,
   onSearch,
   onStatusChange,
   onPriorityChange,
   onTabChange,
   searchQuery,
-  setSearchQuery,
   selectedStatus,
   selectedPriority,
   activeTab,
@@ -53,7 +52,7 @@ export function TasksFilters({
 }: TasksFiltersProps) {
   const { t } = useTranslation()
   const [debouncedQuery, setDebouncedQuery] = useState(searchQuery);
-  
+
   // Xử lý debounce cho search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -61,22 +60,22 @@ export function TasksFilters({
         onSearch(debouncedQuery);
       }
     }, 300);
-    
+
     return () => clearTimeout(timer);
   }, [debouncedQuery, onSearch]);
-  
+
   // Xử lý thay đổi giá trị tìm kiếm
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setDebouncedQuery(e.target.value);
   };
-  
+
   // Xử lý khi nhấn Enter trong ô tìm kiếm
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       onSearch(debouncedQuery);
     }
   };
-  
+
   // Xử lý khi click vào biểu tượng tìm kiếm
   const handleSearchClick = () => {
     onSearch(debouncedQuery);
@@ -95,21 +94,21 @@ export function TasksFilters({
                 onKeyUp={handleKeyPress}
                 className="w-full sm:w-[280px] pl-8 h-7 text-sm"
               />
-              <div 
+              <div
                 className="absolute left-2 top-1/2 transform -translate-y-1/2 cursor-pointer"
                 onClick={handleSearchClick}
               >
                 <Search className="h-4 w-4 text-muted-foreground" />
               </div>
             </div>
-            
+
             <TabsList className="h-7">
               <TabsTrigger value="all" className="text-xs px-3 py-0.5">{t('common.all', {}, 'Tất cả')}</TabsTrigger>
               <TabsTrigger value="pending" className="text-xs px-3 py-0.5">{t('task.status_todo', {}, 'Đang chờ')}</TabsTrigger>
               <TabsTrigger value="completed" className="text-xs px-3 py-0.5">{t('task.status_done', {}, 'Đã hoàn thành')}</TabsTrigger>
             </TabsList>
           </div>
-          
+
           <div className="flex gap-2">
             <Select value={selectedStatus} onValueChange={onStatusChange}>
               <SelectTrigger className="w-[120px] h-7 text-xs">
@@ -124,7 +123,7 @@ export function TasksFilters({
                 ))}
               </SelectContent>
             </Select>
-            
+
             <Select value={selectedPriority} onValueChange={onPriorityChange}>
               <SelectTrigger className="w-[120px] h-7 text-xs">
                 <SelectValue placeholder={t('task.priority', {}, 'Ưu tiên')} />
@@ -140,11 +139,11 @@ export function TasksFilters({
             </Select>
           </div>
         </div>
-        
+
         <TabsContent value={activeTab} className="pt-0 mt-0">
           {children}
         </TabsContent>
       </Tabs>
     </div>
   )
-} 
+}

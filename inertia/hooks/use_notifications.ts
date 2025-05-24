@@ -45,7 +45,7 @@ export const useNotifications = () => {
       const unreadCountData = response.data.unread_count || 0
 
       // Đảm bảo định dạng ngày tháng hợp lệ và giữ nguyên cấu trúc dữ liệu
-      const processedNotifications = notificationsData.map((notification: any) => {
+      const processedNotifications = notificationsData.map((notification: unknown) => {
         // Đảm bảo các trường bắt buộc có giá trị
         return {
           id: notification.id || 0,
@@ -66,7 +66,7 @@ export const useNotifications = () => {
       setNotifications(processedNotifications)
       setUnreadCount(unreadCountData)
       setError(null)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Lỗi khi tải thông báo:', err)
       setError(err.response?.data?.error || 'Không thể tải thông báo')
     } finally {
@@ -77,28 +77,34 @@ export const useNotifications = () => {
   // Đánh dấu thông báo đã đọc
   const markAsRead = async (id: number) => {
     try {
-      await axios.post(`/notifications/${id}/mark-as-read`, {}, {
-        headers: {
-          'X-CSRF-TOKEN': getCsrfToken(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      })
+      await axios.post(
+        `/notifications/${id}/mark-as-read`,
+        {},
+        {
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        }
+      )
 
       // Cập nhật trạng thái trong state local, giữ nguyên tất cả dữ liệu khác
-      setNotifications(notifications.map(notification => {
-        if (notification.id === id) {
-          return {
-            ...notification,
-            is_read: true,
-            read_at: new Date().toISOString()
+      setNotifications(
+        notifications.map((notification) => {
+          if (notification.id === id) {
+            return {
+              ...notification,
+              is_read: true,
+              read_at: new Date().toISOString(),
+            }
           }
-        }
-        return notification
-      }))
+          return notification
+        })
+      )
 
       // Giảm số lượng thông báo chưa đọc
-      setUnreadCount(prev => Math.max(0, prev - 1))
+      setUnreadCount((prev) => Math.max(0, prev - 1))
     } catch (err) {
       console.error('Lỗi khi đánh dấu thông báo đã đọc:', err)
     }
@@ -107,21 +113,27 @@ export const useNotifications = () => {
   // Đánh dấu tất cả thông báo đã đọc
   const markAllAsRead = async () => {
     try {
-      await axios.post('/notifications/mark-all-as-read', {}, {
-        headers: {
-          'X-CSRF-TOKEN': getCsrfToken(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-      })
+      await axios.post(
+        '/notifications/mark-all-as-read',
+        {},
+        {
+          headers: {
+            'X-CSRF-TOKEN': getCsrfToken(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+        }
+      )
 
       // Cập nhật trạng thái trong state local, giữ nguyên tất cả dữ liệu khác
-      const now = new Date().toISOString();
-      setNotifications(notifications.map(notification => ({
-        ...notification,
-        is_read: true,
-        read_at: notification.read_at || now
-      })))
+      const now = new Date().toISOString()
+      setNotifications(
+        notifications.map((notification) => ({
+          ...notification,
+          is_read: true,
+          read_at: notification.read_at || now,
+        }))
+      )
       setUnreadCount(0)
     } catch (err) {
       console.error('Lỗi khi đánh dấu tất cả thông báo đã đọc:', err)
@@ -140,13 +152,13 @@ export const useNotifications = () => {
       })
 
       // Xóa thông báo khỏi state local
-      const newNotifications = notifications.filter(notification => notification.id !== id)
+      const newNotifications = notifications.filter((notification) => notification.id !== id)
       setNotifications(newNotifications)
 
       // Cập nhật số lượng thông báo chưa đọc nếu cần
-      const deletedNotification = notifications.find(n => n.id === id)
+      const deletedNotification = notifications.find((n) => n.id === id)
       if (deletedNotification && !deletedNotification.is_read) {
-        setUnreadCount(prev => Math.max(0, prev - 1))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
       }
     } catch (err) {
       console.error('Lỗi khi xóa thông báo:', err)
@@ -155,13 +167,13 @@ export const useNotifications = () => {
 
   // Tải thông báo khi component mount
   useEffect(() => {
-    fetchLatestNotifications()
+    void fetchLatestNotifications()
   }, [])
 
   // Polling để kiểm tra thông báo mới mỗi 30 giây
   useEffect(() => {
     const interval = setInterval(() => {
-      fetchLatestNotifications()
+      void fetchLatestNotifications()
     }, 30000) // 30 giây
 
     return () => clearInterval(interval)
@@ -175,6 +187,6 @@ export const useNotifications = () => {
     markAsRead,
     markAllAsRead,
     deleteNotification,
-    refresh: fetchLatestNotifications
+    refresh: fetchLatestNotifications,
   }
 }

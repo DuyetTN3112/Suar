@@ -136,7 +136,7 @@ export default class GetTaskMetadataQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -151,7 +151,7 @@ export default class GetTaskMetadataQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

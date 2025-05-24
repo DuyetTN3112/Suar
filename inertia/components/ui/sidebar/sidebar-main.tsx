@@ -17,7 +17,6 @@ export interface SidebarProps
 
 export function Sidebar({
   side = 'left',
-  variant = 'sidebar',
   collapsible = 'offcanvas',
   className,
   children,
@@ -138,4 +137,4 @@ export function SidebarTrigger({ className, ...props }: SidebarTriggerProps) {
       {...props}
     />
   )
-} 
+}

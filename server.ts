@@ -29,15 +29,15 @@ const IMPORTER = (filePath: string) => {
 
 new Ignitor(APP_ROOT, { importer: IMPORTER })
   .tap((app) => {
-    app.booting(async () => {
-      await import('#start/env')
+    app.booting(() => {
+      void import('#start/env')
     })
-    app.listen('SIGTERM', () => app.terminate())
-    app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+    app.listen('SIGTERM', () => void app.terminate())
+    app.listenIf(app.managedByPm2, 'SIGINT', () => void app.terminate())
   })
   .httpServer()
   .start()
-  .catch((error) => {
+  .catch((error = Error) => {
     process.exitCode = 1
-    prettyPrintError(error)
+    void prettyPrintError(error)
   })

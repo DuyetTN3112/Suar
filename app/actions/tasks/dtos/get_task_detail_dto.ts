@@ -32,7 +32,7 @@ export default class GetTaskDetailDTO {
     }
 
     // Validate audit_logs_limit if provided
-    let auditLogsLimit = data.audit_logs_limit ?? 20
+    const auditLogsLimit = data.audit_logs_limit ?? 20
 
     if (auditLogsLimit < 1) {
       throw new Error('Số lượng audit logs phải lớn hơn 0')
@@ -103,7 +103,7 @@ export default class GetTaskDetailDTO {
   /**
    * Convert DTO thành object để log hoặc debug
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       task_id: this.task_id,
       include_versions: this.include_versions,

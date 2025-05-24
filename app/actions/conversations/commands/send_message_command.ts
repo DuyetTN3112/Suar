@@ -64,7 +64,7 @@ export default class SendMessageCommand {
           user.id,
           dto.trimmedMessage,
         ])
-      } catch (dbError: any) {
+      } catch (dbError: unknown) {
         // Log detailed error for debugging
         Logger.error(`[SendMessageCommand] Database error for user ${user.id}:`, {
           error: dbError.message,

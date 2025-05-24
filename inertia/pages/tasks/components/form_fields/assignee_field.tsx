@@ -1,9 +1,9 @@
 import React from 'react'
 import { Task } from '../../types'
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getAvatarInitials } from '../task_detail_utils'
+
 
 interface AssigneeFieldProps {
   formData: Partial<Task>

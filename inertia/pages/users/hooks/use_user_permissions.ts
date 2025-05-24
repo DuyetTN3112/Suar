@@ -48,7 +48,7 @@ export const useUserPermissions = () => {
         },
         preserveScroll: false,
         preserveState: false,
-        onSuccess: (page) => {
+        onSuccess: () => {
           setEditModalOpen(false)
           setIsSubmitting(false)
           toast.success(

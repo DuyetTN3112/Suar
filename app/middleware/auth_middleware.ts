@@ -56,10 +56,10 @@ export default class AuthMiddleware {
           ctx.session.get('current_organization_id') || ctx.auth.user.current_organization_id
 
         // Nếu có current_organization_id, load thêm thông tin về vai trò trong tổ chức hiện tại
-        let organizationUsers: any[] = []
+        let organizationUsers: unknown[] = []
         if (currentOrganizationId) {
           await ctx.auth.user.load('organization_users', (query) => {
-            query.where('organization_id', currentOrganizationId).preload('role')
+            void query.where('organization_id', currentOrganizationId).preload('role')
           })
           organizationUsers = ctx.auth.user.organization_users || []
         }

@@ -29,7 +29,7 @@ interface AuditLogData {
   user_id?: number
   old_values?: object | null
   new_values?: object | null
-  metadata?: any
+  metadata?: unknown
 }
 
 export default class AuditLogging {
@@ -63,7 +63,7 @@ export default class AuditLogging {
     })
   }
 
-  async logCreation(entity_type: string, entity: any) {
+  async logCreation(entity_type: string, entity: unknown) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
@@ -77,7 +77,7 @@ export default class AuditLogging {
     })
   }
 
-  async logUpdate(entity_type: string, oldData: any, newData: any) {
+  async logUpdate(entity_type: string, oldData: unknown, newData: unknown) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
@@ -94,7 +94,7 @@ export default class AuditLogging {
   /**
    * Ghi log cho hành động xóa
    */
-  async logDeletion(entity_type: string, entity: any) {
+  async logDeletion(entity_type: string, entity: unknown) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,

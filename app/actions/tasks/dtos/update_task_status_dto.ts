@@ -92,7 +92,7 @@ export default class UpdateTaskStatusDTO {
   /**
    * Convert DTO thành object để cập nhật database
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       status_id: this.status_id,
     }

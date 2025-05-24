@@ -1,34 +1,30 @@
-/// <reference path="../../adonisrc.ts" />
-/// <reference path="../../config/inertia.ts" />
-
 import React from 'react'
 import '@/css/app.css'
 import { createRoot } from 'react-dom/client'
-import { createInertiaApp, router, usePage } from '@inertiajs/react'
+import { createInertiaApp, router } from '@inertiajs/react'
 import { resolvePageComponent } from '@adonisjs/inertia/helpers'
 import { initErrorLogging } from '@/lib/error-logger'
 import axios from 'axios'
 import { ThemeProvider } from '@/context/theme_context'
 import { CommandMenu } from '@/components/command_menu'
 import { NavigationProgress } from '@/components/navigation_progress'
-import { UIToasterProvider } from '@/components/ui/toaster_provider'
 import { SearchProvider } from '@/context/search_context'
 
 // Cấu hình Axios để tự động gửi CSRF token
 axios.defaults.withCredentials = true
 
 // Thêm cơ chế quản lý debug info
-window.DEBUG_MODE = process.env.NODE_ENV === 'development';
+window.DEBUG_MODE = import.meta.env.NODE_ENV === 'development';
 
 // Tạo hàm log chỉ hiện trong development mode
-const debugLog = (message: string, ...args: any[]) => {
+const debugLog = (message: string, ...args: unknown[]) => {
   if (window.DEBUG_MODE) {
 
   }
 };
 
 // Tạo hàm log lỗi hiện trong mọi môi trường
-const errorLog = (message: string, ...args: any[]) => {
+const errorLog = (message: string, ...args: unknown[]) => {
   console.error(message, ...args);
 };
 
@@ -39,7 +35,7 @@ if (csrfToken) {
 
 } else {
   // Only log actual errors in production
-  if (process.env.NODE_ENV !== 'development') {
+  if (import.meta.env.NODE_ENV !== 'development') {
     console.warn('Không tìm thấy CSRF token trong meta tags')
   }
 }
@@ -50,7 +46,7 @@ axios.interceptors.response.use(
   (error) => {
     if (error.message === 'Network Error') {
       // Only log actual errors in production
-      if (process.env.NODE_ENV !== 'development') {
+      if (import.meta.env.NODE_ENV !== 'development') {
         console.error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.');
       }
     }
@@ -65,7 +61,7 @@ initErrorLogging();
 window.DEBUG = {
   showReactVersionInfo: () => {
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.info('React version:', React.version);
       console.info('Environment:', import.meta.env.MODE);
       console.info('Node Env:', import.meta.env.NODE_ENV);
@@ -75,14 +71,14 @@ window.DEBUG = {
   enableLogging: () => {
     window.DEBUG_MODE = true;
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.info('Debug logging enabled');
     }
   },
   disableLogging: () => {
     window.DEBUG_MODE = false;
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.info('Debug logging disabled');
     }
   }
@@ -97,7 +93,7 @@ declare global {
       disableLogging: () => void;
     };
     DEBUG_MODE: boolean;
-    auth?: any;
+    auth?: unknown;
   }
 }
 
@@ -140,7 +136,7 @@ router.on('success', (event) => {
 
 router.on('error', (event) => {
   // Only log actual errors in production
-  if (process.env.NODE_ENV !== 'development') {
+  if (import.meta.env.NODE_ENV !== 'development') {
     console.error('\n=== [Inertia Router] Sự kiện ERROR ===')
     console.error('[Inertia Router] Lỗi khi điều hướng:', event.detail.errors)
   }
@@ -148,7 +144,7 @@ router.on('error', (event) => {
 
 router.on('invalid', (event) => {
   // Only log actual errors in production
-  if (process.env.NODE_ENV !== 'development') {
+  if (import.meta.env.NODE_ENV !== 'development') {
     console.warn('\n=== [Inertia Router] Sự kiện INVALID ===')
     console.warn('[Inertia Router] Điều hướng không hợp lệ:', event.detail.response.status)
   }
@@ -166,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Component wrapper để đảm bảo auth được đặt vào window từ props
-const AuthInitializer = ({ children, auth }: { children: React.ReactNode, auth: any }) => {
+const AuthInitializer = ({ children, auth }: { children: React.ReactNode, auth: unknown }) => {
   React.useEffect(() => {
     if (auth?.user && !window.auth) {
       window.auth = auth;
@@ -176,7 +172,7 @@ const AuthInitializer = ({ children, auth }: { children: React.ReactNode, auth: 
   return <>{children}</>;
 };
 
-createInertiaApp({
+void createInertiaApp({
   resolve: async (name) => {
     const startTime = performance.now()
 
@@ -187,20 +183,20 @@ createInertiaApp({
       return component
     } catch (error) {
       // Only log actual errors in production
-      if (process.env.NODE_ENV !== 'development') {
+      if (import.meta.env.NODE_ENV !== 'development') {
         console.error(`[Inertia App] Lỗi khi resolve component ${name}:`, error)
       }
       throw error
     }
   },
-  setup({ el, App, props }: { el: HTMLElement, App: any, props: any }) {
+  setup({ el, App, props }: { el: HTMLElement, App: unknown, props: unknown }) {
     // Lấy thông tin auth từ props và đặt vào window
     const authData = props.initialPage?.props?.user?.auth;
     if (authData) {
       window.auth = authData;
     } else {
       // Only log actual errors in production
-      if (process.env.NODE_ENV !== 'development') {
+      if (import.meta.env.NODE_ENV !== 'development') {
         console.warn('[Inertia App] Không tìm thấy dữ liệu auth trong initialPage')
       }
     }
@@ -214,7 +210,6 @@ createInertiaApp({
             React.createElement(AuthInitializer, {
               auth: authData,
               children: [
-                React.createElement(UIToasterProvider, { key: 'toaster' }),
                 React.createElement(NavigationProgress, { key: 'navigation-progress' }),
                 React.createElement(CommandMenu, { key: 'command-menu' }),
                 React.createElement(App, { ...props, key: 'app' })

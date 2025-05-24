@@ -37,7 +37,7 @@ export default class GetTaskDetailQuery {
       canDelete: boolean
       canAssign: boolean
     }
-    auditLogs?: any[]
+    auditLogs?: unknown[]
   }> {
     const user = this.ctx.auth.user
     if (!user) {
@@ -60,41 +60,41 @@ export default class GetTaskDetailQuery {
     await this.validateViewPermission(user, task)
 
     // Load basic relations (always)
-    await task.load((loader: any) => {
+    await task.load((loader: unknown) => {
       loader
         .load('status')
         .load('label')
         .load('priority')
-        .load('assignee', (q: any) => {
+        .load('assignee', (q: unknown) => {
           q.select(['id', 'username', 'email'])
         })
-        .load('creator', (q: any) => {
+        .load('creator', (q: unknown) => {
           q.select(['id', 'username'])
         })
-        .load('updater', (q: any) => {
+        .load('updater', (q: unknown) => {
           q.select(['id', 'username'])
         })
         .load('organization')
         .load('project')
-        .load('parentTask', (q: any) => {
+        .load('parentTask', (q: unknown) => {
           q.select(['id', 'title', 'status_id']).preload('status')
         })
     })
 
     // Load optional relations
     if (dto.shouldLoadChildTasks()) {
-      await task.load('childTasks', (childQuery: any) => {
+      await task.load('childTasks', (childQuery: unknown) => {
         childQuery
           .whereNull('deleted_at')
           .preload('status')
-          .preload('assignee', (q: any) => {
+          .preload('assignee', (q: unknown) => {
             q.select(['id', 'username'])
           })
       })
     }
 
     if (dto.shouldLoadVersions()) {
-      await task.load('versions', (versionQuery: any) => {
+      await task.load('versions', (versionQuery: unknown) => {
         versionQuery.orderBy('changed_at', 'desc').limit(20)
       })
     }
@@ -103,7 +103,7 @@ export default class GetTaskDetailQuery {
     const permissions = await this.calculatePermissions(user, task)
 
     // Load audit logs if requested
-    let auditLogs: any[] | undefined
+    let auditLogs: unknown[] | undefined
     if (dto.shouldLoadAuditLogs()) {
       auditLogs = await this.loadAuditLogs(task.id, dto.audit_logs_limit)
     }
@@ -205,13 +205,13 @@ export default class GetTaskDetailQuery {
   /**
    * Load audit logs
    */
-  private async loadAuditLogs(taskId: number, limit: number): Promise<any[]> {
+  private async loadAuditLogs(taskId: number, limit: number): Promise<unknown[]> {
     const logs = await AuditLog.query()
       .where('entity_type', 'task')
       .where('entity_id', taskId)
       .orderBy('created_at', 'desc')
       .limit(limit)
-      .preload('user', (userQuery: any) => {
+      .preload('user', (userQuery: unknown) => {
         userQuery.select(['id', 'username', 'email'])
       })
 
@@ -234,10 +234,10 @@ export default class GetTaskDetailQuery {
    * Format changes for audit log
    */
   private formatChanges(
-    oldValues: Record<string, any>,
-    newValues: Record<string, any>
-  ): Array<{ field: string; oldValue: any; newValue: any }> {
-    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>
+  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
+    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
 
     for (const key in newValues) {
       if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
@@ -255,7 +255,7 @@ export default class GetTaskDetailQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -270,7 +270,7 @@ export default class GetTaskDetailQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

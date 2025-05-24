@@ -2,7 +2,7 @@ import React from 'react'
 import { Head } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function Notifications() {
   return (
@@ -13,7 +13,7 @@ export default function Notifications() {
           <h1 className="text-3xl font-bold">Cài đặt thông báo</h1>
           <Button variant="outline">Lưu thay đổi</Button>
         </div>
-        
+
         <div className="mt-6">
           <Card>
             <CardHeader>
@@ -34,4 +34,4 @@ export default function Notifications() {
   )
 }
 
-Notifications.layout = (page: React.ReactNode) => <AppLayout title="Cài đặt thông báo">{page}</AppLayout> 
+Notifications.layout = (page: React.ReactNode) => <AppLayout title="Cài đặt thông báo">{page}</AppLayout>

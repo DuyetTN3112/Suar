@@ -1,6 +1,3 @@
-import { Link } from '@inertiajs/react'
-import { ReactNode } from 'react'
-
 interface User {
   name: string
   email: string

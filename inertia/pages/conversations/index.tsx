@@ -47,7 +47,7 @@ const scrollbarStyles = `
 
 export default function Conversations({ conversations }: ConversationsProps) {
   const { t } = useTranslation()
-  const loggedInUserId = (window as any).auth?.user?.id || ''
+  const loggedInUserId = (window as unknown).auth?.user?.id || ''
   const hasConversations = conversations?.data && conversations.data.length > 0
 
   const {
@@ -67,7 +67,6 @@ export default function Conversations({ conversations }: ConversationsProps) {
     handleRecallMessage,
     handleRecallForEveryone,
     handleRecallForSelf,
-    messagesEndRef
   } = useConversation()
 
   return (
@@ -96,7 +95,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
               selectedId={selectedId}
               onSelectConversation={(conversation) => {
                 setSelectedId(conversation.id)
-                loadConversation(conversation.id)
+                void loadConversation(conversation.id)
               }}
               loggedInUserId={loggedInUserId}
             />

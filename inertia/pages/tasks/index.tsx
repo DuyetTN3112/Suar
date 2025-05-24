@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Head } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
@@ -6,7 +6,6 @@ import { TasksProps } from './types'
 import { Card } from '@/components/ui/card'
 import { useTaskState } from './hooks/use_task_state'
 import { formatDate } from './utils/task_formatter'
-import { getRoleFromAuth, canCreateTask } from './utils/task_permissions'
 import useTranslation from '@/hooks/use_translation'
 
 // Import các thành phần đã tái cấu trúc
@@ -30,7 +29,7 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
     createModalOpen,
     setCreateModalOpen,
     detailModalOpen,
-    setDetailModalOpen,
+
     selectedTask,
     handleSearch,
     handleStatusChange,
@@ -50,11 +49,11 @@ export default function Tasks({ tasks, filters, metadata, auth }: TasksProps) {
     }
   }, [filters.search]);
 
-  const userRole = getRoleFromAuth()
+
 
   // Kiểm tra quyền tạo task trực tiếp từ dữ liệu auth
   const hasCreatePermission = () => {
-    const user = (window as any).auth?.user
+    const user = (window as unknown).auth?.user
     return user && (
       user.isAdmin === true ||
       user.role_id === 1 ||

@@ -69,43 +69,43 @@ export default class GetUserTasksQuery {
 
     // Apply user filter
     if (filterType === 'assigned') {
-      query.where('assigned_to', userId)
+      void query.where('assigned_to', userId)
     } else if (filterType === 'created') {
-      query.where('creator_id', userId)
+      void query.where('creator_id', userId)
     } else {
       // both
-      query.where((bothQuery) => {
-        bothQuery.where('assigned_to', userId).orWhere('creator_id', userId)
+      void query.where((bothQuery) => {
+        void bothQuery.where('assigned_to', userId).orWhere('creator_id', userId)
       })
     }
 
     // Apply status filter
     if (statusId) {
-      query.where('status_id', statusId)
+      void query.where('status_id', statusId)
     }
 
     // Apply priority filter
     if (priorityId) {
-      query.where('priority_id', priorityId)
+      void query.where('priority_id', priorityId)
     }
 
     // Preload relations
-    query
+    void query
       .preload('status')
       .preload('label')
       .preload('priority')
       .preload('assignee', (q) => {
-        q.select(['id', 'username'])
+        void q.select(['id', 'username'])
       })
       .preload('creator', (q) => {
-        q.select(['id', 'username'])
+        void q.select(['id', 'username'])
       })
       .preload('project', (q) => {
-        q.select(['id', 'name'])
+        void q.select(['id', 'name'])
       })
 
     // Sort by due date
-    query.orderBy('due_date', 'asc')
+    void query.orderBy('due_date', 'asc')
 
     // Execute with pagination
     const paginator = await query.paginate(page, limit)

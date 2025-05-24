@@ -2,10 +2,8 @@ import React from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import { User } from '../types'
-import useTranslation from '@/hooks/use_translation'
 
 export const useDeleteUser = (authUserId: number) => {
-  const { t } = useTranslation()
   const [deleteModalOpen, setDeleteModalOpen] = React.useState(false)
   const [userToDelete, setUserToDelete] = React.useState<User | null>(null)
   const [isDeleting, setIsDeleting] = React.useState(false)
@@ -39,7 +37,7 @@ export const useDeleteUser = (authUserId: number) => {
         // Tải lại trang để cập nhật danh sách
         window.location.reload()
       },
-      onError: (errors: any) => {
+      onError: (errors: unknown) => {
         console.error('Lỗi khi xóa người dùng:', errors)
         toast.error(errors.message || 'Không thể xóa người dùng khỏi tổ chức')
         setDeleteModalOpen(false)

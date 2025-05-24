@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { router } from '@inertiajs/react'
-import { Task } from '../types'
+
 
 type FiltersType = {
   status?: string;
@@ -31,8 +31,8 @@ export function useTaskFilters({ initialFilters, metadata }: UseTaskFiltersProps
   const [searchQuery, setSearchQuery] = useState(initialFilters.search || '');
   const [selectedStatus, setSelectedStatus] = useState(initialFilters.status || 'all');
   const [selectedPriority, setSelectedPriority] = useState(initialFilters.priority || 'all');
-  const [selectedAssignee, setSelectedAssignee] = useState(initialFilters.assigned_to || 'all');
-  const [selectedLabel, setSelectedLabel] = useState(initialFilters.label || 'all');
+  const [selectedAssignee] = useState(initialFilters.assigned_to || 'all');
+  const [selectedLabel] = useState(initialFilters.label || 'all');
   const [activeTab, setActiveTab] = useState('all');
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
 

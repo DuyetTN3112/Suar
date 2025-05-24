@@ -11,7 +11,7 @@ import useTranslation from '@/hooks/use_translation'
 
 export default function ShowConversation({ conversation, messages, pagination, currentUser }: ConversationProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  const auth = (window as any).auth || {}
+  const auth = (window as unknown).auth || {}
   const loggedInUserFromWindow = auth?.user || null
   const { t } = useTranslation()
 

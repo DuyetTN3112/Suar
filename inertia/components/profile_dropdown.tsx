@@ -14,14 +14,14 @@ import {
 import React, { useEffect } from 'react'
 
 export function ProfileDropdown() {
-  const { auth, csrfToken } = usePage().props as any
+  const { auth, csrfToken } = usePage().props as unknown
   const user = auth?.user
 
   // Di chuyển console.error vào useEffect
   useEffect(() => {
     if (!user) {
       // Only log in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.NODE_ENV === 'development') {
         console.error('ProfileDropdown: Không có thông tin người dùng')
       }
     }

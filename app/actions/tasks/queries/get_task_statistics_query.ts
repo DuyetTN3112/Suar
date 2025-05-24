@@ -111,8 +111,8 @@ export default class GetTaskStatisticsQuery {
    * Apply permission filters
    */
   private async applyPermissionFilters(
-    query: any,
-    user: any,
+    query: unknown,
+    user: unknown,
     organizationId: number
   ): Promise<void> {
     const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
@@ -139,17 +139,17 @@ export default class GetTaskStatisticsQuery {
     }
 
     // Member: Only own tasks
-    query.where((memberQuery: any) => {
+    query.where((memberQuery: unknown) => {
       memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
     })
   }
 
-  private async getTotalCount(baseQuery: any): Promise<number> {
+  private async getTotalCount(baseQuery: unknown): Promise<number> {
     const result = await baseQuery.clone().count('* as total').first()
     return Number(result?.$extras.total || 0)
   }
 
-  private async getCountByStatus(baseQuery: any): Promise<Record<string, number>> {
+  private async getCountByStatus(baseQuery: unknown): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('status_id')
@@ -157,13 +157,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('status_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: any) => {
+    results.forEach((row: unknown) => {
       stats[row.status_id] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getCountByPriority(baseQuery: any): Promise<Record<string, number>> {
+  private async getCountByPriority(baseQuery: unknown): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('priority_id')
@@ -172,13 +172,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('priority_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: any) => {
+    results.forEach((row: unknown) => {
       stats[row.priority_id] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getCountByLabel(baseQuery: any): Promise<Record<string, number>> {
+  private async getCountByLabel(baseQuery: unknown): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('label_id')
@@ -187,13 +187,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('label_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: any) => {
+    results.forEach((row: unknown) => {
       stats[row.label_id] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getOverdueCount(baseQuery: any): Promise<number> {
+  private async getOverdueCount(baseQuery: unknown): Promise<number> {
     const result = await baseQuery
       .clone()
       .whereNotNull('due_date')
@@ -205,7 +205,7 @@ export default class GetTaskStatisticsQuery {
     return Number(result?.$extras.total || 0)
   }
 
-  private async getCompletedThisWeek(baseQuery: any): Promise<number> {
+  private async getCompletedThisWeek(baseQuery: unknown): Promise<number> {
     const startOfWeek = DateTime.now().startOf('week')
 
     const result = await baseQuery
@@ -218,7 +218,7 @@ export default class GetTaskStatisticsQuery {
     return Number(result?.$extras.total || 0)
   }
 
-  private async getCompletedThisMonth(baseQuery: any): Promise<number> {
+  private async getCompletedThisMonth(baseQuery: unknown): Promise<number> {
     const startOfMonth = DateTime.now().startOf('month')
 
     const result = await baseQuery
@@ -231,7 +231,7 @@ export default class GetTaskStatisticsQuery {
     return Number(result?.$extras.total || 0)
   }
 
-  private async getAvgCompletionDays(baseQuery: any): Promise<number | null> {
+  private async getAvgCompletionDays(baseQuery: unknown): Promise<number | null> {
     const completedTasks = await baseQuery
       .clone()
       .where('status_id', 3) // Completed
@@ -241,7 +241,7 @@ export default class GetTaskStatisticsQuery {
       return null
     }
 
-    const totalDays = completedTasks.reduce((sum: number, task: any) => {
+    const totalDays = completedTasks.reduce((sum: number, task: unknown) => {
       const created = DateTime.fromJSDate(task.created_at.toJSDate())
       const completed = DateTime.fromJSDate(task.updated_at.toJSDate())
       return sum + completed.diff(created, 'days').days
@@ -250,7 +250,7 @@ export default class GetTaskStatisticsQuery {
     return Math.round(totalDays / completedTasks.length)
   }
 
-  private async getTimeTrackingStats(baseQuery: any): Promise<{
+  private async getTimeTrackingStats(baseQuery: unknown): Promise<{
     tasksWithEstimate: number
     tasksWithActual: number
     totalEstimated: number
@@ -261,14 +261,14 @@ export default class GetTaskStatisticsQuery {
   }> {
     const tasks = await baseQuery.clone().select('estimated_time', 'actual_time')
 
-    const tasksWithEstimate = tasks.filter((t: any) => t.estimated_time).length
-    const tasksWithActual = tasks.filter((t: any) => t.actual_time).length
+    const tasksWithEstimate = tasks.filter((t: unknown) => t.estimated_time).length
+    const tasksWithActual = tasks.filter((t: unknown) => t.actual_time).length
 
     const totalEstimated = tasks.reduce(
-      (sum: number, t: any) => sum + (Number(t.estimated_time) || 0),
+      (sum: number, t: unknown) => sum + (Number(t.estimated_time) || 0),
       0
     )
-    const totalActual = tasks.reduce((sum: number, t: any) => sum + (Number(t.actual_time) || 0), 0)
+    const totalActual = tasks.reduce((sum: number, t: unknown) => sum + (Number(t.actual_time) || 0), 0)
 
     const avgEstimated = tasksWithEstimate > 0 ? totalEstimated / tasksWithEstimate : 0
     const avgActual = tasksWithActual > 0 ? totalActual / tasksWithActual : 0
@@ -289,7 +289,7 @@ export default class GetTaskStatisticsQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -304,7 +304,7 @@ export default class GetTaskStatisticsQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

@@ -118,7 +118,7 @@ export default class GetConversationMessagesQuery {
       const lastPage = Math.ceil(total / limit)
 
       // Process messages: replace recalled message content if needed
-      const processedMessages: MessageWithSender[] = messages.map((msg: any) => {
+      const processedMessages: MessageWithSender[] = messages.map((msg: unknown) => {
         // If message is recalled for everyone, replace content
         if (msg.is_recalled && msg.recall_scope === 'all') {
           return {

@@ -50,7 +50,7 @@ export default class SoftDeleteMiddleware {
       const query = model.query().where('id', id)
       // Nếu không cho phép truy cập entity đã bị xóa, thêm điều kiện
       if (!allowDeleted) {
-        query.whereNull('deleted_at')
+        void query.whereNull('deleted_at')
       }
       const entity = (await query.first()) as SoftDeleteRow | null
 

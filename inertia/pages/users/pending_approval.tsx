@@ -8,18 +8,18 @@ import PendingApprovalTable from './components/PendingApprovalTable'
 import { PendingApprovalProps } from './types'
 import { usePendingApproval } from './hooks/use_pending_approval'
 
-export default function PendingApproval({ users, filters, metadata }: PendingApprovalProps) {
+export default function PendingApproval({ users, filters,  }: PendingApprovalProps) {
   const [search, setSearch] = React.useState(filters.search || '')
-  const { auth } = usePage().props as any
+  const { auth } = usePage().props as unknown
   const { t } = useTranslation()
   const { approveAllUsers } = usePendingApproval(users)
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const queryParams = new URLSearchParams()
-    
+
     if (search) queryParams.append('search', search)
-    
+
     const queryString = queryParams.toString()
     window.location.href = `/users/pending-approval${queryString ? `?${queryString}` : ''}`
   }
@@ -34,19 +34,19 @@ export default function PendingApproval({ users, filters, metadata }: PendingApp
             {t('user.approve_all', {}, "Phê duyệt tất cả")}
           </Button>
         </div>
-        
+
         <div className="mt-6">
-          <UserSearchForm 
+          <UserSearchForm
             search={search}
             setSearch={setSearch}
             handleSearch={handleSearch}
           />
         </div>
-        
+
         <div className="mt-6">
-          <PendingApprovalTable 
-            users={users} 
-            filters={filters} 
+          <PendingApprovalTable
+            users={users}
+            filters={filters}
           />
         </div>
       </div>
@@ -54,4 +54,4 @@ export default function PendingApproval({ users, filters, metadata }: PendingApp
   )
 }
 
-PendingApproval.layout = (page: React.ReactNode) => <AppLayout title="Phê duyệt người dùng">{page}</AppLayout> 
+PendingApproval.layout = (page: React.ReactNode) => <AppLayout title="Phê duyệt người dùng">{page}</AppLayout>

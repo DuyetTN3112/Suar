@@ -4,6 +4,9 @@
     "rootDir": "./",
     "outDir": "./build",
     "jsx": "react-jsx",
+    "noImplicitAny": true,
+    "strict": true,
+
     "paths": {
       "#*": [
         "./app/*"

@@ -42,9 +42,9 @@ type TasksWrapperProps = {
 export function TasksWrapper({
   tasks,
   filters,
-  activeTab,
+
   completedStatusId,
-  pendingStatusId,
+
   onToggleStatus,
   formatDate,
   onViewTaskDetail

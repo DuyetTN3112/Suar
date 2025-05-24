@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/react'
 import { router } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card'
+import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -31,11 +31,11 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
   const [startDate, setStartDate] = useState<Date | undefined>(undefined)
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
-    
+
     // Xóa lỗi khi người dùng sửa trường đó
     if (errors[name]) {
       setErrors(prev => {
@@ -45,10 +45,10 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
       })
     }
   }
-  
+
   const handleSelectChange = (name: string, value: string) => {
     setFormData(prev => ({ ...prev, [name]: value }))
-    
+
     // Xóa lỗi khi người dùng sửa trường đó
     if (errors[name]) {
       setErrors(prev => {
@@ -58,14 +58,14 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
       })
     }
   }
-  
+
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date)
-    setFormData(prev => ({ 
-      ...prev, 
-      start_date: date ? format(date, 'yyyy-MM-dd') : '' 
+    setFormData(prev => ({
+      ...prev,
+      start_date: date ? format(date, 'yyyy-MM-dd') : ''
     }))
-    
+
     // Xóa lỗi khi người dùng sửa trường đó
     if (errors['start_date']) {
       setErrors(prev => {
@@ -75,14 +75,14 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
       })
     }
   }
-  
+
   const handleEndDateChange = (date: Date | undefined) => {
     setEndDate(date)
-    setFormData(prev => ({ 
-      ...prev, 
-      end_date: date ? format(date, 'yyyy-MM-dd') : '' 
+    setFormData(prev => ({
+      ...prev,
+      end_date: date ? format(date, 'yyyy-MM-dd') : ''
     }))
-    
+
     // Xóa lỗi khi người dùng sửa trường đó
     if (errors['end_date']) {
       setErrors(prev => {
@@ -92,34 +92,34 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
       })
     }
   }
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Kiểm tra dữ liệu
     const newErrors: Record<string, string> = {}
-    
+
     if (!formData.name.trim()) {
       newErrors.name = t('validator.required', {}, 'Trường này là bắt buộc')
     }
-    
+
     if (!formData.organization_id) {
       newErrors.organization_id = t('validator.required', {}, 'Trường này là bắt buộc')
     }
-    
+
     if (!formData.status_id) {
       newErrors.status_id = t('validator.required', {}, 'Trường này là bắt buộc')
     }
-    
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       return
     }
-    
+
     // Gửi dữ liệu
     router.post('/projects', formData)
   }
-  
+
   return (
     <AppLayout title={t('project.create_project', {}, 'Tạo dự án mới')}>
       <Head title={t('project.create_project', {}, 'Tạo dự án mới')} />
@@ -127,15 +127,15 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
       <div className="p-4 sm:p-6 space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">{t('project.create_project', {}, 'Tạo dự án mới')}</h1>
-          
-          <Button 
+
+          <Button
             onClick={() => router.visit('/projects')}
             variant="outline"
           >
             {t('common.cancel', {}, 'Hủy')}
           </Button>
         </div>
-        
+
         <Card>
           <form onSubmit={handleSubmit}>
             <CardContent className="pt-6 space-y-4">
@@ -154,7 +154,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                   <p className="text-sm text-red-500">{errors.name}</p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="description">
                   {t('project.description', {}, 'Mô tả')}
@@ -167,13 +167,13 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                   rows={4}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="organization_id">
                   {t('project.organization', {}, 'Tổ chức')} <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.organization_id} 
+                <Select
+                  value={formData.organization_id}
                   onValueChange={(value) => handleSelectChange('organization_id', value)}
                 >
                   <SelectTrigger className={errors.organization_id ? 'border-red-500' : ''}>
@@ -191,13 +191,13 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                   <p className="text-sm text-red-500">{errors.organization_id}</p>
                 )}
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="status_id">
                   {t('project.status', {}, 'Trạng thái')} <span className="text-red-500">*</span>
                 </Label>
-                <Select 
-                  value={formData.status_id} 
+                <Select
+                  value={formData.status_id}
                   onValueChange={(value) => handleSelectChange('status_id', value)}
                 >
                   <SelectTrigger className={errors.status_id ? 'border-red-500' : ''}>
@@ -215,7 +215,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                   <p className="text-sm text-red-500">{errors.status_id}</p>
                 )}
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="start_date">
@@ -248,7 +248,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                     </PopoverContent>
                   </Popover>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="end_date">
                     {t('project.end_date', {}, 'Ngày kết thúc')}
@@ -281,11 +281,11 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                 </div>
               </div>
             </CardContent>
-            
+
             <CardFooter className="flex justify-end space-x-2">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => router.visit('/projects')}
               >
                 {t('common.cancel', {}, 'Hủy')}

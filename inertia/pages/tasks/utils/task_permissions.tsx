@@ -3,7 +3,7 @@ import { Task } from '../types'
 /**
  * Kiểm tra xem người dùng có quyền xóa task hay không
  */
-export const canDeleteTask = (task: Task, currentUser: any): boolean => {
+export const canDeleteTask = (task: Task, currentUser: unknown): boolean => {
   // Không có thông tin người dùng
   if (!currentUser || !currentUser.id) {
     return false
@@ -47,10 +47,10 @@ export const canDeleteTask = (task: Task, currentUser: any): boolean => {
  * Lấy thông tin role từ đối tượng auth
  */
 export const getRoleFromAuth = () => {
-  const authUser = (window as any).auth?.user;
+  const authUser = (window as unknown).auth?.user;
   if (!authUser) {
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.log('Debug - getRoleFromAuth: No auth user found');
     }
     return '';
@@ -113,14 +113,14 @@ export const getRoleFromAuth = () => {
  */
 export const getCurrentUserInfo = () => {
   return {
-    id: (window as any).auth?.user?.id,
+    id: (window as unknown).auth?.user?.id,
     role: getRoleFromAuth(),
-    organization_id: (window as any).auth?.user?.current_organization_id ||
-                    (window as any).auth?.user?.organization_id
+    organization_id: (window as unknown).auth?.user?.current_organization_id ||
+                    (window as unknown).auth?.user?.organization_id
   }
 }
 
-export const canEditTask = (task: any, currentUser: any) => {
+export const canEditTask = (task: unknown, currentUser: unknown) => {
   if (!currentUser || !currentUser.id) {
     return false;
   }
@@ -139,10 +139,10 @@ export const canEditTask = (task: any, currentUser: any) => {
  * Chỉ có admin và superadmin mới có quyền tạo task
  */
 export const canCreateTask = () => {
-  const authUser = (window as any).auth?.user;
+  const authUser = (window as unknown).auth?.user;
   if (!authUser) {
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.log('Debug - No auth user found');
     }
     return false;

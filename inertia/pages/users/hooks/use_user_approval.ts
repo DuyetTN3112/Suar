@@ -2,10 +2,8 @@ import React from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import { User } from '../types'
-import useTranslation from '@/hooks/use_translation'
 
 export const useUserApproval = () => {
-  const { t } = useTranslation()
   const [approvalModalOpen, setApprovalModalOpen] = React.useState(false)
   const [pendingUsers, setPendingUsers] = React.useState<User[]>([])
   const [pendingCount, setPendingCount] = React.useState(0)
@@ -65,7 +63,7 @@ export const useUserApproval = () => {
   // Mở modal phê duyệt và lấy danh sách người dùng chờ duyệt
   const openApprovalModal = () => {
     setApprovalModalOpen(true)
-    loadPendingUsers()
+    void loadPendingUsers()
   }
   // Phê duyệt người dùng
   const approveUser = (user: User) => {
@@ -161,18 +159,18 @@ export const useUserApproval = () => {
             setPendingCount(0)
           } else {
             toast.error('Không thể phê duyệt bất kỳ người dùng nào')
-            loadPendingUsers() // Tải lại danh sách
+            void loadPendingUsers() // Tải lại danh sách
           }
         } catch (error) {
           console.error('Lỗi trong quá trình phê duyệt tất cả người dùng:', error)
           toast.error('Có lỗi xảy ra khi phê duyệt người dùng. Vui lòng thử lại.')
-          loadPendingUsers() // Tải lại danh sách
+          void loadPendingUsers() // Tải lại danh sách
         } finally {
           setIsApprovingUser({}) // Xóa trạng thái đang phê duyệt
         }
       }
       // Bắt đầu quá trình phê duyệt tuần tự
-      approveUsersSequentially()
+      void approveUsersSequentially()
     }
   }
   return {

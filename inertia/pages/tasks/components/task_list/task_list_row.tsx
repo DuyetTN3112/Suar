@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import {
   TableRow,
   TableCell
@@ -14,7 +14,7 @@ import { TaskPriorityCell } from './cells/priority_cell'
 import { TaskAssigneeCell } from './cells/assignee_cell'
 import { TaskDateCell } from './cells/date_cell'
 import { TaskDueDateCell } from './cells/due_date_cell'
-import { TaskDetailModal } from '../modals/task_detail_modal'
+
 
 type TaskListRowProps = {
   task: Task
@@ -44,7 +44,6 @@ export function TaskListRow({
   isTaskCompleted,
   currentUserInfo,
   formatDate,
-  onToggleStatus,
   onTaskClick
 }: TaskListRowProps) {
   const isCompleted = isTaskCompleted(task);

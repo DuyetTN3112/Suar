@@ -6,8 +6,8 @@ type AuditLogData = {
   action: string
   entity_type: string
   entity_id: number
-  old_values?: any
-  new_values?: any
+  old_values?: unknown
+  new_values?: unknown
 }
 
 export default class CreateAuditLog {

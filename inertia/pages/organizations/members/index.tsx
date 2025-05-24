@@ -4,7 +4,6 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
@@ -15,7 +14,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
 import {
   Select,
@@ -30,22 +28,14 @@ import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown_menu'
+
 import { Badge } from '@/components/ui/badge'
-import { Plus, UserPlus, MoreVertical, Send, UserCheck, Clock, CheckCircle, XCircle, Mail, Trash2 } from 'lucide-react'
+import { Plus,  UserCheck, CheckCircle, XCircle, Mail, Trash2 } from 'lucide-react'
 import AppLayout from '@/layouts/app_layout'
 import { toast } from 'sonner'
 

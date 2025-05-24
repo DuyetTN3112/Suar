@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
@@ -9,7 +9,7 @@ import { router } from '@inertiajs/react'
 
 export function OrganizationDebugTool() {
   const [loading, setLoading] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [debugInfo, setDebugInfo] = useState<unknown>(null)
   const [error, setError] = useState<string | null>(null)
   const [fixed, setFixed] = useState(false)
   const { toast } = useToast()
@@ -26,7 +26,7 @@ export function OrganizationDebugTool() {
       } else {
         setError(response.data.message || 'Không thể lấy thông tin debug')
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Đã xảy ra lỗi khi lấy thông tin debug')
     } finally {
       setLoading(false)
@@ -94,7 +94,7 @@ export function OrganizationDebugTool() {
           type: 'info'
         })
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err.message || 'Đã xảy ra lỗi khi sửa vấn đề tổ chức')
     } finally {
       setLoading(false)

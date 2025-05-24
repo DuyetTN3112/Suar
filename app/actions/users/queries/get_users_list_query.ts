@@ -85,22 +85,22 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Apply organization-specific filters
    */
-  private applyOrganizationFilter(query: any, dto: GetUsersListDTO) {
+  private applyOrganizationFilter(query: unknown, dto: GetUsersListDTO) {
     if (dto.filters.excludeOrganizationMembers) {
-      return query.whereDoesntHave('organization_users', (q: any) => {
+      return query.whereDoesntHave('organization_users', (q: unknown) => {
         q.where('organization_id', dto.organizationId)
       })
     }
 
     return query
-      .whereHas('organization_users', (q: any) => {
+      .whereHas('organization_users', (q: unknown) => {
         q.where('organization_id', dto.organizationId)
 
         if (dto.filters.organizationUserStatus) {
           q.where('status', dto.filters.organizationUserStatus)
         }
       })
-      .preload('organization_users', (q: any) => {
+      .preload('organization_users', (q: unknown) => {
         q.where('organization_id', dto.organizationId)
         q.preload('role')
       })
@@ -109,7 +109,7 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Apply status filters
    */
-  private applyStatusFilters(query: any, filters: any) {
+  private applyStatusFilters(query: unknown, filters: unknown) {
     if (filters.statusId) {
       query = query.where('status_id', filters.statusId)
     }
@@ -124,8 +124,8 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Apply search filter across multiple fields
    */
-  private applySearchFilter(query: any, searchTerm: string) {
-    return query.where((q: any) => {
+  private applySearchFilter(query: unknown, searchTerm: string) {
+    return query.where((q: unknown) => {
       q.where('email', 'LIKE', `%${searchTerm}%`).orWhere('username', 'LIKE', `%${searchTerm}%`)
     })
   }

@@ -3,7 +3,7 @@ import { Slot } from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { Skeleton } from '@/components/ui/skeleton'
+
 
 export function SidebarInput({
   className,
@@ -135,4 +135,4 @@ export function SidebarGroupContent({
       {...props}
     />
   )
-} 
+}

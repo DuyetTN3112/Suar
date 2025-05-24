@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { ReactNode } from 'react'
 import { Link, router } from '@inertiajs/react'
 import { ChevronRight } from 'lucide-react'
@@ -23,8 +23,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown_menu'
 import { NavCollapsible, NavItem, NavLink, type NavGroup } from './types'
@@ -57,7 +55,7 @@ const handleNavigation = (url: string, callback?: () => void) => {
       },
       onError: (errors) => {
         // Only log in development
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.NODE_ENV === 'development') {
           console.error('[Navigation] Lỗi khi điều hướng:', errors)
         }
       },
@@ -207,7 +205,6 @@ const SidebarMenuCollapsible = ({
 
 const SidebarMenuCollapsedDropdown = ({
   item,
-  href,
 }: {
   item: NavCollapsible
   href: string

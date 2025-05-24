@@ -8,7 +8,7 @@ type VisitOptions = {
   replace?: boolean
   only?: string[]
   headers?: Record<string, string>
-  onCancelToken?: (cancelToken: any) => void
+  onCancelToken?: (cancelToken: unknown) => void
   onBefore?: () => boolean | Promise<boolean>
   onStart?: () => void
   onProgress?: (progress: ProgressEvent) => void
@@ -37,7 +37,7 @@ export function isHardReloadPath(path: string): boolean {
  * Optimized navigation helper that defaults to SPA behavior
  * but can fall back to hard reload for certain paths
  */
-export function navigate(url: string, options: any = {}, event?: React.MouseEvent) {
+export function navigate(url: string, options: unknown = {}, event?: React.MouseEvent) {
   // Prevent default behavior if this is a click event
   if (event) {
     event.preventDefault()
@@ -60,7 +60,7 @@ export function navigate(url: string, options: any = {}, event?: React.MouseEven
 /**
  * Create a form submission handler that preserves SPA experience
  */
-export function createFormHandler(url: string, options: any = {}, callback?: () => void) {
+export function createFormHandler(url: string, options: unknown = {}, callback?: () => void) {
   return (e: React.FormEvent) => {
     e.preventDefault()
     // Default options for form submissions

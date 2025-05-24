@@ -19,9 +19,6 @@ import {
 export function TaskItem({
   task,
   completedStatusId,
-  pendingStatusId,
-  onToggleStatus,
-  formatDate,
   statuses = [],
   priorities = [],
   labels = [],

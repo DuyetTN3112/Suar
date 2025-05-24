@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, Building, Mail, MapPin, Phone, Globe, Calendar } from 'lucide-react'
 import AppLayout from '@/layouts/app_layout'
 import { formatDate } from '@/lib/utils'
-import { usePage } from '@inertiajs/react'
 
 interface Organization {
   id: number

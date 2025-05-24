@@ -86,7 +86,7 @@ export const middleware = router.named({
 
 let isShuttingDown = false
 
-async function gracefulShutdown(signal: string) {
+async function gracefulShutdown(signal: string): Promise<void> {
   if (isShuttingDown) return
   isShuttingDown = true
 
@@ -114,37 +114,19 @@ async function gracefulShutdown(signal: string) {
 }
 
 // SIGTERM: Kubernetes, Docker, systemd (graceful termination)
-process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
-
-// SIGINT: Ctrl+C in terminal
-process.on('SIGINT', () => gracefulShutdown('SIGINT'))
-
-// SIGUSR2: nodemon restart (hot reload)
-process.on('SIGUSR2', async () => {
-  console.log('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
-  try {
-    const { default: redis } = await import('@adonisjs/redis/services/main')
-    const { default: db } = await import('@adonisjs/lucid/services/db')
-
-    await redis.quit()
-    await db.manager.closeAll()
-
-    console.log('✅ Cleanup completed, restarting...')
-    process.kill(process.pid, 'SIGUSR2')
-  } catch (error) {
-    console.error('❌ Error during hot reload cleanup:', error)
-  }
+process.on('SIGTERM', () => {
+  void gracefulShutdown('SIGTERM')
 })
 
-/**
- * HMR (Hot Module Replacement) Cleanup
- * Vite HMR - cleanup khi module được hot-replaced
- */
-// @ts-ignore - import.meta.hot is provided by Vite in dev mode
-if (import.meta.hot) {
-  // @ts-ignore - import.meta.hot.dispose is provided by Vite
-  import.meta.hot.dispose(async () => {
-    console.log('🔥 HMR: Disposing kernel module...')
+// SIGINT: Ctrl+C in terminal
+process.on('SIGINT', () => {
+  void gracefulShutdown('SIGINT')
+})
+
+// SIGUSR2: nodemon restart (hot reload)
+process.on('SIGUSR2', () => {
+  void (async () => {
+    console.log('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
     try {
       const { default: redis } = await import('@adonisjs/redis/services/main')
       const { default: db } = await import('@adonisjs/lucid/services/db')
@@ -152,9 +134,35 @@ if (import.meta.hot) {
       await redis.quit()
       await db.manager.closeAll()
 
-      console.log('✅ HMR cleanup completed')
+      console.log('✅ Cleanup completed, restarting...')
+      process.kill(process.pid, 'SIGUSR2')
     } catch (error) {
-      console.error('❌ Error during HMR cleanup:', error)
+      console.error('❌ Error during hot reload cleanup:', error)
     }
+  })()
+})
+
+/**
+ * HMR (Hot Module Replacement) Cleanup
+ * Vite HMR - cleanup khi module được hot-replaced
+ */
+// @ts-expect-error - import.meta.hot is provided by Vite in dev mode
+if (import.meta.hot) {
+  // @ts-expect-error - import.meta.hot.dispose is provided by Vite
+  import.meta.hot.dispose(() => {
+    void (async () => {
+      console.log('🔥 HMR: Disposing kernel module...')
+      try {
+        const { default: redis } = await import('@adonisjs/redis/services/main')
+        const { default: db } = await import('@adonisjs/lucid/services/db')
+
+        await redis.quit()
+        await db.manager.closeAll()
+
+        console.log('✅ HMR cleanup completed')
+      } catch (error) {
+        console.error('❌ Error during HMR cleanup:', error)
+      }
+    })()
   })
 }

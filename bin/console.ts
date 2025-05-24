@@ -33,15 +33,22 @@ const IMPORTER = (filePath: string) => {
 
 new Ignitor(APP_ROOT, { importer: IMPORTER })
   .tap((app) => {
-    app.booting(async () => {
-      await import('#start/env')
+    app.booting(() => {
+      // Wrap async function để không return Promise
+      void import('#start/env')
     })
-    app.listen('SIGTERM', () => app.terminate())
-    app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+    app.listen('SIGTERM', () => {
+      // Wrap async function để không return Promise
+      void app.terminate()
+    })
+    app.listenIf(app.managedByPm2, 'SIGINT', () => {
+      // Wrap async function để không return Promise
+      void app.terminate()
+    })
   })
   .ace()
   .handle(process.argv.splice(2))
-  .catch((error) => {
+  .catch((error: Error) => {
     process.exitCode = 1
-    prettyPrintError(error)
+    void prettyPrintError(error)
   })

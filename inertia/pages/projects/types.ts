@@ -1,5 +1,3 @@
-import { DateTime } from 'luxon'
-
 export interface User {
   id: number
   username: string

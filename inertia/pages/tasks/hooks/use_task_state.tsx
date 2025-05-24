@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+
 import { Task } from '../types'
 import { router } from '@inertiajs/react'
 import { useTaskFilters } from './use_task_filters'
@@ -33,7 +33,7 @@ type TasksStateProps = {
   }
 }
 
-export function useTaskState({ initialTasks, filters, metadata }: TasksStateProps) {
+export function useTaskState({  filters, metadata }: TasksStateProps) {
   // Sử dụng các hooks đã tách
   const taskFilters = useTaskFilters({ initialFilters: filters, metadata });
   const taskModals = useTaskModals();

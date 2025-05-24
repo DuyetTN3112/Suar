@@ -28,12 +28,12 @@ try {
   /**
    * Boot application and configure test environment
    */
-  await ignitor.tap((app) => {
-    app.booting(async () => {
-      await import('#start/env')
+  ignitor.tap((app) => {
+    app.booting(() => {
+      void import('#start/env')
     })
-    app.listen('SIGTERM', () => app.terminate())
-    app.listenIf(app.managedByPm2, 'SIGINT', () => app.terminate())
+    app.listen('SIGTERM', () => void app.terminate())
+    app.listenIf(app.managedByPm2, 'SIGINT', () => void app.terminate())
   })
 
   const app = ignitor.createApp('console')
@@ -59,6 +59,6 @@ try {
   processCLIArgs(process.argv.splice(2))
   await run()
 } catch (error) {
-  prettyPrintError(error)
+  void prettyPrintError(error as Error)
   process.exitCode = 1
 }

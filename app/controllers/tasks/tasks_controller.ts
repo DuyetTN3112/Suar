@@ -45,7 +45,7 @@ export default class TasksController {
 
       // Manually instantiate queries with current HttpContext to avoid DI decorator conflicts
       const getTasksListQuery = new GetTasksListQuery(ctx)
-      const getTaskMetadataQuery = new (GetTaskMetadataQuery as any)(ctx)
+      const getTaskMetadataQuery = new (GetTaskMetadataQuery as unknown)(ctx)
 
       // Build DTO from request
       const dto = new GetTasksListDTO({
@@ -104,7 +104,7 @@ export default class TasksController {
           sort_order: dto.sort_order,
         },
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
       return ctx.inertia.render('tasks/index', {
         tasks: {
@@ -147,7 +147,7 @@ export default class TasksController {
       const metadata = await getTaskMetadataQuery.execute(organizationId)
 
       return inertia.render('tasks/create', { metadata })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra')
       return ctx.response.redirect().toRoute('tasks.index')
     }
@@ -187,7 +187,7 @@ export default class TasksController {
 
       session.flash('success', 'Nhiệm vụ đã được tạo thành công')
       return response.redirect().toRoute('tasks.show', { id: task.id })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tạo nhiệm vụ')
       return ctx.response.redirect().back()
     }
@@ -209,7 +209,7 @@ export default class TasksController {
         permissions: result.permissions,
         auditLogs: result.auditLogs,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
       return ctx.response.redirect().toRoute('tasks.index')
     }
@@ -247,7 +247,7 @@ export default class TasksController {
         metadata,
         permissions: taskResult.permissions,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
       return ctx.response.redirect().toRoute('tasks.index')
     }
@@ -291,7 +291,7 @@ export default class TasksController {
       }
 
       return response.redirect().toRoute('tasks.show', { id: task.id })
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
       return ctx.response.redirect().back()
     }
@@ -335,7 +335,7 @@ export default class TasksController {
       }
 
       return response.redirect().toRoute('tasks.index')
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
       if (ctx.request.header('X-Inertia')) {
         return ctx.response.status(500).json({
@@ -368,7 +368,7 @@ export default class TasksController {
         message: 'Trạng thái nhiệm vụ đã được cập nhật',
         task,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       return ctx.response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
@@ -394,7 +394,7 @@ export default class TasksController {
 
       session.flash('success', 'Thời gian đã được cập nhật')
       return response.redirect().back()
-    } catch (error: any) {
+    } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật thời gian')
       return ctx.response.redirect().back()
     }
@@ -416,7 +416,7 @@ export default class TasksController {
         success: true,
         data: auditLogs,
       })
-    } catch (error: any) {
+    } catch (error: unknown) {
       return ctx.response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi tải lịch sử thay đổi',

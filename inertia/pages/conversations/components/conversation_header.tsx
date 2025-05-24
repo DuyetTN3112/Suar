@@ -1,21 +1,19 @@
 import React from 'react'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Phone, Video, MoreVertical } from 'lucide-react'
 import { Conversation } from './types'
-import { getAvatarInitials } from '../utils/message_utils'
 import useTranslation from '@/hooks/use_translation'
 
 interface ConversationHeaderProps {
   conversation: Conversation | null
-  otherParticipant?: any
+  otherParticipant?: unknown
   loggedInUserId?: string
 }
 
 export const ConversationHeader: React.FC<ConversationHeaderProps> = ({
   conversation,
   otherParticipant,
-  loggedInUserId
 }) => {
   const { t } = useTranslation()
 

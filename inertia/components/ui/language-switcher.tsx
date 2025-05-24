@@ -7,7 +7,7 @@ import {
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger
-} from './dropdown-menu'
+} from './dropdown_menu'
 import { Button } from './button'
 import { GlobeIcon } from 'lucide-react'
 import useTranslation from '@/hooks/use_translation'

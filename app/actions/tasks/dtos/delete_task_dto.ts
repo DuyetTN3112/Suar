@@ -73,7 +73,7 @@ export default class DeleteTaskDTO {
   /**
    * Convert DTO thành object để log hoặc xử lý
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       task_id: this.task_id,
       reason: this.reason || null,

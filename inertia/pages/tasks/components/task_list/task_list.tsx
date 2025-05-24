@@ -1,4 +1,4 @@
-import React from 'react'
+
 import {
   Table,
   TableBody,
@@ -10,9 +10,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Task } from '../../types'
 import { router } from '@inertiajs/react'
-import { ChevronDown, ChevronRight, GitMerge, Clock, CalendarIcon, User, Trash2 } from 'lucide-react'
 import { TaskListRow } from './task_list_row'
-import { Button } from '@/components/ui/button'
 import useTranslation from '@/hooks/use_translation'
 
 type TaskListProps = {
@@ -38,8 +36,6 @@ type TaskListProps = {
 
 export function TaskList({
   tasks,
-  selectedTasks,
-  expandedTasks,
   isTaskSelected,
   isAllSelected,
   handleSelectAll,
@@ -53,14 +49,14 @@ export function TaskList({
   onTaskClick
 }: TaskListProps) {
   const { t } = useTranslation()
-  
+
   // Helper để xác định task đã hoàn thành
   const isTaskCompleted = (task: Task) => {
     if (!completedStatusId) return false;
-    
+
     // Kiểm tra status_id
-    return task.status_id === completedStatusId || 
-           (task.status?.name?.toLowerCase().includes('done') || 
+    return task.status_id === completedStatusId ||
+           (task.status?.name?.toLowerCase().includes('done') ||
             task.status?.name?.toLowerCase().includes('hoàn thành'));
   };
 
@@ -84,7 +80,7 @@ export function TaskList({
       <TableHeader>
         <TableRow className="h-9">
           <TableHead className="w-[30px] px-2 py-2">
-            <Checkbox 
+            <Checkbox
               checked={isAllSelected}
               onCheckedChange={handleSelectAll}
               className="h-4 w-4"
@@ -130,4 +126,4 @@ export function TaskList({
       </TableBody>
     </Table>
   )
-} 
+}

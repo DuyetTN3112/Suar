@@ -200,7 +200,7 @@ export default class CreateTaskDTO {
   /**
    * Convert DTO thành object để lưu vào database
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       title: this.title,
       description: this.description || null,

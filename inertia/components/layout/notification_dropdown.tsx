@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Bell, Check, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,17 +39,17 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
       if (!dateString) {
         return t('common.unknown_time', {}, 'Không xác định')
       }
-      
+
       // Thử parse với các định dạng khác nhau
       let date: Date;
-      
+
       // Nếu là chuỗi ISO, parse trực tiếp
       if (dateString.includes('T') && dateString.includes('Z')) {
         date = new Date(dateString);
       } else {
         // Thử parse với Date constructor
         date = new Date(dateString);
-        
+
         // Nếu không thành công, thử parse theo định dạng MySQL
         if (isNaN(date.getTime())) {
           // Định dạng: YYYY-MM-DD HH:MM:SS
@@ -67,12 +67,12 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
           }
         }
       }
-      
+
       // Kiểm tra nếu ngày tháng hợp lệ
       if (isNaN(date.getTime())) {
         return t('common.invalid_date', {}, 'Ngày không hợp lệ')
       }
-      
+
       return format(date, 'dd/MM/yyyy HH:mm', { locale: vi })
     } catch (error) {
       console.error('Lỗi khi định dạng thời gian:', error, dateString)
@@ -81,7 +81,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
   }
 
   // Hiển thị nội dung thông báo
-  const renderNotificationContent = (notification: any) => {
+  const renderNotificationContent = (notification: unknown) => {
     // Xử lý các loại thông báo khác nhau
     switch (notification.type) {
       case 'task_assigned':

@@ -275,8 +275,8 @@ export default class UpdateTaskDTO {
    * Convert DTO thành object để merge vào model
    * Chỉ include các field được provide
    */
-  public toObject(): Record<string, any> {
-    const updates: Record<string, any> = {}
+  public toObject(): Record<string, unknown> {
+    const updates: Record<string, unknown> = {}
 
     if (this.providedFields.has('title')) {
       updates.title = this.title
@@ -387,12 +387,14 @@ export default class UpdateTaskDTO {
   /**
    * So sánh với task hiện tại để lấy old/new values cho audit
    */
-  public getChangesForAudit(currentTask: any): { field: string; oldValue: any; newValue: any }[] {
-    const changes: { field: string; oldValue: any; newValue: any }[] = []
+  public getChangesForAudit(
+    currentTask: unknown
+  ): { field: string; oldValue: unknown; newValue: unknown }[] {
+    const changes: { field: string; oldValue: unknown; newValue: unknown }[] = []
 
     for (const field of this.getUpdatedFields()) {
       const oldValue = currentTask[field]
-      const newValue = (this as any)[field]
+      const newValue = (this as unknown)[field]
 
       // Only log if values are actually different
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {

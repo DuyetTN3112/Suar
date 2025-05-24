@@ -9,12 +9,12 @@ import { ProjectShowProps, Task } from './types'
 import useTranslation from '@/hooks/use_translation'
 import { formatDate } from '@/lib/utils'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-export default function ProjectShow({ project, members, tasks, permissions, auth }: ProjectShowProps) {
+export default function ProjectShow({ project, members, tasks, permissions }: ProjectShowProps) {
   const { t } = useTranslation()
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [newMemberEmail, setNewMemberEmail] = useState('')

@@ -3,7 +3,7 @@ import { usePage } from '@inertiajs/react'
 
 interface TranslationProps {
   locale?: string
-  translations?: Record<string, any>
+  translations?: Record<string, unknown>
 }
 
 // Danh sách các module ngôn ngữ
@@ -20,7 +20,7 @@ const LANGUAGE_MODULES = [
 // Cache để lưu trữ các dịch đã tải
 type TranslationsCache = {
   [locale: string]: {
-    [module: string]: Record<string, any>
+    [module: string]: Record<string, unknown>
   }
 }
 
@@ -75,8 +75,8 @@ export default function useTranslation() {
   }
 
   // Hàm dịch với hỗ trợ các module
-  function t(key: string, params: Record<string, any> = {}, fallback?: string): string {
-    let result: string | Record<string, any> | undefined
+  function t(key: string, params: Record<string, unknown> = {}, fallback?: string): string {
+    let result: string | Record<string, unknown> | undefined
 
     // Ưu tiên dịch từ props (nếu có)
     if (translations) {
@@ -110,7 +110,7 @@ export default function useTranslation() {
   }
 
   // Hàm lấy giá trị trong object theo đường dẫn key (vd: "user.name")
-  function getNestedValue(path: string, obj: Record<string, any>): any {
+  function getNestedValue(path: string, obj: Record<string, unknown>): unknown {
     const keys = path.split('.')
     let current = obj
 

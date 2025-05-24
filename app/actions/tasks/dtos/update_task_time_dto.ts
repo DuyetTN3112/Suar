@@ -115,8 +115,8 @@ export default class UpdateTaskTimeDTO {
   /**
    * Convert DTO thành object để cập nhật database
    */
-  public toObject(): Record<string, any> {
-    const updates: Record<string, any> = {}
+  public toObject(): Record<string, unknown> {
+    const updates: Record<string, unknown> = {}
 
     if (this.hasEstimatedTimeUpdate()) {
       updates.estimated_time = this.estimated_time

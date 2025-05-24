@@ -199,10 +199,10 @@ export default class SocialAuthController {
           // Tạo user mới
           try {
             interface UserData {
-              email: any
-              username: any
-              status_id: any
-              role_id: any
+              email: unknown
+              username: unknown
+              status_id: unknown
+              role_id: unknown
               current_organization_id: null
               auth_method?: 'google' | 'github' | 'email'
             }

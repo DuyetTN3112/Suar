@@ -1,35 +1,10 @@
 import React from 'react'
-import { Head, Link, router, usePage } from '@inertiajs/react'
+import { Head, usePage } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table'
-import { Pagination } from '@/components/ui/pagination'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { toast } from 'sonner'
+
 import useTranslation from '@/hooks/use_translation'
-import { ArrowPathIcon, UserPlusIcon } from '@heroicons/react/24/outline'
 import { UsersProps } from './types'
 import { isSuperAdminInCurrentOrg } from './utils/user_utils'
 import { useUserPermissions } from './hooks/use_user_permissions'
@@ -42,36 +17,36 @@ import DeleteUserModal from './components/DeleteUserModal'
 import ApprovalModal from './components/ApprovalModal'
 import AddUserModal from './components/AddUserModal'
 
-type User = {
-  id: number
-  username: string
-  email: string
-  role: {
-    id: number
-    name: string
-  }
-  organization_role?: {
-    id: number
-    name: string
-  }
-  status: {
-    id: number
-    name: string
-  }
-  organization_users?: {
-    organization_id: number
-    role_id: number
-    role?: {
-      id: number
-      name: string
-    }
-  }[]
-  created_at?: string
-}
+// type User = {
+//   id: number
+//   username: string
+//   email: string
+//   role: {
+//     id: number
+//     name: string
+//   }
+//   organization_role?: {
+//     id: number
+//     name: string
+//   }
+//   status: {
+//     id: number
+//     name: string
+//   }
+//   organization_users?: {
+//     organization_id: number
+//     role_id: number
+//     role?: {
+//       id: number
+//       name: string
+//     }
+//   }[]
+//   created_at?: string
+// }
 
-export default function Users({ users, filters, metadata }: UsersProps) {
+export default function Users({ users, filters }: UsersProps) {
   const [search, setSearch] = React.useState(filters.search || '')
-  const { auth } = usePage().props as any
+  const { auth } = usePage().props as unknown
   const { t, locale } = useTranslation()
 
 
@@ -134,7 +109,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
   // Tải số lượng người dùng chờ duyệt khi component được mounted
   React.useEffect(() => {
     if (currentUserIsSuperAdmin) {
-      loadPendingCount()
+      void loadPendingCount()
     }
   }, [])
 
@@ -167,7 +142,7 @@ export default function Users({ users, filters, metadata }: UsersProps) {
         </div>
 
         {/* Hiển thị debug info trong môi trường development */}
-        {process.env.NODE_ENV === 'development' && (
+        {import.meta.env.NODE_ENV === 'development' && (
           <div className="mt-2 p-2 bg-gray-100 text-xs rounded">
             <p>Debug: Current locale: {locale}</p>
             <p>Has translations: {Object.keys(usePage().props.translations || {}).length > 0 ? 'Yes' : 'No'}</p>

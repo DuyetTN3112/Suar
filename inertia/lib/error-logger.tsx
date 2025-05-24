@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Khai báo kiểu log mở rộng
 type ErrorLog = {
@@ -11,19 +11,19 @@ type ErrorLog = {
   error?: Error;
   stack?: string;
   type: 'error' | 'warning' | 'info' | 'unhandledRejection' | 'vitePlugin';
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 };
 
 // Thêm hàm quét DOM để kiểm tra trạng thái Vite/React plugin
-export function scanReactPlugin(): Record<string, any> {
-  const results: Record<string, any> = {
+export function scanReactPlugin(): Record<string, unknown> {
+  const results: Record<string, unknown> = {
     timestamp: new Date().toISOString(),
     scripts: [],
-    viteHot: typeof (window as any).__vite_hot !== 'undefined',
-    vitePlugins: typeof (window as any).__vite_plugins !== 'undefined',
-    reactRefresh: typeof (window as any).$RefreshReg$ !== 'undefined',
-    reactRefreshSig: typeof (window as any).$RefreshSig$ !== 'undefined',
-    reactVersion: (window as any).React?.version || 'unknown',
+    viteHot: typeof (window as unknown).__vite_hot !== 'undefined',
+    vitePlugins: typeof (window as unknown).__vite_plugins !== 'undefined',
+    reactRefresh: typeof (window as unknown).$RefreshReg$ !== 'undefined',
+    reactRefreshSig: typeof (window as unknown).$RefreshSig$ !== 'undefined',
+    reactVersion: (window as unknown).React?.version || 'unknown',
   };
 
   // Quét tất cả script tags
@@ -32,7 +32,7 @@ export function scanReactPlugin(): Record<string, any> {
     results.scriptCount = scriptTags.length;
 
     scriptTags.forEach((script, index) => {
-      const scriptInfo: Record<string, any> = {
+      const scriptInfo: Record<string, unknown> = {
         index,
         type: script.type || 'unknown',
         src: script.src || 'inline',
@@ -76,14 +76,14 @@ let loggingInProgress = false;
 // Số lượng lỗi trùng lặp liên tiếp tối đa được phép
 const MAX_DUPLICATE_ERRORS = 3;
 // Giữ lịch sử message lỗi gần nhất để phát hiện lặp
-let recentErrorMessages: string[] = [];
+const recentErrorMessages: string[] = [];
 
 // Thêm hàm ghi log về lỗi plugin React
 export function logVitePluginError(message: string) {
   try {
     // Kiểm tra xem Vite HMR có hoạt động không
-    const viteHot = Boolean((window as any).__vite_hot__)
-    const vitePlugins = Boolean((window as any).__vite_plugin_react_preamble_installed__)
+    const viteHot = Boolean((window as unknown).__vite_hot__)
+    const vitePlugins = Boolean((window as unknown).__vite_plugin_react_preamble_installed__)
 
     // Only log in development
     if (process.env.NODE_ENV === 'development') {
@@ -97,7 +97,7 @@ export function logVitePluginError(message: string) {
     // Nếu không phải lỗi nghiêm trọng, chỉ log warning
     if (message.includes('preamble') && !vitePlugins) {
       // Only log in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.NODE_ENV === 'development') {
         console.warn('Vite React plugin preamble not detected. This is expected during initial load.')
       }
       return
@@ -112,13 +112,13 @@ export function logVitePluginError(message: string) {
         scripts: Array.from(document.scripts).map(s => s.src),
         viteHot,
         vitePlugins,
-        reactRefresh: Boolean((window as any).__REACT_REFRESH_RUNTIME_SIGNATURE__),
+        reactRefresh: Boolean((window as unknown).__REACT_REFRESH_RUNTIME_SIGNATURE__),
         url: window.location.href
       }
     })
   } catch (err) {
     // Only log actual errors in production
-    if (process.env.NODE_ENV !== 'development') {
+    if (import.meta.env.NODE_ENV !== 'development') {
       console.error('Error in logVitePluginError:', err)
     }
   }
@@ -174,7 +174,7 @@ export function logError(error: Partial<ErrorLog>): ErrorLog {
     }
 
     // Trong môi trường development, log ra console
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       // Chỉ sử dụng originalConsoleError nếu đã được định nghĩa
       if (typeof originalConsoleError === 'function') {
         originalConsoleError('Logged Error:', errorLog);
@@ -233,7 +233,7 @@ export function ErrorDisplay() {
   const logs = useErrorLogs();
   const [isVisible, setIsVisible] = useState(true); // Đổi thành true để hiển thị mặc định
   const [activeTab, setActiveTab] = useState<'errors' | 'viteCheck'>('errors');
-  const [pluginDetails, setPluginDetails] = useState<Record<string, any> | null>(null);
+  const [pluginDetails, setPluginDetails] = useState<Record<string, unknown> | null>(null);
 
   useEffect(() => {
     // Chủ động quét plugin khi component được tạo
@@ -587,7 +587,7 @@ export function initErrorLogging() {
     originalConsoleError(...args);
 
     // Chỉ log lỗi trong môi trường development hoặc nếu đặc biệt quan trọng
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       try {
         const message = args.map(arg =>
           typeof arg === 'object' ? JSON.stringify(arg) : String(arg)

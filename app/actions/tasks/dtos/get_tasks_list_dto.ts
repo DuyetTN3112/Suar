@@ -272,7 +272,7 @@ export default class GetTasksListDTO {
   /**
    * Convert DTO thành object để log hoặc debug
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       page: this.page,
       limit: this.limit,

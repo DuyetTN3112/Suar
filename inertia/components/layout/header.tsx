@@ -13,7 +13,6 @@ interface HeaderProps extends React.HTMLAttributes<HTMLElement> {
 export const Header = ({
   className,
   fixed,
-  children,
   ...props
 }: HeaderProps) => {
   const [offset, setOffset] = React.useState(0)

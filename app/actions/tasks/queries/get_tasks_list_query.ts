@@ -67,8 +67,8 @@ export default class GetTasksListQuery {
 
     // Apply search
     if (dto.hasSearch()) {
-      query.where((searchQuery) => {
-        searchQuery
+      void query.where((searchQuery) => {
+        void searchQuery
           .whereILike('title', `%${dto.search}%`)
           .orWhereILike('description', `%${dto.search}%`)
           .orWhere('id', dto.search!)
@@ -76,24 +76,27 @@ export default class GetTasksListQuery {
     }
 
     // Apply sorting
-    query.orderBy(dto.sort_by!, dto.sort_order!)
+    void query.orderBy(dto.sort_by!, dto.sort_order!)
 
     // Preload relations
-    query
+    void query
       .preload('status')
       .preload('label')
       .preload('priority')
       .preload('assignee', (assigneeQuery) => {
-        assigneeQuery.select(['id', 'username', 'email'])
+        void assigneeQuery.select(['id', 'username', 'email'])
       })
       .preload('creator', (creatorQuery) => {
-        creatorQuery.select(['id', 'username'])
+        void creatorQuery.select(['id', 'username'])
       })
       .preload('parentTask', (parentQuery) => {
-        parentQuery.select(['id', 'title', 'status_id']).preload('status')
+        void parentQuery.select(['id', 'title', 'status_id']).preload('status')
       })
       .preload('childTasks', (childQuery) => {
-        childQuery.whereNull('deleted_at').select(['id', 'title', 'status_id']).preload('status')
+        void childQuery
+          .whereNull('deleted_at')
+          .select(['id', 'title', 'status_id'])
+          .preload('status')
       })
 
     // Execute with pagination
@@ -126,7 +129,7 @@ export default class GetTasksListQuery {
    * Apply permission-based filters
    */
   private async applyPermissionFilters(
-    query: any,
+    query: unknown,
     user: User,
     organizationId: number
   ): Promise<void> {
@@ -160,7 +163,7 @@ export default class GetTasksListQuery {
     }
 
     // Member: Only tasks created by or assigned to user
-    query.where((memberQuery: any) => {
+    query.where((memberQuery: unknown) => {
       memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
     })
   }
@@ -168,7 +171,7 @@ export default class GetTasksListQuery {
   /**
    * Apply filters from DTO
    */
-  private applyFilters(query: any, dto: GetTasksListDTO): void {
+  private applyFilters(query: unknown, dto: GetTasksListDTO): void {
     if (dto.hasStatusFilter()) {
       query.where('status_id', dto.status)
     }
@@ -229,7 +232,7 @@ export default class GetTasksListQuery {
       .groupBy('status_id')
 
     const byStatus: Record<string, number> = {}
-    byStatusResults.forEach((row: any) => {
+    byStatusResults.forEach((row: unknown) => {
       byStatus[row.status_id] = Number(row.$extras.count)
     })
 
@@ -242,7 +245,7 @@ export default class GetTasksListQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -257,7 +260,7 @@ export default class GetTasksListQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

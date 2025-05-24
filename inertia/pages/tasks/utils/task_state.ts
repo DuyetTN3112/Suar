@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Task } from '../types'
-import { getCurrentUserInfo } from './task_permissions'
 
 export const useTaskSelection = () => {
   const [selectedTasks, setSelectedTasks] = useState<number[]>([])

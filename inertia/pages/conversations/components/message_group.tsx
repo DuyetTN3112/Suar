@@ -5,7 +5,7 @@ import { MessageItem } from './message_item'
 interface MessageGroupProps {
   group: MessageGroup
   loggedInUserId: string
-  loggedInUser?: any
+  loggedInUser?: unknown
   loggedInUserAvatar?: string
   loggedInUserName?: string
   showMultiUserUI?: boolean
@@ -14,7 +14,6 @@ interface MessageGroupProps {
 export const MessageGroupComponent: React.FC<MessageGroupProps> = ({
   group,
   loggedInUserId,
-  loggedInUser,
   loggedInUserAvatar,
   loggedInUserName,
   showMultiUserUI = false
@@ -30,13 +29,13 @@ export const MessageGroupComponent: React.FC<MessageGroupProps> = ({
       {group.messages.map((message) => {
         // Sử dụng is_current_user từ backend nếu có, nếu không có thì so sánh sender_id
         const isOutgoing = message.is_current_user === true || message.sender_id === loggedInUserId
-        
+
         // Xác định xem có hiển thị thông tin người gửi hay không
         // Hiển thị cho tin nhắn từ người khác trong cuộc trò chuyện nhiều người
         const showSenderInfo = !isOutgoing && showMultiUserUI
-        
+
         return (
-          <MessageItem 
+          <MessageItem
             key={message.id}
             message={message}
             isOutgoing={isOutgoing}
@@ -48,4 +47,4 @@ export const MessageGroupComponent: React.FC<MessageGroupProps> = ({
       })}
     </div>
   )
-} 
+}

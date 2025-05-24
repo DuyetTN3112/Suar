@@ -8,7 +8,7 @@ type UseTaskDetailModalProps = {
   task: Task | null
   statuses: Array<{ id: number; name: string; color: string }>
   onUpdate?: (updatedTask: Task) => void
-  currentUser: any
+  currentUser: unknown
 }
 
 export function useTaskDetailModal({
@@ -17,12 +17,12 @@ export function useTaskDetailModal({
   onUpdate,
   currentUser,
 }: UseTaskDetailModalProps) {
-  const [formData, setFormData] = useState<Partial<any>>({})
+  const [formData, setFormData] = useState<Partial<unknown>>({})
   const [date, setDate] = useState<Date | undefined>(undefined)
   const [activeTab, setActiveTab] = useState('info')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [auditLogs, setAuditLogs] = useState<any[]>([])
+  const [auditLogs, setAuditLogs] = useState<unknown[]>([])
   const [isEditing, setIsEditing] = useState(false)
 
   // Lấy thông tin task và cấu hình quyền
@@ -38,7 +38,7 @@ export function useTaskDetailModal({
         setDate(undefined)
       }
       if (task.id) {
-        loadAuditLogs(task.id).then((logs) => setAuditLogs(logs))
+        void loadAuditLogs(task.id).then((logs) => setAuditLogs(logs))
       }
     }
   }, [task, currentUser])

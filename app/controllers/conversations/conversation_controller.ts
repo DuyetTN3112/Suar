@@ -64,7 +64,7 @@ export default class ConversationController {
       const conversation = await createConversationCommand.execute(dto)
 
       return response.redirect().toRoute('conversations.show', { id: conversation.id })
-    } catch (error: any) {
+    } catch (error: unknown) {
       return inertia.render('conversations/create', {
         error: error.message || 'Đã xảy ra lỗi khi tạo cuộc trò chuyện',
       })
@@ -86,7 +86,7 @@ export default class ConversationController {
 
       const conversation = await getConversationDetailQuery.execute(dto)
       return inertia.render('conversations/show', { conversation })
-    } catch (error: any) {
+    } catch (error: unknown) {
       return inertia.render('errors/not-found', {
         message: error.message || 'Không tìm thấy cuộc trò chuyện',
       })

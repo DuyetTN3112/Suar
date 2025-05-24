@@ -3,7 +3,7 @@ import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
 import { User } from '../types'
 
-export const usePendingApproval = (users: { data: User[]; meta: any }) => {
+export const usePendingApproval = (users: { data: User[]; meta: unknown }) => {
   const [isSubmitting, setIsSubmitting] = React.useState<Record<number, boolean>>({})
 
   // Hàm lấy tên hiển thị của người dùng

@@ -30,7 +30,7 @@ export default class GetTaskAuditLogsQuery {
       action: string
       user: { id: number; name: string; email: string } | null
       timestamp: Date
-      changes: Array<{ field: string; oldValue: any; newValue: any }>
+      changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
     }>
   > {
     // Validate limit
@@ -51,7 +51,7 @@ export default class GetTaskAuditLogsQuery {
       .where('entity_id', taskId)
       .orderBy('created_at', 'desc')
       .limit(limit)
-      .preload('user', (userQuery: any) => {
+      .preload('user', (userQuery: unknown) => {
         userQuery.select(['id', 'username', 'email'])
       })
 
@@ -80,10 +80,10 @@ export default class GetTaskAuditLogsQuery {
    * Format changes from old/new values
    */
   private formatChanges(
-    oldValues: Record<string, any>,
-    newValues: Record<string, any>
-  ): Array<{ field: string; oldValue: any; newValue: any }> {
-    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>
+  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
+    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
 
     // Compare all fields in newValues
     for (const key in newValues) {
@@ -102,7 +102,7 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -117,7 +117,7 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

@@ -46,7 +46,7 @@ export class LoggerService {
    * @param message Thông điệp chính
    * @param args Các tham số bổ sung
    */
-  public error(message: string, ...args: any[]): void {
+  public error(message: string, ...args: unknown[]): void {
     logger.error(`[ERROR] ${message}`, ...args)
   }
 
@@ -55,7 +55,7 @@ export class LoggerService {
    * @param message Thông điệp chính
    * @param args Các tham số bổ sung
    */
-  public warn(message: string, ...args: any[]): void {
+  public warn(message: string, ...args: unknown[]): void {
     if (this.shouldLog('warn')) {
       logger.warn(`[WARN] ${message}`, ...args)
     }
@@ -66,7 +66,7 @@ export class LoggerService {
    * @param message Thông điệp chính
    * @param args Các tham số bổ sung
    */
-  public info(message: string, ...args: any[]): void {
+  public info(message: string, ...args: unknown[]): void {
     if (this.shouldLog('info')) {
       logger.info(`[INFO] ${message}`, ...args)
     }
@@ -77,7 +77,7 @@ export class LoggerService {
    * @param message Thông điệp chính
    * @param args Các tham số bổ sung
    */
-  public debug(message: string, ...args: any[]): void {
+  public debug(message: string, ...args: unknown[]): void {
     if (this.shouldLog('debug') && this.isDevMode) {
       logger.debug(`[DEBUG] ${message}`, ...args)
     }
@@ -88,7 +88,7 @@ export class LoggerService {
    * @param message Thông điệp chính
    * @param args Các tham số bổ sung
    */
-  public trace(message: string, ...args: any[]): void {
+  public trace(message: string, ...args: unknown[]): void {
     if (this.shouldLog('trace') && this.isDevMode) {
       logger.trace(`[TRACE] ${message}`, ...args)
     }
@@ -100,7 +100,7 @@ export class LoggerService {
    * @param obj Đối tượng cần log
    * @param level Cấp độ log (mặc định: 'info')
    */
-  public logObject(label: string, obj: any, level: LogLevel = 'info'): void {
+  public logObject(label: string, obj: unknown, level: LogLevel = 'info'): void {
     if (!this.shouldLog(level)) return
 
     try {

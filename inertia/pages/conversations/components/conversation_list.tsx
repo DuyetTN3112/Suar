@@ -21,7 +21,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const { t, locale } = useTranslation()
-  const loggedInUserId = (window as any).auth?.user?.id || ''
+  const loggedInUserId = (window as unknown).auth?.user?.id || ''
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()

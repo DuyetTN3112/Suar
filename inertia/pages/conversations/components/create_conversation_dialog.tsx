@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import useTranslation from '@/hooks/use_translation'
@@ -39,14 +39,14 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
   const [users, setUsers] = useState<Participant[]>([])
   const [existingConversation, setExistingConversation] = useState<{id: string, title: string} | null>(null)
   const { t } = useTranslation()
-  const page = usePage<{ auth?: { user?: any } }>()
+  const page = usePage<{ auth?: { user?: unknown } }>()
 
   // Tải danh sách người dùng trong tổ chức khi mở dialog
   useEffect(() => {
     if (open) {
       // Debug thông tin người dùng và tổ chức hiện tại
 
-      fetchOrganizationUsers()
+      void fetchOrganizationUsers()
     }
   }, [open])
 
