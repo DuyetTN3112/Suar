@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
-import Message from '#models/message'
+// import Message from '#models/message'
 import { DateTime } from 'luxon'
 import { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
-import env from '#start/env'
+// import env from '#start/env'
 
 /**
  * Middleware cho người dùng chưa đăng nhập (khách)
@@ -10,13 +10,13 @@ import env from '#start/env'
  */
 export default class GuestMiddleware {
   redirectTo = '/tasks'
-  private isDevMode = env.get('NODE_ENV') === 'development'
+  // private isDevMode = env.get('NODE_ENV') === 'development'
 
-  private log(...args: any[]) {
-    if (this.isDevMode) {
-      // Removed debug log: console.log(...args)
-    }
-  }
+  // private log(...args: any[]) {
+  //   if (this.isDevMode) {
+  //     // Removed debug log: console.log(...args)
+  //   }
+  // }
 
   async handle(
     ctx: HttpContext,

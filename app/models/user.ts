@@ -1,8 +1,5 @@
 import { DateTime } from 'luxon'
-import hash from '@adonisjs/core/services/hash'
-import { compose } from '@adonisjs/core/helpers'
 import { BaseModel, column, belongsTo, hasOne, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import type { BelongsTo, HasOne, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import UserRole from './user_role.js'
@@ -18,15 +15,9 @@ import UserSetting from './user_setting.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
-import PasswordResetToken from './password_reset_token.js'
 import UserOAuthProvider from './user_oauth_provider.js'
 
-const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['email', 'username'],
-  passwordColumnName: 'password',
-})
-
-export default class User extends compose(BaseModel, AuthFinder) {
+export default class User extends BaseModel {
   static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
 
   static table = 'users'
@@ -45,9 +36,6 @@ export default class User extends compose(BaseModel, AuthFinder) {
 
   @column()
   declare email: string
-
-  @column({ serializeAs: null })
-  declare password: string
 
   @column()
   declare status_id: number
@@ -184,9 +172,4 @@ export default class User extends compose(BaseModel, AuthFinder) {
     foreignKey: 'user_id',
   })
   declare organization_users: HasMany<typeof OrganizationUser>
-
-  @hasMany(() => PasswordResetToken, {
-    foreignKey: 'user_id',
-  })
-  declare passwordResetTokens: HasMany<typeof PasswordResetToken>
 }

@@ -91,8 +91,8 @@ export const markAsReadValidator = vine.compile(
 /**
  * Kiểm tra spam
  */
-export const checkSpam = async (userId: string, messageCount: number, timeWindow: number) => {
-  // TODO: Implement spam checking logic using Redis or database
-  // For now, return false to allow all messages
-  return false
-}
+// export const checkSpam = async (userId: string, messageCount: number, timeWindow: number) => {
+//   // TODO: Implement spam checking logic using Redis or database
+//   // For now, return false to allow all messages
+//   return false
+// }

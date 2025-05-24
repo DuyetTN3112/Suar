@@ -1,22 +1,20 @@
-import { defineConfig } from '@adonisjs/drive'
+import { defineConfig, services } from '@adonisjs/drive'
 
 const driveConfig = defineConfig({
-  disks: {
-    local: {
-      driver: 'local',
-      root: '../storage/app',
+  services: {
+    local: services.fs({
+      location: '../storage/app',
       visibility: 'private',
       serveFiles: true,
-      basePath: '/uploads',
-    },
+      routeBasePath: '/uploads',
+    }),
 
-    public: {
-      driver: 'local',
-      root: '../storage/app/public',
+    public: services.fs({
+      location: '../storage/app/public',
       visibility: 'public',
       serveFiles: true,
-      basePath: '/uploads',
-    },
+      routeBasePath: '/uploads',
+    }),
   },
 
   // Default disk to use when no disk is explicitly

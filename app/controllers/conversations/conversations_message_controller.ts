@@ -2,12 +2,15 @@ import type { HttpContext } from '@adonisjs/core/http'
 import SendMessageCommand from '#actions/conversations/commands/send_message_command'
 import {
   MarkAsReadCommand,
-  MarkMessagesAsReadCommand,
+  // MarkMessagesAsReadCommand,
 } from '#actions/conversations/commands/mark_as_read_command'
 import RecallMessageCommand from '#actions/conversations/commands/recall_message_command'
 import { SendMessageDTO } from '#actions/conversations/dtos/send_message_dto'
 import { RecallMessageDTO } from '#actions/conversations/dtos/recall_message_dto'
-import { MarkAsReadDTO, MarkMessagesAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
+import {
+  MarkAsReadDTO,
+  //  MarkMessagesAsReadDTO
+} from '#actions/conversations/dtos/mark_as_read_dto'
 
 /**
  * Controller xử lý các thao tác với tin nhắn

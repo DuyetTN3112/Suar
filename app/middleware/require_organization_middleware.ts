@@ -1,6 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import Logger from '@adonisjs/core/services/logger'
+// import Logger from '@adonisjs/core/services/logger'
 
 export default class RequireOrganizationMiddleware {
   /**

@@ -1,5 +1,4 @@
 import React from 'react'
-import { Link } from '@inertiajs/react'
 import { Toaster } from 'sonner'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
@@ -44,12 +43,6 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
               <ThemeSwitch />
               <LanguageSwitcher />
             </div>
-            <Link href="/register" className="text-sm font-semibold leading-6 text-slate-900 dark:text-slate-200 hover:text-primary transition-colors">
-              {t('auth.register', {}, 'Đăng ký')}
-            </Link>
-            <Link href="/login" className="text-sm font-semibold leading-6 text-slate-900 dark:text-slate-200 hover:text-primary transition-colors">
-              {t('auth.login', {}, 'Đăng nhập')}
-            </Link>
           </div>
         </nav>
       </header>

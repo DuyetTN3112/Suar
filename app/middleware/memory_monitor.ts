@@ -7,7 +7,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 export default class MemoryMonitorMiddleware {
   private lastMonitored: number = Date.now()
   private monitorInterval: number = 60000 // 60 giây
-  async handle(ctx: HttpContext, next: NextFn) {
+  async handle(_ctx: HttpContext, next: NextFn) {
     // Chỉ monitor sau mỗi khoảng thời gian
     const now = Date.now()
     if (now - this.lastMonitored > this.monitorInterval) {
@@ -19,7 +19,7 @@ export default class MemoryMonitorMiddleware {
   private logMemoryUsage() {
     const memoryUsage = process.memoryUsage()
     // Chuyển đổi bytes sang MB để dễ đọc
-    const formatMemory = (bytes: number) => Math.round((bytes / 1024 / 1024) * 100) / 100
+    // const formatMemory = (bytes: number) => Math.round((bytes / 1024 / 1024) * 100) / 100
     // Removed debug logs: console.log statements for memory monitoring
     // Phát hiện rò rỉ bộ nhớ tiềm ẩn
     if (memoryUsage.heapUsed > 1024 * 1024 * 1024) {
@@ -34,7 +34,7 @@ export default class MemoryMonitorMiddleware {
       // Removed debug log: console.log('Triggering garbage collection...')
       global.gc()
       // Log lại sau khi GC
-      const afterGC = process.memoryUsage()
+      // const afterGC = process.memoryUsage()
       // Removed debug logs: console.log statements after GC
     }
   }

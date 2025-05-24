@@ -206,7 +206,6 @@ export default class SocialAuthController {
               first_name: string
               last_name: string
               username: any
-              password: string
               status_id: any
               role_id: any
               current_organization_id: null
@@ -217,8 +216,6 @@ export default class SocialAuthController {
               first_name: firstName,
               last_name: lastName,
               username: username,
-              // Tạo mật khẩu ngẫu nhiên vì đăng nhập xã hội không cần mật khẩu
-              password: Math.random().toString(36).substring(2, 15),
               status_id: defaultStatusId.id,
               role_id: defaultRoleId.id,
               current_organization_id: null,

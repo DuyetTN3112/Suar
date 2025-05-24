@@ -56,7 +56,7 @@ export default class extends BaseSeeder {
     // Get statuses
     const activeStatus = await UserStatus.findBy('name', 'active')
     const inactiveStatus = await UserStatus.findBy('name', 'inactive')
-    const suspendedStatus = await UserStatus.findBy('name', 'suspended')
+    // const suspendedStatus = await UserStatus.findBy('name', 'suspended')
 
     if (superadminRole && adminRole && userRole && guestRole && activeStatus) {
       await User.createMany([

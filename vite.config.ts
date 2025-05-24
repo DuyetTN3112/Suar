@@ -10,17 +10,12 @@ const dirname = getDirname(import.meta.url)
 // Tạo plugin debug để hiển thị thông tin chi tiết
 const viteDebugPlugin = {
   name: 'vite-debug-plugin',
-  configResolved(config: any) {
-    // Log thông tin cấu hình khi khởi động
-  },
+  // configResolved(config: any) { /* unused */ },
   transformIndexHtml(html: string) {
     // Thêm comment để debug
     return html.replace('</head>', '<!-- Vite Debug Info: React Plugin Enabled --></head>')
   },
-  handleHotUpdate({ file }: { file: string; server: any }) {
-    // Log thông tin hot update
-    return []
-  },
+  // handleHotUpdate({ file }: { file: string; server: any }) { /* unused */ },
 }
 
 export default defineConfig(({ mode }) => {

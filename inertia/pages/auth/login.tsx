@@ -1,30 +1,12 @@
 import React from 'react'
-import { Head, useForm } from '@inertiajs/react'
+import { Head } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import AuthLayout from '@/layouts/auth_layout'
 import useTranslation from '@/hooks/use_translation'
 
 export default function Login() {
   const { t } = useTranslation()
-  const { data, setData, post, processing, errors } = useForm<{
-    email: string;
-    password: string;
-    remember: boolean;
-  }>({
-    email: '',
-    password: '',
-    remember: false,
-  })
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    post('/login')
-  }
 
   return (
     <AuthLayout>
@@ -33,7 +15,7 @@ export default function Login() {
         <CardHeader className="space-y-1">
           <CardTitle className="text-2xl font-bold text-center">{t('auth.login', {}, 'Đăng nhập')}</CardTitle>
           <CardDescription className="text-center">
-            {t('auth.login_description', {}, 'Nhập thông tin đăng nhập của bạn để truy cập hệ thống')}
+            {t('auth.login_oauth_only', {}, 'Chọn phương thức đăng nhập để tiếp tục')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -47,7 +29,7 @@ export default function Login() {
                   Google
                 </Button>
               </a>
-              <a href="/auth/github/redirect" className="w-full">  
+              <a href="/auth/github/redirect" className="w-full">
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
@@ -56,76 +38,9 @@ export default function Login() {
                 </Button>
               </a>
             </div>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  {t('auth.or_login_with_email', {}, 'Hoặc đăng nhập bằng email')}
-                </span>
-              </div>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={data.email}
-                  onChange={(e) => setData('email', e.target.value)}
-                  required
-                />
-                {errors.email && (
-                  <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">{t('auth.password', {}, 'Mật khẩu')}</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={data.password}
-                  onChange={(e) => setData('password', e.target.value)}
-                  required
-                />
-                {errors.password && (
-                  <p className="text-sm text-destructive">{errors.password}</p>
-                )}
-                <div className="flex justify-end">
-                  <a href="/forgot-password" className="text-sm text-primary hover:underline">
-                    {t('auth.forgot_password', {}, 'Quên mật khẩu?')}
-                  </a>
-                </div>
-              </div>
-              <div className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={data.remember}
-                  onChange={(e) => setData('remember', e.target.checked)}
-                  className="h-4 w-4 rounded-sm border border-primary"
-                />
-                <Label htmlFor="remember" className="text-sm font-medium">
-                  {t('auth.remember_me', {}, 'Ghi nhớ đăng nhập')}
-                </Label>
-              </div>
-              <Button type="submit" className="w-full" disabled={processing}>
-                {processing ? t('auth.processing', {}, 'Đang xử lý...') : t('auth.login', {}, 'Đăng nhập')}
-              </Button>
-            </form>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-center">
-          <div className="text-center text-sm">
-            <a href="/register" className="text-primary hover:underline">
-              {t('auth.no_account_register', {}, 'Chưa có tài khoản? Đăng ký')}
-            </a>
-          </div>
-        </CardFooter>
       </Card>
     </AuthLayout>
   )
-} 
+}

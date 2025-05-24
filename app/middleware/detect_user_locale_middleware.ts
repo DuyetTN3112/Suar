@@ -5,25 +5,13 @@ import { type HttpContext, RequestValidator } from '@adonisjs/core/http'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import app from '@adonisjs/core/services/app'
-import env from '#start/env'
+// import env from '#start/env' // unused
 
 // Mức độ log cho i18n
-type I18nLogLevel = 'none' | 'minimal' | 'normal' | 'verbose'
-const I18N_LOG_LEVEL: I18nLogLevel = env.get('I18N_LOG_LEVEL', 'none') as I18nLogLevel
+// type I18nLogLevel = 'none' | 'minimal' | 'normal' | 'verbose' // unused
+// const I18N_LOG_LEVEL: I18nLogLevel = env.get('I18N_LOG_LEVEL', 'none') as I18nLogLevel // unused
 
-// Hàm log tùy chỉnh cho i18n
-function i18nLog(level: I18nLogLevel, message: string, ...args: any[]) {
-  const logLevels: Record<I18nLogLevel, number> = {
-    none: 0,
-    minimal: 1,
-    normal: 2,
-    verbose: 3,
-  }
-  // Chỉ log trong môi trường dev và khi mức độ log phù hợp
-  if (process.env.NODE_ENV === 'development' && logLevels[I18N_LOG_LEVEL] >= logLevels[level]) {
-    // Removed debug logs: console.log(`[i18n] ${message}`, ...args)
-  }
-}
+// function i18nLog(level: I18nLogLevel, message: string, ...args: any[]) { /* unused */ }
 
 // Luôn log lỗi bất kể mức độ log hiện tại
 function i18nError(message: string, ...args: any[]) {
@@ -146,12 +134,12 @@ export default class DetectUserLocaleMiddleware {
 
   async handle(ctx: HttpContext, next: NextFn) {
     // Chỉ log các request quan trọng - không log tài nguyên tĩnh
-    const url = ctx.request.url()
-    const isStaticResource =
-      url.includes('.') ||
-      url.includes('/assets/') ||
-      url.includes('/public/') ||
-      url.includes('/favicon.ico')
+    // const url = ctx.request.url() // unused
+    // const isStaticResource =
+    //   url.includes('.') ||
+    //   url.includes('/assets/') ||
+    //   url.includes('/public/') ||
+    //   url.includes('/favicon.ico') // unused
     // Removed debug log: i18nLog('verbose', `Processing request: ${ctx.request.method()} ${url}`)
 
     /**

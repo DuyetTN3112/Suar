@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
-import Organization from '#models/organization'
+// import Organization from '#models/organization'
 
 export default class AuthController {
   /**
@@ -21,7 +21,10 @@ export default class AuthController {
    * Xử lý đăng nhập
    */
   async login({ request, auth, response, session }: HttpContext) {
-    const { email, password, remember } = request.only(['email', 'password', 'remember'])
+    const {
+      email,
+      password, // remember
+    } = request.only(['email', 'password', 'remember'])
     try {
       // Tìm user
       const user = await User.findBy('email', email)

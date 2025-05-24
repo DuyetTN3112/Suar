@@ -1,10 +1,17 @@
 import { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
+// import User from '#models/user'
 
 export default class OrganizationMiddleware {
-  async handle({ session, auth, response }: HttpContext, next: () => Promise<void>) {
+  async handle(
+    {
+      session,
+      auth,
+      // response
+    }: HttpContext,
+    next: () => Promise<void>
+  ) {
     // Kiểm tra người dùng đã đăng nhập chưa
     if (!auth.isAuthenticated) {
       return next()

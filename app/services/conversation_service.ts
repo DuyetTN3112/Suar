@@ -1,7 +1,7 @@
 import Conversation from '#models/conversation'
 import ConversationParticipant from '#models/conversation_participant'
 import OrganizationUser from '#models/organization_user'
-import User from '#models/user'
+// import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 
 export default class ConversationService {

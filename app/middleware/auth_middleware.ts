@@ -1,21 +1,21 @@
 import { HttpContext } from '@adonisjs/core/http'
 import { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
-import env from '#start/env'
+// import env from '#start/env'
 import loggerService from '#services/logger_service'
 
 /**
  * Định nghĩa kiểu dữ liệu cho OrganizationUser
  */
-interface OrganizationUser {
-  id: number
-  organization_id: number
-  user_id: number
-  role?: {
-    id: number
-    name: string
-  }
-}
+// interface OrganizationUser {
+//   id: number
+//   organization_id: number
+//   user_id: number
+//   role?: {
+//     id: number
+//     name: string
+//   }
+// }
 
 /**
  * Middleware kiểm tra người dùng đã đăng nhập hay chưa
@@ -23,7 +23,7 @@ interface OrganizationUser {
  */
 export default class AuthMiddleware {
   public redirectTo = '/login'
-  private isDevMode = env.get('NODE_ENV') === 'development'
+  // private isDevMode = env.get('NODE_ENV') === 'development'
 
   public async handle(
     ctx: HttpContext,

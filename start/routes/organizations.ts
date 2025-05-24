@@ -3,8 +3,8 @@ import { middleware } from '../kernel.js'
 
 // Organization controllers
 const OrganizationsController = () => import('#controllers/organizations/organizations_controller')
-const SwitchOrganizationController = () =>
-  import('#controllers/organizations/switch_organization_controller')
+// const SwitchOrganizationController = () =>
+//   import('#controllers/organizations/switch_organization_controller')
 const MembersController = () => import('#controllers/organizations/members_controller')
 
 // Route hiển thị tất cả tổ chức (không phụ thuộc vào người dùng)

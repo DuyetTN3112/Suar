@@ -9,7 +9,10 @@ export default class HealthChecksController {
   /**
    * Xử lý yêu cầu health check và trả về báo cáo
    */
-  async handle({ response, request }: HttpContext) {
+  async handle({
+    response,
+    //  request
+  }: HttpContext) {
     // Theo dõi thời gian thực hiện
     const startTime = Date.now()
     try {

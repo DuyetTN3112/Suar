@@ -52,25 +52,24 @@ export default class FirebaseAuthService {
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
       const auth = this.initializeFirebase()
-      
       // Tạo RecaptchaVerifier với token từ client
       const appVerifier = new RecaptchaVerifier(auth, recaptchaToken, {})
 
       // Gửi mã xác thực đến số điện thoại
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier)
-      
+
       // Lưu verification ID vào Redis cache
       await this.storeVerificationId(userId, confirmationResult.verificationId)
 
-      return { 
-        status: 'success', 
-        message: 'Mã OTP đã được gửi đến số điện thoại của bạn' 
+      return {
+        status: 'success',
+        message: 'Mã OTP đã được gửi đến số điện thoại của bạn',
       }
     } catch (error: any) {
       console.error('Firebase Auth Error:', error)
-      return { 
-        status: 'error', 
-        message: error.message || 'Có lỗi xảy ra khi gửi mã OTP' 
+      return {
+        status: 'error',
+        message: error.message || 'Có lỗi xảy ra khi gửi mã OTP',
       }
     }
   }
@@ -84,40 +83,40 @@ export default class FirebaseAuthService {
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
       const auth = this.initializeFirebase()
-      
+
       // Lấy verification ID từ Redis cache
       const verificationId = await this.getVerificationId(userId)
-      
+
       if (!verificationId) {
-        return { 
-          status: 'error', 
-          message: 'Phiên xác thực đã hết hạn, vui lòng thử lại' 
+        return {
+          status: 'error',
+          message: 'Phiên xác thực đã hết hạn, vui lòng thử lại',
         }
       }
 
       // Tạo credential từ verification ID và mã OTP
       const credential = PhoneAuthProvider.credential(verificationId, otp)
-      
+
       // Xác thực với Firebase
       await signInWithCredential(auth, credential)
-      
+
       // Xóa verification ID khỏi Redis cache sau khi xác thực thành công
       await this.removeVerificationId(userId)
 
-      return { 
-        status: 'success', 
-        message: 'Xác minh số điện thoại thành công' 
+      return {
+        status: 'success',
+        message: 'Xác minh số điện thoại thành công',
       }
     } catch (error: any) {
       console.error('Firebase Auth Error:', error)
-      
+
       // Xóa verification ID khỏi Redis cache nếu mã OTP không hợp lệ
       await this.removeVerificationId(userId)
-      
-      return { 
-        status: 'error', 
-        message: error.message || 'Mã OTP không hợp lệ' 
+
+      return {
+        status: 'error',
+        message: error.message || 'Mã OTP không hợp lệ',
       }
     }
   }
-} 
+}

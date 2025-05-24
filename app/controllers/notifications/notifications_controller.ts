@@ -1,10 +1,10 @@
 import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
-import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
-import DeleteNotification from '#actions/notifications/delete_notification'
+// import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
+// import DeleteNotification from '#actions/notifications/delete_notification'
 import Notification from '#models/notification'
-import db from '@adonisjs/lucid/services/db'
+// import db from '@adonisjs/lucid/services/db'
 
 export default class NotificationsController {
   @inject()

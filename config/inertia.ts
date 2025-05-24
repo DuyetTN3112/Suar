@@ -60,7 +60,7 @@ function shouldLog(ctx: HttpContext): boolean {
 }
 
 // Hàm log riêng cho inertia data, hỗ trợ các mức độ log
-function inertiaLog(level: LogLevel, message: string, data?: any) {
+function inertiaLog(level: LogLevel, _message: string, data?: any) {
   const logLevels: Record<LogLevel, number> = {
     none: 0,
     minimal: 1,
