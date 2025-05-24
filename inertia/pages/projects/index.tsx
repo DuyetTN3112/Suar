@@ -16,7 +16,8 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
   const { t } = useTranslation()
   const [showOrganizationModal, setShowOrganizationModal] = React.useState(false)
 
-  // Kiểm tra xem người dùng có tổ chức hiện tại không
+  // Guard against undefined projects array
+  const safeProjects = projects || []  // Kiểm tra xem người dùng có tổ chức hiện tại không
   const hasCurrentOrganization = auth?.user?.current_organization_id !== null &&
                                 auth?.user?.current_organization_id !== undefined
 
@@ -113,14 +114,14 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {projects.length === 0 ? (
+                {safeProjects.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-4">
                       {t('project.no_projects', {}, 'Chưa có dự án nào')}
                     </TableCell>
                   </TableRow>
                 ) : (
-                  projects.map((project: Project) => (
+                  safeProjects.map((project: Project) => (
                     <TableRow key={project.id}>
                       <TableCell className="font-medium">{project.name}</TableCell>
                       <TableCell>{project.organization_name}</TableCell>

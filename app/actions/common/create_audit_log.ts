@@ -1,7 +1,5 @@
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/audit_log'
 
 type AuditLogData = {
   user_id: number
@@ -12,7 +10,6 @@ type AuditLogData = {
   new_values?: any
 }
 
-@inject()
 export default class CreateAuditLog {
   constructor(protected ctx: HttpContext) {}
 

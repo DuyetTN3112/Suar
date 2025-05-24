@@ -3,8 +3,6 @@ import { getDirname } from '@adonisjs/core/helpers'
 import inertia from '@adonisjs/inertia/client'
 import react from '@vitejs/plugin-react'
 import adonisjs from '@adonisjs/vite/client'
-import tailwind from 'tailwindcss'
-import autoprefixer from 'autoprefixer'
 import path from 'node:path'
 
 const dirname = getDirname(import.meta.url)
@@ -53,12 +51,6 @@ export default defineConfig(({ mode }) => {
       // Thêm plugin debug khi cần
       isDebug ? viteDebugPlugin : null,
     ].filter(Boolean),
-
-    css: {
-      postcss: {
-        plugins: [tailwind(), autoprefixer()],
-      },
-    },
 
     resolve: {
       alias: {

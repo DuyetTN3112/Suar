@@ -18,13 +18,17 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
   const { t } = useTranslation()
   const [addMemberOpen, setAddMemberOpen] = useState(false)
   const [newMemberEmail, setNewMemberEmail] = useState('')
-  
+
+  // Guard against undefined props
+  const safeTasks = tasks || []
+  const safeMembers = members || []
+
   const handleDeleteProject = () => {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
       router.delete(`/projects/${project.id}`)
     }
   }
-  
+
   const handleAddMember = (e: React.FormEvent) => {
     e.preventDefault()
     router.post('/projects/members', {
@@ -34,7 +38,7 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
     setNewMemberEmail('')
     setAddMemberOpen(false)
   }
-  
+
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -43,7 +47,7 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
       .toUpperCase()
       .substring(0, 2)
   }
-  
+
   return (
     <AppLayout title={project.name}>
       <Head title={project.name} />
@@ -54,18 +58,18 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
             <h1 className="text-2xl font-bold">{project.name}</h1>
             <p className="text-muted-foreground">{project.organization_name}</p>
           </div>
-          
+
           <div className="flex items-center gap-2">
             {permissions.isCreator || permissions.isManager ? (
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={handleDeleteProject}
               >
                 {t('common.delete', {}, 'Xóa')}
               </Button>
             ) : null}
-            
-            <Button 
+
+            <Button
               onClick={() => router.visit('/projects')}
               variant="outline"
             >
@@ -73,14 +77,14 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
             </Button>
           </div>
         </div>
-        
+
         <Tabs defaultValue="details">
           <TabsList>
             <TabsTrigger value="details">{t('project.details', {}, 'Chi tiết')}</TabsTrigger>
             <TabsTrigger value="members">{t('project.members', {}, 'Thành viên')}</TabsTrigger>
             <TabsTrigger value="tasks">{t('project.tasks', {}, 'Công việc')}</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="details" className="mt-4">
             <Card>
               <CardContent className="pt-6">
@@ -91,7 +95,7 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
                     </h3>
                     <p>{project.description || t('common.not_available', {}, 'Không có')}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('project.status', {}, 'Trạng thái')}
@@ -100,28 +104,28 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
                       {project.status || t('common.not_available', {}, 'Không có')}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('project.start_date', {}, 'Ngày bắt đầu')}
                     </h3>
                     <p>{project.start_date ? formatDate(project.start_date) : t('common.not_available', {}, 'Không có')}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('project.end_date', {}, 'Ngày kết thúc')}
                     </h3>
                     <p>{project.end_date ? formatDate(project.end_date) : t('common.not_available', {}, 'Không có')}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('project.creator', {}, 'Người tạo')}
                     </h3>
                     <p>{project.creator_name || t('common.not_available', {}, 'Không có')}</p>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-sm font-medium text-muted-foreground mb-1">
                       {t('project.manager', {}, 'Quản lý')}
@@ -132,7 +136,7 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="members" className="mt-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -151,9 +155,9 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
                       <form onSubmit={handleAddMember} className="space-y-4">
                         <div className="space-y-2">
                           <Label htmlFor="email">{t('common.email', {}, 'Email')}</Label>
-                          <Input 
-                            id="email" 
-                            type="email" 
+                          <Input
+                            id="email"
+                            type="email"
                             value={newMemberEmail}
                             onChange={(e) => setNewMemberEmail(e.target.value)}
                             placeholder="email@example.com"
@@ -168,12 +172,12 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {members.length === 0 ? (
+                  {safeMembers.length === 0 ? (
                     <p className="col-span-full text-center py-4 text-muted-foreground">
                       {t('project.no_members', {}, 'Chưa có thành viên nào')}
                     </p>
                   ) : (
-                    members.map((member) => (
+                    safeMembers.map((member) => (
                       <div key={member.id} className="flex items-center space-x-3 p-3 border rounded-md">
                         <Avatar>
                           <AvatarImage src={member.avatar_url} />
@@ -191,7 +195,7 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           <TabsContent value="tasks" className="mt-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
@@ -212,14 +216,14 @@ export default function ProjectShow({ project, members, tasks, permissions, auth
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tasks.length === 0 ? (
+                    {safeTasks.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center py-4">
                           {t('project.no_tasks', {}, 'Chưa có công việc nào')}
                         </TableCell>
                       </TableRow>
                     ) : (
-                      tasks.map((task: Task) => (
+                      safeTasks.map((task: Task) => (
                         <TableRow key={task.id}>
                           <TableCell className="font-medium">{task.title}</TableCell>
                           <TableCell>

@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react'
-import { Link, usePage } from '@inertiajs/react'
+import React from 'react'
+import { Link, usePage, router } from '@inertiajs/react'
 import { Bell, Menu } from 'lucide-react'
 import { Button } from '../ui/button'
 import { Search } from '@/components/search'
@@ -17,13 +17,6 @@ import { ThemeSwitch } from '@/components/theme-switch'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
 import { NotificationDropdown } from './notification_dropdown'
 import useTranslation from '@/hooks/use_translation'
-
-// Hàm debug log chỉ hiển thị trong chế độ phát triển
-const debugLog = (message: string, ...args: any[]) => {
-  if (window.DEBUG_MODE) {
-    console.log(`[DEBUG] ${message}`, ...args)
-  }
-}
 
 interface AuthUser {
   id?: string
@@ -52,21 +45,7 @@ export default function Navbar() {
   const { toggleSidebar } = useSidebar()
   const page = usePage<PageProps>()
   const user = page.props.user?.auth?.user
-  const csrfToken = page.props.csrfToken || ''
   const { t } = useTranslation()
-
-  // Thêm log chi tiết để debug
-  useEffect(() => {
-    // Chỉ log khi ở chế độ debug
-    if (!window.DEBUG_MODE) return
-
-    debugLog('NavBar: Page props', page.props)
-    if (!user) {
-      console.error('NavBar: Không có thông tin người dùng')
-    } else {
-      debugLog('NavBar: User info', user)
-    }
-  }, [user, page.props])
 
   // Tạo initials từ tên người dùng
   const getInitials = (name: string) => {
@@ -136,16 +115,15 @@ export default function Navbar() {
                 <Link href="/settings/account">{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <form action="/logout" method="POST" className="w-full">
-                  <input type="hidden" name="_csrf" value={csrfToken} />
-                  <button
-                    type="submit"
-                    className="w-full text-left flex items-center cursor-pointer"
-                  >
-                    {t('auth.logout', {}, 'Đăng xuất')}
-                  </button>
-                </form>
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault()
+                  router.post('/logout', {}, {
+                    onError: (errors) => console.error('[NavBar] Logout error:', errors),
+                  })
+                }}
+              >
+                {t('auth.logout', {}, 'Đăng xuất')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

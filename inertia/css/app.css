@@ -1,6 +1,62 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Container settings */
+  --container-center: true;
+  --container-padding: 2rem;
+  --container-2xl: 1400px;
+
+  /* Border radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Colors - using CSS variables for dynamic theming */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
 
 @layer base {
   :root {
@@ -24,7 +80,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
-    
+
     /* Sidebar variables */
     --sidebar: 0 0% 100%;
     --sidebar-foreground: 222.2 84% 4.9%;
@@ -51,7 +107,7 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    
+
     /* Sidebar variables for dark mode */
     --sidebar: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
@@ -97,25 +153,25 @@
     overflow-wrap: break-word !important;
     word-break: break-word !important;
     word-wrap: break-word !important;
-    
+
     /* Cắt bỏ nội dung nếu vượt quá */
     max-width: 100% !important;
     overflow: hidden !important;
-    
+
     /* Kiểm soát cách hiển thị text */
     white-space: pre-wrap !important;
     hyphens: auto !important;
-    
+
     /* Đảm bảo khoảng cách dòng phù hợp tránh chồng lấn */
     line-height: 1.5 !important;
-    
+
     /* Giới hạn chiều cao tối đa của một khối text */
     max-height: 70vh !important;
-      
+
     /* Chặn các ký tự Zalgo làm thay đổi chiều cao dòng */
     line-height-step: 0 !important;
   }
-  
+
   /* Bộ CSS bảo vệ đặc biệt cho tin nhắn Zalgo */
   .zalgo-message {
     position: relative;
@@ -129,7 +185,7 @@
     contain: content; /* Cách ly nội dung */
     content-visibility: auto; /* Tối ưu hóa rendering */
   }
-  
+
   /* Hiển thị overlay cho tin nhắn Zalgo khi chưa mở rộng */
   .zalgo-message:not(.expanded)::after {
     content: "";
@@ -142,30 +198,30 @@
     pointer-events: none;
     z-index: 1;
   }
-  
+
   /* Cách ly nội dung nguy hiểm */
   .zalgo-container {
     /* Sử dụng CSS containment để ngăn nội dung ảnh hưởng đến bố cục */
     contain: layout paint style size;
     isolation: isolate;
-    
+
     /* Giới hạn chiều cao */
     max-height: var(--max-zalgo-height, 60px);
     overflow: hidden;
-    
+
     /* Hiệu ứng làm mờ */
     filter: var(--zalgo-filter, none);
-    
+
     /* Cắt nội dung khi tràn */
     text-overflow: ellipsis;
-    
+
     /* Ngăn chặn tràn ra ngoài */
     overflow-anchor: none;
-    
+
     /* Sử dụng backdrop-filter để tạo hiệu ứng làm mờ khác */
     position: relative;
   }
-  
+
   /* Shadow DOM bao bọc nội dung nguy hiểm */
   @supports (display: contents) {
     .zalgo-isolate {
@@ -173,7 +229,7 @@
       isolation: isolate;
     }
   }
-  
+
   /* Giới hạn độ dài hiển thị của inline-text */
   .user-content-inline {
     display: inline-block !important;
@@ -224,4 +280,4 @@
   100% {
     transform: scale(1);
   }
-} 
+}

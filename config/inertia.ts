@@ -87,6 +87,11 @@ const inertiaConfig = defineConfig({
   rootView: 'inertia_layout',
 
   sharedData: {
+    // Thêm CSRF token vào shared props
+    async csrfToken(ctx: HttpContext) {
+      return ctx.request.csrfToken
+    },
+
     // Thêm biến session showOrganizationRequiredModal
     async showOrganizationRequiredModal(ctx: HttpContext) {
       if (ctx.session) {

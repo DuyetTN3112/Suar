@@ -55,6 +55,9 @@
       ],
       "#actions/*": [
         "./app/actions/*"
+      ],
+      "#helpers/*": [
+        "./app/helpers/*"
       ]
     }
   },

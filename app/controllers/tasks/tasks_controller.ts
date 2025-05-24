@@ -1,199 +1,322 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import ListTasks from '#actions/tasks/list_tasks'
-import ListTasksWithPermissions from '#actions/tasks/list_tasks_with_permissions'
-import GetTask from '#actions/tasks/get_task'
-import GetTaskWithPermissions from '#actions/tasks/get_task_with_permissions'
-import CreateTask from '#actions/tasks/create_task'
-import UpdateTask from '#actions/tasks/update_task'
-import DeleteTask from '#actions/tasks/delete_task'
-import GetTaskMetadata from '#actions/tasks/get_task_metadata'
-import UpdateTaskTime from '#actions/tasks/update_task_time'
-import AuditLog from '#models/audit_log'
 
+// DTOs
+import CreateTaskDTO from '#actions/tasks/dtos/create_task_dto'
+import UpdateTaskDTO from '#actions/tasks/dtos/update_task_dto'
+import DeleteTaskDTO from '#actions/tasks/dtos/delete_task_dto'
+import UpdateTaskStatusDTO from '#actions/tasks/dtos/update_task_status_dto'
+import UpdateTaskTimeDTO from '#actions/tasks/dtos/update_task_time_dto'
+import GetTasksListDTO from '#actions/tasks/dtos/get_tasks_list_dto'
+import GetTaskDetailDTO from '#actions/tasks/dtos/get_task_detail_dto'
+
+// Commands
+import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
+import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
+import DeleteTaskCommand from '#actions/tasks/commands/delete_task_command'
+import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
+import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_command'
+
+// Queries
+import GetTasksListQuery from '#actions/tasks/queries/get_tasks_list_query'
+import GetTaskDetailQuery from '#actions/tasks/queries/get_task_detail_query'
+import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
+import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_query'
+import CreateNotification from '#actions/common/create_notification'
+
+/**
+ * Controller for Tasks Module - CQRS Pattern
+ *
+ * Consolidated from TasksController + TaskController
+ * All methods use Commands (writes) and Queries (reads)
+ * Clean, maintainable, testable code
+ */
 export default class TasksController {
-  @inject()
-  async index(
-    { request, inertia, session }: HttpContext,
-    listTasksWithPermissions: ListTasksWithPermissions,
-    getTaskMetadata: GetTaskMetadata
-  ) {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
-    const status = request.input('status')
-    const priority = request.input('priority')
-    const label = request.input('label')
-    const search = request.input('search')
-    const assignedTo = request.input('assigned_to')
-    const parentTaskId = request.input('parent_task_id')
-    const filters = {
-      page,
-      limit,
-      status,
-      priority,
-      label,
-      search,
-      assigned_to: assignedTo,
-      parent_task_id: parentTaskId,
-    }
+  /**
+   * GET /tasks
+   * Display tasks list with filters and permissions
+   */
+  async index(ctx: HttpContext) {
     try {
-      const tasks = await listTasksWithPermissions.handle(filters)
-      const metadata = await getTaskMetadata.handle()
-      // Kiểm tra nếu có thông báo từ action
-      if ('message' in tasks) {
-        session.flash('info', tasks.message)
+      const { request, inertia, session } = ctx
+      const organizationId = session.get('current_organization_id')
+      if (!organizationId) {
+        throw new Error('Vui lòng chọn organization')
       }
-      return inertia.render('tasks/index', {
-        tasks,
-        metadata,
-        filters,
+
+      // Manually instantiate queries with current HttpContext to avoid DI decorator conflicts
+      const getTasksListQuery = new GetTasksListQuery(ctx)
+      const getTaskMetadataQuery = new (GetTaskMetadataQuery as any)(ctx)
+
+      // Build DTO from request
+      const dto = new GetTasksListDTO({
+        page: request.input('page', 1),
+        limit: request.input('limit', 10),
+        status: request.input('status'),
+        priority: request.input('priority'),
+        label: request.input('label'),
+        assigned_to: request.input('assigned_to'),
+        parent_task_id: request.input('parent_task_id'),
+        project_id: request.input('project_id'),
+        search: request.input('search'),
+        organization_id: organizationId,
+        sort_by: request.input('sort_by', 'due_date'),
+        sort_order: request.input('sort_order', 'asc'),
       })
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
+
+      // Execute queries in parallel
+      const [tasksResult, metadata] = await Promise.all([
+        (getTasksListQuery as GetTasksListQuery).execute(dto),
+        (getTaskMetadataQuery as GetTaskMetadataQuery).execute(organizationId),
+      ])
+
+      // ✅ Ensure tasks object has correct structure for frontend
       return inertia.render('tasks/index', {
         tasks: {
-          data: [],
-          meta: {
+          data: tasksResult?.data || [],
+          meta: tasksResult?.meta || {
             total: 0,
-            per_page: limit,
-            current_page: page,
+            per_page: dto.limit,
+            current_page: dto.page,
             last_page: 0,
             first_page: 1,
             next_page_url: null,
             previous_page_url: null,
           },
         },
-        metadata: await getTaskMetadata.handle().catch(() => ({})),
-        filters,
+        stats: tasksResult?.stats || {},
+        metadata: metadata || {
+          statuses: [],
+          priorities: [],
+          labels: [],
+          users: [],
+        },
+        filters: {
+          page: dto.page,
+          limit: dto.limit,
+          status: dto.status,
+          priority: dto.priority,
+          label: dto.label,
+          assigned_to: dto.assigned_to,
+          parent_task_id: dto.parent_task_id,
+          project_id: dto.project_id,
+          search: dto.search,
+          sort_by: dto.sort_by,
+          sort_order: dto.sort_order,
+        },
+      })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
+      return ctx.inertia.render('tasks/index', {
+        tasks: {
+          data: [],
+          meta: {
+            total: 0,
+            per_page: 10,
+            current_page: 1,
+            last_page: 0,
+            first_page: 1,
+            next_page_url: null,
+            previous_page_url: null,
+          },
+        },
+        stats: {},
+        metadata: {
+          statuses: [],
+          priorities: [],
+          labels: [],
+          users: [],
+        },
+        filters: {},
       })
     }
   }
 
-  @inject()
-  async create({ inertia }: HttpContext, getTaskMetadata: GetTaskMetadata) {
-    const metadata = await getTaskMetadata.handle()
-    return inertia.render('tasks/create', { metadata })
-  }
-
-  @inject()
-  async store({ request, response, session }: HttpContext, createTask: CreateTask) {
-    const data = request.only([
-      'title',
-      'description',
-      'status_id',
-      'label_id',
-      'priority_id',
-      'assigned_to',
-      'due_date',
-      'parent_task_id',
-      'estimated_time',
-      'actual_time',
-    ])
-    await createTask.handle({ data })
-    session.flash('success', 'Nhiệm vụ đã được tạo thành công')
-    return response.redirect().toRoute('tasks.index')
-  }
-
-  @inject()
-  async show(
-    { params, inertia, response, session }: HttpContext,
-    getTaskWithPermissions: GetTaskWithPermissions
-  ) {
+  /**
+   * GET /tasks/create
+   * Show create task form
+   */
+  async create(ctx: HttpContext) {
     try {
-      const task = await getTaskWithPermissions.handle({ id: Number(params.id) })
-      return inertia.render('tasks/show', { task })
-    } catch (error) {
-      session.flash('error', error.message || 'Bạn không có quyền xem nhiệm vụ này')
-      return response.redirect().toRoute('tasks.index')
-    }
-  }
-
-  @inject()
-  async edit(
-    { params, inertia, response, session }: HttpContext,
-    getTaskWithPermissions: GetTaskWithPermissions,
-    getTaskMetadata: GetTaskMetadata
-  ) {
-    try {
-      const task = await getTaskWithPermissions.handle({ id: Number(params.id) })
-      const metadata = await getTaskMetadata.handle()
-      return inertia.render('tasks/edit', { task, metadata })
-    } catch (error) {
-      session.flash('error', error.message || 'Bạn không có quyền chỉnh sửa nhiệm vụ này')
-      return response.redirect().toRoute('tasks.index')
-    }
-  }
-
-  @inject()
-  async update(
-    { params, request, response, session, auth, inertia }: HttpContext,
-    updateTask: UpdateTask
-  ) {
-    try {
-      const data: any = request.only([
-        'title',
-        'description',
-        'status_id',
-        'label_id',
-        'priority_id',
-        'assigned_to',
-        'due_date',
-        'parent_task_id',
-        'estimated_time',
-        'actual_time',
-      ])
-      // Thêm ID người dùng hiện tại làm người cập nhật
-      const user = auth.user
-      if (user) {
-        data.updated_by = user.id
+      const { inertia } = ctx
+      const organizationId = ctx.session.get('current_organization_id')
+      if (!organizationId) {
+        throw new Error('Vui lòng chọn organization')
       }
-      const updatedTask = await updateTask.handle({ id: Number(params.id), data })
-      // Kiểm tra xem request có phải từ Inertia không
+
+      const getTaskMetadataQuery = new GetTaskMetadataQuery(ctx)
+      const metadata = await getTaskMetadataQuery.execute(organizationId)
+
+      return inertia.render('tasks/create', { metadata })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra')
+      return ctx.response.redirect().toRoute('tasks.index')
+    }
+  }
+
+  /**
+   * POST /tasks
+   * Store new task
+   */
+  async store(ctx: HttpContext) {
+    try {
+      const { request, response, session } = ctx
+      const organizationId = session.get('current_organization_id')
+      if (!organizationId) {
+        throw new Error('Vui lòng chọn organization')
+      }
+
+      // Build DTO from request
+      const dto = new CreateTaskDTO({
+        title: request.input('title'),
+        description: request.input('description'),
+        status_id: request.input('status_id'),
+        label_id: request.input('label_id'),
+        priority_id: request.input('priority_id'),
+        assigned_to: request.input('assigned_to'),
+        due_date: request.input('due_date'),
+        parent_task_id: request.input('parent_task_id'),
+        estimated_time: request.input('estimated_time'),
+        actual_time: request.input('actual_time'),
+        project_id: request.input('project_id'),
+        organization_id: organizationId,
+      })
+
+      // Execute command
+      const command = new CreateTaskCommand(ctx, new CreateNotification(ctx))
+      const task = await command.execute(dto)
+
+      session.flash('success', 'Nhiệm vụ đã được tạo thành công')
+      return response.redirect().toRoute('tasks.show', { id: task.id })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tạo nhiệm vụ')
+      return ctx.response.redirect().back()
+    }
+  }
+
+  /**
+   * GET /tasks/:id
+   * Show task detail
+   */
+  async show(ctx: HttpContext) {
+    try {
+      const dto = GetTaskDetailDTO.createFull(Number(ctx.params.id))
+
+      const getTaskDetailQuery = new GetTaskDetailQuery(ctx)
+      const result = await getTaskDetailQuery.execute(dto)
+
+      return ctx.inertia.render('tasks/show', {
+        task: result.task,
+        permissions: result.permissions,
+        auditLogs: result.auditLogs,
+      })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
+      return ctx.response.redirect().toRoute('tasks.index')
+    }
+  }
+
+  /**
+   * GET /tasks/:id/edit
+   * Show edit task form
+   */
+  async edit(ctx: HttpContext) {
+    try {
+      const { session } = ctx
+      const organizationId = session.get('current_organization_id')
+      if (!organizationId) {
+        throw new Error('Vui lòng chọn organization')
+      }
+
+      const dto = GetTaskDetailDTO.createMinimal(Number(ctx.params.id))
+
+      // Execute queries in parallel
+      const getTaskDetailQuery = new GetTaskDetailQuery(ctx)
+      const getTaskMetadataQuery = new GetTaskMetadataQuery(ctx)
+      const [taskResult, metadata] = await Promise.all([
+        getTaskDetailQuery.execute(dto),
+        getTaskMetadataQuery.execute(organizationId),
+      ])
+
+      // Check edit permission
+      if (!taskResult.permissions.canEdit) {
+        throw new Error('Bạn không có quyền chỉnh sửa nhiệm vụ này')
+      }
+
+      return ctx.inertia.render('tasks/edit', {
+        task: taskResult.task,
+        metadata,
+        permissions: taskResult.permissions,
+      })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
+      return ctx.response.redirect().toRoute('tasks.index')
+    }
+  }
+
+  /**
+   * PUT/PATCH /tasks/:id
+   * Update task
+   */
+  async update(ctx: HttpContext) {
+    try {
+      const { params, request, response, session, auth } = ctx
+      // Build DTO from request
+      const dto = new UpdateTaskDTO({
+        title: request.input('title'),
+        description: request.input('description'),
+        status_id: request.input('status_id'),
+        label_id: request.input('label_id'),
+        priority_id: request.input('priority_id'),
+        assigned_to: request.input('assigned_to'),
+        due_date: request.input('due_date'),
+        parent_task_id: request.input('parent_task_id'),
+        estimated_time: request.input('estimated_time'),
+        actual_time: request.input('actual_time'),
+        project_id: request.input('project_id'),
+        updated_by: auth.user!.id,
+      })
+
+      // Execute command (pass task_id separately)
+      const command = new UpdateTaskCommand(ctx, new CreateNotification(ctx))
+      const task = await command.execute(Number(params.id), dto)
+
+      session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
+
+      // Check if request from Inertia
       if (request.header('X-Inertia')) {
-        session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
         return response.status(200).json({
           success: true,
-          task: updatedTask,
+          task,
         })
       }
-      // Điều hướng trang như trước đối với yêu cầu thông thường
-      session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
-      return response.redirect().toRoute('tasks.show', { id: Number(params.id) })
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
-      return response.redirect().back()
+
+      return response.redirect().toRoute('tasks.show', { id: task.id })
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
+      return ctx.response.redirect().back()
     }
   }
 
-  @inject()
-  async updateTime(
-    { params, request, response, session }: HttpContext,
-    updateTaskTime: UpdateTaskTime
-  ) {
+  /**
+   * DELETE /tasks/:id
+   * Delete task (soft delete)
+   */
+  async destroy(ctx: HttpContext) {
     try {
-      const { actual_time: actualTime } = request.only(['actual_time'])
-      await updateTaskTime.handle({ id: Number(params.id), actualTime })
-      session.flash('success', 'Thời gian thực tế đã được cập nhật')
-      return response.redirect().back()
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật thời gian')
-      return response.redirect().back()
-    }
-  }
+      const { params, response, session, request } = ctx
+      const dto = new DeleteTaskDTO({
+        task_id: Number(params.id),
+        reason: request.input('reason'),
+        permanent: request.input('permanent', false),
+      })
 
-  @inject()
-  async destroy(
-    { params, response, session, request, inertia }: HttpContext,
-    deleteTask: DeleteTask,
-    listTasksWithPermissions: ListTasksWithPermissions,
-    getTaskMetadata: GetTaskMetadata
-  ) {
-    try {
-      const result = await deleteTask.handle({ id: Number(params.id) })
+      // Execute command
+      const command = new DeleteTaskCommand(ctx, new CreateNotification(ctx))
+      const result = await command.execute(dto)
+
       if (!result.success) {
         session.flash('error', result.message)
         if (request.header('X-Inertia')) {
-          // Đối với request từ Inertia, trả về lỗi nhưng không reload trang
           return response.status(400).json({
             success: false,
             message: result.message,
@@ -203,116 +326,50 @@ export default class TasksController {
       }
 
       session.flash('success', 'Nhiệm vụ đã được xóa thành công')
+
       if (request.header('X-Inertia')) {
-        // Đối với request từ Inertia, cần reload dữ liệu
-        const page = request.input('page', 1)
-        const limit = request.input('limit', 10)
-        const filters = {
-          page,
-          limit,
-          status: request.input('status'),
-          priority: request.input('priority'),
-          label: request.input('label'),
-          search: request.input('search'),
-          assigned_to: request.input('assigned_to'),
-          parent_task_id: request.input('parent_task_id'),
-        }
-        const tasks = await listTasksWithPermissions.handle(filters)
-        const metadata = await getTaskMetadata.handle()
-        // Trả về dữ liệu mới cho Inertia
-        return inertia.render('tasks/index', {
-          tasks,
-          metadata,
-          filters,
+        return response.status(200).json({
+          success: true,
+          message: result.message,
         })
       }
+
       return response.redirect().toRoute('tasks.index')
     } catch (error: any) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
-      if (request.header('X-Inertia')) {
-        return inertia.location(request.header('Referer') || '/tasks')
-      }
-      return response.redirect().back()
-    }
-  }
-
-  @inject()
-  async getAuditLogs({ params, response }: HttpContext) {
-    try {
-      const taskId = Number(params.id)
-      const auditLogs = await AuditLog.query()
-        .where('entity_type', 'task')
-        .where('entity_id', taskId)
-        .orderBy('created_at', 'desc')
-        .preload('user')
-      const formattedLogs = auditLogs.map((log) => ({
-        id: log.id,
-        action: log.action,
-        user: log.user
-          ? {
-              id: log.user.id,
-              name:
-                log.user.full_name ||
-                `${log.user.first_name || ''} ${log.user.last_name || ''}`.trim(),
-              email: log.user.email,
-            }
-          : null,
-        timestamp: log.created_at,
-        changes: log.new_values
-          ? this.formatChanges(log.old_values || {}, log.new_values || {})
-          : [],
-      }))
-      return response.json({
-        success: true,
-        data: formattedLogs,
-      })
-    } catch (error) {
-      return response.status(500).json({
-        success: false,
-        message: 'Có lỗi xảy ra khi tải lịch sử thay đổi',
-      })
-    }
-  }
-
-  /**
-   * Format changes for audit logs
-   */
-  private formatChanges(oldValues: Record<string, any>, newValues: Record<string, any>) {
-    const changes: Array<{ field: string; oldValue: any; newValue: any }> = []
-    // Compare old and new values
-    for (const key in newValues) {
-      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
-        changes.push({
-          field: key,
-          oldValue: oldValues[key],
-          newValue: newValues[key],
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
+      if (ctx.request.header('X-Inertia')) {
+        return ctx.response.status(500).json({
+          success: false,
+          message: error.message,
         })
       }
+      return ctx.response.redirect().back()
     }
-    return changes
   }
 
   /**
-   * Cập nhật trạng thái task
+   * PATCH /tasks/:id/status
+   * Update task status
    */
-  @inject()
-  async updateStatus({ params, request, response, auth }: HttpContext, updateTask: UpdateTask) {
+  async updateStatus(ctx: HttpContext) {
     try {
-      const { status_id: statusId } = request.only(['status_id'])
-      const data: any = { status_id: Number(statusId) }
-      // Thêm ID người dùng hiện tại làm người cập nhật
-      const user = auth.user
-      if (user) {
-        data.updated_by = user.id
-      }
-      const updatedTask = await updateTask.handle({ id: Number(params.id), data })
+      const { params, request, response } = ctx
+      const dto = new UpdateTaskStatusDTO({
+        task_id: Number(params.id),
+        status_id: request.input('status_id'),
+        reason: request.input('reason'),
+      })
+
+      const command = new UpdateTaskStatusCommand(ctx, new CreateNotification(ctx))
+      const task = await command.execute(dto)
+
       return response.status(200).json({
         success: true,
         message: 'Trạng thái nhiệm vụ đã được cập nhật',
-        data: updatedTask,
+        task,
       })
-    } catch (error) {
-      return response.status(500).json({
+    } catch (error: any) {
+      return ctx.response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
       })
@@ -320,49 +377,49 @@ export default class TasksController {
   }
 
   /**
-   * Kiểm tra người dùng có quyền tạo task hay không
+   * PATCH /tasks/:id/time
+   * Update task time tracking
    */
-  async checkCreatePermission({ auth, response }: HttpContext) {
+  async updateTime(ctx: HttpContext) {
     try {
-      // Lấy thông tin người dùng đã đăng nhập
-      const user = auth.user
-      if (!user) {
-        return response.status(403).json({
-          success: false,
-          message: 'Bạn cần đăng nhập để thực hiện hành động này',
-          canCreate: false,
-        })
-      }
-      // Kiểm tra quyền
-      const userRole = user.role?.name?.toLowerCase() || ''
-      const isAdmin = user.isAdmin === true
-      const roleId = user.role?.id || user.role_id
-      // Chỉ superadmin hoặc admin mới có quyền tạo task
-      const canCreate =
-        isAdmin ||
-        roleId === 1 ||
-        roleId === 2 ||
-        userRole === 'superadmin' ||
-        userRole === 'admin' ||
-        user.username === 'superadmin' ||
-        user.username === 'admin'
-      return response.json({
-        success: true,
-        canCreate,
-        userData: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          role: user.role,
-          roleId,
-          isAdmin,
-        },
+      const { params, request, response, session } = ctx
+      const dto = new UpdateTaskTimeDTO({
+        task_id: Number(params.id),
+        estimated_time: request.input('estimated_time'),
+        actual_time: request.input('actual_time'),
       })
-    } catch (error) {
-      return response.status(500).json({
+
+      const command = new UpdateTaskTimeCommand(ctx)
+      await command.execute(dto)
+
+      session.flash('success', 'Thời gian đã được cập nhật')
+      return response.redirect().back()
+    } catch (error: any) {
+      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật thời gian')
+      return ctx.response.redirect().back()
+    }
+  }
+
+  /**
+   * GET /tasks/:id/audit-logs
+   * Get task audit logs
+   */
+  async getAuditLogs(ctx: HttpContext) {
+    try {
+      const taskId = Number(ctx.params.id)
+      const limit = ctx.request.input('limit', 20)
+
+      const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
+      const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
+
+      return ctx.response.json({
+        success: true,
+        data: auditLogs,
+      })
+    } catch (error: any) {
+      return ctx.response.status(500).json({
         success: false,
-        message: 'Đã xảy ra lỗi khi kiểm tra quyền',
-        canCreate: false,
+        message: error.message || 'Có lỗi xảy ra khi tải lịch sử thay đổi',
       })
     }
   }

@@ -1,4 +1,3 @@
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Notification from '#models/notification'
@@ -12,7 +11,6 @@ type NotificationData = {
   related_entity_id?: number | string
 }
 
-@inject()
 export default class CreateNotification {
   constructor(protected ctx: HttpContext) {}
 

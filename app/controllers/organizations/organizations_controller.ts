@@ -1,85 +1,80 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import ListOrganizations from '#actions/organizations/list_organizations'
-import GetOrganization from '#actions/organizations/get_organization'
-import SwitchOrganization from '#actions/organizations/switch_organization'
-import CreateOrganization from '#actions/organizations/create_organization'
-import CreateJoinRequest from '#actions/organizations/create_join_request'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 
-@inject()
+// CQRS - Commands
+import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
+import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
+import CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
+
+// CQRS - Queries
+import GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
+import GetOrganizationDetailQuery from '#actions/organizations/queries/get_organization_detail_query'
+
+// DTOs
+import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'
+import { GetOrganizationsListDTO } from '#actions/organizations/dtos/get_organizations_list_dto'
+import { GetOrganizationDetailDTO } from '#actions/organizations/dtos/get_organization_detail_dto'
+
 export default class OrganizationsController {
   /**
    * Hiển thị danh sách tổ chức của người dùng hiện tại
+   *
+   * Sử dụng GetOrganizationsListQuery với caching và filters
    */
-  async index({ auth, inertia }: HttpContext) {
+  async index(ctx: HttpContext) {
+    const { auth, inertia, request } = ctx
+
+    // Manual instantiation
+    const getOrganizationsList = new GetOrganizationsListQuery(ctx)
+
     const user = auth.user!
 
-    // Lấy tất cả tổ chức mà người dùng đang là thành viên
-    const userOrganizations = await db
-      .from('organizations')
-      .join('organization_users', 'organizations.id', '=', 'organization_users.organization_id')
-      .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
-      .where('organization_users.user_id', user.id)
-      .whereNull('organizations.deleted_at')
-      .select('organizations.*', 'user_roles.name as role_name', 'user_roles.id as role_id')
-    // Lấy tất cả các tổ chức trong hệ thống
+    // Build DTO from request
+    const dto = new GetOrganizationsListDTO(
+      Number(request.input('page', 1)),
+      Number(request.input('limit', 20)),
+      request.input('search'),
+      request.input('plan')
+    )
+
+    // Execute query with caching
+    const result = await getOrganizationsList.execute(dto)
+
+    // Lấy tất cả tổ chức (for "all organizations" view)
     const allOrganizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
-    // Thêm các thông tin bổ sung cho tất cả tổ chức
+
+    // Enhance với thông tin bổ sung
     const enhancedAllOrganizations = await Promise.all(
       allOrganizations.map(async (org) => {
-        // Lấy thông tin chủ sở hữu
         const ownerInfo = await db
           .from('users')
           .where('id', org.owner_id)
           .select('full_name')
           .first()
-        // Đếm số lượng thành viên trong tổ chức
+
         const memberCount = await db
           .from('organization_users')
           .where('organization_id', org.id)
           .count('* as count')
           .first()
+
         return {
           ...org.toJSON(),
-          // Thêm các trường thông tin bổ sung
-          founded_date: '2023', // Giả lập năm thành lập
+          founded_date: '2023',
           owner: ownerInfo?.full_name || 'Admin',
           employee_count: memberCount?.count || 0,
-          project_count: null, // Để null để phía client hiện "Chưa có thông tin"
+          project_count: null,
           industry: org.id % 3 === 0 ? 'Công nghệ' : org.id % 3 === 1 ? 'Giáo dục' : 'Tài chính',
           location: org.id % 2 === 0 ? 'Hà Nội' : 'Hồ Chí Minh',
-          id: org.id, // Thêm ID vào dữ liệu để có thể truy cập
+          id: org.id,
         }
       })
     )
-    // Tạo map để tra cứu nhanh thông tin tổ chức theo ID
-    const orgMap: Record<number, any> = {}
-    enhancedAllOrganizations.forEach((org) => {
-      orgMap[org.id] = org
-    })
-    // Thêm thông tin chi tiết cho tổ chức của người dùng
-    const enhancedUserOrganizations = userOrganizations.map((userOrg) => {
-      // Lấy thông tin chi tiết từ orgMap
-      const orgDetails = orgMap[userOrg.id]
-      if (orgDetails) {
-        return {
-          ...userOrg,
-          founded_date: orgDetails.founded_date,
-          owner: orgDetails.owner,
-          employee_count: orgDetails.employee_count,
-          project_count: orgDetails.project_count,
-          industry: orgDetails.industry,
-          location: orgDetails.location,
-        }
-      }
-      return userOrg
-    })
 
-    // Trả về trang hiển thị danh sách tổ chức
     return inertia.render('organizations/index', {
-      organizations: enhancedUserOrganizations,
+      organizations: result.data,
+      pagination: result.pagination,
       currentOrganizationId: user.current_organization_id,
       allOrganizations: enhancedAllOrganizations,
     })
@@ -87,49 +82,63 @@ export default class OrganizationsController {
 
   /**
    * Hiển thị thông tin chi tiết của tổ chức
+   *
+   * Sử dụng GetOrganizationDetailQuery với caching
    */
-  async show({ params, inertia, auth, response }: HttpContext) {
-    const organization = await Organization.find(params.id)
-
-    if (!organization) {
-      return response.status(404).redirect('/errors/not-found')
-    }
-
-    // Kiểm tra xem người dùng có phải là thành viên của tổ chức không
+  async show(
+    { params, inertia, auth, response }: HttpContext,
+    getOrganizationDetail: GetOrganizationDetailQuery
+  ) {
     const user = auth.user!
-    const membership = await db
-      .from('organization_users')
-      .where('organization_id', organization.id)
-      .where('user_id', user.id)
-      .first()
 
-    if (!membership) {
-      return response.status(403).redirect('/errors/forbidden')
-    }
-
-    // Lấy danh sách thành viên của tổ chức
-    const members = await db
-      .from('users')
-      .join('organization_users', 'users.id', '=', 'organization_users.user_id')
-      .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
-      .where('organization_users.organization_id', organization.id)
-      .whereNull('users.deleted_at')
-      .select(
-        'users.id',
-        'users.first_name',
-        'users.last_name',
-        'users.full_name',
-        'users.email',
-        'users.username',
-        'organization_users.role_id',
-        'user_roles.name as role_name'
+    try {
+      // Build DTO
+      const dto = new GetOrganizationDetailDTO(
+        Number(params.id),
+        true, // include_owner
+        false, // include_stats
+        false // include_projects
       )
 
-    return inertia.render('organizations/show', {
-      organization,
-      members,
-      userRole: membership.role_id,
-    })
+      // Execute query with permission check
+      const result = await getOrganizationDetail.execute(dto)
+
+      // Get members list
+      const members = await db
+        .from('users')
+        .join('organization_users', 'users.id', '=', 'organization_users.user_id')
+        .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
+        .where('organization_users.organization_id', params.id)
+        .whereNull('users.deleted_at')
+        .select(
+          'users.id',
+          'users.first_name',
+          'users.last_name',
+          'users.full_name',
+          'users.email',
+          'users.username',
+          'organization_users.role_id',
+          'user_roles.name as role_name'
+        )
+
+      // Get user's role
+      const membership = await db
+        .from('organization_users')
+        .where('organization_id', params.id)
+        .where('user_id', user.id)
+        .first()
+
+      return inertia.render('organizations/show', {
+        organization: result,
+        members,
+        userRole: membership?.role_id || 0,
+      })
+    } catch (error) {
+      if (error.message.includes('không có quyền')) {
+        return response.status(403).redirect('/errors/forbidden')
+      }
+      return response.status(404).redirect('/errors/not-found')
+    }
   }
 
   /**
@@ -141,26 +150,29 @@ export default class OrganizationsController {
 
   /**
    * Lưu tổ chức mới vào database
+   *
+   * Sử dụng CreateOrganizationCommand với transaction
    */
-  @inject()
-  async store({ request, response, session }: HttpContext, createOrganization: CreateOrganization) {
+  async store(
+    { request, response, session }: HttpContext,
+    createOrganization: CreateOrganizationCommand
+  ) {
     try {
-      const data = {
-        name: request.input('name'),
-        slug: request.input('slug'),
-        description: request.input('description'),
-        logo: request.input('logo'),
-        website: request.input('website'),
-        plan: request.input('plan'),
-      }
-      const result = await createOrganization.handle(data)
-      if (result.success) {
-        session.flash('success', result.message)
-        return response.redirect().toRoute('organizations.show', { id: result.organization!.id })
-      } else {
-        session.flash('error', result.message)
-        return response.redirect().back()
-      }
+      // Build DTO from request
+      const dto = new CreateOrganizationDTO(
+        request.input('name'),
+        request.input('slug'),
+        request.input('description'),
+        request.input('logo'),
+        request.input('website'),
+        request.input('plan')
+      )
+
+      // Execute command
+      const organization = await createOrganization.execute(dto)
+
+      session.flash('success', 'Tổ chức đã được tạo thành công')
+      return response.redirect().toRoute('organizations.show', { id: organization.id })
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi tạo tổ chức')
       return response.redirect().back()
@@ -169,25 +181,41 @@ export default class OrganizationsController {
 
   /**
    * Chuyển đổi tổ chức hiện tại cho người dùng
+   *
+   * Sử dụng SwitchOrganizationCommand
    */
   async switchOrganization(
     { request, response, session }: HttpContext,
-    switchOrganization: SwitchOrganization
+    switchOrganization: SwitchOrganizationCommand
   ) {
-    const { organization_id: organizationId } = request.only(['organization_id'])
-    const result = await switchOrganization.handle({ organizationId: Number(organizationId) })
-    // Kiểm tra nếu request yêu cầu JSON response
-    if (request.accepts(['html', 'json']) === 'json') {
-      return response.json(result)
-    }
-    // Nếu thành công, flash thông báo và chuyển hướng về trang tasks
-    if (result.success) {
-      session.flash('success', result.message || 'Đã chuyển đổi tổ chức thành công')
+    try {
+      const organizationId = Number(request.input('organization_id'))
+
+      // Execute command
+      const result = await switchOrganization.execute(organizationId)
+
+      // Check if JSON response is requested
+      if (request.accepts(['html', 'json']) === 'json') {
+        return response.json({
+          success: true,
+          message: 'Đã chuyển đổi tổ chức thành công',
+          organization: result,
+        })
+      }
+
+      session.flash('success', 'Đã chuyển đổi tổ chức thành công')
       return response.redirect('/tasks')
+    } catch (error) {
+      if (request.accepts(['html', 'json']) === 'json') {
+        return response.status(400).json({
+          success: false,
+          message: error.message,
+        })
+      }
+
+      session.flash('error', error.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
+      return response.redirect().back()
     }
-    // Nếu thất bại, flash lỗi và quay lại trang trước
-    session.flash('error', result.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
-    return response.redirect().back()
   }
 
   /**
@@ -253,17 +281,19 @@ export default class OrganizationsController {
 
   /**
    * Xử lý yêu cầu tham gia tổ chức
+   *
+   * Sử dụng CreateJoinRequestCommand
    */
-  async join(ctx: HttpContext) {
-    const { params, auth, session, response, request } = ctx
+  async join(
+    { params, auth, session, response, request }: HttpContext,
+    createJoinRequest: CreateJoinRequestCommand
+  ) {
     const user = auth.user!
-    const organizationId = params.id
-    const createJoinRequest = new CreateJoinRequest(ctx)
+    const organizationId = Number(params.id)
 
     // Kiểm tra xem tổ chức có tồn tại không
     const organization = await Organization.find(organizationId)
     if (!organization) {
-      // Kiểm tra nếu là request API/AJAX
       if (
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
@@ -285,7 +315,6 @@ export default class OrganizationsController {
       .first()
 
     if (existingMembership) {
-      // Nếu đã là thành viên hoặc đã gửi yêu cầu
       const status = existingMembership.status
       let message = ''
 
@@ -298,7 +327,6 @@ export default class OrganizationsController {
           'Yêu cầu tham gia của bạn đã bị từ chối. Bạn có thể liên hệ với quản trị viên tổ chức'
       }
 
-      // Kiểm tra nếu là request API/AJAX
       if (
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
@@ -306,14 +334,7 @@ export default class OrganizationsController {
         return response.json({
           success: false,
           message,
-          organization: {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            logo: organization.logo,
-            website: organization.website,
-            plan: organization.plan,
-          },
+          organization: organization.toJSON(),
           membership: existingMembership,
         })
       }
@@ -322,46 +343,34 @@ export default class OrganizationsController {
     }
 
     try {
-      // Tạo yêu cầu tham gia tổ chức thay vì thêm trực tiếp
-      const result = await createJoinRequest.handle({
-        organizationId: Number(organizationId),
-      })
+      // Execute command
+      const joinRequest = await createJoinRequest.execute(organizationId)
 
-      // Kiểm tra nếu là request API/AJAX
       if (
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
         return response.json({
-          success: result.success,
-          message: result.message,
-          organization: {
-            id: organization.id,
-            name: organization.name,
-            description: organization.description,
-            logo: organization.logo,
-            website: organization.website,
-            plan: organization.plan,
-          },
-          joinRequest: result.joinRequest,
+          success: true,
+          message: 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt',
+          organization: organization.toJSON(),
+          joinRequest,
         })
       }
 
-      session.flash(result.success ? 'success' : 'error', result.message)
+      session.flash('success', 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt')
       return response.redirect().toRoute('organizations.index')
     } catch (error) {
-      // Kiểm tra nếu là request API/AJAX
       if (
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
         return response.status(500).json({
           success: false,
-          message: 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức',
-          error: error.message,
+          message: error.message || 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức',
         })
       }
-      session.flash('error', 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức')
+      session.flash('error', error.message || 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức')
       return response.redirect().back()
     }
   }

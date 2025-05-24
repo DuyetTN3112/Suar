@@ -1,8 +1,7 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 
-// Task controllers
-const TaskController = () => import('#controllers/tasks/task_controller')
+// Task controller
 const TasksController = () => import('#controllers/tasks/tasks_controller')
 
 router
@@ -21,18 +20,8 @@ router
     router.delete('/tasks/:id', [TasksController, 'destroy']).as('tasks.destroy')
     // Audit logs routes for tasks
     router.get('/tasks/:id/audit-logs', [TasksController, 'getAuditLogs']).as('tasks.audit_logs')
-    // API route to check task creation permission
-    router
-      .get('/api/tasks/check-create-permission', [TasksController, 'checkCreatePermission'])
-      .as('api.tasks.check_permission')
-
-    // Legacy task routes
-    router.get('/task', [TaskController, 'index']).as('task.index')
-    router.get('/task/create', [TaskController, 'create']).as('task.create')
-    router.post('/task', [TaskController, 'store']).as('task.store')
-    router.get('/task/:id', [TaskController, 'show']).as('task.show')
-    router.get('/task/:id/edit', [TaskController, 'edit']).as('task.edit')
-    router.put('/task/:id', [TaskController, 'update']).as('task.update')
-    router.delete('/task/:id', [TaskController, 'destroy']).as('task.destroy')
+    // API route to check task creation permission (optional)
+    // Note: Implement handler in controller if needed
+    // router.get('/api/tasks/check-create-permission', [TasksController, 'checkCreatePermission']).as('api.tasks.check_permission')
   })
   .use([middleware.auth(), middleware.requireOrg()])

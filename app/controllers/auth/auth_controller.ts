@@ -1,14 +1,13 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
 import Organization from '#models/organization'
 
-@inject()
 export default class AuthController {
   /**
    * Hiển thị form đăng nhập
    */
-  async showLogin({ inertia, auth, session }: HttpContext) {
+  async showLogin(ctx: HttpContext) {
+    const { inertia, auth, session } = ctx
     // Nếu đã đăng nhập, chuyển hướng về trang chủ
     if (await auth.check()) {
       return inertia.location('/')

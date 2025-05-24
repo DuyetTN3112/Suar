@@ -11,9 +11,10 @@ interface AuthLayoutProps {
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
   const { t } = useTranslation()
-  
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 dark:text-white transition-colors duration-300">
+    // Changed from bg-gray-50 dark:bg-gray-950 to use bg-background which respects the theme
+    <div className="min-h-screen bg-background transition-colors duration-300">
       <header>
         <nav className="flex items-center justify-between p-6 lg:px-8">
           <div className="flex lg:flex-1">
@@ -60,4 +61,4 @@ export default function AuthLayout({ children }: AuthLayoutProps) {
       <Toaster position="top-right" />
     </div>
   )
-} 
+}

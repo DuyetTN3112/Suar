@@ -1,15 +1,14 @@
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import { cuid } from '@adonisjs/core/helpers'
 import app from '@adonisjs/core/services/app'
 import UserDetail from '#models/user_detail'
 
-@inject()
 export default class AvatarController {
   /**
    * Upload avatar cho người dùng
    */
-  async update({ request, response, auth, session }: HttpContext) {
+  async update(ctx: HttpContext) {
+    const { request, response, auth, session } = ctx
     try {
       // Lấy file avatar từ request
       const avatar = request.file('avatar', {

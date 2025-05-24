@@ -1,12 +1,12 @@
-import WebLogin from '#actions/auth/http/web_login'
-import ResetPassword from '#actions/auth/password_reset/reset_password'
-import TrySendPasswordResetEmail from '#actions/auth/password_reset/try_send_password_reset_email'
-import VerifyPasswordResetToken from '#actions/auth/password_reset/verify_password_reset_token'
-import { inject } from '@adonisjs/core'
+import { RequestPasswordResetCommand, ResetPasswordCommand } from '#actions/auth/commands/index'
+import { RequestPasswordResetDTO, ResetPasswordDTO } from '#actions/auth/dtos/index'
+import PasswordResetToken from '#models/password_reset_token'
+import encryption from '@adonisjs/core/services/encryption'
+import { DateTime } from 'luxon'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 
-// Tạo validator schema tại chỗ
+// Validator schemas
 const passwordResetSendValidator = vine.compile(
   vine.object({
     email: vine.string().email(),
@@ -22,49 +22,132 @@ const passwordResetValidator = vine.compile(
   })
 )
 
+/**
+ * ForgotPasswordController
+ *
+ * Handles password reset flow via web interface.
+ * Uses CQRS Commands for business logic.
+ */
 export default class ForgotPasswordController {
   #sentSessionKey = 'FORGOT_PASSWORD_SENT'
 
+  /**
+   * Show forgot password form
+   */
   async index({ inertia, session }: HttpContext) {
     const isSent = session.flashMessages.has(this.#sentSessionKey)
-
     return inertia.render('auth/forgot_password', { isSent })
   }
 
+  /**
+   * Send password reset email
+   * Uses RequestPasswordResetCommand
+   */
   async send({ request, response, session }: HttpContext) {
-    const data = await request.validateUsing(passwordResetSendValidator)
+    try {
+      // 1. Validate
+      const data = await request.validateUsing(passwordResetSendValidator)
 
-    await TrySendPasswordResetEmail.handle(data)
+      // 2. Build DTO
+      const dto = new RequestPasswordResetDTO({
+        email: data.email,
+        ipAddress: request.ip(),
+      })
 
-    session.flash(this.#sentSessionKey, true)
+      // 3. Execute command
+      const command = new RequestPasswordResetCommand({ request, response, session } as any)
+      await command.handle(dto)
 
-    return response.redirect().back()
+      // 4. Success
+      session.flash(this.#sentSessionKey, true)
+      return response.redirect().back()
+    } catch (error) {
+      session.flash('errors', {
+        email: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+      })
+      return response.redirect().back()
+    }
   }
 
+  /**
+   * Show password reset form
+   */
   async reset({ params, inertia, response }: HttpContext) {
-    const { isValid, user } = await VerifyPasswordResetToken.handle({
-      encryptedValue: params.value,
-    })
+    try {
+      const { isValid, user } = await this.verifyToken(params.value)
+      response.header('Referrer-Policy', 'no-referrer')
 
-    response.header('Referrer-Policy', 'no-referrer')
-
-    return inertia.render('auth/reset_password', {
-      value: params.value,
-      email: user?.email,
-      isValid,
-    })
+      return inertia.render('auth/reset_password', {
+        value: params.value,
+        email: user?.email,
+        isValid,
+      })
+    } catch (error) {
+      return inertia.render('auth/reset_password', {
+        value: params.value,
+        email: null,
+        isValid: false,
+      })
+    }
   }
 
-  @inject()
-  async update({ request, response, session, auth }: HttpContext, webLogin: WebLogin) {
-    const data = await request.validateUsing(passwordResetValidator)
-    const user = await ResetPassword.handle({ data })
+  /**
+   * Process password reset
+   * Uses ResetPasswordCommand
+   */
+  async update({ request, response, session, auth }: HttpContext) {
+    try {
+      // 1. Validate
+      const data = await request.validateUsing(passwordResetValidator)
 
-    await auth.use('web').login(user)
-    await webLogin.clearRateLimits(user.email)
+      // 2. Build DTO
+      const dto = new ResetPasswordDTO({
+        token: data.value,
+        newPassword: data.password,
+        ipAddress: request.ip(),
+      })
 
-    session.flash('success', 'Mật khẩu của bạn đã được cập nhật')
+      // 3. Execute command
+      const command = new ResetPasswordCommand({ request, response, session, auth } as any)
+      await command.handle(dto)
 
-    return response.redirect().toRoute('dashboard')
+      // 4. Success
+      session.flash('success', 'Mật khẩu của bạn đã được cập nhật')
+      return response.redirect().toRoute('dashboard')
+    } catch (error) {
+      session.flash('errors', {
+        password: error instanceof Error ? error.message : 'Có lỗi xảy ra',
+      })
+      return response.redirect().back()
+    }
+  }
+
+  /**
+   * Verify token helper
+   */
+  private async verifyToken(encryptedToken: string): Promise<{
+    isValid: boolean
+    user: { email: string } | null
+  }> {
+    try {
+      const decryptedToken = encryption.decrypt(encryptedToken) as string
+      const tokenRecord = await PasswordResetToken.query()
+        .where('value', decryptedToken)
+        .where('expires_at', '>', DateTime.now().toSQL())
+        .preload('user')
+        .first()
+
+      if (!tokenRecord) {
+        return { isValid: false, user: null }
+      }
+
+      return {
+        isValid: true,
+        user: { email: tokenRecord.user.email },
+      }
+    } catch (error) {
+      return { isValid: false, user: null }
+    }
   }
 }
+

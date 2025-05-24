@@ -1,98 +1,91 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import ListUsers from '#actions/users/list_users'
-import GetUser from '#actions/users/get_user'
-import CreateUser from '#actions/users/create_user'
-import UpdateUser from '#actions/users/update_user'
+// New CQRS Commands and Queries
+import RegisterUserCommand from '#actions/users/commands/register_user_command'
+import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
+import ApproveUserCommand from '#actions/users/commands/approve_user_command'
+import ChangeUserRoleCommand from '#actions/users/commands/change_user_role_command'
+import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
+// DTOs
+import { RegisterUserDTO } from '#actions/users/dtos/register_user_dto'
+import { UpdateUserProfileDTO } from '#actions/users/dtos/update_user_profile_dto'
+import { ApproveUserDTO } from '#actions/users/dtos/approve_user_dto'
+import { ChangeUserRoleDTO } from '#actions/users/dtos/change_user_role_dto'
+import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_list_dto'
+import { GetUserDetailDTO } from '#actions/users/dtos/get_user_detail_dto'
+import { PaginationDTO } from '#actions/shared/index'
+// Old actions (to be replaced gradually)
 import DeleteUser from '#actions/users/delete_user'
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import User from '#models/user'
-import UserRole from '#models/user_role'
-import UserStatus from '#models/user_status'
 import db from '@adonisjs/lucid/services/db'
 
+/**
+ * UsersController - Thin Controller following CQRS pattern
+ *
+ * Responsibilities:
+ * 1. Extract data from HTTP request
+ * 2. Build DTOs for Commands/Queries
+ * 3. Call appropriate Command/Query handlers
+ * 4. Return HTTP response
+ *
+ * NO business logic should be here!
+ */
 export default class UsersController {
-  @inject()
-  async index(
-    { request, inertia, auth }: HttpContext,
-    listUsers: ListUsers,
-    getUserMetadata: GetUserMetadata
-  ) {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
-    const roleId = request.input('role_id')
-    const statusId = request.input('status_id')
-    const search = request.input('search')
-    // Lấy organization_id của người dùng hiện tại
-    const organizationId = auth.user?.current_organization_id
-    const options = {
-      page,
-      limit,
-      role_id: roleId,
-      status_id: statusId,
-      search,
-      organization_id: organizationId ?? undefined,
-      exclude_status_id: 2, // Loại bỏ người dùng có status_id = 2 (inactive/chờ duyệt)
-      organization_user_status: 'approved' as const, // Chỉ hiển thị người dùng đã được phê duyệt trong tổ chức
-    }
+  /**
+   * Display paginated list of users for current organization
+   * Route: GET /users
+   */
+  async index(ctx: HttpContext) {
+    const { request, inertia, auth } = ctx
 
-    const users = await listUsers.handle({ options })
+    // Manual instantiation to avoid DI decorator conflicts
+    const getUsersListQuery = new GetUsersListQuery(ctx)
+    const getUserMetadata = new GetUserMetadata(ctx)
+
+    // Build DTO for GetUsersListQuery
+    const dto = this.buildGetUsersListDTO(request, auth)
+
+    // Execute Query (read-only, cached)
+    const users = await getUsersListQuery.handle(dto)
+
+    // Get metadata (roles, statuses) for filters
     const metadata = await getUserMetadata.handle()
+
+    // Return Inertia response
     return inertia.render('users/index', {
       users,
       metadata,
-      filters: options,
+      filters: {
+        page: dto.pagination.page,
+        limit: dto.pagination.limit,
+        role_id: dto.filters.roleId,
+        status_id: dto.filters.statusId,
+        search: dto.filters.search,
+      },
     })
   }
 
-  @inject()
-  async systemUsersApi({ request, response, auth }: HttpContext, listUsers: ListUsers) {
+  /**
+   * API endpoint: Get system users (not in current organization)
+   * Route: GET /api/users/system
+   * Permission: Superadmin only
+   */
+  async systemUsersApi(ctx: HttpContext) {
+    const { request, response, auth } = ctx
+
     try {
-      // Kiểm tra quyền - chỉ superadmin của tổ chức hiện tại mới có thể truy cập
-      const user = auth.user
-      if (!user) {
-        return response.status(401).json({
-          success: false,
-          message: 'Unauthorized',
-        })
-      }
+      // Check permission first
+      const hasPermission = await this.checkSuperAdminPermission(auth, response)
+      if (!hasPermission) return // Response already sent
 
-      const organizationId = user.current_organization_id
-      if (!organizationId) {
-        return response.status(400).json({
-          success: false,
-          message: 'Không tìm thấy tổ chức hiện tại',
-        })
-      }
+      // Manual instantiation
+      const getUsersListQuery = new GetUsersListQuery(ctx)
 
-      // Kiểm tra xem người dùng có phải là superadmin của tổ chức không
-      const isSuperAdmin = await db
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', user.id)
-        .where('role_id', 1) // role_id = 1 là superadmin
-        .first()
+      // Build DTO with exclude_organization_members flag
+      const dto = this.buildSystemUsersListDTO(request, auth)
 
-      if (!isSuperAdmin) {
-        return response.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền truy cập tài nguyên này',
-        })
-      }
-
-      const page = request.input('page', 1)
-      const limit = request.input('limit', 10)
-      const search = request.input('search', '')
-
-      const options = {
-        page,
-        limit,
-        search,
-        organization_id: organizationId,
-        exclude_organization_members: true, // Loại trừ những người đã thuộc tổ chức hiện tại
-      }
-
-      const users = await listUsers.handle({ options })
+      // Execute Query
+      const users = await getUsersListQuery.handle(dto)
 
       return response.json({
         success: true,
@@ -107,114 +100,176 @@ export default class UsersController {
     }
   }
 
-  @inject()
-  async create({ inertia }: HttpContext, getUserMetadata: GetUserMetadata) {
+  /**
+   * Show create user form
+   * Route: GET /users/create
+   */
+  async create(ctx: HttpContext) {
+    const { inertia } = ctx
+
+    // Manual instantiation
+    const getUserMetadata = new GetUserMetadata(ctx)
+
     const metadata = await getUserMetadata.handle()
     return inertia.render('users/create', { metadata })
   }
 
-  @inject()
-  async store({ request, response, session }: HttpContext, createUser: CreateUser) {
-    const data = request.only([
-      'first_name',
-      'last_name',
-      'username',
-      'email',
-      'password',
-      'role_id',
-      'status_id',
-      'phone_number',
-      'bio',
-      'date_of_birth',
-      'language',
-    ])
-    await createUser.handle({ data })
-    session.flash('success', 'Người dùng đã được tạo thành công')
+  /**
+   * Store new user (Register)
+   * Route: POST /users
+   */
+  async store(ctx: HttpContext) {
+    const { request, response, session, i18n } = ctx
+
+    // Manual instantiation
+    const registerUserCommand = new RegisterUserCommand(ctx)
+
+    // Build DTO from request
+    const dto = this.buildRegisterUserDTO(request)
+
+    // Execute Command (write operation with transaction + audit logging)
+    await registerUserCommand.handle(dto)
+
+    // Success flash message
+    session.flash('success', i18n.t('messages.user_created_successfully'))
+
     return response.redirect().toRoute('users.index')
   }
 
-  @inject()
-  async show({ params, inertia }: HttpContext, getUser: GetUser) {
-    const user = await getUser.handle({ id: Number(params.id) })
+  /**
+   * Show user detail
+   * Route: GET /users/:id
+   */
+  async show(ctx: HttpContext) {
+    const { params, inertia } = ctx
+
+    // Manual instantiation
+    const getUserDetailQuery = new GetUserDetailQuery(ctx)
+
+    // Build DTO
+    const dto = new GetUserDetailDTO(Number(params.id))
+
+    // Execute Query (cached)
+    const user = await getUserDetailQuery.handle(dto)
+
     return inertia.render('users/show', { user })
   }
 
-  @inject()
-  async edit({ params, inertia }: HttpContext, getUser: GetUser, getUserMetadata: GetUserMetadata) {
-    const user = await getUser.handle({ id: Number(params.id) })
+  /**
+   * Show edit user form
+   * Route: GET /users/:id/edit
+   */
+  async edit(ctx: HttpContext) {
+    const { params, inertia } = ctx
+
+    // Manual instantiation
+    const getUserDetailQuery = new GetUserDetailQuery(ctx)
+    const getUserMetadata = new GetUserMetadata(ctx)
+
+    // Build DTO
+    const dto = new GetUserDetailDTO(Number(params.id))
+
+    // Execute Query
+    const user = await getUserDetailQuery.handle(dto)
     const metadata = await getUserMetadata.handle()
+
     return inertia.render('users/edit', { user, metadata })
   }
 
-  @inject()
-  async update({ params, request, response, session }: HttpContext, updateUser: UpdateUser) {
-    const data = request.only([
-      'first_name',
-      'last_name',
-      'username',
-      'email',
-      'password',
-      'role_id',
-      'status_id',
-      'phone_number',
-      'bio',
-      'date_of_birth',
-      'language',
-    ])
-    await updateUser.handle({ id: Number(params.id), data })
-    session.flash('success', 'Người dùng đã được cập nhật thành công')
+  /**
+   * Update user profile
+   * Route: PUT /users/:id
+   *
+   * Note: This only updates profile information (name, phone, bio, etc.).
+   * For admin operations (change role/status), create separate Commands:
+   * - ChangeUserRoleCommand
+   * - ChangeUserStatusCommand
+   */
+  async update(ctx: HttpContext) {
+    const { params, request, response, session, i18n } = ctx
+
+    // Manual instantiation
+    const updateUserProfileCommand = new UpdateUserProfileCommand(ctx)
+
+    // Build DTO from request (only profile fields)
+    const dto = this.buildUpdateUserProfileDTO(Number(params.id), request)
+
+    // Execute Command (write operation with transaction + audit logging)
+    await updateUserProfileCommand.handle(dto)
+
+    // Success flash message
+    session.flash('success', i18n.t('messages.user_updated_successfully'))
+
     return response.redirect().toRoute('users.show', { id: Number(params.id) })
   }
 
-  @inject()
-  async destroy({ params, response, session }: HttpContext, deleteUser: DeleteUser) {
+  /**
+   * Delete user (soft delete)
+   * Route: DELETE /users/:id
+   * TODO: Create RemoveUserCommand to replace DeleteUser action
+   */
+  async destroy(ctx: HttpContext) {
+    const { params, response, session } = ctx
+
+    // Manual instantiation
+    const deleteUser = new DeleteUser(ctx)
+
     const result = await deleteUser.handle({ id: Number(params.id) })
     session.flash(result.success ? 'success' : 'error', result.message)
     return response.redirect().toRoute('users.index')
   }
 
-  @inject()
-  async pendingApproval(
-    { request, inertia, auth }: HttpContext,
-    listUsers: ListUsers,
-    getUserMetadata: GetUserMetadata
-  ) {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
-    const search = request.input('search')
-    // Lấy organization_id của người dùng hiện tại
-    const organizationId = auth.user?.current_organization_id
+  /**
+   * Show pending approval users page
+   * Route: GET /users/pending-approval
+   * Permission: Superadmin only
+   */
+  async pendingApproval(ctx: HttpContext) {
+    const { request, inertia, auth } = ctx
 
-    // Kiểm tra xem người dùng hiện tại có phải là superadmin của tổ chức không
-    // Sử dụng $extras để truy cập dữ liệu thêm vào từ database
+    // Check superadmin permission
     const isSuperAdmin = auth.user?.$extras?.organization_role?.id === 1
 
     if (!isSuperAdmin) {
-      // Nếu không phải superadmin, chuyển hướng về trang danh sách người dùng
+      // Redirect to users list if not superadmin
       return inertia.location('/users')
     }
 
-    const options = {
-      page,
-      limit,
-      search,
-      organization_id: organizationId ?? undefined,
-      organization_user_status: 'pending' as const, // Lọc người dùng có trạng thái chờ phê duyệt trong tổ chức
-    }
+    // Manual instantiation
+    const getUsersListQuery = new GetUsersListQuery(ctx)
+    const getUserMetadata = new GetUserMetadata(ctx)
 
-    const users = await listUsers.handle({ options })
+    // Build DTO for pending users
+    const dto = this.buildPendingUsersListDTO(request, auth)
+
+    // Execute Query
+    const users = await getUsersListQuery.handle(dto)
     const metadata = await getUserMetadata.handle()
+
     return inertia.render('users/pending_approval', {
       users,
       metadata,
-      filters: options,
+      filters: {
+        page: dto.pagination.page,
+        limit: dto.pagination.limit,
+        search: dto.filters.search,
+      },
     })
   }
 
-  @inject()
-  async pendingApprovalApi({ request, response, auth }: HttpContext, listUsers: ListUsers) {
+  /**
+   * API: Get pending approval users
+   * Route: GET /api/users/pending-approval
+   * Permission: Superadmin only
+   */
+  async pendingApprovalApi(ctx: HttpContext) {
+    const { response, auth } = ctx
+
     try {
-      // Lấy organization_id của người dùng hiện tại
+      // Check permission
+      const hasPermission = await this.checkSuperAdminPermission(auth, response)
+      if (!hasPermission) return
+
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
         return response.status(400).json({
@@ -222,21 +277,9 @@ export default class UsersController {
           message: 'Không tìm thấy thông tin tổ chức hiện tại',
         })
       }
-      // Kiểm tra xem người dùng hiện tại có phải là superadmin của tổ chức không
-      const isSuperAdmin = await db
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', auth.user!.id)
-        .where('role_id', 1) // role_id = 1 là superadmin
-        .where('status', 'approved')
-        .first()
-      if (!isSuperAdmin) {
-        return response.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền truy cập danh sách này.',
-        })
-      }
-      // Truy vấn trực tiếp người dùng có trạng thái pending trong organization_users
+
+      // Query pending users directly (complex query not yet in GetUsersListQuery)
+      // TODO: Move this to a dedicated GetPendingUsersQuery
       const pendingUsers = await db
         .from('users as u')
         .join('organization_users as ou', 'u.id', 'ou.user_id')
@@ -260,7 +303,8 @@ export default class UsersController {
           'us.name as status_name',
           'u.created_at'
         )
-      // Định dạng lại dữ liệu để phù hợp với frontend
+
+      // Format response
       const formattedUsers = pendingUsers.map((user) => ({
         id: user.id,
         first_name: user.first_name,
@@ -299,10 +343,19 @@ export default class UsersController {
     }
   }
 
-  @inject()
-  async pendingApprovalCount({ response, auth }: HttpContext) {
+  /**
+   * API: Get pending approval count
+   * Route: GET /api/users/pending-approval/count
+   * Permission: Superadmin only
+   */
+  async pendingApprovalCount(ctx: HttpContext) {
+    const { response, auth } = ctx
+
     try {
-      // Lấy organization_id của người dùng hiện tại
+      // Check permission
+      const hasPermission = await this.checkSuperAdminPermission(auth, response)
+      if (!hasPermission) return
+
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
         return response.status(400).json({
@@ -310,21 +363,8 @@ export default class UsersController {
           message: 'Không tìm thấy thông tin tổ chức hiện tại',
         })
       }
-      // Kiểm tra xem người dùng hiện tại có phải là superadmin của tổ chức không
-      const isSuperAdmin = await db
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', auth.user!.id)
-        .where('role_id', 1) // role_id = 1 là superadmin
-        .where('status', 'approved')
-        .first()
-      if (!isSuperAdmin) {
-        return response.status(403).json({
-          success: false,
-          message: 'Bạn không có quyền truy cập thông tin này.',
-        })
-      }
-      // Đếm số lượng người dùng có trạng thái chờ phê duyệt (pending) trong tổ chức hiện tại
+
+      // Count pending users
       const result = await db
         .from('users as u')
         .join('organization_users as ou', 'u.id', 'ou.user_id')
@@ -333,6 +373,7 @@ export default class UsersController {
         .whereNull('u.deleted_at')
         .count('u.id as count')
         .first()
+
       return response.json({
         success: true,
         count: result?.count || 0,
@@ -344,5 +385,243 @@ export default class UsersController {
         error: error instanceof Error ? error.message : String(error),
       })
     }
+  }
+
+  /**
+   * Approve a pending user in organization
+   * Route: PUT /users/:id/approve
+   * Permission: Superadmin only
+   */
+  async approve(ctx: HttpContext) {
+    const { params, response, auth } = ctx
+
+    try {
+      // Manual instantiation
+      const approveUserCommand = new ApproveUserCommand(ctx)
+
+      const organizationId = auth.user?.current_organization_id
+      if (!organizationId) {
+        return response.status(400).json({
+          success: false,
+          message: 'Không tìm thấy thông tin tổ chức hiện tại',
+        })
+      }
+
+      // Build DTO
+      const dto = new ApproveUserDTO(
+        Number(params.id), // userId
+        organizationId,
+        auth.user!.id // approverId
+      )
+
+      // Execute Command
+      await approveUserCommand.handle(dto)
+
+      return response.json({
+        success: true,
+        message: 'Người dùng đã được phê duyệt thành công',
+      })
+    } catch (error) {
+      return response.status(403).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi phê duyệt người dùng',
+      })
+    }
+  }
+
+  /**
+   * Change user role in organization
+   * Route: PUT /users/:id/role
+   * Permission: Superadmin only (checked by stored procedure)
+   */
+  async updateRole(ctx: HttpContext) {
+    const { params, request, response, auth, session, i18n } = ctx
+
+    try {
+      // Manual instantiation
+      const changeUserRoleCommand = new ChangeUserRoleCommand(ctx)
+
+      // Build DTO
+      const dto = new ChangeUserRoleDTO(
+        Number(params.id), // targetUserId
+        Number(request.input('role_id')), // newRoleId
+        auth.user!.id // changerId
+      )
+
+      // Execute Command (uses stored procedure with permission checks)
+      await changeUserRoleCommand.handle(dto)
+
+      session.flash('success', i18n.t('messages.user_role_updated_successfully'))
+      return response.redirect().back()
+    } catch (error) {
+      session.flash(
+        'error',
+        error instanceof Error ? error.message : 'Chỉ superadmin mới có thể thay đổi vai trò'
+      )
+      return response.redirect().back()
+    }
+  }
+
+  // ===========================
+  // Private Helper Methods (DTO Builders)
+  // ===========================
+
+  /**
+   * Build GetUsersListDTO from request for index page
+   */
+  private buildGetUsersListDTO(
+    request: HttpContext['request'],
+    auth: HttpContext['auth']
+  ): GetUsersListDTO {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 10)
+    const pagination = new PaginationDTO(page, limit)
+
+    const organizationId = auth.user?.current_organization_id || 0
+
+    const filters = new UserFiltersDTO(
+      request.input('search'),
+      request.input('role_id'),
+      request.input('status_id'),
+      2, // exclude_status_id: Don't show inactive users (status_id = 2)
+      'approved' // organization_user_status: Only show approved members
+    )
+
+    return new GetUsersListDTO(pagination, organizationId, filters)
+  }
+
+  /**
+   * Build GetUsersListDTO for system users (not in organization)
+   */
+  private buildSystemUsersListDTO(
+    request: HttpContext['request'],
+    auth: HttpContext['auth']
+  ): GetUsersListDTO {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 10)
+    const pagination = new PaginationDTO(page, limit)
+
+    const organizationId = auth.user?.current_organization_id || 0
+
+    const filters = new UserFiltersDTO(
+      request.input('search', ''),
+      undefined, // role_id
+      undefined, // status_id
+      undefined, // exclude_status_id
+      undefined, // organization_user_status
+      true // exclude_organization_members: Only show users NOT in organization
+    )
+
+    return new GetUsersListDTO(pagination, organizationId, filters)
+  }
+
+  /**
+   * Build GetUsersListDTO for pending users
+   */
+  private buildPendingUsersListDTO(
+    request: HttpContext['request'],
+    auth: HttpContext['auth']
+  ): GetUsersListDTO {
+    const page = request.input('page', 1)
+    const limit = request.input('limit', 10)
+    const pagination = new PaginationDTO(page, limit)
+
+    const organizationId = auth.user?.current_organization_id || 0
+
+    const filters = new UserFiltersDTO(
+      request.input('search'),
+      undefined, // role_id
+      undefined, // status_id
+      undefined, // exclude_status_id
+      'pending' // organization_user_status: Only pending users
+    )
+
+    return new GetUsersListDTO(pagination, organizationId, filters)
+  }
+
+  /**
+   * Build RegisterUserDTO from request
+   */
+  private buildRegisterUserDTO(request: HttpContext['request']): RegisterUserDTO {
+    return new RegisterUserDTO(
+      request.input('first_name'),
+      request.input('last_name'),
+      request.input('username'),
+      request.input('email'),
+      request.input('password'),
+      Number(request.input('role_id')),
+      Number(request.input('status_id')),
+      request.input('phone_number'),
+      request.input('bio'),
+      request.input('date_of_birth'),
+      request.input('language')
+    )
+  }
+
+  /**
+   * Build UpdateUserProfileDTO from request
+   *
+   * Note: Only includes profile fields, not admin fields (role, status, credentials).
+   * For changing role/status, use separate Commands in the future.
+   */
+  private buildUpdateUserProfileDTO(
+    userId: number,
+    request: HttpContext['request']
+  ): UpdateUserProfileDTO {
+    return new UpdateUserProfileDTO(
+      userId,
+      request.input('first_name'),
+      request.input('last_name'),
+      request.input('phone_number'),
+      request.input('bio'),
+      request.input('date_of_birth'),
+      request.input('language')
+    )
+  }
+
+  /**
+   * Check if user is superadmin of current organization
+   * Returns false and sends response if not authorized
+   */
+  private async checkSuperAdminPermission(
+    auth: HttpContext['auth'],
+    response: HttpContext['response']
+  ): Promise<boolean> {
+    const user = auth.user
+    if (!user) {
+      response.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      })
+      return false
+    }
+
+    const organizationId = user.current_organization_id
+    if (!organizationId) {
+      response.status(400).json({
+        success: false,
+        message: 'Không tìm thấy tổ chức hiện tại',
+      })
+      return false
+    }
+
+    // Check if user is superadmin (role_id = 1) in current organization
+    const isSuperAdmin = await db
+      .from('organization_users')
+      .where('organization_id', organizationId)
+      .where('user_id', user.id)
+      .where('role_id', 1)
+      .where('status', 'approved')
+      .first()
+
+    if (!isSuperAdmin) {
+      response.status(403).json({
+        success: false,
+        message: 'Bạn không có quyền truy cập tài nguyên này',
+      })
+      return false
+    }
+
+    return true
   }
 }

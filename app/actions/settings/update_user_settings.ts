@@ -1,4 +1,3 @@
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import UserSetting from '#models/user_setting'
 import AuditLog from '#models/audit_log'
@@ -14,7 +13,6 @@ type SettingsData = {
   custom_scrollbars?: boolean
 }
 
-@inject()
 export default class UpdateUserSettings {
   constructor(protected ctx: HttpContext) {}
 

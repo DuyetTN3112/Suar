@@ -1,8 +1,13 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import SendMessage from '#actions/conversations/send_message'
-import MarkMessagesAsRead from '#actions/conversations/mark_messages_as_read'
-import RecallMessage from '#actions/conversations/recall_message'
+import SendMessageCommand from '#actions/conversations/commands/send_message_command'
+import {
+  MarkAsReadCommand,
+  MarkMessagesAsReadCommand,
+} from '#actions/conversations/commands/mark_as_read_command'
+import RecallMessageCommand from '#actions/conversations/commands/recall_message_command'
+import { SendMessageDTO } from '#actions/conversations/dtos/send_message_dto'
+import { RecallMessageDTO } from '#actions/conversations/dtos/recall_message_dto'
+import { MarkAsReadDTO, MarkMessagesAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
 
 /**
  * Controller xử lý các thao tác với tin nhắn
@@ -11,20 +16,20 @@ export default class ConversationsMessageController {
   /**
    * Gửi tin nhắn trong cuộc trò chuyện
    */
-  @inject()
-  async sendMessage({ params, request, response, session }: HttpContext, sendMessage: SendMessage) {
+  async sendMessage(ctx: HttpContext) {
+    const { params, request, response, session } = ctx
     try {
-      const data = {
-        conversation_id: params.id,
-        message: request.input('message'),
-      }
+      const conversationId = Number.parseInt(params.id)
+      const message = request.input('message')
 
-      await sendMessage.handle({ data })
+      const dto = new SendMessageDTO(conversationId, message)
+
+      const sendMessageCommand = new SendMessageCommand(ctx)
+      await sendMessageCommand.execute(dto)
       return response.redirect().back()
     } catch (error) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn:', error)
-      
       session.flash('error', error.message || 'Có lỗi xảy ra khi gửi tin nhắn')
       return response.redirect().back()
     }
@@ -33,23 +38,23 @@ export default class ConversationsMessageController {
   /**
    * API để gửi tin nhắn
    */
-  @inject()
-  async apiSendMessage({ params, request, response }: HttpContext, sendMessage: SendMessage) {
+  async apiSendMessage(ctx: HttpContext) {
+    const { params, request, response } = ctx
     try {
-      const data = {
-        conversation_id: params.id,
-        message: request.input('message'),
-      }
+      const conversationId = Number.parseInt(params.id)
+      const message = request.input('message')
 
-      const message = await sendMessage.handle({ data })
+      const dto = new SendMessageDTO(conversationId, message)
+
+      const sendMessageCommand = new SendMessageCommand(ctx)
+      const createdMessage = await sendMessageCommand.execute(dto)
       return response.json({
         success: true,
-        message,
+        message: createdMessage,
       })
     } catch (error) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn (API):', error)
-      
       return response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi gửi tin nhắn',
@@ -60,12 +65,16 @@ export default class ConversationsMessageController {
   /**
    * Đánh dấu tin nhắn đã đọc
    */
-  @inject()
-  async markAsRead({ params, response }: HttpContext, markMessagesAsRead: MarkMessagesAsRead) {
+  async markAsRead(ctx: HttpContext) {
+    const { params, response } = ctx
     try {
-      const isSuccess = await markMessagesAsRead.handle(params.id)
+      const conversationId = Number.parseInt(params.id)
+      const dto = new MarkAsReadDTO(conversationId)
+
+      const markAsReadCommand = new MarkAsReadCommand(ctx)
+      await markAsReadCommand.execute(dto)
       return response.json({
-        success: isSuccess,
+        success: true,
       })
     } catch (error) {
       return response.status(500).json({
@@ -78,14 +87,11 @@ export default class ConversationsMessageController {
   /**
    * Thu hồi tin nhắn (xóa mềm hoặc xóa cứng)
    */
-  @inject()
-  async recallMessage(
-    { params, request, response, auth }: HttpContext,
-    recallMessage: RecallMessage
-  ) {
+  async recallMessage(ctx: HttpContext) {
+    const { params, request, response, auth } = ctx
     try {
-      const messageId = params.messageId
-      const scope = request.input('scope', 'all') // 'all' hoặc 'self'
+      const messageId = Number.parseInt(params.messageId)
+      const scope = request.input('scope', 'all') as 'self' | 'all'
 
       // Kiểm tra xác thực người dùng
       if (!(await auth.check())) {
@@ -95,14 +101,10 @@ export default class ConversationsMessageController {
         })
       }
 
-      const user = auth.user!
+      const dto = new RecallMessageDTO(messageId, scope)
 
-      // Thực hiện thu hồi tin nhắn
-      await recallMessage.handle({
-        messageId: parseInt(messageId),
-        userId: user.id,
-        scope: scope as 'self' | 'all',
-      })
+      const recallMessageCommand = new RecallMessageCommand(ctx)
+      await recallMessageCommand.execute(dto)
 
       return response.json({
         success: true,

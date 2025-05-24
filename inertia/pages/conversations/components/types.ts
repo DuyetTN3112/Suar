@@ -1,9 +1,8 @@
 export interface Participant {
-  id: string
-  full_name: string
-  avatar?: string
-  email: string
-  description?: string
+  user_id: number
+  user_name: string
+  user_avatar?: string
+  user_email: string
 }
 
 export interface ConversationParticipant {

@@ -39,48 +39,48 @@ type TasksWrapperProps = {
   onViewTaskDetail?: (task: Task) => void
 }
 
-export function TasksWrapper({ 
-  tasks, 
-  filters, 
-  activeTab, 
-  completedStatusId, 
-  pendingStatusId, 
-  onToggleStatus, 
+export function TasksWrapper({
+  tasks,
+  filters,
+  activeTab,
+  completedStatusId,
+  pendingStatusId,
+  onToggleStatus,
   formatDate,
   onViewTaskDetail
 }: TasksWrapperProps) {
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  
+
   // Sử dụng custom hooks đã tạo
-  const { 
-    selectedTasks, 
-    handleSelectAll, 
-    handleSelectTask, 
-    isTaskSelected, 
-    isAllSelected 
+  const {
+    selectedTasks,
+    handleSelectAll,
+    handleSelectTask,
+    isTaskSelected,
+    isAllSelected
   } = useTaskSelection();
-  
-  const { 
-    expandedTasks, 
-    toggleExpandTask, 
-    isTaskExpanded 
+
+  const {
+    expandedTasks,
+    toggleExpandTask,
+    isTaskExpanded
   } = useTaskExpansion();
-  
+
   const { showTasksWithChildren } = useTaskFiltering();
-  
+
   // Lấy thông tin người dùng hiện tại
   const currentUserInfo = getCurrentUserInfo();
-  
+
   // Sử dụng hook modal
   const { handleDetailClick } = useTaskModals();
-  
+
   // Xử lý thay đổi số dòng mỗi trang
   const handleRowsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newRowsPerPage = parseInt(e.target.value);
     setRowsPerPage(newRowsPerPage);
-    
-    router.get('/tasks', { 
-      ...filters, 
+
+    router.get('/tasks', {
+      ...filters,
       per_page: newRowsPerPage,
       page: 1
     }, {
@@ -88,9 +88,12 @@ export function TasksWrapper({
     });
   };
 
+  // ✅ Guard clause - Ensure tasks.data is always an array
+  const safeTasksData = tasks?.data || []
+
   // Lấy danh sách tasks để hiển thị (chỉ cha hoặc cả cha và con)
-  const tasksToShow = showTasksWithChildren(tasks.data, filters.parent_task_id);
-  
+  const tasksToShow = showTasksWithChildren(safeTasksData, filters.parent_task_id);
+
   // Xử lý khi click vào task để xem chi tiết
   const handleTaskClick = (task: Task) => {
     if (onViewTaskDetail) {
@@ -105,7 +108,7 @@ export function TasksWrapper({
     <div className="bg-background rounded-md border shadow-sm">
       <div className="p-0">
         <div className="rounded-md border">
-          <TaskList 
+          <TaskList
             tasks={tasksToShow}
             selectedTasks={selectedTasks}
             expandedTasks={expandedTasks}
@@ -121,8 +124,8 @@ export function TasksWrapper({
             onToggleStatus={onToggleStatus}
             onTaskClick={handleTaskClick}
           />
-          
-          <TaskListPagination 
+
+          <TaskListPagination
             meta={tasks.meta}
             rowsPerPage={rowsPerPage}
             onRowsPerPageChange={handleRowsPerPageChange}
@@ -132,4 +135,4 @@ export function TasksWrapper({
       </div>
     </div>
   )
-} 
+}

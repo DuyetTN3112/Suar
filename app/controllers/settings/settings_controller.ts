@@ -1,28 +1,33 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserSettings from '#actions/settings/get_user_settings'
 import UpdateUserSettings from '#actions/settings/update_user_settings'
 
 export default class SettingsController {
-  @inject()
-  async show({ inertia }: HttpContext, getUserSettings: GetUserSettings) {
+  async show(ctx: HttpContext) {
+    const { inertia } = ctx
+
+    // Manual instantiation
+    const getUserSettings = new GetUserSettings(ctx)
+
     const settings = await getUserSettings.handle()
     return inertia.render('settings/index', { settings })
   }
 
-  @inject()
-  async update(
-    { request, response, session }: HttpContext,
-    updateUserSettings: UpdateUserSettings
-  ) {
+  async update(ctx: HttpContext) {
+    const { request, response, session } = ctx
+
+    // Manual instantiation
+    const updateUserSettings = new UpdateUserSettings(ctx)
+
     const data = request.only(['theme', 'notifications_enabled', 'display_mode'])
     await updateUserSettings.handle({ data })
     session.flash('success', 'Cài đặt đã được cập nhật thành công')
     return response.redirect().back()
   }
 
-  @inject()
-  async updateProfile({ request, response, auth, session }: HttpContext) {
+  async updateProfile(ctx: HttpContext) {
+    const { request, response, auth, session } = ctx
+
     try {
       const user = auth.user!
       const data = request.only(['first_name', 'last_name', 'phone_number', 'address'])
@@ -35,8 +40,9 @@ export default class SettingsController {
     }
   }
 
-  @inject()
-  async updateAccount({ request, response, auth, session }: HttpContext) {
+  async updateAccount(ctx: HttpContext) {
+    const { request, response, auth, session } = ctx
+
     try {
       const user = auth.user!
       const data = request.only(['email', 'current_password', 'password', 'password_confirmation'])
@@ -63,11 +69,12 @@ export default class SettingsController {
     }
   }
 
-  @inject()
-  async updateAppearance(
-    { request, response, auth, session }: HttpContext,
-    updateUserSettings: UpdateUserSettings
-  ) {
+  async updateAppearance(ctx: HttpContext) {
+    const { request, response, session } = ctx
+
+    // Manual instantiation
+    const updateUserSettings = new UpdateUserSettings(ctx)
+
     try {
       const data = request.only(['theme', 'font'])
       await updateUserSettings.handle({ data })
@@ -79,11 +86,12 @@ export default class SettingsController {
     }
   }
 
-  @inject()
-  async updateDisplay(
-    { request, response, auth, session }: HttpContext,
-    updateUserSettings: UpdateUserSettings
-  ) {
+  async updateDisplay(ctx: HttpContext) {
+    const { request, response, session } = ctx
+
+    // Manual instantiation
+    const updateUserSettings = new UpdateUserSettings(ctx)
+
     try {
       const data = request.only(['layout', 'density', 'animations_enabled', 'custom_scrollbars'])
       await updateUserSettings.handle({ data })
@@ -95,11 +103,12 @@ export default class SettingsController {
     }
   }
 
-  @inject()
-  async updateNotifications(
-    { request, response, session }: HttpContext,
-    updateUserSettings: UpdateUserSettings
-  ) {
+  async updateNotifications(ctx: HttpContext) {
+    const { request, response, session } = ctx
+
+    // Manual instantiation
+    const updateUserSettings = new UpdateUserSettings(ctx)
+
     try {
       const data = {
         notifications_enabled: request.input('emailNotifications', false),

@@ -1,56 +1,64 @@
-import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import CreateProject from '#actions/projects/create_project'
-import DeleteProject from '#actions/projects/delete_project'
-import AddProjectMember from '#actions/projects/add_project_member'
-import Project from '#models/project'
+import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+
+// Commands
+import {
+  CreateProjectCommand,
+  DeleteProjectCommand,
+  AddProjectMemberCommand,
+} from '#actions/projects/commands/index'
+
+// Queries
+import {
+  GetProjectsListQuery,
+  GetProjectDetailQuery,
+  type GetProjectsListDTO,
+} from '#actions/projects/queries/index'
+
+// DTOs
+import {
+  CreateProjectDTO,
+  DeleteProjectDTO,
+  AddProjectMemberDTO,
+} from '#actions/projects/dtos/index'
 
 /**
  * Controller xử lý các chức năng liên quan đến dự án
+ * Refactored to follow CQRS pattern with thin controller approach
  */
 export default class ProjectsController {
   /**
    * Liệt kê danh sách dự án
    */
-  async index({ inertia, auth, session, request }: HttpContext) {
-    const user = auth.user!
-    // Kiểm tra xem có flag show_organization_required_modal trong session không
-    const showOrganizationRequiredModal = session.has('show_organization_required_modal')
-    // Sử dụng view để lấy danh sách dự án
-    const projects = await db
-      .query()
-      .from('projects as p')
-      .select(
-        'p.id',
-        'p.name',
-        'p.description',
-        'p.organization_id',
-        'p.start_date',
-        'p.end_date',
-        'ps.name as status',
-        'o.name as organization_name',
-        'u1.full_name as creator_name',
-        'u2.full_name as manager_name'
-      )
-      .leftJoin('project_status as ps', 'p.status_id', 'ps.id')
-      .leftJoin('organizations as o', 'p.organization_id', 'o.id')
-      .leftJoin('users as u1', 'p.creator_id', 'u1.id')
-      .leftJoin('users as u2', 'p.manager_id', 'u2.id')
-      .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
-      .where((query) => {
-        query
-          .where('p.creator_id', user.id)
-          .orWhere('p.manager_id', user.id)
-          .orWhere('pm.user_id', user.id)
+  async index(ctx: HttpContext) {
+    const { inertia, session, request } = ctx
+    try {
+      // Build query DTO from request
+      const dto = this.buildListDTO(request)
+
+      // Execute query
+      const query = new GetProjectsListQuery(ctx)
+      const result = await query.handle(dto)
+
+      // Check for organization modal flag
+      const showOrganizationRequiredModal = session.has('show_organization_required_modal')
+
+      return inertia.render('projects/index', {
+        projects: result.data,
+        pagination: result.pagination,
+        filters: result.filters,
+        stats: result.stats,
+        showOrganizationRequiredModal,
       })
-      .whereNull('p.deleted_at')
-      .groupBy('p.id')
-      .orderBy('p.created_at', 'desc')
-    return inertia.render('projects/index', {
-      projects,
-      showOrganizationRequiredModal,
-    })
+    } catch (error) {
+      session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách dự án')
+      return inertia.render('projects/index', {
+        projects: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        stats: { total_projects: 0, active_projects: 0, completed_projects: 0 },
+      })
+    }
   }
 
   /**
@@ -79,19 +87,16 @@ export default class ProjectsController {
   /**
    * Lưu dự án mới vào database
    */
-  @inject()
-  async store({ request, response, session }: HttpContext, createProject: CreateProject) {
+  async store(ctx: HttpContext) {
+    const { request, response, session } = ctx
     try {
-      const data = {
-        name: request.input('name'),
-        description: request.input('description'),
-        organization_id: request.input('organization_id'),
-        status_id: request.input('status_id'),
-        start_date: request.input('start_date'),
-        end_date: request.input('end_date'),
-        manager_id: request.input('manager_id'),
-      }
-      const project = await createProject.handle({ data })
+      // Build DTO from request
+      const dto = this.buildCreateDTO(request)
+
+      // Execute command
+      const command = new CreateProjectCommand(ctx)
+      const project = await command.handle(dto)
+
       session.flash('success', 'Dự án đã được tạo thành công')
       return response.redirect().toRoute('projects.show', { id: project.id })
     } catch (error) {
@@ -103,68 +108,16 @@ export default class ProjectsController {
   /**
    * Hiển thị chi tiết dự án
    */
-  async show({ params, inertia, auth, response, session }: HttpContext) {
-    const user = auth.user!
+  async show(ctx: HttpContext) {
+    const { params, inertia, response, session } = ctx
     try {
-      // Lấy thông tin chi tiết dự án
-      const project = await Project.query()
-        .where('id', params.id)
-        .whereNull('deleted_at')
-        .firstOrFail()
-      // Kiểm tra quyền truy cập
-      const isMember = await db
-        .query()
-        .from('project_members')
-        .where('project_id', project.id)
-        .where('user_id', user.id)
-        .first()
-      const isCreator = project.creator_id === user.id
-      const isManager = project.manager_id === user.id
-      if (!isMember && !isCreator && !isManager) {
-        session.flash('error', 'Bạn không có quyền truy cập dự án này')
-        return response.redirect().toRoute('projects.index')
-      }
-      // Lấy danh sách thành viên dự án
-      const members = await db
-        .query()
-        .from('project_members as pm')
-        .select('u.id', 'u.full_name', 'u.email', 'pm.role', 'ud.avatar_url')
-        .leftJoin('users as u', 'pm.user_id', 'u.id')
-        .leftJoin('user_details as ud', 'u.id', 'ud.user_id')
-        .where('pm.project_id', project.id)
-      // Lấy danh sách công việc của dự án
-      const tasks = await db
-        .query()
-        .from('tasks as t')
-        .select(
-          't.id',
-          't.title',
-          't.description',
-          'ts.name as status',
-          'tl.name as label',
-          'tp.name as priority',
-          'u.full_name as assignee_name',
-          't.due_date'
-        )
-        .leftJoin('task_status as ts', 't.status_id', 'ts.id')
-        .leftJoin('task_labels as tl', 't.label_id', 'tl.id')
-        .leftJoin('task_priorities as tp', 't.priority_id', 'tp.id')
-        .leftJoin('users as u', 't.assigned_to', 'u.id')
-        .where('t.project_id', project.id)
-        .whereNull('t.deleted_at')
-        .orderBy('t.due_date', 'asc')
-      return inertia.render('projects/show', {
-        project: project.toJSON(),
-        members,
-        tasks,
-        permissions: {
-          isCreator,
-          isManager,
-          isMember: !!isMember,
-        },
-      })
+      // Execute query
+      const query = new GetProjectDetailQuery(ctx)
+      const result = await query.handle(params.id)
+
+      return inertia.render('projects/show', result)
     } catch (error) {
-      session.flash('error', 'Không thể tìm thấy dự án')
+      session.flash('error', error.message || 'Không thể tìm thấy dự án')
       return response.redirect().toRoute('projects.index')
     }
   }
@@ -172,10 +125,18 @@ export default class ProjectsController {
   /**
    * Xóa dự án
    */
-  @inject()
-  async destroy({ params, response, session }: HttpContext, deleteProject: DeleteProject) {
+  async destroy(ctx: HttpContext) {
+    const { params, response, session } = ctx
     try {
-      await deleteProject.handle(params.id)
+      // Build DTO
+      const dto = new DeleteProjectDTO({
+        project_id: params.id,
+      })
+
+      // Execute command
+      const command = new DeleteProjectCommand(ctx)
+      await command.handle(dto)
+
       session.flash('success', 'Dự án đã được xóa thành công')
       return response.redirect().toRoute('projects.index')
     } catch (error) {
@@ -187,19 +148,62 @@ export default class ProjectsController {
   /**
    * Thêm thành viên vào dự án
    */
-  @inject()
-  async addMember({ request, response, session }: HttpContext, addProjectMember: AddProjectMember) {
+  async addMember(ctx: HttpContext) {
+    const { request, response, session } = ctx
     try {
-      const data = {
+      // Build DTO
+      const dto = new AddProjectMemberDTO({
         project_id: request.input('project_id'),
         user_id: request.input('user_id'),
-      }
-      await addProjectMember.handle({ data })
+        role: request.input('role'),
+      })
+
+      // Execute command
+      const command = new AddProjectMemberCommand(ctx)
+      await command.handle(dto)
+
       session.flash('success', 'Đã thêm thành viên vào dự án thành công')
       return response.redirect().back()
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi thêm thành viên')
       return response.redirect().back()
     }
+  }
+
+  /**
+   * Helper: Build GetProjectsListDTO from request
+   */
+  private buildListDTO(request: any): GetProjectsListDTO {
+    return {
+      page: request.input('page', 1),
+      limit: request.input('limit', 20),
+      organization_id: request.input('organization_id'),
+      status_id: request.input('status_id'),
+      creator_id: request.input('creator_id'),
+      manager_id: request.input('manager_id'),
+      visibility: request.input('visibility'),
+      search: request.input('search'),
+      sort_by: request.input('sort_by', 'created_at'),
+      sort_order: request.input('sort_order', 'desc'),
+    }
+  }
+
+  /**
+   * Helper: Build CreateProjectDTO from request
+   */
+  private buildCreateDTO(request: any): CreateProjectDTO {
+    return new CreateProjectDTO({
+      name: request.input('name'),
+      description: request.input('description'),
+      organization_id: request.input('organization_id'),
+      status_id: request.input('status_id'),
+      start_date: request.input('start_date')
+        ? DateTime.fromISO(request.input('start_date'))
+        : null,
+      end_date: request.input('end_date') ? DateTime.fromISO(request.input('end_date')) : null,
+      manager_id: request.input('manager_id'),
+      visibility: request.input('visibility'),
+      budget: request.input('budget'),
+    })
   }
 }

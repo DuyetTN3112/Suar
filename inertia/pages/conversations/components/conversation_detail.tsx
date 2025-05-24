@@ -139,7 +139,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
 
                     // Xác định xem có hiển thị thông tin người gửi hay không
                     // Luôn hiển thị cho tin nhắn từ người khác trong cuộc trò chuyện nhiều người
-                    const showSenderInfo = !isOutgoing && (conversation.conversation_participants.length > 2)
+                    const participants = conversation.conversation_participants || []
+                    const showSenderInfo = !isOutgoing && (participants.length > 2)
 
                     return (
                       <div key={message.id} className={`flex ${isOutgoing ? 'justify-end' : 'justify-start'} mb-4`}>
@@ -244,7 +245,8 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                   } catch (error) {
                     // Only log in development
                     if (process.env.NODE_ENV === 'development') {
-                      console.error('Lỗi rendering tin nhắn')
+                      console.error('Lỗi rendering tin nhắn:', error)
+                      console.error('Message data:', message)
                     }
                     return null // Bỏ qua tin nhắn gây lỗi khi render
                   }

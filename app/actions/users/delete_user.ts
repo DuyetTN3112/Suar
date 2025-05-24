@@ -1,10 +1,8 @@
 import User from '#models/user'
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import db from '@adonisjs/lucid/services/db'
 
-@inject()
 export default class DeleteUser {
   constructor(protected ctx: HttpContext) {}
 

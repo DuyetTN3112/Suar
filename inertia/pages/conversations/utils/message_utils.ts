@@ -8,13 +8,11 @@ import { Message, MessageGroup, Conversation, ConversationParticipant } from '..
 export const formatDate = (dateString: string): string => {
   try {
     if (!dateString) {
-      console.warn('formatDate: Chuỗi thời gian rỗng')
       return 'Không xác định'
     }
     const date = new Date(dateString)
     // Kiểm tra xem date có hợp lệ không
     if (Number.isNaN(date.getTime())) {
-      console.warn('formatDate: Chuỗi thời gian không hợp lệ:', dateString)
       return 'Không xác định'
     }
     return formatDistance(date, new Date(), {
@@ -33,13 +31,11 @@ export const formatDate = (dateString: string): string => {
 export const formatMessageDate = (dateString: string): string => {
   try {
     if (!dateString) {
-      console.warn('formatMessageDate: Chuỗi thời gian rỗng')
       return 'Không xác định'
     }
     const date = new Date(dateString)
     // Kiểm tra xem date có hợp lệ không
     if (Number.isNaN(date.getTime())) {
-      console.warn('formatMessageDate: Chuỗi thời gian không hợp lệ:', dateString)
       return 'Không xác định'
     }
 
@@ -67,7 +63,6 @@ export const groupMessagesByDate = (msgs: Message[] | undefined): MessageGroup[]
   msgs.forEach((message) => {
     try {
       if (!message.timestamp) {
-        console.warn('Tin nhắn không có timestamp:', message)
         return // Bỏ qua tin nhắn không có timestamp
       }
       // Chuyển đổi sang giờ địa phương Việt Nam (+7)
@@ -76,7 +71,6 @@ export const groupMessagesByDate = (msgs: Message[] | undefined): MessageGroup[]
       localDate.setHours(localDate.getHours() + 7)
       // Kiểm tra xem date có hợp lệ không
       if (Number.isNaN(localDate.getTime())) {
-        console.warn('Timestamp không hợp lệ:', message.timestamp)
         return // Bỏ qua timestamp không hợp lệ
       }
       const dateKey = format(localDate, 'dd/MM/yyyy')

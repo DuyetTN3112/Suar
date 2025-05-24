@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react'
+import { Link, usePage, router } from '@inertiajs/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -98,14 +98,16 @@ export function ProfileDropdown() {
           <DropdownMenuItem>Nhóm mới</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem>
-          <form action="/logout" method="POST" className="w-full">
-            <input type="hidden" name="_csrf" value={csrfToken || ''} />
-            <button type="submit" className="w-full text-left flex items-center cursor-pointer">
-              Đăng xuất
-              <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-            </button>
-          </form>
+        <DropdownMenuItem
+          onClick={(e) => {
+            e.preventDefault()
+            router.post('/logout', {}, {
+              onError: (errors) => console.error('[ProfileDropdown] Logout error:', errors),
+            })
+          }}
+        >
+          Đăng xuất
+          <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -8,13 +8,11 @@ import { Conversation, Message, MessageGroup } from '../types'
 export const formatDate = (dateString: string, locale: string = 'vi') => {
   try {
     if (!dateString) {
-      console.warn('formatDate: Chuỗi thời gian rỗng')
       return locale === 'vi' ? 'Không xác định' : 'Unknown'
     }
     const date = new Date(dateString)
     // Kiểm tra xem date có hợp lệ không
     if (Number.isNaN(date.getTime())) {
-      console.warn('formatDate: Chuỗi thời gian không hợp lệ:', dateString)
       return locale === 'vi' ? 'Không xác định' : 'Unknown'
     }
     // Chọn ngôn ngữ phù hợp với locale hiện tại
@@ -35,13 +33,11 @@ export const formatDate = (dateString: string, locale: string = 'vi') => {
 export const formatMessageDate = (dateString: string) => {
   try {
     if (!dateString) {
-      console.warn('formatMessageDate: Chuỗi thời gian rỗng')
       return 'Không xác định'
     }
     const date = new Date(dateString)
     // Kiểm tra xem date có hợp lệ không
     if (Number.isNaN(date.getTime())) {
-      console.warn('formatMessageDate: Chuỗi thời gian không hợp lệ:', dateString)
       return 'Không xác định'
     }
     return format(date, 'HH:mm')
@@ -63,13 +59,11 @@ export const groupMessagesByDate = (msgs: Message[] | undefined) => {
     try {
       const dateField = message.created_at || message.timestamp
       if (!dateField) {
-        console.warn('Tin nhắn không có created_at hoặc timestamp:', message)
         return // Bỏ qua tin nhắn không có thời gian
       }
       const date = new Date(dateField)
       // Kiểm tra xem date có hợp lệ không
       if (Number.isNaN(date.getTime())) {
-        console.warn('Thời gian không hợp lệ:', dateField)
         return // Bỏ qua timestamp không hợp lệ
       }
       const dateKey = format(date, 'dd/MM/yyyy')
@@ -95,7 +89,8 @@ export const getConversationName = (conversation: Conversation) => {
   if (conversation.title) return conversation.title
 
   // Nếu không có title, lấy tên người tham gia
-  return conversation.conversation_participants
+  const participants = conversation.conversation_participants || []
+  return participants
     .map((cp) => cp.user.full_name)
     .filter((name) => name)
     .join(', ')
@@ -120,11 +115,12 @@ export const getAvatarInitials = (name: string | undefined) => {
 export const getOtherParticipant = (conversation: Conversation | null, currentUserId: string) => {
   // Tìm người tham gia khác trong cuộc trò chuyện 1-1
   if (!conversation) return null
+
+  const participants = conversation.conversation_participants || []
+
   // Nếu là cuộc trò chuyện 1-1
-  if (conversation.conversation_participants.length === 2) {
-    const otherParticipant = conversation.conversation_participants.find(
-      (cp) => cp.user && cp.user.id !== currentUserId
-    )
+  if (participants.length === 2) {
+    const otherParticipant = participants.find((cp) => cp.user && cp.user.id !== currentUserId)
     if (otherParticipant && otherParticipant.user) {
       return otherParticipant.user
     }
@@ -138,8 +134,11 @@ export const getOtherParticipant = (conversation: Conversation | null, currentUs
  */
 export const getOtherParticipants = (conversation: Conversation | null, currentUserId: string) => {
   if (!conversation) return []
+
+  const participants = conversation.conversation_participants || []
+
   // Lọc ra những người tham gia khác ngoài người dùng hiện tại
-  return conversation.conversation_participants
+  return participants
     .filter((cp) => cp.user && cp.user.id !== currentUserId)
     .map((cp) => cp.user)
 }
@@ -153,15 +152,19 @@ export const getConversationInfo = (
   t: Function
 ) => {
   if (!conversation) return { title: '', participantCount: 0 }
+
+  // Kiểm tra conversation_participants có tồn tại
+  const participants = conversation.conversation_participants || []
+
   // Nếu là cuộc trò chuyện có tiêu đề
   if (conversation.title) {
     return {
       title: conversation.title,
-      participantCount: conversation.conversation_participants.length,
+      participantCount: participants.length,
     }
   }
   // Nếu là cuộc trò chuyện 1-1
-  if (conversation.conversation_participants.length === 2) {
+  if (participants.length === 2) {
     const otherUser = getOtherParticipant(conversation, currentUserId)
     return {
       title:
@@ -170,16 +173,16 @@ export const getConversationInfo = (
     }
   }
   // Nếu là cuộc trò chuyện nhóm không có tiêu đề
-  const participants = getOtherParticipants(conversation, currentUserId)
-  const participantNames = participants
+  const otherUsers = getOtherParticipants(conversation, currentUserId)
+  const participantNames = otherUsers
     .slice(0, 3)
     .map((p) => p.full_name)
     .join(', ')
 
-  const remainingCount = participants.length - 3
+  const remainingCount = otherUsers.length - 3
   const title =
     remainingCount > 0 ? `${participantNames} và ${remainingCount} người khác` : participantNames
-  return { title, participantCount: participants.length + 1 } // +1 cho người dùng hiện tại
+  return { title, participantCount: otherUsers.length + 1 } // +1 cho người dùng hiện tại
 }
 
 /**
@@ -189,14 +192,14 @@ export const getConversationInfo = (
  */
 export function calculateMessageSize(message: string): string {
   // Mỗi ký tự trong chuỗi JS = 2 bytes (UTF-16)
-  const bytes = message.length * 2;
-  
+  const bytes = message.length * 2
+
   // Chuyển đổi bytes thành định dạng dễ đọc
   if (bytes < 1024) {
-    return `${bytes} B`;
+    return `${bytes} B`
   } else if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024).toFixed(1)} KB`
   } else {
-    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
   }
 }

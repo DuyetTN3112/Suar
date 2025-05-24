@@ -43,15 +43,9 @@ export default class NotificationsController {
         limit,
         unread_only: false, // Hiển thị tất cả thông báo, không chỉ thông báo chưa đọc
       })
-      
-      // Log dữ liệu để debug
-      console.log('Notifications data:', result.notifications.toJSON())
-      
+
       // Xử lý dữ liệu notification để đảm bảo định dạng ngày tháng hợp lệ
       const notificationsData = result.notifications.toJSON().data.map((notification: any) => {
-        // Log từng notification để debug
-        console.log('Individual notification:', notification)
-        
         return {
           id: notification.id,
           user_id: notification.user_id,
@@ -62,18 +56,24 @@ export default class NotificationsController {
           related_entity_type: notification.related_entity_type,
           related_entity_id: notification.related_entity_id,
           metadata: notification.metadata,
-          created_at: notification.created_at ? 
-            (typeof notification.created_at === 'string' ? notification.created_at : notification.created_at.toISO()) : 
-            new Date().toISOString(),
-          updated_at: notification.updated_at ? 
-            (typeof notification.updated_at === 'string' ? notification.updated_at : notification.updated_at.toISO()) : 
-            new Date().toISOString(),
-          read_at: notification.read_at ? 
-            (typeof notification.read_at === 'string' ? notification.read_at : notification.read_at.toISO()) : 
-            null,
+          created_at: notification.created_at
+            ? typeof notification.created_at === 'string'
+              ? notification.created_at
+              : notification.created_at.toISO()
+            : new Date().toISOString(),
+          updated_at: notification.updated_at
+            ? typeof notification.updated_at === 'string'
+              ? notification.updated_at
+              : notification.updated_at.toISO()
+            : new Date().toISOString(),
+          read_at: notification.read_at
+            ? typeof notification.read_at === 'string'
+              ? notification.read_at
+              : notification.read_at.toISO()
+            : null,
         }
       })
-      
+
       return response.json({
         notifications: notificationsData,
         unread_count: result.unread_count,

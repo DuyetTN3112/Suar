@@ -1,5 +1,6 @@
+// React must be in scope for JSX (classic JSX transform)
 import React from 'react'
-import { usePage, router } from '@inertiajs/react'
+import { usePage } from '@inertiajs/react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,35 +28,28 @@ export function LanguageSwitcher() {
 
   // Kiểm tra translations có đầy đủ không
   if (translations) {
+    // The server loads translation files as top-level namespaces (e.g. `user`, `common`).
+    // Historically we also supported a `messages` wrapper that contained nested namespaces
+    // (e.g. `messages.user`). To be backwards compatible, check both shapes and only warn
+    // when neither contains the expected namespaces.
 
-    // Kiểm tra namespace messages
-    if (translations.messages) {
-      // Kiểm tra các namespace con trong messages
+    const hasUser = Boolean(
+      // messages.user shape
+      (translations.messages && translations.messages.user) ||
+        // top-level user.json
+        translations.user
+    )
 
-      // Kiểm tra các key trong user namespace
-      if (translations.messages.user) {
+    const hasCommon = Boolean(
+      (translations.messages && translations.messages.common) || translations.common
+    )
 
-      } else {
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[LanguageSwitcher] Missing user namespace in messages')
-        }
-      }
+    if (!hasUser && process.env.NODE_ENV === 'development') {
+      console.warn('[LanguageSwitcher] Missing user namespace in translations')
+    }
 
-      // Kiểm tra các key trong common namespace
-      if (translations.messages.common) {
-
-      } else {
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[LanguageSwitcher] Missing common namespace in messages')
-        }
-      }
-    } else {
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[LanguageSwitcher] Missing messages namespace in translations')
-      }
+    if (!hasCommon && process.env.NODE_ENV === 'development') {
+      console.warn('[LanguageSwitcher] Missing common namespace in translations')
     }
   }
 

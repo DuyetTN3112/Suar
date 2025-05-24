@@ -67,12 +67,23 @@ export const useTaskExpansion = () => {
 
 export const useTaskFiltering = () => {
   // Lọc để hiển thị task cha (không có parent_task_id)
-  const filterParentTasks = (tasks: Task[]) => {
+  const filterParentTasks = (tasks: Task[] | undefined) => {
+    // ✅ Guard clause - Check null/undefined
+    if (!tasks || !Array.isArray(tasks)) {
+      console.warn('filterParentTasks: tasks is undefined or not an array', tasks)
+      return []
+    }
     return tasks.filter((task) => !task.parent_task_id)
   }
 
   // Lọc hiển thị task cha và task con
-  const showTasksWithChildren = (tasks: Task[], parent_task_id?: string) => {
+  const showTasksWithChildren = (tasks: Task[] | undefined, parent_task_id?: string) => {
+    // ✅ Guard clause - Check null/undefined
+    if (!tasks || !Array.isArray(tasks)) {
+      console.warn('showTasksWithChildren: tasks is undefined or not an array', tasks)
+      return []
+    }
+
     if (parent_task_id) {
       // Nếu đang xem theo parent_task_id, hiển thị tất cả task con
       return tasks

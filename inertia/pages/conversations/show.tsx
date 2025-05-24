@@ -19,13 +19,6 @@ export default function ShowConversation({ conversation, messages, pagination, c
   const loggedInUser = currentUser || loggedInUserFromWindow || null
   const loggedInUserId = loggedInUser?.id || ''
 
-  // Kiểm tra thông tin auth
-  useEffect(() => {
-    if (!loggedInUser) {
-      console.warn("Cảnh báo: Không có thông tin người dùng đăng nhập!")
-    }
-  }, [loggedInUser])
-
   // Thêm hàm refreshMessages vào window để component MessageInput có thể gọi
   useEffect(() => {
     window.refreshMessages = () => {

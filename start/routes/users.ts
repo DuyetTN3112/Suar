@@ -1,15 +1,14 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 
-// User controllers
-const UserController = () => import('#controllers/users/user_controller')
+// User controllers (Refactored with CQRS)
 const UsersController = () => import('#controllers/users/users_controller')
 const ProfileController = () => import('#controllers/users/profile_controller')
 const AvatarController = () => import('#controllers/users/avatar_controller')
 
 router
   .group(() => {
-    // Users routes
+    // Users routes (CQRS refactored)
     router.get('/users', [UsersController, 'index']).as('users.index')
     router.get('/users/create', [UsersController, 'create']).as('users.create')
     router
@@ -20,7 +19,8 @@ router
     router.get('/users/:id/edit', [UsersController, 'edit']).as('users.edit')
     router.put('/users/:id', [UsersController, 'update']).as('users.update')
     router.delete('/users/:id', [UsersController, 'destroy']).as('users.destroy')
-    router.put('/users/:id/approve', [UserController, 'approve']).as('users.approve')
+    router.put('/users/:id/approve', [UsersController, 'approve']).as('users.approve')
+    router.put('/users/:id/role', [UsersController, 'updateRole']).as('users.update_role')
 
     // API routes
     router
@@ -32,15 +32,6 @@ router
     router
       .get('/api/system-users', [UsersController, 'systemUsersApi'])
       .as('api.users.system_users')
-
-    // Legacy user routes
-    router.get('/user', [UserController, 'index']).as('user.index')
-    router.get('/user/create', [UserController, 'create']).as('user.create')
-    router.post('/user', [UserController, 'store']).as('user.store')
-    router.get('/user/:id', [UserController, 'show']).as('user.show')
-    router.get('/user/:id/edit', [UserController, 'edit']).as('user.edit')
-    router.put('/user/:id', [UserController, 'update']).as('user.update')
-    router.delete('/user/:id', [UserController, 'destroy']).as('user.destroy')
 
     // Profile routes
     router.get('/profile', [ProfileController, 'show']).as('profile.show')

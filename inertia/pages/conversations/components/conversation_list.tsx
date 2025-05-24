@@ -52,44 +52,42 @@ export const ConversationList: React.FC<ConversationListProps> = ({
           <div>
             {conversations.map((conversation) => {
               // Xác định loại cuộc trò chuyện
-              const isDirectMessage = conversation.conversation_participants.length === 2
+              const participants = conversation.participants || []
+              const isDirectMessage = participants.length === 2
               let displayName = conversation.title || ''
               let displayAvatar = ''
-              
+
               // Nếu là cuộc trò chuyện 1-1, lấy thông tin người còn lại
               if (isDirectMessage && !conversation.title) {
-                const otherUser = conversation.conversation_participants.find(
-                  cp => cp.user && cp.user.id !== loggedInUserId
-                )?.user
-                
-                if (otherUser) {
-                  displayName = otherUser.full_name || t('conversation.unknown_user', {}, 'Người dùng không xác định')
-                  displayAvatar = otherUser.avatar || ''
-                } else {
-                  console.warn('Không tìm thấy thông tin người dùng khác trong hội thoại 1-1:', conversation)
+                const otherParticipant = participants.find(
+                  p => p.user_id !== loggedInUserId
+                )
+
+                if (otherParticipant) {
+                  displayName = otherParticipant.user_name || t('conversation.unknown_user', {}, 'Người dùng không xác định')
+                  displayAvatar = otherParticipant.user_avatar || ''
                 }
               }
-              
+
               // Nếu là nhóm không có tiêu đề, tạo tiêu đề từ danh sách thành viên
               if (!isDirectMessage && !conversation.title) {
-                const otherParticipants = conversation.conversation_participants
-                  .filter(cp => cp.user && cp.user.id !== loggedInUserId)
-                  .map(cp => cp.user)
-                
+                const otherParticipants = participants
+                  .filter(p => p.user_id !== loggedInUserId)
+
                 const names = otherParticipants
                   .slice(0, 2)
-                  .map(p => p.full_name)
+                  .map(p => p.user_name)
                   .filter(Boolean)
                   .join(", ")
-                  
+
                 const remainingCount = otherParticipants.length - 2
-                displayName = remainingCount > 0 
+                displayName = remainingCount > 0
                   ? `${names} và ${remainingCount} người khác`
                   : names || t('conversation.group_chat', {}, 'Trò chuyện nhóm')
               }
-              
+
               return (
-                <div 
+                <div
                   key={conversation.id}
                   onClick={() => onSelectConversation(conversation)}
                   className={`p-4 hover:bg-muted/50 transition-colors flex items-center gap-3 cursor-pointer ${
@@ -102,7 +100,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                       {getAvatarInitials(displayName)}
                     </AvatarFallback>
                   </Avatar>
-                  
+
                   <div className="flex-1 overflow-hidden">
                     <div className="flex items-center justify-between">
                       <h3 className="font-medium truncate">{displayName}</h3>
@@ -110,11 +108,11 @@ export const ConversationList: React.FC<ConversationListProps> = ({
                         {conversation.updated_at && formatDate(conversation.updated_at, locale)}
                       </span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between mt-1">
                       <p className="text-sm text-muted-foreground truncate">
-                        {!isDirectMessage && conversation.conversation_participants.length > 2 
-                          ? t('conversation.participant_count', { count: conversation.conversation_participants.length }, `${conversation.conversation_participants.length} người tham gia`) 
+                        {!isDirectMessage && participants.length > 2
+                          ? t('conversation.participant_count', { count: participants.length }, `${participants.length} người tham gia`)
                           : ''}
                       </p>
                       {conversation.$extras && conversation.$extras.unreadCount > 0 && (
@@ -134,4 +132,4 @@ export const ConversationList: React.FC<ConversationListProps> = ({
   )
 }
 
-export default ConversationList 
+export default ConversationList

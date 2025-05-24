@@ -1,4 +1,3 @@
-import { inject } from '@adonisjs/core'
 import { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import { DateTime } from 'luxon'
@@ -42,7 +41,6 @@ interface AuditLogData {
   metadata?: any
 }
 
-@inject()
 export default class AuditLogging {
   constructor(private ctx: HttpContext) {}
 
