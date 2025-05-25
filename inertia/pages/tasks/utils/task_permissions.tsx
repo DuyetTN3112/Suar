@@ -1,4 +1,4 @@
-import { Task } from '../types'
+import type { Task } from '../types'
 
 /**
  * Kiểm tra xem người dùng có quyền xóa task hay không

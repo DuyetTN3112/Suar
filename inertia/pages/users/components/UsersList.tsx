@@ -1,17 +1,17 @@
-import React from 'react'
+
 import { Link } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
 import useTranslation from '@/hooks/use_translation'
-import { User, UsersProps } from '../types'
+import  type { User, UsersProps } from '../types'
 import { getUserDisplayName, getUserOrganizationRole } from '../utils/user_utils'
 
 type UsersListProps = {
@@ -32,7 +32,7 @@ export default function UsersList({
   onDeleteUser
 }: UsersListProps) {
   const { t } = useTranslation()
-  
+
   return (
     <>
       <div className="rounded-md border">
@@ -55,20 +55,20 @@ export default function UsersList({
                 <TableCell>{t(`user.status_${user.status?.name.toLowerCase()}`, {}, user.status?.name)}</TableCell>
                 <TableCell className="text-right">
                   {/* Chỉ dành cho phát triển */}
-                  {process.env.NODE_ENV === 'development' && (
+                  {import.meta.env.NODE_ENV === 'development' && (
                     <div className="hidden">
                       {/* Không hiển thị debug info trong UI */}
                     </div>
                   )}
-                  
+
                   {user.id !== currentUserId && (
                     <>
                       {/* Kiểm tra vai trò superadmin trong tổ chức */}
                       {isSuperAdmin && (
                         <>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            variant="outline"
+                            size="sm"
                             className="mr-2"
                             onClick={() => onEditPermissions(user)}
                           >
@@ -76,11 +76,11 @@ export default function UsersList({
                           </Button>
                         </>
                       )}
-                      
+
                       {/* Kiểm tra vai trò superadmin trong tổ chức */}
                       {isSuperAdmin && (
-                        <Button 
-                          variant="destructive" 
+                        <Button
+                          variant="destructive"
                           size="sm"
                           onClick={() => onDeleteUser(user)}
                         >
@@ -102,7 +102,7 @@ export default function UsersList({
           </TableBody>
         </Table>
       </div>
-      
+
       {users.meta.last_page > 1 && (
         <div className="mt-4">
           <Pagination
@@ -115,4 +115,4 @@ export default function UsersList({
       )}
     </>
   )
-} 
+}

@@ -39,7 +39,7 @@ interface PageProps {
       user?: AuthUser
     }
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export function TeamSwitcher() {
@@ -55,7 +55,7 @@ export function TeamSwitcher() {
 
   // Kiểm tra thông tin user nhưng không log chi tiết
   React.useEffect(() => {
-    if (!window.DEBUG_MODE || process.env.NODE_ENV !== 'development') return;
+    if (!window.DEBUG_MODE || import.meta.env.NODE_ENV !== 'development') return;
 
     if (!authUser) {
       console.error('TeamSwitcher: Không tìm thấy thông tin người dùng trong props')

@@ -4,7 +4,7 @@ import {
   TableCell
 } from "@/components/ui/table"
 import { Checkbox } from '@/components/ui/checkbox'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { TaskItemDeleteButton } from './task_item_delete_button'
 import { StatusCell } from './cells/child/status_cell'
 import { LabelCell } from './cells/child/label_cell'
@@ -20,7 +20,7 @@ type ChildTaskRowProps = {
   handleSelectTask: (taskId: number, checked: boolean) => void
   isTaskCompleted: (task: Task) => boolean
   formatDate: (dateString: string) => string
-  currentUserInfo: any
+  currentUserInfo: unknown
 }
 
 export function ChildTaskRow({

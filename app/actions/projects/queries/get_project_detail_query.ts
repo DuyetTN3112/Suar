@@ -7,7 +7,7 @@ import db from '@adonisjs/lucid/services/db'
  * Query result interface
  */
 export interface GetProjectDetailResult {
-  project: any
+  project: unknown
   members: Array<{
     user_id: number
     username: string
@@ -23,7 +23,7 @@ export interface GetProjectDetailResult {
     completed: number
     overdue: number
   }
-  recent_activity: any[]
+  recent_activity: unknown[]
   permissions: {
     isOwner: boolean
     isManager: boolean
@@ -120,7 +120,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   /**
    * Get list of project members with details
    */
-  private async getMembers(projectId: number): Promise<any[]> {
+  private async getMembers(projectId: number): Promise<unknown[]> {
     const members = await db
       .from('project_members as pm')
       .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
@@ -198,7 +198,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   /**
    * Get recent activity (last 10 audit logs)
    */
-  private async getRecentActivity(projectId: number): Promise<any[]> {
+  private async getRecentActivity(projectId: number): Promise<unknown[]> {
     const activities = await db
       .from('audit_logs')
       .select('audit_logs.*', 'users.username as username')
@@ -217,7 +217,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   private calculatePermissions(
     userId: number,
     project: Project,
-    members: any[]
+    members: unknown[]
   ): {
     isOwner: boolean
     isManager: boolean

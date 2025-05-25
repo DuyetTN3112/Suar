@@ -248,7 +248,7 @@ export default class AssignTaskCommand {
   /**
    * Log error
    */
-  private logError(message: string, error: any): void {
+  private logError(message: string, error: unknown): void {
     console.error(`[AssignTaskCommand] ${message}`, error)
   }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Task } from '../types'
+import type { Task } from '../types'
 
 export const useTaskSelection = () => {
   const [selectedTasks, setSelectedTasks] = useState<number[]>([])

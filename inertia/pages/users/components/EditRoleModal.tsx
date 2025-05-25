@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import useTranslation from '@/hooks/use_translation'
-import { User } from '../types'
+import type { User } from '../types'
 import { getUserDisplayName } from '../utils/user_utils'
 
 type EditRoleModalProps = {
@@ -39,7 +39,7 @@ export default function EditRoleModal({
   onSubmit
 }: EditRoleModalProps) {
   const { t } = useTranslation()
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -71,9 +71,9 @@ export default function EditRoleModal({
             </div>
           </div>
           <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
+            <Button
+              type="button"
+              variant="outline"
               onClick={onClose}
               disabled={isSubmitting}
             >
@@ -87,4 +87,4 @@ export default function EditRoleModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

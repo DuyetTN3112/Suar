@@ -18,7 +18,7 @@ export default class CacheService {
   /**
    * Lưu dữ liệu vào cache
    */
-  static async set(key: string, value: any, ttl: number = 3600): Promise<void> {
+  static async set(key: string, value: unknown, ttl: number = 3600): Promise<void> {
     try {
       await Redis.setex(key, ttl, typeof value !== 'string' ? JSON.stringify(value) : value)
     } catch (error) {

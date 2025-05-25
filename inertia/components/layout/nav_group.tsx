@@ -1,5 +1,5 @@
 
-import { ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { Link, router } from '@inertiajs/react'
 import { ChevronRight } from 'lucide-react'
 import {
@@ -25,7 +25,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown_menu'
-import { NavCollapsible, NavItem, NavLink, type NavGroup } from './types'
+import type { NavCollapsible, NavItem, NavLink, NavGroup } from './types'
 import useTranslation from '@/hooks/use_translation'
 
 // Optimize navigation to maintain SPA behavior and prevent full page reloads

@@ -86,7 +86,11 @@ export default class UpdateOrganizationCommand {
    * Helper: Check if user has permission to update organization
    * Only Owner (role_id = 1) or Admin (role_id = 2) can update
    */
-  private async checkPermissions(organizationId: number, userId: number, trx: any): Promise<void> {
+  private async checkPermissions(
+    organizationId: number,
+    userId: number,
+    trx: unknown
+  ): Promise<void> {
     const membership = await db
       .from('organization_users')
       .where('organization_id', organizationId)

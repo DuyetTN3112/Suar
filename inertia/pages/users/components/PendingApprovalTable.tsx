@@ -1,15 +1,15 @@
-import React from 'react'
+
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import { Pagination } from '@/components/ui/pagination'
-import { User } from '../types'
+import type { User } from '../types'
 import { usePendingApproval } from '../hooks/use_pending_approval'
 
 type PendingApprovalTableProps = {
@@ -56,7 +56,7 @@ export default function PendingApprovalTable({ users, filters }: PendingApproval
                   <TableCell>{getUserDisplayName(user)}</TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    {user.created_at 
+                    {user.created_at
                       ? new Date(user.created_at).toLocaleDateString('vi-VN')
                       : 'N/A'}
                   </TableCell>
@@ -74,7 +74,7 @@ export default function PendingApprovalTable({ users, filters }: PendingApproval
           </TableBody>
         </Table>
       </div>
-      
+
       {users.meta.last_page > 1 && (
         <div className="mt-4">
           <Pagination
@@ -87,4 +87,4 @@ export default function PendingApprovalTable({ users, filters }: PendingApproval
       )}
     </>
   )
-} 
+}

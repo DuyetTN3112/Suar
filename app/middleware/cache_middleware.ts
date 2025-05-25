@@ -38,7 +38,7 @@ export default class CacheMiddleware {
         // Lưu phương thức response.json gốc
         const originalJson = response.json
         // Ghi đè phương thức json để có thể lưu cache
-        response.json = function (body: any) {
+        response.json = function (body: unknown) {
           // Lưu kết quả vào cache
           Redis.setex(cacheKey, ttl, JSON.stringify(body)).catch((err) => {
             // Only log actual errors in production

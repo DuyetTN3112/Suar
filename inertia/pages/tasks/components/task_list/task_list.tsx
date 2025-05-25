@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Checkbox } from '@/components/ui/checkbox'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { router } from '@inertiajs/react'
 import { TaskListRow } from './task_list_row'
 import useTranslation from '@/hooks/use_translation'

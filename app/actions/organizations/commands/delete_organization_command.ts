@@ -93,7 +93,11 @@ export default class DeleteOrganizationCommand {
    * Helper: Check if user has permission to delete organization
    * Only Owner (role_id = 1) can delete
    */
-  private async checkPermissions(organizationId: number, userId: number, trx: any): Promise<void> {
+  private async checkPermissions(
+    organizationId: number,
+    userId: number,
+    trx: unknown
+  ): Promise<void> {
     const membership = await db
       .from('organization_users')
       .where('organization_id', organizationId)
@@ -111,7 +115,7 @@ export default class DeleteOrganizationCommand {
    * Helper: Check for active projects
    * Cannot delete organization with active projects
    */
-  private async checkActiveProjects(organizationId: number, trx: any): Promise<void> {
+  private async checkActiveProjects(organizationId: number, trx: unknown): Promise<void> {
     const activeProjectsCount = await db
       .from('projects')
       .where('organization_id', organizationId)

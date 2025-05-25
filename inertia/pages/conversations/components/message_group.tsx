@@ -1,5 +1,5 @@
 import React from 'react'
-import { MessageGroup } from './types'
+import type { MessageGroup } from './types'
 import { MessageItem } from './message_item'
 
 interface MessageGroupProps {

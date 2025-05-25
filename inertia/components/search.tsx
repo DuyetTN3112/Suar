@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { ScanSearch } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useSearch from '@/hooks/search'
@@ -14,10 +14,10 @@ interface Props {
 export function SearchComponent({ className = '', placeholder }: Props) {
   const { setIsOpen } = useSearch()
   const { t } = useTranslation()
-  
+
   // Sử dụng placeholder từ prop hoặc dịch mặc định 'Search'
   const searchPlaceholder = placeholder || t('common.search', {}, 'Tìm kiếm...')
-  
+
   return (
     <Button
       variant='outline'

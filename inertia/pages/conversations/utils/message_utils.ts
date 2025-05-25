@@ -1,6 +1,6 @@
 import { format, formatDistance } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Message, MessageGroup, Conversation, ConversationParticipant } from '../components/types'
+import type { Message, MessageGroup, Conversation } from '../components/types'
 
 /**
  * Format ngày để hiển thị trạng thái hoạt động

@@ -11,7 +11,7 @@ interface UseTaskDetailFormProps {
   submitting: boolean
   setSubmitting: React.Dispatch<React.SetStateAction<boolean>>
   onUpdate?: (updatedTask: Task) => void
-  currentUser?: any
+  currentUser?: unknown
 }
 
 export function useTaskDetailForm({
@@ -21,7 +21,6 @@ export function useTaskDetailForm({
   isEditing,
   errors,
   setErrors,
-  submitting,
   setSubmitting,
   onUpdate,
   currentUser,
@@ -103,7 +102,7 @@ export function useTaskDetailForm({
 
     // Nếu không có trong currentUser, thử lấy từ window.auth
     if ((!userId || !organizationId) && typeof window !== 'undefined') {
-      const windowAuth = (window as any).auth
+      const windowAuth = (window as unknown).auth
       if (windowAuth?.user?.id) {
         userId = windowAuth.user.id
       }

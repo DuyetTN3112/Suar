@@ -1,12 +1,12 @@
-import React from 'react'
+
 import { formatDate } from '../../../utils/task_formatter'
-import { getAvatarInitials } from '../../task_detail_utils'
-import { Task } from '../../../types'
+
+import type { Task } from '../../../types'
 import {
   Calendar,
   User,
   Clock,
-  FileText,
+
   Briefcase,
   Hash,
   GitMerge,

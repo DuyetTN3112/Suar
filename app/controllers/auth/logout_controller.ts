@@ -35,7 +35,13 @@ export default class LogoutController {
       })
 
       // 2. Execute command
-      const command = new LogoutUserCommand({ request, response, inertia, session, auth } as unknown)
+      const command = new LogoutUserCommand({
+        request,
+        response,
+        inertia,
+        session,
+        auth,
+      } as unknown)
       await command.handle(dto)
 
       // 3. Clear additional session data

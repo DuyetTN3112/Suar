@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { ProfileTabProps } from './types'
+import type { ProfileTabProps } from './types'
 
 export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
   return (
@@ -17,8 +17,8 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username">Tên người dùng</Label>
-            <Input 
-              id="username" 
+            <Input
+              id="username"
               value={form.data.username}
               onChange={e => form.setData('username', e.target.value)}
             />
@@ -28,8 +28,8 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
+            <Input
+              id="email"
               type="email"
               value={form.data.email}
               onChange={e => form.setData('email', e.target.value)}

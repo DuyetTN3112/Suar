@@ -86,7 +86,7 @@ export function logVitePluginError(message: string) {
     const vitePlugins = Boolean((window as unknown).__vite_plugin_react_preamble_installed__)
 
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.warn('Vite plugin status:', {
         viteHot,
         vitePlugins,
@@ -505,7 +505,7 @@ export function ErrorDisplay() {
 
                     <h4>Script Tags</h4>
                     <div style={{ maxHeight: '300px', overflow: 'auto' }}>
-                      {pluginDetails.scripts.map((script: any, index: number) => (
+                      {pluginDetails.scripts.map((script: unknown, index: number) => (
                         <div key={index} style={{
                           padding: '10px',
                           marginBottom: '10px',

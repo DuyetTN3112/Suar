@@ -103,7 +103,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   private async validateSameOrganization(
     userId: number,
     organizationId: number,
-    trx: any
+    trx: unknown
   ): Promise<void> {
     const result = await trx
       .from('organization_users')
@@ -120,7 +120,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   /**
    * Check user is not already a member
    */
-  private async checkNotAlreadyMember(projectId: number, userId: number, trx: any): Promise<void> {
+  private async checkNotAlreadyMember(
+    projectId: number,
+    userId: number,
+    trx: unknown
+  ): Promise<void> {
     const existing = await trx
       .from('project_members')
       .where('project_id', projectId)
@@ -139,7 +143,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     projectId: number,
     userId: number,
     role: string,
-    trx: any
+    trx: unknown
   ): Promise<void> {
     await trx.table('project_members').insert({
       project_id: projectId,

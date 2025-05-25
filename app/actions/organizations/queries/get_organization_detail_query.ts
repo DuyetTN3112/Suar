@@ -31,7 +31,7 @@ export default class GetOrganizationDetailQuery {
    * 5. Cache result
    * 6. Return result
    */
-  async execute(dto: GetOrganizationDetailDTO): Promise<any> {
+  async execute(dto: GetOrganizationDetailDTO): Promise<unknown> {
     const user = this.ctx.auth.user!
 
     // 1. Check user is member of organization
@@ -50,7 +50,7 @@ export default class GetOrganizationDetailQuery {
       throw new Error(`Organization with ID ${dto.organizationId} not found`)
     }
 
-    const result: any = organization.toJSON()
+    const result: unknown = organization.toJSON()
 
     // 4. Load optional includes
     if (dto.includeOwner) {
@@ -93,7 +93,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get owner details
    */
-  private async getOwner(ownerId: number): Promise<any> {
+  private async getOwner(ownerId: number): Promise<unknown> {
     const owner = await db.from('users').where('id', ownerId).select('id', 'email').first()
 
     return owner || null
@@ -142,7 +142,7 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Get members preview (first N members)
    */
-  private async getMembersPreview(organizationId: number, limit: number): Promise<any[]> {
+  private async getMembersPreview(organizationId: number, limit: number): Promise<unknown[]> {
     const members = await db
       .from('organization_users as ou')
       .join('users as u', 'ou.user_id', 'u.id')

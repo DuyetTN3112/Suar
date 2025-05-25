@@ -65,7 +65,7 @@ export default class FirebaseAuthService {
         status: 'success',
         message: 'Mã OTP đã được gửi đến số điện thoại của bạn',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Firebase Auth Error:', error)
       return {
         status: 'error',
@@ -107,7 +107,7 @@ export default class FirebaseAuthService {
         status: 'success',
         message: 'Xác minh số điện thoại thành công',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Firebase Auth Error:', error)
 
       // Xóa verification ID khỏi Redis cache nếu mã OTP không hợp lệ

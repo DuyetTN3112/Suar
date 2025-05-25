@@ -83,7 +83,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     if (dto.search && dto.search.trim().length > 0) {
       const searchTerm = `%${dto.search.trim()}%`
       query = query.where((builder) => {
-        builder.where('u.username', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
+        void builder.where('u.username', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
       })
     }
 
@@ -127,7 +127,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
       .where('p.id', projectId)
       .whereNull('p.deleted_at')
       .where((builder) => {
-        builder
+        void builder
           .where('p.creator_id', user.id)
           .orWhere('p.manager_id', user.id)
           .orWhere('p.owner_id', user.id)
@@ -143,7 +143,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
   /**
    * Enrich members with task counts and last activity
    */
-  private async enrichMembers(members: any[], projectId: number): Promise<any[]> {
+  private async enrichMembers(members: unknown[], projectId: number): Promise<unknown[]> {
     if (members.length === 0) return []
 
     const userIds = members.map((m) => m.user_id)

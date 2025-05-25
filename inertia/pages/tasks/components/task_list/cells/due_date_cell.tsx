@@ -1,5 +1,5 @@
-import React from 'react'
-import { Task } from '../../../types'
+
+import type { Task } from '../../../types'
 import { CalendarIcon } from 'lucide-react'
 
 interface TaskDueDateCellProps {
@@ -22,4 +22,4 @@ export function TaskDueDateCell({ task, formatDate }: TaskDueDateCellProps) {
       )}
     </div>
   )
-} 
+}

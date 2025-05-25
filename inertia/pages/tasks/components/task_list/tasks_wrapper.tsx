@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { router } from '@inertiajs/react'
 import { TaskList } from './task_list'
 import { TaskListPagination } from './task_list_pagination'

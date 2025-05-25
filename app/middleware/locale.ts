@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

@@ -173,7 +173,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                             className="h-6 w-6"
                             onClick={(e) => {
                               e.stopPropagation();
-                              markAsRead(notification.id);
+                              void markAsRead(notification.id);
                             }}
                           >
                             <Check className="h-3 w-3" />
@@ -185,7 +185,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                           className="h-6 w-6"
                           onClick={(e) => {
                             e.stopPropagation();
-                            deleteNotification(notification.id);
+                            void deleteNotification(notification.id);
                           }}
                         >
                           <Trash2 className="h-3 w-3" />
@@ -208,7 +208,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  markAllAsRead();
+                  void markAllAsRead();
                 }}
                 disabled={unreadCount === 0}
               >
@@ -219,7 +219,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                 size="sm"
                 onClick={(e) => {
                   e.stopPropagation();
-                  refresh();
+                  void refresh();
                 }}
               >
                 {t('common.refresh', {}, 'Làm mới')}

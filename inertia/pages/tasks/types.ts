@@ -54,7 +54,7 @@ export type Task = {
   }
   estimated_time?: number
   actual_time?: number
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export type TasksProps = {
@@ -93,7 +93,7 @@ export type TasksProps = {
       role_id?: number
       isAdmin?: boolean
       organization_id?: number
-      [key: string]: any
+      [key: string]: unknown
     }
   }
 }

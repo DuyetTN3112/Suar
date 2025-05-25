@@ -1,9 +1,9 @@
-import React from 'react'
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { AccountTabProps } from './types'
+import type { AccountTabProps } from './types'
 
 export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
   return (
@@ -18,8 +18,8 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input 
-              id="email" 
+            <Input
+              id="email"
               value={form.data.email}
               onChange={e => form.setData('email', e.target.value)}
             />
@@ -29,8 +29,8 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="current-password">Mật khẩu hiện tại</Label>
-            <Input 
-              id="current-password" 
+            <Input
+              id="current-password"
               type="password"
               value={form.data.current_password}
               onChange={e => form.setData('current_password', e.target.value)}
@@ -41,8 +41,8 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="new-password">Mật khẩu mới</Label>
-            <Input 
-              id="new-password" 
+            <Input
+              id="new-password"
               type="password"
               value={form.data.password}
               onChange={e => form.setData('password', e.target.value)}
@@ -53,8 +53,8 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm-password">Xác nhận mật khẩu mới</Label>
-            <Input 
-              id="confirm-password" 
+            <Input
+              id="confirm-password"
               type="password"
               value={form.data.password_confirmation}
               onChange={e => form.setData('password_confirmation', e.target.value)}
@@ -70,4 +70,4 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
       </CardContent>
     </Card>
   )
-} 
+}

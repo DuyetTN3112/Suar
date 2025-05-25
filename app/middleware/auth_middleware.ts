@@ -1,5 +1,5 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { NextFn } from '@adonisjs/core/types/http'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
 import type { Authenticators } from '@adonisjs/auth/types'
 // import env from '#start/env'
 import loggerService from '#services/logger_service'

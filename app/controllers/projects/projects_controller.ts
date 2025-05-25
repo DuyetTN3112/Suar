@@ -173,7 +173,7 @@ export default class ProjectsController {
   /**
    * Helper: Build GetProjectsListDTO from request
    */
-  private buildListDTO(request: any): GetProjectsListDTO {
+  private buildListDTO(request: unknown): GetProjectsListDTO {
     return {
       page: request.input('page', 1),
       limit: request.input('limit', 20),
@@ -191,7 +191,7 @@ export default class ProjectsController {
   /**
    * Helper: Build CreateProjectDTO from request
    */
-  private buildCreateDTO(request: any): CreateProjectDTO {
+  private buildCreateDTO(request: unknown): CreateProjectDTO {
     return new CreateProjectDTO({
       name: request.input('name'),
       description: request.input('description'),

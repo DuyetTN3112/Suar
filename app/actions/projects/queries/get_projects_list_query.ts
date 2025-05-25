@@ -22,7 +22,7 @@ export interface GetProjectsListDTO {
  * Query result interface
  */
 export interface GetProjectsListResult {
-  data: any[]
+  data: unknown[]
   pagination: {
     page: number
     limit: number
@@ -103,7 +103,7 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     // User scope - only show projects where user has access
     query = query.where((builder) => {
-      builder
+      void builder
         .where('p.creator_id', user.id)
         .orWhere('p.manager_id', user.id)
         .orWhere('pm.user_id', user.id)
@@ -134,7 +134,9 @@ export default class GetProjectsListQuery extends BaseQuery<
     if (dto.search && dto.search.trim().length > 0) {
       const searchTerm = `%${dto.search.trim()}%`
       query = query.where((builder) => {
-        builder.where('p.name', 'like', searchTerm).orWhere('p.description', 'like', searchTerm)
+        void builder
+          .where('p.name', 'like', searchTerm)
+          .orWhere('p.description', 'like', searchTerm)
       })
     }
 
@@ -193,7 +195,7 @@ export default class GetProjectsListQuery extends BaseQuery<
   /**
    * Enrich projects with task counts and member counts
    */
-  private async enrichWithStats(projects: any[]): Promise<any[]> {
+  private async enrichWithStats(projects: unknown[]): Promise<unknown[]> {
     if (projects.length === 0) return []
 
     const projectIds = projects.map((p) => p.id)
@@ -243,7 +245,7 @@ export default class GetProjectsListQuery extends BaseQuery<
       .leftJoin('project_members as pm', 'p.id', 'pm.project_id')
       .whereNull('p.deleted_at')
       .where((builder) => {
-        builder
+        void builder
           .where('p.creator_id', userId)
           .orWhere('p.manager_id', userId)
           .orWhere('pm.user_id', userId)

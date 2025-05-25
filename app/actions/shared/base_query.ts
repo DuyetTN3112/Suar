@@ -65,7 +65,7 @@ export abstract class BaseQuery<TInput, TOutput> implements QueryHandler<TInput,
    * @param params - Parameters to include in cache key
    * @returns Cache key string
    */
-  protected generateCacheKey(prefix: string, params: Record<string, any>): string {
+  protected generateCacheKey(prefix: string, params: Record<string, unknown>): string {
     const sortedParams = Object.keys(params)
       .sort()
       .map((key) => `${key}:${params[key]}`)

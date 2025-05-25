@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { Task } from '../types'
+import type { Task } from '../types'
 
 export function useTaskModals() {
   const [createModalOpen, setCreateModalOpen] = useState(false);

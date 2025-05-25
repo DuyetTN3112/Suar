@@ -39,7 +39,7 @@ export default function RequireOrganization() {
       }
     }
 
-    fetchOrganizations()
+    void fetchOrganizations()
   }, [])
 
   // Xử lý việc tham gia tổ chức
@@ -76,17 +76,17 @@ export default function RequireOrganization() {
         <p className="text-lg text-slate-600 dark:text-slate-400 mt-4">
           Để sử dụng đầy đủ tính năng của hệ thống, bạn cần phải là thành viên của ít nhất một tổ chức.
         </p>
-        
+
         {/* Hiển thị danh sách các tổ chức */}
         <div className="mt-8">
           <div className="flex justify-between items-center mb-6">
             <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200">Danh sách tổ chức có sẵn</h3>
             <div className="relative w-64">
               <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input 
-                type="text" 
-                placeholder="Tìm kiếm tổ chức..." 
-                className="pl-8 pr-4" 
+              <Input
+                type="text"
+                placeholder="Tìm kiếm tổ chức..."
+                className="pl-8 pr-4"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -95,7 +95,7 @@ export default function RequireOrganization() {
               />
             </div>
           </div>
-          
+
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-800 dark:border-slate-200"></div>
@@ -112,8 +112,8 @@ export default function RequireOrganization() {
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {currentOrganizations.map((org) => (
-                  <Card 
-                    key={org.id} 
+                  <Card
+                    key={org.id}
                     className="overflow-hidden transition-all duration-200 hover:shadow-lg border border-slate-200 dark:border-slate-700 rounded-xl"
                   >
                     <CardHeader className="pb-3 bg-slate-50 dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700">
@@ -142,8 +142,8 @@ export default function RequireOrganization() {
                       )}
                     </CardContent>
                     <CardFooter className="pt-0 flex justify-end border-t border-slate-100 dark:border-slate-700">
-                      <Button 
-                        onClick={() => handleJoinOrganization(org.id)} 
+                      <Button
+                        onClick={() => handleJoinOrganization(org.id)}
                         size="sm"
                         className="w-full"
                       >
@@ -153,7 +153,7 @@ export default function RequireOrganization() {
                   </Card>
                 ))}
               </div>
-              
+
               {/* Phân trang */}
               {totalPages > 1 && (
                 <div className="flex justify-center mt-8 gap-2">
@@ -211,4 +211,4 @@ export default function RequireOrganization() {
   )
 }
 
-RequireOrganization.layout = (page: React.ReactNode) => <AppLayout title="Cần tham gia tổ chức">{page}</AppLayout> 
+RequireOrganization.layout = (page: React.ReactNode) => <AppLayout title="Cần tham gia tổ chức">{page}</AppLayout>

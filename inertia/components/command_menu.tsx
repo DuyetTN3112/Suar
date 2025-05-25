@@ -1,7 +1,7 @@
 
 import { useEffect, useCallback } from 'react'
 import { router } from '@inertiajs/react'
-import { DialogProps } from '@radix-ui/react-dialog'
+import type { DialogProps } from '@radix-ui/react-dialog'
 import { ArrowRightIcon } from 'lucide-react'
 import { useTheme } from '@/hooks/theme'
 import { useSearch } from '@/context/search_context'

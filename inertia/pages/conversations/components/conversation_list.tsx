@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Search } from 'lucide-react'
-import { Conversation } from '../types'
+import type { Conversation } from '../types'
 import { getAvatarInitials, formatDate } from '../utils/conversation_utils'
 import useTranslation from '@/hooks/use_translation'
 
@@ -55,7 +55,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               const participants = conversation.participants || []
               const isDirectMessage = participants.length === 2
               let displayName = conversation.title || ''
-              let displayAvatar = ''
+              const displayAvatar = ''
 
               // Nếu là cuộc trò chuyện 1-1, lấy thông tin người còn lại
               if (isDirectMessage && !conversation.title) {

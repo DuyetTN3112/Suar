@@ -25,7 +25,7 @@ import redis from '@adonisjs/redis/services/main'
 export default class GetPendingRequestsQuery {
   constructor(protected ctx: HttpContext) {}
 
-  async execute(organizationId: number): Promise<any[]> {
+  async execute(organizationId: number): Promise<unknown[]> {
     const user = this.ctx.auth.user!
 
     // 1. Permission check: Must be owner or admin
@@ -113,7 +113,7 @@ export default class GetPendingRequestsQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -128,7 +128,7 @@ export default class GetPendingRequestsQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

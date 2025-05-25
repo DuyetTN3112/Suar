@@ -2,7 +2,7 @@ import React from 'react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Phone, Video, MoreVertical } from 'lucide-react'
-import { Conversation } from './types'
+import type { Conversation } from './types'
 import useTranslation from '@/hooks/use_translation'
 
 interface ConversationHeaderProps {

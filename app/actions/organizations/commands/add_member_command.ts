@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
-import CreateNotification from '#actions/common/create_notification'
+import type CreateNotification from '#actions/common/create_notification'
 
 /**
  * Command: Add Member to Organization
@@ -97,7 +97,11 @@ export default class AddMemberCommand {
    * Helper: Check if user has permission to add members
    * Only Owner (role_id = 1) or Admin (role_id = 2) can add members
    */
-  private async checkPermissions(organizationId: number, userId: number, trx: any): Promise<void> {
+  private async checkPermissions(
+    organizationId: number,
+    userId: number,
+    trx: unknown
+  ): Promise<void> {
     const membership = await db
       .from('organization_users')
       .where('organization_id', organizationId)
@@ -117,7 +121,7 @@ export default class AddMemberCommand {
   private async checkDuplicateMembership(
     organizationId: number,
     userId: number,
-    trx: any
+    trx: unknown
   ): Promise<void> {
     const existingMembership = await db
       .from('organization_users')

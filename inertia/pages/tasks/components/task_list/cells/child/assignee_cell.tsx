@@ -1,8 +1,8 @@
-import React from 'react'
+
 import { User } from 'lucide-react'
 
 interface AssigneeCellProps {
-  assignee?: any
+  assignee?: unknown
 }
 
 export function AssigneeCell({ assignee }: AssigneeCellProps) {

@@ -47,12 +47,6 @@ export function SidebarProvider({
   open?: boolean
   onOpenChange?: (open: boolean) => void
 }) {
-  // Chỉ ghi log khi debug mode được bật
-  const debugLog = (message: string, ...args: any[]) => {
-    if (window.DEBUG_MODE && process.env.NODE_ENV === 'development') {
-
-    }
-  };
 
   const isMobile = useMobile()
   const [openMobile, setOpenMobile] = React.useState(false)

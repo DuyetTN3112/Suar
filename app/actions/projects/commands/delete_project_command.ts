@@ -100,7 +100,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO, 
   /**
    * Check for incomplete tasks and warn user
    */
-  private async checkIncompleteTasks(projectId: number, trx: any): Promise<void> {
+  private async checkIncompleteTasks(projectId: number, trx: unknown): Promise<void> {
     const incompleteTasks = await trx
       .from('tasks')
       .where('project_id', projectId)

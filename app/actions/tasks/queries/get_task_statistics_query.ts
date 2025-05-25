@@ -268,7 +268,8 @@ export default class GetTaskStatisticsQuery {
       (sum: number, t: unknown) => sum + (Number(t.estimated_time) || 0),
       0
     )
-    const totalActual = tasks.reduce((sum: number, t: unknown) => sum + (Number(t.actual_time) || 0), 0)
+    const totalActual = tasks.reduce(
+      (sum: number, t: unknown) => sum + (Number(t.actual_time) || 0), 0)
 
     const avgEstimated = tasksWithEstimate > 0 ? totalEstimated / tasksWithEstimate : 0
     const avgActual = tasksWithActual > 0 ? totalActual / tasksWithActual : 0

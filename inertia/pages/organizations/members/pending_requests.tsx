@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Head, router } from '@inertiajs/react'
 import {
   Card,

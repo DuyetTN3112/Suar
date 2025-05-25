@@ -100,7 +100,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
       // Thêm ID người dùng hiện tại vào danh sách kiểm tra nếu chưa có
       const currentUserId = page.props.auth?.user?.id;
 
-      let participantsToCheck = [...selectedParticipants];
+      const participantsToCheck = [...selectedParticipants];
 
       if (currentUserId && !participantsToCheck.includes(currentUserId)) {
         participantsToCheck.push(currentUserId);

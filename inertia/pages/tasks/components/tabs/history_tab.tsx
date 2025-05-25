@@ -1,6 +1,6 @@
 import React from 'react'
 import { formatDate } from '../task_detail_utils'
-import { AuditLog } from '../task_detail_types'
+import type { AuditLog } from '../task_detail_types'
 
 export interface HistoryTabProps {
   auditLogs: AuditLog[]

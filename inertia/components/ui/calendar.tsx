@@ -32,18 +32,17 @@ function CalendarComponent({
   className,
   month = new Date(),
   onMonthChange,
-  mode = "single",
+
   selected,
   onSelect,
-  disabled,
+
   showOutsideDays = true,
-  classNames,
-  ...props
+
 }: CalendarProps) {
   const [currentMonth, setCurrentMonth] = React.useState(
     month || new Date()
   )
-  
+
   const handlePreviousMonth = () => {
     const date = new Date(currentMonth)
     date.setMonth(date.getMonth() - 1)
@@ -63,7 +62,7 @@ function CalendarComponent({
     currentMonth.getMonth() + 1,
     0
   ).getDate()
-  
+
   // Lấy ngày đầu tiên của tháng
   const firstDayOfMonth = new Date(
     currentMonth.getFullYear(),
@@ -77,11 +76,11 @@ function CalendarComponent({
 
   const isSelected = (date: Date) => {
     if (!selected) return false
-    
+
     if (selected instanceof Date) {
       return date.toDateString() === selected.toDateString()
     }
-    
+
     return false
   }
 

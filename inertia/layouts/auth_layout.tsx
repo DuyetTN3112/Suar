@@ -2,14 +2,13 @@ import React from 'react'
 import { Toaster } from 'sonner'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { LanguageSwitcher } from '@/components/ui/language-switcher'
-import useTranslation from '@/hooks/use_translation'
 
 interface AuthLayoutProps {
   children: React.ReactNode
 }
 
 export default function AuthLayout({ children }: AuthLayoutProps) {
-  const { t } = useTranslation()
+
 
   return (
     // Changed from bg-gray-50 dark:bg-gray-950 to use bg-background which respects the theme

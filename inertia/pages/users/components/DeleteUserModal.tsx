@@ -1,4 +1,4 @@
-import React from 'react'
+
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import useTranslation from '@/hooks/use_translation'
-import { User } from '../types'
+import type { User } from '../types'
 import { getUserDisplayName } from '../utils/user_utils'
 
 type DeleteUserModalProps = {
@@ -28,7 +28,7 @@ export default function DeleteUserModal({
   onConfirm
 }: DeleteUserModalProps) {
   const { t } = useTranslation()
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -39,17 +39,17 @@ export default function DeleteUserModal({
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onClose}
             disabled={isDeleting}
           >
             {t('common.cancel', {}, "Hủy")}
           </Button>
-          <Button 
-            type="button" 
-            variant="destructive" 
+          <Button
+            type="button"
+            variant="destructive"
             onClick={onConfirm}
             disabled={isDeleting}
           >
@@ -59,4 +59,4 @@ export default function DeleteUserModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

@@ -123,7 +123,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
   /**
    * Get member role
    */
-  private async getMemberRole(projectId: number, userId: number, trx: any): Promise<string> {
+  private async getMemberRole(projectId: number, userId: number, trx: unknown): Promise<string> {
     const member = await trx
       .from('project_members')
       .where('project_id', projectId)
@@ -140,7 +140,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     projectId: number,
     fromUserId: number,
     toUserId: number,
-    trx: any
+    trx: unknown
   ): Promise<void> {
     await trx
       .from('tasks')
@@ -156,7 +156,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
   /**
    * Remove member from project
    */
-  private async removeMember(projectId: number, userId: number, trx: any): Promise<void> {
+  private async removeMember(projectId: number, userId: number, trx: unknown): Promise<void> {
     await trx
       .from('project_members')
       .where('project_id', projectId)

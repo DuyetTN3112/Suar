@@ -1,4 +1,4 @@
-import { Loader, Loader2 } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { FormControl } from '@/components/ui/form'
 import {

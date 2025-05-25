@@ -15,8 +15,8 @@ import useTranslation from '@/hooks/use_translation'
 interface PageProps {
   locale: string
   supportedLocales: string[]
-  translations?: any
-  [key: string]: any
+  translations?: unknown
+  [key: string]: unknown
 }
 
 export function LanguageSwitcher() {
@@ -44,11 +44,11 @@ export function LanguageSwitcher() {
       (translations.messages && translations.messages.common) || translations.common
     )
 
-    if (!hasUser && process.env.NODE_ENV === 'development') {
+    if (!hasUser && import.meta.env.NODE_ENV === 'development') {
       console.warn('[LanguageSwitcher] Missing user namespace in translations')
     }
 
-    if (!hasCommon && process.env.NODE_ENV === 'development') {
+    if (!hasCommon && import.meta.env.NODE_ENV === 'development') {
       console.warn('[LanguageSwitcher] Missing common namespace in translations')
     }
   }

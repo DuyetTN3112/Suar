@@ -14,7 +14,7 @@ import app from '@adonisjs/core/services/app'
 // function i18nLog(level: I18nLogLevel, message: string, ...args: any[]) { /* unused */ }
 
 // Luôn log lỗi bất kể mức độ log hiện tại
-function i18nError(message: string, ...args: any[]) {
+function i18nError(message: string, ...args: unknown[]) {
   // Keep error logging but disable in production by default
   if (process.env.NODE_ENV === 'development') {
     console.error(`[i18n] ${message}`, ...args)
@@ -39,7 +39,7 @@ export default class DetectUserLocaleMiddleware {
   /**
    * Cache cho dữ liệu dịch để tránh đọc file lặp lại
    */
-  private static translationsCache: Record<string, any> = {}
+  private static translationsCache: Record<string, unknown> = {}
 
   /**
    * Kiểm tra xem locale có hợp lệ không
@@ -66,7 +66,7 @@ export default class DetectUserLocaleMiddleware {
     }
 
     const localeDir = path.join(app.languageFilesPath(), locale)
-    const translations: Record<string, any> = {}
+    const translations: Record<string, unknown> = {}
 
     try {
       // Kiểm tra xem thư mục có tồn tại không

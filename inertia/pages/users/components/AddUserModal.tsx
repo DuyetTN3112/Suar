@@ -9,16 +9,16 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import useTranslation from '@/hooks/use_translation'
-import { User } from '../types'
+import type { User } from '../types'
 import { getUserDisplayName } from '../utils/user_utils'
 
 type AddUserModalProps = {
@@ -55,7 +55,7 @@ export default function AddUserModal({
   onChangePage
 }: AddUserModalProps) {
   const { t } = useTranslation()
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[800px]">
@@ -65,7 +65,7 @@ export default function AddUserModal({
             {t('user.add_users_description', {}, "Chọn người dùng từ danh sách để thêm vào tổ chức hiện tại")}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
           <form onSubmit={onSearch} className="flex items-center gap-2 mb-4">
             <Input
@@ -78,7 +78,7 @@ export default function AddUserModal({
               {t('common.search', {}, "Tìm kiếm")}
             </Button>
           </form>
-          
+
           <div className="border rounded-md overflow-hidden">
             {isLoadingSystemUsers ? (
               <div className="flex justify-center py-8">
@@ -124,7 +124,7 @@ export default function AddUserModal({
               </div>
             )}
           </div>
-          
+
           {totalPages > 1 && (
             <div className="flex justify-center mt-4">
               <div className="flex items-center gap-2">
@@ -150,25 +150,25 @@ export default function AddUserModal({
               </div>
             </div>
           )}
-          
+
           <div className="mt-4">
             <p className="text-sm text-gray-500">
               {t('user.selected_users', { count: selectedUserIds.length }, `Đã chọn ${selectedUserIds.length} người dùng`)}
             </p>
           </div>
         </div>
-        
+
         <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onClose}
             disabled={isAddingUsers}
           >
             {t('common.cancel', {}, "Hủy")}
           </Button>
-          <Button 
-            onClick={onAddUsers} 
+          <Button
+            onClick={onAddUsers}
             disabled={selectedUserIds.length === 0 || isAddingUsers}
           >
             {isAddingUsers ? t('common.processing', {}, 'Đang xử lý...') : t('user.add_to_organization', {}, 'Thêm vào tổ chức')}
@@ -177,4 +177,4 @@ export default function AddUserModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

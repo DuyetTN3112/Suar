@@ -65,8 +65,8 @@ export abstract class BaseCommand<TInput, TOutput = void>
     action: string,
     entityType: string,
     entityId: number,
-    oldValues?: any,
-    newValues?: any
+    oldValues?: unknown,
+    newValues?: unknown
   ): Promise<void> {
     const user = this.ctx.auth.user
     if (!user) return

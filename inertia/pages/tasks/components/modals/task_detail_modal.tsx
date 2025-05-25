@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { TaskDetailInfoTab } from './task_detail_info/task_detail_info_tab'
 import { TaskDetailHistoryTab } from './task_detail_info/task_detail_history_tab'
 import { getPermissions } from '../task_detail_utils'
@@ -27,7 +27,7 @@ interface TaskDetailModalProps {
   labels: Array<{ id: number; name: string; color: string }>
   users?: Array<{ id: number; username: string; email: string }>
   onUpdate?: (updatedTask: Task) => void
-  currentUser?: any
+  currentUser?: unknown
 }
 
 export function TaskDetailModal({
@@ -46,7 +46,7 @@ export function TaskDetailModal({
   const [activeTab, setActiveTab] = useState('info')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [submitting, setSubmitting] = useState(false)
-  const [auditLogs, setAuditLogs] = useState<any[]>([])
+  const [auditLogs, setAuditLogs] = useState<unknown[]>([])
 
   // Tìm ID của trạng thái hoàn thành (thường là "Completed" hoặc "Done")
   const completedStatusId = useMemo(() => {
@@ -98,7 +98,7 @@ export function TaskDetailModal({
           .then(logs => setAuditLogs(logs))
           .catch(error => {
             // Only log in development
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.NODE_ENV === 'development') {
               console.error('Error loading audit logs:', error);
             }
           });

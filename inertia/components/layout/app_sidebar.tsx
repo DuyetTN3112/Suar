@@ -32,7 +32,7 @@ interface PageProps {
       user?: AuthUser
     }
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {}
@@ -64,7 +64,7 @@ export function AppSidebar(props: AppSidebarProps) {
   } catch (error) {
     // Chỉ ghi nhận lỗi, không thực hiện thay đổi state ở đây
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.NODE_ENV === 'development') {
       console.error('Lỗi khi truy cập dữ liệu người dùng:', error)
     }
   }

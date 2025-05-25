@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import useTranslation from '@/hooks/use_translation'
 import UserSearchForm from './components/UserSearchForm'
 import PendingApprovalTable from './components/PendingApprovalTable'
-import { PendingApprovalProps } from './types'
+import type { PendingApprovalProps } from './types'
 import { usePendingApproval } from './hooks/use_pending_approval'
 
 export default function PendingApproval({ users, filters,  }: PendingApprovalProps) {

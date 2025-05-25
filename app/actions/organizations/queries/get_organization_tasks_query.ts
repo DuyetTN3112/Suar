@@ -84,46 +84,48 @@ export default class GetOrganizationTasksQuery {
 
     // 5. Apply filters
     if (statusId) {
-      query.where('status_id', statusId)
+      void query.where('status_id', statusId)
     }
 
     if (priorityId) {
-      query.where('priority_id', priorityId)
+      void query.where('priority_id', priorityId)
     }
 
     if (projectId) {
-      query.where('project_id', projectId)
+      void query.where('project_id', projectId)
     }
 
     if (assignedTo) {
-      query.where('assigned_to', assignedTo)
+      void query.where('assigned_to', assignedTo)
     }
 
     if (search) {
-      query.where((searchQuery) => {
-        searchQuery.whereILike('title', `%${search}%`).orWhereILike('description', `%${search}%`)
+      void query.where((searchQuery) => {
+        void searchQuery
+          .whereILike('title', `%${search}%`)
+          .orWhereILike('description', `%${search}%`)
       })
     }
 
     // 6. Preload relations
-    query
+    void query
       .preload('status')
       .preload('priority')
       .preload('label')
       .preload('assignee', (q) => {
-        q.select(['id', 'username', 'email'])
+        void q.select(['id', 'username', 'email'])
       })
       .preload('creator', (q) => {
-        q.select(['id', 'username'])
+        void q.select(['id', 'username'])
       })
       .preload('project', (q) => {
-        q.select(['id', 'name', 'status_id'])
+        void q.select(['id', 'name', 'status_id'])
       })
 
     // 7. Apply sorting
     const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority_id']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
-    query.orderBy(sortField, sortOrder)
+    void query.orderBy(sortField, sortOrder)
 
     // 8. Execute with pagination
     const paginator = await query.paginate(page, limit)
@@ -161,7 +163,7 @@ export default class GetOrganizationTasksQuery {
   /**
    * Build cache key
    */
-  private buildCacheKey(options: any): string {
+  private buildCacheKey(options: unknown): string {
     const parts = [
       'organization:tasks',
       `org:${options.organizationId}`,
@@ -183,7 +185,7 @@ export default class GetOrganizationTasksQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -198,7 +200,7 @@ export default class GetOrganizationTasksQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

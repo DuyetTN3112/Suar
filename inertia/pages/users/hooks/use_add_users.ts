@@ -1,7 +1,7 @@
 import React from 'react'
 import { router } from '@inertiajs/react'
 import { toast } from 'sonner'
-import { User } from '../types'
+import type { User } from '../types'
 import useTranslation from '@/hooks/use_translation'
 
 export const useAddUsers = () => {

@@ -103,7 +103,7 @@ export default class DeleteTaskCommand {
           ? 'Nhiệm vụ đã được xóa vĩnh viễn'
           : 'Nhiệm vụ đã được xóa',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       await trx.rollback()
       console.error('[DeleteTaskCommand] Error:', error)
       return {

@@ -1,5 +1,5 @@
 
-import { Task } from '../types'
+import type { Task } from '../types'
 import { router } from '@inertiajs/react'
 import { useTaskFilters } from './use_task_filters'
 import { useTaskModals } from './use_task_modals'

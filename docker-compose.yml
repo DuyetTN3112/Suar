@@ -1,94 +1,64 @@
-# Docker Compose cho dự án AdonisJS
-# Gỡ bỏ thuộc tính version để sử dụng phiên bản mặc định của Docker Compose
-
 services:
-  # Service chạy ứng dụng AdonisJS
+  # 1. App Adonis của bạn
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    build: .
+    restart: unless-stopped
     ports:
-      # Format: "cổng_máy_host:cổng_container"
-      # QUAN TRỌNG: Đảm bảo cổng này khớp với PORT trong .env
       - "3333:3333"
-    depends_on:
-      - database
-      - redis
     environment:
-      # QUAN TRỌNG: Tất cả thông tin nhạy cảm nên được đặt trong file .env
-      # Các giá trị ở đây sẽ ghi đè lên file .env trong container
       - TZ=Asia/Ho_Chi_Minh
       - PORT=3333
-      # Sử dụng 0.0.0.0 thay vì localhost để có thể truy cập từ bên ngoài container
-      - HOST=0.0.0.0 
-      - LOG_LEVEL=info
-      - NODE_ENV=development
-      - SESSION_DRIVER=redis
-      - REDIS_CONNECTION=main
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      # Kết nối MySQL (service tên là 'mysql')
       - DB_CONNECTION=mysql
-      
-      # QUAN TRỌNG: Đối với Redis, sử dụng tên service làm hostname
-      - REDIS_HOST=redis  # Tên service Redis trong docker-compose
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=   # Có thể đặt mật khẩu Redis ở đây nếu cần
-      
-      # QUAN TRỌNG: Đối với MySQL, sử dụng tên service làm hostname
-      - DB_HOST=database  # Tên service database trong docker-compose
+      - DB_HOST=mysql
       - DB_PORT=3306
-      # QUAN TRỌNG: Thông tin đăng nhập database - phải khớp với cấu hình MYSQL_ROOT_PASSWORD
-      - DB_USER=root      # Tên người dùng MySQL
-      - DB_PASSWORD=rootpassword  # Mật khẩu MySQL - phải khớp với MYSQL_ROOT_PASSWORD
-      - DB_DATABASE=shadcn_admin  # Tên database - phải khớp với MYSQL_DATABASE
-      
-      # Các biến môi trường ứng dụng
-      - APP_URL=http://localhost:3333
-      - APP_NAME=shadcn_admin
-      - APP_LOCALE=vi
-      - APP_TIMEZONE=Asia/Ho_Chi_Minh
-      
-      # QUAN TRỌNG: Các khóa API và thông tin nhạy cảm nên được đặt trong file .env
-      # và KHÔNG nên commit vào git repository
-      # - GOOGLE_CLIENT_ID=your_google_client_id
-      # - GOOGLE_CLIENT_SECRET=your_google_client_secret
-      # - GITHUB_CLIENT_ID=your_github_client_id
-      # - GITHUB_CLIENT_SECRET=your_github_client_secret
-    volumes:
-      # QUAN TRỌNG: Mount thư mục hiện tại vào /app trong container
-      # Điều này cho phép thay đổi code được cập nhật ngay lập tức trong container
-      - ./:/app
-      # Mount anonymous volume cho node_modules để sử dụng node_modules trong container
-      - /app/node_modules
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_DATABASE=kidmanager
+      # Kết nối Redis (service tên là 'redis')
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
-  # Service database MySQL
-  database:
+  # 2. Database MySQL (Tự tải về)
+  mysql:
     image: mysql:8.0
-    ports:
-      # Format: "cổng_máy_host:cổng_container"
-      - "3306:3306"
+    cap_add:
+      - SYS_NICE
     environment:
-      # QUAN TRỌNG: Đây là thông tin nhạy cảm, nên thay đổi trong môi trường production
-      - MYSQL_ROOT_PASSWORD=rootpassword  # Mật khẩu root MySQL
-      - MYSQL_DATABASE=shadcn_admin  # Tên database sẽ được tạo
-      - MYSQL_USER=admin  # Tên người dùng MySQL bổ sung (ngoài root)
-      - MYSQL_PASSWORD=admin  # Mật khẩu cho người dùng bổ sung
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: kidmanager
+    ports:
+      - "3306:3306"
     volumes:
-      # QUAN TRỌNG: Volume lưu trữ dữ liệu MySQL để dữ liệu không bị mất khi container bị xóa
       - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  # Service Redis cho session và cache
+  # 3. Redis (Tự tải về)
   redis:
     image: redis:alpine
     ports:
-      # Format: "cổng_máy_host:cổng_container"
       - "6379:6379"
     volumes:
-      # QUAN TRỌNG: Volume lưu trữ dữ liệu Redis để dữ liệu không bị mất khi container bị xóa
       - redis_data:/data
-    # Có thể thêm cấu hình bảo mật Redis ở đây
-    # command: redis-server --requirepass yourpassword
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-# QUAN TRỌNG: Định nghĩa các volume Docker để lưu trữ dữ liệu
 volumes:
-  mysql_data:  # Volume cho dữ liệu MySQL
-  redis_data:  # Volume cho dữ liệu Redis 
+  mysql_data:
+  redis_data:

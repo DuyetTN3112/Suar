@@ -10,11 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from '@/components/ui/dropdown-menu.'
 import React, { useEffect } from 'react'
 
 export function ProfileDropdown() {
-  const { auth, csrfToken } = usePage().props as unknown
+  const { auth } = usePage().props as unknown
   const user = auth?.user
 
   // Di chuyển console.error vào useEffect

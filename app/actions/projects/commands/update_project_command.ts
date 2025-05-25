@@ -123,7 +123,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
   /**
    * Get tracked field values for audit
    */
-  private getTrackedFields(project: Project): Record<string, any> {
+  private getTrackedFields(project: Project): Record<string, unknown> {
     return {
       name: project.name,
       description: project.description,
@@ -142,8 +142,8 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    */
   private async logFieldChanges(
     projectId: number,
-    oldValues: Record<string, any>,
-    newValues: Record<string, any>,
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
     updatedFields: string[]
   ): Promise<void> {
     for (const field of updatedFields) {

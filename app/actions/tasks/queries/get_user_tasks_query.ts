@@ -129,7 +129,7 @@ export default class GetUserTasksQuery {
   /**
    * Build cache key
    */
-  private buildCacheKey(options: any): string {
+  private buildCacheKey(options: unknown): string {
     const parts = [
       'task:user',
       `user:${options.userId}`,
@@ -154,7 +154,7 @@ export default class GetUserTasksQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -169,7 +169,7 @@ export default class GetUserTasksQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

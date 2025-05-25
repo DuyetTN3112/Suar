@@ -101,7 +101,7 @@ export default class UpdateTaskCommand {
       await this.sendNotifications(existingTask, user, dto)
 
       // Load full relations
-      await existingTask.load((loader: any) => {
+      await existingTask.load((loader: unknown) => {
         loader
           .load('status')
           .load('label')
@@ -112,7 +112,7 @@ export default class UpdateTaskCommand {
           .load('organization')
           .load('project')
           .load('parentTask')
-          .load('childTasks', (query: any) => {
+          .load('childTasks', (query: unknown) => {
             query.whereNull('deleted_at').preload('status')
           })
       })
@@ -246,7 +246,7 @@ export default class UpdateTaskCommand {
   /**
    * Log error
    */
-  private logError(message: string, error: any): void {
+  private logError(message: string, error: unknown): void {
     console.error(`[UpdateTaskCommand] ${message}`, error)
   }
 }

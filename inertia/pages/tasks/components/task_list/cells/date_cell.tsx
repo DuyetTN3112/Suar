@@ -1,5 +1,5 @@
-import React from 'react'
-import { Task } from '../../../types'
+
+import type { Task } from '../../../types'
 import { Clock } from 'lucide-react'
 
 interface TaskDateCellProps {
@@ -18,4 +18,4 @@ export function TaskDateCell({ task, formatDate }: TaskDateCellProps) {
       )}
     </div>
   )
-} 
+}

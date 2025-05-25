@@ -53,7 +53,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
   private async validateSuperAdmin(
     userId: number,
     organizationId: number,
-    trx: any
+    trx: unknown
   ): Promise<void> {
     const result = await trx
       .from('organization_users')
@@ -74,7 +74,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
   private async createProject(
     dto: CreateProjectDTO,
     creatorId: number,
-    trx: any
+    trx: unknown
   ): Promise<Project> {
     const projectData = dto.toObject()
 
@@ -94,7 +94,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
   /**
    * Add creator as first project member with 'owner' role
    */
-  private async addCreatorAsMember(projectId: number, userId: number, trx: any): Promise<void> {
+  private async addCreatorAsMember(projectId: number, userId: number, trx: unknown): Promise<void> {
     await trx.table('project_members').insert({
       project_id: projectId,
       user_id: userId,
@@ -106,7 +106,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
   /**
    * Load project with all necessary relations
    */
-  private async loadProjectWithRelations(projectId: number, trx: any): Promise<Project> {
+  private async loadProjectWithRelations(projectId: number, trx: unknown): Promise<Project> {
     const project = await Project.query({ client: trx })
       .where('id', projectId)
       .preload('creator')

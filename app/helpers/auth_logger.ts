@@ -13,7 +13,7 @@
 import logger from '@adonisjs/core/services/logger'
 
 interface LogContext {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export class AuthLogger {
@@ -59,7 +59,7 @@ export class AuthLogger {
   /**
    * Log OAuth user data received
    */
-  static oauthUserReceived(provider: string, socialUser: any) {
+  static oauthUserReceived(provider: string, socialUser: unknown) {
     const sanitized = {
       id: socialUser.id,
       email: socialUser.email,
@@ -111,7 +111,7 @@ export class AuthLogger {
   /**
    * Log OAuth errors
    */
-  static oauthError(provider: string, error: any, stage: string) {
+  static oauthError(provider: string, error: unknown, stage: string) {
     const errorDetails = {
       provider,
       stage,
@@ -163,7 +163,7 @@ export class AuthLogger {
   /**
    * Log database transaction
    */
-  static dbTransaction(operation: string, success: boolean, details?: any) {
+  static dbTransaction(operation: string, success: boolean, details?: unknown) {
     const msg = `💾 DB Transaction - Operation: ${operation}, Success: ${success}`
     if (success) {
       logger.info(msg, details)

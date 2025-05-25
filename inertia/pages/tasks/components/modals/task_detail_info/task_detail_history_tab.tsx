@@ -1,6 +1,6 @@
-import React from 'react'
+
 import { formatDate } from '../../../utils/task_formatter'
-import { Task } from '../../../types'
+import type { Task } from '../../../types'
 
 interface TaskDetailHistoryTabProps {
   auditLogs: Array<{
@@ -11,13 +11,13 @@ interface TaskDetailHistoryTabProps {
       name: string
     }
     created_at: string
-    old_values?: any
-    new_values?: any
+    old_values?: unknown
+    new_values?: unknown
   }>
   task: Task | null
 }
 
-export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabProps) {
+export function TaskDetailHistoryTab({ auditLogs }: TaskDetailHistoryTabProps) {
   if (!auditLogs || auditLogs.length === 0) {
     return (
       <div className="p-4 text-center text-gray-500">
@@ -29,7 +29,7 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
   return (
     <div className="space-y-4 p-4">
       <h3 className="text-sm font-medium mb-2">Lịch sử thay đổi</h3>
-      
+
       <div className="space-y-3">
         {auditLogs.map((log) => (
           <div key={log.id} className="border rounded-md p-3 text-sm">
@@ -41,7 +41,7 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
                 {formatDate(log.created_at)}
               </span>
             </div>
-            
+
             <div className="text-gray-600">
               {getActionDescription(log.action, log.old_values, log.new_values)}
             </div>
@@ -53,7 +53,7 @@ export function TaskDetailHistoryTab({ auditLogs, task }: TaskDetailHistoryTabPr
 }
 
 // Helper function để hiển thị mô tả hành động
-function getActionDescription(action: string, oldValues?: any, newValues?: any): string {
+function getActionDescription(action: string, oldValues?: unknown, newValues?: unknown): string {
   switch (action) {
     case 'created':
       return 'Đã tạo nhiệm vụ'
@@ -68,4 +68,4 @@ function getActionDescription(action: string, oldValues?: any, newValues?: any):
     default:
       return 'Đã thực hiện thay đổi'
   }
-} 
+}

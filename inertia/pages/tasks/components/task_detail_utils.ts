@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import { Task } from '../types'
+import type { Task } from '../types'
 
 /**
  * Tạo initials từ tên người dùng
@@ -27,7 +27,7 @@ export const formatDate = (dateString: string): string => {
 /**
  * Kiểm tra quyền chỉnh sửa task
  */
-export const getPermissions = (currentUser: any, task: Task | null) => {
+export const getPermissions = (currentUser: unknown, task: Task | null) => {
   // Log để debug
 
   if (!task) {
@@ -88,7 +88,7 @@ export const getPermissions = (currentUser: any, task: Task | null) => {
  * Kiểm tra người dùng có phải là superadmin hay không
  * Hỗ trợ nhiều định dạng khác nhau của currentUser
  */
-function checkIsSuperadmin(currentUser: any): boolean {
+function checkIsSuperadmin(currentUser: unknown): boolean {
   if (!currentUser) return false
   // Kiểm tra các trường hợp có thể là superadmin
   return (
@@ -106,7 +106,7 @@ function checkIsSuperadmin(currentUser: any): boolean {
 /**
  * Kiểm tra người dùng có phải là admin hay không (bao gồm cả superadmin)
  */
-function checkIsAdmin(currentUser: any): boolean {
+function checkIsAdmin(currentUser: unknown): boolean {
   if (!currentUser) return false
   return (
     // Kiểm tra các trường hợp role admin

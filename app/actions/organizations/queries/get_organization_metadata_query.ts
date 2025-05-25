@@ -147,7 +147,7 @@ export default class GetOrganizationMetadataQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {

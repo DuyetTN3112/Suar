@@ -126,52 +126,6 @@ export function OrganizationDebugTool() {
           </Alert>
         )}
 
-        {debugInfo && (
-          <div className="space-y-2 text-sm">
-            <div className="grid grid-cols-2 gap-2 border-b pb-2">
-              <div className="font-medium">User ID:</div>
-              <div>{debugInfo.user_id}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b pb-2">
-              <div className="font-medium">Tên người dùng:</div>
-              <div>{debugInfo.username}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b pb-2">
-              <div className="font-medium">Tổ chức từ user model:</div>
-              <div>{debugInfo.user_current_organization_id || 'Chưa chọn'}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b pb-2">
-              <div className="font-medium">Tổ chức từ session:</div>
-              <div>{debugInfo.session_organization_id || 'Chưa chọn'}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 border-b pb-2">
-              <div className="font-medium">Đồng bộ:</div>
-              <div>
-                {debugInfo.user_current_organization_id === debugInfo.session_organization_id ? (
-                  <span className="text-green-600">OK</span>
-                ) : (
-                  <span className="text-orange-600">Không đồng bộ</span>
-                )}
-              </div>
-            </div>
-            <div className="space-y-2 pt-2">
-              <div className="font-medium">Tổ chức người dùng tham gia:</div>
-              <div className="ml-2">
-                {debugInfo.organizations.length > 0 ? (
-                  <ul className="list-disc pl-5 space-y-1">
-                    {debugInfo.organizations.map((org: any) => (
-                      <li key={org.id}>
-                        {org.name} (ID: {org.id})
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span className="italic text-gray-500">Chưa tham gia tổ chức nào</span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
       </CardContent>
       <CardFooter className="flex justify-between">
         <Button

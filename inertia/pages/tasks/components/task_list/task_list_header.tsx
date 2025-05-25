@@ -1,5 +1,4 @@
-import React from 'react'
-import { Button } from '@/components/ui/button'
+
 import { Checkbox } from '@/components/ui/checkbox'
 
 type TaskListHeaderProps = {
@@ -14,7 +13,7 @@ export function TaskListHeader({
   return (
     <div className="flex items-center justify-between p-2 border-b">
       <div className="flex items-center space-x-2">
-        <Checkbox 
+        <Checkbox
           checked={isAllSelected}
           onCheckedChange={onSelectAll}
           aria-label="Select all tasks"
@@ -23,4 +22,4 @@ export function TaskListHeader({
       </div>
     </div>
   )
-} 
+}

@@ -141,7 +141,7 @@ export default class ListConversationsQuery {
       // 1. Unread count
       // 2. Participants
       // 3. Last message
-      const conversationIds = conversations.map((c: any) => c.id)
+      const conversationIds = conversations.map((c: unknown) => c.id)
 
       if (conversationIds.length === 0) {
         return {
@@ -157,7 +157,7 @@ export default class ListConversationsQuery {
       ])
 
       // Build result
-      const data: ConversationListItem[] = conversations.map((conversation: any) => {
+      const data: ConversationListItem[] = conversations.map((conversation: unknown) => {
         const conversationId = conversation.id
         return {
           id: conversationId,
@@ -212,7 +212,7 @@ export default class ListConversationsQuery {
       .groupBy('messages.conversation_id')
 
     const map = new Map<number, number>()
-    results.forEach((result: any) => {
+    results.forEach((result: unknown) => {
       map.set(result.conversation_id, Number(result.count))
     })
 
@@ -222,7 +222,7 @@ export default class ListConversationsQuery {
   /**
    * Get participants for conversations
    */
-  private async getParticipants(conversationIds: number[]): Promise<Map<number, any[]>> {
+  private async getParticipants(conversationIds: number[]): Promise<Map<number, unknown[]>> {
     const results = await Database.from('conversation_participants')
       .select(
         'conversation_participants.conversation_id',
@@ -233,9 +233,9 @@ export default class ListConversationsQuery {
       .join('users', 'conversation_participants.user_id', 'users.id')
       .whereIn('conversation_participants.conversation_id', conversationIds)
 
-    const map = new Map<number, any[]>()
+    const map = new Map<number, unknown[]>()
 
-    results.forEach((result: any) => {
+    results.forEach((result: unknown) => {
       const conversationId = result.conversation_id
       if (!map.has(conversationId)) {
         map.set(conversationId, [])
@@ -258,7 +258,7 @@ export default class ListConversationsQuery {
   private async getLastMessages(
     conversationIds: number[],
     userId: number
-  ): Promise<Map<number, any>> {
+  ): Promise<Map<number, unknown>> {
     // Get latest message for each conversation using subquery
     const results = await Database.from('messages')
       .select(
@@ -286,9 +286,9 @@ export default class ListConversationsQuery {
         [userId]
       )
 
-    const map = new Map<number, any>()
+    const map = new Map<number, unknown>()
 
-    results.forEach((result: any) => {
+    results.forEach((result: unknown) => {
       // If recalled for everyone, show replacement text
       const message =
         result.is_recalled && result.recall_scope === 'all'

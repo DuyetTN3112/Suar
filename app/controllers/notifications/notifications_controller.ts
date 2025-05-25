@@ -45,7 +45,7 @@ export default class NotificationsController {
       })
 
       // Xử lý dữ liệu notification để đảm bảo định dạng ngày tháng hợp lệ
-      const notificationsData = result.notifications.toJSON().data.map((notification: any) => {
+      const notificationsData = result.notifications.toJSON().data.map((notification: unknown) => {
         return {
           id: notification.id,
           user_id: notification.user_id,

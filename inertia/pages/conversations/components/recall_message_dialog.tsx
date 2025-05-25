@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import useTranslation from '@/hooks/use_translation'
-import { RecallDialogProps } from '../types'
+import type { RecallDialogProps } from '../types'
 
 export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
   open,
@@ -22,7 +22,7 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
   const { t } = useTranslation()
   const [recallType, setRecallType] = useState<'everyone' | 'self'>('everyone')
   const [isRecalling, setIsRecalling] = useState(false)
-  
+
   // Hàm xử lý thu hồi dựa trên lựa chọn của người dùng
   const handleRecall = async () => {
     setIsRecalling(true)
@@ -48,7 +48,7 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
       setIsRecalling(false)
     }
   }
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
@@ -61,13 +61,13 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <div className="flex items-center space-x-2">
-              <input 
-                type="radio" 
-                id="everyone" 
-                name="recallType" 
-                className="w-4 h-4" 
+              <input
+                type="radio"
+                id="everyone"
+                name="recallType"
+                className="w-4 h-4"
                 checked={recallType === 'everyone'}
-                onChange={() => setRecallType('everyone')} 
+                onChange={() => setRecallType('everyone')}
               />
               <label htmlFor="everyone" className="text-sm font-medium">
                 {t('conversation.recall_for_everyone', {}, 'Thu hồi với mọi người')}
@@ -78,13 +78,13 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
             </div>
 
             <div className="flex items-center space-x-2 mt-3">
-              <input 
-                type="radio" 
-                id="self" 
-                name="recallType" 
-                className="w-4 h-4" 
+              <input
+                type="radio"
+                id="self"
+                name="recallType"
+                className="w-4 h-4"
                 checked={recallType === 'self'}
-                onChange={() => setRecallType('self')} 
+                onChange={() => setRecallType('self')}
               />
               <label htmlFor="self" className="text-sm font-medium">
                 {t('conversation.recall_for_self', {}, 'Thu hồi với bạn')}
@@ -115,4 +115,4 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
   )
 }
 
-export default RecallMessageDialog 
+export default RecallMessageDialog

@@ -1,7 +1,7 @@
 /**
  * Hàm hiển thị lỗi trên màn hình một cách rõ ràng
  */
-export function showErrorOnScreen(error: any): void {
+export function showErrorOnScreen(error: unknown): void {
   // Tạo một container chứa thông báo lỗi
   const errorDiv = document.createElement('div')
   errorDiv.style.position = 'fixed'

@@ -1,4 +1,4 @@
-import { Task } from '../types'
+import type { Task } from '../types'
 
 export interface TaskDetailModalProps {
   open: boolean
@@ -27,6 +27,6 @@ export interface AuditLog {
     username: string
   }
   action: string
-  changes?: any
+  changes?: unknown
   created_at: string
 }

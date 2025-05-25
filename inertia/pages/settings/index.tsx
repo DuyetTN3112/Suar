@@ -37,7 +37,7 @@ interface PageProps {
   auth?: {
     user?: UserData
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export default function Settings() {
@@ -69,7 +69,7 @@ export default function Settings() {
 
   // Detect current active item
   const currentPath = window.location.pathname
-  
+
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -157,7 +157,7 @@ export default function Settings() {
                       Bạn có thể quản lý địa chỉ email đã xác minh trong phần cài đặt email.
                     </p>
                   </div>
-                
+
                   {/* Bio section */}
                   <div className="space-y-2">
                     <Label htmlFor="bio">Giới thiệu</Label>
@@ -176,7 +176,7 @@ export default function Settings() {
                     <p className="text-sm text-muted-foreground">
                       Thêm liên kết đến website, blog, hoặc mạng xã hội của bạn.
                     </p>
-                    
+
                     <div className="space-y-2">
                       {form.data.urls.map((url, index) => (
                         <div key={index} className="flex gap-2">
@@ -230,4 +230,4 @@ export default function Settings() {
   )
 }
 
-Settings.layout = (page: React.ReactNode) => <AppLayout title="Cài đặt">{page}</AppLayout> 
+Settings.layout = (page: React.ReactNode) => <AppLayout title="Cài đặt">{page}</AppLayout>

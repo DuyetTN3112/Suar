@@ -1,49 +1,44 @@
-FROM node:20
+# syntax=docker/dockerfile:1
 
-# Thiết lập thư mục làm việc trong container
+# 1. BASE - Môi trường Node.js
+FROM node:20-alpine AS base
+ENV NODE_ENV=production
+# Cài đặt dumb-init để quản lý process
+RUN apk add --no-cache dumb-init
+
+# 2. DEPS - Cài đặt thư viện
+FROM base AS deps
 WORKDIR /app
+COPY package.json package-lock.json ./
+# Cài dependencies (dùng cache để nhanh hơn)
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --include=dev
 
-# Cài đặt các phụ thuộc hệ thống
-# netcat: cần thiết để kiểm tra kết nối đến database và redis
-RUN apt-get update && apt-get install -y \
-    netcat-openbsd \
-    python3 \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
-
-# QUAN TRỌNG: Copy package.json và package-lock.json trước
-# Điều này tận dụng Docker cache khi không có thay đổi ở dependencies
-COPY package*.json ./
-
-# Copy scripts thư mục
-COPY scripts ./scripts
-
-# Làm cho scripts có quyền thực thi
-RUN chmod +x ./scripts/*.js
-
-# Chuẩn bị package.json cho Docker (loại bỏ các dependencies Windows)
-RUN node ./scripts/prepare-package-json.js
-
-# Cài đặt các phụ thuộc Node.js cho Linux
-RUN npm install --no-package-lock
-
-# Copy toàn bộ source code vào container
-# QUAN TRỌNG: Đảm bảo .dockerignore đã loại trừ các file nhạy cảm như .env
+# 3. BUILDER - Build Code & React
+FROM base AS builder
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# Build Backend (Adonis)
+RUN node ace build --ignore-ts-errors
+# Build Frontend (React/Vite)
+RUN npx vite build
+# Xóa thư viện thừa, chỉ giữ lại cái cần chạy
+RUN npm ci --omit=dev && npm cache clean --force
 
-# Build ứng dụng
-# LƯU Ý: Thực hiện build trong quá trình tạo image để tăng hiệu suất
-RUN npm run build
+# 4. RUNNER - Image cuối cùng để chạy
+FROM base AS runner
+WORKDIR /app
+COPY --from=base /usr/bin/dumb-init /usr/bin/dumb-init
+COPY --from=builder --chown=node:node /app/build ./build
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
+COPY --from=builder --chown=node:node /app/package.json ./
+COPY --chown=node:node ./docker-entrypoint.sh /usr/local/bin/
 
-# Mở cổng 3333 cho ứng dụng
-# LƯU Ý: Đảm bảo cổng này khớp với PORT trong file .env và docker-compose.yml
-EXPOSE 3333
-
-# Cấu hình script khởi động
-# QUAN TRỌNG: Script này sẽ kiểm tra kết nối database và tạo APP_KEY
-COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+USER node
+EXPOSE 3333
+ENV PORT=3333
+ENV HOST=0.0.0.0
 
-# Khởi động ứng dụng
-# Script docker-entrypoint.sh sẽ đợi database, tạo APP_KEY và chạy migration
-CMD ["/usr/local/bin/docker-entrypoint.sh"] 
+ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]

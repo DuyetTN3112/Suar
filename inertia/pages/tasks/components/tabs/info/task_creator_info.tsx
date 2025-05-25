@@ -1,8 +1,8 @@
-import React from 'react'
+
 import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Task } from '../../../types'
-import { getAvatarInitials, formatDate } from '../../task_detail_utils'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import type { Task } from '../../../types'
+import { formatDate } from '../../task_detail_utils'
 
 interface TaskCreatorInfoProps {
   task: Task

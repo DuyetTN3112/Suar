@@ -101,7 +101,7 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   /**
    * Convert to plain object for database insertion
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       name: this.name,
       description: this.description,
@@ -123,7 +123,8 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       this.start_date && this.end_date
         ? ` (${this.start_date.toFormat('dd/MM/yyyy')} - ${this.end_date.toFormat('dd/MM/yyyy')})`
         : ''
-    const budgetInfo = this.budget > 0 ? ` - Ngân sách: ${this.budget.toLocaleString('vi-VN')}đ` : ''
+    const budgetInfo =
+      this.budget > 0 ? ` - Ngân sách: ${this.budget.toLocaleString('vi-VN')}đ` : ''
     return `Project: ${this.name}${dates}${budgetInfo}`
   }
 }

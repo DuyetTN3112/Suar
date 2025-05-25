@@ -1,5 +1,5 @@
 import * as LucideIcons from 'lucide-react'
-import { ElementType } from 'react'
+import type { ElementType } from 'react'
 
 /**
  * Hàm lấy component icon dựa trên tên

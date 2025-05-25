@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
-import CreateNotification from '#actions/common/create_notification'
+import type CreateNotification from '#actions/common/create_notification'
 
 /**
  * Command: Create Organization

@@ -1,5 +1,5 @@
-import React from 'react'
-import { Task } from '../../../types'
+
+import type { Task } from '../../../types'
 import { User } from 'lucide-react'
 
 interface TaskAssigneeCellProps {

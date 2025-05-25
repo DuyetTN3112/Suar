@@ -117,7 +117,7 @@ export default class AssignTaskDTO {
   /**
    * Convert DTO thành object để cập nhật database
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       assigned_to: this.assigned_to,
     }

@@ -1,4 +1,3 @@
-import { LucideIcon } from 'lucide-react'
 import * as LucideIcons from 'lucide-react'
 
 interface BaseNavItem {
@@ -29,7 +28,7 @@ interface NavGroup {
 // Hàm để chuyển đổi chuỗi icon thành component icon tương ứng
 function getIconByName(name?: string): React.ElementType | undefined {
   if (!name) return undefined
-  return (LucideIcons as any)[name]
+  return (LucideIcons as unknown)[name]
 }
 
 // Các tổ chức mẫu cho giao diện

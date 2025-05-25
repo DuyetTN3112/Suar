@@ -4,7 +4,7 @@ import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
-import { ProjectsIndexProps, Project } from './types'
+import type { ProjectsIndexProps, Project } from './types'
 import useTranslation from '@/hooks/use_translation'
 import { router } from '@inertiajs/react'
 import { formatDate } from '@/lib/utils'
@@ -26,7 +26,7 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
     // Sử dụng prop showOrganizationRequiredModal được truyền từ backend
 
     // Kiểm tra cả prop và các cách khác để đảm bảo tương thích
-    const showOrgModalFromSession = (window as any).__inertia?.page?.props?.showOrganizationRequiredModal === true
+    const showOrgModalFromSession = (window as unknown).__inertia?.page?.props?.showOrganizationRequiredModal === true
     const showOrgModalFromCookie = document.cookie.includes('show_organization_required_modal=true')
 
     // Sử dụng prop hoặc các cách khác nếu prop không có

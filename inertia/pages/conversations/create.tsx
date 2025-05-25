@@ -55,14 +55,14 @@ export default function CreateConversation({ metadata, errors }: Props) {
     }
   }
 
-  const getAvatarInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2)
-  }
+  // const getAvatarInitials = (name: string) => {
+  //   return name
+  //     .split(' ')
+  //     .map(part => part[0])
+  //     .join('')
+  //     .toUpperCase()
+  //     .substring(0, 2)
+  // }
 
   return (
     <>

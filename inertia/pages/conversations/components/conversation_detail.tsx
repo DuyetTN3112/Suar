@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Loader2, Phone, Video, MoreVertical, MoreHorizontal, Copy, Share, Trash } from 'lucide-react'
-import { Conversation, Message } from '../types'
+import type { Conversation, Message } from '../types'
 import { getAvatarInitials, formatMessageDate, groupMessagesByDate, getConversationInfo, calculateMessageSize } from '../utils/conversation_utils'
 import useTranslation from '@/hooks/use_translation'
 import {
@@ -128,7 +128,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                     // Kiểm tra dữ liệu tin nhắn trước khi render
                     if (!message.id || !message.sender_id) {
                       // Only log in development
-                      if (process.env.NODE_ENV === 'development') {
+                      if (import.meta.env.NODE_ENV === 'development') {
                         console.warn('Tin nhắn thiếu thông tin cần thiết')
                       }
                       return null // Bỏ qua tin nhắn không đủ thông tin
@@ -214,7 +214,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                                         </DropdownMenuItem>
                                       )}
                                       <DropdownMenuItem onClick={() => {
-                                        navigator.clipboard.writeText(message.message)
+                                        void navigator.clipboard.writeText(message.message)
                                       }}>
                                         <Copy className="mr-2 h-4 w-4" />
                                         {t('conversation.copy', {}, 'Sao chép')}
@@ -234,7 +234,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                         {isOutgoing && (
                           <div className="flex-shrink-0 ml-2">
                             <Avatar className="h-8 w-8">
-                              <AvatarFallback>{(window as any).auth?.user?.username?.[0]?.toUpperCase() || (window as any).auth?.user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
+                              <AvatarFallback>{(window as unknown).auth?.user?.username?.[0]?.toUpperCase() || (window as unknown).auth?.user?.email?.[0]?.toUpperCase() || 'U'}</AvatarFallback>
                             </Avatar>
                           </div>
                         )}
@@ -242,7 +242,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                     )
                   } catch (error) {
                     // Only log in development
-                    if (process.env.NODE_ENV === 'development') {
+                    if (import.meta.env.NODE_ENV === 'development') {
                       console.error('Lỗi rendering tin nhắn:', error)
                       console.error('Message data:', message)
                     }

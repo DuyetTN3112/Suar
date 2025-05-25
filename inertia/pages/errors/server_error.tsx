@@ -4,13 +4,13 @@ import { ErrorDisplay, scanReactPlugin } from '@/lib/error-logger';
 /**
  * Trang hiển thị lỗi server chi tiết
  */
-function ServerError({ error }: { error: any }) {
-  const [pluginDetails, setPluginDetails] = useState<Record<string, any> | null>(null);
+function ServerError({ error }: { error: unknown }) {
+  const [pluginDetails, setPluginDetails] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     // Only log actual errors in production
-    if (process.env.NODE_ENV !== 'development') {
+    if (import.meta.env.NODE_ENV !== 'development') {
       console.error('Server Error:', error);
     }
 
@@ -21,21 +21,21 @@ function ServerError({ error }: { error: any }) {
 
       // Hiển thị thông tin chi tiết về lỗi
       // Only log in development
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.NODE_ENV === 'development') {
         console.info('Plugin Details:', details);
       }
 
       // Hiển thị thông tin debug nếu có
       if (window.DEBUG?.showReactVersionInfo) {
         // Only log in development
-        if (process.env.NODE_ENV === 'development') {
+        if (import.meta.env.NODE_ENV === 'development') {
           console.info('--- Thông tin React version ---');
           window.DEBUG.showReactVersionInfo();
         }
       }
     } catch (e) {
       // Only log actual errors in production
-      if (process.env.NODE_ENV !== 'development') {
+      if (import.meta.env.NODE_ENV !== 'development') {
         console.error('Lỗi khi phân tích plugin React:', e);
       }
     } finally {
@@ -216,7 +216,7 @@ function ServerError({ error }: { error: any }) {
                 // Restart development server
                 fetch('/api/dev/restart', { method: 'POST' }).catch(err => {
                   // Only log actual errors in production
-                  if (process.env.NODE_ENV !== 'development') {
+                  if (import.meta.env.NODE_ENV !== 'development') {
                     console.error('Could not restart dev server:', err);
                   }
                 }).finally(() => {

@@ -33,7 +33,7 @@ export default class DeleteUser {
         success: true,
         message: 'Người dùng đã được xóa thành công',
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
         message: error.message || 'Không có quyền xóa người dùng này',

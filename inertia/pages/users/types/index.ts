@@ -60,5 +60,5 @@ export type PendingApprovalProps = {
     search?: string
     status_id?: number
   }
-  metadata?: any
+  metadata?: unknown
 }

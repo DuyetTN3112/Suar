@@ -1,6 +1,6 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
-import { Task } from '../../../types'
+import type { Task } from '../../../types'
 import { Save, Trash2, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface TaskDetailActionsProps {
@@ -18,7 +18,6 @@ interface TaskDetailActionsProps {
 
 export function TaskDetailActions({
   task,
-  formData,
   submitting,
   setSubmitting,
   setErrors,
@@ -30,9 +29,9 @@ export function TaskDetailActions({
 }: TaskDetailActionsProps) {
   const handleMarkCompleted = async () => {
     if (!task?.id || !completedStatusId) return
-    
+
     setSubmitting(true)
-    
+
     try {
       const response = await fetch(`/tasks/${task.id}/status`, {
         method: 'PUT',
@@ -43,7 +42,7 @@ export function TaskDetailActions({
         },
         body: JSON.stringify({ status_id: completedStatusId })
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         if (onUpdate) {
@@ -59,12 +58,12 @@ export function TaskDetailActions({
       setSubmitting(false)
     }
   }
-  
+
   const handleDelete = async () => {
     if (!task?.id || !window.confirm('Bạn có chắc chắn muốn xóa nhiệm vụ này không?')) return
-    
+
     setSubmitting(true)
-    
+
     try {
       const response = await fetch(`/api/tasks/${task.id}`, {
         method: 'DELETE',
@@ -74,12 +73,12 @@ export function TaskDetailActions({
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
         }
       })
-      
+
       if (response.ok) {
         // Thành công - thông báo cho parent component
         if (onUpdate) {
           // Dùng null để thông báo rằng task đã bị xóa
-          onUpdate(null as any)
+          onUpdate(null as unknown)
         }
       } else {
         const errorData = await response.json()
@@ -111,7 +110,7 @@ export function TaskDetailActions({
           </Button>
         )}
       </div>
-      
+
       <div className="flex gap-2">
         {canMarkAsCompleted && !isTaskCompleted && (
           <Button
@@ -125,7 +124,7 @@ export function TaskDetailActions({
             Hoàn thành
           </Button>
         )}
-        
+
         {canMarkAsCompleted && isTaskCompleted && (
           <Button
             type="button"
@@ -138,7 +137,7 @@ export function TaskDetailActions({
             Mở lại nhiệm vụ
           </Button>
         )}
-        
+
         <Button
           type="button"
           onClick={onSubmit}
@@ -150,4 +149,4 @@ export function TaskDetailActions({
       </div>
     </div>
   )
-} 
+}

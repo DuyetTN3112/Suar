@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/table"
 import { Checkbox } from '@/components/ui/checkbox'
 import { ChevronDown, ChevronRight } from 'lucide-react'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { ChildTaskRow } from './child_task_row'
 import { TaskItemDeleteButton } from './task_item_delete_button'
 import { TaskStatusCell } from './cells/status_cell'

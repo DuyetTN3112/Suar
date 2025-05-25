@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Label } from '@/components/ui/label'
 import { Calendar } from '@/components/ui/calendar'
 import { format } from 'date-fns'
@@ -19,20 +19,20 @@ export function TaskFormDueDateField({
   onDateChange,
   error
 }: TaskFormDueDateFieldProps) {
-  const { t, locale } = useTranslation()
+  const { t } = useTranslation()
   const [date, setDate] = useState<Date | undefined>(dueDate)
-  
+
   // Sync local state with prop
   useEffect(() => {
     setDate(dueDate)
   }, [dueDate])
-  
+
   // Handle calendar date selection
   const handleSelect = (newDate: Date | undefined) => {
     setDate(newDate)
     onDateChange(newDate)
   }
-  
+
   return (
     <div className="grid gap-2">
       <Label>{t('task.due_date', {}, 'Ngày đến hạn')}</Label>
@@ -62,4 +62,4 @@ export function TaskFormDueDateField({
       )}
     </div>
   )
-} 
+}

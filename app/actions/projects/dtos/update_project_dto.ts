@@ -127,8 +127,8 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   /**
    * Convert to plain object (only fields that are being updated)
    */
-  public toObject(): Record<string, any> {
-    const result: Record<string, any> = {}
+  public toObject(): Record<string, unknown> {
+    const result: Record<string, unknown> = {}
 
     if (this.name !== undefined) result.name = this.name
     if (this.description !== undefined) result.description = this.description

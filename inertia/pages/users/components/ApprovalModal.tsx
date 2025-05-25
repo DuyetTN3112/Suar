@@ -1,4 +1,4 @@
-import React from 'react'
+
 import {
   Dialog,
   DialogContent,
@@ -8,16 +8,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table'
 import useTranslation from '@/hooks/use_translation'
-import { User } from '../types'
+import type { User } from '../types'
 import { getUserDisplayName } from '../utils/user_utils'
 
 type ApprovalModalProps = {
@@ -40,7 +40,7 @@ export default function ApprovalModal({
   onApproveAll
 }: ApprovalModalProps) {
   const { t } = useTranslation()
-  
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[600px]">
@@ -50,7 +50,7 @@ export default function ApprovalModal({
             {t('user.pending_approval_list', {}, "Danh sách người dùng đang chờ phê duyệt")}
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="py-4">
           {isLoadingPendingUsers ? (
             <div className="flex justify-center py-8">
@@ -65,7 +65,7 @@ export default function ApprovalModal({
               <div className="flex justify-end mb-4">
                 <Button onClick={onApproveAll}>{t('user.approve_all', {}, "Phê duyệt tất cả")}</Button>
               </div>
-              
+
               <div className="overflow-y-auto max-h-[400px] border rounded-md">
                 <Table>
                   <TableHeader>
@@ -97,11 +97,11 @@ export default function ApprovalModal({
             </>
           )}
         </div>
-        
+
         <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
+          <Button
+            type="button"
+            variant="outline"
             onClick={onClose}
           >
             {t('common.close', {}, "Đóng")}
@@ -110,4 +110,4 @@ export default function ApprovalModal({
       </DialogContent>
     </Dialog>
   )
-} 
+}

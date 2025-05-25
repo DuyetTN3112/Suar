@@ -168,8 +168,8 @@ export class UpdateOrganizationDTO {
    * Helper: Get only the fields that should be updated
    * Pattern: Partial update object (learned from Projects module)
    */
-  toObject(): Record<string, any> {
-    const updates: Record<string, any> = {}
+  toObject(): Record<string, unknown> {
+    const updates: Record<string, unknown> = {}
 
     if (this.name !== undefined && this.name !== null) {
       const trimmed = this.name.trim()

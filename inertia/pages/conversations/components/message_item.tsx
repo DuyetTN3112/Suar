@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Message } from './types'
+import type { Message } from './types'
 import { getAvatarInitials, formatMessageDate, calculateMessageSize } from '../utils/message_utils'
 import useTranslation from '@/hooks/use_translation'
 import { Button } from '@/components/ui/button'

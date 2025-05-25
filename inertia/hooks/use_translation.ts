@@ -37,12 +37,12 @@ export default function useTranslation() {
 
     // Nếu còn module chưa tải, tiến hành tải
     if (notLoadedModules.length > 0) {
-      Promise.all(notLoadedModules.map((module) => loadTranslationModule(locale, module))).then(
-        () => {
-          // Đánh dấu tất cả module đã tải
-          setLoadedModules((prev) => [...prev, ...notLoadedModules])
-        }
-      )
+      void Promise.all(
+        notLoadedModules.map((module) => loadTranslationModule(locale, module))
+      ).then(() => {
+        // Đánh dấu tất cả module đã tải
+        setLoadedModules((prev) => [...prev, ...notLoadedModules])
+      })
     }
   }, [locale])
 

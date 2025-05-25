@@ -7,43 +7,43 @@ type PaginationProps = {
   currentPage: number
   totalPages: number
   baseUrl: string
-  queryParams?: Record<string, any>
+  queryParams?: Record<string, unknown>
 }
 
-export const Pagination: React.FC<PaginationProps> = ({ 
-  currentPage, 
-  totalPages, 
+export const Pagination: React.FC<PaginationProps> = ({
+  currentPage,
+  totalPages,
   baseUrl,
   queryParams = {}
 }) => {
   const pages = []
-  
+
   // Xây dựng query string từ các tham số
   const buildQueryString = (page: number) => {
     const params = new URLSearchParams()
-    
+
     // Thêm trang hiện tại
     params.append('page', page.toString())
-    
+
     // Thêm các tham số khác
     Object.entries(queryParams).forEach(([key, value]) => {
       if (value !== undefined && value !== null && key !== 'page') {
         params.append(key, value.toString())
       }
     })
-    
+
     return params.toString()
   }
-  
+
   // Tạo URL cho từng trang
   const createPageUrl = (page: number) => {
     const queryString = buildQueryString(page)
     return `${baseUrl}?${queryString}`
   }
-  
+
   // Logic tạo danh sách trang
   const maxVisiblePages = 3
-  
+
   if (totalPages <= maxVisiblePages) {
     // Hiển thị tất cả các trang nếu tổng số trang nhỏ hơn hoặc bằng số trang tối đa hiển thị
     for (let i = 1; i <= totalPages; i++) {
@@ -52,39 +52,39 @@ export const Pagination: React.FC<PaginationProps> = ({
   } else {
     // Luôn hiển thị trang đầu
     pages.push(1)
-    
+
     // Tính toán phạm vi trang giữa
     let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2))
     let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
-    
+
     // Điều chỉnh startPage nếu endPage quá gần với totalPages
     if (endPage === totalPages - 1) {
       startPage = Math.max(2, endPage - (maxVisiblePages - 3))
     }
-    
+
     // Thêm dấu ... nếu cần
     if (startPage > 2) {
       pages.push(null) // Dùng null cho dấu ...
     }
-    
+
     // Thêm các trang ở giữa
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i)
     }
-    
+
     // Thêm dấu ... nếu cần
     if (endPage < totalPages - 1) {
       pages.push(null) // Dùng null cho dấu ...
     }
-    
+
     // Luôn hiển thị trang cuối
     pages.push(totalPages)
   }
-  
+
   return (
     <div className="flex items-center justify-center space-x-0.5">
       {/* First page button */}
-      <Button 
+      <Button
         variant="outline"
         size="icon"
         disabled={currentPage === 1}
@@ -107,7 +107,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           </Link>
         )}
       </Button>
-      
+
       {/* Previous page button */}
       <Button
         variant="outline"
@@ -126,7 +126,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           </Link>
         )}
       </Button>
-      
+
       {pages.map((page, i) => {
         if (page === null) {
           return (
@@ -135,7 +135,7 @@ export const Pagination: React.FC<PaginationProps> = ({
             </Button>
           )
         }
-        
+
         return (
           <Button
             key={`page-${page}`}
@@ -154,7 +154,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           </Button>
         )
       })}
-      
+
       {/* Next page button */}
       <Button
         variant="outline"
@@ -173,9 +173,9 @@ export const Pagination: React.FC<PaginationProps> = ({
           </Link>
         )}
       </Button>
-      
+
       {/* Last page button */}
-      <Button 
+      <Button
         variant="outline"
         size="icon"
         disabled={currentPage === totalPages}
@@ -200,4 +200,4 @@ export const Pagination: React.FC<PaginationProps> = ({
       </Button>
     </div>
   )
-} 
+}

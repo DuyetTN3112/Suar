@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { router } from '@inertiajs/react'
-import { Task } from '../../types'
+import type { Task } from '../../types'
 import { getPermissions } from '../task_detail_utils'
 import { loadAuditLogs, markTaskAsCompleted } from '../task_detail_api'
 

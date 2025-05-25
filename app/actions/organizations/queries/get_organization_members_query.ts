@@ -25,7 +25,7 @@ export default class GetOrganizationMembersQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(dto: GetOrganizationMembersDTO): Promise<{
-    data: any[]
+    data: unknown[]
     meta: {
       total: number
       per_page: number
@@ -71,12 +71,12 @@ export default class GetOrganizationMembersQuery {
 
     // 4. Apply filters
     if (dto.roleId) {
-      query.where('ou.role_id', dto.roleId)
+      void query.where('ou.role_id', dto.roleId)
     }
 
     if (dto.search) {
-      query.where((searchQuery) => {
-        searchQuery
+      void query.where((searchQuery) => {
+        void searchQuery
           .whereILike('u.username', `%${dto.search}%`)
           .orWhereILike('u.email', `%${dto.search}%`)
       })
@@ -89,7 +89,7 @@ export default class GetOrganizationMembersQuery {
 
     // 6. Apply pagination
     const offset = dto.getOffset()
-    query.orderBy('ou.joined_at', 'desc').limit(dto.limit).offset(offset)
+    void query.orderBy('ou.joined_at', 'desc').limit(dto.limit).offset(offset)
 
     // 7. Execute query
     const members = await query
@@ -165,7 +165,7 @@ export default class GetOrganizationMembersQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<any> {
+  private async getFromCache(key: string): Promise<unknown> {
     try {
       const cached = await redis.get(key)
       if (cached) {
@@ -180,7 +180,7 @@ export default class GetOrganizationMembersQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import env from '#start/env'
 import db from '@adonisjs/lucid/services/db'
 

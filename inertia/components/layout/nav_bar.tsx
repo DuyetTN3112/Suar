@@ -33,7 +33,7 @@ interface PageProps {
   csrfToken?: string
   locale?: string
   supportedLocales?: string[]
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export default function Navbar() {

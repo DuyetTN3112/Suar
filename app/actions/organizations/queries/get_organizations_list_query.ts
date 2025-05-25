@@ -36,7 +36,7 @@ export default class GetOrganizationsListQuery {
    * 8. Return result
    */
   async execute(dto: GetOrganizationsListDTO): Promise<{
-    data: any[]
+    data: unknown[]
     pagination: {
       page: number
       limit: number
@@ -113,7 +113,7 @@ export default class GetOrganizationsListQuery {
     if (dto.hasSearch()) {
       const search = dto.getNormalizedSearch()!
       query = query.where((builder) => {
-        builder
+        void builder
           .where('o.name', 'like', `%${search}%`)
           .orWhere('o.description', 'like', `%${search}%`)
       })
@@ -131,7 +131,7 @@ export default class GetOrganizationsListQuery {
    * Helper: Enrich organizations with stats
    * Pattern: Parallel stat fetching (learned from Projects module)
    */
-  private async enrichWithStats(organizations: any[]): Promise<any[]> {
+  private async enrichWithStats(organizations: unknown[]): Promise<unknown[]> {
     if (organizations.length === 0) return []
 
     const orgIds = organizations.map((org) => org.id)
@@ -157,10 +157,10 @@ export default class GetOrganizationsListQuery {
 
     // Create lookup maps
     const memberCountMap = new Map(
-      memberCounts.map((m: any) => [m.organization_id, Number(m.count)])
+      memberCounts.map((m: unknown) => [m.organization_id, Number(m.count)])
     )
     const projectCountMap = new Map(
-      projectCounts.map((p: any) => [p.organization_id, Number(p.count)])
+      projectCounts.map((p: unknown) => [p.organization_id, Number(p.count)])
     )
 
     // Enrich organizations

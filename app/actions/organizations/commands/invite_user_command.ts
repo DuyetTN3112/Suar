@@ -103,7 +103,11 @@ export default class InviteUserCommand {
   /**
    * Helper: Check if user has permission to send invitations
    */
-  private async checkPermissions(organizationId: number, userId: number, trx: any): Promise<void> {
+  private async checkPermissions(
+    organizationId: number,
+    userId: number,
+    trx: unknown
+  ): Promise<void> {
     const membership = await db
       .from('organization_users')
       .where('organization_id', organizationId)
@@ -120,7 +124,7 @@ export default class InviteUserCommand {
   /**
    * Helper: Check for duplicate active invitations
    */
-  private async checkDuplicateInvitation(dto: InviteUserDTO, trx: any): Promise<void> {
+  private async checkDuplicateInvitation(dto: InviteUserDTO, trx: unknown): Promise<void> {
     const existingInvitation = await db
       .from('organization_invitations')
       .where('organization_id', dto.organizationId)

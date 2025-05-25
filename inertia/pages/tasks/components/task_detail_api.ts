@@ -1,6 +1,6 @@
 import axios from 'axios'
-import { Task } from '../types'
-import { AuditLog } from './task_detail_types'
+import type { Task } from '../types'
+import type { AuditLog } from './task_detail_types'
 
 /**
  * Tải lịch sử thay đổi của task

@@ -1,8 +1,8 @@
-import React from 'react'
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { AppearanceTabProps } from './types'
+import type { AppearanceTabProps } from './types'
 
 export function AppearanceTab({ form, onSubmit, processing }: AppearanceTabProps) {
   return (
@@ -18,21 +18,21 @@ export function AppearanceTab({ form, onSubmit, processing }: AppearanceTabProps
           <div className="space-y-2">
             <Label>Chủ đề</Label>
             <div className="flex space-x-4">
-              <Button 
+              <Button
                 type="button"
                 variant={form.data.theme === 'light' ? 'default' : 'outline'}
                 onClick={() => form.setData('theme', 'light')}
               >
                 Sáng
               </Button>
-              <Button 
+              <Button
                 type="button"
                 variant={form.data.theme === 'dark' ? 'default' : 'outline'}
                 onClick={() => form.setData('theme', 'dark')}
               >
                 Tối
               </Button>
-              <Button 
+              <Button
                 type="button"
                 variant={form.data.theme === 'system' ? 'default' : 'outline'}
                 onClick={() => form.setData('theme', 'system')}
@@ -48,4 +48,4 @@ export function AppearanceTab({ form, onSubmit, processing }: AppearanceTabProps
       </CardContent>
     </Card>
   )
-} 
+}

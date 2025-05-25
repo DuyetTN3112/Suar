@@ -38,7 +38,7 @@ interface PageProps {
   auth?: {
     user?: UserData
   }
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export default function Profile() {

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 import useTranslation from '@/hooks/use_translation'
-import { UsersProps } from './types'
+import type { UsersProps } from './types'
 import { isSuperAdminInCurrentOrg } from './utils/user_utils'
 import { useUserPermissions } from './hooks/use_user_permissions'
 import { useUserApproval } from './hooks/use_user_approval'

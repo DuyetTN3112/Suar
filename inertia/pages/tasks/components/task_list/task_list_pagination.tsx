@@ -1,5 +1,4 @@
 import React from 'react'
-import { router } from '@inertiajs/react'
 import { Pagination } from '@/components/ui/pagination'
 
 type TaskListPaginationProps = {
@@ -11,7 +10,7 @@ type TaskListPaginationProps = {
   }
   rowsPerPage: number
   onRowsPerPageChange: (e: React.ChangeEvent<HTMLSelectElement>) => void
-  filters: any
+  filters: unknown
 }
 
 export function TaskListPagination({
@@ -40,7 +39,7 @@ export function TaskListPagination({
           Page {meta.current_page} of {meta.last_page}
         </div>
       </div>
-      
+
       <Pagination
         baseUrl="/tasks"
         totalPages={meta.last_page}
@@ -49,4 +48,4 @@ export function TaskListPagination({
       />
     </div>
   )
-} 
+}

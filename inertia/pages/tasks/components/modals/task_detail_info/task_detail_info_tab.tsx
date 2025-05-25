@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react'
+import React from 'react'
 import { TaskDetailFields } from './task_detail_fields'
 import { TaskDetailActions } from './task_detail_actions'
-import { Task } from '../../../types'
+import type { Task } from '../../../types'
 import { useTaskDetailForm } from './hooks/use_task_detail_form'
 import { formatDate } from '../../../utils/task_formatter'
-import { getAvatarInitials } from '../../task_detail_utils'
+
 import { Calendar, User } from 'lucide-react'
 import useTranslation from '@/hooks/use_translation'
 

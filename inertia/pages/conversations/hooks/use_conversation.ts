@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 
-import { Conversation, Message } from '../types'
+import type { Conversation, Message } from '../types'
 
 export const useConversation = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null)
