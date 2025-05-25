@@ -2,8 +2,6 @@
   "user": {
     "email": "Email",
     "username": "Username",
-    "password": "Password",
-    "confirm_password": "Confirm Password",
     "role": "Role",
     "status": "Status",
     "created_at": "Created at",

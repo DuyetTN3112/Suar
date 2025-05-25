@@ -2,8 +2,6 @@
   "shared": {
     "fields": {
       "email": "email",
-      "password": "password",
-      "password_confirmation": "password confirmation",
       "username": "username",
       "title": "title",
       "description": "description",
@@ -21,8 +19,7 @@
       "unique": "The {field} is already taken",
       "exists": "The {field} does not exist",
       "date": "The {field} must be a valid date",
-      "username.required": "Choose a username for your account",
-      "password.required": "Choose a password for your account"
+      "username.required": "Choose a username for your account"
     }
   }
 }

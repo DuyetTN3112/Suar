@@ -76,7 +76,7 @@ export default class GetTasksListQuery {
     }
 
     // Apply sorting
-    void query.orderBy(dto.sort_by!, dto.sort_order!)
+    void query.orderBy(dto.sort_by!, dto.sort_order)
 
     // Preload relations
     void query

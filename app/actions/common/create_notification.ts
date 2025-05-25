@@ -35,7 +35,7 @@ export default class CreateNotification {
         .first()
 
       return notification
-    } catch (error) {
+    } catch (_error) {
       return null
     }
   }

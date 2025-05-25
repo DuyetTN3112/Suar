@@ -25,7 +25,6 @@
   "error": "An error occurred",
   "login_description": "Enter your login credentials to access the system",
   "or_login_with_email": "Or login with email",
-  "forgot_password": "Forgot password?",
   "remember_me": "Remember me",
   "no_account_register": "No account? Register",
   "account": "Account",

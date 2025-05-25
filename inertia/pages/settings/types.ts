@@ -27,9 +27,6 @@ export type ProfileFormData = {
 
 export type AccountFormData = {
   email: string
-  current_password: string
-  password: string
-  password_confirmation: string
 }
 
 export type AppearanceFormData = {

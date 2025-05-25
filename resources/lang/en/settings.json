@@ -7,8 +7,6 @@
     "notifications": "Notifications",
     "appearance": "Appearance",
     "language": "Language",
-    "theme": "Theme",
-    "change_password": "Change Password",
-    "current_password": "Current Password"
+    "theme": "Theme"
   }
-} 
+}

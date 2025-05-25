@@ -1,28 +1,12 @@
 import { router } from '@inertiajs/react'
 
-// Định nghĩa type cho các tùy chọn điều hướng phù hợp với API của Inertia
-type PreserveStateOption = boolean | string
-type VisitOptions = {
-  preserveState?: PreserveStateOption
-  preserveScroll?: boolean
-  replace?: boolean
-  only?: string[]
-  headers?: Record<string, string>
-  onCancelToken?: (cancelToken: unknown) => void
-  onBefore?: () => boolean | Promise<boolean>
-  onStart?: () => void
-  onProgress?: (progress: ProgressEvent) => void
-  onFinish?: () => void
-  onCancel?: () => void
-  onSuccess?: () => void
-  onError?: (errors: Record<string, string>) => void
-}
+/**
 
 /**
  * Paths that should always trigger a full page reload
  * Typically authorization-related routes or routes that reset the application state
  */
-export const HARD_RELOAD_PATHS = ['/logout', '/login', '/register', '/password/reset']
+export const HARD_RELOAD_PATHS = ['/logout', '/login', '/register']
 
 /**
  * Check if a path requires a hard reload

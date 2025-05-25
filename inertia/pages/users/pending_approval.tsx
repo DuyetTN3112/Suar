@@ -1,5 +1,5 @@
 import React from 'react'
-import { Head, usePage } from '@inertiajs/react'
+import { Head } from '@inertiajs/react'
 import AppLayout from '@/layouts/app_layout'
 import { Button } from '@/components/ui/button'
 import useTranslation from '@/hooks/use_translation'
@@ -10,7 +10,6 @@ import { usePendingApproval } from './hooks/use_pending_approval'
 
 export default function PendingApproval({ users, filters,  }: PendingApprovalProps) {
   const [search, setSearch] = React.useState(filters.search || '')
-  const { auth } = usePage().props as unknown
   const { t } = useTranslation()
   const { approveAllUsers } = usePendingApproval(users)
 

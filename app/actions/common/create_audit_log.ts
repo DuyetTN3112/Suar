@@ -42,7 +42,7 @@ export default class CreateAuditLog {
       ])
 
       return true
-    } catch (error) {
+    } catch (_error) {
       return false
     }
   }

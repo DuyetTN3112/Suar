@@ -149,7 +149,7 @@ export default class GetProjectsListQuery extends BaseQuery<
       const countQuery = query.clone().clearSelect().clearOrder().count('DISTINCT p.id as total')
       const countResult = await countQuery.first()
       total = Number(countResult?.total || 0)
-    } catch (countError) {
+    } catch (_countError) {
       // Fallback: count without DISTINCT
       try {
         const fallbackCount = await query
@@ -159,7 +159,7 @@ export default class GetProjectsListQuery extends BaseQuery<
           .count('* as total')
           .first()
         total = Number(fallbackCount?.total || 0)
-      } catch (fallbackError) {
+      } catch (_fallbackError) {
         // Silently fail - total will be 0
       }
     }

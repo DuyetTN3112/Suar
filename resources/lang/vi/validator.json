@@ -19,8 +19,8 @@
       "unique": "{field} đã được sử dụng",
       "exists": "{field} không tồn tại",
       "date": "{field} phải là ngày hợp lệ",
-      "username.required": "Vui lòng chọn tên đăng nhập cho tài khoản của bạn",
-      "password.required": "Vui lòng chọn mật khẩu cho tài khoản của bạn"
+      "username.required": "Vui lòng chọn tên đăng nhập cho tài khoản của bạn"
+
     }
   }
 }

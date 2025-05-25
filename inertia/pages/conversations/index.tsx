@@ -48,7 +48,6 @@ const scrollbarStyles = `
 export default function Conversations({ conversations }: ConversationsProps) {
   const { t } = useTranslation()
   const loggedInUserId = (window as unknown).auth?.user?.id || ''
-  const hasConversations = conversations?.data && conversations.data.length > 0
 
   const {
     selectedId,
