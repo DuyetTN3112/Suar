@@ -2,9 +2,8 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
-import UserRole from './user_role.js'
+import SystemRole from './system_role.js'
 import UserStatus from './user_status.js'
-import UserUrl from './user_url.js'
 import Organization from './organization.js'
 import Task from './task.js'
 import Project from './project.js'
@@ -32,7 +31,7 @@ export default class User extends BaseModel {
   declare status_id: number
 
   @column()
-  declare role_id: number
+  declare system_role_id: number | null
 
   @column.dateTime()
   declare deleted_at: DateTime | null
@@ -49,10 +48,10 @@ export default class User extends BaseModel {
   @column()
   declare auth_method: 'email' | 'google' | 'github'
 
-  @belongsTo(() => UserRole, {
-    foreignKey: 'role_id',
+  @belongsTo(() => SystemRole, {
+    foreignKey: 'system_role_id',
   })
-  declare role: BelongsTo<typeof UserRole>
+  declare system_role: BelongsTo<typeof SystemRole>
 
   @belongsTo(() => UserStatus, {
     foreignKey: 'status_id',
@@ -63,9 +62,6 @@ export default class User extends BaseModel {
     foreignKey: 'current_organization_id',
   })
   declare current_organization: BelongsTo<typeof Organization>
-
-  @hasMany(() => UserUrl)
-  declare user_urls: HasMany<typeof UserUrl>
 
   @hasMany(() => Task, {
     foreignKey: 'creator_id',
@@ -94,7 +90,7 @@ export default class User extends BaseModel {
 
   @manyToMany(() => Project, {
     pivotTable: 'project_members',
-    pivotColumns: ['role'],
+    pivotColumns: ['project_role_id'],
     pivotTimestamps: {
       createdAt: 'created_at',
       updatedAt: false,
@@ -122,12 +118,12 @@ export default class User extends BaseModel {
    * Kiểm tra xem user có quyền admin hay không
    */
   get isAdmin() {
-    return ['superadmin', 'admin'].includes(this.role?.name.toLowerCase())
+    return ['superadmin', 'system_admin'].includes(this.system_role?.name ?? '')
   }
 
   @manyToMany(() => Organization, {
     pivotTable: 'organization_users',
-    pivotColumns: ['role_id'],
+    pivotColumns: ['role_id', 'status', 'invited_by'],
     pivotTimestamps: true,
   })
   declare organizations: ManyToMany<typeof Organization>

@@ -31,6 +31,9 @@ export default class Task extends BaseModel {
   declare priority_id: number
 
   @column()
+  declare difficulty_level_id: number | null
+
+  @column()
   declare assigned_to: number | null
 
   @column()
@@ -65,6 +68,22 @@ export default class Task extends BaseModel {
 
   @column()
   declare project_id: number | null
+
+  // Marketplace columns
+  @column()
+  declare is_public_listing: boolean
+
+  @column({
+    prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+  })
+  declare required_skills: string[] | null
+
+  @column()
+  declare estimated_budget: number | null
+
+  @column()
+  declare external_applications_count: number
 
   @belongsTo(() => TaskStatus, {
     foreignKey: 'status_id',

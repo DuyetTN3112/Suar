@@ -121,14 +121,14 @@ const inertiaConfig = defineConfig({
           }
 
           // Đảm bảo load các relationship cần thiết
-          if (!user.$preloaded.role) {
-            await user.load('role')
+          if (!user.$preloaded.system_role) {
+            await user.load('system_role')
           }
           // Kiểm tra vai trò admin
           const isAdmin =
-            user.role?.name?.toLowerCase() === 'admin' ||
-            user.role?.name?.toLowerCase() === 'superadmin' ||
-            [1, 2].includes(user.role_id)
+            user.system_role?.name?.toLowerCase() === 'superadmin' ||
+            user.system_role?.name?.toLowerCase() === 'system_admin' ||
+            [1, 2].includes(user.system_role_id ?? 0)
           // Lấy current_organization_id từ session hoặc từ model user
           const currentOrganizationId =
             ctx.session.get('current_organization_id') || user.current_organization_id
@@ -137,13 +137,13 @@ const inertiaConfig = defineConfig({
             id: user.id,
             email: user.email,
             username: user.username,
-            role: user.role
+            system_role: user.system_role
               ? {
-                  id: user.role.id,
-                  name: user.role.name,
+                  id: user.system_role.id,
+                  name: user.system_role.name,
                 }
               : null,
-            role_id: user.role_id,
+            system_role_id: user.system_role_id,
             isAdmin: isAdmin,
             current_organization_id: currentOrganizationId,
             organizations: [] as SimpleOrganization[],

@@ -4,6 +4,8 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import User from './user.js'
 import Organization from './organization.js'
 import Task from './task.js'
+import ProjectRole from './project_role.js'
+import ProjectMember from './project_member.js'
 
 export default class Project extends BaseModel {
   static table = 'projects'
@@ -53,6 +55,12 @@ export default class Project extends BaseModel {
   @column()
   declare visibility: 'public' | 'private' | 'team'
 
+  @column()
+  declare allow_freelancer: boolean
+
+  @column()
+  declare approval_required_for_members: boolean
+
   @belongsTo(() => User, {
     foreignKey: 'creator_id',
   })
@@ -73,20 +81,24 @@ export default class Project extends BaseModel {
   })
   declare organization: BelongsTo<typeof Organization>
 
-  // Mối quan hệ với status được xử lý thông qua query trực tiếp
-  // vì model ProjectStatus chưa được tạo
-
   @hasMany(() => Task, {
     foreignKey: 'project_id',
   })
   declare tasks: HasMany<typeof Task>
 
-  // Các mối quan hệ với ProjectAttachment và ProjectTag
-  // được xử lý thông qua query trực tiếp
+  @hasMany(() => ProjectRole, {
+    foreignKey: 'project_id',
+  })
+  declare roles: HasMany<typeof ProjectRole>
+
+  @hasMany(() => ProjectMember, {
+    foreignKey: 'project_id',
+  })
+  declare project_members: HasMany<typeof ProjectMember>
 
   @manyToMany(() => User, {
     pivotTable: 'project_members',
-    pivotColumns: ['role'],
+    pivotColumns: ['project_role_id'],
     pivotTimestamps: {
       createdAt: 'created_at',
       updatedAt: false,

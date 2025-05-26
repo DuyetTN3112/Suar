@@ -44,7 +44,7 @@ export default class RoleMiddleware {
      * Kiểm tra quyền của người dùng
      */
     if (roles.length > 0) {
-      const userRoleId = ctx.auth.user?.role_id
+      const userRoleId = ctx.auth.user?.system_role_id
       if (!userRoleId || !roles.includes(userRoleId.toString())) {
         /**
          * Đối với AJAX request, trả về lỗi 403

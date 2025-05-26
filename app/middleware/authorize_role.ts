@@ -19,7 +19,7 @@ export default class AuthorizeRoleMiddleware {
     }
 
     // Kiểm tra vai trò của người dùng
-    const userRoleId = auth.user.role_id
+    const userRoleId = auth.user.system_role_id
 
     // Kiểm tra vai trò Admin (thường có ID 1)
     const isAdmin = userRoleId === 1

@@ -43,13 +43,13 @@ export default class AuthMiddleware {
       // Đảm bảo thông tin người dùng được truyền đến inertia
       if (ctx.auth.user) {
         // Thêm role và thông tin khác vào user
-        await ctx.auth.user.load('role')
+        await ctx.auth.user.load('system_role')
         await ctx.auth.user.load('organizations')
         // Kiểm tra vai trò và thiết lập isAdmin
         const isAdmin =
-          ctx.auth.user.role?.name?.toLowerCase() === 'admin' ||
-          ctx.auth.user.role?.name?.toLowerCase() === 'superadmin' ||
-          [1, 2].includes(ctx.auth.user.role_id)
+          ctx.auth.user.system_role?.name?.toLowerCase() === 'superadmin' ||
+          ctx.auth.user.system_role?.name?.toLowerCase() === 'system_admin' ||
+          [1, 2].includes(ctx.auth.user.system_role_id ?? 0)
 
         // Lấy current_organization_id từ session hoặc từ model user
         const currentOrganizationId =
@@ -59,7 +59,7 @@ export default class AuthMiddleware {
         let organizationUsers: unknown[] = []
         if (currentOrganizationId) {
           await ctx.auth.user.load('organization_users', (query) => {
-            void query.where('organization_id', currentOrganizationId).preload('role')
+            void query.where('organization_id', currentOrganizationId)
           })
           organizationUsers = ctx.auth.user.organization_users || []
         }
@@ -71,7 +71,7 @@ export default class AuthMiddleware {
               ...ctx.auth.user?.serialize(),
               username: ctx.auth.user.username,
               email: ctx.auth.user.email,
-              role: ctx.auth.user.role?.serialize(),
+              system_role: ctx.auth.user.system_role?.serialize(),
               isAdmin,
               current_organization_id: currentOrganizationId,
               organization_users: organizationUsers,

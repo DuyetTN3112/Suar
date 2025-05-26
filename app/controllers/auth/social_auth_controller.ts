@@ -199,18 +199,18 @@ export default class SocialAuthController {
           // Tạo user mới
           try {
             interface UserData {
-              email: unknown
-              username: unknown
-              status_id: unknown
-              role_id: unknown
+              email: string
+              username: string
+              status_id: number
+              system_role_id: number
               current_organization_id: null
               auth_method?: 'google' | 'github' | 'email'
             }
             const userData: UserData = {
-              email: socialUser.email,
+              email: socialUser.email as string,
               username: username,
               status_id: defaultStatusId.id,
-              role_id: defaultRoleId.id,
+              system_role_id: defaultRoleId.id,
               current_organization_id: null,
             }
             // Thêm auth_method nếu cột tồn tại
