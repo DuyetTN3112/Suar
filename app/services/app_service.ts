@@ -6,7 +6,7 @@ export default class AppService {
    * Lấy tên ứng dụng
    */
   static getAppName(): string {
-    return env.get('APP_NAME', 'ShadcnAdmin')
+    return env.get('APP_NAME', 'Suar')
   }
 
   /**

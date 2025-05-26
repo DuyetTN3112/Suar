@@ -42,7 +42,7 @@ Thumbs.db
 
 # SQL dumps và dữ liệu
 *.sql
-shadcn_admin.sql
+suar.sql
 *.dump
 
 # Docker volumes
@@ -53,4 +53,4 @@ logs
 *.log
 
 package-lock.json
-shadcn_admin.sql
+suar.sql

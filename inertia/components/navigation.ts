@@ -35,7 +35,7 @@ function getIconByName(name?: string): React.ElementType | undefined {
 export const defaultOrganizations = [
   {
     id: '1',
-    name: 'ShadcnAdmin',
+    name: 'Suar',
     logo: 'Building',
     plan: 'Pro',
   },
