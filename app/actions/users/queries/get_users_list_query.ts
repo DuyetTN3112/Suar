@@ -61,14 +61,14 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
    * Build the database query with all filters applied
    */
   private buildQuery(dto: GetUsersListDTO) {
-    let query = User.query().preload('role').preload('status').whereNull('deleted_at')
+    let query = User.query().preload('system_role').preload('status').whereNull('deleted_at')
 
     // Apply organization filter
     query = this.applyOrganizationFilter(query, dto)
 
     // Apply role filter
     if (dto.filters.roleId) {
-      query = query.where('role_id', dto.filters.roleId)
+      query = query.where('system_role_id', dto.filters.roleId)
     }
 
     // Apply status filters
