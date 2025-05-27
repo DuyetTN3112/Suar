@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Head } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'

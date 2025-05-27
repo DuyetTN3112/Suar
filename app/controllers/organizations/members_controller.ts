@@ -4,10 +4,10 @@ import OrganizationUser from '#models/organization_user'
 
 // CQRS - Commands
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
-import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import type RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import type UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
+import type ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import CreateNotification from '#actions/common/create_notification'
 
 // CQRS - Queries

@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import User from '#models/user'
-import GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
+import type User from '#models/user'
+import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'

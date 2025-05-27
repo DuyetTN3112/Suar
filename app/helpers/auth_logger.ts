@@ -1,15 +1,3 @@
-/**
- * Auth Logger Helper
- *
- * Provides detailed logging for authentication flows
- * - OAuth (GitHub, Google)
- *
- * NOTE: Removed password-related logging (OAuth-only system):
- * - Email/Password login
- * - Registration
- * - Password reset
- */
-
 import logger from '@adonisjs/core/services/logger'
 
 interface LogContext {
@@ -81,7 +69,7 @@ export class AuthLogger {
    * Log OAuth provider lookup
    */
   static oauthProviderLookup(provider: string, providerId: string, found: boolean) {
-    const msg = `🔍 OAuth Provider Lookup - Provider: ${provider}, ID: ${providerId}, Found: ${found}`
+    const msg = ` OAuth Provider Lookup - Provider: ${provider}, ID: ${providerId}, Found: ${found}`
     logger.info(msg)
     console.log(`\n${msg}`)
   }
@@ -90,7 +78,7 @@ export class AuthLogger {
    * Log user creation
    */
   static userCreated(userId: number, method: string, email: string) {
-    const msg = `✨ User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
+    const msg = ` User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
     logger.info(msg)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -101,7 +89,7 @@ export class AuthLogger {
    * Log user login
    */
   static userLogin(userId: number, email: string, method: string) {
-    const msg = `🔐 User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
+    const msg = ` User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
     logger.info(msg)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -139,7 +127,7 @@ export class AuthLogger {
   }
 
   /**
-   * Log email/password login attempt
+   * Log email login attempt
    */
   static loginAttempt(email: string, remember: boolean, ipAddress: string) {
     const msg = ` Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`

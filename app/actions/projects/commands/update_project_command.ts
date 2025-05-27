@@ -1,6 +1,6 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import { UpdateProjectDTO } from '../dtos/index.js'
+import type { UpdateProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
 import db from '@adonisjs/lucid/services/db'
 

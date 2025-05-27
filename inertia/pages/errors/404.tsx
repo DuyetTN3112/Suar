@@ -1,4 +1,4 @@
-import * as React from 'react'
+
 import { Head } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 
@@ -20,4 +20,4 @@ export default function NotFound() {
       </div>
     </>
   )
-} 
+}

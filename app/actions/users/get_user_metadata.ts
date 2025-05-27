@@ -1,6 +1,6 @@
 import SystemRole from '#models/system_role'
 import UserStatus from '#models/user_status'
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 export default class GetUserMetadata {
   constructor(protected ctx: HttpContext) {}
 

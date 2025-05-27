@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
 import { DateTime } from 'luxon'
-import { SendMessageDTO } from '../dtos/send_message_dto.js'
+import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import Logger from '@adonisjs/core/services/logger'
 

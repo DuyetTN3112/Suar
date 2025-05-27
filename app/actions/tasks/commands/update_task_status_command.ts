@@ -1,8 +1,8 @@
 import Task from '#models/task'
-import User from '#models/user'
+import type User from '#models/user'
 import AuditLog from '#models/audit_log'
-import UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
-import CreateNotification from '#actions/common/create_notification'
+import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
+import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 

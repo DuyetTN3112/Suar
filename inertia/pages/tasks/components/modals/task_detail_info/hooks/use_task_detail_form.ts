@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react'
-import { Task } from '../../../../types'
+import type { Task } from '../../../../types'
 
 interface UseTaskDetailFormProps {
   task: Task | null

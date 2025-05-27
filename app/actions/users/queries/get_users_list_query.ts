@@ -1,5 +1,5 @@
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
-import { GetUsersListDTO } from '../dtos/get_users_list_dto.js'
+import type { GetUsersListDTO } from '../dtos/get_users_list_dto.js'
 import User from '#models/user'
 
 /**

@@ -47,7 +47,6 @@ export default class SettingsController {
       const user = auth.user!
       const data = request.only(['email'])
 
-      // NOTE: Removed password update logic - OAuth-only system
       await user
         .merge({
           email: data.email || user.email,

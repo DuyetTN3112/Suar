@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Database from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
-import { ListConversationsDTO } from '../dtos/list_conversations_dto.js'
+import type { ListConversationsDTO } from '../dtos/list_conversations_dto.js'
 
 interface ConversationListItem {
   id: number

@@ -1,5 +1,5 @@
 // import User from '#models/user'
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import AuditLog from '#models/audit_log'
 import db from '@adonisjs/lucid/services/db'
 

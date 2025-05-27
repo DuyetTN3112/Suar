@@ -1,4 +1,4 @@
-import { PaginationDTO, type Query } from '../../shared/index.js'
+import type { PaginationDTO, Query } from '../../shared/index.js'
 
 /**
  * GetUsersListDTO

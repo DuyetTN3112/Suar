@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
 

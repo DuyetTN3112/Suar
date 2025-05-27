@@ -23,13 +23,3 @@ export const newUsernameRule = vine
     const exists = await db.from('users').where('username', value).select('id').first()
     return !exists
   })
-
-/**
- * NOTE: Removed password-related validators:
- * - loginValidator (no more email/password login)
- * - registerValidator (no more manual registration)
- * - forgotPasswordValidator (no more password reset)
- * - resetPasswordValidator (no more password reset)
- *
- * Authentication is now OAuth-only (Google, GitHub)
- */

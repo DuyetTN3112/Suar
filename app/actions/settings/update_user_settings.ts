@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 
 type SettingsData = {
   theme?: 'light' | 'dark' | 'system'

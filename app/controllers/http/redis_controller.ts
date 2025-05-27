@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import Redis from '@adonisjs/redis/services/main'
 import CacheService from '#services/cache_service'
 

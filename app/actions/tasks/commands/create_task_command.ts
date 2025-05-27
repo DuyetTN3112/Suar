@@ -1,8 +1,8 @@
 import Task from '#models/task'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
-import CreateTaskDTO from '../dtos/create_task_dto.js'
-import CreateNotification from '#actions/common/create_notification'
+import type CreateTaskDTO from '../dtos/create_task_dto.js'
+import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
@@ -83,7 +83,7 @@ export default class CreateTaskCommand {
       }
 
       // Load relations for return
-      await newTask.load((loader: any) => {
+      await newTask.load((loader: unknown) => {
         loader
           .load('status')
           .load('label')

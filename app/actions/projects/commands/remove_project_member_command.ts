@@ -1,6 +1,6 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import { RemoveProjectMemberDTO } from '../dtos/index.js'
+import type { RemoveProjectMemberDTO } from '../dtos/index.js'
 import Project from '#models/project'
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'

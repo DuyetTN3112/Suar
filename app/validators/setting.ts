@@ -32,7 +32,3 @@ export const notificationSettingValidator = vine.compile(
     notificationsEnabled: vine.boolean(),
   })
 )
-
-/**
- * NOTE: Removed passwordUpdateValidator - no password changes in OAuth-only system
- */

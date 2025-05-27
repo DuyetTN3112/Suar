@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { router } from '@inertiajs/react'
 
 interface OrganizationSwitcherProps {

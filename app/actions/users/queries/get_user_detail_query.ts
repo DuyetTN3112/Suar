@@ -1,5 +1,5 @@
 import { BaseQuery } from '../../shared/base_query.js'
-import { GetUserDetailDTO } from '../dtos/get_user_detail_dto.js'
+import type { GetUserDetailDTO } from '../dtos/get_user_detail_dto.js'
 import User from '#models/user'
 
 /**

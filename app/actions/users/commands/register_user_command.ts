@@ -1,5 +1,5 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import { RegisterUserDTO } from '../dtos/register_user_dto.js'
+import type { RegisterUserDTO } from '../dtos/register_user_dto.js'
 import User from '#models/user'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
