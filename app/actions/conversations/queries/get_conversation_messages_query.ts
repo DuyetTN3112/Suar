@@ -6,9 +6,9 @@ import { Exception } from '@adonisjs/core/exceptions'
 import Database from '@adonisjs/lucid/services/db'
 
 export class NotFoundError extends Exception {
-  static status = 404
-  static code = 'E_CONVERSATION_NOT_FOUND'
-  static message = 'Conversation not found or you do not have access'
+  static override status = 404
+  static override code = 'E_CONVERSATION_NOT_FOUND'
+  static override message = 'Conversation not found or you do not have access'
 }
 
 interface MessageWithSender {

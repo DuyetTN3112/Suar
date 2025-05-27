@@ -7,7 +7,7 @@ import ConversationParticipant from './conversation_participant.js'
 import Organization from './organization.js'
 
 export default class Conversation extends BaseModel {
-  static table = 'conversations'
+  static override table = 'conversations'
 
   @column({ isPrimary: true })
   declare id: number

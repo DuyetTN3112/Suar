@@ -5,7 +5,7 @@ import Organization from './organization.js'
 import OrganizationUser from './organization_user.js'
 
 export default class OrganizationRole extends BaseModel {
-  static table = 'organization_roles'
+  static override table = 'organization_roles'
 
   @column({ isPrimary: true })
   declare id: number
@@ -41,7 +41,7 @@ export default class OrganizationRole extends BaseModel {
   declare organization: BelongsTo<typeof Organization>
 
   @hasMany(() => OrganizationUser, {
-    foreignKey: 'organization_role_id',
+    foreignKey: 'role_id',
   })
   declare organization_users: HasMany<typeof OrganizationUser>
 

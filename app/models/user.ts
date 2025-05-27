@@ -16,7 +16,7 @@ import UserOAuthProvider from './user_oauth_provider.js'
 export default class User extends BaseModel {
   static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
 
-  static table = 'users'
+  static override table = 'users'
 
   @column({ isPrimary: true })
   declare id: number

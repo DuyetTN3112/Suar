@@ -5,7 +5,7 @@ import User from './user.js'
 import Message from './message.js'
 
 export default class MessageEdit extends BaseModel {
-  static table = 'message_edits'
+  static override table = 'message_edits'
 
   @column({ isPrimary: true })
   declare id: number

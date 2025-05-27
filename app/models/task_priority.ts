@@ -4,7 +4,7 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import Task from './task.js'
 
 export default class TaskPriority extends BaseModel {
-  static table = 'task_priorities'
+  static override table = 'task_priorities'
 
   @column({ isPrimary: true })
   declare id: number

@@ -5,7 +5,7 @@ import User from './user.js'
 import Conversation from './conversation.js'
 
 export default class ConversationParticipant extends BaseModel {
-  static table = 'conversation_participants'
+  static override table = 'conversation_participants'
 
   @column({ isPrimary: true })
   declare id: number

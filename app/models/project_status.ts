@@ -4,7 +4,7 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import Project from './project.js'
 
 export default class ProjectStatus extends BaseModel {
-  static table = 'project_status'
+  static override table = 'project_status'
 
   @column({ isPrimary: true })
   declare id: number

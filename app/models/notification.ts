@@ -4,7 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 
 export default class Notification extends BaseModel {
-  static table = 'notifications'
+  static override table = 'notifications'
 
   @column({ isPrimary: true })
   declare id: number

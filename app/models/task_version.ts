@@ -8,8 +8,8 @@ import TaskLabel from './task_label.js'
 import TaskPriority from './task_priority.js'
 
 export default class TaskVersion extends BaseModel {
-  static table = 'task_versions'
-  static primaryKey = 'id'
+  static override table = 'task_versions'
+  static override primaryKey = 'id'
 
   @column({ isPrimary: true })
   declare id: number

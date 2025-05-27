@@ -163,8 +163,8 @@ export default class SocialAuthController {
             .select('id')
             .first()
           const defaultRoleId = await db
-            .from('user_roles')
-            .where('name', 'user')
+            .from('system_roles')
+            .where('name', 'registered_user')
             .select('id')
             .first()
 

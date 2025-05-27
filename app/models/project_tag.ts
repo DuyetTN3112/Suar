@@ -4,7 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import Project from './project.js'
 
 export default class ProjectTag extends BaseModel {
-  static table = 'project_tags'
+  static override table = 'project_tags'
 
   @column({ isPrimary: true })
   declare id: number

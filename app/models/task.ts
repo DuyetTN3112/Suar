@@ -10,7 +10,7 @@ import Organization from './organization.js'
 import Project from './project.js'
 
 export default class Task extends BaseModel {
-  static table = 'tasks'
+  static override table = 'tasks'
 
   @column({ isPrimary: true })
   declare id: number
@@ -141,7 +141,7 @@ export default class Task extends BaseModel {
   /**
    * Tùy chỉnh cách serialization của các trường DateTime
    */
-  serialize() {
+  override serialize() {
     return {
       ...this.serializeAttributes(),
       ...this.serializeRelations(),
