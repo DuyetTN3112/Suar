@@ -69,7 +69,7 @@ export class AuthLogger {
       hasToken: !!socialUser.token,
       hasRefreshToken: !!socialUser.token?.refreshToken,
     }
-    const msg = `✅ OAuth User Data Received - Provider: ${provider}`
+    const msg = ` OAuth User Data Received - Provider: ${provider}`
     logger.info(msg, sanitized)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -119,7 +119,7 @@ export class AuthLogger {
       code: error?.code,
       stack: error?.stack,
     }
-    const msg = `❌ OAuth Error - Provider: ${provider}, Stage: ${stage}`
+    const msg = ` OAuth Error - Provider: ${provider}, Stage: ${stage}`
     logger.error(msg, errorDetails)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -131,7 +131,7 @@ export class AuthLogger {
    * Log OAuth state errors
    */
   static oauthStateError(provider: string, type: 'access_denied' | 'state_mismatch' | 'unknown') {
-    const msg = `⚠️ OAuth State Error - Provider: ${provider}, Type: ${type}`
+    const msg = ` OAuth State Error - Provider: ${provider}, Type: ${type}`
     logger.warn(msg)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -142,7 +142,7 @@ export class AuthLogger {
    * Log email/password login attempt
    */
   static loginAttempt(email: string, remember: boolean, ipAddress: string) {
-    const msg = `🔑 Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`
+    const msg = ` Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`
     logger.info(msg)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -153,7 +153,7 @@ export class AuthLogger {
    * Log login failure
    */
   static loginFailure(email: string, reason: string) {
-    const msg = `❌ Login Failed - Email: ${email}, Reason: ${reason}`
+    const msg = ` Login Failed - Email: ${email}, Reason: ${reason}`
     logger.warn(msg)
     console.log(`\n${'='.repeat(80)}`)
     console.log(msg)
@@ -164,7 +164,7 @@ export class AuthLogger {
    * Log database transaction
    */
   static dbTransaction(operation: string, success: boolean, details?: unknown) {
-    const msg = `💾 DB Transaction - Operation: ${operation}, Success: ${success}`
+    const msg = ` DB Transaction - Operation: ${operation}, Success: ${success}`
     if (success) {
       logger.info(msg, details)
     } else {
@@ -185,7 +185,7 @@ export class AuthLogger {
     hasClientSecret: boolean,
     callbackUrl: string
   ) {
-    const msg = `⚙️ Config Check - Provider: ${provider}`
+    const msg = ` Config Check - Provider: ${provider}`
     const config = {
       hasClientId,
       hasClientSecret,
