@@ -8,6 +8,10 @@ import TaskPriority from './task_priority.js'
 import TaskVersion from './task_version.js'
 import Organization from './organization.js'
 import Project from './project.js'
+import TaskDifficultyLevel from './task_difficulty_level.js'
+import TaskApplication from './task_application.js'
+import TaskAssignment from './task_assignment.js'
+import TaskRequiredSkill from './task_required_skill.js'
 
 export default class Task extends BaseModel {
   static override table = 'tasks'
@@ -137,6 +141,18 @@ export default class Task extends BaseModel {
 
   @hasMany(() => TaskVersion)
   declare versions: HasMany<typeof TaskVersion>
+
+  @belongsTo(() => TaskDifficultyLevel, { foreignKey: 'difficulty_level_id' })
+  declare difficulty_level: BelongsTo<typeof TaskDifficultyLevel>
+
+  @hasMany(() => TaskApplication, { foreignKey: 'task_id' })
+  declare applications: HasMany<typeof TaskApplication>
+
+  @hasMany(() => TaskAssignment, { foreignKey: 'task_id' })
+  declare assignments: HasMany<typeof TaskAssignment>
+
+  @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
+  declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
 
   /**
    * Tùy chỉnh cách serialization của các trường DateTime

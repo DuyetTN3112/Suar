@@ -71,10 +71,7 @@ export default class UserSkill extends BaseModel {
 
   // ===== Static Methods =====
   static async findByUserAndSkill(userId: number, skillId: number) {
-    return await this.query()
-      .where('user_id', userId)
-      .where('skill_id', skillId)
-      .first()
+    return await this.query().where('user_id', userId).where('skill_id', skillId).first()
   }
 
   static async getUserSkillsWithDetails(userId: number) {
