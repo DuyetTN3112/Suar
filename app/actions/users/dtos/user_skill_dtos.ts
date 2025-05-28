@@ -37,9 +37,9 @@ export class UpdateUserSkillDTO {
  * Used by RemoveUserSkillCommand.
  */
 export class RemoveUserSkillDTO {
-  declare skill_id: number
+  declare user_skill_id: number
 
-  constructor(skillId: number) {
-    this.skill_id = skillId
+  constructor(userSkillId: number) {
+    this.user_skill_id = userSkillId
   }
 }
