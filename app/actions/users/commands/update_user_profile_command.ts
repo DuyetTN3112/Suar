@@ -1,7 +1,9 @@
 ﻿import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
-import type { UpdateUserProfileDTO } from '../dtos/update_user_profile_dto.js'
-import User from '#models/user'
+import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
+import type User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * UpdateUserProfileCommand
@@ -12,8 +14,8 @@ import User from '#models/user'
 @inject()
 export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProfileDTO, User> {
   async handle(dto: UpdateUserProfileDTO): Promise<User> {
-    return await this.executeInTransaction(async (_trx) => {
-      const user = await User.findOrFail(dto.userId)
+    return await this.executeInTransaction(async (trx) => {
+      const user = await UserRepository.findNotDeletedOrFail(dto.userId, trx)
       const oldValues = user.toJSON()
 
       // Build updates object
@@ -28,10 +30,16 @@ export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProf
       // Update user
       if (Object.keys(updates).length > 0) {
         user.merge(updates)
-        await user.save()
+        await UserRepository.save(user, trx)
       }
 
       await this.logAudit('update', 'user', user.id, oldValues, user.toJSON())
+
+      // Emit domain event
+      void emitter.emit('user:profile:updated', {
+        userId: dto.userId,
+        changes: updates,
+      })
 
       return user
     })

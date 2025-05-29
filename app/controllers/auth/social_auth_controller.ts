@@ -1,14 +1,23 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { AllyUserContract } from '@adonisjs/ally/types'
-import type { Oauth2AccessToken } from '@poppinss/oauth-client/types'
-import User from '#models/user'
-import UserOAuthProvider from '#models/user_oauth_provider'
-import db from '@adonisjs/lucid/services/db'
-import * as AuthLogger from '#helpers/auth_logger'
+
+import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
+import SocialLoginCommand from '#actions/auth/commands/social_login_command'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type SupportedProvider = 'google' | 'github'
-type SocialUser = AllyUserContract<Oauth2AccessToken>
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toOptionalString = (value: unknown): string | undefined => {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+}
+
+const toNullableString = (value: unknown): string | null => {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
 
 export default class SocialAuthController {
   /**
@@ -33,26 +42,22 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'redirect')
-      return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
+      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
     }
 
-    try {
-      AuthLogger.oauthRedirect(provider, {
-        referer: request.header('referer'),
-        userAgent: request.header('user-agent'),
-        ip: request.ip(),
-      })
-      const socialAuth = ally.use(provider)
-      await socialAuth.redirect()
-    } catch (error: unknown) {
-      AuthLogger.oauthError(provider, error, 'redirect')
-      return { error: `Không thể chuyển hướng đến ${provider}` }
-    }
+    AuthLogger.oauthRedirect(provider, {
+      referer: request.header('referer'),
+      userAgent: request.header('user-agent'),
+      ip: request.ip(),
+    })
+    const socialAuth = ally.use(provider)
+    await socialAuth.redirect()
   }
+
   /**
    * Xử lý callback từ nhà cung cấp xác thực
    */
-  async callback({ params, ally, auth, response, request }: HttpContext) {
+  async callback({ params, ally, auth, response, request, session }: HttpContext) {
     const provider = params.provider as string
 
     AuthLogger.oauthCallbackStart(provider, {
@@ -64,7 +69,7 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'callback-validation')
-      return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
+      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
     }
 
     const socialAuth = ally.use(provider)
@@ -87,10 +92,11 @@ export default class SocialAuthController {
       return
     }
 
-    try {
-      // Lấy thông tin người dùng từ nhà cung cấp xác thực
-      const socialUser: SocialUser = await socialAuth.user()
-      AuthLogger.oauthUserReceived(provider, socialUser)
+    // Lấy thông tin người dùng từ nhà cung cấp xác thực
+    const socialUserRaw = (await socialAuth.user()) as unknown
+    if (!isRecord(socialUserRaw)) {
+      throw new BusinessLogicException('Dữ liệu người dùng từ nhà cung cấp không hợp lệ')
+    }
 
       // Validate email exists
       const socialEmail = socialUser.email

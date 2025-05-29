@@ -1,52 +1,69 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ChangeUserRoleDTO } from '../dtos/index.js'
-import db from '@adonisjs/lucid/services/db'
+import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
+import UserRepository from '#infra/users/repositories/user_repository'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canChangeUserRole } from '#domain/users/user_management_rules'
 
 /**
- * ChangeUserRoleCommand
+ * ChangeUserRoleCommand (v3)
  *
- * Changes a user's role in an organization.
- * Uses stored procedure for permission checks.
- *
- * This is a Command (Write operation) that changes system state.
+ * Changes a user's system role.
+ * v3: system_role is inline VARCHAR on users table.
+ * newRoleId in DTO is now a role name string (e.g. 'superadmin', 'system_admin').
  *
  * Business Rules:
  * - Only superadmin can change roles
- * - Uses stored procedure: change_user_role_with_permission
- * - Audit log is created automatically by stored procedure
+ * - Cannot change own role
+ * - Target user must exist and not be deleted
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
-  /**
-   * Main handler - changes user role using stored procedure
-   */
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
-    // Use stored procedure with permission checks built-in
-    await this.changeRoleViaStoredProcedure(dto)
+    // Verify permissions via pure rule
+    const isSuperadmin = await UserRepository.isSuperadmin(dto.changerId)
+    enforcePolicy(
+      canChangeUserRole({
+        actorId: dto.changerId,
+        targetUserId: dto.targetUserId,
+        isActorSuperadmin: isSuperadmin,
+        newRole: dto.newRoleId,
+      })
+    )
+
+    // Verify target user exists and not deleted
+    const targetUser = await UserRepository.findNotDeletedOrFail(dto.targetUserId)
+
+    // Get old role for audit log
+    const oldRole = targetUser.system_role
+
+    // v3: Update inline system_role string
+    targetUser.system_role = dto.newRoleId
+    await UserRepository.save(targetUser)
 
     // Log the action
-    await this.logAudit('change_user_role', 'user', dto.targetUserId, null, {
-      new_role_id: dto.newRoleId,
-    })
-  }
+    await this.logAudit(
+      'change_user_role',
+      'user',
+      dto.targetUserId,
+      { system_role: oldRole },
+      { system_role: dto.newRoleId }
+    )
 
-  /**
-   * Call stored procedure to change user role
-   * Stored procedure handles all permission checks
-   */
-  private async changeRoleViaStoredProcedure(dto: ChangeUserRoleDTO): Promise<void> {
-    try {
-      await db.rawQuery('CALL change_user_role_with_permission(?, ?, ?)', [
-        dto.changerId,
-        dto.targetUserId,
-        dto.newRoleId,
-      ])
-    } catch (error) {
-      // Stored procedure throws error if no permission
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : 'Chỉ superadmin mới có thể thay đổi vai trò người dùng'
-      )
-    }
+    // Emit audit event
+    void emitter.emit('audit:log', {
+      userId: dto.changerId,
+      action: 'change_user_role',
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      oldValues: { system_role: oldRole },
+      newValues: { system_role: dto.newRoleId },
+    })
+
+    // Invalidate permission cache
+    void emitter.emit('cache:invalidate', {
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      patterns: [`*user:${dto.targetUserId}:*`],
+    })
   }
 }

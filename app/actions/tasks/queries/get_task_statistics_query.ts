@@ -1,19 +1,12 @@
-import Task from '#models/task'
-import type { HttpContext } from '@adonisjs/core/http'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
+import type { ExecutionContext } from '#types/execution_context'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
-
-// Type alias for Task query builder
-type TaskQueryBuilder = ReturnType<typeof Task.query>
-
-// Interface for group count rows
-interface GroupCountRow {
-  status_id?: number
-  priority_id?: number
-  label_id?: number
-  $extras: { count: number | string; total?: number | string }
-}
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Query để lấy statistics của tasks
@@ -33,12 +26,12 @@ interface GroupCountRow {
  * - Redis caching (5 minutes)
  */
 export default class GetTaskStatisticsQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
    */
-  async execute(organizationId: number): Promise<{
+  async execute(organizationId: DatabaseId): Promise<{
     total: number
     byStatus: Record<string, number>
     byPriority: Record<string, number>
@@ -57,65 +50,26 @@ export default class GetTaskStatisticsQuery {
       efficiency: number | null // actual/estimated ratio
     }
   }> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('User chưa đăng nhập')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Try cache first
-    const cacheKey = `task:stats:org:${organizationId}:user:${user.id}`
+    const cacheKey = `task:stats:org:${organizationId}:user:${userId}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached as ReturnType<typeof this.execute> extends Promise<infer R> ? R : never
     }
 
-    // Check if user is superadmin via system_roles table (suar.sql)
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Determine permission filter
+    const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
-    // Build base query with permissions
-    const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
-
-    await this.applyPermissionFilters(baseQuery, user.id, userData?.role_name, organizationId)
-
-    // Execute all statistics queries in parallel
-    const [
-      total,
-      byStatus,
-      byPriority,
-      byLabel,
-      overdue,
-      completedThisWeek,
-      completedThisMonth,
-      avgCompletionDays,
-      timeTracking,
-    ] = await Promise.all([
-      this.getTotalCount(baseQuery),
-      this.getCountByStatus(baseQuery),
-      this.getCountByPriority(baseQuery),
-      this.getCountByLabel(baseQuery),
-      this.getOverdueCount(baseQuery),
-      this.getCompletedThisWeek(baseQuery),
-      this.getCompletedThisMonth(baseQuery),
-      this.getAvgCompletionDays(baseQuery),
-      this.getTimeTrackingStats(baseQuery),
-    ])
-
-    const result = {
-      total,
-      byStatus,
-      byPriority,
-      byLabel,
-      overdue,
-      completedThisWeek,
-      completedThisMonth,
-      avgCompletionDays,
-      timeTracking,
-    }
+    // Execute all statistics queries via repository
+    const result = await TaskRepository.getStatisticsByOrganization(
+      organizationId,
+      permissionFilter
+    )
 
     // Cache result
     await this.saveToCache(cacheKey, result, 300) // 5 minutes
@@ -124,185 +78,14 @@ export default class GetTaskStatisticsQuery {
   }
 
   /**
-   * Apply permission filters
+   * Resolve permission filter for the current user
    */
-  private async applyPermissionFilters(
-    query: ReturnType<typeof Task.query>,
-    userId: number,
-    roleName: string | undefined,
-    organizationId: number
-  ): Promise<void> {
-    const isSuperAdmin = ['superadmin', 'admin'].includes(roleName?.toLowerCase() || '')
-
-    if (isSuperAdmin) {
-      return
-    }
-
-    // Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()) as { role_id: number } | null
-
-    if (!orgUser) {
-      void query.where('id', -1) // No results
-      return
-    }
-
-    // Org Owner/Manager sees all
-    if ([1, 2].includes(orgUser.role_id)) {
-      return
-    }
-
-    // Member: Only own tasks
-    void query.where((memberQuery) => {
-      void memberQuery.where('creator_id', userId).orWhere('assigned_to', userId)
-    })
-  }
-
-  private async getTotalCount(baseQuery: ReturnType<typeof Task.query>): Promise<number> {
-    const result = await baseQuery.clone().count('* as total').first()
-    if (!result) return 0
-    const typedResult = result as unknown as GroupCountRow
-    return Number(typedResult.$extras.total ?? 0)
-  }
-
-  private async getCountByStatus(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
-    const results = await baseQuery
-      .clone()
-      .select('status_id')
-      .count('* as count')
-      .groupBy('status_id')
-
-    const stats: Record<string, number> = {}
-    ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.status_id)] = Number(row.$extras.count)
-    })
-    return stats
-  }
-
-  private async getCountByPriority(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
-    const results = await baseQuery
-      .clone()
-      .select('priority_id')
-      .count('* as count')
-      .whereNotNull('priority_id')
-      .groupBy('priority_id')
-
-    const stats: Record<string, number> = {}
-    ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.priority_id)] = Number(row.$extras.count)
-    })
-    return stats
-  }
-
-  private async getCountByLabel(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
-    const results = await baseQuery
-      .clone()
-      .select('label_id')
-      .count('* as count')
-      .whereNotNull('label_id')
-      .groupBy('label_id')
-
-    const stats: Record<string, number> = {}
-    ;(results as unknown as GroupCountRow[]).forEach((row) => {
-      stats[String(row.label_id)] = Number(row.$extras.count)
-    })
-    return stats
-  }
-
-  private async getOverdueCount(baseQuery: TaskQueryBuilder): Promise<number> {
-    const result = await baseQuery
-      .clone()
-      .whereNotNull('due_date')
-      .where('due_date', '<', DateTime.now().toFormat('yyyy-MM-dd'))
-      .whereNotIn('status_id', [3, 4]) // Not completed or cancelled
-      .count('* as total')
-      .first()
-
-    const typedResult = result as GroupCountRow | null
-    return Number(typedResult?.$extras.total ?? 0)
-  }
-
-  private async getCompletedThisWeek(baseQuery: TaskQueryBuilder): Promise<number> {
-    const startOfWeek = DateTime.now().startOf('week')
-
-    const result = await baseQuery
-      .clone()
-      .where('status_id', 3) // Completed
-      .where('updated_at', '>=', startOfWeek.toSQL())
-      .count('* as total')
-      .first()
-
-    const typedResult = result as GroupCountRow | null
-    return Number(typedResult?.$extras.total ?? 0)
-  }
-
-  private async getCompletedThisMonth(baseQuery: TaskQueryBuilder): Promise<number> {
-    const startOfMonth = DateTime.now().startOf('month')
-
-    const result = await baseQuery
-      .clone()
-      .where('status_id', 3) // Completed
-      .where('updated_at', '>=', startOfMonth.toSQL())
-      .count('* as total')
-      .first()
-
-    const typedResult = result as GroupCountRow | null
-    return Number(typedResult?.$extras.total ?? 0)
-  }
-
-  private async getAvgCompletionDays(baseQuery: TaskQueryBuilder): Promise<number | null> {
-    const completedTasks = (await baseQuery
-      .clone()
-      .where('status_id', 3) // Completed
-      .select('created_at', 'updated_at')) as Task[]
-
-    if (completedTasks.length === 0) {
-      return null
-    }
-
-    const totalDays = completedTasks.reduce((sum: number, task: Task) => {
-      const created = DateTime.fromJSDate(task.created_at.toJSDate())
-      const completed = DateTime.fromJSDate(task.updated_at.toJSDate())
-      return sum + completed.diff(created, 'days').days
-    }, 0)
-
-    return Math.round(totalDays / completedTasks.length)
-  }
-
-  private async getTimeTrackingStats(baseQuery: TaskQueryBuilder): Promise<{
-    tasksWithEstimate: number
-    tasksWithActual: number
-    totalEstimated: number
-    totalActual: number
-    avgEstimated: number
-    avgActual: number
-    efficiency: number | null
-  }> {
-    const tasks = (await baseQuery.clone().select('estimated_time', 'actual_time')) as Task[]
-
-    const tasksWithEstimate = tasks.filter((t: Task) => t.estimated_time).length
-    const tasksWithActual = tasks.filter((t: Task) => t.actual_time).length
-
-    const totalEstimated = tasks.reduce((sum: number, t: Task) => sum + (t.estimated_time || 0), 0)
-    const totalActual = tasks.reduce((sum: number, t: Task) => sum + (t.actual_time || 0), 0)
-
-    const avgEstimated = tasksWithEstimate > 0 ? totalEstimated / tasksWithEstimate : 0
-    const avgActual = tasksWithActual > 0 ? totalActual / tasksWithActual : 0
-
-    const efficiency = totalEstimated > 0 ? totalActual / totalEstimated : null
-
-    return {
-      tasksWithEstimate,
-      tasksWithActual,
-      totalEstimated: Math.round(totalEstimated * 10) / 10,
-      totalActual: Math.round(totalActual * 10) / 10,
-      avgEstimated: Math.round(avgEstimated * 10) / 10,
-      avgActual: Math.round(avgActual * 10) / 10,
-      efficiency: efficiency ? Math.round(efficiency * 100) / 100 : null,
-    }
+  private async resolvePermissionFilter(
+    userId: DatabaseId,
+    organizationId: DatabaseId
+  ): Promise<TaskPermissionFilter> {
+    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'none')
+    return buildTaskPermissionFilter(accessContext)
   }
 
   /**
@@ -315,7 +98,7 @@ export default class GetTaskStatisticsQuery {
         return JSON.parse(cached)
       }
     } catch (error) {
-      console.error('[GetTaskStatisticsQuery] Cache get error:', error)
+      loggerService.error('[GetTaskStatisticsQuery] Cache get error:', error)
     }
     return null
   }
@@ -327,7 +110,7 @@ export default class GetTaskStatisticsQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskStatisticsQuery] Cache set error:', error)
+      loggerService.error('[GetTaskStatisticsQuery] Cache set error:', error)
     }
   }
 }

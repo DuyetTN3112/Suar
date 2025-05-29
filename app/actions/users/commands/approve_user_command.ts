@@ -1,8 +1,11 @@
-import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ApproveUserDTO } from '../dtos/index.js'
-import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
+import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import PermissionService from '#services/permission_service'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canApproveUser } from '#domain/users/user_management_rules'
 
 /**
  * ApproveUserCommand
@@ -13,69 +16,52 @@ import { DateTime } from 'luxon'
  * This is a Command (Write operation) that changes system state.
  *
  * Business Rules:
- * - Only superadmin (role_id = 1) can approve users
+ * - Org owner or org admin (has 'can_approve_members' permission) can approve users
+ * - System superadmin can approve users
  * - User must be in 'pending' status
  * - Audit log is created
  */
-@inject()
 export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   /**
    * Main handler - approves a user in organization
    */
   async handle(dto: ApproveUserDTO): Promise<void> {
-    // 1. Verify superadmin permission
-    await this.verifySuperAdminPermission(dto.organizationId, dto.approverId)
+    // 1-2. Verify permission and status via pure rule
+    const hasPermission = await PermissionService.checkOrgPermission(
+      dto.approverId,
+      dto.organizationId,
+      'can_approve_members'
+    )
+    const membership = await OrganizationUserRepository.findMembership(
+      dto.userId,
+      dto.organizationId
+    )
 
-    // 2. Update user status to approved
-    await this.approveUserInOrganization(dto)
+    enforcePolicy(
+      canApproveUser({
+        hasApprovePermission: hasPermission,
+        targetMembershipStatus: membership?.status ?? null,
+      })
+    )
 
-    // 3. Log the approval    // Ghi log hành động
+    // 3. Update user status to approved
+    await OrganizationUserRepository.updateStatus(
+      dto.userId,
+      dto.organizationId,
+      OrganizationUserStatus.APPROVED
+    )
+
+    // 4. Log the approval
     await this.logAudit('approve', 'user', dto.userId, undefined, {
       organization_id: dto.organizationId,
       approved_by: dto.approverId,
     })
-  }
 
-  /**
-   * Verify that approver is superadmin in the organization
-   */
-  private async verifySuperAdminPermission(
-    organizationId: number,
-    approverId: number
-  ): Promise<void> {
-    const result = await db
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', approverId)
-      .where('role_id', 1) // role_id = 1 is superadmin
-      .where('status', 'approved')
-      .select('user_id')
-
-    if (!Array.isArray(result) || result.length === 0) {
-      throw new Error('Chỉ superadmin mới có thể phê duyệt người dùng')
-    }
-  }
-
-  /**
-   * Update user status from pending to approved
-   */
-  private async approveUserInOrganization(dto: ApproveUserDTO): Promise<void> {
-    const updateResult = await db
-      .from('organization_users')
-      .where('organization_id', dto.organizationId)
-      .where('user_id', dto.userId)
-      .where('status', 'pending')
-      .update({
-        status: 'approved',
-        updated_at: DateTime.now().toSQL(),
-      })
-
-    // update() returns affected rows count (number) in MySQL or array in PostgreSQL
-    const affectedRows = Array.isArray(updateResult) ? updateResult.length : Number(updateResult)
-    if (affectedRows === 0) {
-      throw new Error(
-        'Không tìm thấy yêu cầu phê duyệt người dùng này hoặc người dùng đã được phê duyệt'
-      )
-    }
+    // 5. Emit domain event
+    void emitter.emit('user:approved', {
+      userId: dto.userId,
+      approvedBy: dto.approverId,
+      organizationId: dto.organizationId,
+    })
   }
 }
