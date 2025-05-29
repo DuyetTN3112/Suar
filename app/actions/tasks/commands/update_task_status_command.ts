@@ -1,29 +1,40 @@
-import Task from '#models/task'
-import type User from '#models/user'
-import AuditLog from '#models/audit_log'
-import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
+import type Task from '#models/task'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
+import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để cập nhật trạng thái task
  *
  * Business Rules:
- * - Validate status transition (optional, có thể thêm rules)
+ * - Validate status transition via DB-driven workflow (task_workflow_transitions)
  * - Set updated_by
  * - Notify creator nếu status thay đổi
  * - Audit log đầy đủ
+ * - Sets both task_status_id (v4) and status slug (backward compat)
  *
- * Permissions:
- * - Superadmin/Admin: Full access
- * - Creator: Có thể update
- * - Assignee: Có thể update
- * - Org Owner/Manager: Có thể update
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskStatusCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -31,70 +42,102 @@ export default class UpdateTaskStatusCommand {
    * Execute command để update status
    */
   async execute(dto: UpdateTaskStatusDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Start transaction
     const trx = await db.transaction()
 
     try {
-      // Load task với lock
-      const task = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
-      // Check permission
-      await this.validateUpdatePermission(user, task)
-
-      // Save old status for notification
-      const oldStatusId = task.status_id
-
-      // Validate transition (optional - có thể thêm rules)
-      // const isValid = dto.validateTransition(oldStatusId, statusRules)
-      // if (!isValid) {
-      //   throw new Error('Chuyển trạng thái không hợp lệ')
-      // }
-
-      // Update status
-      task.merge(dto.toObject())
-      task.updated_by = user.id
-      await task.save()
-
-      // Create audit log
-      await AuditLog.create(
-        {
-          user_id: user.id,
-          action: 'update_status',
-          entity_type: 'task',
-          entity_id: dto.task_id,
-          old_values: { status_id: oldStatusId },
-          new_values: { status_id: task.status_id },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
-        },
-        { client: trx }
+      // Load new status and verify it belongs to the same organization
+      const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
+        dto.task_status_id,
+        task.organization_id,
+        trx
       )
+
+      if (!newStatus) {
+        throw new BusinessLogicException(
+          'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+        )
+      }
+
+      const currentStatusId = task.task_status_id
+      if (!currentStatusId) {
+        throw new BusinessLogicException('Task chưa có task_status_id hợp lệ để chuyển trạng thái')
+      }
+
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+      enforcePolicy(canUpdateTaskStatus(permissionContext))
+
+      const oldStatus = task.status
+      const oldTaskStatusId = task.task_status_id
+
+      // Load allowed transitions from DB
+      const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
+        task.organization_id,
+        currentStatusId,
+        trx
+      )
+
+      const matchingTransition = transitions.find((t) => t.to_status_id === dto.task_status_id)
+
+      enforcePolicy(
+        validateWorkflowTransition({
+          currentStatusId,
+          newStatusId: dto.task_status_id,
+          allowedTargetIds: transitions.map((t) => t.to_status_id),
+          conditions: matchingTransition?.conditions ?? {},
+          isAssigned: task.assigned_to !== null,
+        })
+      )
+
+      // ── PERSIST ────────────────────────────────────────────────────────
+      task.task_status_id = dto.task_status_id
+      task.status = newStatus.category // backward compat: use category for legacy status column
+      task.updated_by = userId
+      await TaskRepository.save(task, trx)
+
+      await new CreateAuditLog(this.execCtx).handle({
+        user_id: userId,
+        action: AuditAction.UPDATE_STATUS,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: { status: oldStatus },
+        new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
+      })
 
       await trx.commit()
 
-      // Send notification (outside transaction)
-      if (oldStatusId !== task.status_id) {
-        await this.sendStatusChangeNotification(task, user, dto)
+      // Emit domain event after commit only when status definition changed.
+      if (oldTaskStatusId !== dto.task_status_id) {
+        void emitter.emit('task:status:changed', {
+          task,
+          oldStatus,
+          newStatusId: dto.task_status_id,
+          newStatus: newStatus.slug,
+          newStatusCategory: newStatus.category,
+          changedBy: userId,
+        })
       }
 
-      // Load relations
-      await task.load('status')
-      await task.load('label')
-      await task.load('priority')
-      await task.load('assignee')
-      await task.load('creator')
-      await task.load('updater')
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
 
-      return task
+      // Send notification (outside transaction)
+      if (oldTaskStatusId !== dto.task_status_id) {
+        await this.sendStatusChangeNotification(task, userId, dto)
+      }
+
+      return await TaskRepository.findByIdWithStatusRelations(task.id)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -102,67 +145,29 @@ export default class UpdateTaskStatusCommand {
   }
 
   /**
-   * Validate permission
-   */
-  private async validateUpdatePermission(user: User, task: Task): Promise<void> {
-    // Load user system_role
-    await user.load('system_role')
-
-    // 1. Superadmin/Admin
-    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
-    if (
-      systemRole !== undefined &&
-      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
-    ) {
-      return
-    }
-
-    // 2. Creator
-    if (task.creator_id === user.id) {
-      return
-    }
-
-    // 3. Assignee
-    if (task.assigned_to === user.id) {
-      return
-    }
-
-    // 4. Org Owner/Manager
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
-
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
-      return
-    }
-
-    throw new Error('Bạn không có quyền cập nhật trạng thái task này')
-  }
-
-  /**
    * Send notification
    */
   private async sendStatusChangeNotification(
     task: Task,
-    updater: User,
+    updaterId: DatabaseId,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     try {
       // Don't notify if updater is creator
-      if (task.creator_id && task.creator_id !== updater.id) {
+      if (task.creator_id && task.creator_id !== updaterId) {
+        const updater = await UserRepository.findById(updaterId)
+        const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,
           title: 'Cập nhật trạng thái nhiệm vụ',
-          message: dto.getNotificationMessage(task.title, updater.username || updater.email),
+          message: dto.getNotificationMessage(task.title, updaterName),
           type: 'task_status_updated',
           related_entity_type: 'task',
           related_entity_id: task.id,
         })
       }
     } catch (error) {
-      console.error('[UpdateTaskStatusCommand] Failed to send notification', error)
+      loggerService.error('[UpdateTaskStatusCommand] Failed to send notification', error)
     }
   }
 }
