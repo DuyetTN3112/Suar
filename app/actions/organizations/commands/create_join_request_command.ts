@@ -1,6 +1,14 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/audit_log'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canCreateJoinRequest } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Create Join Request
@@ -16,7 +24,7 @@ import AuditLog from '#models/audit_log'
  * await command.execute(organizationId)
  */
 export default class CreateJoinRequestCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Create join request
@@ -29,66 +37,70 @@ export default class CreateJoinRequestCommand {
    * 5. Create audit log
    * 6. Commit transaction
    */
-  async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async execute(organizationId: DatabaseId): Promise<void> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
-      // 1. Check if user is already a member
-      const existingMembership: unknown = await trx
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', user.id)
-        .first()
+      // 1. Check existing membership in organization_users
+      const existingMembership = await OrganizationUserRepository.findMembership(
+        organizationId,
+        userId,
+        trx
+      )
+      const isApprovedMember = existingMembership?.status === OrganizationUserStatus.APPROVED
+      const hasPending = existingMembership?.status === OrganizationUserStatus.PENDING
 
-      if (existingMembership) {
-        throw new Error('You are already a member of this organization')
-      }
-
-      // 2. Check for duplicate pending requests
-      const existingRequest: unknown = await trx
-        .from('organization_join_requests')
-        .where('organization_id', organizationId)
-        .where('user_id', user.id)
-        .where('status', 'pending')
-        .first()
-
-      if (existingRequest) {
-        throw new Error('You already have a pending join request for this organization')
-      }
-
-      // 3. Create join request
-      const result = await trx.insertQuery().table('organization_join_requests').insert({
-        organization_id: organizationId,
-        user_id: user.id,
-        status: 'pending',
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      const requestId = (result as number[])[0]
-
-      // 4. Create audit log
-      await AuditLog.create(
-        {
-          user_id: user.id,
-          action: 'create_join_request',
-          entity_type: 'organization',
-          entity_id: organizationId,
-          new_values: {
-            request_id: requestId,
-            user_id: user.id,
-            organization_id: organizationId,
-          },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
-        },
-        { client: trx }
+      enforcePolicy(
+        canCreateJoinRequest({
+          isAlreadyMember: isApprovedMember,
+          hasPendingRequest: hasPending,
+        })
       )
 
+      // 2. Create or re-activate membership with status='pending'
+      if (existingMembership && existingMembership.status === OrganizationUserStatus.REJECTED) {
+        // Re-apply after rejection: update existing row back to pending
+        await OrganizationUserRepository.updateStatus(organizationId, userId, 'pending', trx)
+      } else {
+        // New join request: insert row with status='pending'
+        await OrganizationUserRepository.addMember(
+          {
+            organization_id: organizationId,
+            user_id: userId,
+            org_role: OrganizationRole.MEMBER,
+            status: OrganizationUserStatus.PENDING,
+          },
+          trx
+        )
+      }
+
+      // 3. Create audit log
+      await new CreateAuditLog(this.execCtx).handle({
+        user_id: userId,
+        action: AuditAction.JOIN,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organizationId,
+        new_values: {
+          user_id: userId,
+          organization_id: organizationId,
+          status: OrganizationUserStatus.PENDING,
+        },
+      })
+
       await trx.commit()
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId,
+        action: 'join_request',
+        entityType: 'organization',
+        entityId: organizationId,
+        newValues: { status: OrganizationUserStatus.PENDING },
+      })
     } catch (error) {
       await trx.rollback()
       throw error

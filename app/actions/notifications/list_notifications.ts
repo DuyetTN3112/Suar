@@ -1,12 +1,12 @@
-import Notification from '#models/notification'
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 type ListOptions = {
   page: number
   limit: number
   isRead?: boolean
-  type?: string
 }
 
 type PaginatedResponse<T> = {
@@ -22,39 +22,33 @@ type PaginatedResponse<T> = {
   }
 }
 
-@inject()
 export default class ListNotifications {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
-  async handle(options: ListOptions): Promise<PaginatedResponse<Notification>> {
-    const { page, limit, isRead, type } = options
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async handle(options: ListOptions): Promise<PaginatedResponse<NotificationRecord>> {
+    const { page, limit, isRead } = options
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
-    const query = Notification.query().where('user_id', user.id).orderBy('created_at', 'desc')
+    const repo = await RepositoryFactory.getNotificationRepository()
+    const { data, total } = await repo.findByUser(userId, {
+      page,
+      limit,
+      isRead,
+    })
 
-    if (isRead !== undefined) {
-      void query.where('is_read', isRead)
-    }
-
-    if (type) {
-      void query.where('type', type)
-    }
-
-    const paginator = await query.paginate(page, limit)
-    // Chuyển đổi kết quả phân trang vào format tương thích
     return {
-      data: paginator.all(),
+      data,
       meta: {
-        total: paginator.total,
-        per_page: paginator.perPage,
-        current_page: paginator.currentPage,
-        last_page: paginator.lastPage,
-        first_page: paginator.firstPage,
-        next_page_url: paginator.getNextPageUrl() || null,
-        previous_page_url: paginator.getPreviousPageUrl() || null,
+        total,
+        per_page: limit,
+        current_page: page,
+        last_page: Math.max(1, Math.ceil(total / limit)),
+        first_page: 1,
+        next_page_url: page * limit < total ? `?page=${page + 1}` : null,
+        previous_page_url: page > 1 ? `?page=${page - 1}` : null,
       },
     }
   }

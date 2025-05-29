@@ -1,7 +1,19 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
-import AuditLog from '#models/audit_log'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  canAccessOrganizationAdminShell,
+  canSwitchOrganization,
+} from '#domain/organizations/org_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * Command: Switch Organization
@@ -17,7 +29,7 @@ import AuditLog from '#models/audit_log'
  * await command.execute(organizationId)
  */
 export default class SwitchOrganizationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Switch user's current organization
@@ -29,49 +41,62 @@ export default class SwitchOrganizationCommand {
    * 4. Create audit log
    * 5. Commit transaction
    */
-  async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async execute(organizationId: DatabaseId): Promise<{
+    organization: { id: DatabaseId; name: string }
+    redirectPath: string
+  }> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
-      // 1. Validate user is member of target organization
-      const membership: unknown = await trx
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', user.id)
-        .first()
+      const [organization, actorOrgRole, userModel] = await Promise.all([
+        OrganizationRepository.findBasicInfo(organizationId, trx),
+        OrganizationUserRepository.getMemberRoleName(organizationId, userId, trx, true),
+        UserRepository.findNotDeletedOrFail(userId, trx),
+      ])
 
-      if (!membership) {
-        throw new Error('You are not a member of this organization')
+      if (!organization) {
+        throw NotFoundException.resource('Tổ chức', organizationId)
       }
 
+      enforcePolicy(canSwitchOrganization(actorOrgRole))
+
       // 2. Get current organization for audit log
-      const currentOrganizationId = user.current_organization_id
+      const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
-      const userModel = await User.findOrFail(user.id)
       userModel.current_organization_id = organizationId
-      await userModel.useTransaction(trx).save()
+      await UserRepository.save(userModel, trx)
 
       // 4. Create audit log
-      await AuditLog.create(
-        {
-          user_id: user.id,
-          action: 'switch_organization',
-          entity_type: 'user',
-          entity_id: user.id,
-          old_values: { current_organization_id: currentOrganizationId },
-          new_values: { current_organization_id: organizationId },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
-        },
-        { client: trx }
-      )
+      await new CreateAuditLog(this.execCtx).handle({
+        user_id: userId,
+        action: AuditAction.SWITCH_ORGANIZATION,
+        entity_type: EntityType.USER,
+        entity_id: userId,
+        old_values: { current_organization_id: currentOrganizationId },
+        new_values: { current_organization_id: organizationId },
+      })
 
       await trx.commit()
+
+      // Emit cache invalidation for user permissions
+      void emitter.emit('cache:invalidate', {
+        entityType: 'user',
+        entityId: userId,
+        patterns: [`user:${userId}:*`],
+      })
+
+      return {
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        },
+        redirectPath: canAccessOrganizationAdminShell(actorOrgRole) ? '/org' : '/tasks',
+      }
     } catch (error) {
       await trx.rollback()
       throw error

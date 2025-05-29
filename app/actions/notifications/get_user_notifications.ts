@@ -1,50 +1,60 @@
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
-import Notification from '#models/notification'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface GetNotificationsOptions {
-  user_id?: number | string
+  user_id?: DatabaseId
   page?: number
   limit?: number
   unread_only?: boolean
 }
 
-@inject()
-export default class GetUserNotifications {
-  constructor(protected ctx: HttpContext) {}
+interface GetNotificationsResult {
+  notifications: NotificationRecord[]
+  meta: {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+  }
+  unread_count: number
+}
 
-  async handle(options: GetNotificationsOptions = {}) {
+export default class GetUserNotifications {
+  constructor(protected execCtx: ExecutionContext) {}
+
+  async handle(options: GetNotificationsOptions = {}): Promise<GetNotificationsResult> {
     // Nếu không chỉ định user_id, lấy từ người dùng hiện tại
-    const userId = options.user_id || this.ctx.auth.user?.id
+    const userId = options.user_id || this.execCtx.userId
     if (!userId) {
-      throw new Error('Không tìm thấy ID người dùng')
+      throw new UnauthorizedException('Không tìm thấy ID người dùng')
     }
 
     const page = options.page || 1
     const limit = options.limit || 10
     const unreadOnly = options.unread_only || false
 
-    // Xây dựng truy vấn
-    const query = Notification.query().where('user_id', userId).orderBy('created_at', 'desc')
+    const repo = await RepositoryFactory.getNotificationRepository()
 
-    // Lọc chỉ lấy thông báo chưa đọc nếu cần
-    if (unreadOnly) {
-      void query.where('is_read', false)
-    }
+    const { data, total } = await repo.findByUser(userId, {
+      page,
+      limit,
+      isRead: unreadOnly ? false : undefined,
+    })
 
-    // Phân trang kết quả
-    const notifications = await query.paginate(page, limit)
-
-    // Đếm số thông báo chưa đọc
-    const unreadCount = await Notification.query()
-      .where('user_id', userId)
-      .where('is_read', false)
-      .count('id as total')
-      .first()
+    const unreadCount = await repo.getUnreadCount(userId)
 
     return {
-      notifications,
-      unread_count: unreadCount ? Number(unreadCount.$extras.total) : 0,
+      notifications: data,
+      meta: {
+        total,
+        per_page: limit,
+        current_page: page,
+        last_page: Math.max(1, Math.ceil(total / limit)),
+      },
+      unread_count: unreadCount,
     }
   }
 }
