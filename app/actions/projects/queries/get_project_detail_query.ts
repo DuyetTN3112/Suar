@@ -1,19 +1,26 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import Project from '#models/project'
-import db from '@adonisjs/lucid/services/db'
-
-/**
- * Count result interface for aggregate queries
- */
-interface CountResult {
-  count?: string | number
-}
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type Project from '#models/project'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  calculateProjectDetailPermissions,
+  canViewProject,
+} from '#domain/projects/project_permission_policy'
+import type { ProjectPermissionContext } from '#domain/projects/project_types'
 
 /**
  * Member interface for query results
  */
-interface ProjectMember {
-  user_id: number
+interface ProjectMemberResult {
+  user_id: DatabaseId
   username: string
   email: string
   role: string
@@ -22,25 +29,46 @@ interface ProjectMember {
 }
 
 /**
- * Task count row interface
- */
-interface TaskCountRow {
-  user_id: number
-  count: string | number
-}
-
-/**
  * Query result interface
  */
 export interface GetProjectDetailResult {
-  project: unknown
+  project: {
+    id: string
+    name: string
+    description: string | null
+    organization_id: string
+    organization_name: string | null
+    creator_id: string
+    creator_name: string | null
+    manager_id: string | null
+    manager_name: string | null
+    owner_id: string | null
+    owner_name: string | null
+    start_date: string | null
+    end_date: string | null
+    status: string
+    budget: number | null
+    visibility: string | null
+    created_at: string | null
+    updated_at: string | null
+  }
   members: Array<{
-    user_id: number
+    user_id: DatabaseId
     username: string
     email: string
     role: string
     joined_at: Date
     task_count: number
+  }>
+  tasks: Array<{
+    id: string
+    title: string
+    description: string | null
+    status: string
+    task_status_id: string | null
+    priority: string | null
+    assignee_name: string | null
+    due_date: string | null
   }>
   tasks_summary: {
     total: number
@@ -75,102 +103,115 @@ export interface GetProjectDetailResult {
  * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
 export default class GetProjectDetailQuery extends BaseQuery<
-  { projectId: number },
+  {
+    projectId: DatabaseId
+    organizationId?: DatabaseId
+  },
   GetProjectDetailResult
 > {
   /**
    * Execute the query
    */
-  async handle(input: { projectId: number }): Promise<GetProjectDetailResult> {
+  async handle(input: {
+    projectId: DatabaseId
+    organizationId?: DatabaseId
+  }): Promise<GetProjectDetailResult> {
     const projectId = input.projectId
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('User not authenticated')
+    const userId = this.getCurrentUserId()
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Load project with relations
-    const project = await Project.query()
-      .where('id', projectId)
-      .whereNull('deleted_at')
-      .preload('creator')
-      .preload('manager')
-      .preload('owner')
-      .preload('organization')
-      .firstOrFail()
+    const project = await ProjectRepository.findDetailWithRelations(projectId)
 
-    // Check access permission
-    await this.validateAccess(user.id, project)
+    const permissionContext = await this.buildPermissionContext(
+      userId,
+      project,
+      input.organizationId
+    )
+    enforcePolicy(canViewProject(permissionContext))
 
     // Fetch all related data in parallel
-    const [members, tasksSummary, recentActivity] = await Promise.all([
+    const [members, tasks, tasksSummary, recentActivity] = await Promise.all([
       this.getMembers(projectId),
+      this.getTasks(projectId),
       this.getTasksSummary(projectId),
       this.getRecentActivity(projectId),
     ])
 
     // Calculate permissions
-    const permissions = this.calculatePermissions(user.id, project, members)
+    const permissions = calculateProjectDetailPermissions({
+      ...permissionContext,
+      projectManagerId: project.manager_id,
+    })
 
     return {
-      project: project.toJSON(),
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        organization_id: project.organization_id,
+        organization_name: project.organization.name,
+        creator_id: project.creator_id,
+        creator_name: project.creator.username,
+        manager_id: project.manager_id,
+        manager_name: project.manager_id ? project.manager.username : null,
+        owner_id: project.owner_id,
+        owner_name: project.owner_id ? project.owner.username : null,
+        start_date: project.start_date ? project.start_date.toISO() : null,
+        end_date: project.end_date ? project.end_date.toISO() : null,
+        status: project.status,
+        budget: project.budget,
+        visibility: project.visibility,
+        created_at: project.created_at.toISO(),
+        updated_at: project.updated_at.toISO(),
+      },
       members,
+      tasks,
       tasks_summary: tasksSummary,
       recent_activity: recentActivity,
       permissions,
     }
   }
 
-  /**
-   * Validate user has access to this project
-   */
-  private async validateAccess(userId: number, project: Project): Promise<void> {
-    const isCreator = project.creator_id === userId
-    const isManager = project.manager_id === userId
-    const isOwner = project.owner_id === userId
-
-    if (isCreator || isManager || isOwner) {
-      return
+  private async buildPermissionContext(
+    userId: DatabaseId,
+    project: Project,
+    currentOrganizationId?: DatabaseId
+  ): Promise<ProjectPermissionContext> {
+    if (currentOrganizationId && project.organization_id !== currentOrganizationId) {
+      throw new ForbiddenException('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
     }
 
-    // Check if user is a member
-    const isMember = (await db
-      .from('project_members')
-      .where('project_id', project.id)
-      .where('user_id', userId)
-      .first()) as { user_id: number } | null
+    const orgId = currentOrganizationId ?? project.organization_id
+    const [actorSystemRole, actorOrgRole, actorProjectRole] = await Promise.all([
+      UserRepository.getSystemRoleName(userId),
+      OrganizationUserRepository.getMemberRoleName(orgId, userId, undefined, true),
+      ProjectMemberRepository.getRoleName(project.id, userId).then((role) =>
+        role === 'unknown' ? null : role
+      ),
+    ])
 
-    if (!isMember) {
-      throw new Error('Bạn không có quyền truy cập dự án này')
+    return {
+      actorId: userId,
+      actorSystemRole,
+      actorOrgRole,
+      actorProjectRole,
+      projectCreatorId: project.creator_id,
+      projectOwnerId: project.owner_id ?? ('' as DatabaseId),
+      projectOrganizationId: project.organization_id,
     }
   }
 
   /**
-   * Get list of project members with details
+   * Get list of project members with details → delegate to Model
    */
-  private async getMembers(projectId: number): Promise<ProjectMember[]> {
-    const members = (await db
-      .from('project_members as pm')
-      .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
-      .leftJoin('users as u', 'pm.user_id', 'u.id')
-      .where('pm.project_id', projectId)
-      .orderBy('pm.created_at', 'asc')) as Array<{
-      user_id: number
-      role: string
-      joined_at: Date
-      username: string
-      email: string
-    }>
+  private async getMembers(projectId: DatabaseId): Promise<ProjectMemberResult[]> {
+    const { data: members } = await ProjectMemberRepository.getMembersWithDetails(projectId)
 
-    // Get task count for each member
-    const taskCounts = (await db
-      .from('tasks')
-      .select('assigned_to as user_id')
-      .count('* as count')
-      .where('project_id', projectId)
-      .whereNull('deleted_at')
-      .groupBy('assigned_to')) as TaskCountRow[]
-
-    const taskCountMap = new Map(taskCounts.map((t) => [t.user_id, Number(t.count)]))
+    // Get task count for each member via Model
+    const taskCountMap = await TaskRepository.countByAssignees(projectId)
 
     return members.map((member) => ({
       ...member,
@@ -178,127 +219,89 @@ export default class GetProjectDetailQuery extends BaseQuery<
     }))
   }
 
+  private async getTasks(projectId: DatabaseId): Promise<
+    Array<{
+      id: string
+      title: string
+      description: string | null
+      status: string
+      task_status_id: string | null
+      priority: string | null
+      assignee_name: string | null
+      due_date: string | null
+    }>
+  > {
+    const tasks = await TaskRepository.listPreviewByProject(projectId, 8)
+    return tasks.map((task) => ({
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      task_status_id: task.task_status_id,
+      priority: task.priority,
+      assignee_name: task.assigned_to ? task.assignee.username : null,
+      due_date: task.due_date ? task.due_date.toISO() : null,
+    }))
+  }
+
   /**
    * Get tasks summary grouped by status
    */
-  private async getTasksSummary(projectId: number): Promise<{
+  private getTasksSummary(projectId: DatabaseId): Promise<{
     total: number
     pending: number
     in_progress: number
     completed: number
     overdue: number
   }> {
-    const now = new Date()
-
-    const [total, pending, inProgress, completed, overdue] = (await Promise.all([
-      db.from('tasks').where('project_id', projectId).whereNull('deleted_at').count('* as count'),
-      db
-        .from('tasks')
-        .where('project_id', projectId)
-        .where('status_id', 1)
-        .whereNull('deleted_at')
-        .count('* as count'),
-      db
-        .from('tasks')
-        .where('project_id', projectId)
-        .where('status_id', 2)
-        .whereNull('deleted_at')
-        .count('* as count'),
-      db
-        .from('tasks')
-        .where('project_id', projectId)
-        .where('status_id', 3)
-        .whereNull('deleted_at')
-        .count('* as count'),
-      db
-        .from('tasks')
-        .where('project_id', projectId)
-        .whereNotIn('status_id', [3, 4])
-        .where('due_date', '<', now)
-        .whereNull('deleted_at')
-        .count('* as count'),
-    ])) as [CountResult[], CountResult[], CountResult[], CountResult[], CountResult[]]
-
-    return {
-      total: Number(total[0]?.count || 0),
-      pending: Number(pending[0]?.count || 0),
-      in_progress: Number(inProgress[0]?.count || 0),
-      completed: Number(completed[0]?.count || 0),
-      overdue: Number(overdue[0]?.count || 0),
-    }
+    return TaskRepository.getTasksSummaryByProject(projectId)
   }
 
   /**
-   * Get recent activity (last 10 audit logs)
+   * Get recent activity (last 10 audit logs) → delegate to Model
    */
-  private async getRecentActivity(projectId: number): Promise<
+  private async getRecentActivity(projectId: DatabaseId): Promise<
     Array<{
-      id: number
-      user_id: number | null
+      id: DatabaseId
+      user_id: DatabaseId | null
       entity_type: string
-      entity_id: number
+      entity_id: DatabaseId | null
       action: string
       created_at: Date
       username: string | null
     }>
   > {
-    const activities = (await db
-      .from('audit_logs')
-      .select('audit_logs.*', 'users.username as username')
-      .leftJoin('users', 'audit_logs.user_id', 'users.id')
-      .where('entity_type', 'project')
-      .where('entity_id', projectId)
-      .orderBy('created_at', 'desc')
-      .limit(10)) as Array<{
-      id: number
-      user_id: number | null
-      entity_type: string
-      entity_id: number
-      action: string
-      created_at: Date
-      username: string | null
-    }>
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'project',
+      entity_id: projectId,
+      limit: 10,
+    })
 
-    return activities
-  }
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users = await UserRepository.findByIds(userIds, ['id', 'username'])
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
-  /**
-   * Calculate what permissions user has for this project
-   */
-  private calculatePermissions(
-    userId: number,
-    project: Project,
-    members: ProjectMember[]
-  ): {
-    isOwner: boolean
-    isManager: boolean
-    isCreator: boolean
-    isMember: boolean
-    canEdit: boolean
-    canDelete: boolean
-    canAddMembers: boolean
-  } {
-    const isOwner = project.owner_id === userId
-    const isManager = project.manager_id === userId
-    const isCreator = project.creator_id === userId
-    const isMember = members.some((m) => m.user_id === userId)
-
-    return {
-      isOwner,
-      isManager,
-      isCreator,
-      isMember,
-      canEdit: isOwner || isManager || isCreator,
-      canDelete: isOwner || isCreator,
-      canAddMembers: isOwner || isCreator || isManager,
-    }
+    return logs.map((log) => {
+      const user = userMap.get(String(log.user_id))
+      return {
+        id: log.id,
+        user_id: log.user_id ?? null,
+        entity_type: log.entity_type,
+        entity_id: log.entity_id ?? null,
+        action: log.action,
+        created_at: log.created_at,
+        username: user?.username ?? null,
+      }
+    })
   }
 
   /**
    * Get cache key for this query
    */
-  protected getCacheKey(projectId: number): string {
-    const userId = this.ctx.auth.user?.id ?? 0
+  protected getCacheKey(projectId: DatabaseId): string {
+    const userId = this.getCurrentUserId() ?? 0
     return `projects:detail:${projectId}:user:${userId}`
   }
 

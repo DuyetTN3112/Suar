@@ -1,7 +1,15 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateProjectDTO } from '../dtos/index.js'
-import Project from '#models/project'
-import db from '@adonisjs/lucid/services/db'
+import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
+import type { DatabaseId } from '#types/database'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command to update an existing project
@@ -9,36 +17,58 @@ import db from '@adonisjs/lucid/services/db'
  * Business Rules:
  * - Owner can update all fields
  * - Superadmin can update all fields
- * - Manager can update: description, start_date, end_date, status_id
+ * - Manager can update: description, start_date, end_date, status
  * - Logs all field changes to audit trail
  *
- * @extends {BaseCommand<UpdateProjectDTO, Project>}
+ * @extends {BaseCommand<UpdateProjectDTO, import('#models/project').default>}
  */
-export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, Project> {
+export default class UpdateProjectCommand extends BaseCommand<
+  UpdateProjectDTO,
+  import('#models/project').default
+> {
   /**
    * Execute the command
    *
    * @param dto - Validated UpdateProjectDTO
    * @returns Updated project
    */
-  async handle(dto: UpdateProjectDTO): Promise<Project> {
-    const user = this.getCurrentUser()
+  async handle(dto: UpdateProjectDTO): Promise<import('#models/project').default> {
+    const userId = this.getCurrentUserId()
 
     // Check if there are any updates
     if (!dto.hasUpdates()) {
-      throw new Error('Không có thay đổi nào để cập nhật')
+      throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
 
     return await this.executeInTransaction(async (trx) => {
       // 1. Load project with lock (prevents concurrent updates)
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
-      // 2. Check permissions
-      await this.validatePermissions(user.id, project, dto)
+      // 2. Check permissions via pure rule
+      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
+      const orgMembership = await OrganizationUserRepository.findMembership(
+        project.organization_id,
+        userId,
+        trx
+      )
+      const projectMember = await ProjectMemberRepository.findMember(dto.project_id, userId, trx)
+      const actorProjectRole = projectMember?.project_role ?? null
+
+      const fieldResult = canUpdateProjectFields(
+        {
+          actorId: userId,
+          actorSystemRole: actor.system_role,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          actorProjectRole,
+          projectCreatorId: project.creator_id,
+          projectOwnerId: project.owner_id ?? '',
+          projectOrganizationId: project.organization_id,
+        },
+        dto.getUpdatedFields()
+      )
+      if (!fieldResult.allowed) {
+        throw new ForbiddenException(fieldResult.reason)
+      }
 
       // 3. Store old values for audit
       const oldValues = this.getTrackedFields(project)
@@ -46,7 +76,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 4. Update project fields
       const updateData = dto.toObject()
       project.merge(updateData)
-      await project.useTransaction(trx).save()
+      await ProjectRepository.save(project, trx)
 
       // 5. Get new values
       const newValues = this.getTrackedFields(project)
@@ -54,75 +84,28 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 6. Log audit trail for each changed field
       await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
 
+      // 7. Emit domain event
+      void emitter.emit('project:updated', {
+        project,
+        updatedBy: userId,
+        changes: updateData,
+      })
+
+      // 8. Invalidate project caches after commit
+      void CacheService.deleteByPattern(`organization:tasks:*`)
+
       return project
     })
   }
 
   /**
-   * Validate user permissions based on their role
-   */
-  private async validatePermissions(
-    userId: number,
-    project: Project,
-    dto: UpdateProjectDTO
-  ): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
-
-    // Check if user is superadmin
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    // Owner, creator, or superadmin can update everything
-    if (isOwner || isCreator || isSuperAdmin) {
-      return
-    }
-
-    // Check if user is manager
-    const isManager = project.manager_id === userId
-
-    if (isManager) {
-      // Manager can only update specific fields
-      const allowedFields = ['description', 'start_date', 'end_date', 'status_id']
-      const attemptedFields = dto.getUpdatedFields()
-      const unauthorizedFields = attemptedFields.filter((f) => !allowedFields.includes(f))
-
-      if (unauthorizedFields.length > 0) {
-        throw new Error(
-          `Manager chỉ có thể cập nhật: ${allowedFields.join(', ')}. ` +
-            `Không được phép cập nhật: ${unauthorizedFields.join(', ')}`
-        )
-      }
-      return
-    }
-
-    // No permission
-    throw new Error('Bạn không có quyền cập nhật dự án này')
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    // Check database directly
-    const org = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
-      .first()) as { id: number } | null
-
-    return !!org
-  }
-
-  /**
    * Get tracked field values for audit
    */
-  private getTrackedFields(project: Project): Record<string, unknown> {
+  private getTrackedFields(project: import('#models/project').default): Record<string, unknown> {
     return {
       name: project.name,
       description: project.description,
-      status_id: project.status_id,
+      status: project.status,
       start_date: project.start_date,
       end_date: project.end_date,
       manager_id: project.manager_id,
@@ -136,7 +119,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    * Log changes for each updated field
    */
   private async logFieldChanges(
-    projectId: number,
+    projectId: DatabaseId,
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>,
     updatedFields: string[]
