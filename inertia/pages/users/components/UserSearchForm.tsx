@@ -18,7 +18,7 @@ export default function UserSearchForm({ search, setSearch, handleSearch }: User
         placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
         className="max-w-sm" 
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => { setSearch(e.target.value); }}
       />
       <Button variant="outline" type="submit">{t('common.search', {}, "Tìm kiếm")}</Button>
     </form>

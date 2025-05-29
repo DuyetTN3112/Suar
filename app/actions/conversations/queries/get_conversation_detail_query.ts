@@ -5,6 +5,29 @@ import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_d
 import { Exception } from '@adonisjs/core/exceptions'
 import Database from '@adonisjs/lucid/services/db'
 
+interface UnreadCountResult {
+  total: number | string | bigint
+}
+
+interface LastMessageResult {
+  id: number
+  message: string
+  sender_id: number
+  is_recalled: boolean
+  recall_scope: string | null
+  created_at: string
+  sender_name: string | null
+}
+
+interface LastMessageResponse {
+  id: number
+  message: string
+  sender_id: number
+  sender_name: string | null
+  is_recalled: boolean
+  created_at: string
+}
+
 export class NotFoundError extends Exception {
   static override status = 404
   static override code = 'E_CONVERSATION_NOT_FOUND'
@@ -27,16 +50,19 @@ export default class GetConversationDetailQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(dto: GetConversationDetailDTO): Promise<Conversation> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const { conversationId } = dto
 
     try {
       // Try cache first
-      const cacheKey = `conversation:${conversationId}:detail:user:${user.id}`
+      const cacheKey = `conversation:${String(conversationId)}:detail:user:${String(user.id)}`
       const cached = await redis.get(cacheKey)
 
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as Conversation
       }
 
       // Query conversation
@@ -44,7 +70,7 @@ export default class GetConversationDetailQuery {
         .where('id', conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (participantQuery) => {
-          participantQuery.where('user_id', user.id)
+          void participantQuery.where('user_id', user.id)
         })
         .preload('participants')
         .first()
@@ -60,9 +86,9 @@ export default class GetConversationDetailQuery {
       const lastMessage = await this.getLastMessage(conversationId, user.id)
 
       // Attach to conversation object for easy access
-      // @ts-ignore - Adding virtual properties
+      // @ts-expect-error - Adding virtual properties
       conversation.unreadCount = unreadCount
-      // @ts-ignore
+      // @ts-expect-error - Adding virtual properties
       conversation.lastMessage = lastMessage
 
       // Cache for 5 minutes
@@ -80,7 +106,7 @@ export default class GetConversationDetailQuery {
    * Exclude messages recalled by sender for self (recall_scope = 'self' AND sender_id = userId)
    */
   private async getUnreadCount(conversationId: number, userId: number): Promise<number> {
-    const result = await Database.from('messages')
+    const result = (await Database.from('messages')
       .where('messages.conversation_id', conversationId)
       .where('messages.sender_id', '!=', userId)
       .whereNull('messages.read_at')
@@ -89,17 +115,20 @@ export default class GetConversationDetailQuery {
         [userId]
       )
       .count('messages.id as total')
-      .first()
+      .first()) as UnreadCountResult | undefined
 
-    return Number(result?.total || 0)
+    return Number(result?.total ?? 0)
   }
 
   /**
    * Get last message in conversation
    * Filter out messages recalled by current user for self (recall_scope = 'self' AND sender_id = userId)
    */
-  private async getLastMessage(conversationId: number, userId: number) {
-    const result = await Database.from('messages')
+  private async getLastMessage(
+    conversationId: number,
+    userId: number
+  ): Promise<LastMessageResponse | null> {
+    const result = (await Database.from('messages')
       .select(
         'messages.id',
         'messages.message',
@@ -116,7 +145,7 @@ export default class GetConversationDetailQuery {
         [userId]
       )
       .orderBy('messages.created_at', 'desc')
-      .first()
+      .first()) as LastMessageResult | undefined
 
     if (!result) {
       return null

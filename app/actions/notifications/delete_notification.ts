@@ -7,7 +7,10 @@ export default class DeleteNotification {
   constructor(protected ctx: HttpContext) {}
 
   async handle({ id }: { id: number }) {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     // Tìm thông báo cần xóa
     const notification = await Notification.query()
       .where('id', id)
@@ -19,7 +22,10 @@ export default class DeleteNotification {
   }
   // Xóa tất cả thông báo đã đọc
   async deleteAllRead() {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     await Notification.query().where('user_id', user.id).where('is_read', true).delete()
     return { success: true }
   }

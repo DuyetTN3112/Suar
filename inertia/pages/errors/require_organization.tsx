@@ -59,7 +59,7 @@ export default function RequireOrganization() {
   const currentOrganizations = filteredOrganizations.slice(indexOfFirstOrg, indexOfLastOrg)
   const totalPages = Math.ceil(filteredOrganizations.length / organizationsPerPage)
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+  const paginate = (pageNumber: number) => { setCurrentPage(pageNumber); }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center py-12 bg-slate-50 dark:bg-slate-900">
@@ -143,7 +143,7 @@ export default function RequireOrganization() {
                     </CardContent>
                     <CardFooter className="pt-0 flex justify-end border-t border-slate-100 dark:border-slate-700">
                       <Button
-                        onClick={() => handleJoinOrganization(org.id)}
+                        onClick={() => { handleJoinOrganization(org.id); }}
                         size="sm"
                         className="w-full"
                       >
@@ -160,7 +160,7 @@ export default function RequireOrganization() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    onClick={() => { setCurrentPage((prev) => Math.max(prev - 1, 1)); }}
                     disabled={currentPage === 1}
                     className="w-10 h-10 p-0 rounded-full"
                   >
@@ -171,7 +171,7 @@ export default function RequireOrganization() {
                       key={page}
                       variant={currentPage === page ? "default" : "outline"}
                       size="sm"
-                      onClick={() => paginate(page)}
+                      onClick={() => { paginate(page); }}
                       className="w-10 h-10 p-0 rounded-full"
                     >
                       {page}
@@ -180,7 +180,7 @@ export default function RequireOrganization() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    onClick={() => { setCurrentPage((prev) => Math.min(prev + 1, totalPages)); }}
                     disabled={currentPage === totalPages}
                     className="w-10 h-10 p-0 rounded-full"
                   >

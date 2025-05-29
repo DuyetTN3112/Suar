@@ -65,9 +65,9 @@ router
       })
       .as('account.index')
     router
-      .delete('/account', async ({ response }) => {
+      .delete('/account', ({ response }) => {
         // Xử lý xóa tài khoản
-        return response.redirect('/login')
+        response.redirect('/login')
       })
       .as('account.destroy')
   })

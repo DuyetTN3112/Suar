@@ -129,7 +129,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
           <h1 className="text-2xl font-bold">{t('project.create_project', {}, 'Tạo dự án mới')}</h1>
 
           <Button
-            onClick={() => router.visit('/projects')}
+            onClick={() => { router.visit('/projects'); }}
             variant="outline"
           >
             {t('common.cancel', {}, 'Hủy')}
@@ -174,7 +174,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                 </Label>
                 <Select
                   value={formData.organization_id}
-                  onValueChange={(value) => handleSelectChange('organization_id', value)}
+                  onValueChange={(value) => { handleSelectChange('organization_id', value); }}
                 >
                   <SelectTrigger className={errors.organization_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('project.select_organization', {}, 'Chọn tổ chức')} />
@@ -198,7 +198,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
                 </Label>
                 <Select
                   value={formData.status_id}
-                  onValueChange={(value) => handleSelectChange('status_id', value)}
+                  onValueChange={(value) => { handleSelectChange('status_id', value); }}
                 >
                   <SelectTrigger className={errors.status_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('project.select_status', {}, 'Chọn trạng thái')} />
@@ -286,7 +286,7 @@ export default function ProjectCreate({ organizations, statuses, auth }: Project
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => router.visit('/projects')}
+                onClick={() => { router.visit('/projects'); }}
               >
                 {t('common.cancel', {}, 'Hủy')}
               </Button>

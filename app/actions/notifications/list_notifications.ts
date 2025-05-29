@@ -28,16 +28,19 @@ export default class ListNotifications {
 
   async handle(options: ListOptions): Promise<PaginatedResponse<Notification>> {
     const { page, limit, isRead, type } = options
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     const query = Notification.query().where('user_id', user.id).orderBy('created_at', 'desc')
 
     if (isRead !== undefined) {
-      query.where('is_read', isRead)
+      void query.where('is_read', isRead)
     }
 
     if (type) {
-      query.where('type', type)
+      void query.where('type', type)
     }
 
     const paginator = await query.paginate(page, limit)

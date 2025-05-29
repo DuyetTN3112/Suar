@@ -24,7 +24,7 @@ export function NotificationsTab({ form, onSubmit, processing }: NotificationsTa
                   id="email-notifications"
                   checked={form.data.emailNotifications}
                   onCheckedChange={(checked) =>
-                    form.setData('emailNotifications', checked === true)
+                    { form.setData('emailNotifications', checked === true); }
                   }
                 />
                 <Label htmlFor="email-notifications">Thông báo qua email</Label>
@@ -34,7 +34,7 @@ export function NotificationsTab({ form, onSubmit, processing }: NotificationsTa
                   id="push-notifications"
                   checked={form.data.pushNotifications}
                   onCheckedChange={(checked) =>
-                    form.setData('pushNotifications', checked === true)
+                    { form.setData('pushNotifications', checked === true); }
                   }
                 />
                 <Label htmlFor="push-notifications">Thông báo đẩy</Label>

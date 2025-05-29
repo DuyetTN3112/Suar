@@ -30,7 +30,8 @@ export default class SwitchOrganizationController {
         const errorMessage = 'Thiếu ID tổ chức'
 
         if (request.accepts(['html', 'json']) === 'json') {
-          return response.status(400).json({ success: false, message: errorMessage })
+          response.status(400).json({ success: false, message: errorMessage })
+          return
         }
 
         return inertia.render('errors/400', { message: errorMessage })
@@ -49,7 +50,8 @@ export default class SwitchOrganizationController {
         const errorMessage = 'Không tìm thấy tổ chức'
 
         if (request.accepts(['html', 'json']) === 'json') {
-          return response.status(404).json({ success: false, message: errorMessage })
+          response.status(404).json({ success: false, message: errorMessage })
+          return
         }
 
         return inertia.render('errors/404', { message: errorMessage })
@@ -69,12 +71,13 @@ export default class SwitchOrganizationController {
       const successMessage = `Đã chuyển sang tổ chức "${organization.name}"`
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: successMessage,
           redirect: redirectPath,
           organization,
         })
+        return
       }
 
       // Sử dụng Inertia để chuyển hướng trong SPA
@@ -87,10 +90,11 @@ export default class SwitchOrganizationController {
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi chuyển đổi tổ chức'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       return inertia.render('errors/500', { message: errorMessage })

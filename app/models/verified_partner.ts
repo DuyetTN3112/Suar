@@ -10,42 +10,42 @@ import User from './user.js'
  * Mô tả: Organizations đã được verify là Partner
  */
 export default class VerifiedPartner extends BaseModel {
-    static override table = 'verified_partners'
+  static override table = 'verified_partners'
 
-    @column({ isPrimary: true })
-    declare id: number
+  @column({ isPrimary: true })
+  declare id: number
 
-    @column()
-    declare organization_id: number
+  @column()
+  declare organization_id: number
 
-    @column()
-    declare partner_type: 'gold' | 'silver' | 'bronze'
+  @column()
+  declare partner_type: 'gold' | 'silver' | 'bronze'
 
-    @column.dateTime()
-    declare verified_at: DateTime | null
+  @column.dateTime()
+  declare verified_at: DateTime | null
 
-    @column()
-    declare verified_by: number // Admin đã verify
+  @column()
+  declare verified_by: number // Admin đã verify
 
-    @column()
-    declare verification_proof: string | null
+  @column()
+  declare verification_proof: string | null
 
-    @column.dateTime()
-    declare expires_at: DateTime | null
+  @column.dateTime()
+  declare expires_at: DateTime | null
 
-    @column()
-    declare is_active: boolean
+  @column()
+  declare is_active: boolean
 
-    @column.dateTime({ autoCreate: true })
-    declare created_at: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare created_at: DateTime
 
-    @column.dateTime({ autoCreate: true, autoUpdate: true })
-    declare updated_at: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
 
-    // Relations
-    @belongsTo(() => Organization, { foreignKey: 'organization_id' })
-    declare organization: BelongsTo<typeof Organization>
+  // Relations
+  @belongsTo(() => Organization, { foreignKey: 'organization_id' })
+  declare organization: BelongsTo<typeof Organization>
 
-    @belongsTo(() => User, { foreignKey: 'verified_by' })
-    declare verifiedByUser: BelongsTo<typeof User>
+  @belongsTo(() => User, { foreignKey: 'verified_by' })
+  declare verifiedByUser: BelongsTo<typeof User>
 }

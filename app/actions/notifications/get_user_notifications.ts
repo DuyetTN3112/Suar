@@ -29,7 +29,7 @@ export default class GetUserNotifications {
 
     // Lọc chỉ lấy thông báo chưa đọc nếu cần
     if (unreadOnly) {
-      query.where('is_read', false)
+      void query.where('is_read', false)
     }
 
     // Phân trang kết quả

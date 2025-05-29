@@ -2,6 +2,25 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 
+interface RoleRecord {
+  id: number
+  name: string
+  display_name: string
+  description: string | null
+}
+
+interface PlanRecord {
+  name: string
+  display_name: string
+  description: string
+  features: string[]
+}
+
+interface MetadataResult {
+  roles: RoleRecord[]
+  plans: PlanRecord[]
+}
+
 /**
  * Query: Get Organization Metadata
  *
@@ -25,20 +44,7 @@ import redis from '@adonisjs/redis/services/main'
 export default class GetOrganizationMetadataQuery {
   constructor(protected ctx: HttpContext) {}
 
-  async execute(): Promise<{
-    roles: Array<{
-      id: number
-      name: string
-      display_name: string
-      description: string | null
-    }>
-    plans: Array<{
-      name: string
-      display_name: string
-      description: string
-      features: string[]
-    }>
-  }> {
+  async execute(): Promise<MetadataResult> {
     // Try cache first
     const cacheKey = 'organization:metadata'
     const cached = await this.getFromCache(cacheKey)
@@ -46,10 +52,11 @@ export default class GetOrganizationMetadataQuery {
       return cached
     }
 
-    // Load metadata in parallel
-    const [roles, plans] = await Promise.all([this.loadRoles(), this.loadPlans()])
+    // Load metadata
+    const roles = await this.loadRoles()
+    const plans = this.loadPlans()
 
-    const result = {
+    const result: MetadataResult = {
       roles,
       plans,
     }
@@ -63,18 +70,11 @@ export default class GetOrganizationMetadataQuery {
   /**
    * Load all roles
    */
-  private async loadRoles(): Promise<
-    Array<{
-      id: number
-      name: string
-      display_name: string
-      description: string | null
-    }>
-  > {
-    const roles = await db
+  private async loadRoles(): Promise<RoleRecord[]> {
+    const roles = (await db
       .from('roles')
       .select('id', 'name', 'display_name', 'description')
-      .orderBy('id', 'asc')
+      .orderBy('id', 'asc')) as RoleRecord[]
 
     return roles
   }
@@ -82,14 +82,7 @@ export default class GetOrganizationMetadataQuery {
   /**
    * Load all plans (hardcoded since plans are usually static)
    */
-  private async loadPlans(): Promise<
-    Array<{
-      name: string
-      display_name: string
-      description: string
-      features: string[]
-    }>
-  > {
+  private loadPlans(): PlanRecord[] {
     // This could be from database if you have a plans table
     // For now, returning hardcoded common plans
     return [
@@ -147,11 +140,11 @@ export default class GetOrganizationMetadataQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<MetadataResult | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as MetadataResult
       }
     } catch (error) {
       console.error('[GetOrganizationMetadataQuery] Cache get error:', error)
@@ -162,7 +155,7 @@ export default class GetOrganizationMetadataQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: any, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: MetadataResult, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

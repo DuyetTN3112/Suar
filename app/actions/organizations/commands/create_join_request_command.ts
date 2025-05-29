@@ -30,16 +30,18 @@ export default class CreateJoinRequestCommand {
    * 6. Commit transaction
    */
   async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Check if user is already a member
-      const existingMembership = await db
+      const existingMembership: unknown = await trx
         .from('organization_users')
         .where('organization_id', organizationId)
         .where('user_id', user.id)
-        .useTransaction(trx)
         .first()
 
       if (existingMembership) {
@@ -47,12 +49,11 @@ export default class CreateJoinRequestCommand {
       }
 
       // 2. Check for duplicate pending requests
-      const existingRequest = await db
+      const existingRequest: unknown = await trx
         .from('organization_join_requests')
         .where('organization_id', organizationId)
         .where('user_id', user.id)
         .where('status', 'pending')
-        .useTransaction(trx)
         .first()
 
       if (existingRequest) {
@@ -60,13 +61,14 @@ export default class CreateJoinRequestCommand {
       }
 
       // 3. Create join request
-      const [requestId] = await db.table('organization_join_requests').useTransaction(trx).insert({
+      const result = await trx.insertQuery().table('organization_join_requests').insert({
         organization_id: organizationId,
         user_id: user.id,
         status: 'pending',
         created_at: new Date(),
         updated_at: new Date(),
       })
+      const requestId = (result as number[])[0]
 
       // 4. Create audit log
       await AuditLog.create(

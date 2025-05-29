@@ -1,6 +1,9 @@
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
-import type { GetUsersListDTO } from '../dtos/get_users_list_dto.js'
+import type { GetUsersListDTO, UserFiltersDTO } from '../dtos/get_users_list_dto.js'
 import User from '#models/user'
+import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
+
+type UserQueryBuilder = ModelQueryBuilderContract<typeof User, User>
 
 /**
  * GetUsersListQuery
@@ -60,7 +63,7 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Build the database query with all filters applied
    */
-  private buildQuery(dto: GetUsersListDTO) {
+  private buildQuery(dto: GetUsersListDTO): UserQueryBuilder {
     let query = User.query().preload('system_role').preload('status').whereNull('deleted_at')
 
     // Apply organization filter
@@ -85,31 +88,31 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Apply organization-specific filters
    */
-  private applyOrganizationFilter(query: unknown, dto: GetUsersListDTO) {
+  private applyOrganizationFilter(query: UserQueryBuilder, dto: GetUsersListDTO): UserQueryBuilder {
     if (dto.filters.excludeOrganizationMembers) {
-      return query.whereDoesntHave('organization_users', (q: unknown) => {
-        q.where('organization_id', dto.organizationId)
+      return query.whereDoesntHave('organization_users', (q) => {
+        void q.where('organization_id', dto.organizationId)
       })
     }
 
     return query
-      .whereHas('organization_users', (q: unknown) => {
-        q.where('organization_id', dto.organizationId)
+      .whereHas('organization_users', (q) => {
+        void q.where('organization_id', dto.organizationId)
 
         if (dto.filters.organizationUserStatus) {
-          q.where('status', dto.filters.organizationUserStatus)
+          void q.where('status', dto.filters.organizationUserStatus)
         }
       })
-      .preload('organization_users', (q: unknown) => {
-        q.where('organization_id', dto.organizationId)
-        q.preload('role')
+      .preload('organization_users', (q) => {
+        void q.where('organization_id', dto.organizationId)
+        void q.preload('organization_role')
       })
   }
 
   /**
    * Apply status filters
    */
-  private applyStatusFilters(query: unknown, filters: unknown) {
+  private applyStatusFilters(query: UserQueryBuilder, filters: UserFiltersDTO): UserQueryBuilder {
     if (filters.statusId) {
       query = query.where('status_id', filters.statusId)
     }
@@ -124,9 +127,11 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
   /**
    * Apply search filter across multiple fields
    */
-  private applySearchFilter(query: unknown, searchTerm: string) {
-    return query.where((q: unknown) => {
-      q.where('email', 'LIKE', `%${searchTerm}%`).orWhere('username', 'LIKE', `%${searchTerm}%`)
+  private applySearchFilter(query: UserQueryBuilder, searchTerm: string): UserQueryBuilder {
+    return query.where((q) => {
+      void q
+        .where('email', 'LIKE', `%${searchTerm}%`)
+        .orWhere('username', 'LIKE', `%${searchTerm}%`)
     })
   }
 }

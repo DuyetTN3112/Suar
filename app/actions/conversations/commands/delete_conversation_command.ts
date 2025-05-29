@@ -5,6 +5,10 @@ import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
+interface ParticipantResult {
+  user_id: number
+}
+
 /**
  * Command: Delete Conversation (Soft Delete)
  *
@@ -33,7 +37,10 @@ export default class DeleteConversationCommand {
    * 4. Invalidate cache
    */
   async execute(dto: DeleteConversationDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     try {
       // Verify user is participant and conversation exists
@@ -41,7 +48,7 @@ export default class DeleteConversationCommand {
         .where('id', dto.conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (builder) => {
-          builder.where('user_id', user.id)
+          void builder.where('user_id', user.id)
         })
         .firstOrFail()
 
@@ -63,16 +70,16 @@ export default class DeleteConversationCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {
-        const pattern = `user:${userId}:conversations:*`
+        const pattern = `user:${String(userId)}:conversations:*`
         const keys = await redis.keys(pattern)
         if (keys.length > 0) {
           await redis.del(...keys)
@@ -80,11 +87,11 @@ export default class DeleteConversationCommand {
       }
 
       // Invalidate conversation detail cache
-      const detailKey = `conversation:${conversationId}:detail`
+      const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
 
       // Invalidate messages cache
-      const messagesPattern = `conversation:${conversationId}:messages:*`
+      const messagesPattern = `conversation:${String(conversationId)}:messages:*`
       const messagesKeys = await redis.keys(messagesPattern)
       if (messagesKeys.length > 0) {
         await redis.del(...messagesKeys)

@@ -7,6 +7,10 @@ import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import Logger from '@adonisjs/core/services/logger'
 
+interface ParticipantResult {
+  user_id: number
+}
+
 /**
  * Command: Send Message
  *
@@ -38,7 +42,10 @@ export default class SendMessageCommand {
    * 7. Return created message
    */
   async execute(dto: SendMessageDTO): Promise<Message> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     try {
       // Verify user is participant in conversation
@@ -46,14 +53,14 @@ export default class SendMessageCommand {
         .where('id', dto.conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (builder) => {
-          builder.where('user_id', user.id)
+          void builder.where('user_id', user.id)
         })
         .firstOrFail()
 
       // Log unusually long messages
       if (dto.message.length > 5000) {
         Logger.warn(
-          `[SendMessageCommand] Unusually long message from user ${user.id}: ${dto.message.length} characters`
+          `[SendMessageCommand] Unusually long message from user ${String(user.id)}: ${String(dto.message.length)} characters`
         )
       }
 
@@ -66,17 +73,22 @@ export default class SendMessageCommand {
         ])
       } catch (dbError: unknown) {
         // Log detailed error for debugging
-        Logger.error(`[SendMessageCommand] Database error for user ${user.id}:`, {
-          error: dbError.message,
-          code: dbError.code,
-          sqlState: dbError.sqlState,
+        const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error'
+        const errorObj = dbError as { code?: string; sqlState?: string }
+        const errorCode = errorObj.code ?? 'UNKNOWN'
+        const errorSqlState = errorObj.sqlState ?? 'UNKNOWN'
+
+        Logger.error(`[SendMessageCommand] Database error for user ${String(user.id)}:`, {
+          error: errorMessage,
+          code: errorCode,
+          sqlState: errorSqlState,
           conversationId: dto.conversationId,
         })
 
         // Throw user-friendly error
-        if (dbError.sqlState === '45000') {
+        if (errorSqlState === '45000') {
           // Custom MySQL error from stored procedure
-          throw new Error(dbError.message)
+          throw new Error(errorMessage)
         }
 
         throw new Error('Không thể gửi tin nhắn. Vui lòng thử lại sau.')
@@ -108,16 +120,16 @@ export default class SendMessageCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants of this conversation
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 
       // Invalidate conversation list cache for each participant
       for (const userId of participantIds) {
-        const pattern = `user:${userId}:conversations:*`
+        const pattern = `user:${String(userId)}:conversations:*`
         const keys = await redis.keys(pattern)
         if (keys.length > 0) {
           await redis.del(...keys)
@@ -125,14 +137,14 @@ export default class SendMessageCommand {
       }
 
       // Invalidate conversation detail cache
-      const conversationPattern = `conversation:${conversationId}:*`
+      const conversationPattern = `conversation:${String(conversationId)}:*`
       const conversationKeys = await redis.keys(conversationPattern)
       if (conversationKeys.length > 0) {
         await redis.del(...conversationKeys)
       }
 
       // Invalidate messages cache
-      const messagesPattern = `conversation:${conversationId}:messages:*`
+      const messagesPattern = `conversation:${String(conversationId)}:messages:*`
       const messagesKeys = await redis.keys(messagesPattern)
       if (messagesKeys.length > 0) {
         await redis.del(...messagesKeys)

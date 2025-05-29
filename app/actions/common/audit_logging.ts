@@ -32,6 +32,11 @@ interface AuditLogData {
   metadata?: unknown
 }
 
+interface EntityWithId {
+  id?: number | null
+  [key: string]: unknown
+}
+
 export default class AuditLogging {
   constructor(private ctx: HttpContext) {}
 
@@ -42,7 +47,6 @@ export default class AuditLogging {
     user_id,
     old_values = null,
     new_values = null,
-    metadata = null,
   }: AuditLogData) {
     const effectiveUserId = user_id || this.ctx.auth.user?.id
     if (!effectiveUserId) {
@@ -56,14 +60,13 @@ export default class AuditLogging {
       entity_id: entity_id,
       old_values: old_values,
       new_values: new_values,
-      metadata: metadata ? JSON.stringify(metadata) : null,
       ip_address: this.ctx.request.ip() || null,
       user_agent: this.ctx.request.header('user-agent') || null,
       created_at: DateTime.now(),
     })
   }
 
-  async logCreation(entity_type: string, entity: unknown) {
+  async logCreation(entity_type: string, entity: EntityWithId) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
@@ -77,7 +80,7 @@ export default class AuditLogging {
     })
   }
 
-  async logUpdate(entity_type: string, oldData: unknown, newData: unknown) {
+  async logUpdate(entity_type: string, oldData: EntityWithId, newData: EntityWithId) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,
@@ -94,7 +97,7 @@ export default class AuditLogging {
   /**
    * Ghi log cho hành động xóa
    */
-  async logDeletion(entity_type: string, entity: unknown) {
+  async logDeletion(entity_type: string, entity: EntityWithId) {
     const user = this.ctx.auth.user
     return await AuditLog.create({
       user_id: user?.id || null,

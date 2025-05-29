@@ -5,6 +5,7 @@ import type UpdateTaskDTO from '../dtos/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command để cập nhật task
@@ -32,7 +33,7 @@ export default class UpdateTaskCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) { }
+  ) {}
 
   /**
    * Execute command để cập nhật task
@@ -42,7 +43,10 @@ export default class UpdateTaskCommand {
    * - task_version_after_update: Tạo version history khi có thay đổi
    */
   async execute(taskId: number, dto: UpdateTaskDTO): Promise<Task> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     // Check if DTO has any updates
     if (!dto.hasUpdates()) {
@@ -113,20 +117,17 @@ export default class UpdateTaskCommand {
       await this.sendNotifications(existingTask, user, dto)
 
       // Load full relations
-      await existingTask.load((loader: unknown) => {
-        loader
-          .load('status')
-          .load('label')
-          .load('priority')
-          .load('assignee')
-          .load('creator')
-          .load('updater')
-          .load('organization')
-          .load('project')
-          .load('parentTask')
-          .load('childTasks', (query: unknown) => {
-            query.whereNull('deleted_at').preload('status')
-          })
+      await existingTask.load('status')
+      await existingTask.load('label')
+      await existingTask.load('priority')
+      await existingTask.load('assignee')
+      await existingTask.load('creator')
+      await existingTask.load('updater')
+      await existingTask.load('organization')
+      await existingTask.load('project')
+      await existingTask.load('parentTask')
+      await existingTask.load('childTasks', (query) => {
+        query.whereNull('deleted_at').preload('status')
       })
 
       return existingTask
@@ -272,7 +273,7 @@ export default class UpdateTaskCommand {
   private async validateAssigneeInOrg(
     assigneeId: number,
     organizationId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     const membership = await db
       .from('organization_users')
@@ -305,9 +306,9 @@ export default class UpdateTaskCommand {
    */
   private async createTaskVersion(
     task: Task,
-    oldValues: Record<string, any>,
+    oldValues: Record<string, unknown>,
     changedBy: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     // Check if any tracked field changed
     const trackedFields = [
@@ -349,4 +350,3 @@ export default class UpdateTaskCommand {
       .useTransaction(trx)
   }
 }
-

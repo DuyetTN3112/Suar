@@ -67,7 +67,7 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
                 name="recallType"
                 className="w-4 h-4"
                 checked={recallType === 'everyone'}
-                onChange={() => setRecallType('everyone')}
+                onChange={() => { setRecallType('everyone'); }}
               />
               <label htmlFor="everyone" className="text-sm font-medium">
                 {t('conversation.recall_for_everyone', {}, 'Thu hồi với mọi người')}
@@ -84,7 +84,7 @@ export const RecallMessageDialog: React.FC<RecallDialogProps> = ({
                 name="recallType"
                 className="w-4 h-4"
                 checked={recallType === 'self'}
-                onChange={() => setRecallType('self')}
+                onChange={() => { setRecallType('self'); }}
               />
               <label htmlFor="self" className="text-sm font-medium">
                 {t('conversation.recall_for_self', {}, 'Thu hồi với bạn')}

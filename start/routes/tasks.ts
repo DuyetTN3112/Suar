@@ -26,9 +26,7 @@ router
     router
       .get('/tasks/:taskId/applications', [TaskApplicationsController, 'taskApplications'])
       .as('tasks.applications')
-    router
-      .post('/tasks/:taskId/apply', [TaskApplicationsController, 'apply'])
-      .as('tasks.apply')
+    router.post('/tasks/:taskId/apply', [TaskApplicationsController, 'apply']).as('tasks.apply')
 
     // Application processing
     router
@@ -48,7 +46,9 @@ router
 // Marketplace routes - public tasks for freelancers
 router
   .group(() => {
-    router.get('/marketplace/tasks', [TaskApplicationsController, 'publicTasks']).as('marketplace.tasks')
+    router
+      .get('/marketplace/tasks', [TaskApplicationsController, 'publicTasks'])
+      .as('marketplace.tasks')
     router
       .get('/api/marketplace/tasks', [TaskApplicationsController, 'publicTasksApi'])
       .as('api.marketplace.tasks')

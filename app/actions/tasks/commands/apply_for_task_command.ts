@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import Task from '#models/task'
-import { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -21,7 +21,7 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
 
   async handle(dto: ApplyForTaskDTO): Promise<TaskApplication> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Verify task exists and is a public listing
       const task = await Task.query({ client: trx })

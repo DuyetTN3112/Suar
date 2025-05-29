@@ -1,17 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
-import mail from '@adonisjs/mail/services/main'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+interface OrganizationRecord {
+  id: number
+  name: string
+}
 
 /**
  * Command: Invite User to Organization
  *
- * Pattern: Email invitation with token (learned from Auth module)
+ * Pattern: Invitation record creation (without email)
  * Business rules:
  * - Only Owner (role_id = 1) or Admin (role_id = 2) can send invites
  * - Generate unique token for invitation
- * - Send email with invitation link
  * - Token expires in 7 days
  *
  * @example
@@ -31,10 +35,12 @@ export default class InviteUserCommand {
    * 4. Create invitation record
    * 5. Create audit log
    * 6. Commit transaction
-   * 7. Send invitation email (outside transaction)
    */
   async execute(dto: InviteUserDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -44,22 +50,21 @@ export default class InviteUserCommand {
       // 2. Check for duplicate active invitations
       await this.checkDuplicateInvitation(dto, trx)
 
-      // 3. Get organization details for email
-      const organization = await db
+      // 3. Get organization details
+      const organization = (await trx
         .from('organizations')
         .where('id', dto.organizationId)
-        .useTransaction(trx)
-        .first()
+        .first()) as OrganizationRecord | null
 
       if (!organization) {
-        throw new Error(`Organization with ID ${dto.organizationId} not found`)
+        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
       }
 
       // 4. Create invitation record
       const invitationData = dto.toObject()
-      const [invitationId] = await db
+      const result = await trx
+        .insertQuery()
         .table('organization_invitations')
-        .useTransaction(trx)
         .insert({
           ...invitationData,
           invited_by: currentUser.id,
@@ -67,6 +72,7 @@ export default class InviteUserCommand {
           created_at: new Date(),
           updated_at: new Date(),
         })
+      const invitationId = (result as number[])[0]
 
       // 5. Create audit log
       await AuditLog.create(
@@ -80,10 +86,6 @@ export default class InviteUserCommand {
             role: dto.getRoleName(),
             invitation_id: invitationId,
           },
-          metadata: JSON.stringify({
-            invitation_token: invitationData.token,
-            expires_at: invitationData.expires_at,
-          }),
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },
@@ -91,9 +93,6 @@ export default class InviteUserCommand {
       )
 
       await trx.commit()
-
-      // 6. Send invitation email (outside transaction)
-      await this.sendInvitationEmail(dto, organization.name, invitationData.token)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -106,14 +105,13 @@ export default class InviteUserCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .whereIn('role_id', [1, 2]) // Owner or Admin
-      .useTransaction(trx)
       .first()
 
     if (!membership) {
@@ -124,52 +122,20 @@ export default class InviteUserCommand {
   /**
    * Helper: Check for duplicate active invitations
    */
-  private async checkDuplicateInvitation(dto: InviteUserDTO, trx: unknown): Promise<void> {
-    const existingInvitation = await db
+  private async checkDuplicateInvitation(
+    dto: InviteUserDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const existingInvitation: unknown = await trx
       .from('organization_invitations')
       .where('organization_id', dto.organizationId)
       .where('email', dto.getNormalizedEmail())
       .where('status', 'pending')
       .where('expires_at', '>', new Date())
-      .useTransaction(trx)
       .first()
 
     if (existingInvitation) {
       throw new Error('An active invitation already exists for this email address')
-    }
-  }
-
-  /**
-   * Helper: Send invitation email
-   */
-  private async sendInvitationEmail(
-    dto: InviteUserDTO,
-    organizationName: string,
-    token: string
-  ): Promise<void> {
-    try {
-      // Build invitation link
-      const invitationLink = `${process.env.APP_URL || 'http://localhost:3333'}/organizations/invitations/accept?token=${token}`
-
-      await mail.send((message) => {
-        message.to(dto.getNormalizedEmail()).subject(`Lời mời tham gia tổ chức ${organizationName}`)
-          .html(`
-            <h2>Lời mời tham gia tổ chức</h2>
-            <p>Bạn đã được mời tham gia tổ chức <strong>${organizationName}</strong> với vai trò <strong>${dto.getRoleNameVi()}</strong>.</p>
-            ${dto.hasMessage() ? `<p><em>${dto.getNormalizedMessage()}</em></p>` : ''}
-            <p>
-              <a href="${invitationLink}" style="display: inline-block; padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">
-                Chấp nhận lời mời
-              </a>
-            </p>
-            <p>Hoặc sao chép link sau vào trình duyệt:</p>
-            <p>${invitationLink}</p>
-            <p><small>Lời mời này sẽ hết hạn sau 7 ngày.</small></p>
-          `)
-      })
-    } catch (error) {
-      console.error('[InviteUserCommand] Failed to send invitation email:', error)
-      throw new Error('Failed to send invitation email')
     }
   }
 }

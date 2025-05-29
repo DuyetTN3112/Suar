@@ -86,13 +86,14 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   private async getSpiderChartSkills(
     trx: TransactionClientContract
   ): Promise<Array<{ id: number }>> {
-    return await db
+    const skills = await trx
       .from('skills')
       .join('skill_categories', 'skill_categories.id', 'skills.category_id')
       .where('skill_categories.display_type', 'spider_chart')
       .where('skills.is_active', true)
       .select('skills.id')
-      .useTransaction(trx)
+
+    return skills.map((s: { id: unknown }) => ({ id: Number(s.id) }))
   }
 
   /**
@@ -106,7 +107,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   ): Promise<{ avgPercentage: number; totalReviews: number; levelId: number }> {
     // Tính average percentage từ skill_reviews
     // avg = (min_percentage + max_percentage) / 2 của assigned_level
-    const result = await db
+    const result = await trx
       .from('skill_reviews')
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .join('proficiency_levels', 'proficiency_levels.id', 'skill_reviews.assigned_level_id')
@@ -119,11 +120,11 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
         ),
         db.raw('COUNT(*) as total_reviews')
       )
-      .useTransaction(trx)
       .first()
 
-    const avgPercentage = Number(result?.avg_pct || 0)
-    const totalReviews = Number(result?.total_reviews || 0)
+    const row = result as { avg_pct?: unknown; total_reviews?: unknown } | null
+    const avgPercentage = Number(row?.avg_pct || 0)
+    const totalReviews = Number(row?.total_reviews || 0)
 
     // Tìm level tương ứng với avg_percentage
     const levelId = await this.findLevelByPercentage(avgPercentage, trx)
@@ -140,26 +141,26 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     trx: TransactionClientContract
   ): Promise<number> {
     // Tìm level mà percentage nằm trong range [min, max]
-    const level = await db
+    const level = await trx
       .from('proficiency_levels')
       .where('min_percentage', '<=', percentage)
       .where('max_percentage', '>=', percentage)
       .orderBy('level_order', 'desc')
       .select('id')
-      .useTransaction(trx)
       .first()
 
-    if (level) return level.id
+    const levelRow = level as { id?: unknown } | null
+    if (levelRow?.id !== undefined) return Number(levelRow.id)
 
     // Fallback: level 1 (beginner) nếu không tìm được
-    const fallback = await db
+    const fallback = await trx
       .from('proficiency_levels')
       .where('level_order', 1)
       .select('id')
-      .useTransaction(trx)
       .first()
 
-    return fallback?.id || 1
+    const fallbackRow = fallback as { id?: unknown } | null
+    return fallbackRow?.id !== undefined ? Number(fallbackRow.id) : 1
   }
 
   /**
@@ -177,16 +178,15 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     const now = new Date()
 
     // Check if exists
-    const existing = await db
+    const existing = await trx
       .from('user_spider_chart_data')
       .where('user_id', userId)
       .where('skill_id', skillId)
-      .useTransaction(trx)
       .first()
 
     if (existing) {
       // Update
-      await db
+      await trx
         .from('user_spider_chart_data')
         .where('user_id', userId)
         .where('skill_id', skillId)
@@ -197,22 +197,18 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
           last_calculated_at: now,
           updated_at: now,
         })
-        .useTransaction(trx)
     } else {
       // Insert
-      await db
-        .table('user_spider_chart_data')
-        .insert({
-          user_id: userId,
-          skill_id: skillId,
-          avg_percentage: avgPercentage,
-          avg_level_id: levelId,
-          total_reviews: totalReviews,
-          last_calculated_at: now,
-          created_at: now,
-          updated_at: now,
-        })
-        .useTransaction(trx)
+      await trx.table('user_spider_chart_data').insert({
+        user_id: userId,
+        skill_id: skillId,
+        avg_percentage: avgPercentage,
+        avg_level_id: levelId,
+        total_reviews: totalReviews,
+        last_calculated_at: now,
+        created_at: now,
+        updated_at: now,
+      })
     }
   }
 }

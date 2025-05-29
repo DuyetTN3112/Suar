@@ -95,7 +95,7 @@ export function TaskDetailModal({
       // Tải lịch sử thay đổi
       if (task.id) {
         loadAuditLogs(task.id)
-          .then(logs => setAuditLogs(logs))
+          .then(logs => { setAuditLogs(logs); })
           .catch(error => {
             // Only log in development
             if (import.meta.env.NODE_ENV === 'development') {

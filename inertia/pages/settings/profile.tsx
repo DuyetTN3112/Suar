@@ -246,7 +246,7 @@ export default function Profile() {
                     <Textarea
                       id="bio"
                       value={form.data.bio}
-                      onChange={(e) => form.setData('bio', e.target.value)}
+                      onChange={(e) => { form.setData('bio', e.target.value); }}
                       rows={3}
                       placeholder="Viết một vài câu về bản thân"
                     />
@@ -264,7 +264,7 @@ export default function Profile() {
                         <div key={index} className="flex gap-2">
                           <Input
                             value={url}
-                            onChange={(e) => updateUrl(index, e.target.value)}
+                            onChange={(e) => { updateUrl(index, e.target.value); }}
                             placeholder="https://example.com"
                             className="flex-1"
                           />
@@ -272,7 +272,7 @@ export default function Profile() {
                             type="button"
                             variant="outline"
                             size="sm"
-                            onClick={() => removeUrl(index)}
+                            onClick={() => { removeUrl(index); }}
                           >
                             Xóa
                           </Button>

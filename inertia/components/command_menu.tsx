@@ -34,7 +34,7 @@ export function CommandMenu({ ...props }: DialogProps) {
     }
 
     document.addEventListener('keydown', down)
-    return () => document.removeEventListener('keydown', down)
+    return () => { document.removeEventListener('keydown', down); }
   }, [isOpen, setIsOpen])
 
   const runCommand = useCallback((command: () => unknown) => {
@@ -62,10 +62,10 @@ export function CommandMenu({ ...props }: DialogProps) {
                       value={navItem.title}
                       onSelect={() => {
                         runCommand(() =>
-                          router.visit(navItem.url, {
+                          { router.visit(navItem.url, {
                             preserveState: true,
                             preserveScroll: true
-                          })
+                          }); }
                         )
                       }}
                     >
@@ -82,10 +82,10 @@ export function CommandMenu({ ...props }: DialogProps) {
                     value={subItem.title}
                     onSelect={() => {
                       runCommand(() =>
-                        router.visit(subItem.url, {
+                        { router.visit(subItem.url, {
                           preserveState: true,
                           preserveScroll: true
-                        })
+                        }); }
                       )
                     }}
                   >
@@ -101,7 +101,7 @@ export function CommandMenu({ ...props }: DialogProps) {
           <CommandSeparator />
           <CommandGroup heading="Giao diện">
             <CommandItem
-              onSelect={() => runCommand(() => setTheme('light'))}
+              onSelect={() => { runCommand(() => { setTheme('light'); }); }}
               value="Sáng"
             >
               <div className="mr-2 flex h-4 w-4 items-center justify-center">
@@ -110,7 +110,7 @@ export function CommandMenu({ ...props }: DialogProps) {
               Chế độ sáng
             </CommandItem>
             <CommandItem
-              onSelect={() => runCommand(() => setTheme('dark'))}
+              onSelect={() => { runCommand(() => { setTheme('dark'); }); }}
               value="Tối"
             >
               <div className="mr-2 flex h-4 w-4 items-center justify-center">
@@ -119,7 +119,7 @@ export function CommandMenu({ ...props }: DialogProps) {
               Chế độ tối
             </CommandItem>
             <CommandItem
-              onSelect={() => runCommand(() => setTheme('system'))}
+              onSelect={() => { runCommand(() => { setTheme('system'); }); }}
               value="Hệ thống"
             >
               <div className="mr-2 flex h-4 w-4 items-center justify-center">

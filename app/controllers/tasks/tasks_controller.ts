@@ -65,7 +65,7 @@ export default class TasksController {
 
       // Execute queries in parallel
       const [tasksResult, metadata] = await Promise.all([
-        (getTasksListQuery as GetTasksListQuery).execute(dto),
+        getTasksListQuery.execute(dto),
         (getTaskMetadataQuery as GetTaskMetadataQuery).execute(organizationId),
       ])
 
@@ -149,7 +149,8 @@ export default class TasksController {
       return inertia.render('tasks/create', { metadata })
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra')
-      return ctx.response.redirect().toRoute('tasks.index')
+      ctx.response.redirect().toRoute('tasks.index')
+      return
     }
   }
 
@@ -186,10 +187,12 @@ export default class TasksController {
       const task = await command.execute(dto)
 
       session.flash('success', 'Nhiệm vụ đã được tạo thành công')
-      return response.redirect().toRoute('tasks.show', { id: task.id })
+      response.redirect().toRoute('tasks.show', { id: task.id })
+      return
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tạo nhiệm vụ')
-      return ctx.response.redirect().back()
+      ctx.response.redirect().back()
+      return
     }
   }
 
@@ -211,7 +214,8 @@ export default class TasksController {
       })
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
-      return ctx.response.redirect().toRoute('tasks.index')
+      ctx.response.redirect().toRoute('tasks.index')
+      return
     }
   }
 
@@ -249,7 +253,8 @@ export default class TasksController {
       })
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
-      return ctx.response.redirect().toRoute('tasks.index')
+      ctx.response.redirect().toRoute('tasks.index')
+      return
     }
   }
 
@@ -284,16 +289,19 @@ export default class TasksController {
 
       // Check if request from Inertia
       if (request.header('X-Inertia')) {
-        return response.status(200).json({
+        response.status(200).json({
           success: true,
           task,
         })
+        return
       }
 
-      return response.redirect().toRoute('tasks.show', { id: task.id })
+      response.redirect().toRoute('tasks.show', { id: task.id })
+      return
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
-      return ctx.response.redirect().back()
+      ctx.response.redirect().back()
+      return
     }
   }
 
@@ -317,33 +325,39 @@ export default class TasksController {
       if (!result.success) {
         session.flash('error', result.message)
         if (request.header('X-Inertia')) {
-          return response.status(400).json({
+          response.status(400).json({
             success: false,
             message: result.message,
           })
+          return
         }
-        return response.redirect().back()
+        response.redirect().back()
+        return
       }
 
       session.flash('success', 'Nhiệm vụ đã được xóa thành công')
 
       if (request.header('X-Inertia')) {
-        return response.status(200).json({
+        response.status(200).json({
           success: true,
           message: result.message,
         })
+        return
       }
 
-      return response.redirect().toRoute('tasks.index')
+      response.redirect().toRoute('tasks.index')
+      return
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
       if (ctx.request.header('X-Inertia')) {
-        return ctx.response.status(500).json({
+        ctx.response.status(500).json({
           success: false,
           message: error.message,
         })
+        return
       }
-      return ctx.response.redirect().back()
+      ctx.response.redirect().back()
+      return
     }
   }
 
@@ -363,16 +377,18 @@ export default class TasksController {
       const command = new UpdateTaskStatusCommand(ctx, new CreateNotification(ctx))
       const task = await command.execute(dto)
 
-      return response.status(200).json({
+      response.status(200).json({
         success: true,
         message: 'Trạng thái nhiệm vụ đã được cập nhật',
         task,
       })
+      return
     } catch (error: unknown) {
-      return ctx.response.status(500).json({
+      ctx.response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
       })
+      return
     }
   }
 
@@ -393,10 +409,12 @@ export default class TasksController {
       await command.execute(dto)
 
       session.flash('success', 'Thời gian đã được cập nhật')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error: unknown) {
       ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật thời gian')
-      return ctx.response.redirect().back()
+      ctx.response.redirect().back()
+      return
     }
   }
 
@@ -412,15 +430,17 @@ export default class TasksController {
       const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
       const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
 
-      return ctx.response.json({
+      ctx.response.json({
         success: true,
         data: auditLogs,
       })
+      return
     } catch (error: unknown) {
-      return ctx.response.status(500).json({
+      ctx.response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi tải lịch sử thay đổi',
       })
+      return
     }
   }
 }

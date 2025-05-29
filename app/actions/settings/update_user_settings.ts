@@ -19,7 +19,7 @@ type SettingsData = {
 export default class UpdateUserSettings {
   constructor(protected ctx: HttpContext) {}
 
-  async handle({ data }: { data: SettingsData }) {
+  handle({ data }: { data: SettingsData }) {
     // Settings are managed client-side
     // This method exists for backwards compatibility but does nothing
     // Frontend will handle persistence via localStorage/cookies

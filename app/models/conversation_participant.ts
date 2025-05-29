@@ -25,4 +25,3 @@ export default class ConversationParticipant extends BaseModel {
   })
   declare user: BelongsTo<typeof User>
 }
-

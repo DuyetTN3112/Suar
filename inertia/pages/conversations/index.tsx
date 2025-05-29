@@ -131,7 +131,7 @@ export default function Conversations({ conversations }: ConversationsProps) {
       {/* Dialog xác nhận thu hồi tin nhắn */}
       <RecallMessageDialog
         open={recallDialogOpen}
-        onClose={() => setRecallDialogOpen(false)}
+        onClose={() => { setRecallDialogOpen(false); }}
         onRecallForEveryone={handleRecallForEveryone}
         onRecallForSelf={handleRecallForSelf}
       />

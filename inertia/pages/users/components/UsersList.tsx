@@ -70,7 +70,7 @@ export default function UsersList({
                             variant="outline"
                             size="sm"
                             className="mr-2"
-                            onClick={() => onEditPermissions(user)}
+                            onClick={() => { onEditPermissions(user); }}
                           >
                             {t('user.edit_role', {}, "Sửa vai trò")}
                           </Button>
@@ -82,7 +82,7 @@ export default function UsersList({
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => onDeleteUser(user)}
+                          onClick={() => { onDeleteUser(user); }}
                         >
                           {t('user.remove_from_org', {}, "Xóa khỏi tổ chức")}
                         </Button>

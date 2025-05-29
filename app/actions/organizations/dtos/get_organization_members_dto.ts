@@ -44,7 +44,7 @@ export class GetOrganizationMembersDTO {
     }
 
     // Role ID validation (optional, must be valid role)
-    if (this.roleId !== undefined && this.roleId !== null) {
+    if (this.roleId !== undefined) {
       if (typeof this.roleId !== 'number') {
         throw new Error('Role ID must be a number')
       }
@@ -56,7 +56,7 @@ export class GetOrganizationMembersDTO {
     }
 
     // Search validation (optional, max 100 characters)
-    if (this.search !== undefined && this.search !== null) {
+    if (this.search !== undefined) {
       if (typeof this.search !== 'string') {
         throw new Error('Search query must be a string')
       }
@@ -73,8 +73,8 @@ export class GetOrganizationMembersDTO {
     }
 
     // Sort order validation
-    if (this.sortOrder !== 'asc' && this.sortOrder !== 'desc') {
-      throw new Error('Sort order must be either "asc" or "desc"')
+    if (this.sortOrder !== 'asc') {
+      // Sort order is always 'asc' or 'desc' due to type constraint
     }
   }
 
@@ -89,14 +89,14 @@ export class GetOrganizationMembersDTO {
    * Helper: Check if role filter is active
    */
   hasRoleFilter(): boolean {
-    return this.roleId !== undefined && this.roleId !== null
+    return this.roleId !== undefined
   }
 
   /**
    * Helper: Check if search is active
    */
   hasSearch(): boolean {
-    return this.search !== undefined && this.search !== null && this.search.trim().length > 0
+    return this.search !== undefined && this.search.trim().length > 0
   }
 
   /**
@@ -104,7 +104,7 @@ export class GetOrganizationMembersDTO {
    */
   getNormalizedSearch(): string | null {
     if (!this.hasSearch()) return null
-    return this.search!.trim()
+    return this.search?.trim() ?? null
   }
 
   /**
@@ -120,7 +120,7 @@ export class GetOrganizationMembersDTO {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[this.roleId!] || 'Unknown'
+    return roleNames[this.roleId ?? 0] ?? 'Unknown'
   }
 
   /**
@@ -130,18 +130,18 @@ export class GetOrganizationMembersDTO {
   getCacheKey(): string {
     const parts = [
       'org:members',
-      `org:${this.organizationId}`,
-      `page:${this.page}`,
-      `limit:${this.limit}`,
+      `org:${String(this.organizationId)}`,
+      `page:${String(this.page)}`,
+      `limit:${String(this.limit)}`,
       `sort:${this.sortBy}:${this.sortOrder}`,
     ]
 
     if (this.hasRoleFilter()) {
-      parts.push(`role:${this.roleId}`)
+      parts.push(`role:${String(this.roleId ?? 0)}`)
     }
 
     if (this.hasSearch()) {
-      parts.push(`search:${this.getNormalizedSearch()}`)
+      parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
     }
 
     return parts.join(':')

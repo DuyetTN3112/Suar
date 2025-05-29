@@ -206,7 +206,7 @@ export const ConversationDetail: React.FC<ConversationDetailProps> = ({
                                     <DropdownMenuContent align={isOutgoing ? "start" : "end"}>
                                       {isOutgoing && (
                                         <DropdownMenuItem
-                                          onClick={() => onRecallMessage(message)}
+                                          onClick={() => { onRecallMessage(message); }}
                                           className="text-destructive"
                                         >
                                           <Trash className="mr-2 h-4 w-4" />

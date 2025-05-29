@@ -107,11 +107,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Logic từ procedure: IF NOT EXISTS (SELECT 1 FROM project_status WHERE id = p_status_id)
    */
   private async validateStatusId(statusId: number, trx: TransactionClientContract): Promise<void> {
-    const status = await db
-      .from('project_status')
-      .where('id', statusId)
-      .useTransaction(trx)
-      .first()
+    const status = await db.from('project_status').where('id', statusId).useTransaction(trx).first()
 
     if (!status) {
       throw new Error('Status ID không hợp lệ')
@@ -122,13 +118,12 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Send project created notification
    * Logic từ procedure: CALL create_notification(...)
    */
-  private async sendProjectCreatedNotification(
-    project: Project,
-    userId: number
-  ): Promise<void> {
+  private async sendProjectCreatedNotification(project: Project, userId: number): Promise<void> {
     // Note: Cần inject CreateNotification action nếu muốn dùng
     // Tạm thời log để track
-    console.log(`[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`)
+    console.log(
+      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`
+    )
   }
 
   /**
@@ -173,4 +168,3 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
     return project
   }
 }
-

@@ -222,8 +222,8 @@ const SidebarMenuButton = React.forwardRef<
   // Lấy className dựa trên variants và size
   const buttonClassName = cn(
     sidebarMenuButtonVariants.base,
-    sidebarMenuButtonVariants.variants[variant as keyof typeof sidebarMenuButtonVariants.variants],
-    sidebarMenuButtonVariants.sizes[size as keyof typeof sidebarMenuButtonVariants.sizes],
+    sidebarMenuButtonVariants.variants[variant],
+    sidebarMenuButtonVariants.sizes[size],
     state === 'collapsed' && "[&>span]:!hidden [&>div]:!hidden [&>svg]:!block",
     className
   )

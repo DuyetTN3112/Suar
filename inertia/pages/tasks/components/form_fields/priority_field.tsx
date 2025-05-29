@@ -23,7 +23,7 @@ export const PriorityField: React.FC<PriorityFieldProps> = ({
       {canEdit ? (
         <Select
           value={String(formData.priority_id || '')}
-          onValueChange={(value) => handleSelectChange('priority_id', value)}
+          onValueChange={(value) => { handleSelectChange('priority_id', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn độ ưu tiên" />

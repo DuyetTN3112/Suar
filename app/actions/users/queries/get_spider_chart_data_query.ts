@@ -36,7 +36,10 @@ interface SpiderChartResult {
  *
  * Uses caching for performance (5 min TTL)
  */
-export default class GetSpiderChartDataQuery extends BaseQuery<GetSpiderChartDataDTO, SpiderChartResult> {
+export default class GetSpiderChartDataQuery extends BaseQuery<
+  GetSpiderChartDataDTO,
+  SpiderChartResult
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
@@ -45,13 +48,13 @@ export default class GetSpiderChartDataQuery extends BaseQuery<GetSpiderChartDat
    * Execute the query to get spider chart data
    */
   async handle(dto: GetSpiderChartDataDTO): Promise<SpiderChartResult> {
-    const cacheKey = `users:spider_chart:${dto.user_id}`
+    const cacheKey = `users:spider_chart:${String(dto.user_id)}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       const data = await UserSpiderChartData.query()
         .where('user_id', dto.user_id)
         .preload('skill', (skillQuery) => {
-          skillQuery.preload('category')
+          void skillQuery.preload('category')
         })
         .preload('avg_level')
 
@@ -61,15 +64,17 @@ export default class GetSpiderChartDataQuery extends BaseQuery<GetSpiderChartDat
       }
 
       for (const item of data) {
-        const categoryCode = item.skill?.category?.category_code
+        // category is preloaded so it will exist as an object
+        const categoryCode = item.skill.category.category_code
 
         const point: SpiderChartPoint = {
           skill_id: item.skill_id,
-          skill_name: item.skill?.skill_name || '',
-          skill_code: item.skill?.skill_code || '',
-          category_code: categoryCode || '',
+          skill_name: item.skill.skill_name,
+          skill_code: item.skill.skill_code,
+          category_code: categoryCode,
           avg_percentage: item.avg_percentage,
-          level_name: item.avg_level?.level_name_en || null,
+          // avg_level is preloaded - if avg_level_id was null, this would need runtime handling
+          level_name: item.avg_level.level_name_en,
           total_reviews: item.total_reviews,
         }
 

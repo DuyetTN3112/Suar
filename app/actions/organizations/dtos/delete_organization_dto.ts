@@ -35,7 +35,7 @@ export class DeleteOrganizationDTO {
     }
 
     // Reason validation (optional, max 500 characters)
-    if (this.reason !== undefined && this.reason !== null) {
+    if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
         throw new Error('Deletion reason must be a string')
       }
@@ -64,7 +64,7 @@ export class DeleteOrganizationDTO {
    * Helper: Check if deletion reason is provided
    */
   hasReason(): boolean {
-    return this.reason !== undefined && this.reason !== null && this.reason.trim().length > 0
+    return this.reason !== undefined && this.reason.trim().length > 0
   }
 
   /**
@@ -72,7 +72,7 @@ export class DeleteOrganizationDTO {
    */
   getNormalizedReason(): string | null {
     if (!this.hasReason()) return null
-    return this.reason!.trim()
+    return this.reason?.trim() ?? null
   }
 
   /**
@@ -88,7 +88,7 @@ export class DeleteOrganizationDTO {
    */
   getSummary(): string {
     const type = this.permanent ? 'Permanently deleted' : 'Deleted'
-    const reason = this.hasReason() ? ` (${this.getNormalizedReason()})` : ''
+    const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
     return `${type} organization${reason}`
   }
 }

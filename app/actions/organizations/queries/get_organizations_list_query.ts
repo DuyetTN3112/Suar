@@ -3,6 +3,45 @@ import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { GetOrganizationsListDTO } from '../dtos/get_organizations_list_dto.js'
 
+interface OrganizationRecord {
+  id: number
+  name: string
+  slug: string
+  description: string | null
+  logo: string | null
+  website: string | null
+  plan: string
+  owner_id: number
+  created_at: Date
+  updated_at: Date
+}
+
+interface CountRecord {
+  total: number | string
+}
+
+interface StatsRecord {
+  organization_id: number
+  count: number | string
+}
+
+interface OrganizationWithStats extends OrganizationRecord {
+  member_count: number
+  project_count: number
+}
+
+interface PaginatedResult {
+  data: OrganizationWithStats[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+    hasNextPage: boolean
+    hasPrevPage: boolean
+  }
+}
+
 /**
  * Query: Get Organizations List
  *
@@ -24,35 +63,18 @@ export default class GetOrganizationsListQuery {
 
   /**
    * Execute query: Get organizations list
-   *
-   * Steps:
-   * 1. Try Redis cache first
-   * 2. If cache miss, build query with filters
-   * 3. Execute count query for pagination
-   * 4. Execute data query with pagination
-   * 5. Enrich with stats (members, projects)
-   * 6. Build pagination metadata
-   * 7. Cache result
-   * 8. Return result
    */
-  async execute(dto: GetOrganizationsListDTO): Promise<{
-    data: unknown[]
-    pagination: {
-      page: number
-      limit: number
-      total: number
-      totalPages: number
-      hasNextPage: boolean
-      hasPrevPage: boolean
+  async execute(dto: GetOrganizationsListDTO): Promise<PaginatedResult> {
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
     }
-  }> {
-    const user = this.ctx.auth.user!
 
     // 1. Try cache first
     const cacheKey = dto.getCacheKey(user.id)
     const cached = await redis.get(cacheKey)
     if (cached) {
-      return JSON.parse(cached)
+      return JSON.parse(cached) as PaginatedResult
     }
 
     // 2. Build query with filters
@@ -60,12 +82,12 @@ export default class GetOrganizationsListQuery {
 
     // 3. Count total for pagination
     const countQuery = query.clone().clearSelect().count('* as total')
-    const countResult = await countQuery.first()
-    const total = Number(countResult?.total || 0)
+    const countResult = (await countQuery.first()) as CountRecord | null
+    const total = Number(countResult?.total ?? 0)
 
     // 4. Execute data query with pagination
     const { column, direction } = dto.getOrderByClause()
-    const organizations = await query
+    const organizations = (await query
       .select(
         'o.id',
         'o.name',
@@ -80,7 +102,7 @@ export default class GetOrganizationsListQuery {
       )
       .orderBy(column, direction)
       .limit(dto.limit)
-      .offset(dto.getOffset())
+      .offset(dto.getOffset())) as OrganizationRecord[]
 
     // 5. Enrich with stats
     const enrichedOrganizations = await this.enrichWithStats(organizations)
@@ -88,7 +110,7 @@ export default class GetOrganizationsListQuery {
     // 6. Build pagination metadata
     const pagination = dto.getPaginationMetadata(total)
 
-    const result = {
+    const result: PaginatedResult = {
       data: enrichedOrganizations,
       pagination,
     }
@@ -103,7 +125,7 @@ export default class GetOrganizationsListQuery {
    * Helper: Build query with filters
    */
   private buildQuery(dto: GetOrganizationsListDTO, userId: number) {
-    let query = db
+    const query = db
       .from('organizations as o')
       .join('organization_users as ou', 'o.id', 'ou.organization_id')
       .where('ou.user_id', userId)
@@ -111,8 +133,8 @@ export default class GetOrganizationsListQuery {
 
     // Search filter
     if (dto.hasSearch()) {
-      const search = dto.getNormalizedSearch()!
-      query = query.where((builder) => {
+      const search = dto.getNormalizedSearch() ?? ''
+      void query.where((builder) => {
         void builder
           .where('o.name', 'like', `%${search}%`)
           .orWhere('o.description', 'like', `%${search}%`)
@@ -121,7 +143,7 @@ export default class GetOrganizationsListQuery {
 
     // Plan filter
     if (dto.hasPlanFilter()) {
-      query = query.where('o.plan', dto.getNormalizedPlan()!)
+      void query.where('o.plan', dto.getNormalizedPlan() ?? '')
     }
 
     return query
@@ -131,13 +153,15 @@ export default class GetOrganizationsListQuery {
    * Helper: Enrich organizations with stats
    * Pattern: Parallel stat fetching (learned from Projects module)
    */
-  private async enrichWithStats(organizations: unknown[]): Promise<unknown[]> {
+  private async enrichWithStats(
+    organizations: OrganizationRecord[]
+  ): Promise<OrganizationWithStats[]> {
     if (organizations.length === 0) return []
 
     const orgIds = organizations.map((org) => org.id)
 
     // Fetch stats in parallel
-    const [memberCounts, projectCounts] = await Promise.all([
+    const [memberCounts, projectCounts] = (await Promise.all([
       // Member counts
       db
         .from('organization_users')
@@ -153,21 +177,17 @@ export default class GetOrganizationsListQuery {
         .groupBy('organization_id')
         .select('organization_id')
         .count('* as count'),
-    ])
+    ])) as [StatsRecord[], StatsRecord[]]
 
     // Create lookup maps
-    const memberCountMap = new Map(
-      memberCounts.map((m: unknown) => [m.organization_id, Number(m.count)])
-    )
-    const projectCountMap = new Map(
-      projectCounts.map((p: unknown) => [p.organization_id, Number(p.count)])
-    )
+    const memberCountMap = new Map(memberCounts.map((m) => [m.organization_id, Number(m.count)]))
+    const projectCountMap = new Map(projectCounts.map((p) => [p.organization_id, Number(p.count)]))
 
     // Enrich organizations
     return organizations.map((org) => ({
       ...org,
-      member_count: memberCountMap.get(org.id) || 0,
-      project_count: projectCountMap.get(org.id) || 0,
+      member_count: memberCountMap.get(org.id) ?? 0,
+      project_count: projectCountMap.get(org.id) ?? 0,
     }))
   }
 }

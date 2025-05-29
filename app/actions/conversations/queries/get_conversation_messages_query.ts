@@ -11,6 +11,25 @@ export class NotFoundError extends Exception {
   static override message = 'Conversation not found or you do not have access'
 }
 
+interface MessageRow {
+  id: number
+  conversation_id: number
+  message: string
+  sender_id: number
+  is_recalled: boolean
+  recall_scope: string | null
+  recalled_at: string | null
+  read_at: string | null
+  created_at: string
+  updated_at: string
+  sender_name: string | null
+  sender_email: string | null
+}
+
+interface CountResult {
+  total: number | string | bigint
+}
+
 interface MessageWithSender {
   id: number
   message: string
@@ -50,7 +69,10 @@ export default class GetConversationMessagesQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(dto: GetConversationMessagesDTO): Promise<PaginatedMessages> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const { conversationId, page, limit } = dto
 
     try {
@@ -59,7 +81,7 @@ export default class GetConversationMessagesQuery {
         .where('id', conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (participantQuery) => {
-          participantQuery.where('user_id', user.id)
+          void participantQuery.where('user_id', user.id)
         })
         .first()
 
@@ -68,11 +90,11 @@ export default class GetConversationMessagesQuery {
       }
 
       // Try cache
-      const cacheKey = `conversation:${conversationId}:messages:page:${page}:limit:${limit}:user:${user.id}`
+      const cacheKey = `conversation:${String(conversationId)}:messages:page:${String(page)}:limit:${String(limit)}:user:${String(user.id)}`
       const cached = await redis.get(cacheKey)
 
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as PaginatedMessages
       }
 
       // Get messages with sender info
@@ -109,25 +131,49 @@ export default class GetConversationMessagesQuery {
         )
         .count('* as total')
 
-      const [messages, countResult] = await Promise.all([
+      const promiseResults: [unknown, unknown] = await Promise.all([
         messagesQuery.offset(dto.offset).limit(limit),
         countQuery.first(),
       ])
 
-      const total = Number(countResult?.total || 0)
+      const messages = promiseResults[0] as MessageRow[]
+      const countResult = promiseResults[1] as CountResult | undefined
+
+      const total = Number(countResult?.total ?? 0)
       const lastPage = Math.ceil(total / limit)
 
       // Process messages: replace recalled message content if needed
-      const processedMessages: MessageWithSender[] = messages.map((msg: unknown) => {
+      const processedMessages: MessageWithSender[] = messages.map((msg) => {
         // If message is recalled for everyone, replace content
         if (msg.is_recalled && msg.recall_scope === 'all') {
           return {
-            ...msg,
+            id: msg.id,
             message: 'Tin nhắn này đã bị thu hồi.',
+            sender_id: msg.sender_id,
+            sender_name: msg.sender_name,
+            sender_email: msg.sender_email,
+            is_recalled: msg.is_recalled,
+            recall_scope: msg.recall_scope,
+            recalled_at: msg.recalled_at,
+            read_at: msg.read_at,
+            created_at: msg.created_at,
+            updated_at: msg.updated_at,
           }
         }
 
-        return msg
+        return {
+          id: msg.id,
+          message: msg.message,
+          sender_id: msg.sender_id,
+          sender_name: msg.sender_name,
+          sender_email: msg.sender_email,
+          is_recalled: msg.is_recalled,
+          recall_scope: msg.recall_scope,
+          recalled_at: msg.recalled_at,
+          read_at: msg.read_at,
+          created_at: msg.created_at,
+          updated_at: msg.updated_at,
+        }
       })
 
       const result: PaginatedMessages = {

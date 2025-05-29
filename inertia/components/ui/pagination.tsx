@@ -55,7 +55,7 @@ export const Pagination: React.FC<PaginationProps> = ({
 
     // Tính toán phạm vi trang giữa
     let startPage = Math.max(2, currentPage - Math.floor(maxVisiblePages / 2))
-    let endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
+    const endPage = Math.min(totalPages - 1, startPage + maxVisiblePages - 3)
 
     // Điều chỉnh startPage nếu endPage quá gần với totalPages
     if (endPage === totalPages - 1) {

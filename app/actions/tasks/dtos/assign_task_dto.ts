@@ -70,7 +70,7 @@ export default class AssignTaskDTO {
    * Kiểm tra xem có gửi notification không
    */
   public shouldNotify(): boolean {
-    return this.notify === true
+    return this.notify
   }
 
   /**

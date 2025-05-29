@@ -83,19 +83,24 @@ export default class MessageSanitizer {
   public async handle({ request, response }: HttpContext, next: () => Promise<void>) {
     const message = request.input('message')
     if (typeof message !== 'string') {
-      return response.badRequest('Tin nhắn không hợp lệ.')
+      response.badRequest('Tin nhắn không hợp lệ.')
+      return
     }
     if (message.length > 10000) {
-      return response.badRequest('Tin nhắn vượt quá 10,000 ký tự.')
+      response.badRequest('Tin nhắn vượt quá 10,000 ký tự.')
+      return
     }
     if (hasTooManyRepeats(message)) {
-      return response.badRequest('Tin nhắn chứa quá nhiều ký tự lặp lại.')
+      response.badRequest('Tin nhắn chứa quá nhiều ký tự lặp lại.')
+      return
     }
     if (countSpecialUnicode(message) > 1000) {
-      return response.badRequest('Tin nhắn chứa quá nhiều ký tự đặc biệt.')
+      response.badRequest('Tin nhắn chứa quá nhiều ký tự đặc biệt.')
+      return
     }
     if (message.replace(/\s/g, '').length < 1) {
-      return response.badRequest('Tin nhắn không hợp lệ.')
+      response.badRequest('Tin nhắn không hợp lệ.')
+      return
     }
     // Phát hiện Zalgo text
     if (detectZalgoText(message)) {

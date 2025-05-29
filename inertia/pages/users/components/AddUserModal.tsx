@@ -71,7 +71,7 @@ export default function AddUserModal({
             <Input
               placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
               value={searchUserTerm}
-              onChange={(e) => setSearchUserTerm(e.target.value)}
+              onChange={(e) => { setSearchUserTerm(e.target.value); }}
               className="flex-1"
             />
             <Button type="submit" variant="outline">
@@ -109,7 +109,7 @@ export default function AddUserModal({
                           <input
                             type="checkbox"
                             checked={selectedUserIds.includes(user.id)}
-                            onChange={() => onToggleUserSelection(user.id)}
+                            onChange={() => { onToggleUserSelection(user.id); }}
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                           />
                         </TableCell>
@@ -131,7 +131,7 @@ export default function AddUserModal({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onChangePage(Math.max(1, currentPage - 1))}
+                  onClick={() => { onChangePage(Math.max(1, currentPage - 1)); }}
                   disabled={currentPage === 1}
                 >
                   {t('common.previous', {}, "Trước")}
@@ -142,7 +142,7 @@ export default function AddUserModal({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onChangePage(Math.min(totalPages, currentPage + 1))}
+                  onClick={() => { onChangePage(Math.min(totalPages, currentPage + 1)); }}
                   disabled={currentPage === totalPages}
                 >
                   {t('common.next', {}, "Sau")}

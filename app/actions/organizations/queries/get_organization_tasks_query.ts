@@ -3,6 +3,29 @@ import Task from '#models/task'
 import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 
+interface QueryOptions {
+  organizationId: number
+  statusId?: number
+  priorityId?: number
+  projectId?: number
+  assignedTo?: number
+  search?: string
+  page?: number
+  limit?: number
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
+}
+
+interface PaginatedResult {
+  data: Task[]
+  meta: {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+  }
+}
+
 /**
  * Query: Get Organization Tasks
  *
@@ -27,27 +50,11 @@ import db from '@adonisjs/lucid/services/db'
 export default class GetOrganizationTasksQuery {
   constructor(protected ctx: HttpContext) {}
 
-  async execute(options: {
-    organizationId: number
-    statusId?: number
-    priorityId?: number
-    projectId?: number
-    assignedTo?: number
-    search?: string
-    page?: number
-    limit?: number
-    sortBy?: string
-    sortOrder?: 'asc' | 'desc'
-  }): Promise<{
-    data: Task[]
-    meta: {
-      total: number
-      per_page: number
-      current_page: number
-      last_page: number
+  async execute(options: QueryOptions): Promise<PaginatedResult> {
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
     }
-  }> {
-    const user = this.ctx.auth.user!
     const {
       organizationId,
       statusId,
@@ -130,7 +137,7 @@ export default class GetOrganizationTasksQuery {
     // 8. Execute with pagination
     const paginator = await query.paginate(page, limit)
 
-    const result = {
+    const result: PaginatedResult = {
       data: paginator.all(),
       meta: {
         total: paginator.total,
@@ -150,7 +157,7 @@ export default class GetOrganizationTasksQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
-    const membership = await db
+    const membership: unknown = await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
@@ -163,18 +170,18 @@ export default class GetOrganizationTasksQuery {
   /**
    * Build cache key
    */
-  private buildCacheKey(options: unknown): string {
+  private buildCacheKey(options: QueryOptions): string {
     const parts = [
       'organization:tasks',
-      `org:${options.organizationId}`,
-      `page:${options.page || 1}`,
-      `limit:${options.limit || 20}`,
+      `org:${String(options.organizationId)}`,
+      `page:${String(options.page ?? 1)}`,
+      `limit:${String(options.limit ?? 20)}`,
     ]
 
-    if (options.statusId) parts.push(`status:${options.statusId}`)
-    if (options.priorityId) parts.push(`priority:${options.priorityId}`)
-    if (options.projectId) parts.push(`project:${options.projectId}`)
-    if (options.assignedTo) parts.push(`assigned:${options.assignedTo}`)
+    if (options.statusId) parts.push(`status:${String(options.statusId)}`)
+    if (options.priorityId) parts.push(`priority:${String(options.priorityId)}`)
+    if (options.projectId) parts.push(`project:${String(options.projectId)}`)
+    if (options.assignedTo) parts.push(`assigned:${String(options.assignedTo)}`)
     if (options.search) parts.push(`search:${options.search}`)
     if (options.sortBy) parts.push(`sort:${options.sortBy}`)
     if (options.sortOrder) parts.push(`order:${options.sortOrder}`)
@@ -185,11 +192,11 @@ export default class GetOrganizationTasksQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<PaginatedResult | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
       console.error('[GetOrganizationTasksQuery] Cache get error:', error)
@@ -200,7 +207,7 @@ export default class GetOrganizationTasksQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

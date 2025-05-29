@@ -54,7 +54,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 <h3 className="font-medium">{toast.title}</h3>
                 {toast.description && <p className="text-sm text-muted-foreground">{toast.description}</p>}
               </div>
-              <button onClick={() => dismiss(toast.id)} className="text-muted-foreground">
+              <button onClick={() => { dismiss(toast.id); }} className="text-muted-foreground">
                 &times;
               </button>
             </div>

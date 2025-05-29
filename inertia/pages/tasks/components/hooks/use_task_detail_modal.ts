@@ -38,7 +38,9 @@ export function useTaskDetailModal({
         setDate(undefined)
       }
       if (task.id) {
-        void loadAuditLogs(task.id).then((logs) => setAuditLogs(logs))
+        void loadAuditLogs(task.id).then((logs) => {
+          setAuditLogs(logs)
+        })
       }
     }
   }, [task, currentUser])

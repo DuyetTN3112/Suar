@@ -37,7 +37,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // Xử lý lỗi token CSRF hết hạn
     if (typeof error === 'object' && error !== null && 'status' in error && error.status === 419) {
       session.flash('errors', { form: 'Trang đã hết hạn, vui lòng thử lại' })
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     // Xử lý lỗi không có quyền truy cập
@@ -46,13 +47,15 @@ export default class HttpExceptionHandler extends ExceptionHandler {
         return inertia.location('/login')
       }
       session.flash('errors', { form: 'Vui lòng đăng nhập để tiếp tục' })
-      return response.redirect('/login')
+      response.redirect('/login')
+      return
     }
 
     // Xử lý lỗi không đủ quyền
     if (typeof error === 'object' && error !== null && 'status' in error && error.status === 403) {
       session.flash('errors', { form: 'Bạn không có quyền thực hiện hành động này' })
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     return super.handle(error, ctx)

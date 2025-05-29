@@ -4,6 +4,12 @@ import AuditLog from '#models/audit_log'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 
+interface MembershipRecord {
+  user_id: number
+  organization_id: number
+  role_id: number
+}
+
 /**
  * Command: Update Member Role
  *
@@ -39,36 +45,37 @@ export default class UpdateMemberRoleCommand {
    * 8. Send notification
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Get current user's membership and role
-      const currentUserMembership = await db
+      const currentUserMembership = (await trx
         .from('organization_users')
         .where('organization_id', dto.organizationId)
         .where('user_id', currentUser.id)
-        .useTransaction(trx)
-        .first()
+        .first()) as MembershipRecord | null
 
       if (!currentUserMembership) {
         throw new Error('You are not a member of this organization')
       }
 
       // 2. Get target user's current membership
-      const targetMembership = await db
+      const targetMembership = (await trx
         .from('organization_users')
         .where('organization_id', dto.organizationId)
         .where('user_id', dto.userId)
-        .useTransaction(trx)
-        .first()
+        .first()) as MembershipRecord | null
 
       if (!targetMembership) {
         throw new Error('Target user is not a member of this organization')
       }
 
       // 3. Validate role change is allowed
-      await this.validateRoleChange(
+      this.validateRoleChange(
         currentUserMembership.role_id,
         targetMembership.role_id,
         dto.newRoleId,
@@ -84,11 +91,10 @@ export default class UpdateMemberRoleCommand {
       const oldRole = targetMembership.role_id
 
       // 6. Update role
-      await db
+      await trx
         .from('organization_users')
         .where('organization_id', dto.organizationId)
         .where('user_id', dto.userId)
-        .useTransaction(trx)
         .update({
           role_id: dto.newRoleId,
           updated_at: new Date(),
@@ -103,12 +109,6 @@ export default class UpdateMemberRoleCommand {
           entity_id: dto.organizationId,
           old_values: { user_id: dto.userId, role_id: oldRole },
           new_values: { user_id: dto.userId, role_id: dto.newRoleId },
-          metadata: JSON.stringify({
-            target_user_id: dto.userId,
-            old_role: this.getRoleName(oldRole),
-            new_role: dto.getRoleName(),
-            action_type: dto.getActionType(oldRole),
-          }),
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },
@@ -128,12 +128,12 @@ export default class UpdateMemberRoleCommand {
   /**
    * Helper: Validate if role change is allowed
    */
-  private async validateRoleChange(
+  private validateRoleChange(
     currentUserRole: number,
     targetCurrentRole: number,
     targetNewRole: number,
     isSelfUpdate: boolean
-  ): Promise<void> {
+  ): void {
     // Cannot change Owner's role (role_id = 1)
     if (targetCurrentRole === 1) {
       throw new Error('Cannot change the role of organization owner')
@@ -177,7 +177,7 @@ export default class UpdateMemberRoleCommand {
       4: 'Member',
       5: 'Viewer',
     }
-    return roleNames[roleId] || 'Unknown'
+    return roleNames[roleId] ?? 'Unknown'
   }
 
   /**

@@ -41,7 +41,7 @@ export class RemoveMemberDTO {
     }
 
     // Reason validation (optional, max 500 characters)
-    if (this.reason !== undefined && this.reason !== null) {
+    if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
         throw new Error('Removal reason must be a string')
       }
@@ -56,7 +56,7 @@ export class RemoveMemberDTO {
    * Helper: Check if removal reason is provided
    */
   hasReason(): boolean {
-    return this.reason !== undefined && this.reason !== null && this.reason.trim().length > 0
+    return this.reason !== undefined && this.reason.trim().length > 0
   }
 
   /**
@@ -64,7 +64,7 @@ export class RemoveMemberDTO {
    */
   getNormalizedReason(): string | null {
     if (!this.hasReason()) return null
-    return this.reason!.trim()
+    return this.reason?.trim() ?? null
   }
 
   /**
@@ -72,7 +72,7 @@ export class RemoveMemberDTO {
    * Pattern: Audit logging description (learned from Tasks module)
    */
   getSummary(): string {
-    const reason = this.hasReason() ? ` (${this.getNormalizedReason()})` : ''
-    return `Removed user ${this.userId} from organization ${this.organizationId}${reason}`
+    const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
+    return `Removed user ${String(this.userId)} from organization ${String(this.organizationId)}${reason}`
   }
 }

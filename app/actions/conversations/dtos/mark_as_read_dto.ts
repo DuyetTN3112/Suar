@@ -64,7 +64,7 @@ export class MarkMessagesAsReadDTO {
     }
 
     // Message IDs validation (required, non-empty array)
-    if (!this.messageIds || !Array.isArray(this.messageIds)) {
+    if (!Array.isArray(this.messageIds)) {
       throw new Error('Message IDs must be an array')
     }
 
@@ -74,8 +74,8 @@ export class MarkMessagesAsReadDTO {
 
     // Validate each message ID
     for (const messageId of this.messageIds) {
-      if (typeof messageId !== 'number' || messageId <= 0) {
-        throw new Error(`Invalid message ID: ${messageId}`)
+      if (messageId <= 0) {
+        throw new Error(`Invalid message ID: ${String(messageId)}`)
       }
     }
 

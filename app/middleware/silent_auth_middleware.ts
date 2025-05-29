@@ -23,7 +23,7 @@ export default class SilentAuthMiddleware {
     // const startTime = this.isDevMode ? Date.now() : 0
     try {
       // Kiểm tra xác thực nhưng không bắt buộc
-      for (let guard of options.guards || [ctx.auth.defaultGuard]) {
+      for (const guard of options.guards || [ctx.auth.defaultGuard]) {
         await ctx.auth.use(guard).check()
       }
       if (this.isDevMode) {

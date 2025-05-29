@@ -52,20 +52,20 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
       return
     }
     router.visit('/projects/create', {
-      onError: (errors) => console.error('[ProjectsIndex] Lỗi khi chuyển hướng:', errors),
+      onError: (errors) => { console.error('[ProjectsIndex] Lỗi khi chuyển hướng:', errors); },
     })
   }
 
   const handleViewProject = (id: number) => {
     router.visit(`/projects/${id}`, {
-      onError: (errors) => console.error(`[ProjectsIndex] Lỗi khi chuyển hướng đến /projects/${id}:`, errors),
+      onError: (errors) => { console.error(`[ProjectsIndex] Lỗi khi chuyển hướng đến /projects/${id}:`, errors); },
     })
   }
 
   const handleDeleteProject = (id: number) => {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
       router.delete(`/projects/${id}`, {
-        onError: (errors) => console.error(`[ProjectsIndex] Lỗi khi xóa dự án id: ${id}:`, errors),
+        onError: (errors) => { console.error(`[ProjectsIndex] Lỗi khi xóa dự án id: ${id}:`, errors); },
       })
     } else {
 
@@ -74,7 +74,7 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
 
   const handleGoToOrganizations = () => {
     router.visit('/organizations', {
-      onError: (errors) => console.error('[ProjectsIndex] Lỗi khi chuyển hướng đến /organizations:', errors),
+      onError: (errors) => { console.error('[ProjectsIndex] Lỗi khi chuyển hướng đến /organizations:', errors); },
     })
   }
 
@@ -138,14 +138,14 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleViewProject(project.id)}
+                            onClick={() => { handleViewProject(project.id); }}
                           >
                             {t('common.view', {}, 'Xem')}
                           </Button>
                           <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteProject(project.id)}
+                            onClick={() => { handleDeleteProject(project.id); }}
                           >
                             {t('common.delete', {}, 'Xóa')}
                           </Button>
@@ -180,7 +180,7 @@ export default function Projects({ projects, auth, showOrganizationRequiredModal
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowOrganizationModal(false)}>
+            <Button variant="outline" onClick={() => { setShowOrganizationModal(false); }}>
               {t('common.cancel', {}, 'Hủy')}
             </Button>
             <Button onClick={handleGoToOrganizations}>

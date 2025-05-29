@@ -112,7 +112,8 @@ export default class MembersController {
         .first()
 
       if (!organization) {
-        return response.redirect().toRoute('organizations.index')
+        response.redirect().toRoute('organizations.index')
+        return
       }
 
       return inertia.render('organizations/members/pending_requests', {
@@ -121,7 +122,8 @@ export default class MembersController {
       })
     } catch (error) {
       console.error('[MembersController.pendingRequests] Error:', error)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -145,14 +147,16 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Thêm thành viên thành công',
         })
+        return
       }
 
       session.flash('success', 'Thêm thành viên thành công')
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     } catch (error) {
       console.error('[MembersController.add] Error:', error)
 
@@ -160,14 +164,16 @@ export default class MembersController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -191,29 +197,33 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Gửi lời mời thành công',
           invitation,
         })
+        return
       }
 
       session.flash('success', 'Gửi lời mời thành công')
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     } catch (error) {
       console.error('[MembersController.invite] Error:', error)
 
       const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi lời mời'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -233,16 +243,18 @@ export default class MembersController {
         const errorMessage = 'Hành động không hợp lệ'
 
         if (request.accepts(['html', 'json']) === 'json') {
-          return response.status(400).json({
+          response.status(400).json({
             success: false,
             message: errorMessage,
           })
+          return
         }
 
         session.flash('error', errorMessage)
-        return response.redirect().toRoute('organizations.members.pending_requests', {
+        response.redirect().toRoute('organizations.members.pending_requests', {
           id: params.id,
         })
+        return
       }
 
       // Find the join request to get requestId
@@ -270,16 +282,18 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: successMessage,
         })
+        return
       }
 
       session.flash('success', successMessage)
-      return response.redirect().toRoute('organizations.members.pending_requests', {
+      response.redirect().toRoute('organizations.members.pending_requests', {
         id: params.id,
       })
+      return
     } catch (error) {
       console.error('[MembersController.processRequest] Error:', error)
 
@@ -287,16 +301,18 @@ export default class MembersController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xử lý yêu cầu'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.pending_requests', {
+      response.redirect().toRoute('organizations.members.pending_requests', {
         id: params.id,
       })
+      return
     }
   }
 
@@ -325,14 +341,16 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Thêm thành viên thành công',
         })
+        return
       }
 
       session.flash('success', 'Thêm thành viên thành công')
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     } catch (error) {
       console.error('[MembersController.addDirect] Error:', error)
 
@@ -340,14 +358,16 @@ export default class MembersController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -367,14 +387,16 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Xóa thành viên thành công',
         })
+        return
       }
 
       session.flash('success', 'Xóa thành viên thành công')
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     } catch (error) {
       console.error('[MembersController.remove] Error:', error)
 
@@ -382,14 +404,16 @@ export default class MembersController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xóa thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -411,14 +435,16 @@ export default class MembersController {
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Cập nhật vai trò thành công',
         })
+        return
       }
 
       session.flash('success', 'Cập nhật vai trò thành công')
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     } catch (error) {
       console.error('[MembersController.updateRole] Error:', error)
 
@@ -426,14 +452,16 @@ export default class MembersController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi cập nhật vai trò'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: errorMessage,
         })
+        return
       }
 
       session.flash('error', errorMessage)
-      return response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      return
     }
   }
 
@@ -453,39 +481,45 @@ export default class MembersController {
     const organizationId = user?.current_organization_id
     if (!organizationId) {
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Không tìm thấy tổ chức hiện tại',
         })
+        return
       }
       session.flash('error', 'Không tìm thấy tổ chức hiện tại')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     // Kiểm tra quyền - chỉ superadmin của tổ chức mới có thể thêm người dùng
     const isSuperAdmin = await this.checkIsSuperAdminInOrg(user.id, organizationId)
     if (!isSuperAdmin) {
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(403).json({
+        response.status(403).json({
           success: false,
           message: 'Bạn không có quyền thêm người dùng vào tổ chức',
         })
+        return
       }
       session.flash('error', 'Bạn không có quyền thêm người dùng vào tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     // Lấy danh sách user_ids từ request
     const userIds = request.input('user_ids', [])
     if (!Array.isArray(userIds) || userIds.length === 0) {
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Vui lòng chọn ít nhất một người dùng để thêm vào tổ chức',
         })
+        return
       }
       session.flash('error', 'Vui lòng chọn ít nhất một người dùng để thêm vào tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     try {
@@ -548,29 +582,33 @@ export default class MembersController {
 
       // Trả về kết quả dựa vào loại request
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: `Đã thêm ${addedCount} người dùng vào tổ chức thành công`,
           results,
         })
+        return
       }
 
       // Flash thông báo thành công
       session.flash('success', `Đã thêm ${addedCount} người dùng vào tổ chức thành công`)
       // Chuyển hướng về trang danh sách thành viên của tổ chức
-      return response.redirect().toRoute('organizations.members.index', { id: organizationId })
+      response.redirect().toRoute('organizations.members.index', { id: organizationId })
+      return
     } catch (error) {
       console.error('[MembersController.addUsers] Error:', error)
 
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(500).json({
+        response.status(500).json({
           success: false,
           message: 'Đã xảy ra lỗi khi thêm người dùng vào tổ chức',
           error: error.message,
         })
+        return
       }
       session.flash('error', 'Đã xảy ra lỗi khi thêm người dùng vào tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 

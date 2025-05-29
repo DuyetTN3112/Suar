@@ -3,6 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Update Organization
@@ -33,14 +34,17 @@ export default class UpdateOrganizationCommand {
    * 7. Commit transaction
    */
   async execute(dto: UpdateOrganizationDTO): Promise<Organization> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${dto.organizationId} not found`)
+        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -63,10 +67,6 @@ export default class UpdateOrganizationCommand {
           entity_id: organization.id,
           old_values: oldValues,
           new_values: organization.toJSON(),
-          metadata: JSON.stringify({
-            changed_fields: dto.getChangedFields(),
-            changes_summary: dto.getChangesSummary(),
-          }),
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },
@@ -89,14 +89,13 @@ export default class UpdateOrganizationCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .whereIn('role_id', [1, 2]) // Owner or Admin
-      .useTransaction(trx)
       .first()
 
     if (!membership) {

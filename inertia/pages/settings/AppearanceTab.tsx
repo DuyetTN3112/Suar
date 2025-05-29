@@ -21,21 +21,21 @@ export function AppearanceTab({ form, onSubmit, processing }: AppearanceTabProps
               <Button
                 type="button"
                 variant={form.data.theme === 'light' ? 'default' : 'outline'}
-                onClick={() => form.setData('theme', 'light')}
+                onClick={() => { form.setData('theme', 'light'); }}
               >
                 Sáng
               </Button>
               <Button
                 type="button"
                 variant={form.data.theme === 'dark' ? 'default' : 'outline'}
-                onClick={() => form.setData('theme', 'dark')}
+                onClick={() => { form.setData('theme', 'dark'); }}
               >
                 Tối
               </Button>
               <Button
                 type="button"
                 variant={form.data.theme === 'system' ? 'default' : 'outline'}
-                onClick={() => form.setData('theme', 'system')}
+                onClick={() => { form.setData('theme', 'system'); }}
               >
                 Hệ thống
               </Button>

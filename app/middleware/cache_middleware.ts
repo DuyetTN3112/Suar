@@ -20,7 +20,8 @@ export default class CacheMiddleware {
       const cachedData = await Redis.get(cacheKey)
       if (cachedData) {
         // Trả về dữ liệu từ cache
-        return response.header('X-Cache', 'HIT').json(JSON.parse(cachedData))
+        response.header('X-Cache', 'HIT').json(JSON.parse(cachedData))
+        return
       }
 
       // Sử dụng Single Flight Pattern để ngăn chặn thundering herd
@@ -32,7 +33,8 @@ export default class CacheMiddleware {
         const recheckedData = await Redis.get(cacheKey)
         if (recheckedData) {
           // Trả về dữ liệu từ cache
-          return response.header('X-Cache', 'HIT').json(JSON.parse(recheckedData))
+          response.header('X-Cache', 'HIT').json(JSON.parse(recheckedData))
+          return
         }
 
         // Lưu phương thức response.json gốc
@@ -47,7 +49,7 @@ export default class CacheMiddleware {
             }
           })
           // Gọi phương thức gốc với header cache miss
-          return originalJson.call(this, body)
+          originalJson.call(this, body)
         }
 
         // Tiếp tục xử lý request

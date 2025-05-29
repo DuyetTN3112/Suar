@@ -34,7 +34,7 @@ export const MessageInputForm: React.FC<MessageInputFormProps> = ({
             placeholder={t('conversation.message_placeholder', {}, 'Nhập tin nhắn của bạn...')}
             className="flex-1"
             value={message}
-            onChange={(e) => setMessage(e.target.value)}
+            onChange={(e) => { setMessage(e.target.value); }}
             disabled={isLoading}
           />
           <Button 

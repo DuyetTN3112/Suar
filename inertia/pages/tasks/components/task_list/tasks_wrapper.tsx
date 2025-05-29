@@ -114,7 +114,7 @@ export function TasksWrapper({
             expandedTasks={expandedTasks}
             isTaskSelected={isTaskSelected}
             isAllSelected={isAllSelected(tasksToShow)}
-            handleSelectAll={(checked: boolean) => handleSelectAll(tasksToShow, checked)}
+            handleSelectAll={(checked: boolean) => { handleSelectAll(tasksToShow, checked); }}
             handleSelectTask={handleSelectTask}
             toggleExpandTask={toggleExpandTask}
             isTaskExpanded={isTaskExpanded}

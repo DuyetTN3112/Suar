@@ -53,21 +53,21 @@ export default class GetTaskDetailDTO {
    * Kiểm tra xem có load versions không
    */
   public shouldLoadVersions(): boolean {
-    return this.include_versions === true
+    return this.include_versions
   }
 
   /**
    * Kiểm tra xem có load child tasks không
    */
   public shouldLoadChildTasks(): boolean {
-    return this.include_child_tasks === true
+    return this.include_child_tasks
   }
 
   /**
    * Kiểm tra xem có load audit logs không
    */
   public shouldLoadAuditLogs(): boolean {
-    return this.include_audit_logs === true
+    return this.include_audit_logs
   }
 
   /**

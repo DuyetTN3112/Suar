@@ -16,7 +16,7 @@ import db from '@adonisjs/lucid/services/db'
  *
  * @extends {BaseCommand<DeleteProjectDTO, void>}
  */
-export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO, void> {
+export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> {
   constructor(ctx: HttpContext) {
     super(ctx)
   }

@@ -2,6 +2,35 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 
+interface RequestRecord {
+  request_id: number
+  user_id: number
+  organization_id: number
+  organization_name: string
+  message: string
+  status: string
+  created_at: Date
+  updated_at: Date
+  username: string
+  email: string
+}
+
+interface RequestResult {
+  id: number
+  user_id: number
+  organization_id: number
+  organization_name: string
+  message: string
+  status: string
+  created_at: Date
+  updated_at: Date
+  user: {
+    id: number
+    username: string
+    email: string
+  }
+}
+
 /**
  * Query: Get Pending Join Requests
  *
@@ -25,8 +54,11 @@ import redis from '@adonisjs/redis/services/main'
 export default class GetPendingRequestsQuery {
   constructor(protected ctx: HttpContext) {}
 
-  async execute(organizationId: number): Promise<unknown[]> {
-    const user = this.ctx.auth.user!
+  async execute(organizationId: number): Promise<RequestResult[]> {
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     // 1. Permission check: Must be owner or admin
     const hasPermission = await this.checkPermission(user.id, organizationId)
@@ -42,9 +74,7 @@ export default class GetPendingRequestsQuery {
     }
 
     // 3. Query pending requests
-    // Note: Assuming there's a join_requests table
-    // If it doesn't exist, this will need to be adjusted based on actual schema
-    const requests = await db
+    const requests = (await db
       .from('organization_join_requests as ojr')
       .where('ojr.organization_id', organizationId)
       .where('ojr.status', 'pending')
@@ -63,10 +93,10 @@ export default class GetPendingRequestsQuery {
         'u.email',
         'o.name as organization_name'
       )
-      .orderBy('ojr.created_at', 'desc')
+      .orderBy('ojr.created_at', 'desc')) as RequestRecord[]
 
     // 4. Format response
-    const result = requests.map((request) => ({
+    const result: RequestResult[] = requests.map((request) => ({
       id: request.request_id,
       user_id: request.user_id,
       organization_id: request.organization_id,
@@ -92,7 +122,7 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: number, organizationId: number): Promise<boolean> {
-    const membership = await db
+    const membership: unknown = await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
@@ -107,17 +137,17 @@ export default class GetPendingRequestsQuery {
    * Build cache key
    */
   private buildCacheKey(organizationId: number): string {
-    return `organization:pending_requests:org:${organizationId}`
+    return `organization:pending_requests:org:${String(organizationId)}`
   }
 
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<RequestResult[] | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as RequestResult[]
       }
     } catch (error) {
       console.error('[GetPendingRequestsQuery] Cache get error:', error)
@@ -128,7 +158,7 @@ export default class GetPendingRequestsQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: RequestResult[], ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

@@ -32,10 +32,12 @@ export interface QueryHandler<TInput, TOutput> {
  * Marker interface for Command DTOs
  * Use this to identify Command data transfer objects
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Command {}
 
 /**
  * Marker interface for Query DTOs
  * Use this to identify Query data transfer objects
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Query {}

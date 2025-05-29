@@ -5,6 +5,14 @@ import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
+interface ParticipantResult {
+  user_id: number
+}
+
+interface CountResult {
+  total: number | string | bigint
+}
+
 /**
  * Command: Add Participant To Conversation
  *
@@ -35,15 +43,18 @@ export default class AddParticipantCommand {
    * 6. Invalidate cache
    */
   async execute(dto: AddParticipantDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     try {
       // Verify current user is participant
-      const currentUserParticipant = await db
+      const currentUserParticipant = (await db
         .from('conversation_participants')
         .where('conversation_id', dto.conversationId)
         .where('user_id', user.id)
-        .first()
+        .first()) as ParticipantResult | undefined
 
       if (!currentUserParticipant) {
         throw new Error('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
@@ -56,13 +67,13 @@ export default class AddParticipantCommand {
         .firstOrFail()
 
       // Check if it's a group conversation
-      const participantCount = await db
+      const participantCount = (await db
         .from('conversation_participants')
         .where('conversation_id', dto.conversationId)
         .count('* as total')
-        .first()
+        .first()) as CountResult | undefined
 
-      const count = participantCount?.total || 0
+      const count = Number(participantCount?.total ?? 0)
 
       // Only allow adding to group conversations (3+ people or has title)
       if (count < 2 && !conversation.title) {
@@ -70,11 +81,11 @@ export default class AddParticipantCommand {
       }
 
       // Check if user is already a participant
-      const existingParticipant = await db
+      const existingParticipant = (await db
         .from('conversation_participants')
         .where('conversation_id', dto.conversationId)
         .where('user_id', dto.userId)
-        .first()
+        .first()) as ParticipantResult | undefined
 
       if (existingParticipant) {
         throw new Error('Người dùng này đã là thành viên của cuộc trò chuyện')
@@ -100,16 +111,16 @@ export default class AddParticipantCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants (including new one)
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {
-        const pattern = `user:${userId}:conversations:*`
+        const pattern = `user:${String(userId)}:conversations:*`
         const keys = await redis.keys(pattern)
         if (keys.length > 0) {
           await redis.del(...keys)
@@ -117,7 +128,7 @@ export default class AddParticipantCommand {
       }
 
       // Invalidate conversation detail cache
-      const detailKey = `conversation:${conversationId}:detail`
+      const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
       console.error('[AddParticipantCommand.invalidateCache] Error:', error)

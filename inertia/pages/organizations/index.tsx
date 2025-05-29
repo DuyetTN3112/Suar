@@ -339,7 +339,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => setUserOrgsPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() => { setUserOrgsPage(prev => Math.max(prev - 1, 1)); }}
                     disabled={userOrgsPage === 1}
                   >
                     <ChevronLeft className="h-3 w-3 mr-1" />
@@ -354,7 +354,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => setUserOrgsPage(prev => Math.min(prev + 1, totalUserOrgsPages))}
+                    onClick={() => { setUserOrgsPage(prev => Math.min(prev + 1, totalUserOrgsPages)); }}
                     disabled={userOrgsPage === totalUserOrgsPages}
                   >
                     Sau
@@ -396,7 +396,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                         size="sm"
                         variant="outline"
                         className="flex-1 h-7 text-xs"
-                        onClick={() => handleShowDetails(org)}
+                        onClick={() => { handleShowDetails(org); }}
                       >
                         <Info className="h-3 w-3 mr-1" />
                         Chi tiết
@@ -442,7 +442,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => setAllOrgsPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() => { setAllOrgsPage(prev => Math.max(prev - 1, 1)); }}
                     disabled={allOrgsPage === 1}
                   >
                     <ChevronLeft className="h-3 w-3 mr-1" />
@@ -457,7 +457,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                     variant="outline"
                     size="sm"
                     className="h-7 text-xs"
-                    onClick={() => setAllOrgsPage(prev => Math.min(prev + 1, totalAllOrgsPages))}
+                    onClick={() => { setAllOrgsPage(prev => Math.min(prev + 1, totalAllOrgsPages)); }}
                     disabled={allOrgsPage === totalAllOrgsPages}
                   >
                     Sau
@@ -515,7 +515,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                         size="sm"
                         variant="outline"
                         className="flex-1 h-7 text-xs"
-                        onClick={() => handleShowDetails(org)}
+                        onClick={() => { handleShowDetails(org); }}
                       >
                         <Info className="h-3 w-3 mr-1" />
                         Chi tiết
@@ -657,7 +657,7 @@ export default function OrganizationIndex({ organizations, currentOrganizationId
                   </Button>
                 )}
 
-                <Button variant="outline" onClick={() => setShowDetailDialog(false)}>
+                <Button variant="outline" onClick={() => { setShowDetailDialog(false); }}>
                   Đóng
                 </Button>
               </>

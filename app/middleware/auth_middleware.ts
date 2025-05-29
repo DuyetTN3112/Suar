@@ -109,7 +109,8 @@ export default class AuthMiddleware {
         return ctx.inertia.location(this.redirectTo)
       }
 
-      return ctx.response.redirect().toPath(this.redirectTo)
+      ctx.response.redirect().toPath(this.redirectTo)
+      return
     }
   }
 }

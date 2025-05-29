@@ -132,9 +132,11 @@ export default class OrganizationsController {
       })
     } catch (error) {
       if (error.message.includes('không có quyền')) {
-        return response.status(403).redirect('/errors/forbidden')
+        response.status(403).redirect('/errors/forbidden')
+        return
       }
-      return response.status(404).redirect('/errors/not-found')
+      response.status(404).redirect('/errors/not-found')
+      return
     }
   }
 
@@ -169,10 +171,12 @@ export default class OrganizationsController {
       const organization = await createOrganization.execute(dto)
 
       session.flash('success', 'Tổ chức đã được tạo thành công')
-      return response.redirect().toRoute('organizations.show', { id: organization.id })
+      response.redirect().toRoute('organizations.show', { id: organization.id })
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi tạo tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -193,25 +197,29 @@ export default class OrganizationsController {
 
       // Check if JSON response is requested
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.json({
+        response.json({
           success: true,
           message: 'Đã chuyển đổi tổ chức thành công',
           organization: result,
         })
+        return
       }
 
       session.flash('success', 'Đã chuyển đổi tổ chức thành công')
-      return response.redirect('/tasks')
+      response.redirect('/tasks')
+      return
     } catch (error) {
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: error.message,
         })
+        return
       }
 
       session.flash('error', error.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -230,7 +238,8 @@ export default class OrganizationsController {
       .first()
 
     if (!membership) {
-      return response.status(403).redirect('/errors/forbidden')
+      response.status(403).redirect('/errors/forbidden')
+      return
     }
 
     // Cập nhật session và database
@@ -243,7 +252,7 @@ export default class OrganizationsController {
     session.forget('intended_url')
     await session.commit()
 
-    return response.redirect(intendedUrl)
+    response.redirect(intendedUrl)
   }
 
   /**
@@ -295,13 +304,15 @@ export default class OrganizationsController {
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        return response.status(404).json({
+        response.status(404).json({
           success: false,
           message: 'Tổ chức không tồn tại',
         })
+        return
       }
       session.flash('error', 'Tổ chức không tồn tại')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
 
     // Kiểm tra xem người dùng đã là thành viên của tổ chức chưa
@@ -328,15 +339,17 @@ export default class OrganizationsController {
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        return response.json({
+        response.json({
           success: false,
           message,
           organization: organization.toJSON(),
           membership: existingMembership,
         })
+        return
       }
       session.flash('info', message)
-      return response.redirect().toRoute('organizations.show', { id: organizationId })
+      response.redirect().toRoute('organizations.show', { id: organizationId })
+      return
     }
 
     try {
@@ -347,28 +360,32 @@ export default class OrganizationsController {
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        return response.json({
+        response.json({
           success: true,
           message: 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt',
           organization: organization.toJSON(),
           joinRequest,
         })
+        return
       }
 
       session.flash('success', 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt')
-      return response.redirect().toRoute('organizations.index')
+      response.redirect().toRoute('organizations.index')
+      return
     } catch (error) {
       if (
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        return response.status(500).json({
+        response.status(500).json({
           success: false,
           message: error.message || 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức',
         })
+        return
       }
       session.flash('error', error.message || 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -382,12 +399,14 @@ export default class OrganizationsController {
         .whereNull('deleted_at')
         .orderBy('id', 'asc')
         .select('id', 'name', 'description', 'logo', 'website', 'plan')
-      return response.json(organizations)
+      response.json(organizations)
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         error: 'Có lỗi xảy ra khi lấy danh sách tổ chức',
         details: error.message,
       })
+      return
     }
   }
 }

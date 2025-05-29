@@ -4,6 +4,7 @@ import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Create Organization
@@ -25,7 +26,7 @@ export default class CreateOrganizationCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) { }
+  ) {}
 
   /**
    * Execute command: Create new organization
@@ -40,7 +41,10 @@ export default class CreateOrganizationCommand {
    * 7. Send welcome notification (outside transaction)
    */
   async execute(dto: CreateOrganizationDTO): Promise<Organization> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -69,17 +73,14 @@ export default class CreateOrganizationCommand {
 
       // 5. Add owner to organization_users (logic từ after_organization_insert trigger)
       // Trigger: INSERT INTO organization_users (organization_id, user_id, role_id) VALUES (NEW.id, NEW.owner_id, 1)
-      await db
-        .table('organization_users')
-        .insert({
-          organization_id: organization.id,
-          user_id: user.id,
-          role_id: 1, // Owner role
-          status: 'approved',
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-        .useTransaction(trx)
+      await trx.insertQuery().table('organization_users').insert({
+        organization_id: organization.id,
+        user_id: user.id,
+        role_id: 1, // Owner role
+        status: 'approved',
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
 
       // 6. Create audit log
       await AuditLog.create(
@@ -114,14 +115,16 @@ export default class CreateOrganizationCommand {
    *   WHERE u.id = p_creator_id AND u.deleted_at IS NULL AND us.name = 'active')
    *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Creator không tồn tại hoặc không active'
    */
-  private async validateCreatorActive(userId: number, trx: any): Promise<void> {
-    const user = await db
+  private async validateCreatorActive(
+    userId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const user: unknown = await trx
       .from('users')
       .join('user_status', 'users.status_id', 'user_status.id')
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .where('user_status.name', 'active')
-      .useTransaction(trx)
       .first()
 
     if (!user) {
@@ -150,28 +153,22 @@ export default class CreateOrganizationCommand {
    *     SET v_slug_counter = v_slug_counter + 1;
    *   END WHILE;
    */
-  private async getUniqueSlug(baseSlug: string, trx: any): Promise<string> {
+  private async getUniqueSlug(baseSlug: string, trx: TransactionClientContract): Promise<string> {
     let slug = baseSlug
-    let counter = 1
 
-    while (true) {
-      const existing = await db
+    for (let counter = 1; counter <= 1000; counter++) {
+      const existing: unknown = await trx
         .from('organizations')
         .where('slug', slug)
         .whereNull('deleted_at')
-        .useTransaction(trx)
         .first()
 
       if (!existing) return slug
 
-      slug = `${baseSlug}-${counter}`
-      counter++
-
-      // Safety limit
-      if (counter > 1000) {
-        throw new Error('Không thể tạo slug unique')
-      }
+      slug = `${baseSlug}-${String(counter)}`
     }
+
+    throw new Error('Không thể tạo slug unique')
   }
 
   /**
@@ -192,4 +189,3 @@ export default class CreateOrganizationCommand {
     }
   }
 }
-

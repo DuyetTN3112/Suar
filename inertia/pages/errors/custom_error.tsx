@@ -31,7 +31,7 @@ function CustomError({ title, message, stack }: { title: string, message: string
     React.createElement(
       'button',
       {
-        onClick: () => window.location.reload(),
+        onClick: () => { window.location.reload(); },
         style: {
           marginTop: '15px',
           padding: '8px 16px',

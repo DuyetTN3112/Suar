@@ -142,7 +142,7 @@ function ServerError({ error }: { error: unknown }) {
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => { window.location.reload(); }}
               style={{
                 padding: '8px 16px',
                 backgroundColor: '#0d6efd',

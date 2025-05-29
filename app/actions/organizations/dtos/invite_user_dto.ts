@@ -55,7 +55,7 @@ export class InviteUserDTO {
     }
 
     // Message validation (optional, max 500 characters)
-    if (this.message !== undefined && this.message !== null) {
+    if (this.message !== undefined) {
       if (typeof this.message !== 'string') {
         throw new Error('Invitation message must be a string')
       }
@@ -112,7 +112,7 @@ export class InviteUserDTO {
    * Helper: Check if invitation message is provided
    */
   hasMessage(): boolean {
-    return this.message !== undefined && this.message !== null && this.message.trim().length > 0
+    return this.message !== undefined && this.message.trim().length > 0
   }
 
   /**
@@ -120,7 +120,7 @@ export class InviteUserDTO {
    */
   getNormalizedMessage(): string | null {
     if (!this.hasMessage()) return null
-    return this.message!.trim()
+    return this.message?.trim() ?? null
   }
 
   /**
@@ -164,6 +164,6 @@ export class InviteUserDTO {
    * Helper: Get human-readable summary
    */
   getSummary(): string {
-    return `Invited ${this.getNormalizedEmail()} as ${this.getRoleName()} to organization ${this.organizationId}`
+    return `Invited ${this.getNormalizedEmail()} as ${this.getRoleName()} to organization ${String(this.organizationId)}`
   }
 }

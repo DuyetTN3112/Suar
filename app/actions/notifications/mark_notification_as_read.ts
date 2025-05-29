@@ -7,7 +7,10 @@ export default class MarkNotificationAsRead {
   constructor(protected ctx: HttpContext) {}
 
   async handle({ id }: { id: number }) {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     // Tìm thông báo cần đánh dấu
     const notification = await Notification.query()
       .where('id', id)
@@ -20,7 +23,10 @@ export default class MarkNotificationAsRead {
   }
   // Đánh dấu tất cả thông báo của người dùng là đã đọc
   async markAllAsRead() {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     await Notification.query()
       .where('user_id', user.id)
       .where('is_read', false)

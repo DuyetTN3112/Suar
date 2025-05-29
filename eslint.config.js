@@ -22,6 +22,7 @@ export default configApp(
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.strictTypeChecked, // 🚨 Thêm strict type checked
   {
     languageOptions: {
       parserOptions: {
@@ -34,11 +35,11 @@ export default configApp(
     },
 
     rules: {
-      //  CỨNG RẮN - Những rule quan trọng nhất
+      // 🚨 CỨNG RẮN - Không dùng any/unknown
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
       '@typescript-eslint/no-unused-vars': [
-        'error',  // Nâng từ warn → error để code sạch hơn
+        'error',
         {
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
@@ -46,26 +47,43 @@ export default configApp(
         },
       ],
 
-      //  CÂN BẰNG - Quan trọng nhưng linh hoạt
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
+      // 🚨 UNSAFE OPERATIONS - Nâng lên ERROR để bắt buộc dùng đúng type
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
 
-      //  PROMISE HANDLING - Quan trọng cho stability
+      // 🚨 PROMISE HANDLING - Quan trọng cho stability
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
-      '@typescript-eslint/await-thenable': 'warn',
+      '@typescript-eslint/await-thenable': 'error',
+      '@typescript-eslint/require-await': 'error',
 
-      //  VÔ HIỆU HÓA - Không cần thiết
+      // 🚨 STRICT TYPE ASSERTIONS
+      '@typescript-eslint/consistent-type-assertions': [
+        'error',
+        {
+          assertionStyle: 'as',
+          objectLiteralTypeAssertions: 'never',
+        },
+      ],
+
+      // 🚨 EMPTY TYPES - Không cho phép interface rỗng
+      '@typescript-eslint/no-empty-object-type': 'error',
+
+      // 🚨 BASE TO STRING - Đảm bảo objects có đúng string representation
+      '@typescript-eslint/no-base-to-string': 'error',
+
+      // 🚨 RESTRICT TEMPLATE EXPRESSIONS - Kiểm soát chặt template strings
+      '@typescript-eslint/restrict-template-expressions': 'error',
+
+      // ✅ VÔ HIỆU HÓA - Không cần thiết
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-console': 'off',
 
-      // THÊM - Rules hữu ích cho refactor
+      // ✅ THÊM - Rules hữu ích cho refactor
       '@typescript-eslint/consistent-type-imports': 'warn',
-
-      // FIX: 'prefer-const' is a core ESLint rule, not a typescript-eslint one.
       'prefer-const': 'warn',
     },
   }

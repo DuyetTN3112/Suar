@@ -118,7 +118,7 @@ export function NavUser({
               onClick={(e) => {
                 e.preventDefault()
                 router.post('/logout', {}, {
-                  onError: (errors) => console.error('[NavUser] Logout error:', errors),
+                  onError: (errors) => { console.error('[NavUser] Logout error:', errors); },
                 })
               }}
             >

@@ -58,25 +58,28 @@ export default class SoftDeleteMiddleware {
       if (!entity || (!allowDeleted && entity.deletedAt)) {
         // Đối với AJAX request, trả về lỗi 404
         if (ctx.request.ajax()) {
-          return ctx.response.status(404).json({
+          ctx.response.status(404).json({
             error: 'Not Found',
             message: 'Không tìm thấy dữ liệu yêu cầu',
           })
+          return
         }
 
         // Đối với Inertia request, hiển thị trang lỗi 404
         if (ctx.request.header('X-Inertia')) {
-          return ctx.response.status(404).json({
+          ctx.response.status(404).json({
             component: 'errors/NotFound',
             props: {
               status: 404,
               message: 'Không tìm thấy dữ liệu yêu cầu',
             },
           })
+          return
         }
 
         // Chuyển hướng về trang lỗi 404
-        return ctx.response.status(404).send('Không tìm thấy dữ liệu yêu cầu')
+        ctx.response.status(404).send('Không tìm thấy dữ liệu yêu cầu')
+        return
       }
 
       // Lưu entity vào context để sử dụng trong controller

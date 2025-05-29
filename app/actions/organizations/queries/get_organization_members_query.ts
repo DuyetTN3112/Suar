@@ -3,6 +3,49 @@ import db from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members_dto.js'
 
+interface MemberRecord {
+  membership_id: number
+  user_id: number
+  role_id: number
+  role_name: string
+  role_display_name: string
+  joined_at: Date
+  created_at: Date
+  username: string
+  email: string
+  is_active: boolean
+}
+
+interface CountRecord {
+  count: number | string
+}
+
+interface MemberResult {
+  membership_id: number
+  user_id: number
+  role_id: number
+  role_name: string
+  role_display_name: string
+  joined_at: Date
+  created_at: Date
+  user: {
+    id: number
+    username: string
+    email: string
+    is_active: boolean
+  }
+}
+
+interface PaginatedResult {
+  data: MemberResult[]
+  meta: {
+    total: number
+    per_page: number
+    current_page: number
+    last_page: number
+  }
+}
+
 /**
  * Query: Get Organization Members
  *
@@ -24,16 +67,11 @@ import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members
 export default class GetOrganizationMembersQuery {
   constructor(protected ctx: HttpContext) {}
 
-  async execute(dto: GetOrganizationMembersDTO): Promise<{
-    data: unknown[]
-    meta: {
-      total: number
-      per_page: number
-      current_page: number
-      last_page: number
+  async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
     }
-  }> {
-    const user = this.ctx.auth.user!
     const organizationId = dto.organizationId
 
     // 1. Permission check: User must be member
@@ -75,28 +113,29 @@ export default class GetOrganizationMembersQuery {
     }
 
     if (dto.search) {
+      const searchTerm = dto.search
       void query.where((searchQuery) => {
         void searchQuery
-          .whereILike('u.username', `%${dto.search}%`)
-          .orWhereILike('u.email', `%${dto.search}%`)
+          .whereILike('u.username', `%${searchTerm}%`)
+          .orWhereILike('u.email', `%${searchTerm}%`)
       })
     }
 
     // 5. Count total (before pagination)
     const countQuery = query.clone()
-    const [{ count }] = await countQuery.count('* as count')
-    const total = Number(count)
+    const countResult = (await countQuery.count('* as count')) as CountRecord[]
+    const total = Number(countResult[0]?.count ?? 0)
 
     // 6. Apply pagination
     const offset = dto.getOffset()
     void query.orderBy('ou.joined_at', 'desc').limit(dto.limit).offset(offset)
 
     // 7. Execute query
-    const members = await query
+    const members = (await query) as MemberRecord[]
 
     // 8. Calculate meta
     const lastPage = Math.ceil(total / dto.limit)
-    const result = {
+    const result: PaginatedResult = {
       data: members.map((member) => ({
         membership_id: member.membership_id,
         user_id: member.user_id,
@@ -130,7 +169,7 @@ export default class GetOrganizationMembersQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
-    const membership = await db
+    const membership: unknown = await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
@@ -146,13 +185,13 @@ export default class GetOrganizationMembersQuery {
   private buildCacheKey(dto: GetOrganizationMembersDTO): string {
     const parts = [
       'organization:members',
-      `org:${dto.organizationId}`,
-      `page:${dto.page}`,
-      `limit:${dto.limit}`,
+      `org:${String(dto.organizationId)}`,
+      `page:${String(dto.page)}`,
+      `limit:${String(dto.limit)}`,
     ]
 
     if (dto.roleId) {
-      parts.push(`role:${dto.roleId}`)
+      parts.push(`role:${String(dto.roleId)}`)
     }
 
     if (dto.search) {
@@ -165,11 +204,11 @@ export default class GetOrganizationMembersQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<PaginatedResult | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
       console.error('[GetOrganizationMembersQuery] Cache get error:', error)
@@ -180,7 +219,7 @@ export default class GetOrganizationMembersQuery {
   /**
    * Save to Redis cache
    */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+  private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {

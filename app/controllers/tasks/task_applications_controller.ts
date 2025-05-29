@@ -77,7 +77,7 @@ export default class TaskApplicationsController {
     const query = new GetPublicTasksQuery(ctx)
     const result = await query.handle(dto)
 
-    return response.json({
+    response.json({
       data: result.data.map((t) => t.serialize()),
       meta: result.meta,
     })
@@ -108,7 +108,7 @@ export default class TaskApplicationsController {
       session.flash('error', errorMessage)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -130,16 +130,18 @@ export default class TaskApplicationsController {
       const command = new ApplyForTaskCommand(ctx)
       const application = await command.handle(dto)
 
-      return response.status(201).json({
+      response.status(201).json({
         success: true,
         data: application.serialize(),
       })
+      return
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to submit application'
-      return response.status(400).json({
+      response.status(400).json({
         success: false,
         message: errorMessage,
       })
+      return
     }
   }
 
@@ -195,7 +197,7 @@ export default class TaskApplicationsController {
       session.flash('error', errorMessage)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -217,7 +219,7 @@ export default class TaskApplicationsController {
       session.flash('error', errorMessage)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**

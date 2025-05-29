@@ -192,7 +192,7 @@ export const MessageItem: React.FC<MessageItemProps> = ({
               <Button
                 variant="link"
                 className="text-xs p-0 h-auto mt-1"
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => { setIsExpanded(!isExpanded); }}
               >
                 {isExpanded
                   ? t('conversation.show_less', {}, 'Thu gọn')

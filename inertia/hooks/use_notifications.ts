@@ -176,7 +176,9 @@ export const useNotifications = () => {
       void fetchLatestNotifications()
     }, 30000) // 30 giây
 
-    return () => clearInterval(interval)
+    return () => {
+      clearInterval(interval)
+    }
   }, [])
 
   return {

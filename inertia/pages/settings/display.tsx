@@ -124,7 +124,7 @@ export default function Display() {
                     <Label>Bố cục</Label>
                     <RadioGroup
                       value={form.data.layout}
-                      onValueChange={(value: string) => form.setData('layout', value)}
+                      onValueChange={(value: string) => { form.setData('layout', value); }}
                       className="grid grid-cols-3 gap-4 pt-2"
                     >
                       <div>
@@ -176,7 +176,7 @@ export default function Display() {
                     <Label>Mật độ hiển thị</Label>
                     <RadioGroup
                       value={form.data.density}
-                      onValueChange={(value: string) => form.setData('density', value)}
+                      onValueChange={(value: string) => { form.setData('density', value); }}
                       className="grid grid-cols-3 gap-4 pt-2"
                     >
                       <div>
@@ -229,7 +229,7 @@ export default function Display() {
                     <Switch
                       id="animations-enabled"
                       checked={form.data.animations_enabled}
-                      onCheckedChange={(checked) => form.setData('animations_enabled', checked)}
+                      onCheckedChange={(checked) => { form.setData('animations_enabled', checked); }}
                     />
                   </div>
 
@@ -239,7 +239,7 @@ export default function Display() {
                     <Switch
                       id="custom-scrollbars"
                       checked={form.data.custom_scrollbars}
-                      onCheckedChange={(checked) => form.setData('custom_scrollbars', checked)}
+                      onCheckedChange={(checked) => { form.setData('custom_scrollbars', checked); }}
                     />
                   </div>
 

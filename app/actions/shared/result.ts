@@ -35,9 +35,15 @@ export class Result<TData = void, TError = Error> {
    */
   getValue(): TData {
     if (this.isFailure) {
-      throw this.error
+      if (this.error instanceof Error) {
+        throw this.error
+      }
+      throw new Error(String(this.error))
     }
-    return this.data!
+    if (this.data === undefined) {
+      throw new Error('Data is undefined in successful result')
+    }
+    return this.data
   }
 
   /**
@@ -47,6 +53,9 @@ export class Result<TData = void, TError = Error> {
     if (this.isSuccess) {
       throw new Error('Cannot get error from successful result')
     }
-    return this.error!
+    if (this.error === undefined) {
+      throw new Error('Error is undefined in failed result')
+    }
+    return this.error
   }
 }

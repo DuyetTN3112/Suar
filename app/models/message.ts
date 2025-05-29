@@ -49,7 +49,7 @@ export default class Message extends BaseModel {
    */
   @computed()
   get isEffectivelyRecalled() {
-    return this.is_recalled === true && this.recalled_at !== null && this.recall_scope !== null
+    return this.is_recalled && this.recalled_at !== null && this.recall_scope !== null
   }
 
   /**
@@ -57,7 +57,7 @@ export default class Message extends BaseModel {
    */
   @computed()
   get isRecalledForEveryone() {
-    return this.is_recalled === true && this.recall_scope === 'all'
+    return this.is_recalled && this.recall_scope === 'all'
   }
 
   /**

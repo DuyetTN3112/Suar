@@ -29,12 +29,14 @@ export default class ConversationsMessageController {
 
       const sendMessageCommand = new SendMessageCommand(ctx)
       await sendMessageCommand.execute(dto)
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn:', error)
       session.flash('error', error.message || 'Có lỗi xảy ra khi gửi tin nhắn')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -51,17 +53,19 @@ export default class ConversationsMessageController {
 
       const sendMessageCommand = new SendMessageCommand(ctx)
       const createdMessage = await sendMessageCommand.execute(dto)
-      return response.json({
+      response.json({
         success: true,
         message: createdMessage,
       })
+      return
     } catch (error) {
       // Log lỗi chi tiết để debug
       console.error('Lỗi khi gửi tin nhắn (API):', error)
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi gửi tin nhắn',
       })
+      return
     }
   }
 
@@ -76,14 +80,16 @@ export default class ConversationsMessageController {
 
       const markAsReadCommand = new MarkAsReadCommand(ctx)
       await markAsReadCommand.execute(dto)
-      return response.json({
+      response.json({
         success: true,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi đánh dấu đã đọc',
       })
+      return
     }
   }
 
@@ -98,10 +104,11 @@ export default class ConversationsMessageController {
 
       // Kiểm tra xác thực người dùng
       if (!(await auth.check())) {
-        return response.status(401).json({
+        response.status(401).json({
           success: false,
           error: 'Vui lòng đăng nhập để thực hiện thao tác này',
         })
+        return
       }
 
       const dto = new RecallMessageDTO(messageId, scope)
@@ -109,15 +116,17 @@ export default class ConversationsMessageController {
       const recallMessageCommand = new RecallMessageCommand(ctx)
       await recallMessageCommand.execute(dto)
 
-      return response.json({
+      response.json({
         success: true,
         message: 'Tin nhắn đã được thu hồi thành công',
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi thu hồi tin nhắn',
       })
+      return
     }
   }
 }

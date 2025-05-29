@@ -216,7 +216,7 @@ function CalendarComponent({
                         !day.isSelected && !day.isToday,
                     }
                   )}
-                  onClick={() => handleDateClick(day.date)}
+                  onClick={() => { handleDateClick(day.date); }}
                 >
                   {day.date.getDate()}
                 </button>

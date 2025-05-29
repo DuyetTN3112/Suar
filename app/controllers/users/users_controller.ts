@@ -87,16 +87,18 @@ export default class UsersController {
       // Execute Query
       const users = await getUsersListQuery.handle(dto)
 
-      return response.json({
+      response.json({
         success: true,
         users,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Đã xảy ra lỗi khi lấy danh sách người dùng',
         error: error instanceof Error ? error.message : String(error),
       })
+      return
     }
   }
 
@@ -133,7 +135,7 @@ export default class UsersController {
     // Success flash message
     session.flash('success', i18n.t('messages.user_created_successfully'))
 
-    return response.redirect().toRoute('users.index')
+    response.redirect().toRoute('users.index')
   }
 
   /**
@@ -200,7 +202,7 @@ export default class UsersController {
     // Success flash message
     session.flash('success', i18n.t('messages.user_updated_successfully'))
 
-    return response.redirect().toRoute('users.show', { id: Number(params.id) })
+    response.redirect().toRoute('users.show', { id: Number(params.id) })
   }
 
   /**
@@ -216,7 +218,7 @@ export default class UsersController {
 
     const result = await deleteUser.handle({ id: Number(params.id) })
     session.flash(result.success ? 'success' : 'error', result.message)
-    return response.redirect().toRoute('users.index')
+    response.redirect().toRoute('users.index')
   }
 
   /**
@@ -272,10 +274,11 @@ export default class UsersController {
 
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Không tìm thấy thông tin tổ chức hiện tại',
         })
+        return
       }
 
       // Query pending users directly (complex query not yet in GetUsersListQuery)
@@ -317,7 +320,7 @@ export default class UsersController {
         created_at: user.created_at,
       }))
 
-      return response.json({
+      response.json({
         success: true,
         users: formattedUsers,
         meta: {
@@ -327,12 +330,14 @@ export default class UsersController {
           last_page: 1,
         },
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi lấy danh sách người dùng chờ phê duyệt.',
         error: error instanceof Error ? error.message : String(error),
       })
+      return
     }
   }
 
@@ -351,10 +356,11 @@ export default class UsersController {
 
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Không tìm thấy thông tin tổ chức hiện tại',
         })
+        return
       }
 
       // Count pending users
@@ -367,16 +373,18 @@ export default class UsersController {
         .count('u.id as count')
         .first()
 
-      return response.json({
+      response.json({
         success: true,
         count: result?.count || 0,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Có lỗi xảy ra khi đếm số lượng người dùng chờ phê duyệt.',
         error: error instanceof Error ? error.message : String(error),
       })
+      return
     }
   }
 
@@ -394,31 +402,34 @@ export default class UsersController {
 
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Không tìm thấy thông tin tổ chức hiện tại',
         })
+        return
       }
 
       // Build DTO
       const dto = new ApproveUserDTO(
         Number(params.id), // userId
         organizationId,
-        auth.user!.id // approverId
+        auth.user.id // approverId
       )
 
       // Execute Command
       await approveUserCommand.handle(dto)
 
-      return response.json({
+      response.json({
         success: true,
         message: 'Người dùng đã được phê duyệt thành công',
       })
+      return
     } catch (error) {
-      return response.status(403).json({
+      response.status(403).json({
         success: false,
         message: error instanceof Error ? error.message : 'Có lỗi xảy ra khi phê duyệt người dùng',
       })
+      return
     }
   }
 
@@ -445,13 +456,15 @@ export default class UsersController {
       await changeUserRoleCommand.handle(dto)
 
       session.flash('success', i18n.t('messages.user_role_updated_successfully'))
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash(
         'error',
         error instanceof Error ? error.message : 'Chỉ superadmin mới có thể thay đổi vai trò'
       )
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 

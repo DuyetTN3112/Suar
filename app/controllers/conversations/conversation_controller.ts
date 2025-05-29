@@ -63,7 +63,8 @@ export default class ConversationController {
       const dto = new CreateConversationDTO(participantIds, initialMessage, title, organizationId)
       const conversation = await createConversationCommand.execute(dto)
 
-      return response.redirect().toRoute('conversations.show', { id: conversation.id })
+      response.redirect().toRoute('conversations.show', { id: conversation.id })
+      return
     } catch (error: unknown) {
       return inertia.render('conversations/create', {
         error: error.message || 'Đã xảy ra lỗi khi tạo cuộc trò chuyện',
@@ -109,9 +110,11 @@ export default class ConversationController {
       const dto = new AddParticipantDTO(conversationId, userId)
       await addParticipantCommand.execute(dto)
 
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -130,7 +133,7 @@ export default class ConversationController {
     const dto = new SendMessageDTO(conversationId, message)
     await sendMessageCommand.execute(dto)
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -147,9 +150,11 @@ export default class ConversationController {
       const dto = new MarkAsReadDTO(conversationId)
 
       await markAsReadCommand.execute(dto)
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -167,9 +172,11 @@ export default class ConversationController {
       const dto = new DeleteConversationDTO(conversationId)
 
       await deleteConversationCommand.execute(dto)
-      return response.redirect().toRoute('conversations.index')
+      response.redirect().toRoute('conversations.index')
+      return
     } catch (error) {
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 }

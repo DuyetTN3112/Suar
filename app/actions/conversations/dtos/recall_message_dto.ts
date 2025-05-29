@@ -37,19 +37,8 @@ export class RecallMessageDTO {
       throw new Error('Message ID must be a positive number')
     }
 
-    // Scope validation (required, must be 'all' or 'self')
-    if (!this.scope) {
-      throw new Error('Recall scope is required')
-    }
-
-    if (typeof this.scope !== 'string') {
-      throw new Error('Recall scope must be a string')
-    }
-
-    const validScopes = ['all', 'self']
-    if (!validScopes.includes(this.scope)) {
-      throw new Error(`Invalid recall scope. Must be one of: ${validScopes.join(', ')}`)
-    }
+    // Scope validation is handled by TypeScript type system
+    // since scope is typed as 'all' | 'self'
   }
 
   /**

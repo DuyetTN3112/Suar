@@ -20,7 +20,7 @@ export const StatusField: React.FC<StatusFieldProps> = ({
       {isEditing ? (
         <Select
           value={String(formData.status_id || '')}
-          onValueChange={(value) => handleSelectChange('status_id', value)}
+          onValueChange={(value) => { handleSelectChange('status_id', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn trạng thái" />

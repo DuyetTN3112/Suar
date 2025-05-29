@@ -30,16 +30,18 @@ export default class SwitchOrganizationCommand {
    * 5. Commit transaction
    */
   async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Validate user is member of target organization
-      const membership = await db
+      const membership: unknown = await trx
         .from('organization_users')
         .where('organization_id', organizationId)
         .where('user_id', user.id)
-        .useTransaction(trx)
         .first()
 
       if (!membership) {

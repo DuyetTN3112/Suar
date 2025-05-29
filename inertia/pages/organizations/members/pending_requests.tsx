@@ -85,7 +85,7 @@ const PendingRequests = ({ organization, pendingRequests }: PendingRequestsProps
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Yêu cầu tham gia tổ chức chờ duyệt</h1>
 
-          <Button variant="outline" onClick={() => router.get(`/organizations/${organization.id}/members`)}>
+          <Button variant="outline" onClick={() => { router.get(`/organizations/${organization.id}/members`); }}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay lại quản lý thành viên
           </Button>
@@ -132,14 +132,14 @@ const PendingRequests = ({ organization, pendingRequests }: PendingRequestsProps
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleProcessRequest(request.user_id, 'reject')}
+                            onClick={() => { handleProcessRequest(request.user_id, 'reject'); }}
                           >
                             <UserX className="w-4 h-4 mr-2" />
                             Từ chối
                           </Button>
                           <Button
                             size="sm"
-                            onClick={() => handleProcessRequest(request.user_id, 'approve')}
+                            onClick={() => { handleProcessRequest(request.user_id, 'approve'); }}
                           >
                             <UserCheck className="w-4 h-4 mr-2" />
                             Duyệt
