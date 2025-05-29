@@ -1,30 +1,33 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import Organization from '#models/organization'
-import type { GetOrganizationDetailDTO } from '../dtos/get_organization_detail_dto.js'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canViewOrganization } from '#domain/organizations/org_permission_policy'
 
 interface OwnerRecord {
-  id: number
+  id: DatabaseId
   email: string
-}
-
-interface CountRecord {
-  count: number | string
 }
 
 interface MemberPreview {
-  id: number
-  email: string
-  role_id: number
+  id: DatabaseId
+  email: string | null
+  org_role: string
   joined_at: Date
 }
 
 interface OrganizationDetail {
-  id: number
+  id: DatabaseId
   name: string
   slug: string
-  owner_id: number
+  owner_id: DatabaseId
   owner?: OwnerRecord | null
   stats?: {
     member_count: number
@@ -49,7 +52,7 @@ interface OrganizationDetail {
  * const org = await query.execute(dto)
  */
 export default class GetOrganizationDetailQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query: Get organization detail
@@ -63,13 +66,13 @@ export default class GetOrganizationDetailQuery {
    * 6. Return result
    */
   async execute(dto: GetOrganizationDetailDTO): Promise<OrganizationDetail> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // 1. Check user is member of organization
-    await this.checkMembership(dto.organizationId, user.id)
+    await this.checkMembership(dto.organizationId, userId)
 
     // 2. Try cache first
     const cacheKey = dto.getCacheKey()
@@ -79,9 +82,9 @@ export default class GetOrganizationDetailQuery {
     }
 
     // 3. Get organization
-    const organization = await Organization.find(dto.organizationId)
+    const organization = await OrganizationRepository.findById(dto.organizationId)
     if (!organization) {
-      throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+      throw NotFoundException.resource('Tổ chức', dto.organizationId)
     }
 
     const result: OrganizationDetail = organization.toJSON() as OrganizationDetail
@@ -112,83 +115,59 @@ export default class GetOrganizationDetailQuery {
   /**
    * Helper: Check if user is member of organization
    */
-  private async checkMembership(organizationId: number, userId: number): Promise<void> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to view this organization')
-    }
+  private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      true
+    )
+    enforcePolicy(canViewOrganization(actorOrgRole))
   }
 
   /**
    * Helper: Get owner details
    */
-  private async getOwner(ownerId: number): Promise<OwnerRecord | null> {
-    const owner = (await db
-      .from('users')
-      .where('id', ownerId)
-      .select('id', 'email')
-      .first()) as OwnerRecord | null
-
-    return owner
+  private async getOwner(ownerId: DatabaseId): Promise<OwnerRecord | null> {
+    const owner = await UserRepository.findById(ownerId)
+    if (!owner) return null
+    return { id: owner.id, email: owner.email ?? '' }
   }
 
   /**
    * Helper: Get organization stats
    */
-  private async getStats(organizationId: number): Promise<{
+  private async getStats(organizationId: DatabaseId): Promise<{
     member_count: number
     project_count: number
     task_count: number
   }> {
-    const [memberCount, projectCount, taskCount] = (await Promise.all([
-      // Member count
-      db
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .count('* as count')
-        .first(),
-      // Project count
-      db
-        .from('projects')
-        .where('organization_id', organizationId)
-        .whereNull('deleted_at')
-        .count('* as count')
-        .first(),
-      // Task count (from projects in this organization)
-      db
-        .from('tasks as t')
-        .join('projects as p', 't.project_id', 'p.id')
-        .where('p.organization_id', organizationId)
-        .whereNull('t.deleted_at')
-        .whereNull('p.deleted_at')
-        .count('* as count')
-        .first(),
-    ])) as [CountRecord | null, CountRecord | null, CountRecord | null]
+    const [memberCount, projectCount, taskCount] = await Promise.all([
+      OrganizationUserRepository.countMembers(organizationId),
+      ProjectRepository.countByOrgIds([organizationId]).then((m) => m.get(organizationId) ?? 0),
+      ProjectRepository.countTasksByOrganization(organizationId),
+    ])
 
     return {
-      member_count: Number(memberCount?.count ?? 0),
-      project_count: Number(projectCount?.count ?? 0),
-      task_count: Number(taskCount?.count ?? 0),
+      member_count: memberCount,
+      project_count: projectCount,
+      task_count: taskCount,
     }
   }
 
   /**
    * Helper: Get members preview (first N members)
    */
-  private async getMembersPreview(organizationId: number, limit: number): Promise<MemberPreview[]> {
-    const members = (await db
-      .from('organization_users as ou')
-      .join('users as u', 'ou.user_id', 'u.id')
-      .where('ou.organization_id', organizationId)
-      .select('u.id', 'u.email', 'ou.role_id', 'ou.created_at as joined_at')
-      .orderBy('ou.role_id', 'asc') // Owner first
-      .limit(limit)) as MemberPreview[]
-
-    return members
+  private async getMembersPreview(
+    organizationId: DatabaseId,
+    limit: number
+  ): Promise<MemberPreview[]> {
+    const members = await OrganizationUserRepository.getMembersPreview(organizationId, limit)
+    return members.map((m) => ({
+      id: m.user.id,
+      email: m.user.email,
+      org_role: m.org_role,
+      joined_at: m.created_at.toJSDate(),
+    }))
   }
 }

@@ -1,38 +1,23 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members_dto.js'
-
-interface MemberRecord {
-  membership_id: number
-  user_id: number
-  role_id: number
-  role_name: string
-  role_display_name: string
-  joined_at: Date
-  created_at: Date
-  username: string
-  email: string
-  is_active: boolean
-}
-
-interface CountRecord {
-  count: number | string
-}
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
 
 interface MemberResult {
-  membership_id: number
-  user_id: number
-  role_id: number
-  role_name: string
-  role_display_name: string
-  joined_at: Date
-  created_at: Date
+  user_id: string
+  org_role: string
+  status: string
+  created_at: string | Date
   user: {
-    id: number
+    id: string
     username: string
-    email: string
-    is_active: boolean
+    email: string | null
+    status: string
   }
 }
 
@@ -65,20 +50,17 @@ interface PaginatedResult {
  * // { data: [...], meta: { total, per_page, current_page, last_page } }
  */
 export default class GetOrganizationMembersQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const organizationId = dto.organizationId
 
     // 1. Permission check: User must be member
-    const isMember = await this.checkMembership(user.id, organizationId)
-    if (!isMember) {
-      throw new Error('Bạn không có quyền xem danh sách thành viên')
-    }
+    await this.checkMembership(userId, organizationId)
 
     // 2. Try cache first
     const cacheKey = this.buildCacheKey(dto)
@@ -87,70 +69,18 @@ export default class GetOrganizationMembersQuery {
       return cached
     }
 
-    // 3. Build query
-    const query = db
-      .from('organization_users as ou')
-      .where('ou.organization_id', organizationId)
-      .whereNull('ou.deleted_at')
-      .join('users as u', 'ou.user_id', 'u.id')
-      .leftJoin('roles as r', 'ou.role_id', 'r.id')
-      .select(
-        'ou.id as membership_id',
-        'ou.user_id',
-        'ou.role_id',
-        'ou.joined_at',
-        'ou.created_at',
-        'u.username',
-        'u.email',
-        'u.is_active',
-        'r.name as role_name',
-        'r.display_name as role_display_name'
-      )
+    // 3. Paginate members → delegate to Model
+    const { data, total } = await OrganizationUserRepository.paginateMembers(organizationId, {
+      page: dto.page,
+      limit: dto.limit,
+      orgRole: dto.roleId,
+      search: dto.search,
+    })
 
-    // 4. Apply filters
-    if (dto.roleId) {
-      void query.where('ou.role_id', dto.roleId)
-    }
-
-    if (dto.search) {
-      const searchTerm = dto.search
-      void query.where((searchQuery) => {
-        void searchQuery
-          .whereILike('u.username', `%${searchTerm}%`)
-          .orWhereILike('u.email', `%${searchTerm}%`)
-      })
-    }
-
-    // 5. Count total (before pagination)
-    const countQuery = query.clone()
-    const countResult = (await countQuery.count('* as count')) as CountRecord[]
-    const total = Number(countResult[0]?.count ?? 0)
-
-    // 6. Apply pagination
-    const offset = dto.getOffset()
-    void query.orderBy('ou.joined_at', 'desc').limit(dto.limit).offset(offset)
-
-    // 7. Execute query
-    const members = (await query) as MemberRecord[]
-
-    // 8. Calculate meta
+    // 4. Calculate meta
     const lastPage = Math.ceil(total / dto.limit)
     const result: PaginatedResult = {
-      data: members.map((member) => ({
-        membership_id: member.membership_id,
-        user_id: member.user_id,
-        role_id: member.role_id,
-        role_name: member.role_name,
-        role_display_name: member.role_display_name,
-        joined_at: member.joined_at,
-        created_at: member.created_at,
-        user: {
-          id: member.user_id,
-          username: member.username,
-          email: member.email,
-          is_active: member.is_active,
-        },
-      })),
+      data,
       meta: {
         total,
         per_page: dto.limit,
@@ -168,15 +98,14 @@ export default class GetOrganizationMembersQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .first()
-
-    return !!membership
+  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      true
+    )
+    enforcePolicy(canViewOrganizationMembers(actorOrgRole))
   }
 
   /**
@@ -185,13 +114,13 @@ export default class GetOrganizationMembersQuery {
   private buildCacheKey(dto: GetOrganizationMembersDTO): string {
     const parts = [
       'organization:members',
-      `org:${String(dto.organizationId)}`,
-      `page:${String(dto.page)}`,
-      `limit:${String(dto.limit)}`,
+      `org:${dto.organizationId}`,
+      `page:${dto.page}`,
+      `limit:${dto.limit}`,
     ]
 
     if (dto.roleId) {
-      parts.push(`role:${String(dto.roleId)}`)
+      parts.push(`role:${dto.roleId}`)
     }
 
     if (dto.search) {
@@ -211,7 +140,7 @@ export default class GetOrganizationMembersQuery {
         return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
-      console.error('[GetOrganizationMembersQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationMembersQuery] Cache get error:', error)
     }
     return null
   }
@@ -223,7 +152,7 @@ export default class GetOrganizationMembersQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationMembersQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
     }
   }
 }
