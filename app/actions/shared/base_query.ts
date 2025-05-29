@@ -1,7 +1,8 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { Result } from './result.js'
 import type { QueryHandler } from './interfaces.js'
 import CacheService from '#services/cache_service'
+import type { ExecutionContext } from '#types/execution_context'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Base Query Class
@@ -28,7 +29,12 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   TInput,
   TOutput
 > {
-  constructor(protected ctx: HttpContext) {}
+  /** Decoupled execution context (userId, ip, userAgent, organizationId) */
+  protected execCtx: ExecutionContext
+
+  constructor(execCtx: ExecutionContext) {
+    this.execCtx = execCtx
+  }
 
   /**
    * Main handler method - must be implemented by subclasses
@@ -78,20 +84,19 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
   }
 
   /**
-   * Get current authenticated user (if any)
+   * Get current authenticated user ID (if any)
    * Returns null if user is not authenticated
    */
-  protected getCurrentUser() {
-    return this.ctx.auth.user || null
+  protected getCurrentUserId(): DatabaseId | null {
+    return this.execCtx.userId
   }
 
   /**
-   * Get current organization ID from session (if any)
+   * Get current organization ID from execution context (if any)
    * Returns null if not found
    */
-  protected getCurrentOrganizationId(): number | null {
-    const organizationId: unknown = this.ctx.session.get('current_organization_id')
-    return organizationId ? Number(organizationId) : null
+  protected getCurrentOrganizationId(): DatabaseId | null {
+    return this.execCtx.organizationId
   }
 
   /**

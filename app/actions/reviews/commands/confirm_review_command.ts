@@ -84,5 +84,9 @@ export default class ConfirmReviewCommand extends BaseCommand<
         },
       }
     })
+
+    await emitter.emit('review:confirmed', result.reviewConfirmedEvent)
+
+    return result.confirmation
   }
 }
