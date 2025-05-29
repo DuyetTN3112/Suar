@@ -111,26 +111,43 @@ export class LoggerService {
 
       // Nếu là mảng, chỉ log số lượng phần tử và các ID nếu có
       if (Array.isArray(obj)) {
-        const ids = obj.map((item) => item.id || item._id).filter(Boolean)
+        const ids = obj
+          .map((item: unknown) => {
+            if (item && typeof item === 'object') {
+              const record = item as Record<string, unknown>
+              return record.id ?? record._id
+            }
+            return undefined
+          })
+          .filter(Boolean)
         this[level](
-          `${label}: Mảng [${obj.length} phần tử]${ids.length > 0 ? `, ID: ${ids.join(', ')}` : ''}`
+          `${label}: Mảng [${String(obj.length)} phần tử]${ids.length > 0 ? `, ID: ${ids.join(', ')}` : ''}`
         )
         return
       }
 
       // Nếu là object, chỉ log các thông tin cơ bản
-      if (typeof obj === 'object' && obj !== null) {
+      if (typeof obj === 'object') {
+        const record = obj as Record<string, unknown>
         const basicInfo = {
-          id: obj.id || obj._id,
-          name: obj.name || obj.title || obj.label,
-          type: obj.constructor ? obj.constructor.name : typeof obj,
+          id: record.id ?? record._id,
+          name: record.name ?? record.title ?? record.label,
+          type: obj.constructor.name,
         }
         this[level](`${label}: ${JSON.stringify(basicInfo)}`)
         return
       }
 
-      // Trường hợp khác
-      this[level](`${label}: ${obj}`)
+      // Trường hợp khác (primitive types: string, number, boolean, etc.)
+      if (typeof obj === 'string') {
+        this[level](`${label}: ${obj}`)
+      } else if (typeof obj === 'number' || typeof obj === 'boolean' || typeof obj === 'bigint') {
+        this[level](`${label}: ${String(obj)}`)
+      } else if (typeof obj === 'symbol') {
+        this[level](`${label}: ${obj.toString()}`)
+      } else if (typeof obj === 'function') {
+        this[level](`${label}: [Function: ${obj.name || 'anonymous'}]`)
+      }
     } catch (error) {
       this.error(`Lỗi khi log object ${label}:`, error)
     }

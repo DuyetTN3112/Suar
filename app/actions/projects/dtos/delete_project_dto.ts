@@ -56,7 +56,7 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
    */
   public getAuditMessage(): string {
     const deleteType = this.permanent ? 'Xóa vĩnh viễn' : 'Xóa mềm'
-    const reasonText = this.hasReason() ? ` - Lý do: ${this.reason}` : ''
+    const reasonText = this.hasReason() ? ` - Lý do: ${String(this.reason)}` : ''
     return `${deleteType} dự án ID ${this.project_id}${reasonText}`
   }
 

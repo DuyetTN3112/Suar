@@ -24,7 +24,10 @@ import CacheService from '#services/cache_service'
  * }
  * ```
  */
-export abstract class BaseQuery<TInput, TOutput> implements QueryHandler<TInput, TOutput> {
+export abstract class BaseQuery<TInput extends object, TOutput> implements QueryHandler<
+  TInput,
+  TOutput
+> {
   constructor(protected ctx: HttpContext) {}
 
   /**

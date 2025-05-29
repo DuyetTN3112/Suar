@@ -34,7 +34,10 @@ export default class AssignTaskCommand {
    * Execute command để assign task
    */
   async execute(dto: AssignTaskDTO): Promise<Task> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('User must be authenticated')
+    }
 
     // Start transaction
     const trx = await db.transaction()
@@ -51,8 +54,8 @@ export default class AssignTaskCommand {
       await this.validateAssignPermission(user, existingTask, trx)
 
       // If assigning (not unassigning), validate assignee
-      if (dto.isAssigning()) {
-        await this.validateAssignee(dto.assigned_to!, existingTask.organization_id, trx)
+      if (dto.isAssigning() && dto.assigned_to !== null) {
+        await this.validateAssignee(dto.assigned_to, existingTask.organization_id, trx)
       }
 
       // Save old value for audit
@@ -118,31 +121,34 @@ export default class AssignTaskCommand {
     trx: TransactionClientContract
   ): Promise<void> {
     // Load user role
-    await user.load('role')
+    await user.load('system_role')
 
     // 1. Superadmin/Admin have full access
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
-    if (isSuperAdmin) {
-      return
+    const roleName = user.system_role?.name ?? ''
+    if (roleName) {
+      const isSuperAdmin = ['superadmin', 'admin'].includes(roleName.toLowerCase())
+      if (isSuperAdmin) {
+        return
+      }
     }
 
     // 2. Creator can assign
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // 3. Current assignee can reassign or unassign
-    if (task.assigned_to && Number(task.assigned_to) === Number(user.id)) {
+    if (task.assigned_to && task.assigned_to === user.id) {
       return
     }
 
     // 4. Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
       .useTransaction(trx)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (!orgUser) {
       throw new Error('Bạn không có quyền giao task này')
@@ -211,8 +217,8 @@ export default class AssignTaskCommand {
       }
 
       // Assign/Reassign: Notify new assignee
-      if (dto.isAssigning() && dto.assigned_to !== assigner.id) {
-        const newAssignee = await User.find(dto.assigned_to!)
+      if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
+        const newAssignee = await User.find(dto.assigned_to)
         if (newAssignee) {
           await this.createNotification.handle({
             user_id: newAssignee.id,

@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
@@ -16,10 +15,6 @@ import db from '@adonisjs/lucid/services/db'
  * @extends {BaseCommand<UpdateProjectDTO, Project>}
  */
 export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, Project> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the command
    *

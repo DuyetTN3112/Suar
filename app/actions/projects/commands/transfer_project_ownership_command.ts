@@ -36,7 +36,7 @@ export default class TransferProjectOwnershipCommand {
     if (!currentUser) {
       throw new Error('Unauthorized')
     }
-    const trx = await db.transaction()
+    const trx: TransactionClientContract = await db.transaction()
 
     try {
       // 1. Load project with lock
@@ -66,7 +66,7 @@ export default class TransferProjectOwnershipCommand {
         .where('user_id', dto.new_owner_id)
         .where('organization_id', project.organization_id)
         .where('status', 'approved')
-        .useTransaction(trx as any)
+        .useTransaction(trx)
         .first()
 
       if (!newOwnerInOrg) {
@@ -78,7 +78,7 @@ export default class TransferProjectOwnershipCommand {
         .from('project_members')
         .where('user_id', dto.new_owner_id)
         .where('project_id', dto.project_id)
-        .useTransaction(trx as any)
+        .useTransaction(trx)
         .first()
 
       if (!existingMember) {
@@ -90,7 +90,7 @@ export default class TransferProjectOwnershipCommand {
             project_role_id: 1, // project_owner
             created_at: new Date(),
           })
-          .useTransaction(trx as any)
+          .useTransaction(trx)
       } else {
         // Update to project_owner role
         await db
@@ -98,7 +98,7 @@ export default class TransferProjectOwnershipCommand {
           .where('user_id', dto.new_owner_id)
           .where('project_id', dto.project_id)
           .update({ project_role_id: 1 })
-          .useTransaction(trx as any)
+          .useTransaction(trx)
       }
 
       // 6. Demote old owner to project_manager
@@ -108,7 +108,7 @@ export default class TransferProjectOwnershipCommand {
           .where('user_id', currentOwnerId)
           .where('project_id', dto.project_id)
           .update({ project_role_id: 2 }) // project_manager
-          .useTransaction(trx as any)
+          .useTransaction(trx)
       }
 
       // 7. Update project owner

@@ -2,11 +2,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 export default class AuthorizeRoleMiddleware {
-  async handle(
+  handle(
     { auth, response, session }: HttpContext,
     next: NextFn,
     allowedRoles: string[] = []
-  ) {
+  ): Promise<void> | void {
     // Kiểm tra người dùng đã đăng nhập chưa
     if (!auth.user) {
       session.flash('error', 'Bạn cần đăng nhập để truy cập trang này')
@@ -16,7 +16,7 @@ export default class AuthorizeRoleMiddleware {
 
     // Nếu không yêu cầu vai trò cụ thể, cho phép truy cập
     if (!allowedRoles.length) {
-      return next()
+      return next() as Promise<void>
     }
 
     // Kiểm tra vai trò của người dùng
@@ -26,13 +26,13 @@ export default class AuthorizeRoleMiddleware {
     const isAdmin = userRoleId === 1
     // Nếu người dùng là admin, luôn cho phép truy cập
     if (isAdmin) {
-      return next()
+      return next() as Promise<void>
     }
     // Phương thức này cần được thay đổi để phù hợp với logic của ứng dụng
     // Ví dụ: Nếu allowedRoles chứa roleId, hoặc tên vai trò
     // Ở đây giả sử allowedRoles chứa roleId dưới dạng chuỗi
     if (allowedRoles.includes(String(userRoleId))) {
-      return next()
+      return next() as Promise<void>
     }
 
     // Nếu không có quyền, chuyển hướng đến trang lỗi

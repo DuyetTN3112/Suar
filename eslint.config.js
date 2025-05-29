@@ -22,14 +22,11 @@ export default configApp(
     ],
   },
   ...tseslint.configs.recommendedTypeChecked,
-  ...tseslint.configs.strictTypeChecked, // 🚨 Thêm strict type checked
+  ...tseslint.configs.strictTypeChecked,
   {
     languageOptions: {
       parserOptions: {
-        project: [
-          './tsconfig.json',
-          './inertia/tsconfig.json'
-        ],
+        project: ['./tsconfig.json', './inertia/tsconfig.json'],
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -76,15 +73,38 @@ export default configApp(
       '@typescript-eslint/no-base-to-string': 'error',
 
       // 🚨 RESTRICT TEMPLATE EXPRESSIONS - Kiểm soát chặt template strings
-      '@typescript-eslint/restrict-template-expressions': 'error',
+      // Cho phép number và boolean vì đây là use case an toàn và phổ biến
+      '@typescript-eslint/restrict-template-expressions': [
+        'error',
+        {
+          allowNumber: true,
+          allowBoolean: true,
+          allowNullish: false,
+          allowAny: false,
+        },
+      ],
+
+      // ⚠️ DEPRECATED APIs - Warning để có thời gian migrate
+      '@typescript-eslint/no-deprecated': 'warn',
+
+      // 🚨 PROBE RULE - Disable because of crash in current version
+      '@typescript-eslint/no-useless-default-assignment': 'off',
 
       // ✅ VÔ HIỆU HÓA - Không cần thiết
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-console': 'off',
 
       // ✅ THÊM - Rules hữu ích cho refactor
-      '@typescript-eslint/consistent-type-imports': 'warn',
-      'prefer-const': 'warn',
+      '@typescript-eslint/consistent-type-imports': 'error',
+      'prefer-const': 'error',
+    },
+  },
+  // 📁 OVERRIDE cho folder config/ - AdonisJS module augmentation pattern
+  {
+    files: ['config/**/*.ts'],
+    rules: {
+      // AdonisJS sử dụng empty interfaces để mở rộng types (module augmentation)
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   }
 )

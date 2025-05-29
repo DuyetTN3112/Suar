@@ -7,14 +7,14 @@ import type { NextFn } from '@adonisjs/core/types/http'
 export default class MemoryMonitorMiddleware {
   private lastMonitored: number = Date.now()
   private monitorInterval: number = 60000 // 60 giây
-  async handle(_ctx: HttpContext, next: NextFn) {
+  handle(_ctx: HttpContext, next: NextFn): Promise<void> {
     // Chỉ monitor sau mỗi khoảng thời gian
     const now = Date.now()
     if (now - this.lastMonitored > this.monitorInterval) {
       this.lastMonitored = now
       this.logMemoryUsage()
     }
-    return next()
+    return next() as Promise<void>
   }
   private logMemoryUsage() {
     const memoryUsage = process.memoryUsage()

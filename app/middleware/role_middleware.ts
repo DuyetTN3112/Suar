@@ -12,7 +12,7 @@ export default class RoleMiddleware {
    * Xử lý request
    * @param roles Mảng các role ID được phép truy cập
    */
-  async handle(ctx: HttpContext, next: NextFn, roles: string[] = []) {
+  async handle(ctx: HttpContext, next: NextFn, roles: string[] = []): Promise<void> {
     /**
      * Kiểm tra trạng thái xác thực
      */
@@ -85,6 +85,6 @@ export default class RoleMiddleware {
     /**
      * Tiếp tục xử lý request
      */
-    return next()
+    await next()
   }
 }

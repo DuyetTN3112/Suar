@@ -86,14 +86,14 @@ export default class AssignTaskDTO {
   public getAuditMessage(): string {
     if (this.isUnassigning()) {
       let message = 'Bỏ giao việc'
-      if (this.hasReason()) {
+      if (this.hasReason() && this.reason) {
         message += `: ${this.reason}`
       }
       return message
     }
 
-    let message = `Giao task cho user #${this.assigned_to}`
-    if (this.hasReason()) {
+    let message = `Giao task cho user #${String(this.assigned_to)}`
+    if (this.hasReason() && this.reason) {
       message += `: ${this.reason}`
     }
     return message
@@ -108,7 +108,7 @@ export default class AssignTaskDTO {
     }
 
     let message = `${assignerName} đã giao cho bạn task: ${taskTitle}`
-    if (this.hasReason()) {
+    if (this.hasReason() && this.reason) {
       message += ` (${this.reason})`
     }
     return message

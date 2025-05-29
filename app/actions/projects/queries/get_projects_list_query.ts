@@ -1,6 +1,13 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import db from '@adonisjs/lucid/services/db'
+
+/**
+ * Count result interface for aggregate queries
+ */
+interface AggregateCountResult {
+  count?: string | number
+  total?: string | number
+}
 
 /**
  * DTO for GetProjectsListQuery input
@@ -51,19 +58,49 @@ export interface GetProjectsListResult {
  *
  * @extends {BaseQuery<GetProjectsListDTO, GetProjectsListResult>}
  */
+/**
+ * Project row interface for query results
+ */
+interface ProjectRow {
+  id: number
+  name: string
+  description: string | null
+  organization_id: number | null
+  start_date: Date | null
+  end_date: Date | null
+  visibility: string | null
+  budget: number | null
+  created_at: Date
+  updated_at: Date
+  status_name: string | null
+  status_id: number | null
+  organization_name: string | null
+  creator_name: string | null
+  creator_id: number | null
+  manager_name: string | null
+  manager_id: number | null
+}
+
+/**
+ * Count row interface
+ */
+interface CountRow {
+  project_id: number
+  total: string | number
+}
+
 export default class GetProjectsListQuery extends BaseQuery<
   GetProjectsListDTO,
   GetProjectsListResult
 > {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the query
    */
   async handle(dto: GetProjectsListDTO): Promise<GetProjectsListResult> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
 
     // Default values
     const page = dto.page || 1
@@ -147,18 +184,18 @@ export default class GetProjectsListQuery extends BaseQuery<
     let total = 0
     try {
       const countQuery = query.clone().clearSelect().clearOrder().count('DISTINCT p.id as total')
-      const countResult = await countQuery.first()
-      total = Number(countResult?.total || 0)
+      const countResult = (await countQuery.first()) as AggregateCountResult | null
+      total = Number(countResult?.total ?? 0)
     } catch (_countError) {
       // Fallback: count without DISTINCT
       try {
-        const fallbackCount = await query
+        const fallbackCount = (await query
           .clone()
           .clearSelect()
           .clearOrder()
           .count('* as total')
-          .first()
-        total = Number(fallbackCount?.total || 0)
+          .first()) as AggregateCountResult | null
+        total = Number(fallbackCount?.total ?? 0)
       } catch (_fallbackError) {
         // Silently fail - total will be 0
       }
@@ -171,7 +208,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     query = query.limit(limit).offset(offset)
 
     // Execute query
-    const projects = await query
+    const projects = (await query) as ProjectRow[]
 
     // Get task counts and member counts for each project
     const projectsWithStats = await this.enrichWithStats(projects)
@@ -195,27 +232,29 @@ export default class GetProjectsListQuery extends BaseQuery<
   /**
    * Enrich projects with task counts and member counts
    */
-  private async enrichWithStats(projects: unknown[]): Promise<unknown[]> {
+  private async enrichWithStats(
+    projects: ProjectRow[]
+  ): Promise<Array<ProjectRow & { task_count: number; member_count: number }>> {
     if (projects.length === 0) return []
 
     const projectIds = projects.map((p) => p.id)
 
     // Get task counts
-    const taskCounts = await db
+    const taskCounts = (await db
       .from('tasks')
       .select('project_id')
       .count('* as total')
       .whereIn('project_id', projectIds)
       .whereNull('deleted_at')
-      .groupBy('project_id')
+      .groupBy('project_id')) as CountRow[]
 
     // Get member counts
-    const memberCounts = await db
+    const memberCounts = (await db
       .from('project_members')
       .select('project_id')
       .count('* as total')
       .whereIn('project_id', projectIds)
-      .groupBy('project_id')
+      .groupBy('project_id')) as CountRow[]
 
     // Map counts to projects
     const taskCountMap = new Map(taskCounts.map((t) => [t.project_id, Number(t.total)]))
@@ -223,8 +262,8 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     return projects.map((project) => ({
       ...project,
-      task_count: taskCountMap.get(project.id) || 0,
-      member_count: memberCountMap.get(project.id) || 0,
+      task_count: taskCountMap.get(project.id) ?? 0,
+      member_count: memberCountMap.get(project.id) ?? 0,
     }))
   }
 
@@ -256,11 +295,11 @@ export default class GetProjectsListQuery extends BaseQuery<
       statsQuery = statsQuery.where('p.organization_id', filters.organization_id)
     }
 
-    const [totalResult, activeResult, completedResult] = await Promise.all([
+    const [totalResult, activeResult, completedResult] = (await Promise.all([
       statsQuery.clone().countDistinct('p.id as count').first(),
       statsQuery.clone().whereIn('p.status_id', [1, 2]).countDistinct('p.id as count').first(), // pending, in_progress
       statsQuery.clone().where('p.status_id', 3).countDistinct('p.id as count').first(), // completed
-    ])
+    ])) as [AggregateCountResult | null, AggregateCountResult | null, AggregateCountResult | null]
 
     return {
       total_projects: Number(totalResult?.count || 0),
@@ -273,8 +312,8 @@ export default class GetProjectsListQuery extends BaseQuery<
    * Get cache key for this query
    */
   protected getCacheKey(input: GetProjectsListDTO): string {
-    const user = this.ctx.auth.user!
-    return `projects:list:user:${user.id}:${JSON.stringify(input)}`
+    const userId = this.ctx.auth.user?.id ?? 0
+    return `projects:list:user:${userId}:${JSON.stringify(input)}`
   }
 
   /**

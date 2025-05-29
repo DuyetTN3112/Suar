@@ -1,10 +1,10 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { AddProjectMemberDTO } from '../dtos/index.js'
 import Project from '#models/project'
 import User from '#models/user'
 import ProjectRole from '#models/project_role'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command to add a member to a project
@@ -19,10 +19,6 @@ import db from '@adonisjs/lucid/services/db'
  * @extends {BaseCommand<AddProjectMemberDTO, void>}
  */
 export default class AddProjectMemberCommand extends BaseCommand<AddProjectMemberDTO> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the command
    *
@@ -104,10 +100,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Validate project_role_id exists in project_roles
    * (FK validation - project_members.project_role_id -> project_roles.id)
    */
-  private async validateProjectRoleId(roleId: number, trx: unknown): Promise<ProjectRole> {
-    const role = await ProjectRole.query({ client: trx as any })
-      .where('id', roleId)
-      .first()
+  private async validateProjectRoleId(
+    roleId: number,
+    trx: TransactionClientContract
+  ): Promise<ProjectRole> {
+    const role = await ProjectRole.query({ client: trx }).where('id', roleId).first()
 
     if (!role) {
       throw new Error(`Project role với ID ${roleId} không tồn tại`)
@@ -122,14 +119,14 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   private async validateSameOrganization(
     userId: number,
     organizationId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
     const result = await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('status', 'approved')
-      .useTransaction(trx as any)
+      .useTransaction(trx)
       .first()
 
     if (!result) {
@@ -143,13 +140,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   private async checkNotAlreadyMember(
     projectId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
     const existing = await db
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
-      .useTransaction(trx as any)
+      .useTransaction(trx)
       .first()
 
     if (existing) {
@@ -164,16 +161,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     projectId: number,
     userId: number,
     projectRoleId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    await db
-      .table('project_members')
-      .useTransaction(trx as any)
-      .insert({
-        project_id: projectId,
-        user_id: userId,
-        project_role_id: projectRoleId,
-        created_at: new Date(),
-      })
+    await db.table('project_members').useTransaction(trx).insert({
+      project_id: projectId,
+      user_id: userId,
+      project_role_id: projectRoleId,
+      created_at: new Date(),
+    })
   }
 }

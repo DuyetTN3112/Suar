@@ -1,10 +1,14 @@
 import Redis from '@adonisjs/redis/services/main'
-import SingleFlightService from '#services/single_flight_service'
+import * as SingleFlightService from '#services/single_flight_service'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 export default class CacheMiddleware {
-  async handle(ctx: HttpContext, next: NextFn, options: { ttl?: number; prefix?: string } = {}) {
+  async handle(
+    ctx: HttpContext,
+    next: NextFn,
+    options: { ttl?: number; prefix?: string } = {}
+  ): Promise<void> {
     const { request, response } = ctx
     const ttl = options.ttl || 3600 // Mặc định 1 giờ
     const prefix = options.prefix || 'cache'
@@ -12,7 +16,8 @@ export default class CacheMiddleware {
 
     // Bỏ qua cache cho các phương thức không phải GET
     if (request.method() !== 'GET') {
-      return next()
+      await next()
+      return
     }
 
     try {
@@ -28,7 +33,7 @@ export default class CacheMiddleware {
       // Tạo key duy nhất cho single flight pattern
       const singleFlightKey = `middleware:${cacheKey}`
 
-      return SingleFlightService.execute(singleFlightKey, async () => {
+      await SingleFlightService.execute(singleFlightKey, async () => {
         // Kiểm tra lại cache để đảm bảo không có request khác đã set cache trong khi chờ
         const recheckedData = await Redis.get(cacheKey)
         if (recheckedData) {
@@ -38,11 +43,11 @@ export default class CacheMiddleware {
         }
 
         // Lưu phương thức response.json gốc
-        const originalJson = response.json
+        const originalJson = response.json.bind(response)
         // Ghi đè phương thức json để có thể lưu cache
         response.json = function (body: unknown) {
           // Lưu kết quả vào cache
-          Redis.setex(cacheKey, ttl, JSON.stringify(body)).catch((err) => {
+          Redis.setex(cacheKey, ttl, JSON.stringify(body)).catch((err: unknown) => {
             // Only log actual errors in production
             if (process.env.NODE_ENV !== 'development') {
               console.error('Redis cache error:', err)
@@ -53,14 +58,14 @@ export default class CacheMiddleware {
         }
 
         // Tiếp tục xử lý request
-        return next()
+        await next()
       })
-    } catch (error) {
+    } catch (_error) {
       // Only log actual errors in production
       if (process.env.NODE_ENV !== 'development') {
-        console.error('Cache middleware error:', error)
+        console.error('Cache middleware error:', _error)
       }
-      return next()
+      await next()
     }
   }
 }

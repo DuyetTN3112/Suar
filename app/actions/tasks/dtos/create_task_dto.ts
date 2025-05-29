@@ -223,16 +223,16 @@ export default class CreateTaskDTO {
   public getAuditMessage(): string {
     let message = `Tạo task: ${this.title}`
 
-    if (this.isAssigned()) {
-      message += ` (giao cho user #${this.assigned_to})`
+    if (this.isAssigned() && this.assigned_to !== undefined) {
+      message += ` (giao cho user #${String(this.assigned_to)})`
     }
 
-    if (this.isSubtask()) {
-      message += ` (subtask của #${this.parent_task_id})`
+    if (this.isSubtask() && this.parent_task_id !== undefined) {
+      message += ` (subtask của #${String(this.parent_task_id)})`
     }
 
-    if (this.belongsToProject()) {
-      message += ` (thuộc dự án #${this.project_id})`
+    if (this.belongsToProject() && this.project_id !== undefined) {
+      message += ` (thuộc dự án #${String(this.project_id)})`
     }
 
     return message

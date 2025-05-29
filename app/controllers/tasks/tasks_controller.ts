@@ -105,7 +105,9 @@ export default class TasksController {
         },
       })
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách nhiệm vụ')
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       return ctx.inertia.render('tasks/index', {
         tasks: {
           data: [],
@@ -148,7 +150,8 @@ export default class TasksController {
 
       return inertia.render('tasks/create', { metadata })
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra')
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().toRoute('tasks.index')
       return
     }
@@ -190,7 +193,8 @@ export default class TasksController {
       response.redirect().toRoute('tasks.show', { id: task.id })
       return
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi tạo nhiệm vụ')
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().back()
       return
     }
@@ -213,7 +217,8 @@ export default class TasksController {
         auditLogs: result.auditLogs,
       })
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
+      const errorMessage = error instanceof Error ? error.message : 'Không tìm thấy nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().toRoute('tasks.index')
       return
     }
@@ -252,7 +257,8 @@ export default class TasksController {
         permissions: taskResult.permissions,
       })
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Không tìm thấy nhiệm vụ')
+      const errorMessage = error instanceof Error ? error.message : 'Không tìm thấy nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().toRoute('tasks.index')
       return
     }
@@ -299,7 +305,9 @@ export default class TasksController {
       response.redirect().toRoute('tasks.show', { id: task.id })
       return
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật nhiệm vụ')
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().back()
       return
     }
@@ -348,11 +356,12 @@ export default class TasksController {
       response.redirect().toRoute('tasks.index')
       return
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ')
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa nhiệm vụ'
+      ctx.session.flash('error', errorMessage)
       if (ctx.request.header('X-Inertia')) {
         ctx.response.status(500).json({
           success: false,
-          message: error.message,
+          message: errorMessage,
         })
         return
       }
@@ -384,9 +393,11 @@ export default class TasksController {
       })
       return
     } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ'
       ctx.response.status(500).json({
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ',
+        message: errorMessage,
       })
       return
     }
@@ -412,7 +423,9 @@ export default class TasksController {
       response.redirect().back()
       return
     } catch (error: unknown) {
-      ctx.session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật thời gian')
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật thời gian'
+      ctx.session.flash('error', errorMessage)
       ctx.response.redirect().back()
       return
     }
@@ -436,9 +449,11 @@ export default class TasksController {
       })
       return
     } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải lịch sử thay đổi'
       ctx.response.status(500).json({
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi tải lịch sử thay đổi',
+        message: errorMessage,
       })
       return
     }

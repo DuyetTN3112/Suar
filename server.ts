@@ -37,7 +37,11 @@ new Ignitor(APP_ROOT, { importer: IMPORTER })
   })
   .httpServer()
   .start()
-  .catch((error = Error) => {
+  .catch((error: unknown) => {
     process.exitCode = 1
-    void prettyPrintError(error)
+    if (error instanceof Error) {
+      void prettyPrintError(error)
+    } else {
+      console.error(error)
+    }
   })

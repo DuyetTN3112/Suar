@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
@@ -21,10 +20,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
  * @extends {BaseCommand<CreateProjectDTO, Project>}
  */
 export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, Project> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   async handle(dto: CreateProjectDTO): Promise<Project> {
     const user = this.getCurrentUser()
 
@@ -93,7 +88,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       await this.logAudit('create', 'project', project.id, null, project.toJSON())
 
       // 9. Send notification (từ procedure - outside transaction)
-      this.sendProjectCreatedNotification(project, user.id).catch((err) => {
+      this.sendProjectCreatedNotification(project, user.id).catch((err: unknown) => {
         console.error('[CreateProjectCommand] Failed to send notification:', err)
       })
 
@@ -118,11 +113,11 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    * Send project created notification
    * Logic từ procedure: CALL create_notification(...)
    */
-  private async sendProjectCreatedNotification(project: Project, userId: number): Promise<void> {
+  private sendProjectCreatedNotification(project: Project, userId: number): void {
     // Note: Cần inject CreateNotification action nếu muốn dùng
     // Tạm thời log để track
     console.log(
-      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`
+      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${String(userId)}`
     )
   }
 

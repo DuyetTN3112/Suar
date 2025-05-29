@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
 import type { RegisterUserDTO } from '../dtos/register_user_dto.js'
 import User from '#models/user'
@@ -17,6 +18,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
  * const user = await registerUserCommand.handle(dto)
  * ```
  */
+@inject()
 export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, User> {
   /**
    * Main handler - creates user account

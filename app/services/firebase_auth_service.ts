@@ -67,9 +67,10 @@ export default class FirebaseAuthService {
       }
     } catch (error: unknown) {
       console.error('Firebase Auth Error:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi gửi mã OTP'
       return {
         status: 'error',
-        message: error.message || 'Có lỗi xảy ra khi gửi mã OTP',
+        message: errorMessage,
       }
     }
   }
@@ -113,9 +114,10 @@ export default class FirebaseAuthService {
       // Xóa verification ID khỏi Redis cache nếu mã OTP không hợp lệ
       await this.removeVerificationId(userId)
 
+      const errorMessage = error instanceof Error ? error.message : 'Mã OTP không hợp lệ'
       return {
         status: 'error',
-        message: error.message || 'Mã OTP không hợp lệ',
+        message: errorMessage,
       }
     }
   }

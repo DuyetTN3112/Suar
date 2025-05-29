@@ -22,19 +22,20 @@ export default class GuestMiddleware {
     ctx: HttpContext,
     next: NextFn,
     options: { guards?: (keyof Authenticators)[] } = {}
-  ) {
+  ): Promise<void> {
     // Removed all debug logs in this section
     // Kiểm tra người dùng đã đăng nhập chưa, nếu rồi thì chuyển hướng
     for (const guard of options.guards || [ctx.auth.defaultGuard]) {
       if (await ctx.auth.use(guard).check()) {
         if (ctx.request.header('x-inertia')) {
-          return ctx.inertia.location(this.redirectTo)
+          ctx.inertia.location(this.redirectTo)
+          return
         }
         ctx.response.redirect(this.redirectTo)
         return
       }
     }
 
-    return next()
+    await next()
   }
 }

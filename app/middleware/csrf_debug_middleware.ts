@@ -4,7 +4,9 @@
 
 /**
  * Middleware để debug CSRF token và thông tin session
+ * Currently disabled - kept for future debugging purposes
  */
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 export default class CsrfDebugMiddleware {
   // private isDevMode = env.get('NODE_ENV') === 'development'
   // async handle(ctx: HttpContext, next: NextFn) {

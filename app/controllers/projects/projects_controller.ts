@@ -51,8 +51,10 @@ export default class ProjectsController {
         stats: result.stats,
         showOrganizationRequiredModal,
       })
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi tải danh sách dự án')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải danh sách dự án'
+      session.flash('error', errorMessage)
       return inertia.render('projects/index', {
         projects: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
@@ -65,7 +67,10 @@ export default class ProjectsController {
    * Hiển thị form tạo dự án mới
    */
   async create({ inertia, auth }: HttpContext) {
-    const user = auth.user!
+    const user = auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
     // Lấy danh sách tổ chức mà người dùng là superadmin
     // Sử dụng cách tiếp cận khác để tránh lỗi với db.raw()
     const organizations = await db
@@ -100,8 +105,9 @@ export default class ProjectsController {
       session.flash('success', 'Dự án đã được tạo thành công')
       response.redirect().toRoute('projects.show', { id: project.id })
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi tạo dự án')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo dự án'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
@@ -118,8 +124,9 @@ export default class ProjectsController {
       const result = await query.handle(params.id)
 
       return inertia.render('projects/show', result)
-    } catch (error) {
-      session.flash('error', error.message || 'Không thể tìm thấy dự án')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Không thể tìm thấy dự án'
+      session.flash('error', errorMessage)
       response.redirect().toRoute('projects.index')
       return
     }
@@ -143,8 +150,9 @@ export default class ProjectsController {
       session.flash('success', 'Dự án đã được xóa thành công')
       response.redirect().toRoute('projects.index')
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi xóa dự án')
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa dự án'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
@@ -170,8 +178,10 @@ export default class ProjectsController {
       session.flash('success', 'Đã thêm thành viên vào dự án thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi thêm thành viên')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi thêm thành viên'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
@@ -180,37 +190,39 @@ export default class ProjectsController {
   /**
    * Helper: Build GetProjectsListDTO from request
    */
-  private buildListDTO(request: unknown): GetProjectsListDTO {
+  private buildListDTO(request: HttpContext['request']): GetProjectsListDTO {
     return {
-      page: request.input('page', 1),
-      limit: request.input('limit', 20),
-      organization_id: request.input('organization_id'),
-      status_id: request.input('status_id'),
-      creator_id: request.input('creator_id'),
-      manager_id: request.input('manager_id'),
-      visibility: request.input('visibility'),
-      search: request.input('search'),
-      sort_by: request.input('sort_by', 'created_at'),
-      sort_order: request.input('sort_order', 'desc'),
+      page: Number(request.input('page', 1)),
+      limit: Number(request.input('limit', 20)),
+      organization_id: request.input('organization_id') as number | undefined,
+      status_id: request.input('status_id') as number | undefined,
+      creator_id: request.input('creator_id') as number | undefined,
+      manager_id: request.input('manager_id') as number | undefined,
+      visibility: request.input('visibility') as string | undefined,
+      search: request.input('search') as string | undefined,
+      sort_by: (request.input('sort_by', 'created_at') ?? 'created_at') as string,
+      sort_order: (request.input('sort_order', 'desc') ?? 'desc') as 'asc' | 'desc',
     }
   }
 
   /**
    * Helper: Build CreateProjectDTO from request
    */
-  private buildCreateDTO(request: unknown): CreateProjectDTO {
+  private buildCreateDTO(request: HttpContext['request']): CreateProjectDTO {
     return new CreateProjectDTO({
-      name: request.input('name'),
-      description: request.input('description'),
-      organization_id: request.input('organization_id'),
-      status_id: request.input('status_id'),
+      name: request.input('name') as string,
+      description: request.input('description') as string | undefined,
+      organization_id: Number(request.input('organization_id')),
+      status_id: request.input('status_id') as number | undefined,
       start_date: request.input('start_date')
-        ? DateTime.fromISO(request.input('start_date'))
+        ? DateTime.fromISO(String(request.input('start_date')))
         : null,
-      end_date: request.input('end_date') ? DateTime.fromISO(request.input('end_date')) : null,
-      manager_id: request.input('manager_id'),
-      visibility: request.input('visibility'),
-      budget: request.input('budget'),
+      end_date: request.input('end_date')
+        ? DateTime.fromISO(String(request.input('end_date')))
+        : null,
+      manager_id: request.input('manager_id') as number | undefined,
+      visibility: request.input('visibility') as string | undefined,
+      budget: request.input('budget') as number | undefined,
     })
   }
 }
