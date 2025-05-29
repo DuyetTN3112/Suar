@@ -1,35 +1,36 @@
+import ProjectRole from '#models/project_role'
+
 /**
  * DTO for adding a member to a project
  *
- * @implements {AddProjectMemberDTOInterface}
+ * Uses project_role_id (FK -> project_roles.id) as per database schema
  */
 export interface AddProjectMemberDTOInterface {
   project_id: number
   user_id: number
-  role?: string
+  project_role_id: number
 }
 
 export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   public readonly project_id: number
   public readonly user_id: number
-  public readonly role: string
+  public readonly project_role_id: number
 
-  // Valid member roles
-  private static readonly VALID_ROLES = ['owner', 'lead', 'member', 'viewer']
-  private static readonly DEFAULT_ROLE = 'member'
+  // Default role: project_member (id = 3)
+  private static readonly DEFAULT_ROLE_ID = 3
 
-  constructor(data: AddProjectMemberDTOInterface) {
+  constructor(data: Partial<AddProjectMemberDTOInterface> & { project_id: number; user_id: number }) {
     this.validateInput(data)
 
     this.project_id = data.project_id
     this.user_id = data.user_id
-    this.role = data.role || AddProjectMemberDTO.DEFAULT_ROLE
+    this.project_role_id = data.project_role_id || AddProjectMemberDTO.DEFAULT_ROLE_ID
   }
 
   /**
    * Validate input data
    */
-  private validateInput(data: AddProjectMemberDTOInterface): void {
+  private validateInput(data: Partial<AddProjectMemberDTOInterface>): void {
     // Project ID validation
     if (!data.project_id || data.project_id <= 0) {
       throw new Error('ID dự án không hợp lệ')
@@ -40,47 +41,32 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
       throw new Error('ID người dùng không hợp lệ')
     }
 
-    // Role validation (if provided)
-    if (data.role && !AddProjectMemberDTO.VALID_ROLES.includes(data.role)) {
-      throw new Error(
-        `Vai trò không hợp lệ. Các vai trò hợp lệ: ${AddProjectMemberDTO.VALID_ROLES.join(', ')}`
-      )
+    // Role ID validation (if provided)
+    if (data.project_role_id !== undefined && data.project_role_id <= 0) {
+      throw new Error('ID vai trò dự án không hợp lệ')
     }
   }
 
   /**
-   * Check if the role is 'owner'
+   * Check if the role is owner (role_id = 1)
    */
   public isOwnerRole(): boolean {
-    return this.role === 'owner'
+    return this.project_role_id === 1
   }
 
   /**
-   * Check if the role is 'lead'
+   * Check if the role is manager (role_id = 2)
    */
-  public isLeadRole(): boolean {
-    return this.role === 'lead'
+  public isManagerRole(): boolean {
+    return this.project_role_id === 2
   }
 
   /**
-   * Check if the role is 'viewer' (read-only)
+   * Get role display name from database
    */
-  public isViewerRole(): boolean {
-    return this.role === 'viewer'
-  }
-
-  /**
-   * Get role display name in Vietnamese
-   */
-  public getRoleDisplayName(): string {
-    const roleNames: Record<string, string> = {
-      owner: 'Chủ sở hữu',
-      lead: 'Trưởng nhóm',
-      member: 'Thành viên',
-      viewer: 'Người xem',
-    }
-
-    return roleNames[this.role] || this.role
+  public async getRoleDisplayName(): Promise<string> {
+    const role = await ProjectRole.find(this.project_role_id)
+    return role?.name || `Role ID ${this.project_role_id}`
   }
 
   /**
@@ -90,15 +76,16 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
     return {
       project_id: this.project_id,
       user_id: this.user_id,
-      role: this.role,
+      project_role_id: this.project_role_id,
     }
   }
 
   /**
    * Get audit log message
    */
-  public getAuditMessage(userName?: string): string {
+  public getAuditMessage(userName?: string, roleName?: string): string {
     const userInfo = userName || `User ID ${this.user_id}`
-    return `Thêm ${userInfo} vào dự án với vai trò ${this.getRoleDisplayName()}`
+    const roleInfo = roleName || `Role ID ${this.project_role_id}`
+    return `Thêm ${userInfo} vào dự án với vai trò ${roleInfo}`
   }
 }

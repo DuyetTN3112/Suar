@@ -2,6 +2,8 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import SkillReview from './skill_review.js'
+import AnomalyFlag from './anomaly_flag.js'
+import User from './user.js'
 
 /**
  * FlaggedReview Model
@@ -18,10 +20,13 @@ export default class FlaggedReview extends BaseModel {
   declare skill_review_id: number
 
   @column()
-  declare flag_id: number
+  declare anomaly_flag_id: number
+
+  @column.dateTime({ autoCreate: true })
+  declare detected_at: DateTime
 
   @column()
-  declare detected_at: DateTime
+  declare status: 'pending' | 'reviewed' | 'dismissed' | 'confirmed'
 
   @column()
   declare reviewed_by: number | null
@@ -30,15 +35,22 @@ export default class FlaggedReview extends BaseModel {
   declare reviewed_at: DateTime | null
 
   @column()
-  declare resolution: 'pending' | 'confirmed_valid' | 'confirmed_anomaly' | 'dismissed' | null
-
-  @column()
   declare notes: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
+
   // Relationships
   @belongsTo(() => SkillReview, { foreignKey: 'skill_review_id' })
   declare skill_review: BelongsTo<typeof SkillReview>
+
+  @belongsTo(() => AnomalyFlag, { foreignKey: 'anomaly_flag_id' })
+  declare anomaly_flag: BelongsTo<typeof AnomalyFlag>
+
+  @belongsTo(() => User, { foreignKey: 'reviewed_by' })
+  declare reviewer: BelongsTo<typeof User>
 }
+

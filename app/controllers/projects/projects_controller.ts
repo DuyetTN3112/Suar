@@ -155,7 +155,7 @@ export default class ProjectsController {
       const dto = new AddProjectMemberDTO({
         project_id: request.input('project_id'),
         user_id: request.input('user_id'),
-        role: request.input('role'),
+        project_role_id: request.input('project_role_id'),
       })
 
       // Execute command

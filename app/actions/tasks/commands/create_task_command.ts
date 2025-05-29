@@ -26,22 +26,64 @@ export default class CreateTaskCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) {}
+  ) { }
 
   /**
    * Execute command để tạo task
+   *
+   * Di chuyển logic từ database procedure create_task:
+   * 1. Check creator active
+   * 2. Check org exists
+   * 3. Check permission (admin/owner OR project_manager)
+   * 4. Validate project thuộc org
+   * 5. Validate status/label/priority exists
+   * 6. Validate due_date not past
    */
   async execute(dto: CreateTaskDTO): Promise<Task> {
     const user = this.ctx.auth.user!
-
-    // Validate user thuộc organization
-    await this.validateUserInOrganization(user.id, dto.organization_id)
-
-    // Start transaction
     const trx = await db.transaction()
 
     try {
-      // Create task
+      // 1. Check creator active (từ procedure)
+      await this.validateCreatorActive(user.id, trx)
+
+      // 2. Check org exists (từ procedure)
+      await this.validateOrgExists(dto.organization_id, trx)
+
+      // 3. Check permission: admin/owner OR project_manager (từ procedure)
+      await this.validateCreateTaskPermission(user.id, dto.organization_id, dto.project_id, trx)
+
+      // 4. Validate project thuộc org (từ trigger)
+      if (dto.project_id) {
+        await this.validateProjectOrganization(dto.project_id, dto.organization_id, trx)
+      }
+
+      // 5. Validate status_id exists (từ procedure)
+      if (dto.status_id) {
+        await this.validateStatusExists(dto.status_id, trx)
+      }
+
+      // 6. Validate label_id exists (từ procedure)
+      if (dto.label_id) {
+        await this.validateLabelExists(dto.label_id, trx)
+      }
+
+      // 7. Validate priority_id exists (từ procedure)
+      if (dto.priority_id) {
+        await this.validatePriorityExists(dto.priority_id, trx)
+      }
+
+      // 8. Validate due_date not past (từ procedure)
+      if (dto.due_date && new Date(dto.due_date) < new Date()) {
+        throw new Error('Due date không thể là thời điểm trong quá khứ')
+      }
+
+      // 9. Validate assignee (từ trigger)
+      if (dto.assigned_to) {
+        await this.validateAssignee(dto.assigned_to, dto.organization_id, trx)
+      }
+
+      // 10. Create task
       const newTask = await Task.create(
         {
           title: dto.title,
@@ -61,7 +103,7 @@ export default class CreateTaskCommand {
         { client: trx }
       )
 
-      // Create audit log
+      // 5. Create audit log
       await AuditLog.create(
         {
           user_id: user.id,
@@ -77,7 +119,7 @@ export default class CreateTaskCommand {
 
       await trx.commit()
 
-      // Send notification if task is assigned (outside transaction)
+      // 6. Send notification if task is assigned (outside transaction)
       if (dto.isAssigned()) {
         await this.sendAssignmentNotification(newTask, user, dto.assigned_to!)
       }
@@ -103,18 +145,88 @@ export default class CreateTaskCommand {
   }
 
   /**
-   * Validate user thuộc organization
+   * Validate creator thuộc organization
+   * Logic từ check_creator_organization trigger:
+   *   IF NOT EXISTS (SELECT 1 FROM organization_users WHERE user_id = NEW.creator_id AND organization_id = NEW.organization_id)
+   *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Người tạo task phải thuộc tổ chức của task'
    */
-  private async validateUserInOrganization(userId: number, organizationId: number): Promise<void> {
-    const organizationUser = await db
+  private async validateCreatorInOrganization(
+    userId: number,
+    organizationId: number,
+    trx: any
+  ): Promise<void> {
+    const membership = await db
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
+      .useTransaction(trx)
       .first()
 
-    if (!organizationUser) {
-      throw new Error('Bạn không thuộc tổ chức này và không thể tạo task')
+    if (!membership) {
+      throw new Error('Người tạo task phải thuộc tổ chức của task')
     }
+  }
+
+  /**
+   * Validate project và task cùng organization
+   * Logic từ before_task_project_insert trigger:
+   *   IF (SELECT organization_id FROM projects WHERE id = NEW.project_id) != NEW.organization_id
+   *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Project and task must belong to the same organization'
+   */
+  private async validateProjectOrganization(
+    projectId: number,
+    organizationId: number,
+    trx: any
+  ): Promise<void> {
+    const project = await db
+      .from('projects')
+      .where('id', projectId)
+      .whereNull('deleted_at')
+      .useTransaction(trx)
+      .first()
+
+    if (!project) {
+      throw new Error('Project không tồn tại')
+    }
+
+    if (project.organization_id !== organizationId) {
+      throw new Error('Project and task must belong to the same organization')
+    }
+  }
+
+  /**
+   * Validate assignee là org member hoặc freelancer
+   * Logic từ check_assigned_to_insert trigger:
+   *   1. Check nếu là org member (status = 'approved')
+   *   2. Nếu không, check nếu là freelancer (user_details.is_freelancer = TRUE)
+   */
+  private async validateAssignee(
+    assigneeId: number,
+    organizationId: number,
+    trx: any
+  ): Promise<void> {
+    // Check if assignee is approved org member
+    const isMember = await db
+      .from('organization_users')
+      .where('organization_id', organizationId)
+      .where('user_id', assigneeId)
+      .where('status', 'approved')
+      .useTransaction(trx)
+      .first()
+
+    if (isMember) return // OK - is org member
+
+    // Check if assignee is freelancer
+    const isFreelancer = await db
+      .from('user_details')
+      .where('user_id', assigneeId)
+      .where('is_freelancer', true)
+      .useTransaction(trx)
+      .first()
+
+    if (isFreelancer) return // OK - is freelancer
+
+    throw new Error('Người được gán phải thuộc tổ chức hoặc là freelancer')
   }
 
   /**
@@ -152,4 +264,124 @@ export default class CreateTaskCommand {
       logger.error('[CreateTaskCommand] Failed to send assignment notification', { error })
     }
   }
+
+  /**
+   * Validate creator active
+   * Logic từ procedure: Check user deleted_at IS NULL AND status = 'active'
+   */
+  private async validateCreatorActive(userId: number, trx: any): Promise<void> {
+    const user = await db
+      .from('users')
+      .join('user_status', 'users.status_id', 'user_status.id')
+      .where('users.id', userId)
+      .whereNull('users.deleted_at')
+      .where('user_status.name', 'active')
+      .useTransaction(trx)
+      .first()
+
+    if (!user) {
+      throw new Error('Creator không tồn tại hoặc không active')
+    }
+  }
+
+  /**
+   * Validate org exists
+   * Logic từ procedure: Check org deleted_at IS NULL
+   */
+  private async validateOrgExists(orgId: number, trx: any): Promise<void> {
+    const org = await db
+      .from('organizations')
+      .where('id', orgId)
+      .whereNull('deleted_at')
+      .useTransaction(trx)
+      .first()
+
+    if (!org) {
+      throw new Error('Organization không tồn tại')
+    }
+  }
+
+  /**
+   * Validate permission to create task
+   * Logic từ procedure: is_org_admin_or_owner OR is_project_manager_or_owner
+   */
+  private async validateCreateTaskPermission(
+    userId: number,
+    orgId: number,
+    projectId: number | null | undefined,
+    trx: any
+  ): Promise<void> {
+    // Check if org admin/owner
+    const isOrgAdmin = await db
+      .from('organization_users')
+      .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
+      .where('organization_users.user_id', userId)
+      .where('organization_users.organization_id', orgId)
+      .where('organization_users.status', 'approved')
+      .whereIn('organization_roles.name', ['org_owner', 'org_admin'])
+      .useTransaction(trx)
+      .first()
+
+    if (isOrgAdmin) return
+
+    // Check if project manager/owner
+    if (projectId) {
+      const isProjectManager = await db
+        .from('project_members')
+        .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
+        .where('project_members.user_id', userId)
+        .where('project_members.project_id', projectId)
+        .whereIn('project_roles.name', ['project_owner', 'project_manager'])
+        .useTransaction(trx)
+        .first()
+
+      if (isProjectManager) return
+    }
+
+    throw new Error(
+      'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
+    )
+  }
+
+  /**
+   * Validate status exists
+   */
+  private async validateStatusExists(statusId: number, trx: any): Promise<void> {
+    const status = await db
+      .from('task_status')
+      .where('id', statusId)
+      .useTransaction(trx)
+      .first()
+
+    if (!status) {
+      throw new Error('Status ID không hợp lệ')
+    }
+  }
+
+  /**
+   * Validate label exists
+   */
+  private async validateLabelExists(labelId: number, trx: any): Promise<void> {
+    const label = await db.from('task_labels').where('id', labelId).useTransaction(trx).first()
+
+    if (!label) {
+      throw new Error('Label ID không hợp lệ')
+    }
+  }
+
+  /**
+   * Validate priority exists
+   */
+  private async validatePriorityExists(priorityId: number, trx: any): Promise<void> {
+    const priority = await db
+      .from('task_priorities')
+      .where('id', priorityId)
+      .useTransaction(trx)
+      .first()
+
+    if (!priority) {
+      throw new Error('Priority ID không hợp lệ')
+    }
+  }
 }
+

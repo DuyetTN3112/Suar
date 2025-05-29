@@ -36,9 +36,6 @@ export default class AuditLog extends BaseModel {
   @column()
   declare user_agent: string | null
 
-  @column()
-  declare metadata: string | null
-
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

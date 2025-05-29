@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
+import OrganizationRole from '#models/organization_role'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 
@@ -52,10 +53,13 @@ export default class AddMemberCommand {
       // 2. Check permissions (Owner or Admin)
       await this.checkPermissions(dto.organizationId, currentUser.id, trx)
 
-      // 3. Check for duplicate membership
+      // 3. Validate role_id exists (FK validation)
+      await this.validateRoleId(dto.roleId, trx)
+
+      // 4. Check for duplicate membership
       await this.checkDuplicateMembership(dto.organizationId, dto.userId, trx)
 
-      // 4. Add member to organization
+      // 5. Add member to organization
       await db.table('organization_users').useTransaction(trx).insert({
         organization_id: dto.organizationId,
         user_id: dto.userId,
@@ -64,19 +68,19 @@ export default class AddMemberCommand {
         updated_at: new Date(),
       })
 
-      // 5. Create audit log
+      // 6. Create audit log
       await AuditLog.create(
         {
           user_id: currentUser.id,
           action: 'add_member',
           entity_type: 'organization',
           entity_id: dto.organizationId,
-          new_values: dto.toObject(),
-          metadata: JSON.stringify({
+          new_values: {
+            ...dto.toObject(),
             added_user_id: dto.userId,
             role: dto.getRoleName(),
             role_id: dto.roleId,
-          }),
+          },
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },
@@ -85,7 +89,7 @@ export default class AddMemberCommand {
 
       await trx.commit()
 
-      // 6. Send notification (outside transaction)
+      // 7. Send notification (outside transaction)
       await this.sendMemberAddedNotification(dto, currentUser.id)
     } catch (error) {
       await trx.rollback()
@@ -107,7 +111,7 @@ export default class AddMemberCommand {
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .whereIn('role_id', [1, 2]) // Owner or Admin
-      .useTransaction(trx)
+      .useTransaction(trx as any)
       .first()
 
     if (!membership) {
@@ -127,11 +131,25 @@ export default class AddMemberCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .useTransaction(trx)
+      .useTransaction(trx as any)
       .first()
 
     if (existingMembership) {
       throw new Error('User is already a member of this organization')
+    }
+  }
+
+  /**
+   * Helper: Validate role_id exists in organization_roles
+   * (FK validation - organization_users.role_id -> organization_roles.id)
+   */
+  private async validateRoleId(roleId: number, trx: unknown): Promise<void> {
+    const role = await OrganizationRole.query({ client: trx as any })
+      .where('id', roleId)
+      .first()
+
+    if (!role) {
+      throw new Error(`Organization role with ID ${roleId} does not exist`)
     }
   }
 

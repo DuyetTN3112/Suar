@@ -12,7 +12,10 @@ import CacheService from '#services/cache_service'
  * Reviewee confirms or disputes the review results.
  * Updates reviewer credibility scores based on confirmation.
  */
-export default class ConfirmReviewCommand extends BaseCommand<ConfirmReviewDTO, ReviewConfirmation> {
+export default class ConfirmReviewCommand extends BaseCommand<
+  ConfirmReviewDTO,
+  ReviewConfirmation
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
@@ -81,17 +84,11 @@ export default class ConfirmReviewCommand extends BaseCommand<ConfirmReviewDTO, 
         if (dto.action === 'confirmed') {
           credibility.accurate_reviews += 1
           // Increase credibility (max 100)
-          credibility.credibility_score = Math.min(
-            100,
-            credibility.credibility_score + 2
-          )
+          credibility.credibility_score = Math.min(100, credibility.credibility_score + 2)
         } else {
           credibility.disputed_reviews += 1
           // Decrease credibility (min 0)
-          credibility.credibility_score = Math.max(
-            0,
-            credibility.credibility_score - 5
-          )
+          credibility.credibility_score = Math.max(0, credibility.credibility_score - 5)
         }
 
         credibility.last_calculated_at = new Date() as any

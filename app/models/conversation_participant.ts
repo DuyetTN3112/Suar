@@ -1,4 +1,3 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
@@ -16,9 +15,6 @@ export default class ConversationParticipant extends BaseModel {
   @column()
   declare user_id: number
 
-  @column.dateTime({ autoCreate: true })
-  declare created_at: DateTime
-
   @belongsTo(() => Conversation, {
     foreignKey: 'conversation_id',
   })
@@ -29,3 +25,4 @@ export default class ConversationParticipant extends BaseModel {
   })
   declare user: BelongsTo<typeof User>
 }
+
