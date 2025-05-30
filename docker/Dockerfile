@@ -1,44 +1,74 @@
 # syntax=docker/dockerfile:1
 
-# 1. BASE - Môi trường Node.js
-FROM node:20-alpine AS base
-ENV NODE_ENV=production
-# Cài đặt dumb-init để quản lý process
-RUN apk add --no-cache dumb-init
+# ==============================================================================
+# Dockerfile ULTRA OPTIMIZED cho Suar
+# Mục tiêu: Image size < 500MB (production chỉ cần ~200-400MB)
+# ==============================================================================
 
-# 2. DEPS - Cài đặt thư viện
+# 1. BASE - Node 22 Alpine (siêu nhẹ ~50MB)
+FROM node:22-alpine AS base
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# 2. DEPS - Chỉ cài production dependencies
 FROM base AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
-# Cài dependencies (dùng cache để nhanh hơn)
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include=dev
+COPY package.json pnpm-lock.yaml ./
 
-# 3. BUILDER - Build Code & React
+# Cache mount giúp rebuild nhanh hơn
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile --prod=false
+
+# 3. BUILDER - Build app
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-# Build Backend (Adonis)
-RUN node ace build --ignore-ts-errors
-# Build Frontend (React/Vite)
-RUN npx vite build
-# Xóa thư viện thừa, chỉ giữ lại cái cần chạy
-RUN npm ci --omit=dev && npm cache clean --force
 
-# 4. RUNNER - Image cuối cùng để chạy
-FROM base AS runner
+# Build và prune ngay trong cùng layer để giảm size
+RUN pnpm run build && \
+    pnpm prune --prod && \
+    rm -rf .git .github docs tests *.md
+
+# 4. RUNNER - Production image cực nhẹ
+FROM node:22-alpine AS runner
+# Chỉ cài dumb-init, không cần wget (healthcheck dùng node)
+RUN apk add --no-cache dumb-init && \
+    addgroup -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs nodejs
+
 WORKDIR /app
-COPY --from=base /usr/bin/dumb-init /usr/bin/dumb-init
-COPY --from=builder --chown=node:node /app/build ./build
-COPY --from=builder --chown=node:node /app/node_modules ./node_modules
-COPY --from=builder --chown=node:node /app/package.json ./
-COPY --chown=node:node ./docker-entrypoint.sh /usr/local/bin/
 
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-USER node
+# Copy chỉ những thứ cần thiết
+COPY --from=builder --chown=nodejs:nodejs /app/build ./build
+COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+
+USER nodejs
 EXPOSE 3333
+
 ENV PORT=3333
 ENV HOST=0.0.0.0
+ENV NODE_ENV=production
 
-ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/docker-entrypoint.sh"]
+# Healthcheck dùng node thay vì wget (đã có sẵn)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD node -e "require('http').get('http://localhost:3333/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["node", "build/bin/server.js"]
+
+# ==============================================================================
+# DỰ KIẾN KÍCH THƯỚC:
+# - Base Alpine: ~50MB
+# - Node.js: ~80MB  
+# - node_modules (prod): ~200-300MB
+# - Build output: ~30-50MB
+# - TỔNG: ~400-500MB (có thể ít hơn nếu ít dependencies)
+#
+# SO SÁNH:
+# - node:20 (full): ~1GB
+# - node:20-slim: ~200MB
+# - node:22-alpine: ~130MB ✓
+# ==============================================================================

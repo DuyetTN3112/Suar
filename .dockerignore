@@ -1,0 +1,67 @@
+# ==============================================================================
+# .dockerignore - Loại trừ các file không cần thiết khi build Docker
+# ==============================================================================
+
+# Dependencies (sẽ được cài lại trong container)
+node_modules
+
+# Build outputs (sẽ được tạo mới trong container)
+build
+tmp
+dist
+
+# Logs và cache
+npm-debug.log
+*.log
+.npm
+.pnpm-store
+
+# Source control
+.git
+.gitignore
+.gitattributes
+
+# IDE và editors
+.vscode
+.idea
+.fleet
+*.swp
+*.swo
+
+# Environment files (secrets)
+.env
+.env.*
+!.env.example
+
+# Documentation (không cần trong production)
+*.md
+docs/
+CLAUDE.md
+AIGUIDES/
+
+# Docker files (tránh recursive)
+docker/Dockerfile
+docker/docker-compose.yml
+docker/.dockerignore
+
+# Tests
+tests/
+*.test.ts
+*.spec.ts
+
+# Development files
+.editorconfig
+eslint.config.js
+prettier.config.js
+biome.json
+
+# SQL dumps
+*.sql
+*.dump
+
+# Misc
+.DS_Store
+Thumbs.db
+*.pem
+*.key
+*.cert

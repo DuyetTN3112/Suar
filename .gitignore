@@ -3,8 +3,6 @@ node_modules
 build
 tmp
 
-# Loại trừ file hướng dẫn Copilot
-.github
 
 # Loại trừ tài liệu
 docs/
