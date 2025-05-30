@@ -14,19 +14,19 @@ export default class ReverseReview extends BaseModel {
   static override table = 'reverse_reviews'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare review_session_id: number
+  declare review_session_id: string
 
   @column()
-  declare reviewer_id: number
+  declare reviewer_id: string
 
   @column()
   declare target_type: 'peer' | 'manager' | 'project' | 'organization'
 
   @column()
-  declare target_id: number
+  declare target_id: string
 
   @column()
   declare rating: number // 1-5 stars

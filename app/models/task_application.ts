@@ -19,13 +19,13 @@ export default class TaskApplication extends BaseModel {
   static override table = 'task_applications'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_id: number
+  declare task_id: string
 
   @column()
-  declare applicant_id: number
+  declare applicant_id: string
 
   @column()
   declare application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
@@ -41,7 +41,11 @@ export default class TaskApplication extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
+    consume: (value: string | string[] | null) => {
+      if (!value) return null
+      if (Array.isArray(value)) return value
+      return JSON.parse(value) as string[]
+    },
   })
   declare portfolio_links: string[] | null
 
@@ -49,7 +53,7 @@ export default class TaskApplication extends BaseModel {
   declare applied_at: DateTime
 
   @column()
-  declare reviewed_by: number | null
+  declare reviewed_by: string | null
 
   @column.dateTime()
   declare reviewed_at: DateTime | null

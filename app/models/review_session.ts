@@ -1,30 +1,28 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import type { ReviewConfirmationEntry } from '#types/database'
 import TaskAssignment from './task_assignment.js'
 import User from './user.js'
 import SkillReview from './skill_review.js'
-import ReviewConfirmation from './review_confirmation.js'
 
 /**
- * ReviewSession Model
+ * ReviewSession Model (v3)
  *
  * Represents a 360° review session for a task assignment.
- * Each completed task can have one review session with:
- * - Manager review
- * - Peer reviews (min 2)
+ * confirmations: JSONB array replaces review_confirmations table.
  */
 export default class ReviewSession extends BaseModel {
   static override table = 'review_sessions'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_assignment_id: number
+  declare task_assignment_id: string
 
   @column()
-  declare reviewee_id: number
+  declare reviewee_id: string
 
   @column()
   declare status: 'pending' | 'in_progress' | 'completed' | 'disputed'
@@ -37,6 +35,48 @@ export default class ReviewSession extends BaseModel {
 
   @column()
   declare required_peer_reviews: number
+
+  // v3: JSONB column replaces review_confirmations table
+  @column({
+    prepare: (value: ReviewConfirmationEntry[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | ReviewConfirmationEntry[] | null) =>
+      typeof value === 'string'
+        ? (JSON.parse(value) as ReviewConfirmationEntry[])
+        : (value ?? null),
+  })
+  declare confirmations: ReviewConfirmationEntry[] | null
+
+  // v5: overall quality/performance dimensions for completed sessions
+  @column()
+  declare overall_quality_score: number | null
+
+  @column()
+  declare delivery_timeliness: string | null
+
+  @column()
+  declare requirement_adherence: number | null
+
+  @column()
+  declare communication_quality: number | null
+
+  @column()
+  declare code_quality_score: number | null
+
+  @column()
+  declare proactiveness_score: number | null
+
+  @column()
+  declare would_work_with_again: boolean | null
+
+  @column()
+  declare strengths_observed: string | null
+
+  @column()
+  declare areas_for_improvement: string | null
+
+  // v3.1: Deadline for the review session (auto-calculated on creation)
+  @column.dateTime()
+  declare deadline: DateTime | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
@@ -56,7 +96,4 @@ export default class ReviewSession extends BaseModel {
 
   @hasMany(() => SkillReview, { foreignKey: 'review_session_id' })
   declare skill_reviews: HasMany<typeof SkillReview>
-
-  @hasMany(() => ReviewConfirmation, { foreignKey: 'review_session_id' })
-  declare confirmations: HasMany<typeof ReviewConfirmation>
 }

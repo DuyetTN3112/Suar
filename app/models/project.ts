@@ -1,20 +1,20 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { CustomRoleDefinition } from '#types/database'
 import User from './user.js'
 import Organization from './organization.js'
 import Task from './task.js'
-import ProjectRole from './project_role.js'
 import ProjectMember from './project_member.js'
 
 export default class Project extends BaseModel {
   static override table = 'projects'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare creator_id: number
+  declare creator_id: string
 
   @column()
   declare name: string
@@ -23,7 +23,7 @@ export default class Project extends BaseModel {
   declare description: string | null
 
   @column()
-  declare organization_id: number
+  declare organization_id: string
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
@@ -40,17 +40,21 @@ export default class Project extends BaseModel {
   @column.dateTime()
   declare end_date: DateTime | null
 
+  /**
+   * v3.0: Inline status VARCHAR — replaces status_id UUID → project_status table
+   * CHECK: 'pending', 'in_progress', 'completed', 'cancelled'
+   */
   @column()
-  declare status_id: number | null
+  declare status: string
 
   @column()
   declare budget: number
 
   @column()
-  declare manager_id: number | null
+  declare manager_id: string | null
 
   @column()
-  declare owner_id: number | null
+  declare owner_id: string | null
 
   @column()
   declare visibility: 'public' | 'private' | 'team'
@@ -60,6 +64,28 @@ export default class Project extends BaseModel {
 
   @column()
   declare approval_required_for_members: boolean
+
+  /**
+   * v3.0: Tags JSONB (merged from project_tags)
+   */
+  @column({
+    prepare: (value: unknown[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | unknown[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as unknown[]) : value,
+  })
+  declare tags: unknown[] | null
+
+  /**
+   * v3.0: Custom roles JSONB (replaces project_roles table)
+   */
+  @column({
+    prepare: (value: CustomRoleDefinition[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | CustomRoleDefinition[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as CustomRoleDefinition[]) : value,
+  })
+  declare custom_roles: CustomRoleDefinition[] | null
+
+  // ===== Relationships =====
 
   @belongsTo(() => User, {
     foreignKey: 'creator_id',
@@ -86,11 +112,6 @@ export default class Project extends BaseModel {
   })
   declare tasks: HasMany<typeof Task>
 
-  @hasMany(() => ProjectRole, {
-    foreignKey: 'project_id',
-  })
-  declare roles: HasMany<typeof ProjectRole>
-
   @hasMany(() => ProjectMember, {
     foreignKey: 'project_id',
   })
@@ -98,7 +119,7 @@ export default class Project extends BaseModel {
 
   @manyToMany(() => User, {
     pivotTable: 'project_members',
-    pivotColumns: ['project_role_id'],
+    pivotColumns: ['project_role'],
     pivotTimestamps: {
       createdAt: 'created_at',
       updatedAt: false,

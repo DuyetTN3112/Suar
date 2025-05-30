@@ -8,10 +8,10 @@ export default class ProjectAttachment extends BaseModel {
   static override table = 'project_attachments'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare project_id: number
+  declare project_id: string
 
   @column()
   declare file_name: string
@@ -20,7 +20,7 @@ export default class ProjectAttachment extends BaseModel {
   declare file_path: string
 
   @column()
-  declare uploaded_by: number | null
+  declare uploaded_by: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

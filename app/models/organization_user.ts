@@ -1,9 +1,9 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import User from './user.js'
 import Organization from './organization.js'
-import OrganizationRole from './organization_role.js'
 
 // Class chứa thông tin quan hệ giữa User và Organization
 export default class OrganizationUser extends BaseModel {
@@ -11,19 +11,23 @@ export default class OrganizationUser extends BaseModel {
 
   // Composite Primary Key
   @column({ isPrimary: true })
-  declare organization_id: number
+  declare organization_id: string
 
   @column({ isPrimary: true })
-  declare user_id: number
+  declare user_id: string
+
+  /**
+   * v3.0: Inline org_role VARCHAR — replaces role_id UUID → organization_roles table
+   * CHECK: 'org_owner', 'org_admin', 'org_member'
+   */
+  @column()
+  declare org_role: string
 
   @column()
-  declare role_id: number
+  declare status: OrganizationUserStatus
 
   @column()
-  declare status: 'pending' | 'approved' | 'rejected'
-
-  @column()
-  declare invited_by: number | null
+  declare invited_by: string | null
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
@@ -46,33 +50,14 @@ export default class OrganizationUser extends BaseModel {
   })
   declare inviter: BelongsTo<typeof User>
 
-  @belongsTo(() => OrganizationRole, {
-    foreignKey: 'role_id',
-  })
-  declare organization_role: BelongsTo<typeof OrganizationRole>
+  // ===== Instance Helpers =====
 
-  // Helper methods
   isApproved(): boolean {
-    return this.status === 'approved'
+    return this.status === OrganizationUserStatus.APPROVED
   }
 
   isPending(): boolean {
-    return this.status === 'pending'
-  }
-
-  // Static helper methods for composite key queries
-  static async findMembership(organizationId: number, userId: number) {
-    return await this.query()
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()
-  }
-
-  static async findMembershipOrFail(organizationId: number, userId: number) {
-    return await this.query()
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .firstOrFail()
+    return this.status === OrganizationUserStatus.PENDING
   }
 }
 

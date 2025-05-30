@@ -3,19 +3,22 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 import Task from './task.js'
-import TaskStatus from './task_status.js'
-import TaskLabel from './task_label.js'
-import TaskPriority from './task_priority.js'
 
+/**
+ * TaskVersion Model (v3)
+ *
+ * Snapshot of task state at a point in time.
+ * status/label/priority/difficulty: inline strings (no more FKs to lookup tables)
+ */
 export default class TaskVersion extends BaseModel {
   static override table = 'task_versions'
   static override primaryKey = 'id'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare task_id: number
+  declare task_id: string
 
   @column()
   declare title: string
@@ -23,20 +26,25 @@ export default class TaskVersion extends BaseModel {
   @column()
   declare description: string | null
 
+  // v3: inline strings replace FK IDs
   @column()
-  declare status_id: number
+  declare status: string
 
   @column()
-  declare label_id: number
+  declare label: string
 
   @column()
-  declare priority_id: number
+  declare priority: string
+
+  // v3: new column — inline difficulty string
+  @column()
+  declare difficulty: string | null
 
   @column()
-  declare assigned_to: number | null
+  declare assigned_to: string | null
 
   @column()
-  declare changed_by: number
+  declare changed_by: string
 
   @column.dateTime()
   declare changed_at: DateTime
@@ -45,21 +53,6 @@ export default class TaskVersion extends BaseModel {
     foreignKey: 'task_id',
   })
   declare task: BelongsTo<typeof Task>
-
-  @belongsTo(() => TaskStatus, {
-    foreignKey: 'status_id',
-  })
-  declare status: BelongsTo<typeof TaskStatus>
-
-  @belongsTo(() => TaskLabel, {
-    foreignKey: 'label_id',
-  })
-  declare label: BelongsTo<typeof TaskLabel>
-
-  @belongsTo(() => TaskPriority, {
-    foreignKey: 'priority_id',
-  })
-  declare priority: BelongsTo<typeof TaskPriority>
 
   @belongsTo(() => User, {
     foreignKey: 'assigned_to',
