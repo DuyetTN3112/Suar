@@ -149,7 +149,8 @@ process.on('SIGUSR2', () => {
 // @ts-expect-error - import.meta.hot is provided by Vite in dev mode
 if (import.meta.hot) {
   // @ts-expect-error - import.meta.hot.dispose is provided by Vite
-  import.meta.hot.dispose(() => {
+  const hmr = import.meta.hot as { dispose: (cb: () => void) => void }
+  hmr.dispose(() => {
     void (async () => {
       console.log('🔥 HMR: Disposing kernel module...')
       try {

@@ -4,186 +4,218 @@ interface LogContext {
   [key: string]: unknown
 }
 
-export class AuthLogger {
-  private static formatContext(context: LogContext): string {
-    return Object.entries(context)
-      .map(([key, value]) => {
-        if (typeof value === 'object' && value !== null) {
-          return `${key}=${JSON.stringify(value, null, 2)}`
-        }
-        return `${key}=${value}`
-      })
-      .join(', ')
+interface SocialUser {
+  id: string | number
+  email: string
+  name?: string
+  nickName?: string
+  avatarUrl?: string
+  token?: {
+    refreshToken?: string
+  }
+}
+
+interface ErrorWithCode {
+  code?: string | number
+  stack?: string
+}
+
+const formatContext = (context: LogContext): string => {
+  return Object.entries(context)
+    .map(([key, value]) => {
+      if (typeof value === 'object' && value !== null) {
+        return `${key}=${JSON.stringify(value, null, 2)}`
+      }
+      return `${key}=${String(value)}`
+    })
+    .join(', ')
+}
+
+/**
+ * Log OAuth redirect
+ */
+export const oauthRedirect = (provider: string, context?: LogContext): void => {
+  const msg = `🔄 OAuth Redirect - Provider: ${provider}`
+  logger.info(msg, context)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  if (context) {
+    console.log(`Context: ${formatContext(context)}`)
+  }
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log OAuth callback start
+ */
+export const oauthCallbackStart = (provider: string, context?: LogContext): void => {
+  const msg = `📥 OAuth Callback Started - Provider: ${provider}`
+  logger.info(msg, context)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  if (context) {
+    console.log(`Context: ${formatContext(context)}`)
+  }
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log OAuth user data received
+ */
+export const oauthUserReceived = (provider: string, socialUser: SocialUser): void => {
+  const sanitized = {
+    id: socialUser.id,
+    email: socialUser.email,
+    name: socialUser.name,
+    nickName: socialUser.nickName,
+    avatarUrl: socialUser.avatarUrl,
+    hasToken: !!socialUser.token,
+    hasRefreshToken: !!socialUser.token?.refreshToken,
+  }
+  const msg = `✅ OAuth User Data Received - Provider: ${provider}`
+  logger.info(msg, sanitized)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('User Data:', JSON.stringify(sanitized, null, 2))
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log OAuth provider lookup
+ */
+export const oauthProviderLookup = (provider: string, providerId: string, found: boolean): void => {
+  const msg = `🔍 OAuth Provider Lookup - Provider: ${provider}, ID: ${providerId}, Found: ${found}`
+  logger.info(msg)
+  console.log(`\n${msg}`)
+}
+
+/**
+ * Log user creation
+ */
+export const userCreated = (userId: number, method: string, email: string): void => {
+  const msg = `✨ User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
+  logger.info(msg)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log user login
+ */
+export const userLogin = (userId: number, email: string, method: string): void => {
+  const msg = `🔐 User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
+  logger.info(msg)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log OAuth errors
+ */
+export const oauthError = (provider: string, error: unknown, stage: string): void => {
+  const errorDetails: {
+    provider: string
+    stage: string
+    error: string
+    code?: string | number
+    stack?: string
+  } = {
+    provider,
+    stage,
+    error: error instanceof Error ? error.message : String(error),
   }
 
-  /**
-   * Log OAuth redirect
-   */
-  static oauthRedirect(provider: string, context?: LogContext) {
-    const msg = `🔄 OAuth Redirect - Provider: ${provider}`
-    logger.info(msg, context)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    if (context) {
-      console.log(`Context: ${this.formatContext(context)}`)
+  if (error && typeof error === 'object') {
+    const errorObj = error as ErrorWithCode
+    if ('code' in errorObj) {
+      errorDetails.code = errorObj.code
     }
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log OAuth callback start
-   */
-  static oauthCallbackStart(provider: string, context?: LogContext) {
-    const msg = `📥 OAuth Callback Started - Provider: ${provider}`
-    logger.info(msg, context)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    if (context) {
-      console.log(`Context: ${this.formatContext(context)}`)
-    }
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log OAuth user data received
-   */
-  static oauthUserReceived(provider: string, socialUser: unknown) {
-    const sanitized = {
-      id: socialUser.id,
-      email: socialUser.email,
-      name: socialUser.name,
-      nickName: socialUser.nickName,
-      avatarUrl: socialUser.avatarUrl,
-      hasToken: !!socialUser.token,
-      hasRefreshToken: !!socialUser.token?.refreshToken,
-    }
-    const msg = ` OAuth User Data Received - Provider: ${provider}`
-    logger.info(msg, sanitized)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('User Data:', JSON.stringify(sanitized, null, 2))
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log OAuth provider lookup
-   */
-  static oauthProviderLookup(provider: string, providerId: string, found: boolean) {
-    const msg = ` OAuth Provider Lookup - Provider: ${provider}, ID: ${providerId}, Found: ${found}`
-    logger.info(msg)
-    console.log(`\n${msg}`)
-  }
-
-  /**
-   * Log user creation
-   */
-  static userCreated(userId: number, method: string, email: string) {
-    const msg = ` User Created - ID: ${userId}, Method: ${method}, Email: ${email}`
-    logger.info(msg)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log user login
-   */
-  static userLogin(userId: number, email: string, method: string) {
-    const msg = ` User Logged In - ID: ${userId}, Email: ${email}, Method: ${method}`
-    logger.info(msg)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log OAuth errors
-   */
-  static oauthError(provider: string, error: unknown, stage: string) {
-    const errorDetails = {
-      provider,
-      stage,
-      error: error instanceof Error ? error.message : String(error),
-      code: error?.code,
-      stack: error?.stack,
-    }
-    const msg = ` OAuth Error - Provider: ${provider}, Stage: ${stage}`
-    logger.error(msg, errorDetails)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('Error Details:', JSON.stringify(errorDetails, null, 2))
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log OAuth state errors
-   */
-  static oauthStateError(provider: string, type: 'access_denied' | 'state_mismatch' | 'unknown') {
-    const msg = ` OAuth State Error - Provider: ${provider}, Type: ${type}`
-    logger.warn(msg)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log email login attempt
-   */
-  static loginAttempt(email: string, remember: boolean, ipAddress: string) {
-    const msg = ` Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`
-    logger.info(msg)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log login failure
-   */
-  static loginFailure(email: string, reason: string) {
-    const msg = ` Login Failed - Email: ${email}, Reason: ${reason}`
-    logger.warn(msg)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('='.repeat(80) + '\n')
-  }
-
-  /**
-   * Log database transaction
-   */
-  static dbTransaction(operation: string, success: boolean, details?: unknown) {
-    const msg = ` DB Transaction - Operation: ${operation}, Success: ${success}`
-    if (success) {
-      logger.info(msg, details)
-    } else {
-      logger.error(msg, details)
-    }
-    console.log(`\n${msg}`)
-    if (details) {
-      console.log('Details:', JSON.stringify(details, null, 2))
+    if ('stack' in errorObj) {
+      errorDetails.stack = errorObj.stack
     }
   }
 
-  /**
-   * Log environment config check
-   */
-  static configCheck(
-    provider: string,
-    hasClientId: boolean,
-    hasClientSecret: boolean,
-    callbackUrl: string
-  ) {
-    const msg = ` Config Check - Provider: ${provider}`
-    const config = {
-      hasClientId,
-      hasClientSecret,
-      callbackUrl,
-      isComplete: hasClientId && hasClientSecret,
-    }
-    logger.info(msg, config)
-    console.log(`\n${'='.repeat(80)}`)
-    console.log(msg)
-    console.log('Config:', JSON.stringify(config, null, 2))
-    console.log('='.repeat(80) + '\n')
+  const msg = `❌ OAuth Error - Provider: ${provider}, Stage: ${stage}`
+  logger.error(msg, errorDetails)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('Error Details:', JSON.stringify(errorDetails, null, 2))
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log OAuth state errors
+ */
+export const oauthStateError = (
+  provider: string,
+  type: 'access_denied' | 'state_mismatch' | 'unknown'
+): void => {
+  const msg = `⚠️ OAuth State Error - Provider: ${provider}, Type: ${type}`
+  logger.warn(msg)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log email login attempt
+ */
+export const loginAttempt = (email: string, remember: boolean, ipAddress: string): void => {
+  const msg = `🔑 Login Attempt - Email: ${email}, Remember: ${remember}, IP: ${ipAddress}`
+  logger.info(msg)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log login failure
+ */
+export const loginFailure = (email: string, reason: string): void => {
+  const msg = `❌ Login Failed - Email: ${email}, Reason: ${reason}`
+  logger.warn(msg)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('='.repeat(80) + '\n')
+}
+
+/**
+ * Log database transaction
+ */
+export const dbTransaction = (operation: string, success: boolean, details?: unknown): void => {
+  const msg = `💾 DB Transaction - Operation: ${operation}, Success: ${success}`
+  if (success) {
+    logger.info(msg, details)
+  } else {
+    logger.error(msg, details)
   }
+  console.log(`\n${msg}`)
+  if (details) {
+    console.log('Details:', JSON.stringify(details, null, 2))
+  }
+}
+
+/**
+ * Log environment config check
+ */
+export const configCheck = (
+  provider: string,
+  hasClientId: boolean,
+  hasClientSecret: boolean,
+  callbackUrl: string
+): void => {
+  const msg = `⚙️ Config Check - Provider: ${provider}`
+  const config = {
+    hasClientId,
+    hasClientSecret,
+    callbackUrl,
+    isComplete: hasClientId && hasClientSecret,
+  }
+  logger.info(msg, config)
+  console.log(`\n${'='.repeat(80)}`)
+  console.log(msg)
+  console.log('Config:', JSON.stringify(config, null, 2))
+  console.log('='.repeat(80) + '\n')
 }

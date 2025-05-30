@@ -72,11 +72,12 @@ router
     router.get('/organization-members/:id', async ({ params, response }) => {
       try {
         const { id } = params
+        const orgId = Number(id)
         const db = await import('@adonisjs/lucid/services/db')
         // Lấy thông tin tổ chức
         const organization = (await db.default
           .from('organizations')
-          .where('id', id)
+          .where('id', orgId)
           .first()) as OrganizationRow | null
         if (!organization) {
           response.status(404).json({
@@ -91,7 +92,7 @@ router
           .from('organization_users as ou')
           .join('users as u', 'ou.user_id', 'u.id')
           .join('organization_roles as r', 'ou.role_id', 'r.id')
-          .where('ou.organization_id', id)
+          .where('ou.organization_id', orgId)
           .select(
             'ou.id',
             'ou.user_id',
@@ -150,8 +151,9 @@ router
         }
 
         // Sử dụng ID tổ chức từ session nếu ID từ user không có
-        const organizationId =
-          auth.user.current_organization_id || session.get('current_organization_id')
+        const userOrgId = auth.user.current_organization_id
+        const sessionOrgId = session.get('current_organization_id') as number | undefined
+        const organizationId = userOrgId || sessionOrgId
         if (!organizationId) {
           response.status(400).json({
             success: false,
@@ -222,8 +224,19 @@ router
             return
           }
 
+          // Validate all participants are strings and create typed array
+          const participantsList = participants.filter((p): p is string => typeof p === 'string')
+
+          if (participantsList.length !== participants.length) {
+            response.status(400).json({
+              success: false,
+              message: 'Danh sách người tham gia chứa giá trị không hợp lệ',
+            })
+            return
+          }
+
           // Sắp xếp ID người tham gia để đảm bảo so sánh chính xác
-          const sortedParticipantIds = [...participants].sort()
+          const sortedParticipantIds = [...participantsList].sort()
 
           const db = await import('@adonisjs/lucid/services/db')
 
@@ -316,7 +329,7 @@ router
           return
         }
         // Lấy thông tin từ session
-        const sessionOrgId = session.get('current_organization_id')
+        const sessionOrgId = session.get('current_organization_id') as number | undefined
         // Lấy thông tin về user và các tổ chức
         const db = await import('@adonisjs/lucid/services/db')
         const userOrganizations = (await db.default

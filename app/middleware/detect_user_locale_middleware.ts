@@ -111,21 +111,16 @@ export default class DetectUserLocaleMiddleware {
     const localeFromUrl = ctx.request.input('locale') as string | undefined
     if (localeFromUrl && this.isValidLocale(localeFromUrl)) {
       // Lưu vào session cho các request sau
-      if (ctx.session) {
-        ctx.session.put('locale', localeFromUrl)
-      }
+      ctx.session.put('locale', localeFromUrl)
       return localeFromUrl
     }
     // Kiểm tra locale trong session
-    if (ctx.session) {
-      const localeFromSession = ctx.session.get('locale') as string | undefined
-      if (localeFromSession) {
-        if (this.isValidLocale(localeFromSession)) {
-          return localeFromSession
-        } else {
-          ctx.session.forget('locale')
-        }
+    const localeFromSession = ctx.session.get('locale') as string | undefined
+    if (localeFromSession) {
+      if (this.isValidLocale(localeFromSession)) {
+        return localeFromSession
       }
+      ctx.session.forget('locale')
     }
 
     // Fallback to Accept-Language header

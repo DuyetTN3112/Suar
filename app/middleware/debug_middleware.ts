@@ -11,7 +11,7 @@ export default class DebugMiddleware {
   // private log(...args: unknown[]) { /* unused */ }
 
   handle(ctx: HttpContext, next: NextFn): Promise<void> {
-    if (this.isDevMode && ctx.auth?.isAuthenticated && ctx.auth.user) {
+    if (this.isDevMode && ctx.auth.isAuthenticated && ctx.auth.user) {
       // Removed all debug logs in this section
       // Log tổng quan các header thay vì chi tiết
       // const headerKeys = Object.keys(ctx.request.headers()) // unused

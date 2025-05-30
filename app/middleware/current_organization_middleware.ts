@@ -26,11 +26,11 @@ export default class CurrentOrganizationMiddleware {
         // Nếu session có organization_id nhưng database không có hoặc khác
         if (sessionOrgId && (!dbOrgId || String(sessionOrgId) !== String(dbOrgId))) {
           // Kiểm tra xem người dùng có quyền truy cập organization_id trong session không
-          const hasAccess = await db
+          const hasAccess = (await db
             .from('organization_users')
             .where('organization_id', String(sessionOrgId))
             .where('user_id', user.id)
-            .first()
+            .first()) as { organization_id: number; user_id: number } | null
           if (hasAccess) {
             // Cập nhật database nếu người dùng có quyền truy cập
             try {
@@ -61,11 +61,11 @@ export default class CurrentOrganizationMiddleware {
         // Nếu database có organization_id nhưng session không có hoặc khác
         else if (dbOrgId && (!sessionOrgId || String(sessionOrgId) !== String(dbOrgId))) {
           // Kiểm tra xem tổ chức có trong danh sách tổ chức của người dùng không
-          const hasAccess = await db
+          const hasAccess = (await db
             .from('organization_users')
             .where('organization_id', dbOrgId)
             .where('user_id', user.id)
-            .first()
+            .first()) as { organization_id: number; user_id: number } | null
           if (hasAccess) {
             // Xóa giá trị cũ nếu có
             session.forget('current_organization_id')

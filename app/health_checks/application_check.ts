@@ -26,8 +26,8 @@ export class ApplicationCheck extends BaseCheck {
       const memValues = memoryLines[1]?.trim().split(/\s+/).map(Number) || []
       // Nếu có đủ thông tin
       if (memValues.length >= 3) {
-        const total = memValues[1] // Tổng RAM
-        const used = memValues[2] // RAM đã sử dụng
+        const total = memValues[1] ?? 0 // Tổng RAM
+        const used = memValues[2] ?? 0 // RAM đã sử dụng
         const percentUsed = Math.round((used / total) * 100)
         // Đánh giá tình trạng dựa trên phần trăm sử dụng
         if (percentUsed > 90) {

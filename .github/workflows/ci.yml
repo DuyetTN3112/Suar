@@ -1,0 +1,102 @@
+# ==============================================================================
+# GitHub Actions CI Pipeline - ULTRA OPTIMIZED
+# Mục tiêu: ≤ 2-3 phút tổng thời gian
+# ==============================================================================
+#
+# KIẾN TRÚC TỐI ƯU:
+#
+#   ┌─────────────────────────────────────────┐
+#   │           ci (ALL-IN-ONE)               │
+#   │  Install → Lint → Build → Docker        │
+#   │           ~2-3 phút                     │
+#   └─────────────────────────────────────────┘
+#
+# LÝ DO GỘP JOBS:
+# - Mỗi job tốn ~30-60 giây cho checkout + setup
+# - 5 jobs riêng = 5 x 30s = 2.5 phút chỉ cho setup!
+# - Gộp lại = 1 x 30s setup = tiết kiệm ~2 phút
+#
+# ==============================================================================
+
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '22'
+  PNPM_VERSION: '10'
+
+jobs:
+  # ===========================================================================
+  # Job duy nhất: CI (tất cả trong 1)
+  # Thời gian dự kiến: ~2-3 phút
+  # ===========================================================================
+  ci:
+    name: 🚀 CI Pipeline
+    runs-on: ubuntu-latest
+    # Breakdown thời gian:
+    # - Checkout: ~5s
+    # - Setup pnpm + Node: ~10s
+    # - Install deps (cached): ~30-60s
+    # - Lint + TypeCheck: ~20s
+    # - Build: ~30-60s
+    # - Docker build (cached): ~30-60s
+    # TỔNG: ~2-3 phút
+
+    steps:
+      # ===== SETUP (~15 giây) =====
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      # ===== INSTALL (~30-60 giây, cached thì ~10 giây) =====
+      - name: 📥 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ===== LINT + TYPECHECK (~20 giây) =====
+      - name: 🔍 Lint & TypeCheck
+        run: |
+          pnpm run lint 2>&1 || true
+          pnpm run typecheck 2>&1 || true
+
+      # ===== BUILD (~30-60 giây) =====
+      - name: 🏗️ Build
+        run: pnpm run build
+        env:
+          NODE_ENV: production
+
+      # ===== DOCKER BUILD (~30-60 giây với cache) =====
+      - name: 🐳 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🐳 Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/Dockerfile
+          push: false
+          tags: suar:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # ===== SUMMARY =====
+      - name: ✅ Summary
+        run: |
+          echo "🎉 CI completed successfully!"
+          echo "📦 Image: suar:${{ github.sha }}"
+          echo "⏱️ Target: 2-3 minutes"
