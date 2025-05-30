@@ -54,12 +54,12 @@ export default class RequireOrganizationMiddleware {
     // Kiểm tra xem người dùng có current_organization_id hay không
     if (user.current_organization_id) {
       // Xác minh rằng current_organization_id là hợp lệ
-      const validOrg = await db
+      const validOrg = (await db
         .from('organization_users')
         .where('user_id', user.id)
         .where('organization_id', user.current_organization_id)
         .where('status', 'approved') // Chỉ chấp nhận trạng thái approved
-        .first()
+        .first()) as { id: number } | null
 
       if (validOrg) {
         // Người dùng đã có tổ chức hợp lệ và đang được chọn, xóa flag nếu có
@@ -72,11 +72,11 @@ export default class RequireOrganizationMiddleware {
     }
 
     // Đầu tiên kiểm tra xem người dùng có tổ chức nào không
-    const anyOrganization = await db
+    const anyOrganization = (await db
       .from('organization_users')
       .where('user_id', user.id)
       .where('status', 'approved') // Chỉ chấp nhận trạng thái approved
-      .first()
+      .first()) as { organization_id: number } | null
 
     // Nếu không có tổ chức nào, đặt flag để hiển thị modal
     if (!anyOrganization) {
@@ -99,7 +99,7 @@ export default class RequireOrganizationMiddleware {
     } else {
       // Người dùng đã có tổ chức nhưng chưa đặt current_organization_id
       // Đặt tổ chức đầu tiên làm tổ chức hiện tại
-      const firstOrgId = anyOrganization.organization_id as number
+      const firstOrgId = anyOrganization.organization_id
       // Cập nhật current_organization_id trong database và session
       await user.merge({ current_organization_id: firstOrgId }).save()
       session.put('current_organization_id', firstOrgId)

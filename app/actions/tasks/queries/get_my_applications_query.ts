@@ -33,7 +33,11 @@ export default class GetMyApplicationsQuery extends BaseQuery<
   }
 
   async handle(dto: MyApplicationsDTO): Promise<MyApplicationsResult> {
-    const userId = this.getCurrentUser()!.id
+    const user = this.getCurrentUser()
+    if (!user) {
+      throw new Error('User must be authenticated')
+    }
+    const userId = user.id
 
     const cacheKey = this.generateCacheKey('user:applications', {
       userId,
@@ -45,19 +49,18 @@ export default class GetMyApplicationsQuery extends BaseQuery<
       const query = TaskApplication.query()
         .where('applicant_id', userId)
         .preload('task', (taskQuery) => {
-          taskQuery
-            .preload('status')
-            .preload('priority')
-            .preload('difficulty_level')
-            .preload('organization', (orgQuery) => {
-              orgQuery.select(['id', 'name', 'logo_url'])
-            })
+          void taskQuery.preload('status')
+          void taskQuery.preload('priority')
+          void taskQuery.preload('difficulty_level')
+          void taskQuery.preload('organization', (orgQuery) => {
+            void orgQuery.select(['id', 'name', 'logo_url'])
+          })
         })
         .orderBy('applied_at', 'desc')
 
       // Filter by status
       if (dto.status && dto.status !== 'all') {
-        query.where('application_status', dto.status)
+        void query.where('application_status', dto.status)
       }
 
       const result = await query.paginate(dto.page, dto.per_page)

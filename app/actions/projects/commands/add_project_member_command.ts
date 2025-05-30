@@ -85,13 +85,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
    * Check if user is superadmin of the organization
    */
   private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = await db
+    const result = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('role_id', 1)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number; role_id: number } | null
 
     return !!result
   }
@@ -121,13 +121,12 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const result = await db
+    const result = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('status', 'approved')
-      .useTransaction(trx)
-      .first()
+      .first({ client: trx })) as { id: number } | null
 
     if (!result) {
       throw new Error('Người dùng không thuộc tổ chức của dự án')
@@ -142,12 +141,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     userId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existing = await db
+    const existing = (await db
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
-      .useTransaction(trx)
-      .first()
+      .first({ client: trx })) as { id: number } | null
 
     if (existing) {
       throw new Error('Người dùng đã là thành viên của dự án')
@@ -163,11 +161,14 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     projectRoleId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    await db.table('project_members').useTransaction(trx).insert({
-      project_id: projectId,
-      user_id: userId,
-      project_role_id: projectRoleId,
-      created_at: new Date(),
-    })
+    await db.table('project_members').insert(
+      {
+        project_id: projectId,
+        user_id: userId,
+        project_role_id: projectRoleId,
+        created_at: new Date(),
+      },
+      { client: trx }
+    )
   }
 }

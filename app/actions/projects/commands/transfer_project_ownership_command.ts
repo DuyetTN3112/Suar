@@ -61,54 +61,47 @@ export default class TransferProjectOwnershipCommand {
       }
 
       // 4. Validate new owner is member of organization
-      const newOwnerInOrg = await db
+      const newOwnerInOrg = (await trx
         .from('organization_users')
         .where('user_id', dto.new_owner_id)
         .where('organization_id', project.organization_id)
         .where('status', 'approved')
-        .useTransaction(trx)
-        .first()
+        .first()) as { id: number } | null
 
       if (!newOwnerInOrg) {
         throw new Error('Owner mới phải là member của organization')
       }
 
       // 5. Add new owner to project_members if not already
-      const existingMember = await db
+      const existingMember = (await trx
         .from('project_members')
         .where('user_id', dto.new_owner_id)
         .where('project_id', dto.project_id)
-        .useTransaction(trx)
-        .first()
+        .first()) as { id: number } | null
 
       if (!existingMember) {
-        await db
-          .table('project_members')
-          .insert({
-            project_id: dto.project_id,
-            user_id: dto.new_owner_id,
-            project_role_id: 1, // project_owner
-            created_at: new Date(),
-          })
-          .useTransaction(trx)
+        await trx.table('project_members').insert({
+          project_id: dto.project_id,
+          user_id: dto.new_owner_id,
+          project_role_id: 1, // project_owner
+          created_at: new Date(),
+        })
       } else {
         // Update to project_owner role
-        await db
+        await trx
           .from('project_members')
           .where('user_id', dto.new_owner_id)
           .where('project_id', dto.project_id)
           .update({ project_role_id: 1 })
-          .useTransaction(trx)
       }
 
       // 6. Demote old owner to project_manager
       if (currentOwnerId) {
-        await db
+        await trx
           .from('project_members')
           .where('user_id', currentOwnerId)
           .where('project_id', dto.project_id)
           .update({ project_role_id: 2 }) // project_manager
-          .useTransaction(trx)
       }
 
       // 7. Update project owner
@@ -149,12 +142,11 @@ export default class TransferProjectOwnershipCommand {
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<boolean> {
-    const result = await db
+    const result: unknown = await trx
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .whereIn('role_id', [1, 2]) // org_owner or org_admin
-      .useTransaction(trx)
       .first()
 
     return !!result

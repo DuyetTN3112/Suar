@@ -34,8 +34,8 @@ export default class ReviewsController {
 
     const query = new GetPendingReviewsQuery(ctx)
     const result = await query.handle({
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
     })
 
     return inertia.render('reviews/pending', {
@@ -79,8 +79,11 @@ export default class ReviewsController {
     try {
       const dto = new SubmitSkillReviewDTO({
         review_session_id: Number(params.id),
-        reviewer_type: request.input('reviewer_type'),
-        skill_ratings: request.input('skill_ratings'),
+        reviewer_type: request.input('reviewer_type') as string,
+        skill_ratings: request.input('skill_ratings') as Array<{
+          skill_id: number
+          proficiency_level_id: number
+        }>,
       })
 
       const command = new SubmitSkillReviewCommand(ctx)
@@ -105,8 +108,8 @@ export default class ReviewsController {
     try {
       const dto = new ConfirmReviewDTO({
         review_session_id: Number(params.id),
-        action: request.input('action'),
-        dispute_reason: request.input('dispute_reason'),
+        action: request.input('action') as 'confirmed' | 'disputed',
+        dispute_reason: request.input('dispute_reason') as string | undefined,
       })
 
       const command = new ConfirmReviewCommand(ctx)
@@ -132,10 +135,14 @@ export default class ReviewsController {
   async myReviews(ctx: HttpContext) {
     const { request, inertia, auth } = ctx
 
+    if (!auth.user) {
+      throw new Error('Vui lòng đăng nhập')
+    }
+
     const dto = new GetUserReviewsDTO({
-      user_id: auth.user!.id,
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
+      user_id: auth.user.id,
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
     })
 
     const query = new GetUserReviewsQuery(ctx)
@@ -156,15 +163,15 @@ export default class ReviewsController {
 
     const dto = new GetUserReviewsDTO({
       user_id: Number(params.id),
-      page: request.input('page', 1),
-      per_page: request.input('per_page', 20),
+      page: request.input('page', 1) as number,
+      per_page: request.input('per_page', 20) as number,
     })
 
     const query = new GetUserReviewsQuery(ctx)
     const result = await query.handle(dto)
 
     return inertia.render('reviews/user-reviews', {
-      userId: params.id,
+      userId: params.id as string,
       reviews: result.data.map((r) => r.serialize()),
       meta: result.meta,
     })
@@ -179,9 +186,9 @@ export default class ReviewsController {
 
     try {
       const dto = new CreateReviewSessionDTO({
-        task_assignment_id: request.input('task_assignment_id'),
-        reviewee_id: request.input('reviewee_id'),
-        required_peer_reviews: request.input('required_peer_reviews', 2),
+        task_assignment_id: request.input('task_assignment_id') as number,
+        reviewee_id: request.input('reviewee_id') as number,
+        required_peer_reviews: request.input('required_peer_reviews', 2) as number,
       })
 
       const command = new CreateReviewSessionCommand(ctx)

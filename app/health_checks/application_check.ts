@@ -62,7 +62,8 @@ export class ApplicationCheck extends BaseCheck {
       return Result.ok('Kiểm tra ứng dụng thành công')
     } catch (error) {
       // Xử lý lỗi khi kiểm tra
-      return Result.failed('Không thể kiểm tra tình trạng ứng dụng', error)
+      const errorInstance = error instanceof Error ? error : undefined
+      return Result.failed('Không thể kiểm tra tình trạng ứng dụng', errorInstance)
     }
   }
 }

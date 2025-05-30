@@ -9,18 +9,22 @@ export default class SettingsController {
     // Manual instantiation
     const getUserSettings = new GetUserSettings(ctx)
 
-    const settings = await getUserSettings.handle()
+    const settings = getUserSettings.handle()
     return inertia.render('settings/index', { settings })
   }
 
-  async update(ctx: HttpContext) {
+  update(ctx: HttpContext) {
     const { request, response, session } = ctx
 
     // Manual instantiation
     const updateUserSettings = new UpdateUserSettings(ctx)
 
-    const data = request.only(['theme', 'notifications_enabled', 'display_mode'])
-    await updateUserSettings.handle({ data })
+    const data = request.only(['theme', 'notifications_enabled', 'display_mode']) as {
+      theme?: string
+      notifications_enabled?: boolean
+      display_mode?: string
+    }
+    updateUserSettings.handle({ data })
     session.flash('success', 'Cài đặt đã được cập nhật thành công')
     response.redirect().back()
   }
@@ -29,14 +33,19 @@ export default class SettingsController {
     const { request, response, auth, session } = ctx
 
     try {
-      const user = auth.user!
-      const data = request.only(['username', 'email'])
+      const user = auth.user
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+      const data = request.only(['username', 'email']) as { username?: string; email?: string }
       await user.merge(data).save()
       session.flash('success', 'Thông tin hồ sơ đã được cập nhật thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật hồ sơ')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật hồ sơ'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
@@ -46,8 +55,11 @@ export default class SettingsController {
     const { request, response, auth, session } = ctx
 
     try {
-      const user = auth.user!
-      const data = request.only(['email'])
+      const user = auth.user
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+      const data = request.only(['email']) as { email?: string }
 
       await user
         .merge({
@@ -58,63 +70,81 @@ export default class SettingsController {
       session.flash('success', 'Thông tin tài khoản đã được cập nhật thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật tài khoản')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật tài khoản'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
   }
 
-  async updateAppearance(ctx: HttpContext) {
+  updateAppearance(ctx: HttpContext) {
     const { request, response, session } = ctx
 
     // Manual instantiation
     const updateUserSettings = new UpdateUserSettings(ctx)
 
     try {
-      const data = request.only(['theme', 'font'])
-      await updateUserSettings.handle({ data })
+      const data = request.only(['theme', 'font']) as { theme?: string; font?: string }
+      updateUserSettings.handle({ data })
       session.flash('success', 'Giao diện đã được cập nhật thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật giao diện')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật giao diện'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
   }
 
-  async updateDisplay(ctx: HttpContext) {
+  updateDisplay(ctx: HttpContext) {
     const { request, response, session } = ctx
 
     // Manual instantiation
     const updateUserSettings = new UpdateUserSettings(ctx)
 
     try {
-      const data = request.only(['layout', 'density', 'animations_enabled', 'custom_scrollbars'])
-      await updateUserSettings.handle({ data })
+      const data = request.only([
+        'layout',
+        'density',
+        'animations_enabled',
+        'custom_scrollbars',
+      ]) as {
+        layout?: string
+        density?: string
+        animations_enabled?: boolean
+        custom_scrollbars?: boolean
+      }
+      updateUserSettings.handle({ data })
       session.flash('success', 'Tùy chọn hiển thị đã được cập nhật thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật tùy chọn hiển thị')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật tùy chọn hiển thị'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }
   }
 
-  async updateNotifications(ctx: HttpContext) {
+  updateNotifications(ctx: HttpContext) {
     const { request, response, session } = ctx
 
     // Manual instantiation
     const updateUserSettings = new UpdateUserSettings(ctx)
 
     try {
+      const emailNotifications = request.input('emailNotifications', false) as boolean
+      const pushNotifications = request.input('pushNotifications', false) as boolean
       const data = {
-        notifications_enabled: request.input('emailNotifications', false),
-        push_notifications: request.input('pushNotifications', false),
+        notifications_enabled: emailNotifications,
+        push_notifications: pushNotifications,
       }
-      await updateUserSettings.handle({
+      updateUserSettings.handle({
         data: {
           notifications_enabled: data.notifications_enabled,
         },
@@ -122,8 +152,10 @@ export default class SettingsController {
       session.flash('success', 'Cài đặt thông báo đã được cập nhật thành công')
       response.redirect().back()
       return
-    } catch (error) {
-      session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật cài đặt thông báo')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật cài đặt thông báo'
+      session.flash('error', errorMessage)
       response.redirect().back()
       return
     }

@@ -18,14 +18,18 @@ export default class LogoutController {
    * Handle logout request
    * Uses LogoutUserCommand for business logic
    */
-  async handle({ request, response, inertia, session, auth }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { request, response, inertia, session, auth } = ctx
     try {
       // Only logout if user is authenticated
       if (!auth.isAuthenticated) {
-        return this.redirectToLogin(request, response, inertia)
+        return await this.redirectToLogin(request, response, inertia)
       }
 
-      const user = auth.user!
+      const user = auth.user
+      if (!user) {
+        return await this.redirectToLogin(request, response, inertia)
+      }
 
       // 1. Build DTO
       const dto = new LogoutUserDTO({
@@ -35,13 +39,7 @@ export default class LogoutController {
       })
 
       // 2. Execute command
-      const command = new LogoutUserCommand({
-        request,
-        response,
-        inertia,
-        session,
-        auth,
-      } as unknown)
+      const command = new LogoutUserCommand(ctx)
       await command.handle(dto)
 
       // 3. Clear additional session data
@@ -52,11 +50,11 @@ export default class LogoutController {
       session.flash('success', 'Đã đăng xuất thành công')
 
       // 5. Redirect to login
-      return this.redirectToLogin(request, response, inertia)
-    } catch (error) {
+      return await this.redirectToLogin(request, response, inertia)
+    } catch (error: unknown) {
       logger.error('Error during logout', { error, userId: auth.user?.id })
       session.flash('error', 'Có lỗi xảy ra khi đăng xuất')
-      return this.redirectToLogin(request, response, inertia)
+      return await this.redirectToLogin(request, response, inertia)
     }
   }
 
@@ -64,11 +62,15 @@ export default class LogoutController {
    * Redirect to login page
    * Supports both Inertia and regular redirects
    */
-  private redirectToLogin(request: unknown, response: unknown, inertia: unknown) {
+  private redirectToLogin(
+    request: HttpContext['request'],
+    response: HttpContext['response'],
+    inertia: HttpContext['inertia']
+  ) {
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
       return inertia.location('/login')
     }
-    return response.redirect().toPath('/login')
+    response.redirect().toPath('/login')
   }
 }

@@ -40,13 +40,13 @@ export default class PublicProfileSetting extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
   })
   declare preferred_job_types: string[] | null
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
   })
   declare preferred_locations: string[] | null
 

@@ -66,6 +66,9 @@ export default class CreateConversationCommand {
       // For direct (1-1) conversations, check if exists
       if (dto.isDirect) {
         const otherUserId = dto.participantIds[0]
+        if (otherUserId === undefined) {
+          throw new Error('Participant ID is required for direct conversation')
+        }
         const existing = await this.findExistingDirectConversation(user.id, otherUserId)
 
         if (existing) {

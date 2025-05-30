@@ -38,58 +38,50 @@ export default class TasksController {
   async index(ctx: HttpContext) {
     try {
       const { request, inertia, session } = ctx
-      const organizationId = session.get('current_organization_id')
+      const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
         throw new Error('Vui lòng chọn organization')
       }
 
       // Manually instantiate queries with current HttpContext to avoid DI decorator conflicts
       const getTasksListQuery = new GetTasksListQuery(ctx)
-      const getTaskMetadataQuery = new (GetTaskMetadataQuery as unknown)(ctx)
+      const getTaskMetadataQuery = new GetTaskMetadataQuery(ctx)
 
       // Build DTO from request
       const dto = new GetTasksListDTO({
-        page: request.input('page', 1),
-        limit: request.input('limit', 10),
-        status: request.input('status'),
-        priority: request.input('priority'),
-        label: request.input('label'),
-        assigned_to: request.input('assigned_to'),
-        parent_task_id: request.input('parent_task_id'),
-        project_id: request.input('project_id'),
-        search: request.input('search'),
+        page: request.input('page', 1) as number,
+        limit: request.input('limit', 10) as number,
+        status: request.input('status') as number | undefined,
+        priority: request.input('priority') as number | undefined,
+        label: request.input('label') as number | undefined,
+        assigned_to: request.input('assigned_to') as number | undefined,
+        parent_task_id: request.input('parent_task_id') as number | null | undefined,
+        project_id: request.input('project_id') as number | null | undefined,
+        search: request.input('search') as string | undefined,
         organization_id: organizationId,
-        sort_by: request.input('sort_by', 'due_date'),
-        sort_order: request.input('sort_order', 'asc'),
+        sort_by: request.input('sort_by', 'due_date') as
+          | 'due_date'
+          | 'created_at'
+          | 'updated_at'
+          | 'title'
+          | 'priority',
+        sort_order: request.input('sort_order', 'asc') as 'asc' | 'desc',
       })
 
       // Execute queries in parallel
       const [tasksResult, metadata] = await Promise.all([
         getTasksListQuery.execute(dto),
-        (getTaskMetadataQuery as GetTaskMetadataQuery).execute(organizationId),
+        getTaskMetadataQuery.execute(organizationId),
       ])
 
       // ✅ Ensure tasks object has correct structure for frontend
-      return inertia.render('tasks/index', {
+      return await inertia.render('tasks/index', {
         tasks: {
-          data: tasksResult?.data || [],
-          meta: tasksResult?.meta || {
-            total: 0,
-            per_page: dto.limit,
-            current_page: dto.page,
-            last_page: 0,
-            first_page: 1,
-            next_page_url: null,
-            previous_page_url: null,
-          },
+          data: tasksResult.data,
+          meta: tasksResult.meta,
         },
-        stats: tasksResult?.stats || {},
-        metadata: metadata || {
-          statuses: [],
-          priorities: [],
-          labels: [],
-          users: [],
-        },
+        stats: tasksResult.stats || {},
+        metadata: metadata,
         filters: {
           page: dto.page,
           limit: dto.limit,
@@ -140,7 +132,7 @@ export default class TasksController {
   async create(ctx: HttpContext) {
     try {
       const { inertia } = ctx
-      const organizationId = ctx.session.get('current_organization_id')
+      const organizationId = ctx.session.get('current_organization_id') as number | undefined
       if (!organizationId) {
         throw new Error('Vui lòng chọn organization')
       }
@@ -148,7 +140,7 @@ export default class TasksController {
       const getTaskMetadataQuery = new GetTaskMetadataQuery(ctx)
       const metadata = await getTaskMetadataQuery.execute(organizationId)
 
-      return inertia.render('tasks/create', { metadata })
+      return await inertia.render('tasks/create', { metadata })
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
       ctx.session.flash('error', errorMessage)
@@ -164,24 +156,24 @@ export default class TasksController {
   async store(ctx: HttpContext) {
     try {
       const { request, response, session } = ctx
-      const organizationId = session.get('current_organization_id')
+      const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
         throw new Error('Vui lòng chọn organization')
       }
 
       // Build DTO from request
       const dto = new CreateTaskDTO({
-        title: request.input('title'),
-        description: request.input('description'),
-        status_id: request.input('status_id'),
-        label_id: request.input('label_id'),
-        priority_id: request.input('priority_id'),
-        assigned_to: request.input('assigned_to'),
-        due_date: request.input('due_date'),
-        parent_task_id: request.input('parent_task_id'),
-        estimated_time: request.input('estimated_time'),
-        actual_time: request.input('actual_time'),
-        project_id: request.input('project_id'),
+        title: request.input('title') as string,
+        description: request.input('description') as string | undefined,
+        status_id: request.input('status_id') as number,
+        label_id: request.input('label_id') as number | undefined,
+        priority_id: request.input('priority_id') as number | undefined,
+        assigned_to: request.input('assigned_to') as number | undefined,
+        due_date: request.input('due_date') as string | undefined,
+        parent_task_id: request.input('parent_task_id') as number | undefined,
+        estimated_time: request.input('estimated_time') as number | undefined,
+        actual_time: request.input('actual_time') as number | undefined,
+        project_id: request.input('project_id') as number | undefined,
         organization_id: organizationId,
       })
 
@@ -211,7 +203,7 @@ export default class TasksController {
       const getTaskDetailQuery = new GetTaskDetailQuery(ctx)
       const result = await getTaskDetailQuery.execute(dto)
 
-      return ctx.inertia.render('tasks/show', {
+      return await ctx.inertia.render('tasks/show', {
         task: result.task,
         permissions: result.permissions,
         auditLogs: result.auditLogs,
@@ -231,7 +223,7 @@ export default class TasksController {
   async edit(ctx: HttpContext) {
     try {
       const { session } = ctx
-      const organizationId = session.get('current_organization_id')
+      const organizationId = session.get('current_organization_id') as number | undefined
       if (!organizationId) {
         throw new Error('Vui lòng chọn organization')
       }
@@ -251,7 +243,7 @@ export default class TasksController {
         throw new Error('Bạn không có quyền chỉnh sửa nhiệm vụ này')
       }
 
-      return ctx.inertia.render('tasks/edit', {
+      return await ctx.inertia.render('tasks/edit', {
         task: taskResult.task,
         metadata,
         permissions: taskResult.permissions,
@@ -271,20 +263,25 @@ export default class TasksController {
   async update(ctx: HttpContext) {
     try {
       const { params, request, response, session, auth } = ctx
+
+      if (!auth.user) {
+        throw new Error('Vui lòng đăng nhập')
+      }
+
       // Build DTO from request
       const dto = new UpdateTaskDTO({
-        title: request.input('title'),
-        description: request.input('description'),
-        status_id: request.input('status_id'),
-        label_id: request.input('label_id'),
-        priority_id: request.input('priority_id'),
-        assigned_to: request.input('assigned_to'),
-        due_date: request.input('due_date'),
-        parent_task_id: request.input('parent_task_id'),
-        estimated_time: request.input('estimated_time'),
-        actual_time: request.input('actual_time'),
-        project_id: request.input('project_id'),
-        updated_by: auth.user!.id,
+        title: request.input('title') as string | undefined,
+        description: request.input('description') as string | undefined,
+        status_id: request.input('status_id') as number | undefined,
+        label_id: request.input('label_id') as number | undefined,
+        priority_id: request.input('priority_id') as number | undefined,
+        assigned_to: request.input('assigned_to') as number | undefined,
+        due_date: request.input('due_date') as string | undefined,
+        parent_task_id: request.input('parent_task_id') as number | undefined,
+        estimated_time: request.input('estimated_time') as number | undefined,
+        actual_time: request.input('actual_time') as number | undefined,
+        project_id: request.input('project_id') as number | undefined,
+        updated_by: auth.user.id,
       })
 
       // Execute command (pass task_id separately)
@@ -322,8 +319,8 @@ export default class TasksController {
       const { params, response, session, request } = ctx
       const dto = new DeleteTaskDTO({
         task_id: Number(params.id),
-        reason: request.input('reason'),
-        permanent: request.input('permanent', false),
+        reason: request.input('reason') as string | undefined,
+        permanent: request.input('permanent', false) as boolean,
       })
 
       // Execute command
@@ -379,8 +376,8 @@ export default class TasksController {
       const { params, request, response } = ctx
       const dto = new UpdateTaskStatusDTO({
         task_id: Number(params.id),
-        status_id: request.input('status_id'),
-        reason: request.input('reason'),
+        status_id: request.input('status_id') as number,
+        reason: request.input('reason') as string | undefined,
       })
 
       const command = new UpdateTaskStatusCommand(ctx, new CreateNotification(ctx))
@@ -412,8 +409,8 @@ export default class TasksController {
       const { params, request, response, session } = ctx
       const dto = new UpdateTaskTimeDTO({
         task_id: Number(params.id),
-        estimated_time: request.input('estimated_time'),
-        actual_time: request.input('actual_time'),
+        estimated_time: request.input('estimated_time') as number | undefined,
+        actual_time: request.input('actual_time') as number | undefined,
       })
 
       const command = new UpdateTaskTimeCommand(ctx)
@@ -438,7 +435,7 @@ export default class TasksController {
   async getAuditLogs(ctx: HttpContext) {
     try {
       const taskId = Number(ctx.params.id)
-      const limit = ctx.request.input('limit', 20)
+      const limit = ctx.request.input('limit', 20) as number
 
       const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
       const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)

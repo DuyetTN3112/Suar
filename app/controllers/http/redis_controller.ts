@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Redis from '@adonisjs/redis/services/main'
 import CacheService from '#services/cache_service'
+import { getErrorMessage } from '#utils/error_utils'
 
 /**
  * Controller để kiểm tra và quản lý Redis cache
@@ -17,11 +18,11 @@ export default class RedisController {
         message: 'Redis connection successful',
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Redis connection failed',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }
@@ -32,7 +33,7 @@ export default class RedisController {
    */
   async listKeys({ response, request }: HttpContext) {
     try {
-      const pattern = request.input('pattern', '*')
+      const pattern = request.input('pattern', '*') as string
       const keys = await Redis.keys(pattern)
       response.json({
         success: true,
@@ -40,11 +41,11 @@ export default class RedisController {
         keys,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Failed to list Redis keys',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }
@@ -55,9 +56,9 @@ export default class RedisController {
    */
   async setCache({ request, response }: HttpContext) {
     try {
-      const key = request.input('key')
-      const value = request.input('value')
-      const ttl = request.input('ttl', 3600)
+      const key = request.input('key') as string | undefined
+      const value = request.input('value') as unknown
+      const ttl = request.input('ttl', 3600) as number
       if (!key || value === undefined) {
         response.status(400).json({
           success: false,
@@ -73,11 +74,11 @@ export default class RedisController {
         ttl,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Failed to set cache',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }
@@ -88,7 +89,7 @@ export default class RedisController {
    */
   async getCache({ params, response }: HttpContext) {
     try {
-      const key = params.key
+      const key = params.key as string | undefined
       if (!key) {
         response.status(400).json({
           success: false,
@@ -111,11 +112,11 @@ export default class RedisController {
         value,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Failed to get cache',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }
@@ -126,7 +127,7 @@ export default class RedisController {
    */
   async clearCache({ params, response }: HttpContext) {
     try {
-      const key = params.key
+      const key = params.key as string | undefined
       if (!key) {
         response.status(400).json({
           success: false,
@@ -141,11 +142,11 @@ export default class RedisController {
         key,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Failed to clear cache',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }
@@ -162,11 +163,11 @@ export default class RedisController {
         message: 'Cache flushed successfully',
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       response.status(500).json({
         success: false,
         message: 'Failed to flush cache',
-        error: error.message,
+        error: getErrorMessage(error, 'Unknown error'),
       })
       return
     }

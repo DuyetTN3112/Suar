@@ -32,25 +32,27 @@ export default class SoftDeleteMiddleware {
     ctx: HttpContext,
     next: NextFn,
     options: { model: string; paramName?: string; allowDeleted?: boolean }
-  ) {
+  ): Promise<void> {
     const paramName = options.paramName || 'id'
     const allowDeleted = options.allowDeleted || false
-    const id = ctx.params[paramName]
+    const id = ctx.params[paramName] as string | undefined
 
     // Nếu không có ID, tiếp tục xử lý
     if (!id) {
-      return next()
+      await next()
+      return
     }
 
     try {
       // Import model động
-      const model: LucidModel = await import(`#models/${options.model}`).then((m) => m.default)
+      const modelModule = (await import(`#models/${options.model}`)) as { default: LucidModel }
+      const model: LucidModel = modelModule.default
 
       // Tìm entity theo ID
-      const query = model.query().where('id', id)
+      let query = model.query().where('id', id)
       // Nếu không cho phép truy cập entity đã bị xóa, thêm điều kiện
       if (!allowDeleted) {
-        void query.whereNull('deleted_at')
+        query = query.whereNull('deleted_at')
       }
       const entity = (await query.first()) as SoftDeleteRow | null
 
@@ -88,7 +90,7 @@ export default class SoftDeleteMiddleware {
       console.error('Error in SoftDeleteMiddleware:', error)
     }
 
-    return next()
+    await next()
   }
 
   /**
@@ -96,7 +98,7 @@ export default class SoftDeleteMiddleware {
    * @param model Model cần xóa
    * @param id ID của entity
    */
-  async softDelete(model: LucidModel, id: string | number) {
+  async softDelete(model: LucidModel, id: string | number): Promise<SoftDeleteRow> {
     const entity = (await model.findOrFail(id)) as SoftDeleteRow
     entity.deletedAt = DateTime.now()
     await entity.save()
@@ -108,7 +110,7 @@ export default class SoftDeleteMiddleware {
    * @param model Model cần khôi phục
    * @param id ID của entity
    */
-  async restore(model: LucidModel, id: string | number) {
+  async restore(model: LucidModel, id: string | number): Promise<SoftDeleteRow> {
     const entity = (await model.findOrFail(id)) as SoftDeleteRow
     entity.deletedAt = null
     await entity.save()

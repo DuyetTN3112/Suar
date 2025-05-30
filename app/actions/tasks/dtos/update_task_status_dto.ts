@@ -53,9 +53,9 @@ export default class UpdateTaskStatusDTO {
    * Lấy message audit log
    */
   public getAuditMessage(): string {
-    let message = `Cập nhật trạng thái task thành status #${this.status_id}`
+    let message = `Cập nhật trạng thái task thành status #${String(this.status_id)}`
 
-    if (this.hasReason()) {
+    if (this.hasReason() && this.reason !== undefined) {
       message += `: ${this.reason}`
     }
 
@@ -104,7 +104,7 @@ export default class UpdateTaskStatusDTO {
   public getNotificationMessage(taskTitle: string, updaterName: string): string {
     let message = `${updaterName} đã cập nhật trạng thái task: ${taskTitle}`
 
-    if (this.hasReason()) {
+    if (this.hasReason() && this.reason !== undefined) {
       message += ` (${this.reason})`
     }
 

@@ -107,7 +107,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
   ): Promise<{ avgPercentage: number; totalReviews: number; levelId: number }> {
     // Tính average percentage từ skill_reviews
     // avg = (min_percentage + max_percentage) / 2 của assigned_level
-    const result = await trx
+    const result = (await trx
       .from('skill_reviews')
       .join('review_sessions', 'review_sessions.id', 'skill_reviews.review_session_id')
       .join('proficiency_levels', 'proficiency_levels.id', 'skill_reviews.assigned_level_id')
@@ -120,9 +120,9 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
         ),
         db.raw('COUNT(*) as total_reviews')
       )
-      .first()
+      .first()) as { avg_pct?: unknown; total_reviews?: unknown } | null
 
-    const row = result as { avg_pct?: unknown; total_reviews?: unknown } | null
+    const row = result
     const avgPercentage = Number(row?.avg_pct || 0)
     const totalReviews = Number(row?.total_reviews || 0)
 
@@ -141,26 +141,24 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     trx: TransactionClientContract
   ): Promise<number> {
     // Tìm level mà percentage nằm trong range [min, max]
-    const level = await trx
+    const level = (await trx
       .from('proficiency_levels')
       .where('min_percentage', '<=', percentage)
       .where('max_percentage', '>=', percentage)
       .orderBy('level_order', 'desc')
       .select('id')
-      .first()
+      .first()) as { id?: unknown } | null
 
-    const levelRow = level as { id?: unknown } | null
-    if (levelRow?.id !== undefined) return Number(levelRow.id)
+    if (level?.id !== undefined) return Number(level.id)
 
     // Fallback: level 1 (beginner) nếu không tìm được
-    const fallback = await trx
+    const fallback = (await trx
       .from('proficiency_levels')
       .where('level_order', 1)
       .select('id')
-      .first()
+      .first()) as { id?: unknown } | null
 
-    const fallbackRow = fallback as { id?: unknown } | null
-    return fallbackRow?.id !== undefined ? Number(fallbackRow.id) : 1
+    return fallback?.id !== undefined ? Number(fallback.id) : 1
   }
 
   /**
@@ -178,11 +176,11 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     const now = new Date()
 
     // Check if exists
-    const existing = await trx
+    const existing = (await trx
       .from('user_spider_chart_data')
       .where('user_id', userId)
       .where('skill_id', skillId)
-      .first()
+      .first()) as { id: number } | null
 
     if (existing) {
       // Update

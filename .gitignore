@@ -28,6 +28,9 @@ public/assets
 # Build tools specific
 npm-debug.log
 yarn-error.log
+pnpm-debug.log
+.pnpm-store/
+.npm/
 
 # Editors specific
 .fleet
@@ -40,17 +43,20 @@ Thumbs.db
 
 # SQL dumps và dữ liệu
 *.sql
+*.sql.gz
 suar.sql
 suar_copy
 .sql
-
 *.dump
 
-# Docker volumes
+# Docker
 /data
+.docker-cache/
 
 # Logs
-logs
+logs/
 *.log
 
+# Old lockfiles (using pnpm-lock.yaml)
 package-lock.json
+yarn.lock

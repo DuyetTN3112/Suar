@@ -80,3 +80,15 @@ export function clear(): void {
   inFlightRequests.clear()
   emitter.removeAllListeners()
 }
+
+/**
+ * Single Flight Service - default export
+ */
+const SingleFlightService = {
+  execute,
+  isInFlight,
+  getInFlightCount,
+  clear,
+}
+
+export default SingleFlightService

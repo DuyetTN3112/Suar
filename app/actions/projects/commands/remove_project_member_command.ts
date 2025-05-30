@@ -46,6 +46,9 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
 
       // 6. Reassign tasks if needed
       const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
+      if (reassignToUserId === null) {
+        throw new Error('Cannot reassign tasks - no valid user available')
+      }
       await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, trx)
 
       // 7. Remove member
@@ -92,13 +95,13 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    * Check if user is superadmin of the organization
    */
   private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = await db
+    const result = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('role_id', 1)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number } | null
 
     return !!result
   }
@@ -124,16 +127,15 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     userId: number,
     trx: TransactionClientContract
   ): Promise<string> {
-    const member = await db
+    const member = (await trx
       .from('project_members')
       .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
       .where('project_members.project_id', projectId)
       .where('project_members.user_id', userId)
       .select('project_roles.name as role')
-      .useTransaction(trx)
-      .first()
+      .first()) as { role?: string } | null
 
-    return (member as { role?: string } | null)?.role ?? 'unknown'
+    return member?.role ?? 'unknown'
   }
 
   /**
@@ -145,7 +147,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     toUserId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    await db
+    await trx
       .from('tasks')
       .where('project_id', projectId)
       .where('assigned_to', fromUserId)
@@ -154,7 +156,6 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         assigned_to: toUserId,
         updated_at: new Date(),
       })
-      .useTransaction(trx)
   }
 
   /**
@@ -165,11 +166,10 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     userId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    await db
+    await trx
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
       .delete()
-      .useTransaction(trx)
   }
 }

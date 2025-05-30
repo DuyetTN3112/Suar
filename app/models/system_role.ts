@@ -17,7 +17,7 @@ export default class SystemRole extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
   })
   declare permissions: string[] | null
 

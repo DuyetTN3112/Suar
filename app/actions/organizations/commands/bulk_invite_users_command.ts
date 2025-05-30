@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import InviteUserCommand from './invite_user_command.js'
-import type CreateNotification from '#actions/common/create_notification'
 import { InviteUserDTO } from '../dtos/invite_user_dto.js'
 
 /**
@@ -23,10 +22,7 @@ export interface BulkInviteUsersDTO {
  * - Collect kết quả success/failure
  */
 export default class BulkInviteUsersCommand {
-  constructor(
-    protected ctx: HttpContext,
-    private createNotification: CreateNotification
-  ) {}
+  constructor(protected ctx: HttpContext) {}
 
   async execute(dto: BulkInviteUsersDTO): Promise<{
     success: string[]
@@ -39,12 +35,7 @@ export default class BulkInviteUsersCommand {
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = new InviteUserDTO({
-          organization_id: dto.organization_id,
-          email: email,
-          role_id: dto.role_id,
-          message: dto.message,
-        })
+        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.role_id, dto.message)
 
         await inviteCommand.execute(inviteDto)
         success.push(email)

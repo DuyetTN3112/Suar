@@ -22,7 +22,7 @@ export default class UserActivityLog extends BaseModel {
 
   @column({
     prepare: (value: object | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as object) : null),
   })
   declare action_data: object | null
 

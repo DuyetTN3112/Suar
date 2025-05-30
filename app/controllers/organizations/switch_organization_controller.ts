@@ -20,10 +20,12 @@ export default class SwitchOrganizationController {
     const switchOrganization = new SwitchOrganizationCommand(ctx)
     try {
       // Lấy organization_id và currentPath từ request
-      const { organization_id: organizationId, current_path: currentPath } = request.only([
-        'organization_id',
-        'current_path',
-      ])
+      const requestData = request.only(['organization_id', 'current_path']) as {
+        organization_id?: string | number
+        current_path?: string
+      }
+      const organizationId = requestData.organization_id
+      const currentPath = requestData.current_path
 
       // Kiểm tra nếu organizationId không tồn tại hoặc là null
       if (!organizationId) {
@@ -34,17 +36,17 @@ export default class SwitchOrganizationController {
           return
         }
 
-        return inertia.render('errors/400', { message: errorMessage })
+        return await inertia.render('errors/400', { message: errorMessage })
       }
 
       const orgId = Number(organizationId)
 
       // Get organization info before switching
-      const organization = await db
+      const organization = (await db
         .from('organizations')
         .where('id', orgId)
         .whereNull('deleted_at')
-        .first()
+        .first()) as { id: number; name: string } | null
 
       if (!organization) {
         const errorMessage = 'Không tìm thấy tổ chức'
@@ -54,7 +56,7 @@ export default class SwitchOrganizationController {
           return
         }
 
-        return inertia.render('errors/404', { message: errorMessage })
+        return await inertia.render('errors/404', { message: errorMessage })
       }
 
       // Sử dụng SwitchOrganizationCommand (validates membership inside)
@@ -67,7 +69,7 @@ export default class SwitchOrganizationController {
       await session.commit()
 
       // Xử lý phản hồi dựa trên loại request
-      const redirectPath = currentPath || '/tasks'
+      const redirectPath = currentPath ?? '/tasks'
       const successMessage = `Đã chuyển sang tổ chức "${organization.name}"`
 
       if (request.accepts(['html', 'json']) === 'json') {
@@ -82,8 +84,9 @@ export default class SwitchOrganizationController {
 
       // Sử dụng Inertia để chuyển hướng trong SPA
       session.flash('success', successMessage)
-      return inertia.location(redirectPath)
-    } catch (error) {
+      await inertia.location(redirectPath)
+      return
+    } catch (error: unknown) {
       console.error('[SwitchOrganizationController.handle] Error:', error)
 
       const errorMessage =
@@ -97,7 +100,7 @@ export default class SwitchOrganizationController {
         return
       }
 
-      return inertia.render('errors/500', { message: errorMessage })
+      return await inertia.render('errors/500', { message: errorMessage })
     }
   }
 }

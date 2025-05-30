@@ -82,13 +82,13 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
    * Check if user is superadmin of the organization
    */
   private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = await db
+    const result = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('role_id', 1)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number } | null
 
     return !!result
   }

@@ -109,10 +109,11 @@ export default class UpdateTaskStatusCommand {
     await user.load('system_role')
 
     // 1. Superadmin/Admin
-    const isSuperAdmin = ['superadmin', 'admin'].includes(
-      user.system_role?.name?.toLowerCase() ?? ''
-    )
-    if (isSuperAdmin) {
+    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
+    if (
+      systemRole !== undefined &&
+      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
+    ) {
       return
     }
 
@@ -122,18 +123,18 @@ export default class UpdateTaskStatusCommand {
     }
 
     // 3. Assignee
-    if (task.assigned_to && task.assigned_to === user.id) {
+    if (task.assigned_to === user.id) {
       return
     }
 
     // 4. Org Owner/Manager
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
-    if (orgUser && [1, 2].includes(orgUser.role_id as number)) {
+    if (orgUser && [1, 2].includes(orgUser.role_id)) {
       return
     }
 

@@ -38,15 +38,17 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
       const query = TaskApplication.query()
         .where('task_id', dto.task_id)
         .preload('applicant', (userQuery) => {
-          userQuery.preload('detail').preload('skills', (skillsQuery) => {
-            skillsQuery.preload('skill').preload('proficiency_level')
+          void userQuery.preload('detail')
+          void userQuery.preload('skills', (skillsQuery) => {
+            void skillsQuery.preload('skill')
+            void skillsQuery.preload('proficiency_level')
           })
         })
         .orderBy('applied_at', 'desc')
 
       // Filter by status
       if (dto.status && dto.status !== 'all') {
-        query.where('application_status', dto.status)
+        void query.where('application_status', dto.status)
       }
 
       const result = await query.paginate(dto.page, dto.per_page)

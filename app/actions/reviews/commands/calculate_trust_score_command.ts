@@ -85,16 +85,16 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     userId: number,
     trx: TransactionClientContract
   ): Promise<{ rawScore: number; totalReviews: number }> {
-    const result = await trx
+    const result = (await trx
       .from('user_spider_chart_data')
       .where('user_id', userId)
       .select(
         db.raw('COALESCE(AVG(avg_percentage), 0) as raw_score'),
         db.raw('COUNT(*) as total_reviews')
       )
-      .first()
+      .first()) as { raw_score?: unknown; total_reviews?: unknown } | null
 
-    const row = result as { raw_score?: unknown; total_reviews?: unknown } | null
+    const row = result
     return {
       rawScore: Number(row?.raw_score || 0),
       totalReviews: Number(row?.total_reviews || 0),
@@ -114,7 +114,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     trx: TransactionClientContract
   ): Promise<{ tierId: number; tierWeight: number; tierName: string }> {
     // Check nếu user thuộc verified partner
-    const partnerCheck = await trx
+    const partnerCheck = (await trx
       .from('organization_users')
       .join('organizations', 'organization_users.organization_id', 'organizations.id')
       .join('verified_partners', (join) => {
@@ -125,7 +125,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       .where('organization_users.user_id', userId)
       .where('organization_users.status', 'approved')
       .select('verified_partners.id')
-      .first()
+      .first()) as { id: number } | null
 
     if (partnerCheck) {
       // Tier 3: Partner-Verified
@@ -137,11 +137,11 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     }
 
     // Check nếu user thuộc organization
-    const orgCheck = await trx
+    const orgCheck = (await trx
       .from('organization_users')
       .where('user_id', userId)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number } | null
 
     if (orgCheck) {
       // Tier 2: Org-Verified
@@ -174,7 +174,9 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     const now = new Date()
 
     // Check if exists
-    const existing = await trx.from('user_trust_scores').where('user_id', userId).first()
+    const existing = (await trx.from('user_trust_scores').where('user_id', userId).first()) as {
+      id: number
+    } | null
 
     if (existing) {
       // Update

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { getErrorMessage } from '#utils/error_utils'
 import ListConversationsQuery from '#actions/conversations/queries/list_conversations_query'
 import CreateConversationCommand from '#actions/conversations/commands/create_conversation_command'
 import GetConversationDetailQuery from '#actions/conversations/queries/get_conversation_detail_query'
@@ -24,13 +25,13 @@ export default class ConversationController {
     // Manual instantiation
     const listConversationsQuery = new ListConversationsQuery(ctx)
 
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
+    const page = request.input('page', 1) as number
+    const limit = request.input('limit', 10) as number
 
     const dto = new ListConversationsDTO(page, limit)
     const conversations = await listConversationsQuery.execute(dto)
 
-    return inertia.render('conversations/index', { conversations })
+    return await inertia.render('conversations/index', { conversations })
   }
 
   /**
@@ -55,10 +56,10 @@ export default class ConversationController {
     const createConversationCommand = new CreateConversationCommand(ctx)
 
     try {
-      const participantIds = request.input('participants', [])
-      const initialMessage = request.input('initial_message')
-      const title = request.input('title')
-      const organizationId = auth.user?.current_organization_id || undefined
+      const participantIds = request.input('participants', []) as number[]
+      const initialMessage = request.input('initial_message') as string | undefined
+      const title = request.input('title') as string | undefined
+      const organizationId = auth.user?.current_organization_id as number | undefined
 
       const dto = new CreateConversationDTO(participantIds, initialMessage, title, organizationId)
       const conversation = await createConversationCommand.execute(dto)
@@ -66,8 +67,8 @@ export default class ConversationController {
       response.redirect().toRoute('conversations.show', { id: conversation.id })
       return
     } catch (error: unknown) {
-      return inertia.render('conversations/create', {
-        error: error.message || 'Đã xảy ra lỗi khi tạo cuộc trò chuyện',
+      return await inertia.render('conversations/create', {
+        error: getErrorMessage(error, 'Đã xảy ra lỗi khi tạo cuộc trò chuyện'),
       })
     }
   }
@@ -82,14 +83,14 @@ export default class ConversationController {
     const getConversationDetailQuery = new GetConversationDetailQuery(ctx)
 
     try {
-      const conversationId = Number.parseInt(params.id)
+      const conversationId = Number.parseInt(params.id as string)
       const dto = new GetConversationDetailDTO(conversationId)
 
       const conversation = await getConversationDetailQuery.execute(dto)
-      return inertia.render('conversations/show', { conversation })
+      return await inertia.render('conversations/show', { conversation })
     } catch (error: unknown) {
-      return inertia.render('errors/not-found', {
-        message: error.message || 'Không tìm thấy cuộc trò chuyện',
+      return await inertia.render('errors/not-found', {
+        message: getErrorMessage(error, 'Không tìm thấy cuộc trò chuyện'),
       })
     }
   }
@@ -104,15 +105,15 @@ export default class ConversationController {
     const addParticipantCommand = new AddParticipantCommand(ctx)
 
     try {
-      const conversationId = Number.parseInt(params.id)
-      const userId = request.input('user_id')
+      const conversationId = Number.parseInt(params.id as string)
+      const userId = request.input('user_id') as number
 
       const dto = new AddParticipantDTO(conversationId, userId)
       await addParticipantCommand.execute(dto)
 
       response.redirect().back()
       return
-    } catch (error) {
+    } catch (_error: unknown) {
       response.redirect().back()
       return
     }
@@ -127,8 +128,8 @@ export default class ConversationController {
     // Manual instantiation
     const sendMessageCommand = new SendMessageCommand(ctx)
 
-    const conversationId = Number.parseInt(params.id)
-    const message = request.input('message')
+    const conversationId = Number.parseInt(params.id as string)
+    const message = request.input('message') as string
 
     const dto = new SendMessageDTO(conversationId, message)
     await sendMessageCommand.execute(dto)
@@ -146,13 +147,13 @@ export default class ConversationController {
     const markAsReadCommand = new MarkAsReadCommand(ctx)
 
     try {
-      const conversationId = Number.parseInt(params.id)
+      const conversationId = Number.parseInt(params.id as string)
       const dto = new MarkAsReadDTO(conversationId)
 
       await markAsReadCommand.execute(dto)
       response.redirect().back()
       return
-    } catch (error) {
+    } catch (_error: unknown) {
       response.redirect().back()
       return
     }
@@ -168,13 +169,13 @@ export default class ConversationController {
     const deleteConversationCommand = new DeleteConversationCommand(ctx)
 
     try {
-      const conversationId = Number.parseInt(params.id)
+      const conversationId = Number.parseInt(params.id as string)
       const dto = new DeleteConversationDTO(conversationId)
 
       await deleteConversationCommand.execute(dto)
       response.redirect().toRoute('conversations.index')
       return
-    } catch (error) {
+    } catch (_error: unknown) {
       response.redirect().back()
       return
     }

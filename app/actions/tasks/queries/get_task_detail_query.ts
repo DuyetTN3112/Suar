@@ -59,44 +59,24 @@ export default class GetTaskDetailQuery {
     // Check permission
     await this.validateViewPermission(user, task)
 
-    // Load basic relations (always)
-    await task.load((loader: unknown) => {
-      loader
-        .load('status')
-        .load('label')
-        .load('priority')
-        .load('assignee', (q: unknown) => {
-          q.select(['id', 'username', 'email'])
-        })
-        .load('creator', (q: unknown) => {
-          q.select(['id', 'username'])
-        })
-        .load('updater', (q: unknown) => {
-          q.select(['id', 'username'])
-        })
-        .load('organization')
-        .load('project')
-        .load('parentTask', (q: unknown) => {
-          q.select(['id', 'title', 'status_id']).preload('status')
-        })
-    })
+    // Load basic relations (always) - Using sequential loads for type safety
+    await task.load('status')
+    await task.load('label')
+    await task.load('priority')
+    await task.load('assignee')
+    await task.load('creator')
+    await task.load('updater')
+    await task.load('organization')
+    await task.load('project')
+    await task.load('parentTask')
 
     // Load optional relations
     if (dto.shouldLoadChildTasks()) {
-      await task.load('childTasks', (childQuery: unknown) => {
-        childQuery
-          .whereNull('deleted_at')
-          .preload('status')
-          .preload('assignee', (q: unknown) => {
-            q.select(['id', 'username'])
-          })
-      })
+      await task.load('childTasks')
     }
 
     if (dto.shouldLoadVersions()) {
-      await task.load('versions', (versionQuery: unknown) => {
-        versionQuery.orderBy('changed_at', 'desc').limit(20)
-      })
+      await task.load('versions')
     }
 
     // Calculate permissions
@@ -127,31 +107,36 @@ export default class GetTaskDetailQuery {
    * Validate view permission
    */
   private async validateViewPermission(user: User, task: Task): Promise<void> {
-    // Load user role
-    await user.load('role')
+    // Check if user is system superadmin via system_roles table (suar.sql)
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
     // Admin/Superadmin can view all
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
     if (isSuperAdmin) {
       return
     }
 
     // Creator can view
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // Assignee can view
-    if (task.assigned_to && Number(task.assigned_to) === Number(user.id)) {
+    if (task.assigned_to && task.assigned_to === user.id) {
       return
     }
 
     // Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (orgUser && [1, 2].includes(orgUser.role_id)) {
       return
@@ -173,18 +158,24 @@ export default class GetTaskDetailQuery {
     canDelete: boolean
     canAssign: boolean
   }> {
-    await user.load('role')
+    // Check if user is system superadmin via system_roles table
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
-    const isCreator = Number(task.creator_id) === Number(user.id)
-    const isAssignee = task.assigned_to && Number(task.assigned_to) === Number(user.id)
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isCreator = task.creator_id === user.id
+    const isAssignee = task.assigned_to && task.assigned_to === user.id
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
 
     // Check org role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     const isOrgOwnerOrManager = orgUser && [1, 2].includes(orgUser.role_id)
 
@@ -211,23 +202,24 @@ export default class GetTaskDetailQuery {
       .where('entity_id', taskId)
       .orderBy('created_at', 'desc')
       .limit(limit)
-      .preload('user', (userQuery: unknown) => {
-        userQuery.select(['id', 'username', 'email'])
-      })
+      .preload('user')
 
-    return logs.map((log) => ({
-      id: log.id,
-      action: log.action,
-      user: log.user
-        ? {
-            id: log.user.id,
-            name: log.user.username,
-            email: log.user.email,
-          }
-        : null,
-      timestamp: log.created_at,
-      changes: this.formatChanges(log.old_values || {}, log.new_values || {}),
-    }))
+    return logs.map((log) => {
+      return {
+        id: log.id,
+        action: log.action,
+        user: {
+          id: log.user.id,
+          name: log.user.username,
+          email: log.user.email,
+        },
+        timestamp: log.created_at,
+        changes: this.formatChanges(
+          (log.old_values ?? {}) as Record<string, unknown>,
+          (log.new_values ?? {}) as Record<string, unknown>
+        ),
+      }
+    })
   }
 
   /**
@@ -255,11 +247,32 @@ export default class GetTaskDetailQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<{
+    task: Task
+    permissions: {
+      isCreator: boolean
+      isAssignee: boolean
+      canEdit: boolean
+      canDelete: boolean
+      canAssign: boolean
+    }
+    auditLogs?: unknown[]
+  } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        const parsed = JSON.parse(cached) as {
+          task: Task
+          permissions: {
+            isCreator: boolean
+            isAssignee: boolean
+            canEdit: boolean
+            canDelete: boolean
+            canAssign: boolean
+          }
+          auditLogs?: unknown[]
+        }
+        return parsed
       }
     } catch (error) {
       console.error('[GetTaskDetailQuery] Cache get error:', error)

@@ -4,6 +4,17 @@ import redis from '@adonisjs/redis/services/main'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
+// Type alias for Task query builder
+type TaskQueryBuilder = ReturnType<typeof Task.query>
+
+// Interface for group count rows
+interface GroupCountRow {
+  status_id?: number
+  priority_id?: number
+  label_id?: number
+  $extras: { count: number | string; total?: number | string }
+}
+
 /**
  * Query để lấy statistics của tasks
  *
@@ -55,16 +66,21 @@ export default class GetTaskStatisticsQuery {
     const cacheKey = `task:stats:org:${organizationId}:user:${user.id}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
-      return cached
+      return cached as ReturnType<typeof this.execute> extends Promise<infer R> ? R : never
     }
 
-    // Load user role for permission filtering
-    await user.load('role')
+    // Check if user is superadmin via system_roles table (suar.sql)
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
     // Build base query with permissions
     const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
 
-    await this.applyPermissionFilters(baseQuery, user, organizationId)
+    await this.applyPermissionFilters(baseQuery, user.id, userData?.role_name, organizationId)
 
     // Execute all statistics queries in parallel
     const [
@@ -111,25 +127,26 @@ export default class GetTaskStatisticsQuery {
    * Apply permission filters
    */
   private async applyPermissionFilters(
-    query: unknown,
-    user: unknown,
+    query: ReturnType<typeof Task.query>,
+    userId: number,
+    roleName: string | undefined,
     organizationId: number
   ): Promise<void> {
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(roleName?.toLowerCase() || '')
 
     if (isSuperAdmin) {
       return
     }
 
     // Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', organizationId)
-      .where('user_id', user.id)
-      .first()
+      .where('user_id', userId)
+      .first()) as { role_id: number } | null
 
     if (!orgUser) {
-      query.where('id', -1) // No results
+      void query.where('id', -1) // No results
       return
     }
 
@@ -139,17 +156,19 @@ export default class GetTaskStatisticsQuery {
     }
 
     // Member: Only own tasks
-    query.where((memberQuery: unknown) => {
-      memberQuery.where('creator_id', user.id).orWhere('assigned_to', user.id)
+    void query.where((memberQuery) => {
+      void memberQuery.where('creator_id', userId).orWhere('assigned_to', userId)
     })
   }
 
-  private async getTotalCount(baseQuery: unknown): Promise<number> {
+  private async getTotalCount(baseQuery: ReturnType<typeof Task.query>): Promise<number> {
     const result = await baseQuery.clone().count('* as total').first()
-    return Number(result?.$extras.total || 0)
+    if (!result) return 0
+    const typedResult = result as unknown as GroupCountRow
+    return Number(typedResult.$extras.total ?? 0)
   }
 
-  private async getCountByStatus(baseQuery: unknown): Promise<Record<string, number>> {
+  private async getCountByStatus(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('status_id')
@@ -157,13 +176,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('status_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: unknown) => {
-      stats[row.status_id] = Number(row.$extras.count)
+    ;(results as unknown as GroupCountRow[]).forEach((row) => {
+      stats[String(row.status_id)] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getCountByPriority(baseQuery: unknown): Promise<Record<string, number>> {
+  private async getCountByPriority(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('priority_id')
@@ -172,13 +191,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('priority_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: unknown) => {
-      stats[row.priority_id] = Number(row.$extras.count)
+    ;(results as unknown as GroupCountRow[]).forEach((row) => {
+      stats[String(row.priority_id)] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getCountByLabel(baseQuery: unknown): Promise<Record<string, number>> {
+  private async getCountByLabel(baseQuery: TaskQueryBuilder): Promise<Record<string, number>> {
     const results = await baseQuery
       .clone()
       .select('label_id')
@@ -187,13 +206,13 @@ export default class GetTaskStatisticsQuery {
       .groupBy('label_id')
 
     const stats: Record<string, number> = {}
-    results.forEach((row: unknown) => {
-      stats[row.label_id] = Number(row.$extras.count)
+    ;(results as unknown as GroupCountRow[]).forEach((row) => {
+      stats[String(row.label_id)] = Number(row.$extras.count)
     })
     return stats
   }
 
-  private async getOverdueCount(baseQuery: unknown): Promise<number> {
+  private async getOverdueCount(baseQuery: TaskQueryBuilder): Promise<number> {
     const result = await baseQuery
       .clone()
       .whereNotNull('due_date')
@@ -202,10 +221,11 @@ export default class GetTaskStatisticsQuery {
       .count('* as total')
       .first()
 
-    return Number(result?.$extras.total || 0)
+    const typedResult = result as GroupCountRow | null
+    return Number(typedResult?.$extras.total ?? 0)
   }
 
-  private async getCompletedThisWeek(baseQuery: unknown): Promise<number> {
+  private async getCompletedThisWeek(baseQuery: TaskQueryBuilder): Promise<number> {
     const startOfWeek = DateTime.now().startOf('week')
 
     const result = await baseQuery
@@ -215,10 +235,11 @@ export default class GetTaskStatisticsQuery {
       .count('* as total')
       .first()
 
-    return Number(result?.$extras.total || 0)
+    const typedResult = result as GroupCountRow | null
+    return Number(typedResult?.$extras.total ?? 0)
   }
 
-  private async getCompletedThisMonth(baseQuery: unknown): Promise<number> {
+  private async getCompletedThisMonth(baseQuery: TaskQueryBuilder): Promise<number> {
     const startOfMonth = DateTime.now().startOf('month')
 
     const result = await baseQuery
@@ -228,20 +249,21 @@ export default class GetTaskStatisticsQuery {
       .count('* as total')
       .first()
 
-    return Number(result?.$extras.total || 0)
+    const typedResult = result as GroupCountRow | null
+    return Number(typedResult?.$extras.total ?? 0)
   }
 
-  private async getAvgCompletionDays(baseQuery: unknown): Promise<number | null> {
-    const completedTasks = await baseQuery
+  private async getAvgCompletionDays(baseQuery: TaskQueryBuilder): Promise<number | null> {
+    const completedTasks = (await baseQuery
       .clone()
       .where('status_id', 3) // Completed
-      .select('created_at', 'updated_at')
+      .select('created_at', 'updated_at')) as Task[]
 
     if (completedTasks.length === 0) {
       return null
     }
 
-    const totalDays = completedTasks.reduce((sum: number, task: unknown) => {
+    const totalDays = completedTasks.reduce((sum: number, task: Task) => {
       const created = DateTime.fromJSDate(task.created_at.toJSDate())
       const completed = DateTime.fromJSDate(task.updated_at.toJSDate())
       return sum + completed.diff(created, 'days').days
@@ -250,7 +272,7 @@ export default class GetTaskStatisticsQuery {
     return Math.round(totalDays / completedTasks.length)
   }
 
-  private async getTimeTrackingStats(baseQuery: unknown): Promise<{
+  private async getTimeTrackingStats(baseQuery: TaskQueryBuilder): Promise<{
     tasksWithEstimate: number
     tasksWithActual: number
     totalEstimated: number
@@ -259,19 +281,13 @@ export default class GetTaskStatisticsQuery {
     avgActual: number
     efficiency: number | null
   }> {
-    const tasks = await baseQuery.clone().select('estimated_time', 'actual_time')
+    const tasks = (await baseQuery.clone().select('estimated_time', 'actual_time')) as Task[]
 
-    const tasksWithEstimate = tasks.filter((t: unknown) => t.estimated_time).length
-    const tasksWithActual = tasks.filter((t: unknown) => t.actual_time).length
+    const tasksWithEstimate = tasks.filter((t: Task) => t.estimated_time).length
+    const tasksWithActual = tasks.filter((t: Task) => t.actual_time).length
 
-    const totalEstimated = tasks.reduce(
-      (sum: number, t: unknown) => sum + (Number(t.estimated_time) || 0),
-      0
-    )
-    const totalActual = tasks.reduce(
-      (sum: number, t: unknown) => sum + (Number(t.actual_time) || 0),
-      0
-    )
+    const totalEstimated = tasks.reduce((sum: number, t: Task) => sum + (t.estimated_time || 0), 0)
+    const totalActual = tasks.reduce((sum: number, t: Task) => sum + (t.actual_time || 0), 0)
 
     const avgEstimated = tasksWithEstimate > 0 ? totalEstimated / tasksWithEstimate : 0
     const avgActual = tasksWithActual > 0 ? totalActual / tasksWithActual : 0

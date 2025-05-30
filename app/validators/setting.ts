@@ -3,7 +3,7 @@ import vine from '@vinejs/vine'
 /**
  * Validator cho cập nhật cài đặt tài khoản
  */
-export const accountSettingValidator = vine.compile(
+export const accountSettingValidator = vine.create(
   vine.object({
     firstName: vine.string().maxLength(100),
     lastName: vine.string().maxLength(100),
@@ -17,7 +17,7 @@ export const accountSettingValidator = vine.compile(
 /**
  * Validator cho cập nhật cài đặt giao diện
  */
-export const appearanceSettingValidator = vine.compile(
+export const appearanceSettingValidator = vine.create(
   vine.object({
     theme: vine.string().maxLength(20),
     displayMode: vine.string().maxLength(20),
@@ -27,7 +27,7 @@ export const appearanceSettingValidator = vine.compile(
 /**
  * Validator cho cập nhật cài đặt thông báo
  */
-export const notificationSettingValidator = vine.compile(
+export const notificationSettingValidator = vine.create(
   vine.object({
     notificationsEnabled: vine.boolean(),
   })

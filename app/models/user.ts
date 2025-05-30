@@ -121,7 +121,8 @@ export default class User extends BaseModel {
    * Kiểm tra xem user có quyền admin hay không
    */
   get isAdmin() {
-    return ['superadmin', 'system_admin'].includes(this.system_role?.name ?? '')
+    const role = this.$preloaded.system_role as typeof this.system_role | undefined
+    return role !== undefined && ['superadmin', 'system_admin'].includes(role.name)
   }
 
   @manyToMany(() => Organization, {

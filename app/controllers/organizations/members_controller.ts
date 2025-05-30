@@ -37,7 +37,10 @@ export default class MembersController {
     const getPendingRequests = new GetPendingRequestsQuery(ctx)
     const getMetadata = new GetOrganizationMetadataQuery(ctx)
 
-    const user = auth.user!
+    const user = auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
     const organizationId = Number(params.id)
 
     try {
@@ -59,27 +62,27 @@ export default class MembersController {
       const metadata = await getMetadata.execute()
 
       // Get organization info
-      const organization = await db
+      const organization = (await db
         .from('organizations')
         .where('id', organizationId)
         .whereNull('deleted_at')
-        .first()
+        .first()) as { id: number; name: string } | null
 
       // Get user's role
-      const membership = await db
+      const membership = (await db
         .from('organization_users')
         .where('organization_id', organizationId)
         .where('user_id', user.id)
-        .first()
+        .first()) as { role_id: number } | null
 
-      return inertia.render('organizations/members/index', {
+      return await inertia.render('organizations/members/index', {
         organization,
         members: membersResult.data,
         roles: metadata.roles,
         userRole: membership?.role_id || 0,
         pendingRequests,
       })
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.index] Error:', error)
       return inertia.render('organizations/members/index', {
         organization: null,
@@ -105,24 +108,24 @@ export default class MembersController {
       const requests = await getPendingRequests.execute(organizationId)
 
       // Get organization info
-      const organization = await db
+      const organization = (await db
         .from('organizations')
         .where('id', organizationId)
         .whereNull('deleted_at')
-        .first()
+        .first()) as { id: number; name: string } | null
 
       if (!organization) {
         response.redirect().toRoute('organizations.index')
         return
       }
 
-      return inertia.render('organizations/members/pending_requests', {
+      return await inertia.render('organizations/members/pending_requests', {
         organization,
         pendingRequests: requests,
       })
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.pendingRequests] Error:', error)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -139,9 +142,11 @@ export default class MembersController {
     const addMember = new AddMemberCommand(ctx, new CreateNotification(ctx))
 
     try {
-      const { email, roleId } = request.body()
+      const body = request.body() as { email: string; roleId: string | number }
+      const email = body.email
+      const roleId = Number(body.roleId)
 
-      const dto = new AddMemberDTO(Number(params.id), email, Number(roleId))
+      const dto = new AddMemberDTO(Number(params.id), email, roleId)
 
       await addMember.execute(dto)
 
@@ -155,9 +160,9 @@ export default class MembersController {
       }
 
       session.flash('success', 'Thêm thành viên thành công')
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.add] Error:', error)
 
       const errorMessage =
@@ -172,7 +177,7 @@ export default class MembersController {
       }
 
       session.flash('error', errorMessage)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -189,26 +194,28 @@ export default class MembersController {
     const inviteUser = new InviteUserCommand(ctx)
 
     try {
-      const { email, roleId } = request.body()
+      const body = request.body() as { email: string; roleId: string | number }
+      const email = body.email
+      const roleId = Number(body.roleId)
+      const organizationId = Number(params.id as string)
 
-      const dto = new InviteUserDTO(Number(params.id), email, Number(roleId))
+      const dto = new InviteUserDTO(organizationId, email, roleId)
 
-      const invitation = await inviteUser.execute(dto)
+      await inviteUser.execute(dto)
 
       // Kiểm tra nếu là request AJAX/JSON
       if (request.accepts(['html', 'json']) === 'json') {
         response.json({
           success: true,
           message: 'Gửi lời mời thành công',
-          invitation,
         })
         return
       }
 
       session.flash('success', 'Gửi lời mời thành công')
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.invite] Error:', error)
 
       const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi lời mời'
@@ -222,7 +229,7 @@ export default class MembersController {
       }
 
       session.flash('error', errorMessage)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -237,7 +244,7 @@ export default class MembersController {
     processJoinRequest: ProcessJoinRequestCommand
   ) {
     try {
-      const { action } = request.body()
+      const { action } = request.body() as { action: string }
 
       if (!['approve', 'reject'].includes(action)) {
         const errorMessage = 'Hành động không hợp lệ'
@@ -252,18 +259,18 @@ export default class MembersController {
 
         session.flash('error', errorMessage)
         response.redirect().toRoute('organizations.members.pending_requests', {
-          id: params.id,
+          id: params.id as string,
         })
         return
       }
 
       // Find the join request to get requestId
-      const joinRequest = await db
+      const joinRequest = (await db
         .from('organization_join_requests')
         .where('organization_id', Number(params.id))
         .where('user_id', Number(params.userId))
         .where('status', 'pending')
-        .first()
+        .first()) as { id: number } | null
 
       if (!joinRequest) {
         throw new Error('Không tìm thấy yêu cầu tham gia')
@@ -291,10 +298,10 @@ export default class MembersController {
 
       session.flash('success', successMessage)
       response.redirect().toRoute('organizations.members.pending_requests', {
-        id: params.id,
+        id: params.id as string,
       })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.processRequest] Error:', error)
 
       const errorMessage =
@@ -310,7 +317,7 @@ export default class MembersController {
 
       session.flash('error', errorMessage)
       response.redirect().toRoute('organizations.members.pending_requests', {
-        id: params.id,
+        id: params.id as string,
       })
       return
     }
@@ -326,16 +333,20 @@ export default class MembersController {
     addMember: AddMemberCommand
   ) {
     try {
-      const { userId, roleId } = request.body()
+      const body = request.body() as { userId: string | number; roleId: string | number }
+      const userId = Number(body.userId)
+      const roleId = Number(body.roleId)
 
       // Tìm user để lấy email
-      const user = await db.from('users').where('id', Number(userId)).first()
+      const user = (await db.from('users').where('id', userId).first()) as {
+        email: string
+      } | null
 
       if (!user) {
         throw new Error('Không tìm thấy người dùng')
       }
 
-      const dto = new AddMemberDTO(Number(params.id), user.email, Number(roleId))
+      const dto = new AddMemberDTO(Number(params.id), user.email, roleId)
 
       await addMember.execute(dto)
 
@@ -349,9 +360,9 @@ export default class MembersController {
       }
 
       session.flash('success', 'Thêm thành viên thành công')
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.addDirect] Error:', error)
 
       const errorMessage =
@@ -366,7 +377,7 @@ export default class MembersController {
       }
 
       session.flash('error', errorMessage)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -395,9 +406,9 @@ export default class MembersController {
       }
 
       session.flash('success', 'Xóa thành viên thành công')
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.remove] Error:', error)
 
       const errorMessage =
@@ -412,7 +423,7 @@ export default class MembersController {
       }
 
       session.flash('error', errorMessage)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -427,9 +438,10 @@ export default class MembersController {
     updateMemberRole: UpdateMemberRoleCommand
   ) {
     try {
-      const { roleId } = request.body()
+      const body = request.body() as { roleId: string | number }
+      const roleId = Number(body.roleId)
 
-      const dto = new UpdateMemberRoleDTO(Number(params.id), Number(params.userId), Number(roleId))
+      const dto = new UpdateMemberRoleDTO(Number(params.id), Number(params.userId), roleId)
 
       await updateMemberRole.execute(dto)
 
@@ -443,9 +455,9 @@ export default class MembersController {
       }
 
       session.flash('success', 'Cập nhật vai trò thành công')
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.updateRole] Error:', error)
 
       const errorMessage =
@@ -460,7 +472,7 @@ export default class MembersController {
       }
 
       session.flash('error', errorMessage)
-      response.redirect().toRoute('organizations.members.index', { id: params.id })
+      response.redirect().toRoute('organizations.members.index', { id: params.id as string })
       return
     }
   }
@@ -508,7 +520,7 @@ export default class MembersController {
     }
 
     // Lấy danh sách user_ids từ request
-    const userIds = request.input('user_ids', [])
+    const userIds = request.input('user_ids', []) as number[]
     if (!Array.isArray(userIds) || userIds.length === 0) {
       if (request.accepts(['html', 'json']) === 'json') {
         response.status(400).json({
@@ -532,7 +544,9 @@ export default class MembersController {
       for (const userId of userIds) {
         try {
           // Tìm user để lấy email
-          const targetUser = await db.from('users').where('id', Number(userId)).first()
+          const targetUser = (await db.from('users').where('id', userId).first()) as {
+            email: string
+          } | null
 
           if (!targetUser) {
             results.push({
@@ -567,8 +581,8 @@ export default class MembersController {
             status: 'added',
             message: 'Thêm thành công',
           })
-        } catch (error) {
-          console.error(`[MembersController.addUsers] Error adding user ${userId}:`, error)
+        } catch (error: unknown) {
+          console.error(`[MembersController.addUsers] Error adding user ${String(userId)}:`, error)
           results.push({
             user_id: userId,
             status: 'failed',
@@ -595,14 +609,15 @@ export default class MembersController {
       // Chuyển hướng về trang danh sách thành viên của tổ chức
       response.redirect().toRoute('organizations.members.index', { id: organizationId })
       return
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[MembersController.addUsers] Error:', error)
 
       if (request.accepts(['html', 'json']) === 'json') {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         response.status(500).json({
           success: false,
           message: 'Đã xảy ra lỗi khi thêm người dùng vào tổ chức',
-          error: error.message,
+          error: errorMessage,
         })
         return
       }

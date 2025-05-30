@@ -30,6 +30,12 @@ export default class LangStaticMiddleware {
         const locale = parts[2]
         const file = parts[3]
 
+        // Kiểm tra locale và file có tồn tại không
+        if (!locale || !file) {
+          response.status(404).send('Not Found')
+          return
+        }
+
         // Kiểm tra tệp có hợp lệ không
         if (!file.endsWith('.json')) {
           // Removed debug log: console.log(`[LangStaticMiddleware] Not a JSON file: ${file}`)

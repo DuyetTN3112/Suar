@@ -1,6 +1,7 @@
 import { healthChecks } from '#start/health'
 import type { HttpContext } from '@adonisjs/core/http'
 import env from '#start/env'
+import { getErrorMessage } from '#utils/error_utils'
 
 /**
  * Controller xử lý các health checks
@@ -36,12 +37,12 @@ export default class HealthChecksController {
       }
       response.serviceUnavailable(fullReport)
       return
-    } catch (error) {
+    } catch (error: unknown) {
       // Xử lý lỗi khi thực hiện health check
       const errorReport = {
         isHealthy: false,
         status: 'error',
-        error: error.message,
+        error: getErrorMessage(error, 'Health check failed'),
         timestamp: new Date().toISOString(),
         executionTime: `${Date.now() - startTime}ms`,
       }

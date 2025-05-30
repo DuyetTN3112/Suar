@@ -10,48 +10,48 @@ import {
 import Redis from '@adonisjs/redis/services/main'
 
 /**
+ * Khởi tạo Firebase app
+ */
+function initializeFirebase() {
+  const app = initializeApp(firebaseConfig)
+  return getAuth(app)
+}
+
+/**
+ * Lưu thông tin verification ID vào Redis cache
+ */
+async function storeVerificationId(userId: number, verificationId: string, ttl = 300) {
+  await Redis.set(`phone_verification:${userId}`, verificationId, 'EX', ttl)
+}
+
+/**
+ * Lấy verification ID từ Redis cache
+ */
+async function getVerificationId(userId: number): Promise<string | null> {
+  return await Redis.get(`phone_verification:${userId}`)
+}
+
+/**
+ * Xóa verification ID khỏi Redis cache
+ */
+async function removeVerificationId(userId: number) {
+  await Redis.del(`phone_verification:${userId}`)
+}
+
+/**
  * Service quản lý xác thực Firebase cho số điện thoại
  */
-export default class FirebaseAuthService {
-  /**
-   * Khởi tạo Firebase app
-   */
-  private static initializeFirebase() {
-    const app = initializeApp(firebaseConfig)
-    return getAuth(app)
-  }
-
-  /**
-   * Lưu thông tin verification ID vào Redis cache
-   */
-  private static async storeVerificationId(userId: number, verificationId: string, ttl = 300) {
-    await Redis.set(`phone_verification:${userId}`, verificationId, 'EX', ttl)
-  }
-
-  /**
-   * Lấy verification ID từ Redis cache
-   */
-  private static async getVerificationId(userId: number): Promise<string | null> {
-    return await Redis.get(`phone_verification:${userId}`)
-  }
-
-  /**
-   * Xóa verification ID khỏi Redis cache
-   */
-  private static async removeVerificationId(userId: number) {
-    await Redis.del(`phone_verification:${userId}`)
-  }
-
+const FirebaseAuthService = {
   /**
    * Gửi mã OTP đến số điện thoại
    */
-  public static async sendOTP(
+  async sendOTP(
     phoneNumber: string,
     userId: number,
     recaptchaToken: string
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
-      const auth = this.initializeFirebase()
+      const auth = initializeFirebase()
       // Tạo RecaptchaVerifier với token từ client
       const appVerifier = new RecaptchaVerifier(auth, recaptchaToken, {})
 
@@ -59,7 +59,7 @@ export default class FirebaseAuthService {
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier)
 
       // Lưu verification ID vào Redis cache
-      await this.storeVerificationId(userId, confirmationResult.verificationId)
+      await storeVerificationId(userId, confirmationResult.verificationId)
 
       return {
         status: 'success',
@@ -73,20 +73,20 @@ export default class FirebaseAuthService {
         message: errorMessage,
       }
     }
-  }
+  },
 
   /**
    * Xác minh mã OTP
    */
-  public static async verifyOTP(
+  async verifyOTP(
     userId: number,
     otp: string
   ): Promise<{ status: 'success' | 'error'; message: string }> {
     try {
-      const auth = this.initializeFirebase()
+      const auth = initializeFirebase()
 
       // Lấy verification ID từ Redis cache
-      const verificationId = await this.getVerificationId(userId)
+      const verificationId = await getVerificationId(userId)
 
       if (!verificationId) {
         return {
@@ -102,7 +102,7 @@ export default class FirebaseAuthService {
       await signInWithCredential(auth, credential)
 
       // Xóa verification ID khỏi Redis cache sau khi xác thực thành công
-      await this.removeVerificationId(userId)
+      await removeVerificationId(userId)
 
       return {
         status: 'success',
@@ -112,7 +112,7 @@ export default class FirebaseAuthService {
       console.error('Firebase Auth Error:', error)
 
       // Xóa verification ID khỏi Redis cache nếu mã OTP không hợp lệ
-      await this.removeVerificationId(userId)
+      await removeVerificationId(userId)
 
       const errorMessage = error instanceof Error ? error.message : 'Mã OTP không hợp lệ'
       return {
@@ -120,5 +120,7 @@ export default class FirebaseAuthService {
         message: errorMessage,
       }
     }
-  }
+  },
 }
+
+export default FirebaseAuthService

@@ -104,13 +104,13 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
    */
   private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
     // Check database directly
-    const org = await db
+    const org = (await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('role_id', 1)
       .where('status', 'approved')
-      .first()
+      .first()) as { id: number } | null
 
     return !!org
   }

@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
-import Task from '#models/task'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 
@@ -52,7 +52,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
         // Update application status
         application.application_status = 'approved'
         application.reviewed_by = userId
-        application.reviewed_at = new Date() as any
+        application.reviewed_at = DateTime.now()
 
         await application.useTransaction(trx).save()
 
@@ -89,7 +89,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
         // Reject application
         application.application_status = 'rejected'
         application.reviewed_by = userId
-        application.reviewed_at = new Date() as any
+        application.reviewed_at = DateTime.now()
         application.rejection_reason = dto.rejection_reason
 
         await application.useTransaction(trx).save()

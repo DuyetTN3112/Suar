@@ -47,7 +47,7 @@ export default class Task extends BaseModel {
   declare updated_by: number | null
 
   @column.dateTime()
-  declare due_date: DateTime
+  declare due_date: DateTime | null
 
   @column.dateTime()
   declare deleted_at: DateTime | null
@@ -79,7 +79,7 @@ export default class Task extends BaseModel {
 
   @column({
     prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
   })
   declare required_skills: string[] | null
 
@@ -161,8 +161,8 @@ export default class Task extends BaseModel {
     return {
       ...this.serializeAttributes(),
       ...this.serializeRelations(),
-      created_at: this.created_at ? this.created_at.toISO() : null,
-      updated_at: this.updated_at ? this.updated_at.toISO() : null,
+      created_at: this.created_at.toISO(),
+      updated_at: this.updated_at.toISO(),
       due_date: this.due_date ? this.due_date.toISO() : null,
       deleted_at: this.deleted_at ? this.deleted_at.toISO() : null,
     }

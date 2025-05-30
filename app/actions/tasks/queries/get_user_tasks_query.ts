@@ -129,7 +129,15 @@ export default class GetUserTasksQuery {
   /**
    * Build cache key
    */
-  private buildCacheKey(options: unknown): string {
+  private buildCacheKey(options: {
+    userId: number
+    organizationId: number
+    filterType?: 'assigned' | 'created' | 'both'
+    statusId?: number
+    priorityId?: number
+    page?: number
+    limit?: number
+  }): string {
     const parts = [
       'task:user',
       `user:${options.userId}`,
@@ -154,13 +162,29 @@ export default class GetUserTasksQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<{
+    data: Task[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+    }
+  } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as {
+          data: Task[]
+          meta: {
+            total: number
+            per_page: number
+            current_page: number
+            last_page: number
+          }
+        }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[GetUserTasksQuery] Cache get error:', error)
     }
     return null
@@ -172,7 +196,7 @@ export default class GetUserTasksQuery {
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('[GetUserTasksQuery] Cache set error:', error)
     }
   }

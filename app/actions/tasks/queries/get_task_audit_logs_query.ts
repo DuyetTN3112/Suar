@@ -51,24 +51,27 @@ export default class GetTaskAuditLogsQuery {
       .where('entity_id', taskId)
       .orderBy('created_at', 'desc')
       .limit(limit)
-      .preload('user', (userQuery: unknown) => {
-        userQuery.select(['id', 'username', 'email'])
+      .preload('user', (userQuery) => {
+        void userQuery.select(['id', 'username', 'email'])
       })
 
     // Format logs
-    const formattedLogs = logs.map((log) => ({
-      id: log.id,
-      action: log.action,
-      user: log.user
-        ? {
-            id: log.user.id,
-            name: log.user.username || 'Unknown',
-            email: log.user.email,
-          }
-        : null,
-      timestamp: log.created_at.toJSDate(),
-      changes: this.formatChanges(log.old_values || {}, log.new_values || {}),
-    }))
+    const formattedLogs = logs.map((log) => {
+      return {
+        id: log.id,
+        action: log.action,
+        user: {
+          id: log.user.id,
+          name: log.user.username || 'Unknown',
+          email: log.user.email,
+        },
+        timestamp: log.created_at.toJSDate(),
+        changes: this.formatChanges(
+          (log.old_values || {}) as Record<string, unknown>,
+          (log.new_values || {}) as Record<string, unknown>
+        ),
+      }
+    })
 
     // Cache result
     await this.saveToCache(cacheKey, formattedLogs, 120) // 2 minutes
@@ -102,11 +105,26 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<unknown> {
+  private async getFromCache(key: string): Promise<Array<{
+    id: number
+    action: string
+    user: { id: number; name: string; email: string } | null
+    timestamp: Date
+    changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
+  }> | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
-        return JSON.parse(cached)
+        const parsed: unknown = JSON.parse(cached)
+        if (Array.isArray(parsed)) {
+          return parsed as Array<{
+            id: number
+            action: string
+            user: { id: number; name: string; email: string } | null
+            timestamp: Date
+            changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
+          }>
+        }
       }
     } catch (error) {
       console.error('[GetTaskAuditLogsQuery] Cache get error:', error)

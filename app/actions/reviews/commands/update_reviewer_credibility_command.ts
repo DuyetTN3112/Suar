@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
 import db from '@adonisjs/lucid/services/db'
 
@@ -33,21 +34,20 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
     credibility_score: number
     total_reviews: number
   }> {
-    return await this.executeInTransaction(async (trx) => {
+    return await this.executeInTransaction(async (trx: TransactionClientContract) => {
       // 1. Count total reviews given
-      const totalReviewsResult = await db
+      const totalReviewsResult = (await db
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .where('skill_reviews.reviewer_id', dto.user_id)
         .where('review_sessions.status', 'completed')
         .count('* as count')
-        .useTransaction(trx as any)
-        .first()
+        .first({ client: trx })) as { count?: unknown } | null
 
       const totalReviews = Number(totalReviewsResult?.count || 0)
 
       // 2. Count confirmed reviews
-      const confirmedResult = await db
+      const confirmedResult = (await db
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .join(
@@ -59,13 +59,12 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
         .where('review_sessions.status', 'completed')
         .where('review_confirmations.action', 'confirmed')
         .countDistinct('skill_reviews.review_session_id as count')
-        .useTransaction(trx as any)
-        .first()
+        .first({ client: trx })) as { count?: unknown } | null
 
       const confirmed = Number(confirmedResult?.count || 0)
 
       // 3. Count disputed reviews
-      const disputedResult = await db
+      const disputedResult = (await db
         .from('skill_reviews')
         .join('review_sessions', 'skill_reviews.review_session_id', 'review_sessions.id')
         .join(
@@ -77,8 +76,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
         .where('review_sessions.status', 'disputed')
         .where('review_confirmations.action', 'disputed')
         .countDistinct('skill_reviews.review_session_id as count')
-        .useTransaction(trx as any)
-        .first()
+        .first({ client: trx })) as { count?: unknown } | null
 
       const disputed = Number(disputedResult?.count || 0)
 
@@ -91,11 +89,10 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
       }
 
       // 5. Upsert reviewer_credibility
-      const existing = await db
+      const existing = (await db
         .from('reviewer_credibility')
         .where('user_id', dto.user_id)
-        .useTransaction(trx as any)
-        .first()
+        .first({ client: trx })) as { id: number } | null
 
       if (existing) {
         await db
@@ -108,19 +105,19 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
             disputed_reviews: disputed,
             last_calculated_at: new Date(),
           })
-          .useTransaction(trx as any)
+          .update({ client: trx })
       } else {
-        await db
-          .table('reviewer_credibility')
-          .insert({
+        await db.table('reviewer_credibility').insert(
+          {
             user_id: dto.user_id,
             credibility_score: score,
             total_reviews_given: totalReviews,
             accurate_reviews: confirmed,
             disputed_reviews: disputed,
             last_calculated_at: new Date(),
-          })
-          .useTransaction(trx as any)
+          },
+          { client: trx }
+        )
       }
 
       return {

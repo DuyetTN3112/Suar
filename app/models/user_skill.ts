@@ -77,7 +77,9 @@ export default class UserSkill extends BaseModel {
   static async getUserSkillsWithDetails(userId: number) {
     return await this.query()
       .where('user_id', userId)
-      .preload('skill', (query) => query.preload('category'))
+      .preload('skill', (query) => {
+        void query.preload('category')
+      })
       .preload('proficiency_level')
       .orderBy('created_at', 'desc')
   }

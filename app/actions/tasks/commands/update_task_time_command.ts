@@ -97,12 +97,12 @@ export default class UpdateTaskTimeCommand {
     await user.load('system_role')
 
     // 1. Superadmin/Admin
-    if (user.system_role) {
-      const roleName = user.system_role.name
-      const isSuperAdmin = ['superadmin', 'admin'].includes(roleName.toLowerCase())
-      if (isSuperAdmin) {
-        return
-      }
+    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
+    if (
+      systemRole !== undefined &&
+      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
+    ) {
+      return
     }
 
     // 2. Creator
@@ -111,7 +111,7 @@ export default class UpdateTaskTimeCommand {
     }
 
     // 3. Assignee (especially for actual_time)
-    if (task.assigned_to && task.assigned_to === user.id) {
+    if (task.assigned_to === user.id) {
       return
     }
 

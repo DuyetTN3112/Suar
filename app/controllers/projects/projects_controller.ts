@@ -44,7 +44,7 @@ export default class ProjectsController {
       // Check for organization modal flag
       const showOrganizationRequiredModal = session.has('show_organization_required_modal')
 
-      return inertia.render('projects/index', {
+      return await inertia.render('projects/index', {
         projects: result.data,
         pagination: result.pagination,
         filters: result.filters,
@@ -121,9 +121,10 @@ export default class ProjectsController {
     try {
       // Execute query
       const query = new GetProjectDetailQuery(ctx)
-      const result = await query.handle(params.id)
+      const projectId = params.id as string
+      const result = await query.handle({ projectId })
 
-      return inertia.render('projects/show', result)
+      return await inertia.render('projects/show', result)
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Không thể tìm thấy dự án'
       session.flash('error', errorMessage)
@@ -139,8 +140,9 @@ export default class ProjectsController {
     const { params, response, session } = ctx
     try {
       // Build DTO
+      const projectId = params.id as string
       const dto = new DeleteProjectDTO({
-        project_id: params.id,
+        project_id: projectId,
       })
 
       // Execute command
@@ -166,9 +168,9 @@ export default class ProjectsController {
     try {
       // Build DTO
       const dto = new AddProjectMemberDTO({
-        project_id: request.input('project_id'),
-        user_id: request.input('user_id'),
-        project_role_id: request.input('project_role_id'),
+        project_id: Number(request.input('project_id')),
+        user_id: Number(request.input('user_id')),
+        project_role_id: Number(request.input('project_role_id')),
       })
 
       // Execute command
@@ -191,6 +193,25 @@ export default class ProjectsController {
    * Helper: Build GetProjectsListDTO from request
    */
   private buildListDTO(request: HttpContext['request']): GetProjectsListDTO {
+    const visibilityInput = request.input('visibility') as string | undefined
+    const sortByInput = (request.input('sort_by', 'created_at') ?? 'created_at') as string
+
+    // Validate visibility value
+    const validVisibilities = ['public', 'private', 'team'] as const
+    type VisibilityType = (typeof validVisibilities)[number]
+    const visibility: VisibilityType | undefined = validVisibilities.includes(
+      visibilityInput as VisibilityType
+    )
+      ? (visibilityInput as VisibilityType)
+      : undefined
+
+    // Validate sort_by value
+    const validSortBy = ['created_at', 'name', 'start_date', 'end_date'] as const
+    type SortByType = (typeof validSortBy)[number]
+    const sortBy: SortByType = validSortBy.includes(sortByInput as SortByType)
+      ? (sortByInput as SortByType)
+      : 'created_at'
+
     return {
       page: Number(request.input('page', 1)),
       limit: Number(request.input('limit', 20)),
@@ -198,9 +219,9 @@ export default class ProjectsController {
       status_id: request.input('status_id') as number | undefined,
       creator_id: request.input('creator_id') as number | undefined,
       manager_id: request.input('manager_id') as number | undefined,
-      visibility: request.input('visibility') as string | undefined,
+      visibility,
       search: request.input('search') as string | undefined,
-      sort_by: (request.input('sort_by', 'created_at') ?? 'created_at') as string,
+      sort_by: sortBy,
       sort_order: (request.input('sort_order', 'desc') ?? 'desc') as 'asc' | 'desc',
     }
   }
@@ -209,6 +230,17 @@ export default class ProjectsController {
    * Helper: Build CreateProjectDTO from request
    */
   private buildCreateDTO(request: HttpContext['request']): CreateProjectDTO {
+    const visibilityInput = request.input('visibility') as string | undefined
+
+    // Validate visibility value
+    const validVisibilities = ['public', 'private', 'team'] as const
+    type VisibilityType = (typeof validVisibilities)[number]
+    const visibility: VisibilityType | undefined = validVisibilities.includes(
+      visibilityInput as VisibilityType
+    )
+      ? (visibilityInput as VisibilityType)
+      : undefined
+
     return new CreateProjectDTO({
       name: request.input('name') as string,
       description: request.input('description') as string | undefined,
@@ -221,7 +253,7 @@ export default class ProjectsController {
         ? DateTime.fromISO(String(request.input('end_date')))
         : null,
       manager_id: request.input('manager_id') as number | undefined,
-      visibility: request.input('visibility') as string | undefined,
+      visibility,
       budget: request.input('budget') as number | undefined,
     })
   }

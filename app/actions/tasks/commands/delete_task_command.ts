@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
+import { getErrorMessage } from '#utils/error_utils'
 
 /**
  * Command để xóa task
@@ -31,7 +32,13 @@ export default class DeleteTaskCommand {
    * Execute command để xóa task
    */
   async execute(dto: DeleteTaskDTO): Promise<{ success: boolean; message: string }> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      return {
+        success: false,
+        message: 'Bạn cần đăng nhập để thực hiện hành động này',
+      }
+    }
 
     const trx = await db.transaction()
     try {
@@ -77,10 +84,10 @@ export default class DeleteTaskCommand {
       // Send notifications (after transaction)
       if (taskData.assigned_to && taskData.assigned_to !== user.id) {
         await this.createNotification.handle({
-          user_id: taskData.assigned_to,
+          user_id: taskData.assigned_to as number,
           type: 'task_deleted',
           title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason})` : ''}`,
+          message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
           related_entity_type: 'task',
           related_entity_id: dto.task_id,
         })
@@ -88,10 +95,10 @@ export default class DeleteTaskCommand {
 
       if (taskData.creator_id !== user.id && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
-          user_id: taskData.creator_id,
+          user_id: taskData.creator_id as number,
           type: 'task_deleted',
           title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason})` : ''}`,
+          message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
           related_entity_type: 'task',
           related_entity_id: dto.task_id,
         })
@@ -108,7 +115,7 @@ export default class DeleteTaskCommand {
       console.error('[DeleteTaskCommand] Error:', error)
       return {
         success: false,
-        message: error.message || 'Có lỗi xảy ra khi xóa nhiệm vụ',
+        message: getErrorMessage(error, 'Có lỗi xảy ra khi xóa nhiệm vụ'),
       }
     }
   }
@@ -117,17 +124,23 @@ export default class DeleteTaskCommand {
    * Validate permission để xóa task
    */
   private async validateDeletePermission(user: User, task: Task): Promise<void> {
-    await user.load('role')
+    // Check if user is superadmin via system_roles
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
 
     if (isSuperAdmin) {
       // Admin/Superadmin must belong to organization
-      const orgUser = await db
+      const orgUser = (await db
         .from('organization_users')
         .where('organization_id', task.organization_id)
         .where('user_id', user.id)
-        .first()
+        .first()) as { id: number } | null
 
       if (orgUser) {
         return
@@ -137,16 +150,16 @@ export default class DeleteTaskCommand {
     }
 
     // Creator can delete own tasks
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // Check organization role
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (!orgUser) {
       throw new Error('Bạn không có quyền xóa task này')
@@ -165,9 +178,14 @@ export default class DeleteTaskCommand {
    * Validate Superadmin permission cho hard delete
    */
   private async validateSuperadminPermission(user: User): Promise<void> {
-    await user.load('role')
+    const userData = (await db
+      .from('users')
+      .join('system_roles', 'users.system_role_id', 'system_roles.id')
+      .where('users.id', user.id)
+      .select('system_roles.name as role_name')
+      .first()) as { role_name?: string } | null
 
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
 
     if (!isSuperAdmin) {
       throw new Error('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')

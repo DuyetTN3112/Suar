@@ -1,16 +1,28 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { AllyUserContract } from '@adonisjs/ally/types'
+import type { Oauth2AccessToken } from '@poppinss/oauth-client/types'
 import User from '#models/user'
 import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
-import { AuthLogger } from '../../helpers/auth_logger.js'
+import * as AuthLogger from '#helpers/auth_logger'
 import env from '#start/env'
 
+type SupportedProvider = 'google' | 'github'
+type SocialUser = AllyUserContract<Oauth2AccessToken>
+
 export default class SocialAuthController {
+  /**
+   * Check if provider is supported
+   */
+  private isSupportedProvider(provider: string): provider is SupportedProvider {
+    return ['google', 'github'].includes(provider)
+  }
+
   /**
    * Chuyển hướng người dùng đến trang đăng nhập của nhà cung cấp
    */
   async redirect({ params, ally, request }: HttpContext) {
-    const { provider } = params
+    const provider = params.provider as string
 
     // Log config check
     const hasClientId = !!env.get(`${provider.toUpperCase()}_CLIENT_ID`)
@@ -19,7 +31,7 @@ export default class SocialAuthController {
     AuthLogger.configCheck(provider, hasClientId, hasClientSecret, callbackUrl)
 
     // Kiểm tra provider hợp lệ
-    if (!['google', 'github'].includes(provider)) {
+    if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'redirect')
       return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
     }
@@ -30,8 +42,9 @@ export default class SocialAuthController {
         userAgent: request.header('user-agent'),
         ip: request.ip(),
       })
-      return ally.use(provider).redirect()
-    } catch (error) {
+      const socialAuth = ally.use(provider)
+      await socialAuth.redirect()
+    } catch (error: unknown) {
       AuthLogger.oauthError(provider, error, 'redirect')
       return { error: `Không thể chuyển hướng đến ${provider}` }
     }
@@ -40,7 +53,7 @@ export default class SocialAuthController {
    * Xử lý callback từ nhà cung cấp xác thực
    */
   async callback({ params, ally, auth, response, request }: HttpContext) {
-    const { provider } = params
+    const provider = params.provider as string
 
     AuthLogger.oauthCallbackStart(provider, {
       query: request.qs(),
@@ -49,7 +62,7 @@ export default class SocialAuthController {
     })
 
     // Kiểm tra provider hợp lệ
-    if (!['google', 'github'].includes(provider)) {
+    if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'callback-validation')
       return { error: 'Nhà cung cấp xác thực không được hỗ trợ' }
     }
@@ -68,27 +81,49 @@ export default class SocialAuthController {
       return
     }
     if (socialAuth.hasError()) {
-      AuthLogger.oauthError(provider, socialAuth.getError(), 'callback-error')
-      response.redirect().withQs({ error: socialAuth.getError() }).toPath('/login')
+      const errorMessage = socialAuth.getError()
+      AuthLogger.oauthError(provider, errorMessage, 'callback-error')
+      response.redirect().withQs({ error: errorMessage }).toPath('/login')
       return
     }
 
     try {
       // Lấy thông tin người dùng từ nhà cung cấp xác thực
-      const socialUser = await socialAuth.user()
+      const socialUser: SocialUser = await socialAuth.user()
       AuthLogger.oauthUserReceived(provider, socialUser)
+
+      // Validate email exists
+      const socialEmail = socialUser.email
+      if (!socialEmail) {
+        AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
+        response
+          .redirect()
+          .withQs({ error: 'Email không được cung cấp từ nhà cung cấp' })
+          .toPath('/login')
+        return
+      }
+
+      const socialId = socialUser.id
+      const accessToken = socialUser.token.token
+      const refreshToken = socialUser.token.refreshToken ?? null
+
       // Kiểm tra xem đã có OAuth provider record chưa
       let oauthProvider
       try {
         oauthProvider = await UserOAuthProvider.query()
           .where('provider', provider)
-          .where('provider_id', socialUser.id)
+          .where('provider_id', socialId)
           .first()
-        AuthLogger.oauthProviderLookup(provider, socialUser.id, !!oauthProvider)
-      } catch (error) {
+        AuthLogger.oauthProviderLookup(provider, socialId, !!oauthProvider)
+      } catch (error: unknown) {
         AuthLogger.oauthError(provider, error, 'provider-lookup')
         // Kiểm tra xem bảng đã tồn tại chưa
-        if (error.code === 'ER_NO_SUCH_TABLE') {
+        if (
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          error.code === 'ER_NO_SUCH_TABLE'
+        ) {
           // Table doesn't exist, continue with oauthProvider as undefined
         }
         // Continue processing with oauthProvider as undefined
@@ -100,11 +135,11 @@ export default class SocialAuthController {
         if (user) {
           // Cập nhật token mới nếu cần
           try {
-            oauthProvider.access_token = socialUser.token.token
-            oauthProvider.refresh_token = socialUser.token.refreshToken
+            oauthProvider.access_token = accessToken
+            oauthProvider.refresh_token = refreshToken
             await oauthProvider.save()
             AuthLogger.dbTransaction('update-oauth-tokens', true, { userId: user.id })
-          } catch (error) {
+          } catch (error: unknown) {
             AuthLogger.oauthError(provider, error, 'update-tokens')
           }
           await auth.use('web').login(user)
@@ -114,9 +149,9 @@ export default class SocialAuthController {
         }
       }
       // Tìm người dùng với email từ xã hội
-      let user = await User.findBy('email', socialUser.email)
+      let user = await User.findBy('email', socialEmail)
       AuthLogger.dbTransaction('find-user-by-email', true, {
-        email: socialUser.email,
+        email: socialEmail,
         found: !!user,
       })
 
@@ -126,28 +161,38 @@ export default class SocialAuthController {
           await UserOAuthProvider.create({
             user_id: user.id,
             provider: provider,
-            provider_id: socialUser.id,
-            email: socialUser.email,
-            access_token: socialUser.token.token,
-            refresh_token: socialUser.token.refreshToken,
+            provider_id: socialId,
+            email: socialEmail,
+            access_token: accessToken,
+            refresh_token: refreshToken,
           })
           AuthLogger.dbTransaction('link-oauth-provider', true, { userId: user.id, provider })
-        } catch (error) {
+        } catch (error: unknown) {
           AuthLogger.oauthError(provider, error, 'link-oauth-provider')
           // Nếu lỗi là do bảng không tồn tại
-          if (error.code === 'ER_NO_SUCH_TABLE') {
+          if (
+            error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            error.code === 'ER_NO_SUCH_TABLE'
+          ) {
             // Table doesn't exist, continue
           }
         }
         // Cập nhật auth_method nếu đang là email
         try {
-          if (user.auth_method === 'email' || !user.auth_method) {
-            user.auth_method = provider as 'google' | 'github'
+          if (user.auth_method === 'email') {
+            user.auth_method = provider
             await user.save()
           }
-        } catch (error) {
+        } catch (error: unknown) {
           // Kiểm tra xem cột auth_method đã tồn tại chưa
-          if (error.code === 'ER_BAD_FIELD_ERROR') {
+          if (
+            error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            error.code === 'ER_BAD_FIELD_ERROR'
+          ) {
             // Column doesn't exist, continue
           }
         }
@@ -158,20 +203,20 @@ export default class SocialAuthController {
         return // Chuyển hướng đến trang chính sau khi đăng nhập
       }
       // Nếu chưa có user, tạo mới
-      AuthLogger.dbTransaction('create-new-user-start', true, { provider, email: socialUser.email })
+      AuthLogger.dbTransaction('create-new-user-start', true, { provider, email: socialEmail })
       try {
         await db.transaction(async (trx) => {
           // Tìm status_id và role_id mặc định
-          const defaultStatusId = await db
+          const defaultStatusId = (await db
             .from('user_status')
             .where('name', 'active')
             .select('id')
-            .first()
-          const defaultRoleId = await db
+            .first()) as { id: number } | null
+          const defaultRoleId = (await db
             .from('system_roles')
             .where('name', 'registered_user')
             .select('id')
-            .first()
+            .first()) as { id: number } | null
 
           if (!defaultStatusId || !defaultRoleId) {
             AuthLogger.oauthError(
@@ -189,18 +234,19 @@ export default class SocialAuthController {
           // Xác định tên và họ từ dữ liệu mạng xã hội
           let firstName = ''
           let lastName = ''
-          const nameParts = socialUser.name?.split(' ') || []
+          const socialName = socialUser.name
+          const nameParts = socialName.split(' ')
           if (nameParts.length > 0) {
-            lastName = nameParts.pop() || ''
+            lastName = nameParts.pop() ?? ''
             firstName = nameParts.join(' ')
           }
-          if (!firstName && !lastName && socialUser.name) {
-            firstName = socialUser.name
+          if (!firstName && !lastName && socialName) {
+            firstName = socialName
           }
 
           // Tạo username từ email nếu không có
-          const username =
-            socialUser.nickName || socialUser.email?.split('@')[0] || `user_${Date.now()}`
+          const nickName = socialUser.nickName
+          const username = nickName || socialEmail.split('@')[0] || `user_${Date.now()}`
           // Tạo user mới
           try {
             interface UserData {
@@ -212,7 +258,7 @@ export default class SocialAuthController {
               auth_method?: 'google' | 'github' | 'email'
             }
             const userData: UserData = {
-              email: socialUser.email as string,
+              email: socialEmail,
               username: username,
               status_id: defaultStatusId.id,
               system_role_id: defaultRoleId.id,
@@ -221,12 +267,12 @@ export default class SocialAuthController {
             // Thêm auth_method nếu cột tồn tại
             try {
               userData.auth_method = provider
-            } catch (error) {
+            } catch {
               // Error setting auth_method
             }
             user = await User.create(userData, { client: trx })
             AuthLogger.userCreated(user.id, provider, user.email)
-          } catch (error) {
+          } catch (error: unknown) {
             AuthLogger.oauthError(provider, error, 'create-user-record')
             throw error
           }
@@ -237,18 +283,19 @@ export default class SocialAuthController {
               {
                 user_id: user.id,
                 provider: provider,
-                provider_id: socialUser.id,
-                email: socialUser.email,
-                access_token: socialUser.token.token,
-                refresh_token: socialUser.token.refreshToken,
+                provider_id: socialId,
+                email: socialEmail,
+                access_token: accessToken,
+                refresh_token: refreshToken,
               },
               { client: trx }
             )
             AuthLogger.dbTransaction('create-oauth-provider', true, { userId: user.id, provider })
-          } catch (error) {
+          } catch (error: unknown) {
             AuthLogger.oauthError(provider, error, 'create-oauth-provider')
             // Nếu lỗi là do bảng không tồn tại, bỏ qua
-            if (error.code !== 'ER_NO_SUCH_TABLE') {
+            const dbError = error as { code?: string }
+            if (dbError.code !== 'ER_NO_SUCH_TABLE') {
               throw error
             }
           }
@@ -256,17 +303,19 @@ export default class SocialAuthController {
           AuthLogger.dbTransaction('create-user-complete', true, { userId: user.id })
         })
 
-        // Đăng nhập người dùng mới
-        await auth.use('web').login(user!)
-        AuthLogger.userLogin(user!.id, user!.email, provider)
+        // Đăng nhập người dùng mới - user is guaranteed to be User type after transaction
+        // TypeScript cannot track reassignment inside transaction callback
+        const createdUser = user as User
+        await auth.use('web').login(createdUser)
+        AuthLogger.userLogin(createdUser.id, createdUser.email, provider)
         response.redirect('/organizations')
         return // Chuyển hướng để tạo tổ chức mới
-      } catch (error) {
+      } catch (error: unknown) {
         AuthLogger.oauthError(provider, error, 'create-user-transaction')
         response.redirect().withQs({ error: 'Lỗi khi tạo tài khoản mới' }).toPath('/login')
         return
       }
-    } catch (error) {
+    } catch (error: unknown) {
       AuthLogger.oauthError(provider, error, 'callback-outer')
       response
         .redirect()
