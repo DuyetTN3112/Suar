@@ -1,7 +1,7 @@
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
 import { configure, processCLIArgs, run } from '@japa/runner'
 import { assert } from '@japa/assert'
-import { specReporter } from '@japa/spec-reporter'
+import { SpecReporter } from '@japa/spec-reporter'
 import { fileSystem } from '@japa/file-system'
 
 /**
@@ -22,6 +22,11 @@ const IMPORTER = (filePath: string | URL) => {
   return import(filePathString)
 }
 
+const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
+  const reporter = new SpecReporter()
+  reporter.boot(...args)
+}
+
 try {
   const ignitor = new Ignitor(APP_ROOT, { importer: IMPORTER })
 
@@ -40,24 +45,56 @@ try {
   await app.init()
   await app.boot()
 
-  /**
-   * Configure test runner
-   */
-  configure({
-    files: ['app/**/*.spec.ts'],
-    plugins: [assert(), fileSystem()],
-    reporters: {
-      activated: ['spec'],
-      list: [specReporter()],
-    },
-    importer: IMPORTER,
-  })
+  await app.start(async () => {
+    /**
+     * Parse CLI args first so configure() can use them for suite filtering.
+     * Example: --suites=unit will only run the unit suite.
+     */
+    processCLIArgs(process.argv.splice(2))
 
-  /**
-   * Run tests
-   */
-  processCLIArgs(process.argv.splice(2))
-  await run()
+    /**
+     * Configure test runner with 3 suites:
+     *   - unit: Pure logic tests, no DB/network
+     *   - integration: Tests that need DB/services
+     *   - match: Pattern matching / snapshot tests
+     *
+     * Run all:          pnpm test
+     * Run one suite:    pnpm test:unit | pnpm test:integration | pnpm test:match
+     */
+    configure({
+      suites: [
+        {
+          name: 'unit',
+          files: ['tests/unit/**/*.spec.ts'],
+        },
+        {
+          name: 'integration',
+          files: ['tests/integration/**/*.spec.ts'],
+        },
+        {
+          name: 'match',
+          files: ['tests/match/**/*.spec.ts'],
+        },
+      ],
+      plugins: [assert(), fileSystem()],
+      reporters: {
+        activated: ['spec'],
+        list: [
+          {
+            name: 'spec',
+            handler: createSpecReporter,
+          },
+        ],
+      },
+      forceExit: true,
+      importer: IMPORTER,
+    })
+
+    /**
+     * Run tests
+     */
+    await run()
+  })
 } catch (error) {
   void prettyPrintError(error as Error)
   process.exitCode = 1
