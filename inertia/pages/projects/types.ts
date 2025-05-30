@@ -1,30 +1,37 @@
 export interface User {
-  id: number
+  id: string
   username: string
   email: string
-  current_organization_id?: number | null
+  current_organization_id?: string | null
+  organizations?: Array<{
+    id: string
+    name: string
+  }>
 }
 
 export interface Organization {
-  id: number
+  id: string
   name: string
 }
 
 export interface ProjectStatus {
-  id: number
-  name: string
+  value: string
+  label: string
   description?: string
 }
 
 export interface ProjectMember {
-  id: number
+  id?: string
+  user_id?: string
   username: string
   email: string
   role: string
+  joined_at?: string
+  task_count?: number
 }
 
 export interface Task {
-  id: number
+  id: string
   title: string
   description?: string
   status: string
@@ -35,14 +42,14 @@ export interface Task {
 }
 
 export interface Project {
-  id: number
+  id: string
   name: string
   description?: string
-  organization_id: number
+  organization_id: string
   organization_name?: string
-  creator_id: number
+  creator_id: string
   creator_name?: string
-  manager_id?: number
+  manager_id?: string
   manager_name?: string
   start_date?: string
   end_date?: string
@@ -65,10 +72,21 @@ export interface ProjectShowProps {
   project: Project
   members: ProjectMember[]
   tasks: Task[]
+  tasks_summary?: {
+    total: number
+    pending: number
+    in_progress: number
+    completed: number
+    overdue: number
+  }
   permissions: {
     isCreator: boolean
     isManager: boolean
     isMember: boolean
+    isOwner?: boolean
+    canEdit?: boolean
+    canDelete?: boolean
+    canAddMembers?: boolean
   }
   auth: {
     user: User
