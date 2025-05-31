@@ -1,0 +1,118 @@
+services:
+  # 1. App Suar (AdonisJS + Inertia)
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3333:3333"
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - PORT=3333
+      - HOST=0.0.0.0
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      # Kết nối PostgreSQL
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DATABASE=suar
+      - AUDIT_STORE=postgres
+      - NOTIFICATION_STORE=postgres
+      # Kết nối Redis
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-fanout-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["node", "ace", "notification:fanout-work"]
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DATABASE=suar
+      - AUDIT_STORE=postgres
+      - NOTIFICATION_STORE=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  notification-outbox-worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    command: ["node", "ace", "notification:outbox-work"]
+    environment:
+      - TZ=Asia/Ho_Chi_Minh
+      - NODE_ENV=production
+      - APP_KEY=${APP_KEY}
+      - PG_HOST=postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DATABASE=suar
+      - AUDIT_STORE=postgres
+      - NOTIFICATION_STORE=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - SESSION_DRIVER=redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # 2. Database PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: suar
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d suar" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 3. Redis
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
