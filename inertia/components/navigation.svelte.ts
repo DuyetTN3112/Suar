@@ -1,10 +1,11 @@
-import * as LucideIcons from 'lucide-react'
+import * as LucideIcons from 'lucide-svelte'
+import type { ComponentType } from 'svelte'
 
 interface BaseNavItem {
   title: string
-  titleKey?: string // Khóa dịch cho tiêu đề
+  titleKey?: string
   badge?: string
-  icon?: React.ElementType
+  icon?: ComponentType
 }
 
 type NavLink = BaseNavItem & {
@@ -21,18 +22,15 @@ type NavItem = NavCollapsible | NavLink
 
 interface NavGroup {
   title: string
-  titleKey?: string // Khóa dịch cho tiêu đề nhóm
+  titleKey?: string
   items: NavItem[]
 }
 
-// Hàm để chuyển đổi chuỗi icon thành component icon tương ứng
-function getIconByName(name?: string): React.ElementType | undefined {
+function getIconByName(name?: string): ComponentType | undefined {
   if (!name) return undefined
-  const icons = LucideIcons as Record<string, React.ElementType | undefined>
-  return icons[name]
+  return (LucideIcons as unknown as Record<string, ComponentType>)[name]
 }
 
-// Các tổ chức mẫu cho giao diện
 export const defaultOrganizations = [
   {
     id: '1',
@@ -54,7 +52,6 @@ export const defaultOrganizations = [
   },
 ]
 
-// Các định nghĩa cho menu điều hướng chính
 const navigationData = [
   {
     title: 'Tổng quan',
@@ -112,7 +109,6 @@ const navigationData = [
   },
 ]
 
-// Chuyển đổi dữ liệu để có icon là component thay vì string
 export const mainNavigation: NavGroup[] = navigationData.map((group) => ({
   title: group.title,
   titleKey: group.titleKey,
