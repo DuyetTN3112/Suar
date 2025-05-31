@@ -1,15 +1,24 @@
 import logger from '@adonisjs/core/services/logger'
 
+/**
+ * Auth Logger
+ *
+ * Centralized logging for authentication-related events.
+ * Pattern học từ ancarat-bo: tách biệt logging logic.
+ *
+ * @module AuthLogger
+ */
+
 interface LogContext {
   [key: string]: unknown
 }
 
 interface SocialUser {
   id: string | number
-  email: string
+  email: string | null
   name?: string
   nickName?: string
-  avatarUrl?: string
+  avatarUrl?: string | null
   token?: {
     refreshToken?: string
   }

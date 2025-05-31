@@ -7,7 +7,7 @@
  * @module ErrorUtils
  * @example
  * ```typescript
- * import { getErrorMessage, isAppError, AppError } from '#utils/error_utils'
+ * import { getErrorMessage, isAppError, AppError } from '#libs/error_utils'
  *
  * try {
  *   await someOperation()
