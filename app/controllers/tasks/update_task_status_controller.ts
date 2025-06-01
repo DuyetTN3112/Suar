@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import UpdateTaskStatusDTO from '#actions/tasks/dtos/update_task_status_dto'
 import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
 import CreateNotification from '#actions/common/create_notification'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * PATCH /tasks/:id/status
@@ -24,7 +25,7 @@ export default class UpdateTaskStatusController {
       )
       const task = await command.execute(dto)
 
-      response.status(200).json({
+      response.status(HttpStatus.OK).json({
         success: true,
         message: 'Trạng thái nhiệm vụ đã được cập nhật',
         task,
@@ -33,7 +34,7 @@ export default class UpdateTaskStatusController {
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi cập nhật trạng thái nhiệm vụ'
-      ctx.response.status(500).json({
+      ctx.response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: errorMessage,
       })

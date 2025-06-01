@@ -85,7 +85,15 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       const code = error.code ?? this.getErrorCodeFromStatus(error.status)
       const message = error.message ?? ErrorMessages.GENERIC_ERROR
 
-      // Validation errors từ VineJS
+      // Custom ValidationException (từ DTOs/Actions) — có .errors field
+      if (error instanceof ValidationException && Object.keys(error.errors).length > 0) {
+        response
+          .status(HttpStatus.UNPROCESSABLE_ENTITY)
+          .json(createApiError(ErrorCode.VALIDATION, message, error.errors))
+        return
+      }
+
+      // VineJS validation errors — có .messages field
       if (error.status === HttpStatus.UNPROCESSABLE_ENTITY && 'messages' in error) {
         response
           .status(HttpStatus.UNPROCESSABLE_ENTITY)
@@ -97,6 +105,11 @@ export default class HttpExceptionHandler extends ExceptionHandler {
             )
           )
         return
+      }
+
+      // RateLimitException — thêm Retry-After header
+      if (error instanceof RateLimitException && error.retryAfter) {
+        response.header('Retry-After', String(error.retryAfter))
       }
 
       response.status(error.status).json(createApiError(code, message))
@@ -130,6 +143,16 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // ----------------------------------------------------------------
     if (isHttpError(error) && error.status === HttpStatus.FORBIDDEN) {
       session.flash('errors', { form: ErrorMessages.FORBIDDEN_ACTION })
+      response.redirect().back()
+      return
+    }
+
+    // ----------------------------------------------------------------
+    // 404 — Not Found
+    // ----------------------------------------------------------------
+    if (isHttpError(error) && error.status === HttpStatus.NOT_FOUND) {
+      const message = error.message ?? ErrorMessages.NOT_FOUND
+      session.flash('error', message)
       response.redirect().back()
       return
     }

@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import env from '#start/env'
 import { timingSafeEqual } from 'node:crypto'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * Middleware kiểm tra API key cho các endpoint được bảo vệ như health check.
@@ -17,22 +19,16 @@ export default class ApiKeyMiddleware {
 
     // Secure by default: nếu chưa cấu hình API key → chặn
     if (!expectedApiKey) {
-      ctx.response.serviceUnavailable({
+      ctx.response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
         message: 'Health check API key chưa được cấu hình',
         error: 'service_unavailable',
-        status: 503,
       })
       return
     }
 
     // Chặn nếu không gửi API key
     if (!apiKey) {
-      ctx.response.unauthorized({
-        message: 'API key không hợp lệ hoặc bị thiếu',
-        error: 'unauthorized_access',
-        status: 401,
-      })
-      return
+      throw new UnauthorizedException('API key không hợp lệ hoặc bị thiếu')
     }
 
     // Timing-safe comparison để chống timing attack
@@ -43,12 +39,7 @@ export default class ApiKeyMiddleware {
       apiKeyBuffer.length !== expectedBuffer.length ||
       !timingSafeEqual(apiKeyBuffer, expectedBuffer)
     ) {
-      ctx.response.unauthorized({
-        message: 'API key không hợp lệ hoặc bị thiếu',
-        error: 'unauthorized_access',
-        status: 401,
-      })
-      return
+      throw new UnauthorizedException('API key không hợp lệ hoặc bị thiếu')
     }
 
     await next()

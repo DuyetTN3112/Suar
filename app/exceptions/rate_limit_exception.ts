@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * RateLimitException
@@ -11,6 +12,7 @@ import { Exception } from '@adonisjs/core/exceptions'
  *
  * throw new RateLimitException()
  * throw new RateLimitException('Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi 60 giây.', 60)
+ * throw RateLimitException.withRetry(60)
  * ```
  */
 export default class RateLimitException extends Exception {
@@ -22,8 +24,18 @@ export default class RateLimitException extends Exception {
    */
   public readonly retryAfter?: number
 
-  constructor(message = 'Bạn đã gửi quá nhiều yêu cầu, vui lòng thử lại sau', retryAfter?: number) {
+  constructor(message: string = ErrorMessages.RATE_LIMIT, retryAfter?: number) {
     super(message)
     this.retryAfter = retryAfter
+  }
+
+  /**
+   * Factory: tạo rate limit exception với thời gian retry cụ thể
+   */
+  static withRetry(seconds: number): RateLimitException {
+    return new RateLimitException(
+      `Bạn đã gửi quá nhiều yêu cầu. Vui lòng đợi ${seconds} giây.`,
+      seconds
+    )
   }
 }

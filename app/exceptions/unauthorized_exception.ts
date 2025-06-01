@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * UnauthorizedException
@@ -11,13 +12,21 @@ import { Exception } from '@adonisjs/core/exceptions'
  *
  * throw new UnauthorizedException()
  * throw new UnauthorizedException('Token đã hết hạn')
+ * throw UnauthorizedException.sessionExpired()
  * ```
  */
 export default class UnauthorizedException extends Exception {
   static override status = 401
   static override code = 'E_UNAUTHORIZED'
 
-  constructor(message = 'Vui lòng đăng nhập để tiếp tục') {
+  constructor(message: string = ErrorMessages.PLEASE_LOGIN) {
     super(message)
+  }
+
+  /**
+   * Factory: phiên đăng nhập đã hết hạn
+   */
+  static sessionExpired(): UnauthorizedException {
+    return new UnauthorizedException(ErrorMessages.SESSION_EXPIRED)
   }
 }

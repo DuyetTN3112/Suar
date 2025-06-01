@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import AddMemberByEmailCommand from '#actions/organizations/commands/add_member_by_email_command'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /organizations/:id/members/add
@@ -36,7 +37,7 @@ export default class AddMemberController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

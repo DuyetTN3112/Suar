@@ -14,9 +14,6 @@
 export const AuthRoutes = {
   LOGIN: '/login',
   LOGOUT: '/logout',
-  REGISTER: '/register',
-  FORGOT_PASSWORD: '/forgot-password',
-  RESET_PASSWORD: '/reset-password',
 } as const
 
 // ============================================================================

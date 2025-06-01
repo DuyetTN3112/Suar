@@ -5,6 +5,7 @@ import ProcessJoinRequestCommand from '#actions/organizations/commands/process_j
 import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/process_join_request_dto'
 import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /organizations/:id/members/process-request/:userId
@@ -21,7 +22,7 @@ export default class ProcessJoinRequestController {
         const errorMessage = 'Hành động không hợp lệ'
 
         if (request.accepts(['html', 'json']) === 'json') {
-          response.status(400).json({
+          response.status(HttpStatus.BAD_REQUEST).json({
             success: false,
             message: errorMessage,
           })
@@ -72,7 +73,7 @@ export default class ProcessJoinRequestController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi xử lý yêu cầu'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

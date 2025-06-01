@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO for getting organizations list with filters and pagination
@@ -13,7 +14,7 @@ import ValidationException from '#exceptions/validation_exception'
 export class GetOrganizationsListDTO {
   constructor(
     public readonly page: number = 1,
-    public readonly limit: number = 20,
+    public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly search?: string,
     public readonly plan?: string,
     public readonly sortBy: string = 'created_at',
@@ -32,7 +33,7 @@ export class GetOrganizationsListDTO {
     }
 
     // Limit validation (1-100)
-    if (typeof this.limit !== 'number' || this.limit < 1 || this.limit > 100) {
+    if (typeof this.limit !== 'number' || this.limit < 1 || this.limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Limit must be between 1 and 100')
     }
 

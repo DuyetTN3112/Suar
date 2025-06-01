@@ -32,8 +32,17 @@ import { ErrorMessages, createApiError, type ApiErrorResponse } from '#constants
  */
 
 /**
- * Custom AppError class để quản lý các lỗi trong ứng dụng
- * Hỗ trợ error code, status code và metadata
+ * @deprecated Sử dụng Exception classes từ `#exceptions/index` thay thế.
+ * - `NotFoundException.resource('Project', id)` thay cho `AppError.notFound('Project', id)`
+ * - `ForbiddenException.action('...')` thay cho `AppError.forbidden('...')`
+ * - `ValidationException.field('email', '...')` thay cho `AppError.validation('...', 'email')`
+ * - `UnauthorizedException` thay cho `AppError.unauthorized()`
+ * - `ConflictException.duplicate('User', 'email')` thay cho `AppError.conflict('User', 'email')`
+ *
+ * AppError KHÔNG tích hợp với AdonisJS exception handler.
+ * Exception classes sẽ tự động được handler.ts xử lý đúng format cho cả API và Inertia.
+ *
+ * @see {@link file://#exceptions/index}
  */
 export class AppError extends Error {
   public readonly code: string

@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import { MarkAsReadCommand } from '#actions/conversations/commands/mark_as_read_command'
 import { MarkAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
 import { getErrorMessage } from '#libs/error_utils'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /conversations/:id/mark-as-read → Mark messages as read
@@ -19,7 +20,7 @@ export default class MarkConversationReadController {
       response.json({ success: true })
       return
     } catch (error: unknown) {
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         error: getErrorMessage(error, 'Có lỗi xảy ra khi đánh dấu đã đọc'),
       })

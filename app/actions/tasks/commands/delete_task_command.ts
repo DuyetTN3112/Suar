@@ -9,6 +9,7 @@ import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import { getErrorMessage } from '#libs/error_utils'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import emitter from '@adonisjs/core/services/emitter'
@@ -170,7 +171,7 @@ export default class DeleteTaskCommand {
     }
 
     // Organization Owner/Admin can delete
-    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
     if (isOrgOwnerOrAdmin) {
       return
     }

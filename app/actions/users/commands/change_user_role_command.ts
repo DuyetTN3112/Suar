@@ -4,6 +4,7 @@ import User from '#models/user'
 import { SystemRoleName } from '#constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * ChangeUserRoleCommand (v3)
@@ -54,5 +55,22 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
       { system_role: oldRole },
       { system_role: dto.newRoleId }
     )
+
+    // Emit audit event
+    void emitter.emit('audit:log', {
+      userId: dto.changerId,
+      action: 'change_user_role',
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      oldValues: { system_role: oldRole },
+      newValues: { system_role: dto.newRoleId },
+    })
+
+    // Invalidate permission cache
+    void emitter.emit('cache:invalidate', {
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      patterns: [`*user:${String(dto.targetUserId)}:*`],
+    })
   }
 }

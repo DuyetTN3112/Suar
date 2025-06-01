@@ -4,6 +4,7 @@ import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -82,6 +83,15 @@ export default class AddParticipantCommand {
       await ConversationParticipant.create({
         conversation_id: String(dto.conversationId),
         user_id: String(dto.userId),
+      })
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId,
+        action: 'create',
+        entityType: 'conversation_participant',
+        entityId: dto.conversationId,
+        newValues: { added_user_id: dto.userId },
       })
 
       // Invalidate cache → delegate to Model for participant IDs

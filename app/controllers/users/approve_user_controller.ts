@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type ApproveUserCommand from '#actions/users/commands/approve_user_command'
 import { ApproveUserDTO } from '#actions/users/dtos/approve_user_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * PUT /users/:id/approve → Approve a pending user in organization
@@ -12,7 +13,7 @@ export default class ApproveUserController {
 
     const organizationId = auth.user?.current_organization_id
     if (!organizationId) {
-      response.status(400).json({
+      response.status(HttpStatus.BAD_REQUEST).json({
         success: false,
         message: 'Không tìm thấy thông tin tổ chức hiện tại',
       })

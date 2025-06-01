@@ -10,6 +10,7 @@ import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import GetTaskDetailQuery from '#actions/tasks/queries/get_task_detail_query'
 import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
 import CreateNotification from '#actions/common/create_notification'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /tasks/:id/edit — show form
@@ -83,7 +84,7 @@ export default class EditTaskController {
       session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
 
       if (request.header('X-Inertia')) {
-        response.status(200).json({
+        response.status(HttpStatus.OK).json({
           success: true,
           task,
         })

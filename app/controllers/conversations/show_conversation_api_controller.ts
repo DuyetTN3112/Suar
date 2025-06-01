@@ -5,6 +5,7 @@ import GetConversationMessagesQuery from '#actions/conversations/queries/get_con
 import { GetConversationDetailDTO } from '#actions/conversations/dtos/get_conversation_detail_dto'
 import { GetConversationMessagesDTO } from '#actions/conversations/dtos/get_conversation_messages_dto'
 import { getErrorMessage } from '#libs/error_utils'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /api/conversations/:id → Get conversation detail (JSON API)
@@ -30,7 +31,7 @@ export default class ShowConversationApiController {
       response.json({ success: true, conversation, messages: messagesResult })
       return
     } catch (error: unknown) {
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         error: getErrorMessage(error, 'Có lỗi xảy ra khi tải cuộc trò chuyện'),
       })

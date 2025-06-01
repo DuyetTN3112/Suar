@@ -5,6 +5,7 @@ import ReviewSession from '#models/review_session'
 import User from '#models/user'
 import type { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import type { ReviewConfirmationEntry } from '#types/database'
 
@@ -97,6 +98,16 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
       // Invalidate cache
       await CacheService.deleteByPattern(`review:session:${String(dto.review_session_id)}`)
+
+      // Emit domain events for each reviewer
+      for (const reviewerId of reviewerIds) {
+        void emitter.emit('review:confirmed', {
+          confirmationId: newConfirmation.user_id,
+          reviewSessionId: dto.review_session_id,
+          reviewerId,
+          confirmedBy: userId,
+        })
+      }
 
       return newConfirmation
     })

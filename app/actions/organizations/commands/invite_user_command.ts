@@ -12,6 +12,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import ConflictException from '#exceptions/conflict_exception'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * Command: Invite User to Organization
@@ -91,6 +92,18 @@ export default class InviteUserCommand {
       )
 
       await trx.commit()
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId,
+        action: 'invite_user',
+        entityType: 'organization',
+        entityId: dto.organizationId,
+        newValues: {
+          email: dto.getNormalizedEmail(),
+          role: dto.getRoleName(),
+        },
+      })
     } catch (error) {
       await trx.rollback()
       throw error

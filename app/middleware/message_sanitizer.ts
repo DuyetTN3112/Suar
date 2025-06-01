@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import ValidationException from '#exceptions/validation_exception'
 
 function hasTooManyRepeats(
   str: string
@@ -72,27 +73,22 @@ function sanitizeMessage(str: string): string {
 }
 
 export default class MessageSanitizer {
-  public async handle({ request, response }: HttpContext, next: () => Promise<void>) {
+  public async handle({ request }: HttpContext, next: () => Promise<void>) {
     const message = request.input('message') as unknown
     if (typeof message !== 'string') {
-      response.badRequest('Tin nhắn không hợp lệ.')
-      return
+      throw ValidationException.field('message', 'Tin nhắn không hợp lệ.')
     }
     if (message.length > 10000) {
-      response.badRequest('Tin nhắn vượt quá 10,000 ký tự.')
-      return
+      throw ValidationException.field('message', 'Tin nhắn vượt quá 10,000 ký tự.')
     }
     if (hasTooManyRepeats(message)) {
-      response.badRequest('Tin nhắn chứa quá nhiều ký tự lặp lại.')
-      return
+      throw ValidationException.field('message', 'Tin nhắn chứa quá nhiều ký tự lặp lại.')
     }
     if (countSpecialUnicode(message) > 1000) {
-      response.badRequest('Tin nhắn chứa quá nhiều ký tự đặc biệt.')
-      return
+      throw ValidationException.field('message', 'Tin nhắn chứa quá nhiều ký tự đặc biệt.')
     }
     if (message.replace(/\s/g, '').length < 1) {
-      response.badRequest('Tin nhắn không hợp lệ.')
-      return
+      throw ValidationException.field('message', 'Tin nhắn không hợp lệ.')
     }
     // Phát hiện Zalgo text
     if (detectZalgoText(message)) {

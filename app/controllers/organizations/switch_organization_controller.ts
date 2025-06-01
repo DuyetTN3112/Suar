@@ -4,6 +4,7 @@ import GetOrganizationBasicInfoQuery from '#actions/organizations/queries/get_or
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
 import loggerService from '#services/logger_service'
 import { InertiaPages } from '#constants'
+import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 
 /**
  * Controller for switching between organizations
@@ -30,7 +31,7 @@ export default class SwitchOrganizationController {
         const errorMessage = 'Thiếu ID tổ chức'
 
         if (request.accepts(['html', 'json']) === 'json') {
-          response.status(400).json({ success: false, message: errorMessage })
+          response.status(HttpStatus.BAD_REQUEST).json({ success: false, message: errorMessage })
           return
         }
 
@@ -43,10 +44,10 @@ export default class SwitchOrganizationController {
       const organization = await GetOrganizationBasicInfoQuery.execute(orgId)
 
       if (!organization) {
-        const errorMessage = 'Không tìm thấy tổ chức'
+        const errorMessage = ErrorMessages.ORGANIZATION_NOT_FOUND
 
         if (request.accepts(['html', 'json']) === 'json') {
-          response.status(404).json({ success: false, message: errorMessage })
+          response.status(HttpStatus.NOT_FOUND).json({ success: false, message: errorMessage })
           return
         }
 
@@ -86,7 +87,7 @@ export default class SwitchOrganizationController {
         error instanceof Error ? error.message : 'Có lỗi xảy ra khi chuyển đổi tổ chức'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

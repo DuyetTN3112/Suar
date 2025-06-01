@@ -4,6 +4,7 @@ import AddMemberCommand from '#actions/organizations/commands/add_member_command
 import { AddMemberDTO } from '#actions/organizations/dtos/add_member_dto'
 import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /organizations/:id/members/add-direct
@@ -42,7 +43,7 @@ export default class AddDirectMemberController {
         error instanceof Error ? error.message : 'Đã xảy ra lỗi khi thêm thành viên'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

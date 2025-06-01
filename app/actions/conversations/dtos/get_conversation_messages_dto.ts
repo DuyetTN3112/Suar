@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO for retrieving messages in a conversation
@@ -47,7 +48,7 @@ export class GetConversationMessagesDTO {
       throw new ValidationException('Limit must be at least 1')
     }
 
-    if (this.limit > 100) {
+    if (this.limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Limit cannot exceed 100 messages per page')
     }
   }

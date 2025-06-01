@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
 
 /**
  * RequireOrganization Middleware — Thin Guard
@@ -41,8 +42,8 @@ export default class RequireOrganizationMiddleware {
 
     // Không có org → block request
     if (request.accepts(['html', 'json']) === 'json') {
-      response.status(403).json({
-        error: 'Bạn cần tham gia một tổ chức trước khi thực hiện thao tác này',
+      response.status(HttpStatus.FORBIDDEN).json({
+        ...createApiError(ErrorCode.FORBIDDEN, ErrorMessages.REQUIRE_ORGANIZATION),
         redirectTo: '/organizations',
       })
       return

@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
 import User from '#models/user'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * UpdateUserDetailsCommand
@@ -65,6 +66,20 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         timezone: dto.timezone,
         language: dto.language,
         is_freelancer: dto.is_freelancer,
+      })
+
+      // Emit domain event
+      void emitter.emit('user:profile:updated', {
+        userId,
+        changes: {
+          avatar_url: dto.avatar_url,
+          bio: dto.bio,
+          phone: dto.phone,
+          address: dto.address,
+          timezone: dto.timezone,
+          language: dto.language,
+          is_freelancer: dto.is_freelancer,
+        },
       })
 
       return userRecord

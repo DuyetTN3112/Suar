@@ -2,6 +2,7 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { UpdateUserProfileDTO } from '../dtos/update_user_profile_dto.js'
 import User from '#models/user'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * UpdateUserProfileCommand
@@ -32,6 +33,12 @@ export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProf
       }
 
       await this.logAudit('update', 'user', user.id, oldValues, user.toJSON())
+
+      // Emit domain event
+      void emitter.emit('user:profile:updated', {
+        userId: dto.userId,
+        changes: updates,
+      })
 
       return user
     })

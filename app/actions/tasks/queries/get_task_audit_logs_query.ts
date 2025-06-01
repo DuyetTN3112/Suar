@@ -4,6 +4,7 @@ import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * Query để lấy audit logs của task
@@ -37,7 +38,7 @@ export default class GetTaskAuditLogsQuery {
     }>
   > {
     // Validate limit
-    if (limit < 1 || limit > 100) {
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Limit phải từ 1 đến 100')
     }
 

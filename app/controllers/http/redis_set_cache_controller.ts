@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import CacheService from '#services/cache_service'
 import { getErrorMessage } from '#libs/error_utils'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /api/redis/cache → Set cache value
@@ -12,7 +13,7 @@ export default class RedisSetCacheController {
       const value = request.input('value') as unknown
       const ttl = request.input('ttl', 3600) as number
       if (!key || value === undefined) {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: 'Key and value are required',
         })
@@ -27,7 +28,7 @@ export default class RedisSetCacheController {
       })
       return
     } catch (error: unknown) {
-      response.status(500).json({
+      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         message: 'Failed to set cache',
         error: getErrorMessage(error, 'Unknown error'),

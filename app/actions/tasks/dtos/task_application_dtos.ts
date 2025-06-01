@@ -1,6 +1,7 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
 import { ApplicationStatus } from '#constants/task_constants'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * ApplyForTaskDTO
@@ -84,7 +85,7 @@ export class GetTaskApplicationsDTO {
     this.task_id = data.task_id
     this.status = data.status ?? 'all'
     this.page = data.page ?? 1
-    this.per_page = data.per_page ?? 20
+    this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
   }
 }
 
@@ -105,7 +106,7 @@ export class GetPublicTasksDTO {
 
   constructor(data: Partial<GetPublicTasksDTO>) {
     this.page = data.page ?? 1
-    this.per_page = data.per_page ?? 20
+    this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
     this.skill_ids = data.skill_ids ?? null
     this.difficulty = data.difficulty ?? null
     this.min_budget = data.min_budget ?? null

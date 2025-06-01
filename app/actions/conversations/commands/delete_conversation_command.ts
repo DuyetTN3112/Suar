@@ -5,6 +5,7 @@ import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
@@ -48,6 +49,14 @@ export default class DeleteConversationCommand {
       // Soft delete conversation
       conversation.deleted_at = DateTime.now()
       await conversation.save()
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId,
+        action: 'delete',
+        entityType: 'conversation',
+        entityId: dto.conversationId,
+      })
 
       // Invalidate cache → delegate to Model for participant IDs
       await this.invalidateCache(dto.conversationId)

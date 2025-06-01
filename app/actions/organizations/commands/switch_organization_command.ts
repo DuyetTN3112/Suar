@@ -7,6 +7,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import emitter from '@adonisjs/core/services/emitter'
 
 /**
  * Command: Switch Organization
@@ -72,6 +73,13 @@ export default class SwitchOrganizationCommand {
       )
 
       await trx.commit()
+
+      // Emit cache invalidation for user permissions
+      void emitter.emit('cache:invalidate', {
+        entityType: 'user',
+        entityId: String(userId),
+        patterns: [`user:${String(userId)}:*`],
+      })
     } catch (error) {
       await trx.rollback()
       throw error

@@ -4,6 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import { ProjectRole } from '#constants'
+import { PAGINATION } from '#constants/common_constants'
 import Project from './project.js'
 import User from './user.js'
 
@@ -237,7 +238,7 @@ export default class ProjectMember extends BaseModel {
 
     // Apply pagination
     const page = options?.page ?? 1
-    const limit = options?.limit ?? 20
+    const limit = options?.limit ?? PAGINATION.DEFAULT_PER_PAGE
     const offset = (page - 1) * limit
     void query.orderBy('pm.created_at', 'asc').limit(limit).offset(offset)
 

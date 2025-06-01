@@ -4,6 +4,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationDetailQuery from '#actions/organizations/queries/get_organization_detail_query'
 import GetOrganizationShowDataQuery from '#actions/organizations/queries/get_organization_show_data_query'
 import { GetOrganizationDetailDTO } from '#actions/organizations/dtos/get_organization_detail_dto'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /organizations/:id
@@ -39,10 +40,10 @@ export default class ShowOrganizationController {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Lỗi không xác định'
       if (errorMessage.includes('không có quyền')) {
-        response.status(403).redirect('/errors/forbidden')
+        response.status(HttpStatus.FORBIDDEN).redirect('/errors/forbidden')
         return
       }
-      response.status(404).redirect('/errors/not-found')
+      response.status(HttpStatus.NOT_FOUND).redirect('/errors/not-found')
       return
     }
   }

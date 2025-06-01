@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * DTO cho việc lấy danh sách tasks với filters
@@ -60,7 +61,7 @@ export default class GetTasksListDTO {
       throw new ValidationException('Số lượng item phải lớn hơn 0')
     }
 
-    if (limit > 100) {
+    if (limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Số lượng item không được vượt quá 100')
     }
 

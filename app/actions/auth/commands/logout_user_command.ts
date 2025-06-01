@@ -1,5 +1,6 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { LogoutUserDTO } from '../dtos/logout_user_dto.js'
+import emitter from '@adonisjs/core/services/emitter'
 
 export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
   async handle(dto: LogoutUserDTO): Promise<void> {
@@ -14,6 +15,12 @@ export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
     this.clearSessionData()
 
     this.clearInertiaAuthProps()
+
+    // Emit user:logout event
+    void emitter.emit('user:logout', {
+      userId: dto.userId,
+      ip: dto.ipAddress || '',
+    })
   }
 
   private async logoutFromWebGuard(): Promise<void> {

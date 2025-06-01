@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * ConflictException
@@ -17,6 +18,10 @@ import { Exception } from '@adonisjs/core/exceptions'
 export default class ConflictException extends Exception {
   static override status = 409
   static override code = 'E_CONFLICT'
+
+  constructor(message: string = ErrorMessages.ALREADY_EXISTS) {
+    super(message)
+  }
 
   /**
    * Factory method: resource trùng lặp theo field

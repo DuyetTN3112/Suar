@@ -8,6 +8,7 @@ import redis from '@adonisjs/redis/services/main'
 import ConversationParticipant from '#models/conversation_participant'
 import OrganizationUser from '#models/organization_user'
 import loggerService from '#services/logger_service'
+import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -103,6 +104,13 @@ export default class CreateConversationCommand {
 
       // Invalidate cache
       await this.invalidateCache(allParticipantIds)
+
+      // Emit domain event
+      void emitter.emit('conversation:created', {
+        conversation,
+        creatorId: userId,
+        participantIds: allParticipantIds,
+      })
 
       return conversation
     } catch (error) {

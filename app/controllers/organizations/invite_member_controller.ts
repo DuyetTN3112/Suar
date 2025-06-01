@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
 import { InviteUserDTO } from '#actions/organizations/dtos/invite_user_dto'
 import loggerService from '#services/logger_service'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * POST /organizations/:id/members/invite
@@ -40,7 +41,7 @@ export default class InviteMemberController {
       const errorMessage = error instanceof Error ? error.message : 'Đã xảy ra lỗi khi gửi lời mời'
 
       if (request.accepts(['html', 'json']) === 'json') {
-        response.status(400).json({
+        response.status(HttpStatus.BAD_REQUEST).json({
           success: false,
           message: errorMessage,
         })

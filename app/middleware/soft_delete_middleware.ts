@@ -3,6 +3,7 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
 import type { DateTime } from 'luxon'
 import loggerService from '#services/logger_service'
+import NotFoundException from '#exceptions/not_found_exception'
 
 // Mở rộng HttpContext để thêm thuộc tính softDeletedEntity
 declare module '@adonisjs/core/http' {
@@ -70,17 +71,7 @@ export default class SoftDeleteMiddleware {
       const entity = (await query.first()) as SoftDeleteRow | null
 
       if (!entity) {
-        // Trả về 404 tùy theo loại request
-        if (ctx.request.ajax() || ctx.request.header('X-Inertia')) {
-          ctx.response.status(404).json({
-            error: 'Not Found',
-            message: 'Không tìm thấy dữ liệu yêu cầu',
-          })
-          return
-        }
-
-        ctx.response.status(404).send('Không tìm thấy dữ liệu yêu cầu')
-        return
+        throw new NotFoundException('Không tìm thấy dữ liệu yêu cầu')
       }
 
       // Lưu entity vào context

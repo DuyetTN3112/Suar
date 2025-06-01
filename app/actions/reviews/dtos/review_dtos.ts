@@ -1,5 +1,6 @@
 import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * CreateReviewSessionDTO
@@ -134,6 +135,6 @@ export class GetUserReviewsDTO {
     }
     this.user_id = data.user_id
     this.page = data.page ?? 1
-    this.per_page = data.per_page ?? 20
+    this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
   }
 }

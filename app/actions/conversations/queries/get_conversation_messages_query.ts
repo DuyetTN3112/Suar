@@ -3,16 +3,10 @@ import Conversation from '#models/conversation'
 import Message from '#models/message'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationMessagesDTO } from '../dtos/get_conversation_messages_dto.js'
-import { Exception } from '@adonisjs/core/exceptions'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-
-export class NotFoundError extends Exception {
-  static override status = 404
-  static override code = 'E_CONVERSATION_NOT_FOUND'
-  static override message = 'Conversation not found or you do not have access'
-}
+import NotFoundException from '#exceptions/not_found_exception'
 
 interface MessageWithSender {
   id: DatabaseId
@@ -63,7 +57,7 @@ export default class GetConversationMessagesQuery {
       // Verify user is participant → delegate to Model
       const conversation = await Conversation.findWithParticipant(conversationId, userId)
       if (!conversation) {
-        throw new NotFoundError()
+        throw NotFoundException.resource('Cuộc trò chuyện')
       }
 
       // Try cache

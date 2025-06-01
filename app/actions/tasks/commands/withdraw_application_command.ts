@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
 
 /**
@@ -48,6 +49,15 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
 
       // Invalidate cache
       await CacheService.deleteByPattern(`task:${task.id}:*`)
+
+      // Emit audit event
+      void emitter.emit('audit:log', {
+        userId,
+        action: 'withdraw_application',
+        entityType: 'task_application',
+        entityId: application.id,
+        newValues: { task_id: task.id },
+      })
     })
   }
 }

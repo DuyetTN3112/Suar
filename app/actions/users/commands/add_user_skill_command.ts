@@ -5,6 +5,7 @@ import Skill from '#models/skill'
 import { ProficiencyLevel } from '#constants'
 import type { AddUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 
@@ -66,6 +67,14 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
 
       // Invalidate user profile cache
       await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
+
+      // Emit skill score event for spider chart cache invalidation
+      void emitter.emit('skill:score:updated', {
+        userId,
+        skillId: dto.skill_id,
+        oldScore: null,
+        newScore: 0,
+      })
 
       return userSkill
     })

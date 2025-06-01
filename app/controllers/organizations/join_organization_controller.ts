@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
 import CheckJoinEligibilityQuery from '#actions/organizations/queries/check_join_eligibility_query'
+import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET/POST /organizations/:id/join
@@ -26,7 +27,7 @@ export default class JoinOrganizationController {
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        response.status(404).json({
+        response.status(HttpStatus.NOT_FOUND).json({
           success: false,
           message: eligibility.message!,
         })
@@ -80,7 +81,7 @@ export default class JoinOrganizationController {
         request.accepts(['html', 'json']) === 'json' ||
         request.header('X-Requested-With') === 'XMLHttpRequest'
       ) {
-        response.status(500).json({
+        response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
           success: false,
           message: errorMessage,
         })
