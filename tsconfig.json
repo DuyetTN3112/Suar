@@ -3,6 +3,7 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./build",
+    "rewriteRelativeImportExtensions": true,
 
     /* 🚨 STRICT MODE - Kiểm tra nghiêm ngặt */
     "strict": true,
@@ -101,5 +102,6 @@
       ]
     }
   },
-  "exclude": ["./inertia/**/*", "node_modules", "build"]
+  "exclude": ["./inertia/**/*", "node_modules", "build"],
+  "references": [{ "path": "./tsconfig.inertia.json" }]
 }

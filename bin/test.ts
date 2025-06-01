@@ -44,11 +44,16 @@ try {
    * Configure test runner
    */
   configure({
-    files: ['app/**/*.spec.ts'],
+    files: ['tests/**/*.spec.ts'],
     plugins: [assert(), fileSystem()],
     reporters: {
       activated: ['spec'],
-      list: [specReporter()],
+      list: [
+        {
+          name: 'spec',
+          handler: specReporter(),
+        },
+      ],
     },
     importer: IMPORTER,
   })

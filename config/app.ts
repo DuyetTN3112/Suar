@@ -1,6 +1,4 @@
-import env from '#start/env'
 import app from '@adonisjs/core/services/app'
-import { Secret } from '@adonisjs/core/helpers'
 import { defineConfig } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { Settings } from 'luxon'
@@ -9,8 +7,6 @@ import { Settings } from 'luxon'
 DateTime.local().setZone('Asia/Ho_Chi_Minh')
 // Thiết lập múi giờ mặc định cho tất cả các đối tượng DateTime mới
 Settings.defaultZone = 'Asia/Ho_Chi_Minh'
-
-export const appKey = new Secret(env.get('APP_KEY'))
 
 export const http = defineConfig({
   generateRequestId: true,
