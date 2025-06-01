@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Redis from '@adonisjs/redis/services/main'
 import CacheService from '#services/cache_service'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 /**
  * Controller để kiểm tra và quản lý Redis cache

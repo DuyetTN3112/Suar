@@ -4,6 +4,8 @@ import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole } from '#constants/organization_constants'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command: Update Organization
@@ -62,8 +64,8 @@ export default class UpdateOrganizationCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'update',
-          entity_type: 'organization',
+          action: AuditAction.UPDATE,
+          entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
           old_values: oldValues,
           new_values: organization.toJSON(),
@@ -95,7 +97,7 @@ export default class UpdateOrganizationCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     if (!membership) {

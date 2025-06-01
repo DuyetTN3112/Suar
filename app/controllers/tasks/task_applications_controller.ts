@@ -13,6 +13,28 @@ import {
   GetPublicTasksDTO,
 } from '#actions/tasks/dtos/task_application_dtos'
 
+// Validation helpers
+function validateApplicationSource(value: string): 'public_listing' | 'invitation' | 'referral' {
+  if (['public_listing', 'invitation', 'referral'].includes(value)) {
+    return value as 'public_listing' | 'invitation' | 'referral'
+  }
+  return 'public_listing' // default fallback
+}
+
+function validateStatus(value: string): 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all' {
+  if (['pending', 'approved', 'rejected', 'withdrawn', 'all'].includes(value)) {
+    return value as 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
+  }
+  return 'all' // default fallback
+}
+
+function validateAssignmentType(value: string): 'member' | 'freelancer' | 'volunteer' {
+  if (['member', 'freelancer', 'volunteer'].includes(value)) {
+    return value as 'member' | 'freelancer' | 'volunteer'
+  }
+  return 'freelancer' // default fallback
+}
+
 /**
  * TaskApplicationsController
  *
@@ -96,7 +118,9 @@ export default class TaskApplicationsController {
         message: request.input('message') as string,
         expected_rate: request.input('expected_rate') as number | undefined,
         portfolio_links: request.input('portfolio_links') as string[] | undefined,
-        application_source: request.input('application_source', 'public_listing') as string,
+        application_source: validateApplicationSource(
+          String(request.input('application_source', 'public_listing'))
+        ),
       })
 
       const command = new ApplyForTaskCommand(ctx)
@@ -124,7 +148,9 @@ export default class TaskApplicationsController {
         message: request.input('message') as string,
         expected_rate: request.input('expected_rate') as number | undefined,
         portfolio_links: request.input('portfolio_links') as string[] | undefined,
-        application_source: request.input('application_source', 'public_listing') as string,
+        application_source: validateApplicationSource(
+          String(request.input('application_source', 'public_listing'))
+        ),
       })
 
       const command = new ApplyForTaskCommand(ctx)
@@ -154,7 +180,7 @@ export default class TaskApplicationsController {
 
     const dto = new GetTaskApplicationsDTO({
       task_id: Number(params.taskId),
-      status: request.input('status', 'all') as string,
+      status: validateStatus(String(request.input('status', 'all'))),
       page: request.input('page', 1) as number,
       per_page: request.input('per_page', 20) as number,
     })
@@ -182,7 +208,9 @@ export default class TaskApplicationsController {
         application_id: Number(params.id),
         action: request.input('action') as 'approve' | 'reject',
         rejection_reason: request.input('rejection_reason') as string | undefined,
-        assignment_type: request.input('assignment_type', 'freelancer') as string,
+        assignment_type: validateAssignmentType(
+          String(request.input('assignment_type', 'freelancer'))
+        ),
         estimated_hours: request.input('estimated_hours') as number | undefined,
       })
 
@@ -230,8 +258,9 @@ export default class TaskApplicationsController {
     const { request, inertia } = ctx
 
     const query = new GetMyApplicationsQuery(ctx)
+    const statusFilter = validateStatus(String(request.input('status', 'all')))
     const result = await query.handle({
-      status: request.input('status', 'all') as string,
+      status: statusFilter,
       page: request.input('page', 1) as number,
       per_page: request.input('per_page', 20) as number,
     })
@@ -239,7 +268,7 @@ export default class TaskApplicationsController {
     return inertia.render('applications/my-applications', {
       applications: result.data.map((a) => a.serialize()),
       meta: result.meta,
-      statusFilter: request.input('status', 'all') as string,
+      statusFilter: statusFilter,
     })
   }
 }

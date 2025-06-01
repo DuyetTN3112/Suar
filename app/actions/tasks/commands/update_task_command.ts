@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để cập nhật task
@@ -94,8 +95,8 @@ export default class UpdateTaskCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'update',
-          entity_type: 'task',
+          action: AuditAction.UPDATE,
+          entity_type: EntityType.TASK,
           entity_id: taskId,
           old_values: oldValues,
           new_values: existingTask.toJSON(),

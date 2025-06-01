@@ -4,6 +4,8 @@ import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import { EntityType } from '#constants/audit_constants'
 
 /**
  * DTO for transferring organization ownership
@@ -78,7 +80,7 @@ export default class TransferOrganizationOwnershipCommand {
         .from('organization_users')
         .where('user_id', dto.new_owner_id)
         .where('organization_id', dto.organization_id)
-        .where('status', 'approved')
+        .where('status', OrganizationUserStatus.APPROVED)
         .first()) as MembershipRecord | null
 
       if (!newOwnerMembership) {
@@ -133,7 +135,7 @@ export default class TransferOrganizationOwnershipCommand {
         {
           user_id: currentUser.id,
           action: 'transfer_ownership',
-          entity_type: 'organization',
+          entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organization_id,
           old_values: { owner_id: oldOwnerId },
           new_values: { owner_id: dto.new_owner_id },

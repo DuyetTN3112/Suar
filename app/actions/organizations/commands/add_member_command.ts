@@ -2,7 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
-import OrganizationRole from '#models/organization_role'
+import OrganizationRoleModel from '#models/organization_role'
+import { OrganizationRole } from '#constants/organization_constants'
+import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -77,7 +79,7 @@ export default class AddMemberCommand {
         {
           user_id: currentUser.id,
           action: 'add_member',
-          entity_type: 'organization',
+          entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           new_values: {
             ...dto.toObject(),
@@ -103,7 +105,7 @@ export default class AddMemberCommand {
 
   /**
    * Helper: Check if user has permission to add members
-   * Only Owner (role_id = 1) or Admin (role_id = 2) can add members
+   * Only Owner or Admin can add members
    */
   private async checkPermissions(
     organizationId: number,
@@ -114,7 +116,7 @@ export default class AddMemberCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     if (!membership) {
@@ -146,7 +148,7 @@ export default class AddMemberCommand {
    * (FK validation - organization_users.role_id -> organization_roles.id)
    */
   private async validateRoleId(roleId: number, trx: TransactionClientContract): Promise<void> {
-    const role = await OrganizationRole.query({ client: trx }).where('id', roleId).first()
+    const role = await OrganizationRoleModel.query({ client: trx }).where('id', roleId).first()
 
     if (!role) {
       throw new Error(`Organization role with ID ${String(roleId)} does not exist`)

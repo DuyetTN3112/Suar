@@ -11,7 +11,7 @@ import {
   MarkAsReadDTO,
   //  MarkMessagesAsReadDTO
 } from '#actions/conversations/dtos/mark_as_read_dto'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 /**
  * Controller xử lý các thao tác với tin nhắn

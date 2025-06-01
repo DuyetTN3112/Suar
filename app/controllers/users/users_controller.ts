@@ -18,6 +18,7 @@ import { PaginationDTO } from '#actions/shared/index'
 import type DeleteUser from '#actions/users/delete_user'
 import type GetUserMetadata from '#actions/users/get_user_metadata'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * UsersController - Thin Controller following CQRS pattern
@@ -273,7 +274,7 @@ export default class UsersController {
         .leftJoin('system_roles as sr', 'u.system_role_id', 'sr.id')
         .leftJoin('user_status as us', 'u.status_id', 'us.id')
         .where('ou.organization_id', organizationId)
-        .where('ou.status', 'pending')
+        .where('ou.status', OrganizationUserStatus.PENDING)
         .whereNull('u.deleted_at')
         .select(
           'u.id',
@@ -361,7 +362,7 @@ export default class UsersController {
       const result = (await db
         .from('organization_users')
         .where('organization_id', organizationId)
-        .where('status', 'pending')
+        .where('status', OrganizationUserStatus.PENDING)
         .count('user_id as count')
         .first()) as { count: number | string } | null
 
@@ -481,7 +482,7 @@ export default class UsersController {
       request.input('role_id') as number | undefined,
       request.input('status_id') as number | undefined,
       2, // exclude_status_id: Don't show inactive users (status_id = 2)
-      'approved' // organization_user_status: Only show approved members
+      OrganizationUserStatus.APPROVED // organization_user_status: Only show approved members
     )
 
     return new GetUsersListDTO(pagination, organizationId, filters)
@@ -530,7 +531,7 @@ export default class UsersController {
       undefined, // role_id
       undefined, // status_id
       undefined, // exclude_status_id
-      'pending' // organization_user_status: Only pending users
+      OrganizationUserStatus.PENDING // organization_user_status: Only pending users
     )
 
     return new GetUsersListDTO(pagination, organizationId, filters)
@@ -596,8 +597,8 @@ export default class UsersController {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', user.id)
-      .where('role_id', 1)
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { id: number } | null
 
     if (!isSuperAdmin) {

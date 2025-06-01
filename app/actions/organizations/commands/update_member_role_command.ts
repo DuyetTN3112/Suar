@@ -3,6 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 interface MembershipRecord {
   user_id: number
@@ -104,8 +105,8 @@ export default class UpdateMemberRoleCommand {
       await AuditLog.create(
         {
           user_id: currentUser.id,
-          action: 'update_member_role',
-          entity_type: 'organization',
+          action: AuditAction.UPDATE_MEMBER_ROLE,
+          entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           old_values: { user_id: dto.userId, role_id: oldRole },
           new_values: { user_id: dto.userId, role_id: dto.newRoleId },

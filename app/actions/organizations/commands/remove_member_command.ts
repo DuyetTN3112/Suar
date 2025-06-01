@@ -4,11 +4,13 @@ import AuditLog from '#models/audit_log'
 import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole, getOrganizationRoleName } from '#constants/organization_constants'
+import { EntityType } from '#constants/audit_constants'
 
 interface MembershipRecord {
   organization_id: number
   user_id: number
-  role_id: number
+  role_id: OrganizationRole
 }
 
 interface ProjectRecord {
@@ -75,7 +77,7 @@ export default class RemoveMemberCommand {
       }
 
       // 3. Cannot remove Owner
-      if (targetMembership.role_id === 1) {
+      if (targetMembership.role_id === OrganizationRole.OWNER) {
         throw new Error('Cannot remove organization owner. Transfer ownership first.')
       }
 
@@ -97,12 +99,12 @@ export default class RemoveMemberCommand {
         {
           user_id: currentUser.id,
           action: 'remove_member',
-          entity_type: 'organization',
+          entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           old_values: targetMembership,
           new_values: {
             removed_user_id: dto.userId,
-            removed_user_role: this.getRoleName(targetMembership.role_id),
+            removed_user_role: getOrganizationRoleName(targetMembership.role_id),
             reason: dto.getNormalizedReason(),
           },
           ip_address: this.ctx.request.ip(),
@@ -133,7 +135,7 @@ export default class RemoveMemberCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     if (!membership) {
@@ -197,20 +199,6 @@ export default class RemoveMemberCommand {
       .where('user_id', userId)
       .whereIn('conversation_id', conversationIds)
       .delete()
-  }
-
-  /**
-   * Helper: Get role name from role ID
-   */
-  private getRoleName(roleId: number): string {
-    const roleNames: Record<number, string> = {
-      1: 'Owner',
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
-    }
-    return roleNames[roleId] ?? 'Unknown'
   }
 
   /**

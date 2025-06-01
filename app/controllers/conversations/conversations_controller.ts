@@ -4,7 +4,7 @@ import ListConversationsQuery from '#actions/conversations/queries/list_conversa
 import CreateConversationCommand from '#actions/conversations/commands/create_conversation_command'
 import { ListConversationsDTO } from '#actions/conversations/dtos/list_conversations_dto'
 import { CreateConversationDTO } from '#actions/conversations/dtos/create_conversation_dto'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
 
 /**
  * Controller xử lý các chức năng liệt kê, tạo và lưu cuộc trò chuyện

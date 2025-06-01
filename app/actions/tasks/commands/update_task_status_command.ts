@@ -5,6 +5,7 @@ import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để cập nhật trạng thái task
@@ -68,8 +69,8 @@ export default class UpdateTaskStatusCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'update_status',
-          entity_type: 'task',
+          action: AuditAction.UPDATE_STATUS,
+          entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: { status_id: oldStatusId },
           new_values: { status_id: task.status_id },

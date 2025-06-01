@@ -1,7 +1,9 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { CreateProjectDTO } from '../dtos/index.js'
+import type { CreateProjectDTO } from '../dtos/create_project_dto.js'
 import Project from '#models/project'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
 
 /**
  * Command to create a new project
@@ -39,7 +41,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       await this.validateStatusId(dto.status_id, trx)
 
       // 3. Validate dates (logic từ procedure)
-      if (dto.start_date !== null && dto.end_date !== null) {
+      if (dto.start_date && dto.end_date) {
         if (dto.start_date > dto.end_date) {
           throw new Error('Start date không được lớn hơn end date')
         }
@@ -74,7 +76,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       await trx.table('project_members').insert({
         project_id: project.id,
         user_id: ownerId,
-        project_role_id: 1,
+        project_role_id: ProjectRole.OWNER,
         created_at: new Date(),
       })
 
@@ -131,7 +133,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .where('status', 'approved')
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()
 
     if (!membership) {

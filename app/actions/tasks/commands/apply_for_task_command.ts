@@ -4,6 +4,7 @@ import TaskApplication from '#models/task_application'
 import Task from '#models/task'
 import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import { ApplicationStatus } from '#constants/task_constants'
 
 /**
  * ApplyForTaskCommand
@@ -39,7 +40,7 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
       const existingApplication = await TaskApplication.query({ client: trx })
         .where('task_id', dto.task_id)
         .where('applicant_id', userId)
-        .whereNot('application_status', 'withdrawn')
+        .whereNot('application_status', ApplicationStatus.WITHDRAWN)
         .first()
 
       if (existingApplication) {
@@ -51,7 +52,7 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
         {
           task_id: dto.task_id,
           applicant_id: userId,
-          application_status: 'pending',
+          application_status: ApplicationStatus.PENDING,
           application_source: dto.application_source,
           message: dto.message,
           expected_rate: dto.expected_rate,

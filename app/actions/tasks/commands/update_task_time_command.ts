@@ -4,6 +4,7 @@ import AuditLog from '#models/audit_log'
 import type UpdateTaskTimeDTO from '../dtos/update_task_time_dto.js'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để cập nhật thời gian của task
@@ -61,8 +62,8 @@ export default class UpdateTaskTimeCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'update_time',
-          entity_type: 'task',
+          action: AuditAction.UPDATE_TIME,
+          entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: oldValues,
           new_values: {

@@ -1,8 +1,9 @@
 import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ApproveUserDTO } from '../dtos/index.js'
+import type { ApproveUserDTO } from '../dtos/approve_user_dto.js'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * ApproveUserCommand
@@ -47,8 +48,8 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', approverId)
-      .where('role_id', 1) // role_id = 1 is superadmin
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .select('user_id')
 
     if (!Array.isArray(result) || result.length === 0) {
@@ -64,9 +65,9 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
       .from('organization_users')
       .where('organization_id', dto.organizationId)
       .where('user_id', dto.userId)
-      .where('status', 'pending')
+      .where('status', OrganizationUserStatus.PENDING)
       .update({
-        status: 'approved',
+        status: OrganizationUserStatus.APPROVED,
         updated_at: DateTime.now().toSQL(),
       })
 

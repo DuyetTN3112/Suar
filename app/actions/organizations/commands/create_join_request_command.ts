@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command: Create Join Request
@@ -53,7 +55,7 @@ export default class CreateJoinRequestCommand {
         .from('organization_join_requests')
         .where('organization_id', organizationId)
         .where('user_id', user.id)
-        .where('status', 'pending')
+        .where('status', OrganizationUserStatus.PENDING)
         .first()
 
       if (existingRequest) {
@@ -64,7 +66,7 @@ export default class CreateJoinRequestCommand {
       const result = await trx.insertQuery().table('organization_join_requests').insert({
         organization_id: organizationId,
         user_id: user.id,
-        status: 'pending',
+        status: OrganizationUserStatus.PENDING,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -74,8 +76,8 @@ export default class CreateJoinRequestCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: 'create_join_request',
-          entity_type: 'organization',
+          action: AuditAction.JOIN,
+          entity_type: EntityType.ORGANIZATION,
           entity_id: organizationId,
           new_values: {
             request_id: requestId,

@@ -1,7 +1,8 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateProjectDTO } from '../dtos/index.js'
+import type { UpdateProjectDTO } from '../dtos/update_project_dto.js'
 import Project from '#models/project'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * Command to update an existing project
@@ -108,8 +109,8 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { id: number } | null
 
     return !!org

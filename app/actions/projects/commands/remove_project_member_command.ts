@@ -1,9 +1,10 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { RemoveProjectMemberDTO } from '../dtos/index.js'
+import type { RemoveProjectMemberDTO } from '../dtos/remove_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * Command to remove a member from a project
@@ -99,8 +100,8 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { id: number } | null
 
     return !!result

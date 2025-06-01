@@ -1,10 +1,11 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { AddProjectMemberDTO } from '../dtos/index.js'
+import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
 import ProjectRole from '#models/project_role'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
  * Command to add a member to a project
@@ -89,8 +90,8 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
+      .where('role_id', OrganizationRole.OWNER)
+      .where('status', OrganizationUserStatus.APPROVED)
       .first()) as { id: number; role_id: number } | null
 
     return !!result
@@ -121,12 +122,12 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     organizationId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const result = (await db
+    const result = (await trx
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
-      .where('status', 'approved')
-      .first({ client: trx })) as { id: number } | null
+      .where('status', OrganizationUserStatus.APPROVED)
+      .first()) as { id: number } | null
 
     if (!result) {
       throw new Error('Người dùng không thuộc tổ chức của dự án')
@@ -141,11 +142,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     userId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existing = (await db
+    const existing = (await trx
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
-      .first({ client: trx })) as { id: number } | null
+      .first()) as { id: number } | null
 
     if (existing) {
       throw new Error('Người dùng đã là thành viên của dự án')
@@ -161,14 +162,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     projectRoleId: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    await db.table('project_members').insert(
-      {
-        project_id: projectId,
-        user_id: userId,
-        project_role_id: projectRoleId,
-        created_at: new Date(),
-      },
-      { client: trx }
-    )
+    await trx.insertQuery().table('project_members').insert({
+      project_id: projectId,
+      user_id: userId,
+      project_role_id: projectRoleId,
+      created_at: new Date(),
+    })
   }
 }

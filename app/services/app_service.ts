@@ -1,5 +1,7 @@
 import env from '#start/env'
 import { DateTime } from 'luxon'
+import { truncate as truncateString, generateSlug } from '#libs/string_utils'
+import { formatDateTime as formatDateTimeLib } from '#libs/date_utils'
 
 /**
  * Lấy tên ứng dụng
@@ -31,21 +33,13 @@ function getCurrentDateTime(): DateTime {
 
 /**
  * Định dạng datetime theo múi giờ và định dạng của ứng dụng
+ * @deprecated Use formatDateTime from '#libs/date_utils' instead
  */
 function formatDateTime(
   date: string | Date | DateTime,
   format: string = 'dd/MM/yyyy HH:mm'
 ): string {
-  if (!date) return ''
-  let dateTime: DateTime
-  if (typeof date === 'string') {
-    dateTime = DateTime.fromISO(date)
-  } else if (date instanceof Date) {
-    dateTime = DateTime.fromJSDate(date)
-  } else {
-    dateTime = date
-  }
-  return dateTime.setZone(env.get('APP_TIMEZONE', 'Asia/Ho_Chi_Minh')).toFormat(format)
+  return formatDateTimeLib(date, format)
 }
 
 /**
@@ -78,30 +72,18 @@ function isProd(): boolean {
 
 /**
  * Cắt chuỗi với số ký tự tối đa cho trước và thêm dấu ... nếu chuỗi dài hơn
+ * @deprecated Use truncate from '#libs/string_utils' instead
  */
 function truncate(text: string, maxLength: number = 100): string {
-  if (!text) return ''
-  if (text.length <= maxLength) return text
-  return text.substring(0, maxLength) + '...'
+  return truncateString(text, maxLength)
 }
 
 /**
  * Tạo slug từ chuỗi (chuyển thành chữ thường, bỏ dấu, thay khoảng trắng bằng dấu gạch ngang)
+ * @deprecated Use generateSlug from '#libs/string_utils' instead
  */
 function slugify(text: string): string {
-  if (!text) return ''
-  const slug = text
-    .toLowerCase()
-    .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
-    .replace(/[èéẹẻẽêềếệểễ]/g, 'e')
-    .replace(/[ìíịỉĩ]/g, 'i')
-    .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, 'o')
-    .replace(/[ùúụủũưừứựửữ]/g, 'u')
-    .replace(/[ỳýỵỷỹ]/g, 'y')
-    .replace(/đ/g, 'd')
-    .replace(/[^\w ]+/g, '')
-    .replace(/ +/g, '-')
-  return slug
+  return generateSlug(text)
 }
 
 const AppService = {

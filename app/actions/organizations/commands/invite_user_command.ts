@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -68,7 +70,7 @@ export default class InviteUserCommand {
         .insert({
           ...invitationData,
           invited_by: currentUser.id,
-          status: 'pending',
+          status: OrganizationUserStatus.PENDING,
           created_at: new Date(),
           updated_at: new Date(),
         })
@@ -78,8 +80,8 @@ export default class InviteUserCommand {
       await AuditLog.create(
         {
           user_id: currentUser.id,
-          action: 'invite_user',
-          entity_type: 'organization',
+          action: AuditAction.INVITE,
+          entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           new_values: {
             email: dto.getNormalizedEmail(),
@@ -111,7 +113,7 @@ export default class InviteUserCommand {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
+      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
       .first()
 
     if (!membership) {
@@ -130,7 +132,7 @@ export default class InviteUserCommand {
       .from('organization_invitations')
       .where('organization_id', dto.organizationId)
       .where('email', dto.getNormalizedEmail())
-      .where('status', 'pending')
+      .where('status', OrganizationUserStatus.PENDING)
       .where('expires_at', '>', new Date())
       .first()
 

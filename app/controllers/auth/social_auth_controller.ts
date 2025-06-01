@@ -4,7 +4,7 @@ import type { Oauth2AccessToken } from '@poppinss/oauth-client/types'
 import User from '#models/user'
 import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
-import * as AuthLogger from '#helpers/auth_logger'
+import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
 
 type SupportedProvider = 'google' | 'github'
@@ -44,6 +44,7 @@ export default class SocialAuthController {
       })
       const socialAuth = ally.use(provider)
       await socialAuth.redirect()
+      return
     } catch (error: unknown) {
       AuthLogger.oauthError(provider, error, 'redirect')
       return { error: `Không thể chuyển hướng đến ${provider}` }
@@ -305,6 +306,10 @@ export default class SocialAuthController {
 
         // Đăng nhập người dùng mới - user is guaranteed to be User type after transaction
         // TypeScript cannot track reassignment inside transaction callback
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (!user) {
+          throw new Error('User creation failed')
+        }
         const createdUser = user as User
         await auth.use('web').login(createdUser)
         AuthLogger.userLogin(createdUser.id, createdUser.email, provider)

@@ -24,7 +24,19 @@ export default class SettingsController {
       notifications_enabled?: boolean
       display_mode?: string
     }
-    updateUserSettings.handle({ data })
+
+    // Validate theme
+    if (data.theme && !['light', 'dark', 'system'].includes(data.theme)) {
+      data.theme = 'light' // default fallback
+    }
+
+    updateUserSettings.handle({
+      data: {
+        theme: data.theme as 'light' | 'dark' | 'system' | undefined,
+        notifications_enabled: data.notifications_enabled,
+        display_mode: data.display_mode as 'grid' | 'list' | undefined,
+      },
+    })
     session.flash('success', 'Cài đặt đã được cập nhật thành công')
     response.redirect().back()
   }
@@ -87,7 +99,18 @@ export default class SettingsController {
 
     try {
       const data = request.only(['theme', 'font']) as { theme?: string; font?: string }
-      updateUserSettings.handle({ data })
+
+      // Validate theme
+      if (data.theme && !['light', 'dark', 'system'].includes(data.theme)) {
+        data.theme = 'light' // default fallback
+      }
+
+      updateUserSettings.handle({
+        data: {
+          theme: data.theme as 'light' | 'dark' | 'system' | undefined,
+          font: data.font,
+        },
+      })
       session.flash('success', 'Giao diện đã được cập nhật thành công')
       response.redirect().back()
       return

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 
 // CQRS - Commands
 import type CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
@@ -348,17 +349,18 @@ export default class OrganizationsController {
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', user.id)
-      .first()) as { status: string } | null
+      .first()) as { status: OrganizationUserStatus } | null
 
     if (existingMembership) {
       const status = existingMembership.status
       let message = ''
 
-      if (status === 'approved') {
+      if (status === OrganizationUserStatus.APPROVED) {
         message = 'Bạn đã là thành viên của tổ chức này'
-      } else if (status === 'pending') {
+      } else if (status === OrganizationUserStatus.PENDING) {
         message = 'Yêu cầu tham gia tổ chức của bạn đang chờ được duyệt'
-      } else if (status === 'rejected') {
+      } else {
+        // status === OrganizationUserStatus.REJECTED
         message =
           'Yêu cầu tham gia của bạn đã bị từ chối. Bạn có thể liên hệ với quản trị viên tổ chức'
       }

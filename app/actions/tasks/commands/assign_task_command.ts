@@ -6,6 +6,7 @@ import type AssignTaskDTO from '../dtos/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để giao task cho người dùng
@@ -71,8 +72,8 @@ export default class AssignTaskCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: dto.isUnassigning() ? 'unassign' : 'assign',
-          entity_type: 'task',
+          action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
+          entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: oldValues,
           new_values: existingTask.toJSON(),

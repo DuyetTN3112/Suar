@@ -6,7 +6,8 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
-import { getErrorMessage } from '#utils/error_utils'
+import { getErrorMessage } from '#libs/error_utils'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 
 /**
  * Command để xóa task
@@ -69,8 +70,8 @@ export default class DeleteTaskCommand {
       await AuditLog.create(
         {
           user_id: user.id,
-          action: dto.isPermanentDelete() ? 'hard_delete' : 'delete',
-          entity_type: 'task',
+          action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
+          entity_type: EntityType.TASK,
           entity_id: dto.task_id,
           old_values: taskData,
           ip_address: this.ctx.request.ip(),
