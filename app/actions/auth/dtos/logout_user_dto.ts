@@ -1,10 +1,12 @@
+import type { DatabaseId } from '#types/database'
 import type { Command } from '../../shared/interfaces.js'
+import ValidationException from '#exceptions/validation_exception'
 export class LogoutUserDTO implements Command {
-  public readonly userId: number
+  public readonly userId: DatabaseId
   public readonly sessionId?: string
   public readonly ipAddress: string
 
-  constructor(data: { userId: number; sessionId?: string; ipAddress: string }) {
+  constructor(data: { userId: DatabaseId; sessionId?: string; ipAddress: string }) {
     this.userId = data.userId
     this.sessionId = data.sessionId
     this.ipAddress = data.ipAddress
@@ -12,11 +14,11 @@ export class LogoutUserDTO implements Command {
   }
 
   private validate(): void {
-    if (!this.userId || this.userId <= 0) {
-      throw new Error('User ID is required')
+    if (!this.userId || Number(this.userId) <= 0) {
+      throw ValidationException.field('userId', 'User ID is required')
     }
     if (!this.ipAddress) {
-      throw new Error('IP address is required')
+      throw ValidationException.field('ipAddress', 'IP address is required')
     }
   }
 

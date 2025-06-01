@@ -1,15 +1,22 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import PermissionService from '#services/permission_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import type { DatabaseId } from '#types/database'
+import { UserStatusName } from '#constants/user_constants'
 
 /**
  * DTO for deactivating a user
  */
 export interface DeactivateUserDTO {
-  user_id: number
+  user_id: DatabaseId
   reason?: string
 }
 
@@ -26,27 +33,27 @@ export interface DeactivateUserDTO {
  */
 export default class DeactivateUserCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
   async execute(dto: DeactivateUserDTO): Promise<User> {
-    const adminUser = this.ctx.auth.user
-    if (!adminUser) {
-      throw new Error('Unauthorized')
+    const adminUserId = this.execCtx.userId
+    if (!adminUserId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check admin is superadmin
-      const isSuperadmin = await this.isSystemSuperadmin(adminUser.id, trx)
+      const isSuperadmin = await PermissionService.isSystemSuperadmin(adminUserId, trx)
       if (!isSuperadmin) {
-        throw new Error('Chỉ superadmin mới có thể deactivate users')
+        throw new ForbiddenException('Chỉ superadmin mới có thể deactivate users')
       }
 
       // 2. Cannot deactivate self
-      if (adminUser.id === dto.user_id) {
-        throw new Error('Không thể deactivate chính mình')
+      if (adminUserId === dto.user_id) {
+        throw new BusinessLogicException('Không thể deactivate chính mình')
       }
 
       // 3. Load user
@@ -56,28 +63,35 @@ export default class DeactivateUserCommand {
         .firstOrFail()
 
       // Save old status
-      const oldStatusId = user.status_id
+      const oldStatus = user.status
 
       // 4. Update user status to inactive
-      user.status_id = 2 // inactive
+      user.status = UserStatusName.INACTIVE
       await user.useTransaction(trx).save()
 
       // 5. Create audit log
       await AuditLog.create(
         {
-          user_id: adminUser.id,
+          user_id: adminUserId,
           action: 'deactivate_user',
           entity_type: 'users',
           entity_id: dto.user_id,
-          old_values: { status_id: oldStatusId },
-          new_values: { status_id: 2, reason: dto.reason },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          old_values: { status: oldStatus },
+          new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('user:deactivated', {
+        userId: dto.user_id,
+        deactivatedBy: adminUserId,
+        reason: dto.reason,
+      })
 
       // 6. Send notification
       await this.sendNotification(dto.user_id, dto.reason)
@@ -89,22 +103,7 @@ export default class DeactivateUserCommand {
     }
   }
 
-  private async isSystemSuperadmin(
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<boolean> {
-    const result = await trx
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', userId)
-      .whereNull('users.deleted_at')
-      .where('system_roles.name', 'superadmin')
-      .select('users.id')
-
-    return Array.isArray(result) && result.length > 0
-  }
-
-  private async sendNotification(userId: number, reason?: string): Promise<void> {
+  private async sendNotification(userId: DatabaseId, reason?: string): Promise<void> {
     try {
       await this.createNotification.handle({
         user_id: userId,
@@ -115,7 +114,7 @@ export default class DeactivateUserCommand {
         related_entity_id: userId,
       })
     } catch (error) {
-      console.error('[DeactivateUserCommand] Failed to send notification:', error)
+      loggerService.error('[DeactivateUserCommand] Failed to send notification:', error)
     }
   }
 }

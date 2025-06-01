@@ -31,11 +31,31 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring database connection
   |----------------------------------------------------------
   */
+  DB_CONNECTION: Env.schema.enum(['mysql', 'pg'] as const),
   DB_HOST: Env.schema.string({ format: 'host' }),
   DB_PORT: Env.schema.number(),
   DB_USER: Env.schema.string(),
   DB_PASSWORD: Env.schema.string.optional(),
   DB_DATABASE: Env.schema.string(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for PostgreSQL connection (optional overrides)
+  | Falls back to DB_* values if not set
+  |----------------------------------------------------------
+  */
+  PG_HOST: Env.schema.string.optional(),
+  PG_PORT: Env.schema.number.optional(),
+  PG_USER: Env.schema.string.optional(),
+  PG_PASSWORD: Env.schema.string.optional(),
+  PG_DATABASE: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for MongoDB connection
+  |----------------------------------------------------------
+  */
+  MONGODB_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -72,15 +92,16 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring ally package
   |----------------------------------------------------------
   */
-  GOOGLE_CLIENT_ID: Env.schema.string(),
-  GOOGLE_CLIENT_SECRET: Env.schema.string(),
+  // FIX: Optional — cho phép deploy không có OAuth (disable social login)
+  GOOGLE_CLIENT_ID: Env.schema.string.optional(),
+  GOOGLE_CLIENT_SECRET: Env.schema.string.optional(),
   /*
   |----------------------------------------------------------
   | Variables for configuring ally package
   |----------------------------------------------------------
   */
-  GITHUB_CLIENT_ID: Env.schema.string(),
-  GITHUB_CLIENT_SECRET: Env.schema.string(),
+  GITHUB_CLIENT_ID: Env.schema.string.optional(),
+  GITHUB_CLIENT_SECRET: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -88,4 +109,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   |----------------------------------------------------------
   */
   LOCK_STORE: Env.schema.enum(['redis', 'memory'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for health check API key
+  | Dùng bởi api_key_middleware.ts — BẮT BUỘC để bảo vệ /health endpoint
+  | Nếu không set, health endpoint sẽ bị chặn (secure by default)
+  |----------------------------------------------------------
+  */
+  HEALTH_CHECK_API_KEY: Env.schema.string.optional(),
 })

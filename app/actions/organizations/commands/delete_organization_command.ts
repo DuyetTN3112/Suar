@@ -1,12 +1,19 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import { OrganizationRole } from '#constants/organization_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command: Delete Organization
@@ -23,7 +30,7 @@ import { EntityType } from '#constants/audit_constants'
  * await command.execute(dto)
  */
 export default class DeleteOrganizationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Delete organization
@@ -38,9 +45,9 @@ export default class DeleteOrganizationCommand {
    * 7. Commit transaction
    */
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -48,11 +55,11 @@ export default class DeleteOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
       // 2. Check permissions (Owner only)
-      await this.checkPermissions(organization.id, user.id, trx)
+      await this.checkPermissions(organization.id, userId, trx)
 
       // 3. Check for active projects
       await this.checkActiveProjects(organization.id, trx)
@@ -73,7 +80,7 @@ export default class DeleteOrganizationCommand {
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
           entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
@@ -82,13 +89,22 @@ export default class DeleteOrganizationCommand {
             deletion_type: dto.getDeletionType(),
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:deleted', {
+        organizationId: organization.id,
+        deletedBy: userId,
+      })
+
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -97,47 +113,32 @@ export default class DeleteOrganizationCommand {
 
   /**
    * Helper: Check if user has permission to delete organization
-   * Only Owner (role_id = 1) can delete
+   * Only Owner (role_id = 1) can delete → delegate to Model
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
-    trx: TransactionClientContract
+    organizationId: DatabaseId,
+    userId: DatabaseId,
+    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .where('role_id', OrganizationRole.OWNER)
-      .first()
-
-    if (!membership) {
-      throw new Error('Only the organization owner can delete the organization')
+    // Must be Owner specifically to delete
+    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId, _trx)
+    if (String(orgRole) !== OrganizationRole.OWNER) {
+      throw new ForbiddenException('Chỉ owner mới có thể xóa tổ chức')
     }
   }
 
   /**
-   * Helper: Check for active projects
+   * Helper: Check for active projects → delegate to Model
    * Cannot delete organization with active projects
    */
   private async checkActiveProjects(
-    organizationId: number,
-    trx: TransactionClientContract
+    organizationId: DatabaseId,
+    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<void> {
-    interface CountResult {
-      total: number | string
-    }
-    const activeProjectsCount = (await trx
-      .from('projects')
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .count('* as total')
-      .first()) as CountResult | null
-
-    const total = Number(activeProjectsCount?.total ?? 0)
+    const total = await Organization.countActiveProjects(organizationId, _trx)
     if (total > 0) {
-      throw new Error(
-        `Cannot delete organization with ${String(total)} active project(s). Please delete or archive all projects first.`
+      throw new BusinessLogicException(
+        `Không thể xóa tổ chức có ${String(total)} dự án đang hoạt động. Vui lòng xóa hoặc lưu trữ tất cả dự án trước.`
       )
     }
   }

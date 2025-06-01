@@ -15,7 +15,7 @@
   interface Props {
     users: UsersProps['users']
     filters: UsersProps['filters']
-    currentUserId: number
+    currentUserId: string
     isSuperAdmin: boolean
     onEditPermissions: (user: User) => void
     onDeleteUser: (user: User) => void
@@ -50,7 +50,7 @@
           <TableCell>{getUserDisplayName(user)}</TableCell>
           <TableCell>{user.email}</TableCell>
           <TableCell>{getUserOrganizationRole(user)}</TableCell>
-          <TableCell>{t(`user.status_${user.status?.name.toLowerCase()}`, {}, user.status?.name)}</TableCell>
+          <TableCell>{t(`user.status_${(user.status || '').toLowerCase()}`, {}, user.status || '')}</TableCell>
           <TableCell class="text-right">
             {#if user.id !== currentUserId}
               {#if isSuperAdmin}

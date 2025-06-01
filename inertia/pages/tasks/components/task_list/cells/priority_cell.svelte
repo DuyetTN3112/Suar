@@ -16,7 +16,7 @@
     priorityName.includes('high') || priorityName.includes('cao') ? 'rgb(249, 115, 22)' :
     priorityName.includes('medium') || priorityName.includes('trung') ? 'rgb(139, 92, 246)' :
     priorityName.includes('low') || priorityName.includes('thấp') ? 'rgb(34, 197, 94)' :
-    task.priority?.color || 'currentColor'
+    'currentColor'
   }
 >
   <span
@@ -26,8 +26,8 @@
       priorityName.includes('high') || priorityName.includes('cao') ? 'rgb(249, 115, 22)' :
       priorityName.includes('medium') || priorityName.includes('trung') ? 'rgb(139, 92, 246)' :
       priorityName.includes('low') || priorityName.includes('thấp') ? 'rgb(34, 197, 94)' :
-      task.priority?.color || 'currentColor'
+      'currentColor'
     }
   ></span>
-  {task.priority?.name}
+  {task.priority}
 </div>

@@ -13,10 +13,10 @@
   interface Props {
     open: boolean
     onOpenChange: (open: boolean) => void
-    statuses?: Array<{ id: number; name: string }>
-    priorities?: Array<{ id: number; name: string }>
-    labels?: Array<{ id: number; name: string }>
-    users?: Array<{ id: number; username: string; email: string }>
+    statuses?: Array<{ value: string; label: string }>
+    priorities?: Array<{ value: string; label: string }>
+    labels?: Array<{ value: string; label: string }>
+    users?: Array<{ id: string; username: string; email: string }>
   }
 
   let {
@@ -33,9 +33,9 @@
   let formData = $state({
     title: '',
     description: '',
-    status_id: '',
-    priority_id: '',
-    label_id: '',
+    status: '',
+    priority: '',
+    label: '',
     assigned_to: '',
     due_date: ''
   })
@@ -50,8 +50,8 @@
       newErrors.title = t('task.title', {}, 'Tiêu đề') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
 
-    if (!formData.status_id) {
-      newErrors.status_id = t('task.status', {}, 'Trạng thái') + ' ' + t('common.is_required', {}, 'là bắt buộc')
+    if (!formData.status) {
+      newErrors.status = t('task.status', {}, 'Trạng thái') + ' ' + t('common.is_required', {}, 'là bắt buộc')
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -78,9 +78,9 @@
     formData = {
       title: '',
       description: '',
-      status_id: '',
-      priority_id: '',
-      label_id: '',
+      status: '',
+      priority: '',
+      label: '',
       assigned_to: '',
       due_date: ''
     }

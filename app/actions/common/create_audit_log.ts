@@ -1,45 +1,43 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import AuditLog from '#models/audit_log'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 type AuditLogData = {
-  user_id: number
+  user_id: DatabaseId
   action: string
   entity_type: string
-  entity_id: number
+  entity_id: DatabaseId
   old_values?: unknown
   new_values?: unknown
 }
 
 export default class CreateAuditLog {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async handle(data: AuditLogData): Promise<boolean> {
     try {
-      const ipAddress = this.ctx.request.ip()
-      const userAgent = this.ctx.request.header('user-agent') || ''
-      // Chuyển đổi các giá trị thành JSON nếu cần
-      const oldValues = data.old_values
-        ? typeof data.old_values === 'string'
-          ? data.old_values
-          : JSON.stringify(data.old_values)
-        : null
-      const newValues = data.new_values
-        ? typeof data.new_values === 'string'
-          ? data.new_values
-          : JSON.stringify(data.new_values)
-        : null
+      const ipAddress = this.execCtx.ip
+      const userAgent = this.execCtx.userAgent
 
-      // Sử dụng stored procedure để ghi log
-      await db.rawQuery('CALL log_audit(?, ?, ?, ?, ?, ?, ?, ?)', [
-        data.user_id,
-        data.action,
-        data.entity_type,
-        data.entity_id,
-        oldValues,
-        newValues,
-        ipAddress,
-        userAgent,
-      ])
+      // Use Lucid model instead of stored procedure (same as audit_logging.ts pattern)
+      await AuditLog.create({
+        user_id: data.user_id,
+        action: data.action,
+        entity_type: data.entity_type,
+        entity_id: data.entity_id,
+        old_values: data.old_values
+          ? typeof data.old_values === 'string'
+            ? (JSON.parse(data.old_values) as object)
+            : (data.old_values as object)
+          : null,
+        new_values: data.new_values
+          ? typeof data.new_values === 'string'
+            ? (JSON.parse(data.new_values) as object)
+            : (data.new_values as object)
+          : null,
+        ip_address: ipAddress,
+        user_agent: userAgent,
+      })
 
       return true
     } catch (_error) {

@@ -1,15 +1,17 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
+import OrganizationInvitation from '#models/organization_invitation'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-interface OrganizationRecord {
-  id: number
-  name: string
-}
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command: Invite User to Organization
@@ -25,7 +27,7 @@ interface OrganizationRecord {
  * await command.execute(dto)
  */
 export default class InviteUserCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Invite user to organization
@@ -39,57 +41,51 @@ export default class InviteUserCommand {
    * 6. Commit transaction
    */
   async execute(dto: InviteUserDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      await this.checkPermissions(dto.organizationId, userId, trx)
 
       // 2. Check for duplicate active invitations
       await this.checkDuplicateInvitation(dto, trx)
 
       // 3. Get organization details
-      const organization = (await trx
-        .from('organizations')
-        .where('id', dto.organizationId)
-        .first()) as OrganizationRecord | null
-
+      const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      // 4. Create invitation record
+      // 4. Create invitation record via Model
       const invitationData = dto.toObject()
-      const result = await trx
-        .insertQuery()
-        .table('organization_invitations')
-        .insert({
+      const invitation = await OrganizationInvitation.createInvitation(
+        {
           ...invitationData,
-          invited_by: currentUser.id,
-          status: OrganizationUserStatus.PENDING,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
-      const invitationId = (result as number[])[0]
+          organization_id: dto.organizationId,
+          email: dto.getNormalizedEmail(),
+          invited_by: userId,
+        },
+        trx
+      )
 
       // 5. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: AuditAction.INVITE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
           new_values: {
             email: dto.getNormalizedEmail(),
             role: dto.getRoleName(),
-            invitation_id: invitationId,
+            invitation_id: invitation.id,
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
@@ -105,19 +101,13 @@ export default class InviteUserCommand {
    * Helper: Check if user has permission to send invitations
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to send invitations for this organization')
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
+      throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
     }
   }
 
@@ -128,16 +118,13 @@ export default class InviteUserCommand {
     dto: InviteUserDTO,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existingInvitation: unknown = await trx
-      .from('organization_invitations')
-      .where('organization_id', dto.organizationId)
-      .where('email', dto.getNormalizedEmail())
-      .where('status', OrganizationUserStatus.PENDING)
-      .where('expires_at', '>', new Date())
-      .first()
-
-    if (existingInvitation) {
-      throw new Error('An active invitation already exists for this email address')
+    const hasPending = await OrganizationInvitation.hasPendingInvitation(
+      dto.organizationId,
+      dto.getNormalizedEmail(),
+      trx
+    )
+    if (hasPending) {
+      throw ConflictException.alreadyExists('Lời mời cho email này đã tồn tại và đang chờ xử lý')
     }
   }
 }

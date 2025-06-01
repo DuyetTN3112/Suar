@@ -5,7 +5,7 @@ export const canDeleteTask = (task: Task, currentUser: any): boolean => {
     return false
   }
 
-  const userRole = currentUser.role || ''
+  const userRole = currentUser.role || currentUser.system_role || ''
   const isSuperAdmin = userRole === 'superadmin'
 
   if (isSuperAdmin) {
@@ -23,8 +23,8 @@ export const canDeleteTask = (task: Task, currentUser: any): boolean => {
     return true
   }
 
-  const creatorId = task.creator_id || (task.creator && task.creator.id)
-  const isCreator = creatorId && Number(creatorId) === Number(currentUser.id)
+  const creatorId = task.created_by || (task.creator && task.creator.id)
+  const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
   if (isCreator) {
     return true
@@ -33,7 +33,7 @@ export const canDeleteTask = (task: Task, currentUser: any): boolean => {
   return false
 }
 
-export const getRoleFromAuth = () => {
+export const getRoleFromAuth = (): string => {
   const authUser = (window as any).auth?.user
   if (!authUser) {
     if (import.meta.env.DEV) {
@@ -46,24 +46,12 @@ export const getRoleFromAuth = () => {
     return authUser.userRole
   }
 
-  if (typeof authUser.role === 'string') {
-    return authUser.role.toLowerCase()
+  if (authUser.system_role) {
+    return authUser.system_role.toLowerCase()
   }
 
-  if (typeof authUser.role === 'object' && authUser.role) {
-    if (authUser.role.name) {
-      return authUser.role.name.toLowerCase()
-    }
-
-    if (authUser.role.id === 1) {
-      return 'superadmin'
-    }
-    if (authUser.role.id === 2) {
-      return 'admin'
-    }
-    if (authUser.role.id === 3) {
-      return 'user'
-    }
+  if (typeof authUser.role === 'string' && authUser.role) {
+    return authUser.role.toLowerCase()
   }
 
   return ''
@@ -92,11 +80,11 @@ export const canEditTask = (task: Task, currentUser: any): boolean => {
     return true
   }
 
-  const creatorId = task.creator_id || (task.creator && task.creator.id)
-  const isCreator = creatorId && Number(creatorId) === Number(currentUser.id)
+  const creatorId = task.created_by || (task.creator && task.creator.id)
+  const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
   const assigneeId = task.assigned_to || (task.assignee && task.assignee.id)
-  const isAssignee = assigneeId && Number(assigneeId) === Number(currentUser.id)
+  const isAssignee = Boolean(assigneeId && assigneeId === currentUser.id)
 
   return isCreator || isAssignee
 }

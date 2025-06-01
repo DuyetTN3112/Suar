@@ -7,10 +7,10 @@ export default class UserOAuthProvider extends BaseModel {
   static override table = 'user_oauth_providers'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare provider: string

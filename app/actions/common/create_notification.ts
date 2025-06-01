@@ -1,42 +1,35 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
-import Notification from '#models/notification'
+import { RepositoryFactory } from '#repositories/index'
+import type { NotificationRecord } from '#repositories/interfaces'
+import type { DatabaseId } from '#types/database'
 
 type NotificationData = {
-  user_id: number | string
+  user_id: DatabaseId
   title: string
   message: string
   type: string
   related_entity_type?: string
-  related_entity_id?: number | string
+  related_entity_id?: DatabaseId
 }
 
+/**
+ * CreateNotification — stateless notification creator.
+ * No dependency on HttpContext.
+ *
+ * Uses Repository Pattern (Sprint 5):
+ *   - RepositoryFactory resolves implementation based on env var NOTIFICATION_STORAGE
+ *   - Supports mysql | mongodb | both (DualWrite)
+ */
 export default class CreateNotification {
-  constructor(protected ctx: HttpContext) {}
+  async handle(data: NotificationData): Promise<NotificationRecord | null> {
+    const repo = await RepositoryFactory.getNotificationRepository()
 
-  async handle(data: NotificationData): Promise<Notification | null> {
-    try {
-      // Sử dụng stored procedure để tạo thông báo
-      await db.rawQuery('CALL create_notification(?, ?, ?, ?, ?, ?)', [
-        data.user_id,
-        data.title,
-        data.message,
-        data.type,
-        data.related_entity_type || null,
-        data.related_entity_id || null,
-      ])
-
-      // Trả về thông báo vừa tạo
-      const notification = await Notification.query()
-        .where('user_id', data.user_id)
-        .where('title', data.title)
-        .where('type', data.type)
-        .orderBy('created_at', 'desc')
-        .first()
-
-      return notification
-    } catch (_error) {
-      return null
-    }
+    return repo.create({
+      user_id: data.user_id,
+      title: data.title,
+      message: data.message,
+      type: data.type,
+      related_entity_type: data.related_entity_type ?? null,
+      related_entity_id: data.related_entity_id ?? null,
+    })
   }
 }

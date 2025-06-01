@@ -1,5 +1,7 @@
 import type { Command } from '../../shared/interfaces.js'
 import type User from '#models/user'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * UpdateUserProfileDTO
@@ -9,7 +11,7 @@ import type User from '#models/user'
  */
 export class UpdateUserProfileDTO implements Command, Partial<Pick<User, 'username' | 'email'>> {
   constructor(
-    public readonly userId: number,
+    public readonly userId: DatabaseId,
     public readonly username?: string,
     public readonly email?: string
   ) {
@@ -17,23 +19,23 @@ export class UpdateUserProfileDTO implements Command, Partial<Pick<User, 'userna
   }
 
   private validate(): void {
-    if (this.userId < 1) {
-      throw new Error('Invalid user ID')
+    if (Number(this.userId) < 1) {
+      throw new ValidationException('Invalid user ID')
     }
 
     if (this.username !== undefined && this.username.trim().length === 0) {
-      throw new Error('Username cannot be empty')
+      throw new ValidationException('Username cannot be empty')
     }
 
     if (this.email !== undefined && this.email.trim().length === 0) {
-      throw new Error('Email cannot be empty')
+      throw new ValidationException('Email cannot be empty')
     }
 
     // Basic email validation
     if (this.email !== undefined) {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(this.email)) {
-        throw new Error('Invalid email format')
+        throw new ValidationException('Invalid email format')
       }
     }
   }

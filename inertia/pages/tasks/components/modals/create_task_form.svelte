@@ -7,18 +7,18 @@
     formData: {
       title: string
       description: string
-      status_id: string
-      priority_id: string
-      label_id: string
+      status: string
+      priority: string
+      label: string
       assigned_to: string
       due_date: string
     }
     setFormData: (updater: (prev: typeof formData) => typeof formData) => void
     errors: Record<string, string>
-    statuses: Array<{ id: number; name: string }>
-    priorities: Array<{ id: number; name: string }>
-    labels: Array<{ id: number; name: string }>
-    users: Array<{ id: number; username: string; email: string }>
+    statuses: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
+    labels: Array<{ value: string; label: string }>
+    users: Array<{ id: string; username: string; email: string }>
   }
 
   const { formData, setFormData, errors, statuses, priorities, labels, users }: Props = $props()

@@ -1,32 +1,23 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-
-interface RequestRecord {
-  request_id: number
-  user_id: number
-  organization_id: number
-  organization_name: string
-  message: string
-  status: string
-  created_at: Date
-  updated_at: Date
-  username: string
-  email: string
-}
+import OrganizationUser from '#models/organization_user'
+import OrganizationJoinRequest from '#models/organization_join_request'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface RequestResult {
-  id: number
-  user_id: number
-  organization_id: number
+  id: DatabaseId
+  user_id: DatabaseId
+  organization_id: DatabaseId
   organization_name: string
   message: string
   status: string
   created_at: Date
   updated_at: Date
   user: {
-    id: number
+    id: DatabaseId
     username: string
     email: string
   }
@@ -53,18 +44,18 @@ interface RequestResult {
  * const requests = await query.execute(organizationId)
  */
 export default class GetPendingRequestsQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(organizationId: number): Promise<RequestResult[]> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async execute(organizationId: DatabaseId): Promise<RequestResult[]> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
 
     // 1. Permission check: Must be owner or admin
-    const hasPermission = await this.checkPermission(user.id, organizationId)
+    const hasPermission = await this.checkPermission(userId, organizationId)
     if (!hasPermission) {
-      throw new Error('Bạn không có quyền xem danh sách yêu cầu tham gia')
+      throw new ForbiddenException('Bạn không có quyền xem danh sách yêu cầu tham gia')
     }
 
     // 2. Try cache first
@@ -74,42 +65,23 @@ export default class GetPendingRequestsQuery {
       return cached
     }
 
-    // 3. Query pending requests
-    const requests = (await db
-      .from('organization_join_requests as ojr')
-      .where('ojr.organization_id', organizationId)
-      .where('ojr.status', OrganizationUserStatus.PENDING)
-      .whereNull('ojr.deleted_at')
-      .join('users as u', 'ojr.user_id', 'u.id')
-      .leftJoin('organizations as o', 'ojr.organization_id', 'o.id')
-      .select(
-        'ojr.id as request_id',
-        'ojr.user_id',
-        'ojr.organization_id',
-        'ojr.message',
-        'ojr.status',
-        'ojr.created_at',
-        'ojr.updated_at',
-        'u.username',
-        'u.email',
-        'o.name as organization_name'
-      )
-      .orderBy('ojr.created_at', 'desc')) as RequestRecord[]
+    // 3. Query pending requests via Model
+    const requests = await OrganizationJoinRequest.getPendingByOrganization(organizationId)
 
     // 4. Format response
     const result: RequestResult[] = requests.map((request) => ({
-      id: request.request_id,
+      id: request.id,
       user_id: request.user_id,
       organization_id: request.organization_id,
-      organization_name: request.organization_name,
+      organization_name: request.organization?.name ?? '',
       message: request.message,
       status: request.status,
-      created_at: request.created_at,
-      updated_at: request.updated_at,
+      created_at: request.created_at?.toJSDate() ?? new Date(),
+      updated_at: request.updated_at?.toJSDate() ?? new Date(),
       user: {
         id: request.user_id,
-        username: request.username,
-        email: request.email,
+        username: request.user?.username ?? '',
+        email: request.user?.email ?? '',
       },
     }))
 
@@ -122,22 +94,14 @@ export default class GetPendingRequestsQuery {
   /**
    * Check if user has permission (owner or admin)
    */
-  private async checkPermission(userId: number, organizationId: number): Promise<boolean> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .whereNull('deleted_at')
-      .first()
-
-    return !!membership
+  private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
+    return OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId)
   }
 
   /**
    * Build cache key
    */
-  private buildCacheKey(organizationId: number): string {
+  private buildCacheKey(organizationId: DatabaseId): string {
     return `organization:pending_requests:org:${String(organizationId)}`
   }
 
@@ -151,7 +115,7 @@ export default class GetPendingRequestsQuery {
         return JSON.parse(cached) as RequestResult[]
       }
     } catch (error) {
-      console.error('[GetPendingRequestsQuery] Cache get error:', error)
+      loggerService.error('[GetPendingRequestsQuery] Cache get error:', error)
     }
     return null
   }
@@ -163,7 +127,7 @@ export default class GetPendingRequestsQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetPendingRequestsQuery] Cache set error:', error)
+      loggerService.error('[GetPendingRequestsQuery] Cache set error:', error)
     }
   }
 }

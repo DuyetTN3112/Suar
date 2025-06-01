@@ -1,3 +1,5 @@
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for listing user's conversations
  *
@@ -32,16 +34,16 @@ export class ListConversationsDTO {
   private validate(): void {
     // Page validation (must be positive)
     if (typeof this.page !== 'number' || this.page < 1) {
-      throw new Error('Page must be a positive number starting from 1')
+      throw new ValidationException('Page must be a positive number starting from 1')
     }
 
     // Limit validation (must be between 1 and 50)
     if (typeof this.limit !== 'number' || this.limit < 1) {
-      throw new Error('Limit must be at least 1')
+      throw new ValidationException('Limit must be at least 1')
     }
 
     if (this.limit > 50) {
-      throw new Error('Limit cannot exceed 50 conversations per page')
+      throw new ValidationException('Limit cannot exceed 50 conversations per page')
     }
 
     // Search validation (optional, max length)
@@ -52,7 +54,7 @@ export class ListConversationsDTO {
       }
 
       if (this.search.length > 255) {
-        throw new Error('Search query cannot exceed 255 characters')
+        throw new ValidationException('Search query cannot exceed 255 characters')
       }
     }
   }

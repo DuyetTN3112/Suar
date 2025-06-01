@@ -1,14 +1,15 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from './invite_user_command.js'
 import { InviteUserDTO } from '../dtos/invite_user_dto.js'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for bulk inviting users
  */
 export interface BulkInviteUsersDTO {
-  organization_id: number
+  organization_id: DatabaseId
   user_emails: string[]
-  role_id: number
+  org_role: string
   message?: string
 }
 
@@ -22,7 +23,7 @@ export interface BulkInviteUsersDTO {
  * - Collect kết quả success/failure
  */
 export default class BulkInviteUsersCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(dto: BulkInviteUsersDTO): Promise<{
     success: string[]
@@ -31,11 +32,11 @@ export default class BulkInviteUsersCommand {
     const success: string[] = []
     const failed: { email: string; error: string }[] = []
 
-    const inviteCommand = new InviteUserCommand(this.ctx)
+    const inviteCommand = new InviteUserCommand(this.execCtx)
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.role_id, dto.message)
+        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.org_role, dto.message)
 
         await inviteCommand.execute(inviteDto)
         success.push(email)

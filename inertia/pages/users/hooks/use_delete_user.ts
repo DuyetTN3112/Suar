@@ -2,7 +2,7 @@ import { router } from '@inertiajs/svelte'
 import { toast } from 'sonner'
 import type { User } from '../types'
 
-export const useDeleteUser = (authUserId: number) => {
+export const useDeleteUser = (authUserId: string) => {
   let deleteModalOpen = $state(false)
   let userToDelete = $state<User | null>(null)
   let isDeleting = $state(false)

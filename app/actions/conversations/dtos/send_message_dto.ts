@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for sending a message in a conversation
  *
@@ -13,7 +16,7 @@
  */
 export class SendMessageDTO {
   constructor(
-    public readonly conversationId: number,
+    public readonly conversationId: DatabaseId,
     public readonly message: string
   ) {
     this.validate()
@@ -23,26 +26,22 @@ export class SendMessageDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Conversation ID validation (required)
-    if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new Error('Conversation ID is required and must be a number')
-    }
-
-    if (this.conversationId <= 0) {
-      throw new Error('Conversation ID must be a positive number')
+    // Conversation ID validation (required, UUIDv7 string)
+    if (!this.conversationId || typeof this.conversationId !== 'string') {
+      throw new ValidationException('Conversation ID is required and must be a string')
     }
 
     // Message content validation (required)
     if (!this.message || typeof this.message !== 'string') {
-      throw new Error('Message content is required and must be a string')
+      throw new ValidationException('Message content is required and must be a string')
     }
 
     if (this.message.trim().length === 0) {
-      throw new Error('Message content cannot be empty')
+      throw new ValidationException('Message content cannot be empty')
     }
 
     if (this.message.length > 5000) {
-      throw new Error('Message cannot exceed 5000 characters')
+      throw new ValidationException('Message cannot exceed 5000 characters')
     }
 
     // Check for potentially malicious content

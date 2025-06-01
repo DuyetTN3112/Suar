@@ -1,7 +1,7 @@
 import type { Task } from '../types.svelte'
 
 export function createTaskSelectionStore() {
-  let selectedTasks = $state<number[]>([])
+  let selectedTasks = $state<string[]>([])
 
   function handleSelectAll(tasks: Task[], checked: boolean) {
     if (checked) {
@@ -12,7 +12,7 @@ export function createTaskSelectionStore() {
     }
   }
 
-  function handleSelectTask(taskId: number, checked: boolean) {
+  function handleSelectTask(taskId: string, checked: boolean) {
     if (checked) {
       selectedTasks = [...selectedTasks, taskId]
     } else {
@@ -20,7 +20,7 @@ export function createTaskSelectionStore() {
     }
   }
 
-  function isTaskSelected(taskId: number): boolean {
+  function isTaskSelected(taskId: string): boolean {
     return selectedTasks.includes(taskId)
   }
 
@@ -32,7 +32,7 @@ export function createTaskSelectionStore() {
     get selectedTasks() {
       return selectedTasks
     },
-    set selectedTasks(value: number[]) {
+    set selectedTasks(value: string[]) {
       selectedTasks = value
     },
     handleSelectAll,
@@ -43,9 +43,9 @@ export function createTaskSelectionStore() {
 }
 
 export function createTaskExpansionStore() {
-  let expandedTasks = $state<number[]>([])
+  let expandedTasks = $state<string[]>([])
 
-  function toggleExpandTask(taskId: number) {
+  function toggleExpandTask(taskId: string) {
     if (expandedTasks.includes(taskId)) {
       expandedTasks = expandedTasks.filter((id) => id !== taskId)
     } else {
@@ -53,7 +53,7 @@ export function createTaskExpansionStore() {
     }
   }
 
-  function isTaskExpanded(taskId: number): boolean {
+  function isTaskExpanded(taskId: string): boolean {
     return expandedTasks.includes(taskId)
   }
 
@@ -61,7 +61,7 @@ export function createTaskExpansionStore() {
     get expandedTasks() {
       return expandedTasks
     },
-    set expandedTasks(value: number[]) {
+    set expandedTasks(value: string[]) {
       expandedTasks = value
     },
     toggleExpandTask,

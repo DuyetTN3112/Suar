@@ -7,12 +7,12 @@
   import type { Task } from '../../types'
 
   interface AuditLogEntry {
-    id: number
+    id: string
     user_type: string
-    user_id: number
+    user_id: string
     event: string
     auditable_type: string
-    auditable_id: number
+    auditable_id: string
     old_values?: Record<string, any>
     new_values?: Record<string, any>
     ip_address?: string
@@ -21,7 +21,7 @@
     created_at: string
     updated_at: string
     user?: {
-      id: number
+      id: string
       username: string
       email: string
     }
@@ -46,9 +46,9 @@
     const fieldNameMap: Record<string, string> = {
       title: 'Tiêu đề',
       description: 'Mô tả',
-      status_id: 'Trạng thái',
-      priority_id: 'Độ ưu tiên',
-      label_id: 'Nhãn',
+      status: 'Trạng thái',
+      priority: 'Độ ưu tiên',
+      label: 'Nhãn',
       assigned_to: 'Người được giao',
       due_date: 'Ngày đến hạn',
       completed_at: 'Ngày hoàn thành',
@@ -59,40 +59,20 @@
     return fieldNameMap[fieldName] || fieldName
   }
 
-  function getStatusName(statusId: number): string {
-    const status = task?.status
-    if (status && status.id === statusId) {
-      return status.name
-    }
-    return `Trạng thái #${statusId}`
-  }
-
-  function getPriorityName(priorityId: number): string {
-    const priority = task?.priority
-    if (priority && priority.id === priorityId) {
-      return priority.name
-    }
-    return `Độ ưu tiên #${priorityId}`
-  }
-
-  function getUserName(userId: number): string {
-    if (!userId) return 'Không có'
-    if (task?.assignee && task.assignee.id === userId) {
-      return task.assignee.username || task.assignee.email
-    }
-    return `Người dùng #${userId}`
-  }
-
   function getValueText(fieldName: string, value: any): string {
     if (value === null || value === undefined) return 'Không có'
 
     switch (fieldName) {
-      case 'status_id':
-        return getStatusName(value)
-      case 'priority_id':
-        return getPriorityName(value)
+      case 'status':
+      case 'priority':
+      case 'label':
+        return String(value)
       case 'assigned_to':
-        return getUserName(value)
+        if (!value) return 'Không có'
+        if (task?.assignee && task.assignee.id === value) {
+          return task.assignee.username || task.assignee.email
+        }
+        return String(value)
       case 'due_date':
         return value ? formatDate(value) : 'Không có'
       default:

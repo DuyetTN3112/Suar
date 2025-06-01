@@ -1,4 +1,7 @@
 import type { DateTime } from 'luxon'
+import type { DatabaseId } from '#types/database'
+import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO for creating a new project
@@ -8,24 +11,24 @@ import type { DateTime } from 'luxon'
 export interface CreateProjectDTOInterface {
   name: string
   description?: string
-  organization_id: number
-  status_id?: number
+  organization_id: DatabaseId
+  status?: string
   start_date?: DateTime | null
   end_date?: DateTime | null
-  manager_id?: number | null
-  visibility?: 'public' | 'private' | 'team'
+  manager_id?: DatabaseId | null
+  visibility?: ProjectVisibility
   budget?: number
 }
 
 export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly name: string
   public readonly description?: string
-  public readonly organization_id: number
-  public readonly status_id: number
+  public readonly organization_id: DatabaseId
+  public readonly status: string
   public readonly start_date?: DateTime | null
   public readonly end_date?: DateTime | null
-  public readonly manager_id?: number | null
-  public readonly visibility: 'public' | 'private' | 'team'
+  public readonly manager_id?: DatabaseId | null
+  public readonly visibility: ProjectVisibility
   public readonly budget: number
 
   constructor(data: CreateProjectDTOInterface) {
@@ -35,11 +38,11 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
     this.name = data.name.trim()
     this.description = data.description?.trim() || undefined
     this.organization_id = data.organization_id
-    this.status_id = data.status_id || 1 // Default: pending
+    this.status = data.status || ProjectStatus.PENDING
     this.start_date = data.start_date || null
     this.end_date = data.end_date || null
     this.manager_id = data.manager_id || null
-    this.visibility = data.visibility || 'team'
+    this.visibility = data.visibility || ProjectVisibility.TEAM
     this.budget = data.budget || 0
   }
 
@@ -49,52 +52,55 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   private validateInput(data: CreateProjectDTOInterface): void {
     // Name validation
     if (!data.name || data.name.trim().length === 0) {
-      throw new Error('Tên dự án là bắt buộc')
+      throw new ValidationException('Tên dự án là bắt buộc')
     }
 
     if (data.name.trim().length < 3) {
-      throw new Error('Tên dự án phải có ít nhất 3 ký tự')
+      throw new ValidationException('Tên dự án phải có ít nhất 3 ký tự')
     }
 
     if (data.name.trim().length > 100) {
-      throw new Error('Tên dự án không được vượt quá 100 ký tự')
+      throw new ValidationException('Tên dự án không được vượt quá 100 ký tự')
     }
 
     // Description validation
     if (data.description && data.description.trim().length > 1000) {
-      throw new Error('Mô tả dự án không được vượt quá 1000 ký tự')
+      throw new ValidationException('Mô tả dự án không được vượt quá 1000 ký tự')
     }
 
     // Organization ID validation
-    if (!data.organization_id || data.organization_id <= 0) {
-      throw new Error('ID tổ chức không hợp lệ')
+    if (!data.organization_id) {
+      throw new ValidationException('ID tổ chức không hợp lệ')
     }
 
-    // Status ID validation
-    if (data.status_id !== undefined && data.status_id <= 0) {
-      throw new Error('ID trạng thái không hợp lệ')
+    // Status validation (v3: inline VARCHAR)
+    if (data.status !== undefined) {
+      const validStatuses = Object.values(ProjectStatus) as string[]
+      if (!validStatuses.includes(data.status)) {
+        throw new ValidationException('Trạng thái dự án không hợp lệ')
+      }
     }
 
     // Date validation
     if (data.start_date && data.end_date) {
       if (data.end_date < data.start_date) {
-        throw new Error('Ngày kết thúc phải sau ngày bắt đầu')
+        throw new ValidationException('Ngày kết thúc phải sau ngày bắt đầu')
       }
     }
 
     // Manager ID validation
-    if (data.manager_id !== undefined && data.manager_id !== null && data.manager_id <= 0) {
-      throw new Error('ID người quản lý không hợp lệ')
+    if (data.manager_id !== undefined && data.manager_id !== null && !data.manager_id) {
+      throw new ValidationException('ID người quản lý không hợp lệ')
     }
 
     // Visibility validation
-    if (data.visibility && !['public', 'private', 'team'].includes(data.visibility)) {
-      throw new Error('Chế độ hiển thị không hợp lệ (public/private/team)')
+    if (data.visibility && !Object.values(ProjectVisibility).includes(data.visibility)) {
+      throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
 
     // Budget validation
     if (data.budget !== undefined && data.budget < 0) {
-      throw new Error('Ngân sách không thể là số âm')
+      throw new ValidationException('Ngân sách không thể là số âm')
     }
   }
 
@@ -106,7 +112,7 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       name: this.name,
       description: this.description,
       organization_id: this.organization_id,
-      status_id: this.status_id,
+      status: this.status,
       start_date: this.start_date?.toJSDate() || null,
       end_date: this.end_date?.toJSDate() || null,
       manager_id: this.manager_id,

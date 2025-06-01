@@ -1,18 +1,22 @@
+import type { DatabaseId } from '#types/database'
+import { OrganizationRole } from '#constants/organization_constants'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for getting organization members list with filters and pagination
  *
  * Pattern: Paginated query with role filter (learned from Projects module)
- * Supports filtering by role and pagination
+ * v3: Role filter uses OrganizationRole enum strings
  *
  * @example
- * const dto = new GetOrganizationMembersDTO(1, 1, 20, 4) // Get Members only
+ * const dto = new GetOrganizationMembersDTO('org-uuid', 1, 20, OrganizationRole.MEMBER)
  */
 export class GetOrganizationMembersDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly page: number = 1,
     public readonly limit: number = 20,
-    public readonly roleId?: number,
+    public readonly roleId?: string,
     public readonly search?: string,
     public readonly sortBy: string = 'joined_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc'
@@ -25,51 +29,43 @@ export class GetOrganizationMembersDTO {
    */
   private validate(): void {
     // Organization ID validation (required)
-    if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
-    }
-
-    if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+    if (!this.organizationId) {
+      throw new ValidationException('Organization ID is required')
     }
 
     // Page validation
     if (typeof this.page !== 'number' || this.page < 1) {
-      throw new Error('Page must be a positive number')
+      throw new ValidationException('Page must be a positive number')
     }
 
     // Limit validation (1-100)
     if (typeof this.limit !== 'number' || this.limit < 1 || this.limit > 100) {
-      throw new Error('Limit must be between 1 and 100')
+      throw new ValidationException('Limit must be between 1 and 100')
     }
 
-    // Role ID validation (optional, must be valid role)
+    // Role filter validation (optional, must be valid OrganizationRole)
     if (this.roleId !== undefined) {
-      if (typeof this.roleId !== 'number') {
-        throw new Error('Role ID must be a number')
-      }
-
-      const validRoles = [1, 2, 3, 4, 5]
+      const validRoles = Object.values(OrganizationRole) as string[]
       if (!validRoles.includes(this.roleId)) {
-        throw new Error(`Role ID must be one of: ${validRoles.join(', ')}`)
+        throw new ValidationException(`Role must be one of: ${validRoles.join(', ')}`)
       }
     }
 
     // Search validation (optional, max 100 characters)
     if (this.search !== undefined) {
       if (typeof this.search !== 'string') {
-        throw new Error('Search query must be a string')
+        throw new ValidationException('Search query must be a string')
       }
 
       if (this.search.trim().length > 100) {
-        throw new Error('Search query cannot exceed 100 characters')
+        throw new ValidationException('Search query cannot exceed 100 characters')
       }
     }
 
     // Sort by validation
-    const validSortFields = ['joined_at', 'name', 'email', 'role_id']
+    const validSortFields = ['joined_at', 'name', 'email', 'org_role']
     if (!validSortFields.includes(this.sortBy)) {
-      throw new Error(`Sort by must be one of: ${validSortFields.join(', ')}`)
+      throw new ValidationException(`Sort by must be one of: ${validSortFields.join(', ')}`)
     }
 
     // Sort order validation
@@ -113,14 +109,12 @@ export class GetOrganizationMembersDTO {
   getRoleName(): string | null {
     if (!this.hasRoleFilter()) return null
 
-    const roleNames: Record<number, string> = {
-      1: 'Owner',
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
+    const roleNames: Record<string, string> = {
+      [OrganizationRole.OWNER]: 'Owner',
+      [OrganizationRole.ADMIN]: 'Admin',
+      [OrganizationRole.MEMBER]: 'Member',
     }
-    return roleNames[this.roleId ?? 0] ?? 'Unknown'
+    return roleNames[this.roleId ?? ''] ?? 'Unknown'
   }
 
   /**
@@ -156,7 +150,7 @@ export class GetOrganizationMembersDTO {
       joined_at: 'organization_users.created_at',
       name: 'users.name',
       email: 'users.email',
-      role_id: 'organization_users.role_id',
+      org_role: 'organization_users.org_role',
     }
 
     return {

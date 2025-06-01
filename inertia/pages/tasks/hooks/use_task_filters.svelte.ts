@@ -10,11 +10,11 @@ export interface TaskFilters {
 }
 
 export interface TaskMetadata {
-  statuses: Array<{ id: number; name: string; color: string }>
-  priorities: Array<{ id: number; name: string; color: string; value: number }>
-  labels: Array<{ id: number; name: string; color: string }>
+  statuses: Array<{ value: string; label: string; color: string }>
+  priorities: Array<{ value: string; label: string; color: string }>
+  labels: Array<{ value: string; label: string; color: string }>
   users: Array<{
-    id: number
+    id: string
     username: string
     email: string
   }>
@@ -29,23 +29,23 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
   let activeTab = $state('all')
   let searchTimeout: number | null = null
 
-  // Tìm ID của trạng thái completed và pending
+  // Tìm value của trạng thái completed và pending
   const completedStatusId = $derived(
     metadata.statuses.find(
       (status) =>
-        status.name.toLowerCase().includes('done') ||
-        status.name.toLowerCase().includes('complete') ||
-        status.name.toLowerCase().includes('hoàn thành')
-    )?.id
+        status.value.toLowerCase().includes('done') ||
+        status.label.toLowerCase().includes('complete') ||
+        status.label.toLowerCase().includes('hoàn thành')
+    )?.value
   )
 
   const pendingStatusId = $derived(
     metadata.statuses.find(
       (status) =>
-        status.name.toLowerCase().includes('pending') ||
-        status.name.toLowerCase().includes('wait') ||
-        status.name.toLowerCase().includes('chờ')
-    )?.id
+        status.value.toLowerCase().includes('pending') ||
+        status.label.toLowerCase().includes('wait') ||
+        status.label.toLowerCase().includes('chờ')
+    )?.value
   )
 
   // Hàm gửi request tìm kiếm

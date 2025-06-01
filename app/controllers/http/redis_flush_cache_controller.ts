@@ -1,0 +1,26 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import CacheService from '#services/cache_service'
+import { getErrorMessage } from '#libs/error_utils'
+
+/**
+ * DELETE /api/redis/flush → Flush all cache
+ */
+export default class RedisFlushCacheController {
+  async handle({ response }: HttpContext) {
+    try {
+      await CacheService.flush()
+      response.json({
+        success: true,
+        message: 'Cache flushed successfully',
+      })
+      return
+    } catch (error: unknown) {
+      response.status(500).json({
+        success: false,
+        message: 'Failed to flush cache',
+        error: getErrorMessage(error, 'Unknown error'),
+      })
+      return
+    }
+  }
+}

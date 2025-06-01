@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for recalling a message
  *
@@ -18,7 +21,7 @@
  */
 export class RecallMessageDTO {
   constructor(
-    public readonly messageId: number,
+    public readonly messageId: DatabaseId,
     public readonly scope: 'all' | 'self'
   ) {
     this.validate()
@@ -28,13 +31,9 @@ export class RecallMessageDTO {
    * Validate all fields at construction time
    */
   private validate(): void {
-    // Message ID validation (required)
-    if (!this.messageId || typeof this.messageId !== 'number') {
-      throw new Error('Message ID is required and must be a number')
-    }
-
-    if (this.messageId <= 0) {
-      throw new Error('Message ID must be a positive number')
+    // Message ID validation (required, UUIDv7 string)
+    if (!this.messageId || typeof this.messageId !== 'string') {
+      throw new ValidationException('Message ID is required and must be a string')
     }
 
     // Scope validation is handled by TypeScript type system

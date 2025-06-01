@@ -19,7 +19,7 @@
   import { toast } from 'svelte-sonner'
 
   interface Organization {
-    id: number
+    id: string
     name: string
     description: string | null
     logo: string | null
@@ -36,7 +36,7 @@
 
   interface Props {
     organizations: Organization[]
-    currentOrganizationId: number | null
+    currentOrganizationId: string | null
     allOrganizations?: Organization[]
   }
 
@@ -48,13 +48,13 @@
   let selectedOrg = $state<Organization | null>(null)
   let showDetailDialog = $state(false)
   let localCurrentOrgId = $derived(currentOrganizationId)
-  const orgMembershipStatus = $state<Record<number, { status: string | null }>>({})
+  const orgMembershipStatus = $state<Record<string, { status: string | null }>>({})
 
   // Số lượng tổ chức hiển thị trên mỗi trang (2 dòng x 5 cột)
   const ITEMS_PER_PAGE = 10
 
   // Hàm xử lý tham gia tổ chức
-  async function handleJoinOrganization(id: number) {
+  async function handleJoinOrganization(id: string) {
     try {
       const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
@@ -100,7 +100,7 @@
   }
 
   // Hàm xử lý chuyển đổi tổ chức hiện tại
-  async function handleSwitchOrganization(id: number) {
+  async function handleSwitchOrganization(id: string) {
     try {
       const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
@@ -207,7 +207,7 @@
   const hasOrganizations = $derived(organizations.length > 0)
 
   // Hàm kiểm tra trạng thái thành viên
-  function checkMembershipStatus(orgId: number) {
+  function checkMembershipStatus(orgId: string) {
     // Kiểm tra nếu đã là thành viên được duyệt
     if (organizations.some(org => org.id === orgId)) {
       return { isMember: true, status: 'approved' }

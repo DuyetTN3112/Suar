@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import { OrganizationRole } from '#constants'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
 
 interface RoleRecord {
-  id: number
   name: string
   display_name: string
   description: string | null
@@ -68,15 +68,14 @@ export default class GetOrganizationMetadataQuery {
   }
 
   /**
-   * Load all roles
+   * v3: Return static role constants — no DB query needed
    */
   private async loadRoles(): Promise<RoleRecord[]> {
-    const roles = (await db
-      .from('roles')
-      .select('id', 'name', 'display_name', 'description')
-      .orderBy('id', 'asc')) as RoleRecord[]
-
-    return roles
+    return [
+      { name: OrganizationRole.OWNER, display_name: 'Owner', description: 'Chủ tổ chức' },
+      { name: OrganizationRole.ADMIN, display_name: 'Admin', description: 'Quản trị viên' },
+      { name: OrganizationRole.MEMBER, display_name: 'Member', description: 'Thành viên' },
+    ]
   }
 
   /**
@@ -147,7 +146,7 @@ export default class GetOrganizationMetadataQuery {
         return JSON.parse(cached) as MetadataResult
       }
     } catch (error) {
-      console.error('[GetOrganizationMetadataQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationMetadataQuery] Cache get error:', error)
     }
     return null
   }
@@ -159,7 +158,7 @@ export default class GetOrganizationMetadataQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationMetadataQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationMetadataQuery] Cache set error:', error)
     }
   }
 }

@@ -1,3 +1,6 @@
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for soft-deleting a conversation
  *
@@ -12,7 +15,7 @@
  * const dto = new DeleteConversationDTO(1)
  */
 export class DeleteConversationDTO {
-  constructor(public readonly conversationId: number) {
+  constructor(public readonly conversationId: DatabaseId) {
     this.validate()
   }
 
@@ -21,12 +24,8 @@ export class DeleteConversationDTO {
    */
   private validate(): void {
     // Conversation ID validation (required)
-    if (!this.conversationId || typeof this.conversationId !== 'number') {
-      throw new Error('Conversation ID is required and must be a number')
-    }
-
-    if (this.conversationId <= 0) {
-      throw new Error('Conversation ID must be a positive number')
+    if (!this.conversationId || typeof this.conversationId !== 'string') {
+      throw new ValidationException('Conversation ID is required')
     }
   }
 }

@@ -1,11 +1,17 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command: Update Organization
@@ -21,7 +27,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  * const org = await command.execute(dto)
  */
 export default class UpdateOrganizationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Update organization
@@ -36,9 +42,9 @@ export default class UpdateOrganizationCommand {
    * 7. Commit transaction
    */
   async execute(dto: UpdateOrganizationDTO): Promise<Organization> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
@@ -46,11 +52,13 @@ export default class UpdateOrganizationCommand {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
+        throw new BusinessLogicException(
+          `Organization with ID ${String(dto.organizationId)} not found`
+        )
       }
 
       // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(organization.id, user.id, trx)
+      await this.checkPermissions(organization.id, userId, trx)
 
       // 3. Store old values for audit
       const oldValues = organization.toJSON()
@@ -63,19 +71,29 @@ export default class UpdateOrganizationCommand {
       // 5. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.UPDATE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: organization.id,
           old_values: oldValues,
           new_values: organization.toJSON(),
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:updated', {
+        organization,
+        updatedBy: userId,
+        changes: updates,
+      })
+
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
 
       return organization
     } catch (error) {
@@ -89,19 +107,13 @@ export default class UpdateOrganizationCommand {
    * Only Owner (role_id = 1) or Admin (role_id = 2) can update
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to update this organization')
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
+      throw new ForbiddenException('You do not have permission to update this organization')
     }
   }
 }

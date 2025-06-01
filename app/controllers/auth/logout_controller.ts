@@ -66,7 +66,7 @@ export default class LogoutController {
    * Redirect to login page
    * Supports both Inertia and regular redirects
    */
-  private redirectToLogin(
+  private async redirectToLogin(
     request: HttpContext['request'],
     response: HttpContext['response'],
     inertia: HttpContext['inertia']

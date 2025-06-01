@@ -1,17 +1,14 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipant from '#models/conversation_participant'
 import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
-
-interface ParticipantResult {
-  user_id: number
-}
-
-interface CountResult {
-  total: number | string | bigint
-}
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
 
 /**
  * Command: Add Participant To Conversation
@@ -29,7 +26,7 @@ interface CountResult {
  * await command.execute(dto)
  */
 export default class AddParticipantCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Add participant to conversation
@@ -43,21 +40,19 @@ export default class AddParticipantCommand {
    * 6. Invalidate cache
    */
   async execute(dto: AddParticipantDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     try {
-      // Verify current user is participant
-      const currentUserParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', user.id)
-        .first()) as ParticipantResult | undefined
-
-      if (!currentUserParticipant) {
-        throw new Error('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
+      // Verify current user is participant → delegate to Model
+      const isCurrentUserParticipant = await ConversationParticipant.isParticipant(
+        dto.conversationId,
+        userId
+      )
+      if (!isCurrentUserParticipant) {
+        throw new ForbiddenException('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
       }
 
       // Verify conversation exists
@@ -66,41 +61,33 @@ export default class AddParticipantCommand {
         .whereNull('deleted_at')
         .firstOrFail()
 
-      // Check if it's a group conversation
-      const participantCount = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .count('* as total')
-        .first()) as CountResult | undefined
-
-      const count = Number(participantCount?.total ?? 0)
+      // Check if it's a group conversation → delegate to Model
+      const count = await ConversationParticipant.countByConversation(dto.conversationId)
 
       // Only allow adding to group conversations (3+ people or has title)
       if (count < 2 && !conversation.title) {
-        throw new Error('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
+        throw new BusinessLogicException('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
       }
 
-      // Check if user is already a participant
-      const existingParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', dto.userId)
-        .first()) as ParticipantResult | undefined
-
-      if (existingParticipant) {
-        throw new Error('Người dùng này đã là thành viên của cuộc trò chuyện')
+      // Check if user is already a participant → delegate to Model
+      const isAlreadyParticipant = await ConversationParticipant.isParticipant(
+        dto.conversationId,
+        dto.userId
+      )
+      if (isAlreadyParticipant) {
+        throw new ConflictException('Người dùng này đã là thành viên của cuộc trò chuyện')
       }
 
       // Add participant
       await ConversationParticipant.create({
-        conversation_id: dto.conversationId,
-        user_id: dto.userId,
+        conversation_id: String(dto.conversationId),
+        user_id: String(dto.userId),
       })
 
-      // Invalidate cache
+      // Invalidate cache → delegate to Model for participant IDs
       await this.invalidateCache(dto.conversationId)
     } catch (error) {
-      console.error('[AddParticipantCommand] Error:', error)
+      loggerService.error('[AddParticipantCommand] Error:', error)
       throw error
     }
   }
@@ -108,15 +95,10 @@ export default class AddParticipantCommand {
   /**
    * Invalidate cache for conversation and new participant
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
-      // Get all participants (including new one)
-      const participants = (await db
-        .from('conversation_participants')
-        .where('conversation_id', conversationId)
-        .select('user_id')) as ParticipantResult[]
-
-      const participantIds = participants.map((p) => p.user_id)
+      // Get all participants (including new one) → delegate to Model
+      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {
@@ -131,7 +113,7 @@ export default class AddParticipantCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[AddParticipantCommand.invalidateCache] Error:', error)
+      loggerService.error('[AddParticipantCommand.invalidateCache] Error:', error)
     }
   }
 }

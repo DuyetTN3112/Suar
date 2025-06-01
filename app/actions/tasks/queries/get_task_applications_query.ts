@@ -38,10 +38,8 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
       const query = TaskApplication.query()
         .where('task_id', dto.task_id)
         .preload('applicant', (userQuery) => {
-          void userQuery.preload('detail')
           void userQuery.preload('skills', (skillsQuery) => {
             void skillsQuery.preload('skill')
-            void skillsQuery.preload('proficiency_level')
           })
         })
         .orderBy('applied_at', 'desc')

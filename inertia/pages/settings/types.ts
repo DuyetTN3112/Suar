@@ -1,6 +1,6 @@
 export type UserSettings = {
-  id?: number
-  userId?: number
+  id?: string
+  userId?: string
   theme?: 'light' | 'dark' | 'system'
   language?: string
   emailNotifications?: boolean
@@ -10,7 +10,7 @@ export type UserSettings = {
 }
 
 export type User = {
-  id: number
+  id: string
   email: string
   username: string
 }

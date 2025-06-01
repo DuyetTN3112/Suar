@@ -1,3 +1,5 @@
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for creating a new organization
  *
@@ -26,49 +28,49 @@ export class CreateOrganizationDTO {
   private validate(): void {
     // Name validation (required, 3-100 characters)
     if (!this.name || typeof this.name !== 'string') {
-      throw new Error('Organization name is required')
+      throw new ValidationException('Organization name is required')
     }
 
     const trimmedName = this.name.trim()
     if (trimmedName.length < 3) {
-      throw new Error('Organization name must be at least 3 characters')
+      throw new ValidationException('Organization name must be at least 3 characters')
     }
 
     if (trimmedName.length > 100) {
-      throw new Error('Organization name cannot exceed 100 characters')
+      throw new ValidationException('Organization name cannot exceed 100 characters')
     }
 
     // Slug validation (optional, but must be valid if provided)
     if (this.slug !== undefined) {
       if (typeof this.slug !== 'string') {
-        throw new Error('Organization slug must be a string')
+        throw new ValidationException('Organization slug must be a string')
       }
 
       const trimmedSlug = this.slug.trim()
       if (trimmedSlug.length > 0) {
         if (trimmedSlug.length < 3) {
-          throw new Error('Organization slug must be at least 3 characters')
+          throw new ValidationException('Organization slug must be at least 3 characters')
         }
 
         if (trimmedSlug.length > 100) {
-          throw new Error('Organization slug cannot exceed 100 characters')
+          throw new ValidationException('Organization slug cannot exceed 100 characters')
         }
 
         // Slug must be lowercase alphanumeric with hyphens only
         if (!/^[a-z0-9-]+$/.test(trimmedSlug)) {
-          throw new Error(
+          throw new ValidationException(
             'Organization slug must contain only lowercase letters, numbers, and hyphens'
           )
         }
 
         // Slug cannot start or end with hyphen
         if (trimmedSlug.startsWith('-') || trimmedSlug.endsWith('-')) {
-          throw new Error('Organization slug cannot start or end with a hyphen')
+          throw new ValidationException('Organization slug cannot start or end with a hyphen')
         }
 
         // Slug cannot have consecutive hyphens
         if (trimmedSlug.includes('--')) {
-          throw new Error('Organization slug cannot contain consecutive hyphens')
+          throw new ValidationException('Organization slug cannot contain consecutive hyphens')
         }
       }
     }
@@ -76,47 +78,47 @@ export class CreateOrganizationDTO {
     // Description validation (optional, max 500 characters)
     if (this.description !== undefined) {
       if (typeof this.description !== 'string') {
-        throw new Error('Organization description must be a string')
+        throw new ValidationException('Organization description must be a string')
       }
 
       if (this.description.trim().length > 500) {
-        throw new Error('Organization description cannot exceed 500 characters')
+        throw new ValidationException('Organization description cannot exceed 500 characters')
       }
     }
 
     // Logo validation (optional, must be valid URL)
     if (this.logo !== undefined) {
       if (typeof this.logo !== 'string') {
-        throw new Error('Organization logo must be a string')
+        throw new ValidationException('Organization logo must be a string')
       }
 
       const trimmedLogo = this.logo.trim()
       if (trimmedLogo.length > 0 && !this.isValidUrl(trimmedLogo)) {
-        throw new Error('Organization logo must be a valid URL')
+        throw new ValidationException('Organization logo must be a valid URL')
       }
     }
 
     // Website validation (optional, must be valid URL)
     if (this.website !== undefined) {
       if (typeof this.website !== 'string') {
-        throw new Error('Organization website must be a string')
+        throw new ValidationException('Organization website must be a string')
       }
 
       const trimmedWebsite = this.website.trim()
       if (trimmedWebsite.length > 0 && !this.isValidUrl(trimmedWebsite)) {
-        throw new Error('Organization website must be a valid URL')
+        throw new ValidationException('Organization website must be a valid URL')
       }
     }
 
     // Plan validation (optional, must be valid plan type)
     if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
-        throw new Error('Organization plan must be a string')
+        throw new ValidationException('Organization plan must be a string')
       }
 
       const validPlans = ['free', 'basic', 'premium', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new Error(`Organization plan must be one of: ${validPlans.join(', ')}`)
+        throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
       }
     }
   }

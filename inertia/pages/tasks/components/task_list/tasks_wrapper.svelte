@@ -25,16 +25,16 @@
       assigned_to?: string
       parent_task_id?: string
       metadata?: {
-        statuses: Array<{ id: number; name: string; color: string }>
-        priorities: Array<{ id: number; name: string; color: string; value: number }>
-        labels: Array<{ id: number; name: string; color: string }>
-        users: Array<{ id: number; username: string; email: string }>
+        statuses: Array<{ value: string; label: string; color: string }>
+        priorities: Array<{ value: string; label: string; color: string }>
+        labels: Array<{ value: string; label: string; color: string }>
+        users: Array<{ id: string; username: string; email: string }>
       }
     }
     activeTab: string
-    completedStatusId?: number
-    pendingStatusId?: number
-    onToggleStatus: (task: Task, newStatusId: number) => void
+    completedStatusId?: string
+    pendingStatusId?: string
+    onToggleStatus: (task: Task, newStatus: string) => void
     formatDate: (dateString: string) => string
     onViewTaskDetail?: (task: Task) => void
   }

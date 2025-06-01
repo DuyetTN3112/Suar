@@ -14,16 +14,16 @@
     isEditing: boolean
     errors: Record<string, string>
     setErrors: (errors: Record<string, string>) => void
-    statuses: Array<{ id: number; name: string; color: string }>
-    priorities: Array<{ id: number; name: string; color: string; value: number }>
-    labels: Array<{ id: number; name: string; color: string }>
-    users: Array<{ id: number; username: string; email: string }>
+    statuses: Array<{ value: string; label: string; color: string }>
+    priorities: Array<{ value: string; label: string; color: string }>
+    labels: Array<{ value: string; label: string; color: string }>
+    users: Array<{ id: string; username: string; email: string }>
     submitting: boolean
     setSubmitting: (value: boolean) => void
     onUpdate?: (updatedTask: Task | null) => void
     canMarkAsCompleted?: boolean
     canDelete?: boolean
-    completedStatusId?: number
+    completedStatus?: string
   }
 
   const {
@@ -42,7 +42,7 @@
     onUpdate,
     canMarkAsCompleted = false,
     canDelete = false,
-    completedStatusId
+    completedStatus
   }: Props = $props()
 
   const { t } = useTranslation()
@@ -65,7 +65,7 @@
   })
 
   // Tìm thông tin người tạo từ danh sách users
-  const creator = $derived(users.find(user => Number(user.id) === Number(task.created_by)))
+  const creator = $derived(users.find(user => user.id === task.created_by))
 
   // Lấy tên đầy đủ của người tạo
   function getCreatorFullName() {
@@ -144,7 +144,7 @@
         onSubmit={handleSubmit}
         {canMarkAsCompleted}
         {canDelete}
-        {completedStatusId}
+        {completedStatus}
       />
     {/if}
   </div>

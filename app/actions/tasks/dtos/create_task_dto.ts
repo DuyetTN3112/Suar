@@ -1,4 +1,7 @@
 import { DateTime } from 'luxon'
+import type { DatabaseId } from '#types/database'
+import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
+import ValidationException from '#exceptions/validation_exception'
 
 /**
  * DTO cho việc tạo task mới
@@ -6,9 +9,9 @@ import { DateTime } from 'luxon'
  * Validates:
  * - title: 3-255 ký tự, bắt buộc
  * - description: Không bắt buộc
- * - status_id: ID của trạng thái, bắt buộc
- * - label_id: ID của nhãn, không bắt buộc
- * - priority_id: ID của mức độ ưu tiên, không bắt buộc
+ * - status: Trạng thái task (v3: inline VARCHAR), bắt buộc
+ * - label: Nhãn (v3: inline VARCHAR), không bắt buộc
+ * - priority: Mức độ ưu tiên (v3: inline VARCHAR), không bắt buộc
  * - assigned_to: ID của người được giao, không bắt buộc
  * - due_date: Ngày hết hạn, không bắt buộc
  * - parent_task_id: ID của task cha (subtask), không bắt buộc
@@ -20,87 +23,98 @@ import { DateTime } from 'luxon'
 export default class CreateTaskDTO {
   public readonly title: string
   public readonly description?: string
-  public readonly status_id: number
-  public readonly label_id?: number
-  public readonly priority_id?: number
-  public readonly assigned_to?: number
+  public readonly status: string
+  public readonly label?: string
+  public readonly priority?: string
+  public readonly assigned_to?: DatabaseId
   public readonly due_date?: DateTime
-  public readonly parent_task_id?: number
+  public readonly parent_task_id?: DatabaseId
   public readonly estimated_time: number
   public readonly actual_time: number
-  public readonly project_id?: number
-  public readonly organization_id: number
+  public readonly project_id?: DatabaseId
+  public readonly organization_id: DatabaseId
 
   constructor(data: {
     title: string
     description?: string
-    status_id: number
-    label_id?: number
-    priority_id?: number
-    assigned_to?: number
+    status: string
+    label?: string
+    priority?: string
+    assigned_to?: DatabaseId
     due_date?: string | DateTime
-    parent_task_id?: number
+    parent_task_id?: DatabaseId
     estimated_time?: number
     actual_time?: number
-    project_id?: number
-    organization_id: number
+    project_id?: DatabaseId
+    organization_id: DatabaseId
   }) {
     // Validate title
     if (!data.title || data.title.trim().length === 0) {
-      throw new Error('Tiêu đề task là bắt buộc')
+      throw new ValidationException('Tiêu đề task là bắt buộc')
     }
 
     if (data.title.trim().length < 3) {
-      throw new Error('Tiêu đề task phải có ít nhất 3 ký tự')
+      throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
     }
 
     if (data.title.length > 255) {
-      throw new Error('Tiêu đề task không được vượt quá 255 ký tự')
+      throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
     }
 
     // Validate description length if provided
     if (data.description && data.description.length > 5000) {
-      throw new Error('Mô tả task không được vượt quá 5000 ký tự')
+      throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
     }
 
-    // Validate status_id
-    if (!data.status_id || data.status_id <= 0) {
-      throw new Error('Trạng thái task là bắt buộc')
+    // Validate status (v3: inline VARCHAR)
+    if (!data.status) {
+      throw new ValidationException('Trạng thái task là bắt buộc')
+    }
+    const validStatuses = Object.values(TaskStatus) as string[]
+    if (!validStatuses.includes(data.status)) {
+      throw new ValidationException('Trạng thái task không hợp lệ')
     }
 
-    // Validate optional IDs if provided
-    if (data.label_id !== undefined && data.label_id <= 0) {
-      throw new Error('ID nhãn không hợp lệ')
+    // Validate label if provided (v3: inline VARCHAR)
+    if (data.label !== undefined) {
+      const validLabels = Object.values(TaskLabel) as string[]
+      if (!validLabels.includes(data.label)) {
+        throw new ValidationException('Nhãn task không hợp lệ')
+      }
     }
 
-    if (data.priority_id !== undefined && data.priority_id <= 0) {
-      throw new Error('ID mức độ ưu tiên không hợp lệ')
+    // Validate priority if provided (v3: inline VARCHAR)
+    if (data.priority !== undefined) {
+      const validPriorities = Object.values(TaskPriority) as string[]
+      if (!validPriorities.includes(data.priority)) {
+        throw new ValidationException('Mức độ ưu tiên không hợp lệ')
+      }
     }
 
-    if (data.assigned_to !== undefined && data.assigned_to <= 0) {
-      throw new Error('ID người được giao không hợp lệ')
+    if (data.assigned_to !== undefined && !data.assigned_to) {
+      throw new ValidationException('ID người được giao không hợp lệ')
     }
 
-    if (data.parent_task_id !== undefined && data.parent_task_id <= 0) {
-      throw new Error('ID task cha không hợp lệ')
+    if (data.parent_task_id !== undefined && !data.parent_task_id) {
+      throw new ValidationException('ID task cha không hợp lệ')
     }
 
-    if (data.project_id !== undefined && data.project_id <= 0) {
-      throw new Error('ID dự án không hợp lệ')
+    if (data.project_id !== undefined && !data.project_id) {
+      throw new ValidationException('ID dự án không hợp lệ')
     }
 
     // Validate organization_id
-    if (!data.organization_id || data.organization_id <= 0) {
-      throw new Error('ID tổ chức là bắt buộc')
+    if (!data.organization_id) {
+      throw new ValidationException('ID tổ chức là bắt buộc')
     }
 
     // Validate time fields
     if (data.estimated_time !== undefined && data.estimated_time < 0) {
-      throw new Error('Thời gian ước tính không được âm')
+      throw new ValidationException('Thời gian ước tính không được âm')
     }
 
     if (data.actual_time !== undefined && data.actual_time < 0) {
-      throw new Error('Thời gian thực tế không được âm')
+      throw new ValidationException('Thời gian thực tế không được âm')
     }
 
     // Validate and parse due_date
@@ -109,7 +123,7 @@ export default class CreateTaskDTO {
       if (typeof data.due_date === 'string') {
         parsedDueDate = DateTime.fromISO(data.due_date)
         if (!parsedDueDate.isValid) {
-          throw new Error('Ngày hết hạn không hợp lệ')
+          throw new ValidationException('Ngày hết hạn không hợp lệ')
         }
       } else {
         parsedDueDate = data.due_date
@@ -117,16 +131,16 @@ export default class CreateTaskDTO {
 
       // Optional: Check if due_date is in the past
       // if (parsedDueDate < DateTime.now()) {
-      //   throw new Error('Ngày hết hạn không được là quá khứ')
+      //   throw new ValidationException('Ngày hết hạn không được là quá khứ')
       // }
     }
 
     // Assign validated values
     this.title = data.title.trim()
     this.description = data.description?.trim()
-    this.status_id = data.status_id
-    this.label_id = data.label_id
-    this.priority_id = data.priority_id
+    this.status = data.status
+    this.label = data.label
+    this.priority = data.priority
     this.assigned_to = data.assigned_to
     this.due_date = parsedDueDate
     this.parent_task_id = data.parent_task_id
@@ -140,7 +154,7 @@ export default class CreateTaskDTO {
    * Kiểm tra xem task có được giao cho ai không
    */
   public isAssigned(): boolean {
-    return this.assigned_to !== undefined && this.assigned_to > 0
+    return this.assigned_to !== undefined && !!this.assigned_to
   }
 
   /**
@@ -154,14 +168,14 @@ export default class CreateTaskDTO {
    * Kiểm tra xem task có phải là subtask không
    */
   public isSubtask(): boolean {
-    return this.parent_task_id !== undefined && this.parent_task_id > 0
+    return this.parent_task_id !== undefined && !!this.parent_task_id
   }
 
   /**
    * Kiểm tra xem task có thuộc dự án không
    */
   public belongsToProject(): boolean {
-    return this.project_id !== undefined && this.project_id > 0
+    return this.project_id !== undefined && !!this.project_id
   }
 
   /**
@@ -204,9 +218,9 @@ export default class CreateTaskDTO {
     return {
       title: this.title,
       description: this.description || null,
-      status_id: this.status_id,
-      label_id: this.label_id || null,
-      priority_id: this.priority_id || null,
+      status: this.status,
+      label: this.label || null,
+      priority: this.priority || null,
       assigned_to: this.assigned_to || null,
       due_date: this.due_date || null,
       parent_task_id: this.parent_task_id || null,

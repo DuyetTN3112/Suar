@@ -1,14 +1,19 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import Task from '#models/task'
+import OrganizationUser from '#models/organization_user'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 interface QueryOptions {
-  organizationId: number
-  statusId?: number
-  priorityId?: number
-  projectId?: number
-  assignedTo?: number
+  organizationId: DatabaseId
+  statusId?: DatabaseId
+  priorityId?: DatabaseId
+  projectId?: DatabaseId
+  assignedTo?: DatabaseId
   search?: string
   page?: number
   limit?: number
@@ -48,12 +53,12 @@ interface PaginatedResult {
  * })
  */
 export default class GetOrganizationTasksQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(options: QueryOptions): Promise<PaginatedResult> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const {
       organizationId,
@@ -70,13 +75,13 @@ export default class GetOrganizationTasksQuery {
 
     // 1. Validate
     if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+      throw new BusinessLogicException('Limit phải từ 1 đến 100')
     }
 
     // 2. Permission check: User must be member
-    const isMember = await this.checkMembership(user.id, organizationId)
+    const isMember = await this.checkMembership(userId, organizationId)
     if (!isMember) {
-      throw new Error('Bạn không có quyền xem tasks của organization này')
+      throw new ForbiddenException('Bạn không có quyền xem tasks của organization này')
     }
 
     // 3. Try cache first
@@ -91,11 +96,11 @@ export default class GetOrganizationTasksQuery {
 
     // 5. Apply filters
     if (statusId) {
-      void query.where('status_id', statusId)
+      void query.where('status', statusId)
     }
 
     if (priorityId) {
-      void query.where('priority_id', priorityId)
+      void query.where('priority', priorityId)
     }
 
     if (projectId) {
@@ -114,11 +119,8 @@ export default class GetOrganizationTasksQuery {
       })
     }
 
-    // 6. Preload relations
+    // 6. Preload relations (v3: status/priority/label are inline columns)
     void query
-      .preload('status')
-      .preload('priority')
-      .preload('label')
       .preload('assignee', (q) => {
         void q.select(['id', 'username', 'email'])
       })
@@ -126,11 +128,11 @@ export default class GetOrganizationTasksQuery {
         void q.select(['id', 'username'])
       })
       .preload('project', (q) => {
-        void q.select(['id', 'name', 'status_id'])
+        void q.select(['id', 'name', 'status'])
       })
 
     // 7. Apply sorting
-    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority_id']
+    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
     void query.orderBy(sortField, sortOrder)
 
@@ -156,15 +158,8 @@ export default class GetOrganizationTasksQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .first()
-
-    return !!membership
+  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
+    return OrganizationUser.isMember(userId, organizationId)
   }
 
   /**
@@ -199,7 +194,7 @@ export default class GetOrganizationTasksQuery {
         return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache get error:', error)
     }
     return null
   }
@@ -211,7 +206,7 @@ export default class GetOrganizationTasksQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache set error:', error)
     }
   }
 }

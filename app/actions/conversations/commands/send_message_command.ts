@@ -1,15 +1,17 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
+import type { ExecutionContext } from '#types/execution_context'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
+import ConversationParticipant from '#models/conversation_participant'
+import OrganizationUser from '#models/organization_user'
 import { DateTime } from 'luxon'
 import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import Logger from '@adonisjs/core/services/logger'
-
-interface ParticipantResult {
-  user_id: number
-}
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command: Send Message
@@ -17,7 +19,7 @@ interface ParticipantResult {
  * Pattern: Message creation with permission check
  * Business rules:
  * - User must be participant in conversation
- * - Use stored procedure for atomic message creation
+ * - User must belong to the conversation's organization
  * - Update conversation's updated_at timestamp
  * - Invalidate cache after sending
  * - Log unusually long messages
@@ -27,89 +29,71 @@ interface ParticipantResult {
  * const message = await command.execute(dto)
  */
 export default class SendMessageCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Send message in conversation
    *
    * Steps:
    * 1. Verify user is participant in conversation
-   * 2. Check conversation exists and not deleted
+   * 2. Check user belongs to conversation's organization (matches stored proc logic)
    * 3. Log if message is unusually long
-   * 4. Use stored procedure to create message
+   * 4. Create message via Lucid model
    * 5. Update conversation's updated_at
    * 6. Invalidate cache
    * 7. Return created message
    */
   async execute(dto: SendMessageDTO): Promise<Message> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     try {
-      // Verify user is participant in conversation
-      const conversation = await Conversation.query()
-        .where('id', dto.conversationId)
-        .whereNull('deleted_at')
-        .whereHas('participants', (builder) => {
-          void builder.where('user_id', user.id)
-        })
-        .firstOrFail()
+      // Verify user is participant in conversation → delegate to Model
+      const conversation = await Conversation.findWithParticipantOrFail(dto.conversationId, userId)
+
+      // Verify user belongs to conversation's organization → delegate to Model
+      if (conversation.organization_id) {
+        const isApproved = await OrganizationUser.isApprovedMember(
+          userId,
+          conversation.organization_id
+        )
+        if (!isApproved) {
+          throw new ForbiddenException('Người gửi không thuộc tổ chức của hội thoại')
+        }
+      }
 
       // Log unusually long messages
       if (dto.message.length > 5000) {
         Logger.warn(
-          `[SendMessageCommand] Unusually long message from user ${String(user.id)}: ${String(dto.message.length)} characters`
+          `[SendMessageCommand] Unusually long message from user ${String(userId)}: ${String(dto.message.length)} characters`
         )
       }
 
-      // Use stored procedure to send message
-      try {
-        await db.rawQuery('CALL send_message(?, ?, ?)', [
-          dto.conversationId,
-          user.id,
-          dto.trimmedMessage,
-        ])
-      } catch (dbError: unknown) {
-        // Log detailed error for debugging
-        const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error'
-        const errorObj = dbError as { code?: string; sqlState?: string }
-        const errorCode = errorObj.code ?? 'UNKNOWN'
-        const errorSqlState = errorObj.sqlState ?? 'UNKNOWN'
-
-        Logger.error(`[SendMessageCommand] Database error for user ${String(user.id)}:`, {
-          error: errorMessage,
-          code: errorCode,
-          sqlState: errorSqlState,
-          conversationId: dto.conversationId,
-        })
-
-        // Throw user-friendly error
-        if (errorSqlState === '45000') {
-          // Custom MySQL error from stored procedure
-          throw new Error(errorMessage)
-        }
-
-        throw new Error('Không thể gửi tin nhắn. Vui lòng thử lại sau.')
-      }
+      // Create message via Lucid model (replaces CALL send_message stored procedure)
+      const message = await Message.create({
+        conversation_id: String(dto.conversationId),
+        sender_id: userId,
+        message: dto.trimmedMessage,
+      })
 
       // Update conversation's updated_at
       await conversation.merge({ updated_at: DateTime.now() }).save()
 
-      // Get the created message
-      const message = await Message.query()
-        .where('conversation_id', dto.conversationId)
-        .where('sender_id', user.id)
-        .orderBy('created_at', 'desc')
-        .firstOrFail()
+      // Emit domain event (triggers last_message_at + last_message_id update via listener)
+      void emitter.emit('message:sent', {
+        message,
+        conversation,
+        senderId: userId,
+      })
 
-      // Invalidate cache for all participants
+      // Invalidate cache for all participants → delegate to Model
       await this.invalidateCache(dto.conversationId)
 
       return message
     } catch (error) {
-      console.error('[SendMessageCommand] Error:', error)
+      loggerService.error('[SendMessageCommand] Error:', error)
       throw error
     }
   }
@@ -117,15 +101,10 @@ export default class SendMessageCommand {
   /**
    * Invalidate conversation cache for all participants
    */
-  private async invalidateCache(conversationId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
-      // Get all participants of this conversation
-      const participants = (await db
-        .from('conversation_participants')
-        .where('conversation_id', conversationId)
-        .select('user_id')) as ParticipantResult[]
-
-      const participantIds = participants.map((p) => p.user_id)
+      // Get all participants of this conversation → delegate to Model
+      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for each participant
       for (const userId of participantIds) {
@@ -150,7 +129,7 @@ export default class SendMessageCommand {
         await redis.del(...messagesKeys)
       }
     } catch (error) {
-      console.error('[SendMessageCommand.invalidateCache] Error:', error)
+      loggerService.error('[SendMessageCommand.invalidateCache] Error:', error)
       // Don't throw - cache invalidation failure shouldn't break the operation
     }
   }

@@ -29,7 +29,7 @@
     name: '',
     description: '',
     organization_id: '',
-    status_id: '',
+    status: '',
     start_date: '',
     end_date: '',
     manager_id: auth.user.id.toString()
@@ -98,8 +98,8 @@
       newErrors.organization_id = 'Trường này là bắt buộc'
     }
 
-    if (!formData.status_id) {
-      newErrors.status_id = 'Trường này là bắt buộc'
+    if (!formData.status) {
+      newErrors.status = 'Trường này là bắt buộc'
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -179,26 +179,26 @@
           </div>
 
           <div class="space-y-2">
-            <Label for="status_id">
+            <Label for="status">
               Trạng thái <span class="text-red-500">*</span>
             </Label>
             <Select
-              value={formData.status_id}
-              onValueChange={(value) => { handleSelectChange('status_id', value); }}
+              value={formData.status}
+              onValueChange={(value) => { handleSelectChange('status', value); }}
             >
-              <SelectTrigger class={errors.status_id ? 'border-red-500' : ''}>
+              <SelectTrigger class={errors.status ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Chọn trạng thái" />
               </SelectTrigger>
               <SelectContent>
-                {#each statuses as status (status.id)}
-                  <SelectItem value={status.id.toString()}>
-                    {status.name}
+                {#each statuses as status (status.value)}
+                  <SelectItem value={status.value}>
+                    {status.label}
                   </SelectItem>
                 {/each}
               </SelectContent>
             </Select>
-            {#if errors.status_id}
-              <p class="text-sm text-red-500">{errors.status_id}</p>
+            {#if errors.status}}
+              <p class="text-sm text-red-500">{errors.status}</p>
             {/if}
           </div>
 

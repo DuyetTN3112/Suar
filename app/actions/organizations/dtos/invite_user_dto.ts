@@ -1,17 +1,21 @@
+import type { DatabaseId } from '#types/database'
+import { OrganizationRole } from '#constants/organization_constants'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO for inviting a user to an organization
  *
  * Pattern: Email validation with token generation (learned from Auth module)
- * Creates invitation with token, expiration, and optional message
+ * v3: Role is inline VARCHAR (OrganizationRole enum string)
  *
  * @example
- * const dto = new InviteUserDTO(1, 'user@example.com', 4, 'Welcome to our team!')
+ * const dto = new InviteUserDTO('org-uuid', 'user@example.com', OrganizationRole.MEMBER, 'Welcome!')
  */
 export class InviteUserDTO {
   constructor(
-    public readonly organizationId: number,
+    public readonly organizationId: DatabaseId,
     public readonly email: string,
-    public readonly roleId: number = 4, // Default: Member
+    public readonly roleId: string = OrganizationRole.MEMBER,
     public readonly message?: string
   ) {
     this.validate()
@@ -22,46 +26,44 @@ export class InviteUserDTO {
    */
   private validate(): void {
     // Organization ID validation (required)
-    if (!this.organizationId || typeof this.organizationId !== 'number') {
-      throw new Error('Organization ID is required')
-    }
-
-    if (this.organizationId <= 0) {
-      throw new Error('Organization ID must be a positive number')
+    if (!this.organizationId) {
+      throw new ValidationException('Organization ID is required')
     }
 
     // Email validation (required)
     if (!this.email || typeof this.email !== 'string') {
-      throw new Error('Email is required')
+      throw new ValidationException('Email is required')
     }
 
     const trimmedEmail = this.email.trim()
     if (trimmedEmail.length === 0) {
-      throw new Error('Email cannot be empty')
+      throw new ValidationException('Email cannot be empty')
     }
 
     if (!this.isValidEmail(trimmedEmail)) {
-      throw new Error('Invalid email format')
+      throw new ValidationException('Invalid email format')
     }
 
-    // Role ID validation (required, must be valid role)
-    if (!this.roleId || typeof this.roleId !== 'number') {
-      throw new Error('Role ID is required')
+    // Role validation (required, must be valid role, cannot invite as Owner)
+    if (!this.roleId) {
+      throw new ValidationException('Role is required')
     }
 
-    const validRoles = [2, 3, 4, 5] // Cannot invite as Owner
-    if (!validRoles.includes(this.roleId)) {
-      throw new Error(`Role ID must be one of: ${validRoles.join(', ')} (cannot invite as Owner)`)
+    const validRoles = [OrganizationRole.ADMIN, OrganizationRole.MEMBER] // Cannot invite as Owner
+    if (!validRoles.includes(this.roleId as OrganizationRole)) {
+      throw new ValidationException(
+        `Role must be one of: ${validRoles.join(', ')} (cannot invite as Owner)`
+      )
     }
 
     // Message validation (optional, max 500 characters)
     if (this.message !== undefined) {
       if (typeof this.message !== 'string') {
-        throw new Error('Invitation message must be a string')
+        throw new ValidationException('Invitation message must be a string')
       }
 
       if (this.message.trim().length > 500) {
-        throw new Error('Invitation message cannot exceed 500 characters')
+        throw new ValidationException('Invitation message cannot exceed 500 characters')
       }
     }
   }
@@ -86,11 +88,9 @@ export class InviteUserDTO {
    * Helper: Get role name from role ID
    */
   getRoleName(): string {
-    const roleNames: Record<number, string> = {
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
+    const roleNames: Record<string, string> = {
+      [OrganizationRole.ADMIN]: 'Admin',
+      [OrganizationRole.MEMBER]: 'Member',
     }
     return roleNames[this.roleId] || 'Unknown'
   }
@@ -99,11 +99,9 @@ export class InviteUserDTO {
    * Helper: Get Vietnamese role name
    */
   getRoleNameVi(): string {
-    const roleNames: Record<number, string> = {
-      2: 'Quản trị viên',
-      3: 'Quản lý',
-      4: 'Thành viên',
-      5: 'Người xem',
+    const roleNames: Record<string, string> = {
+      [OrganizationRole.ADMIN]: 'Quản trị viên',
+      [OrganizationRole.MEMBER]: 'Thành viên',
     }
     return roleNames[this.roleId] || 'Không xác định'
   }
@@ -153,7 +151,7 @@ export class InviteUserDTO {
     return {
       organization_id: this.organizationId,
       email: this.getNormalizedEmail(),
-      role_id: this.roleId,
+      org_role: this.roleId,
       token: InviteUserDTO.generateToken(),
       expires_at: InviteUserDTO.getExpirationDate(),
       message: this.getNormalizedMessage(),

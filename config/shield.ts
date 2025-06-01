@@ -1,9 +1,30 @@
 import { defineConfig } from '@adonisjs/shield'
 
 const shieldConfig = defineConfig({
+  /**
+   * Content Security Policy — bảo vệ chống XSS injection.
+   *
+   * 'unsafe-inline' cần thiết cho:
+   * - Vite HMR inject scripts/styles trong dev mode
+   * - Inertia.js inline page data
+   * - Tailwind CSS inline styles
+   *
+   * Tương lai: Chuyển sang nonce-based CSP khi enable SSR.
+   */
   csp: {
-    enabled: false,
-    directives: {},
+    enabled: true,
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", 'data:', 'blob:'],
+      fontSrc: ["'self'"],
+      connectSrc: ["'self'", 'ws:', 'wss:'],
+      frameSrc: ["'none'"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+    },
     reportOnly: false,
   },
 

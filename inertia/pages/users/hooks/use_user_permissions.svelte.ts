@@ -5,9 +5,9 @@ import type { User } from '../types'
 
 export function createUserPermissions() {
   const editModalOpen = writable(false)
-  const selectedUserId = writable<number | null>(null)
+  const selectedUserId = writable<string | null>(null)
   const selectedUser = writable<User | null>(null)
-  const selectedRoleId = writable<string>('')
+  const selectedOrgRole = writable<string>('')
   const isSubmitting = writable(false)
 
   function openEditPermissionsModal(user: User) {
@@ -17,24 +17,24 @@ export function createUserPermissions() {
     }
     selectedUserId.set(user.id)
     selectedUser.set(user)
-    selectedRoleId.set(user.organization_role?.id ? String(user.organization_role.id) : '')
+    // Use org_role from organization_users if available
+    const orgRole = user.organization_users?.[0]?.org_role || ''
+    selectedOrgRole.set(orgRole)
     editModalOpen.set(true)
   }
 
-  function handleUpdatePermissions(e: Event, userId: number | null, roleId: string) {
+  function handleUpdatePermissions(e: Event, userId: string | null, orgRole: string) {
     e.preventDefault()
-    if (!userId || !roleId) {
+    if (!userId || !orgRole) {
       toast.error('Vui lòng chọn vai trò')
       return
     }
     isSubmitting.set(true)
 
-    const roleIdNumber = Number.parseInt(roleId, 10)
-
     router.put(
       `/organizations/users/${userId}/update-permissions`,
       {
-        role_id: roleIdNumber,
+        org_role: orgRole,
       },
       {
         headers: {
@@ -62,7 +62,7 @@ export function createUserPermissions() {
     editModalOpen,
     selectedUserId,
     selectedUser,
-    selectedRoleId,
+    selectedOrgRole,
     isSubmitting,
     openEditPermissionsModal,
     handleUpdatePermissions,

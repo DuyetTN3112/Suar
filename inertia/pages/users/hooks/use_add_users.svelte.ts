@@ -6,7 +6,7 @@ import type { User } from '../types'
 export function createAddUsers() {
   const addUserModalOpen = writable(false)
   const allSystemUsers = writable<User[]>([])
-  const selectedUserIds = writable<number[]>([])
+  const selectedUserIds = writable<string[]>([])
   const searchUserTerm = writable('')
   const isLoadingSystemUsers = writable(false)
   const isAddingUsers = writable(false)
@@ -66,7 +66,7 @@ export function createAddUsers() {
     void loadAllSystemUsers(1, searchTerm)
   }
 
-  function toggleUserSelection(userId: number) {
+  function toggleUserSelection(userId: string) {
     selectedUserIds.update((prevSelected) => {
       if (prevSelected.includes(userId)) {
         return prevSelected.filter((id) => id !== userId)
@@ -76,7 +76,7 @@ export function createAddUsers() {
     })
   }
 
-  function handleAddUsersToOrganization(userIds: number[]) {
+  function handleAddUsersToOrganization(userIds: string[]) {
     if (userIds.length === 0) {
       toast.error('Vui lòng chọn ít nhất một người dùng')
       return

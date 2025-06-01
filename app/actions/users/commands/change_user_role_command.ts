@@ -1,52 +1,58 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
-import db from '@adonisjs/lucid/services/db'
+import User from '#models/user'
+import { SystemRoleName } from '#constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
- * ChangeUserRoleCommand
+ * ChangeUserRoleCommand (v3)
  *
- * Changes a user's role in an organization.
- * Uses stored procedure for permission checks.
- *
- * This is a Command (Write operation) that changes system state.
+ * Changes a user's system role.
+ * v3: system_role is inline VARCHAR on users table.
+ * newRoleId in DTO is now a role name string (e.g. 'superadmin', 'system_admin').
  *
  * Business Rules:
  * - Only superadmin can change roles
- * - Uses stored procedure: change_user_role_with_permission
- * - Audit log is created automatically by stored procedure
+ * - Cannot change own role
+ * - Target user must exist and not be deleted
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
-  /**
-   * Main handler - changes user role using stored procedure
-   */
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
-    // Use stored procedure with permission checks built-in
-    await this.changeRoleViaStoredProcedure(dto)
+    // Verify changer has superadmin permission
+    const isSuperadmin = await User.isSuperadmin(dto.changerId)
+    if (!isSuperadmin) {
+      throw new ForbiddenException('Chỉ superadmin mới có thể thay đổi vai trò người dùng')
+    }
+
+    // Prevent self-role-change
+    if (dto.changerId === dto.targetUserId) {
+      throw new BusinessLogicException('Không thể thay đổi vai trò của chính mình')
+    }
+
+    // Verify target user exists and not deleted
+    const targetUser = await User.findNotDeletedOrFail(dto.targetUserId)
+
+    // v3: Validate new role is a valid SystemRoleName
+    const validRoles = Object.values(SystemRoleName) as string[]
+    if (!validRoles.includes(String(dto.newRoleId))) {
+      throw new BusinessLogicException(`Vai trò không hợp lệ: ${String(dto.newRoleId)}`)
+    }
+
+    // Get old role for audit log
+    const oldRole = targetUser.system_role
+
+    // v3: Update inline system_role string
+    targetUser.system_role = String(dto.newRoleId)
+    await targetUser.save()
 
     // Log the action
-    await this.logAudit('change_user_role', 'user', dto.targetUserId, null, {
-      new_role_id: dto.newRoleId,
-    })
-  }
-
-  /**
-   * Call stored procedure to change user role
-   * Stored procedure handles all permission checks
-   */
-  private async changeRoleViaStoredProcedure(dto: ChangeUserRoleDTO): Promise<void> {
-    try {
-      await db.rawQuery('CALL change_user_role_with_permission(?, ?, ?)', [
-        dto.changerId,
-        dto.targetUserId,
-        dto.newRoleId,
-      ])
-    } catch (error) {
-      // Stored procedure throws error if no permission
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : 'Chỉ superadmin mới có thể thay đổi vai trò người dùng'
-      )
-    }
+    await this.logAudit(
+      'change_user_role',
+      'user',
+      dto.targetUserId,
+      { system_role: oldRole },
+      { system_role: dto.newRoleId }
+    )
   }
 }

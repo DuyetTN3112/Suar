@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
+import { ApplicationStatus } from '#constants/task_constants'
 
 /**
  * WithdrawApplicationCommand
@@ -17,20 +18,20 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
 
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
     await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Get application
       const application = await TaskApplication.query({ client: trx })
         .where('id', dto.application_id)
         .where('applicant_id', userId)
-        .where('application_status', 'pending')
+        .where('application_status', ApplicationStatus.PENDING)
         .preload('task')
         .firstOrFail()
 
       const task = application.task
 
       // Update status
-      application.application_status = 'withdrawn'
+      application.application_status = ApplicationStatus.WITHDRAWN
       await application.useTransaction(trx).save()
 
       // Decrement task's application count

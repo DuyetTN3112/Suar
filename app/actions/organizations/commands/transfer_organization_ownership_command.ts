@@ -1,31 +1,25 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
+import { OrganizationRole } from '#constants'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * DTO for transferring organization ownership
  */
 export interface TransferOrganizationOwnershipDTO {
-  organization_id: number
-  new_owner_id: number
-}
-
-interface MembershipRecord {
-  user_id: number
-  organization_id: number
-  role_id: number
-  status: string
-}
-
-interface RoleRecord {
-  id: number
-  name: string
-  role_name?: string
+  organization_id: DatabaseId
+  new_owner_id: DatabaseId
 }
 
 /**
@@ -46,14 +40,14 @@ interface RoleRecord {
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
   async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
@@ -66,89 +60,78 @@ export default class TransferOrganizationOwnershipCommand {
         .firstOrFail()
 
       // 2. Validate current user is owner
-      if (organization.owner_id !== currentUser.id) {
-        throw new Error('Chỉ owner hiện tại mới có thể transfer ownership')
+      if (organization.owner_id !== userId) {
+        throw new ForbiddenException('Chỉ owner hiện tại mới có thể transfer ownership')
       }
 
       // 3. Cannot transfer to self
-      if (currentUser.id === dto.new_owner_id) {
-        throw new Error('Không thể transfer ownership cho chính mình')
+      if (userId === dto.new_owner_id) {
+        throw new BusinessLogicException('Không thể transfer ownership cho chính mình')
       }
 
       // 4. Validate new owner is approved member
-      const newOwnerMembership = (await trx
-        .from('organization_users')
-        .where('user_id', dto.new_owner_id)
-        .where('organization_id', dto.organization_id)
-        .where('status', OrganizationUserStatus.APPROVED)
-        .first()) as MembershipRecord | null
-
-      if (!newOwnerMembership) {
-        throw new Error('Owner mới phải là member approved của tổ chức')
-      }
+      await OrganizationUser.findApprovedMemberOrFail(dto.organization_id, dto.new_owner_id, trx)
 
       // 5. Validate new owner has at least org_admin role
-      const newOwnerRole = (await trx
-        .from('organization_users')
-        .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
-        .where('organization_users.user_id', dto.new_owner_id)
-        .where('organization_users.organization_id', dto.organization_id)
-        .select('organization_roles.name as role_name')
-        .first()) as RoleRecord | null
-
-      if (!newOwnerRole || !['org_owner', 'org_admin'].includes(newOwnerRole.role_name ?? '')) {
-        throw new Error('Owner mới phải có vai trò ít nhất là org_admin')
+      const newOwnerRoleName = await OrganizationUser.getMemberRoleName(
+        dto.organization_id,
+        dto.new_owner_id,
+        trx
+      )
+      if (!newOwnerRoleName || ![OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(newOwnerRoleName as OrganizationRole)) {
+        throw new BusinessLogicException('Owner mới phải có vai trò ít nhất là org_admin')
       }
 
-      // 6. Get role IDs
-      const orgOwnerRole = (await trx
-        .from('organization_roles')
-        .where('name', 'org_owner')
-        .whereNull('organization_id')
-        .first()) as RoleRecord | null
-
-      const orgAdminRole = (await trx
-        .from('organization_roles')
-        .where('name', 'org_admin')
-        .whereNull('organization_id')
-        .first()) as RoleRecord | null
-
-      if (!orgOwnerRole || !orgAdminRole) {
-        throw new Error('Không tìm thấy roles trong hệ thống')
-      }
+      // 6. v3: Use inline role strings directly (no DB lookup)
 
       // Save old values for audit
       const oldOwnerId = organization.owner_id
 
       // 7. Update organization owner
-      organization.owner_id = dto.new_owner_id
+      organization.owner_id = String(dto.new_owner_id)
       await organization.useTransaction(trx).save()
 
       // 8. Demote old owner to org_admin
-      await this.updateUserRole(currentUser.id, dto.organization_id, orgAdminRole.id, trx)
+      await OrganizationUser.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
 
       // 9. Promote new owner to org_owner
-      await this.updateUserRole(dto.new_owner_id, dto.organization_id, orgOwnerRole.id, trx)
+      await OrganizationUser.updateRole(
+        dto.organization_id,
+        dto.new_owner_id,
+        OrganizationRole.OWNER,
+        trx
+      )
 
       // 10. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: 'transfer_ownership',
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organization_id,
           old_values: { owner_id: oldOwnerId },
           new_values: { owner_id: dto.new_owner_id },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:updated', {
+        organization,
+        updatedBy: userId,
+        changes: { owner_id: dto.new_owner_id, old_owner_id: oldOwnerId },
+      })
+
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
+      await CacheService.deleteByPattern(`organization:members:*`)
+
       // 11. Send notifications (outside transaction)
-      await this.sendNotifications(organization, currentUser.id, dto.new_owner_id)
+      await this.sendNotifications(organization, userId, dto.new_owner_id)
 
       return organization
     } catch (error) {
@@ -158,31 +141,12 @@ export default class TransferOrganizationOwnershipCommand {
   }
 
   /**
-   * Helper: Update user's role in organization
-   */
-  private async updateUserRole(
-    userId: number,
-    organizationId: number,
-    roleId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    await trx
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .update({
-        role_id: roleId,
-        updated_at: new Date(),
-      })
-  }
-
-  /**
    * Send notifications to both old and new owners
    */
   private async sendNotifications(
     organization: Organization,
-    oldOwnerId: number,
-    newOwnerId: number
+    oldOwnerId: DatabaseId,
+    newOwnerId: DatabaseId
   ): Promise<void> {
     try {
       // Notify new owner
@@ -205,7 +169,10 @@ export default class TransferOrganizationOwnershipCommand {
         related_entity_id: organization.id,
       })
     } catch (error) {
-      console.error('[TransferOrganizationOwnershipCommand] Failed to send notifications:', error)
+      loggerService.error(
+        '[TransferOrganizationOwnershipCommand] Failed to send notifications:',
+        error
+      )
     }
   }
 }

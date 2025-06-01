@@ -4,10 +4,10 @@
 
   interface Props {
     auditLogs: Array<{
-      id: number
+      id: string
       action: string
       user?: {
-        id: number
+        id: string
         name: string
       }
       created_at: string

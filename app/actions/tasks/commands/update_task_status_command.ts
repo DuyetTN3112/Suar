@@ -1,11 +1,19 @@
 import Task from '#models/task'
-import type User from '#models/user'
+import User from '#models/user'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
 import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import { isSameId } from '#libs/id_utils'
 
 /**
  * Command để cập nhật trạng thái task
@@ -24,7 +32,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  */
 export default class UpdateTaskStatusCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -32,9 +40,9 @@ export default class UpdateTaskStatusCommand {
    * Execute command để update status
    */
   async execute(dto: UpdateTaskStatusDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Start transaction
@@ -49,51 +57,63 @@ export default class UpdateTaskStatusCommand {
         .firstOrFail()
 
       // Check permission
-      await this.validateUpdatePermission(user, task)
+      await this.validateUpdatePermission(userId, task)
 
       // Save old status for notification
-      const oldStatusId = task.status_id
+      const oldStatus = task.status
 
       // Validate transition (optional - có thể thêm rules)
-      // const isValid = dto.validateTransition(oldStatusId, statusRules)
+      // const isValid = dto.validateTransition(oldStatus, statusRules)
       // if (!isValid) {
-      //   throw new Error('Chuyển trạng thái không hợp lệ')
+      //   throw new BusinessLogicException('Chuyển trạng thái không hợp lệ')
       // }
 
       // Update status
       task.merge(dto.toObject())
-      task.updated_by = user.id
+      task.updated_by = String(userId)
       await task.save()
 
       // Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.UPDATE_STATUS,
           entity_type: EntityType.TASK,
           entity_id: dto.task_id,
-          old_values: { status_id: oldStatusId },
-          new_values: { status_id: task.status_id },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          old_values: { status: oldStatus },
+          new_values: { status: task.status },
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
 
-      // Send notification (outside transaction)
-      if (oldStatusId !== task.status_id) {
-        await this.sendStatusChangeNotification(task, user, dto)
+      // Emit domain event
+      if (oldStatus !== task.status) {
+        void emitter.emit('task:status:changed', {
+          task,
+          oldStatus,
+          newStatus: task.status,
+          changedBy: userId,
+        })
       }
 
-      // Load relations
-      await task.load('status')
-      await task.load('label')
-      await task.load('priority')
-      await task.load('assignee')
-      await task.load('creator')
-      await task.load('updater')
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
+
+      // Send notification (outside transaction)
+      if (oldStatus !== task.status) {
+        await this.sendStatusChangeNotification(task, userId, dto)
+      }
+
+      // Load relations (v3: status/label/priority are inline columns)
+      await task.load((loader) => {
+        loader.load('assignee').load('creator').load('updater')
+      })
 
       return task
     } catch (error) {
@@ -103,43 +123,34 @@ export default class UpdateTaskStatusCommand {
   }
 
   /**
-   * Validate permission
+   * Validate permission → delegate to Model
    */
-  private async validateUpdatePermission(user: User, task: Task): Promise<void> {
-    // Load user system_role
-    await user.load('system_role')
-
-    // 1. Superadmin/Admin
-    const systemRole = user.$preloaded.system_role as typeof user.system_role | undefined
-    if (
-      systemRole !== undefined &&
-      ['superadmin', 'admin'].includes(systemRole.name.toLowerCase())
-    ) {
+  private async validateUpdatePermission(userId: DatabaseId, task: Task): Promise<void> {
+    // 1. Superadmin/Admin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
+    if (isSystemAdmin) {
       return
     }
 
     // 2. Creator
-    if (task.creator_id === user.id) {
+    if (isSameId(task.creator_id, userId)) {
       return
     }
 
     // 3. Assignee
-    if (task.assigned_to === user.id) {
+    if (task.assigned_to !== null && isSameId(task.assigned_to, userId)) {
       return
     }
 
-    // 4. Org Owner/Manager
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
+    // 4. Org Owner/Admin → delegate to Model
 
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
+
+    if (orgRole && ['org_owner', 'org_admin'].includes(orgRole)) {
       return
     }
 
-    throw new Error('Bạn không có quyền cập nhật trạng thái task này')
+    throw new ForbiddenException('Bạn không có quyền cập nhật trạng thái task này')
   }
 
   /**
@@ -147,23 +158,25 @@ export default class UpdateTaskStatusCommand {
    */
   private async sendStatusChangeNotification(
     task: Task,
-    updater: User,
+    updaterId: DatabaseId,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     try {
       // Don't notify if updater is creator
-      if (task.creator_id && task.creator_id !== updater.id) {
+      if (task.creator_id && task.creator_id !== updaterId) {
+        const updater = await User.find(updaterId)
+        const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
         await this.createNotification.handle({
           user_id: task.creator_id,
           title: 'Cập nhật trạng thái nhiệm vụ',
-          message: dto.getNotificationMessage(task.title, updater.username || updater.email),
+          message: dto.getNotificationMessage(task.title, updaterName),
           type: 'task_status_updated',
           related_entity_type: 'task',
           related_entity_id: task.id,
         })
       }
     } catch (error) {
-      console.error('[UpdateTaskStatusCommand] Failed to send notification', error)
+      loggerService.error('[UpdateTaskStatusCommand] Failed to send notification', error)
     }
   }
 }

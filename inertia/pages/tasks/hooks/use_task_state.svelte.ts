@@ -18,12 +18,12 @@ export function createTaskStateStore({ initialFilters, metadata }: TasksStatePro
   const taskModals = createTaskModalsStore()
 
   // Chuyển đổi trạng thái task
-  function toggleTaskStatus(task: Task, newStatusId: number) {
+  function toggleTaskStatus(task: Task, newStatus: string) {
     // Gửi request cập nhật trạng thái
     router.put(
       `/tasks/${task.id}/status`,
       {
-        status_id: newStatusId,
+        status: newStatus,
       },
       {
         preserveState: true,

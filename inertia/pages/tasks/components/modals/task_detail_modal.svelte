@@ -10,10 +10,10 @@
     open: boolean
     onOpenChange?: (open: boolean) => void
     task: Task | null
-    statuses?: Array<{ id: number; name: string; color: string }>
-    priorities?: Array<{ id: number; name: string; color: string; value: number }>
-    labels?: Array<{ id: number; name: string; color: string }>
-    users?: Array<{ id: number; username: string; email: string }>
+    statuses?: Array<{ value: string; label: string; color: string }>
+    priorities?: Array<{ value: string; label: string; color: string }>
+    labels?: Array<{ value: string; label: string; color: string }>
+    users?: Array<{ id: string; username: string; email: string }>
     onUpdate?: (updatedTask: Task) => void
     currentUser?: unknown
   }
@@ -72,8 +72,8 @@
           {#if task.status}
             <div>
               <h4 class="text-xs font-medium text-muted-foreground mb-1">Trạng thái</h4>
-              <div class="text-sm" style:color={task.status.color}>
-                {task.status.name}
+              <div class="text-sm">
+                {task.status}
               </div>
             </div>
           {/if}
@@ -81,8 +81,8 @@
           {#if task.priority}
             <div>
               <h4 class="text-xs font-medium text-muted-foreground mb-1">Độ ưu tiên</h4>
-              <div class="text-sm" style:color={task.priority.color}>
-                {task.priority.name}
+              <div class="text-sm">
+                {task.priority}
               </div>
             </div>
           {/if}
@@ -90,8 +90,8 @@
           {#if task.label}
             <div>
               <h4 class="text-xs font-medium text-muted-foreground mb-1">Nhãn</h4>
-              <div class="text-sm" style:color={task.label.color}>
-                {task.label.name}
+              <div class="text-sm">
+                {task.label}
               </div>
             </div>
           {/if}

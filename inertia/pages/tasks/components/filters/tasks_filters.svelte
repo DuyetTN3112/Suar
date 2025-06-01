@@ -21,9 +21,9 @@
       assigned_to?: string
     }
     metadata: {
-      statuses: Array<{ id: number; name: string; color: string }>
-      labels: Array<{ id: number; name: string; color: string }>
-      priorities: Array<{ id: number; name: string; color: string; value: number }>
+      statuses: Array<{ value: string; label: string; color: string }>
+      labels: Array<{ value: string; label: string; color: string }>
+      priorities: Array<{ value: string; label: string; color: string }>
     }
     onSearch: (query: string) => void
     onStatusChange: (status: string) => void
@@ -124,8 +124,8 @@
           <SelectContent>
             <SelectItem value="all">{t('common.all', {}, 'Tất cả')}</SelectItem>
             {#each metadata.statuses as status}
-              <SelectItem value={status.id.toString()}>
-                {status.name}
+              <SelectItem value={status.value}>
+                {status.label}
               </SelectItem>
             {/each}
           </SelectContent>
@@ -136,8 +136,8 @@
           <SelectContent>
             <SelectItem value="all">{t('common.all', {}, 'Tất cả')}</SelectItem>
             {#each metadata.priorities as priority}
-              <SelectItem value={priority.id.toString()}>
-                {priority.name}
+              <SelectItem value={priority.value}>
+                {priority.label}
               </SelectItem>
             {/each}
           </SelectContent>

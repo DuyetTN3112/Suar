@@ -1,13 +1,12 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
+import type { ExecutionContext } from '#types/execution_context'
+import ConversationParticipant from '#models/conversation_participant'
+import Message from '#models/message'
 import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
-
-interface ParticipantCheck {
-  conversation_id: number
-  user_id: number
-}
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command: Mark Conversation As Read
@@ -25,7 +24,7 @@ interface ParticipantCheck {
  * await command.execute(dto)
  */
 export class MarkAsReadCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Mark all messages in conversation as read
@@ -37,39 +36,25 @@ export class MarkAsReadCommand {
    * 4. Invalidate cache
    */
   async execute(dto: MarkAsReadDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     try {
-      // Verify user is participant
-      const isParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', user.id)
-        .first()) as ParticipantCheck | undefined
-
+      // Verify user is participant → delegate to Model
+      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
       if (!isParticipant) {
-        throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')
+        throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
-      // Mark all unread messages as read
-      const now = DateTime.now()
-      await db
-        .from('messages')
-        .where('conversation_id', dto.conversationId)
-        .where('sender_id', '!=', user.id)
-        .whereNull('read_at')
-        .update({
-          read_at: now.toSQL(),
-          updated_at: now.toSQL(),
-        })
+      // Mark all unread messages as read → delegate to Model
+      await Message.markAllAsReadInConversation(dto.conversationId, userId)
 
       // Invalidate cache
-      await this.invalidateCache(dto.conversationId, user.id)
+      await this.invalidateCache(dto.conversationId, userId)
     } catch (error) {
-      console.error('[MarkAsReadCommand] Error:', error)
+      loggerService.error('[MarkAsReadCommand] Error:', error)
       throw error
     }
   }
@@ -77,7 +62,7 @@ export class MarkAsReadCommand {
   /**
    * Invalidate cache
    */
-  private async invalidateCache(conversationId: number, userId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId, userId: DatabaseId): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
       const listPattern = `user:${String(userId)}:conversations:*`
@@ -97,7 +82,7 @@ export class MarkAsReadCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[MarkAsReadCommand.invalidateCache] Error:', error)
+      loggerService.error('[MarkAsReadCommand.invalidateCache] Error:', error)
     }
   }
 }
@@ -118,7 +103,7 @@ export class MarkAsReadCommand {
  * await command.execute(dto)
  */
 export class MarkMessagesAsReadCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Mark specific messages as read
@@ -130,40 +115,25 @@ export class MarkMessagesAsReadCommand {
    * 4. Invalidate cache
    */
   async execute(dto: MarkMessagesAsReadDTO): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     try {
-      // Verify user is participant
-      const isParticipant = (await db
-        .from('conversation_participants')
-        .where('conversation_id', dto.conversationId)
-        .where('user_id', user.id)
-        .first()) as ParticipantCheck | undefined
-
+      // Verify user is participant → delegate to Model
+      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
       if (!isParticipant) {
-        throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')
+        throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
-      // Mark specified messages as read
-      const now = DateTime.now()
-      await db
-        .from('messages')
-        .where('conversation_id', dto.conversationId)
-        .whereIn('id', dto.uniqueMessageIds)
-        .where('sender_id', '!=', user.id)
-        .whereNull('read_at')
-        .update({
-          read_at: now.toSQL(),
-          updated_at: now.toSQL(),
-        })
+      // Mark specified messages as read → delegate to Model
+      await Message.markSpecificAsRead(dto.conversationId, dto.uniqueMessageIds, userId)
 
       // Invalidate cache
-      await this.invalidateCache(dto.conversationId, user.id)
+      await this.invalidateCache(dto.conversationId, userId)
     } catch (error) {
-      console.error('[MarkMessagesAsReadCommand] Error:', error)
+      loggerService.error('[MarkMessagesAsReadCommand] Error:', error)
       throw error
     }
   }
@@ -171,7 +141,7 @@ export class MarkMessagesAsReadCommand {
   /**
    * Invalidate cache
    */
-  private async invalidateCache(conversationId: number, userId: number): Promise<void> {
+  private async invalidateCache(conversationId: DatabaseId, userId: DatabaseId): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
       const listPattern = `user:${String(userId)}:conversations:*`
@@ -191,7 +161,7 @@ export class MarkMessagesAsReadCommand {
       const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
-      console.error('[MarkMessagesAsReadCommand.invalidateCache] Error:', error)
+      loggerService.error('[MarkMessagesAsReadCommand.invalidateCache] Error:', error)
     }
   }
 }

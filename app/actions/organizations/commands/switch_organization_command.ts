@@ -1,8 +1,12 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Switch Organization
@@ -18,7 +22,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  * await command.execute(organizationId)
  */
 export default class SwitchOrganizationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Switch user's current organization
@@ -30,44 +34,39 @@ export default class SwitchOrganizationCommand {
    * 4. Create audit log
    * 5. Commit transaction
    */
-  async execute(organizationId: number): Promise<void> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async execute(organizationId: DatabaseId): Promise<void> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
-      // 1. Validate user is member of target organization
-      const membership: unknown = await trx
-        .from('organization_users')
-        .where('organization_id', organizationId)
-        .where('user_id', user.id)
-        .first()
-
-      if (!membership) {
-        throw new Error('You are not a member of this organization')
+      // 1. Validate user is member of target organization → delegate to Model
+      const isMember = await OrganizationUser.isMember(userId, organizationId, trx)
+      if (!isMember) {
+        throw new BusinessLogicException('You are not a member of this organization')
       }
 
       // 2. Get current organization for audit log
-      const currentOrganizationId = user.current_organization_id
+      const userModel = await User.findOrFail(userId)
+      const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
-      const userModel = await User.findOrFail(user.id)
-      userModel.current_organization_id = organizationId
+      userModel.current_organization_id = String(organizationId)
       await userModel.useTransaction(trx).save()
 
       // 4. Create audit log
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.SWITCH_ORGANIZATION,
           entity_type: EntityType.USER,
-          entity_id: user.id,
+          entity_id: userId,
           old_values: { current_organization_id: currentOrganizationId },
           new_values: { current_organization_id: organizationId },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )

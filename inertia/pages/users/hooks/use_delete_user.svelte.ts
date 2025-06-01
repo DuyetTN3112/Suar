@@ -3,7 +3,7 @@ import { router } from '@inertiajs/svelte'
 import { toast } from 'svelte-sonner'
 import type { User } from '../types'
 
-export function createDeleteUser(authUserId: number) {
+export function createDeleteUser(authUserId: string) {
   const deleteModalOpen = writable(false)
   const userToDelete = writable<User | null>(null)
   const isDeleting = writable(false)

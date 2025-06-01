@@ -1,25 +1,16 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
-// import Message from '#models/message'
+import Message from '#models/message'
 import { DateTime } from 'luxon'
 import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
-
-interface ParticipantData {
-  conversation_id: number
-  user_id: number
-}
-
-interface ConversationWithCount {
-  id: number
-  participant_count: number
-}
-
-interface StoredProcedureResult {
-  'id'?: number
-  'LAST_INSERT_ID()'?: number
-}
+import ConversationParticipant from '#models/conversation_participant'
+import OrganizationUser from '#models/organization_user'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command: Create Conversation
@@ -38,7 +29,7 @@ interface StoredProcedureResult {
  * const conversation = await command.execute(dto)
  */
 export default class CreateConversationCommand {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute command: Create conversation or return existing one
@@ -54,27 +45,27 @@ export default class CreateConversationCommand {
    * 8. Return conversation
    */
   async execute(dto: CreateConversationDTO): Promise<Conversation> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Get all participants including creator
-    const allParticipantIds = dto.getAllParticipantIds(user.id)
+    const allParticipantIds = dto.getAllParticipantIds(userId)
 
     try {
       // For direct (1-1) conversations, check if exists
       if (dto.isDirect) {
         const otherUserId = dto.participantIds[0]
         if (otherUserId === undefined) {
-          throw new Error('Participant ID is required for direct conversation')
+          throw new BusinessLogicException('Participant ID is required for direct conversation')
         }
-        const existing = await this.findExistingDirectConversation(user.id, otherUserId)
+        const existing = await Conversation.findDirectBetween(userId, otherUserId)
 
         if (existing) {
           // Add initial message if provided
           if (dto.initialMessage) {
-            await this.addMessage(existing.id, user.id, dto.initialMessage)
+            await this.addMessage(existing.id, userId, dto.initialMessage)
             await existing.merge({ updated_at: DateTime.now() }).save()
           }
 
@@ -84,12 +75,12 @@ export default class CreateConversationCommand {
 
       // For group conversations (3+ people), check if exists
       if (dto.isGroup) {
-        const existing = await this.findExistingGroupConversation(allParticipantIds)
+        const existing = await Conversation.findGroupWithParticipants(allParticipantIds)
 
         if (existing) {
           // Add initial message if provided
           if (dto.initialMessage) {
-            await this.addMessage(existing.id, user.id, dto.initialMessage)
+            await this.addMessage(existing.id, userId, dto.initialMessage)
             await existing.merge({ updated_at: DateTime.now() }).save()
           }
 
@@ -99,7 +90,7 @@ export default class CreateConversationCommand {
 
       // Create new conversation using stored procedure
       const conversation = await this.createNewConversation(
-        user.id,
+        userId,
         dto.participantIds,
         dto.title,
         dto.organizationId
@@ -107,7 +98,7 @@ export default class CreateConversationCommand {
 
       // Add initial message if provided
       if (dto.initialMessage) {
-        await this.addMessage(conversation.id, user.id, dto.initialMessage)
+        await this.addMessage(conversation.id, userId, dto.initialMessage)
       }
 
       // Invalidate cache
@@ -115,207 +106,93 @@ export default class CreateConversationCommand {
 
       return conversation
     } catch (error) {
-      console.error('[CreateConversationCommand] Error:', error)
+      loggerService.error('[CreateConversationCommand] Error:', error)
       throw error
     }
   }
 
   /**
-   * Find existing direct (1-1) conversation between two users
-   */
-  private async findExistingDirectConversation(
-    userId1: number,
-    userId2: number
-  ): Promise<Conversation | null> {
-    try {
-      // Find conversations with exactly 2 participants
-      const rawResult: unknown = await db.rawQuery(
-        `
-        SELECT c.id, COUNT(cp.user_id) as participant_count
-        FROM conversations c
-        JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE c.title IS NULL AND c.deleted_at IS NULL
-        GROUP BY c.id
-        HAVING participant_count = 2
-      `
-      )
-      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
-
-      if (conversationsWithCount.length === 0) {
-        return null
-      }
-
-      const potentialIds = conversationsWithCount.map((row) => row.id)
-
-      // Find conversations with both users
-      const participantsRaw: unknown = await db.rawQuery(
-        `
-        SELECT conversation_id, user_id
-        FROM conversation_participants
-        WHERE conversation_id IN (${potentialIds.map(() => '?').join(',')})
-          AND user_id IN (?, ?)
-      `,
-        [...potentialIds, userId1, userId2]
-      )
-      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
-
-      // Group by conversation
-      const participantsByConversation = new Map<number, Set<number>>()
-      for (const row of participantsData) {
-        if (!participantsByConversation.has(row.conversation_id)) {
-          participantsByConversation.set(row.conversation_id, new Set())
-        }
-        participantsByConversation.get(row.conversation_id)?.add(row.user_id)
-      }
-
-      // Find conversation with exactly these 2 users
-      for (const [conversationId, participants] of participantsByConversation.entries()) {
-        if (participants.has(userId1) && participants.has(userId2) && participants.size === 2) {
-          return await Conversation.find(conversationId)
-        }
-      }
-
-      return null
-    } catch (error) {
-      console.error('[CreateConversationCommand.findExistingDirectConversation] Error:', error)
-      return null
-    }
-  }
-
-  /**
-   * Find existing group conversation with exact same participants
-   */
-  private async findExistingGroupConversation(
-    participantIds: number[]
-  ): Promise<Conversation | null> {
-    try {
-      const sortedIds = [...participantIds].sort((a, b) => a - b)
-
-      // Find conversations with exact participant count
-      const rawResult: unknown = await db.rawQuery(
-        `
-        SELECT c.id, COUNT(cp.user_id) as participant_count
-        FROM conversations c
-        JOIN conversation_participants cp ON c.id = cp.conversation_id
-        WHERE c.deleted_at IS NULL
-        GROUP BY c.id
-        HAVING participant_count = ?
-      `,
-        [sortedIds.length]
-      )
-      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
-
-      if (conversationsWithCount.length === 0) {
-        return null
-      }
-
-      const potentialIds = conversationsWithCount.map((row) => row.id)
-
-      // Get all participants for these conversations
-      const participantsRaw: unknown = await db.rawQuery(
-        `
-        SELECT conversation_id, user_id
-        FROM conversation_participants
-        WHERE conversation_id IN (${potentialIds.map(() => '?').join(',')})
-      `,
-        [...potentialIds]
-      )
-      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
-
-      // Group by conversation
-      const participantsByConversation = new Map<number, Set<number>>()
-      for (const row of participantsData) {
-        if (!participantsByConversation.has(row.conversation_id)) {
-          participantsByConversation.set(row.conversation_id, new Set())
-        }
-        participantsByConversation.get(row.conversation_id)?.add(row.user_id)
-      }
-
-      // Find exact match
-      for (const [conversationId, participants] of participantsByConversation.entries()) {
-        if (participants.size !== sortedIds.length) continue
-
-        let allMatch = true
-        for (const participantId of sortedIds) {
-          if (!participants.has(participantId)) {
-            allMatch = false
-            break
-          }
-        }
-
-        if (allMatch) {
-          return await Conversation.find(conversationId)
-        }
-      }
-
-      return null
-    } catch (error) {
-      console.error('[CreateConversationCommand.findExistingGroupConversation] Error:', error)
-      return null
-    }
-  }
-
-  /**
-   * Create new conversation using stored procedure
+   * Create new conversation using Lucid models + transaction
+   * Replaces CALL create_conversation stored procedure.
+   *
+   * Business rules from stored procedure:
+   * 1. Creator must be approved member of organization
+   * 2. All participants must be approved members of organization
+   * 3. Creator is auto-added as participant
+   * 4. INSERT conversation → INSERT participants (atomic via transaction)
    */
   private async createNewConversation(
-    creatorId: number,
-    participantIds: number[],
+    creatorId: DatabaseId,
+    participantIds: DatabaseId[],
     title?: string,
-    organizationId?: number
+    organizationId?: DatabaseId
   ): Promise<Conversation> {
-    // Convert participant IDs to comma-separated string
-    const participantIdsString = participantIds.join(',')
+    // Validate org membership via Fat Model methods
+    if (organizationId) {
+      const creatorIsApproved = await OrganizationUser.isApprovedMember(creatorId, organizationId)
+      if (!creatorIsApproved) {
+        throw new BusinessLogicException('Người tạo không thuộc tổ chức')
+      }
 
-    // Call stored procedure
-    const result: unknown = await db.rawQuery('CALL create_conversation(?, ?, ?)', [
-      creatorId,
-      organizationId ?? null,
-      participantIdsString,
-    ])
-
-    // Get conversation ID from result
-    const typedResult = result as [[StoredProcedureResult], unknown]
-    const firstRow = typedResult[0][0]
-    const conversationId = firstRow.id ?? firstRow['LAST_INSERT_ID()']
-
-    if (!conversationId) {
-      throw new Error('Failed to create conversation - no ID returned')
+      if (participantIds.length > 0) {
+        const allValid = await OrganizationUser.validateAllApprovedMembers(
+          participantIds,
+          organizationId
+        )
+        if (!allValid) {
+          throw new BusinessLogicException('Một hoặc nhiều người tham gia không thuộc tổ chức')
+        }
+      }
     }
 
-    // If title provided, update it (stored procedure doesn't support title)
-    if (title) {
-      await db
-        .from('conversations')
-        .where('id', conversationId)
-        .update({ title, updated_at: DateTime.now().toSQL() })
+    // Use transaction for atomic creation (conversation + participants)
+    const trx = await db.transaction()
+    try {
+      // Create conversation
+      const conversation = await Conversation.create(
+        {
+          organization_id: organizationId ? String(organizationId) : null,
+          title: title ?? null,
+        },
+        { client: trx }
+      )
+
+      // Add all participants (including creator) via Fat Model batch method
+      const allUserIds = [
+        creatorId,
+        ...participantIds.filter((id) => String(id) !== String(creatorId)),
+      ]
+      await ConversationParticipant.createBatch(conversation.id, allUserIds, trx)
+
+      await trx.commit()
+      return conversation
+    } catch (error) {
+      await trx.rollback()
+      throw error
     }
-
-    // Load and return conversation
-    const conversation = await Conversation.find(conversationId)
-
-    if (!conversation) {
-      throw new Error('Failed to load created conversation')
-    }
-
-    return conversation
   }
 
   /**
-   * Add message to conversation using stored procedure
+   * Add message to conversation using Lucid model
+   * Replaces CALL send_message stored procedure for initial message.
+   * Note: Trigger `update_last_message_at` in MySQL will auto-update conversation.last_message_at
    */
   private async addMessage(
-    conversationId: number,
-    senderId: number,
+    conversationId: DatabaseId,
+    senderId: DatabaseId,
     message: string
   ): Promise<void> {
-    await db.rawQuery('CALL send_message(?, ?, ?)', [conversationId, senderId, message])
+    await Message.create({
+      conversation_id: String(conversationId),
+      sender_id: String(senderId),
+      message: message,
+    })
   }
 
   /**
    * Invalidate conversation list cache for all participants
    */
-  private async invalidateCache(participantIds: number[]): Promise<void> {
+  private async invalidateCache(participantIds: DatabaseId[]): Promise<void> {
     try {
       const cacheKeys = participantIds.map((userId) => `user:${String(userId)}:conversations:*`)
 
@@ -326,7 +203,7 @@ export default class CreateConversationCommand {
         }
       }
     } catch (error) {
-      console.error('[CreateConversationCommand.invalidateCache] Error:', error)
+      loggerService.error('[CreateConversationCommand.invalidateCache] Error:', error)
       // Don't throw - cache invalidation failure shouldn't break the operation
     }
   }

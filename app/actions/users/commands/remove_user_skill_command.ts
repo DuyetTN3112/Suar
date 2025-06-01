@@ -14,7 +14,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
 
   async handle(dto: RemoveUserSkillDTO): Promise<void> {
     await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
       const userSkill = await UserSkill.query({ client: trx })
@@ -26,7 +26,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       const skillInfo = {
         skill_id: userSkill.skill_id,
         skill_name: userSkill.skill.skill_name,
-        proficiency_level_id: userSkill.proficiency_level_id,
+        level_code: userSkill.level_code,
       }
 
       // Delete the user skill

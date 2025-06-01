@@ -1,9 +1,13 @@
+import type { DatabaseId } from '#types/database'
+import { TaskStatus } from '#constants/task_constants'
+import ValidationException from '#exceptions/validation_exception'
+
 /**
  * DTO cho việc cập nhật trạng thái task
  *
  * Validates:
  * - task_id: ID của task, bắt buộc
- * - status_id: ID của trạng thái mới, bắt buộc
+ * - status: Trạng thái mới (v3: inline VARCHAR), bắt buộc
  * - reason: Lý do thay đổi trạng thái (optional)
  *
  * Note: Có thể mở rộng để validate status transitions
@@ -11,34 +15,38 @@
  * Không cho phép: completed -> pending (cần reopen process)
  */
 export default class UpdateTaskStatusDTO {
-  public readonly task_id: number
-  public readonly status_id: number
+  public readonly task_id: DatabaseId
+  public readonly status: string
   public readonly reason?: string
 
-  constructor(data: { task_id: number; status_id: number; reason?: string }) {
+  constructor(data: { task_id: DatabaseId; status: string; reason?: string }) {
     // Validate task_id
-    if (!data.task_id || data.task_id <= 0) {
-      throw new Error('ID task là bắt buộc')
+    if (!data.task_id) {
+      throw new ValidationException('ID task là bắt buộc')
     }
 
-    // Validate status_id
-    if (!data.status_id || data.status_id <= 0) {
-      throw new Error('ID trạng thái là bắt buộc')
+    // Validate status (v3: inline VARCHAR)
+    if (!data.status) {
+      throw new ValidationException('Trạng thái là bắt buộc')
+    }
+    const validStatuses = Object.values(TaskStatus) as string[]
+    if (!validStatuses.includes(data.status)) {
+      throw new ValidationException('Trạng thái task không hợp lệ')
     }
 
     // Validate reason if provided
     if (data.reason !== undefined) {
       if (data.reason.trim().length === 0) {
-        throw new Error('Lý do không được để trống')
+        throw new ValidationException('Lý do không được để trống')
       }
 
       if (data.reason.length > 500) {
-        throw new Error('Lý do không được vượt quá 500 ký tự')
+        throw new ValidationException('Lý do không được vượt quá 500 ký tự')
       }
     }
 
     this.task_id = data.task_id
-    this.status_id = data.status_id
+    this.status = data.status
     this.reason = data.reason?.trim()
   }
 
@@ -53,7 +61,7 @@ export default class UpdateTaskStatusDTO {
    * Lấy message audit log
    */
   public getAuditMessage(): string {
-    let message = `Cập nhật trạng thái task thành status #${String(this.status_id)}`
+    let message = `Cập nhật trạng thái task thành ${this.status}`
 
     if (this.hasReason() && this.reason !== undefined) {
       message += `: ${this.reason}`
@@ -64,29 +72,29 @@ export default class UpdateTaskStatusDTO {
 
   /**
    * Validate status transition (có thể mở rộng)
-   * @param currentStatusId - Trạng thái hiện tại
+   * @param currentStatus - Trạng thái hiện tại
    * @param statusRules - Rules cho transitions (optional)
    * @returns true nếu transition hợp lệ
    */
-  public validateTransition(currentStatusId: number, statusRules?: Map<number, number[]>): boolean {
+  public validateTransition(currentStatus: string, statusRules?: Map<string, string[]>): boolean {
     // Nếu không có rules, cho phép mọi transition
     if (!statusRules) {
       return true
     }
 
     // Nếu trạng thái không đổi, ok
-    if (currentStatusId === this.status_id) {
+    if (currentStatus === this.status) {
       return true
     }
 
     // Check rules
-    const allowedTransitions = statusRules.get(currentStatusId)
+    const allowedTransitions = statusRules.get(currentStatus)
     if (!allowedTransitions) {
       // Không có rules cho status hiện tại, cho phép
       return true
     }
 
-    return allowedTransitions.includes(this.status_id)
+    return allowedTransitions.includes(this.status)
   }
 
   /**
@@ -94,7 +102,7 @@ export default class UpdateTaskStatusDTO {
    */
   public toObject(): Record<string, unknown> {
     return {
-      status_id: this.status_id,
+      status: this.status,
     }
   }
 

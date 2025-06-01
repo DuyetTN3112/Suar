@@ -1,55 +1,36 @@
 export type Task = {
-  id: number
+  id: string
   title: string
   description?: string
-  status_id: number
-  status: {
-    id: number
-    name: string
-    color: string
-  }
-  label_id: number
-  label: {
-    id: number
-    name: string
-    color: string
-  }
-  priority_id: number
-  priority: {
-    id: number
-    name: string
-    color: string
-    value: number
-  }
+  status: string
+  label: string
+  priority: string
+  difficulty?: string | null
   assignee?: {
-    id: number
+    id: string
     username: string
     email: string
   }
-  assigned_to?: number
-  created_by: number
+  assigned_to?: string
+  created_by: string
   creator?: {
-    id: number
+    id: string
     username: string
     email: string
   }
   due_date: string
   created_at: string
   updated_at: string
-  parent_task_id?: number | null
+  parent_task_id?: string | null
   parentTask?: {
-    id: number
+    id: string
     title: string
-    status: {
-      id: number
-      name: string
-      color: string
-    }
+    status: string
   } | null
   childTasks?: Task[]
-  organization_id?: string | number
+  organization_id?: string
   organization?: {
-    id: number | string
+    id: string
     name: string
   }
   estimated_time?: number
@@ -75,24 +56,23 @@ export type TasksProps = {
     assigned_to?: string
   }
   metadata: {
-    statuses: Array<{ id: number; name: string; color: string }>
-    labels: Array<{ id: number; name: string; color: string }>
-    priorities: Array<{ id: number; name: string; color: string; value: number }>
+    statuses: Array<{ value: string; label: string; color: string }>
+    labels: Array<{ value: string; label: string; color: string }>
+    priorities: Array<{ value: string; label: string; color: string }>
     users: Array<{
-      id: number
+      id: string
       username: string
       email: string
     }>
   }
   auth?: {
     user?: {
-      id: number
+      id: string
       email: string
       username: string
       role?: string
-      role_id?: number
       isAdmin?: boolean
-      organization_id?: number
+      organization_id?: string
       [key: string]: unknown
     }
   }
@@ -114,21 +94,19 @@ export type TaskFilterProps = {
 
 export type TaskItemProps = {
   task: Task
-  completedStatusId?: number
-  pendingStatusId?: number
-  onToggleStatus: (task: Task, newStatusId: number) => void
+  onToggleStatus: (task: Task, newStatus: string) => void
   formatDate: (dateString: string) => string
-  statuses?: Array<{ id: number; name: string; color: string }>
-  priorities?: Array<{ id: number; name: string; color: string; value: number }>
-  labels?: Array<{ id: number; name: string; color: string }>
+  statuses?: Array<{ value: string; label: string; color: string }>
+  priorities?: Array<{ value: string; label: string; color: string }>
+  labels?: Array<{ value: string; label: string; color: string }>
   users?: Array<{
-    id: number
+    id: string
     username: string
     email: string
   }>
   currentUser?: {
-    id?: string | number
+    id?: string
     role?: string
-    organization_id?: string | number
+    organization_id?: string
   }
 }

@@ -1,15 +1,19 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-
-interface MembershipRecord {
-  user_id: number
-  organization_id: number
-  role_id: number
-}
+import { OrganizationRole } from '#constants/organization_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
 
 /**
  * Command: Update Member Role
@@ -28,7 +32,7 @@ interface MembershipRecord {
  */
 export default class UpdateMemberRoleCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -46,77 +50,69 @@ export default class UpdateMemberRoleCommand {
    * 8. Send notification
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
     try {
-      // 1. Get current user's membership and role
-      const currentUserMembership = (await trx
-        .from('organization_users')
-        .where('organization_id', dto.organizationId)
-        .where('user_id', currentUser.id)
-        .first()) as MembershipRecord | null
+      // 1. Get current user's role → delegate to Model
 
-      if (!currentUserMembership) {
-        throw new Error('You are not a member of this organization')
+      const currentUserRoleId = await OrganizationUser.getOrgRole(userId, dto.organizationId, trx)
+      if (!currentUserRoleId) {
+        throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
       }
 
-      // 2. Get target user's current membership
-      const targetMembership = (await trx
-        .from('organization_users')
-        .where('organization_id', dto.organizationId)
-        .where('user_id', dto.userId)
-        .first()) as MembershipRecord | null
+      // 2. Get target user's current role → delegate to Model
 
-      if (!targetMembership) {
-        throw new Error('Target user is not a member of this organization')
+      const targetRoleId = await OrganizationUser.getOrgRole(dto.userId, dto.organizationId, trx)
+      if (!targetRoleId) {
+        throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
       }
 
       // 3. Validate role change is allowed
-      this.validateRoleChange(
-        currentUserMembership.role_id,
-        targetMembership.role_id,
-        dto.newRoleId,
-        dto.userId === currentUser.id
-      )
+      this.validateRoleChange(currentUserRoleId, targetRoleId, dto.newRoleId, dto.userId === userId)
 
       // 4. Check if role is actually changing
-      if (targetMembership.role_id === dto.newRoleId) {
-        throw new Error('User already has this role')
+      if (targetRoleId === dto.newRoleId) {
+        throw ConflictException.alreadyExists('Người dùng đã có vai trò này')
       }
 
       // 5. Store old role for audit
-      const oldRole = targetMembership.role_id
+      const oldRole: string = targetRoleId
 
-      // 6. Update role
-      await trx
-        .from('organization_users')
-        .where('organization_id', dto.organizationId)
-        .where('user_id', dto.userId)
-        .update({
-          role_id: dto.newRoleId,
-          updated_at: new Date(),
-        })
+      // 6. Update role → delegate to Model
+      await OrganizationUser.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
 
       // 7. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: AuditAction.UPDATE_MEMBER_ROLE,
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
-          old_values: { user_id: dto.userId, role_id: oldRole },
-          new_values: { user_id: dto.userId, role_id: dto.newRoleId },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          old_values: { user_id: dto.userId, org_role: oldRole },
+          new_values: { user_id: dto.userId, org_role: dto.newRoleId },
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:member:role_changed', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        oldRole: oldRole,
+        newRole: dto.newRoleId,
+        changedBy: userId,
+      })
+
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
 
       // 8. Send notification
       await this.sendRoleChangedNotification(dto, oldRole)
@@ -130,56 +126,46 @@ export default class UpdateMemberRoleCommand {
    * Helper: Validate if role change is allowed
    */
   private validateRoleChange(
-    currentUserRole: number,
-    targetCurrentRole: number,
-    targetNewRole: number,
+    currentUserRole: string,
+    targetCurrentRole: string,
+    targetNewRole: string,
     isSelfUpdate: boolean
   ): void {
-    // Cannot change Owner's role (role_id = 1)
-    if (targetCurrentRole === 1) {
-      throw new Error('Cannot change the role of organization owner')
+    const ownerRole: string = OrganizationRole.OWNER
+    const adminRole: string = OrganizationRole.ADMIN
+
+    // Cannot change Owner's role
+    if (targetCurrentRole === ownerRole) {
+      throw new BusinessLogicException('Không thể thay đổi vai trò của owner tổ chức')
     }
 
     // Cannot promote to Owner
-    if (targetNewRole === 1) {
-      throw new Error('Cannot promote member to Owner. Use transfer ownership instead.')
+    if (targetNewRole === ownerRole) {
+      throw new BusinessLogicException(
+        'Không thể thăng cấp thành viên lên Owner. Hãy sử dụng chức năng chuyển giao quyền sở hữu.'
+      )
     }
 
     // Users cannot change their own role
     if (isSelfUpdate) {
-      throw new Error('You cannot change your own role')
+      throw new BusinessLogicException('Bạn không thể thay đổi vai trò của chính mình')
     }
 
-    // Only Owner (1) can update any role
-    if (currentUserRole === 1) {
+    // Only Owner can update any role
+    if (currentUserRole === ownerRole) {
       return // Owner can do anything
     }
 
-    // Admin (2) can only update roles >= 2
-    if (currentUserRole === 2) {
-      if (targetNewRole < 2) {
-        throw new Error('Admins cannot promote members to Owner')
+    // Admin can only update non-owner roles
+    if (currentUserRole === adminRole) {
+      if (targetNewRole === ownerRole) {
+        throw new ForbiddenException('Admin không thể thăng cấp thành viên lên Owner')
       }
       return // Valid admin action
     }
 
     // Other roles cannot update roles
-    throw new Error('You do not have permission to update member roles')
-  }
-
-  /**
-   * Helper: Get role name from role ID
-   */
-  // @ts-expect-error - Helper function for future use
-  private _getRoleName(roleId: number): string {
-    const roleNames: Record<number, string> = {
-      1: 'Owner',
-      2: 'Admin',
-      3: 'Manager',
-      4: 'Member',
-      5: 'Viewer',
-    }
-    return roleNames[roleId] ?? 'Unknown'
+    throw new ForbiddenException('Bạn không có quyền thay đổi vai trò thành viên')
   }
 
   /**
@@ -187,10 +173,10 @@ export default class UpdateMemberRoleCommand {
    */
   private async sendRoleChangedNotification(
     dto: UpdateMemberRoleDTO,
-    oldRoleId: number
+    oldRole: string
   ): Promise<void> {
     try {
-      const actionType = dto.getActionType(oldRoleId)
+      const actionType = dto.getActionType(oldRole)
       const actionVerb = actionType === 'promotion' ? 'được thăng chức' : 'được chuyển vai trò'
 
       await this.createNotification.handle({
@@ -202,7 +188,7 @@ export default class UpdateMemberRoleCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
+      loggerService.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
     }
   }
 }

@@ -1,25 +1,24 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
+import Project from '#models/project'
+import Task from '#models/task'
+import Conversation from '#models/conversation'
+import ConversationParticipant from '#models/conversation_participant'
 import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationRole, getOrganizationRoleName } from '#constants/organization_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
-
-interface MembershipRecord {
-  organization_id: number
-  user_id: number
-  role_id: OrganizationRole
-}
-
-interface ProjectRecord {
-  id: number
-}
-
-interface ConversationRecord {
-  id: number
-}
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command: Remove Member from Organization
@@ -37,7 +36,7 @@ interface ConversationRecord {
  */
 export default class RemoveMemberCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -55,65 +54,73 @@ export default class RemoveMemberCommand {
    * 8. Send notification
    */
   async execute(dto: RemoveMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
     try {
       // 1. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      await this.checkPermissions(dto.organizationId, userId, trx)
 
-      // 2. Get target member's role
-      const targetMembership = (await trx
-        .from('organization_users')
-        .where('organization_id', dto.organizationId)
-        .where('user_id', dto.userId)
-        .first()) as MembershipRecord | null
-
+      // 2. Get target member's membership via Model
+      const targetMembership = await OrganizationUser.findMembership(
+        dto.organizationId,
+        dto.userId,
+        trx
+      )
       if (!targetMembership) {
-        throw new Error('User is not a member of this organization')
+        throw new NotFoundException('Người dùng không phải thành viên của tổ chức này')
       }
 
       // 3. Cannot remove Owner
-      if (targetMembership.role_id === OrganizationRole.OWNER) {
-        throw new Error('Cannot remove organization owner. Transfer ownership first.')
+      if (targetMembership.org_role === OrganizationRole.OWNER) {
+        throw new BusinessLogicException(
+          'Không thể xóa owner khỏi tổ chức. Vui lòng chuyển giao quyền sở hữu trước.'
+        )
       }
 
-      // 4. Handle task reassignment (unassign all tasks)
+      // 4. Handle task reassignment (unassign all tasks) via Model
       await this.unassignMemberTasks(dto.organizationId, dto.userId, trx)
 
-      // 5. Remove from conversation_participants (logic từ after_organization_user_update trigger)
+      // 5. Remove from conversation_participants via Model
       await this.removeFromConversations(dto.organizationId, dto.userId, trx)
 
-      // 6. Remove member from organization
-      await trx
-        .from('organization_users')
-        .where('organization_id', dto.organizationId)
-        .where('user_id', dto.userId)
-        .delete()
+      // 6. Remove member from organization via Model
+      await OrganizationUser.deleteMember(dto.organizationId, dto.userId, trx)
 
       // 7. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: 'remove_member',
           entity_type: EntityType.ORGANIZATION,
           entity_id: dto.organizationId,
-          old_values: targetMembership,
+          old_values: targetMembership.toJSON(),
           new_values: {
             removed_user_id: dto.userId,
-            removed_user_role: getOrganizationRoleName(targetMembership.role_id),
+            removed_user_role: targetMembership.org_role,
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:member:removed', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        removedBy: userId,
+      })
+
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
 
       // 8. Send notification
       await this.sendMemberRemovedNotification(dto)
@@ -127,19 +134,13 @@ export default class RemoveMemberCommand {
    * Helper: Check if user has permission to remove members
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to remove members from this organization')
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
+      throw new ForbiddenException('Bạn không có quyền xóa thành viên khỏi tổ chức này')
     }
   }
 
@@ -147,31 +148,16 @@ export default class RemoveMemberCommand {
    * Helper: Unassign all tasks assigned to member
    */
   private async unassignMemberTasks(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    // Find all projects in this organization
-    const projects = (await trx
-      .from('projects')
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .select('id')) as ProjectRecord[]
+    // Find all projects in this organization via Model
+    const projectIds = await Project.findIdsByOrganization(organizationId, trx)
+    if (projectIds.length === 0) return
 
-    if (projects.length === 0) return
-
-    const projectIds = projects.map((p) => p.id)
-
-    // Unassign tasks in these projects
-    await trx
-      .from('tasks')
-      .whereIn('project_id', projectIds)
-      .where('assigned_to', userId)
-      .whereNull('deleted_at')
-      .update({
-        assigned_to: null,
-        updated_at: new Date(),
-      })
+    // Unassign tasks in these projects via Model
+    await Task.unassignByUserInProjects(projectIds, userId, trx)
   }
 
   /**
@@ -179,26 +165,16 @@ export default class RemoveMemberCommand {
    * Logic từ after_organization_user_update trigger
    */
   private async removeFromConversations(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    // Get all conversation IDs in this organization
-    const conversations = (await trx
-      .from('conversations')
-      .where('organization_id', organizationId)
-      .select('id')) as ConversationRecord[]
+    // Get all conversation IDs in this organization via Model
+    const conversationIds = await Conversation.findIdsByOrganization(organizationId, trx)
+    if (conversationIds.length === 0) return
 
-    if (conversations.length === 0) return
-
-    const conversationIds = conversations.map((c) => c.id)
-
-    // Delete user from these conversations
-    await trx
-      .from('conversation_participants')
-      .where('user_id', userId)
-      .whereIn('conversation_id', conversationIds)
-      .delete()
+    // Delete user from these conversations via Model
+    await ConversationParticipant.removeByUserInConversations(userId, conversationIds, trx)
   }
 
   /**
@@ -215,7 +191,7 @@ export default class RemoveMemberCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[RemoveMemberCommand] Failed to send notification:', error)
+      loggerService.error('[RemoveMemberCommand] Failed to send notification:', error)
     }
   }
 }

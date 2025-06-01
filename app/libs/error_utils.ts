@@ -1,8 +1,21 @@
+import loggerService from '#services/logger_service'
+import { ErrorMessages, createApiError, type ApiErrorResponse } from '#constants/error_constants'
+
 /**
  * Error Utility Helper
  *
  * Chuẩn hóa error handling cho toàn bộ dự án Suar.
  * Pattern này đảm bảo type-safe khi xử lý errors trong catch blocks.
+ *
+ * TÍCH HỢP VỚI:
+ * - Exception classes: #exceptions/* (ForbiddenException, NotFoundException, etc.)
+ * - Error constants: #constants/error_constants (ErrorCode, ErrorMessages, HttpStatus)
+ * - Exception handler: #exceptions/handler (tự động xử lý exception theo status code)
+ *
+ * KHUYẾN NGHỊ:
+ * - Trong actions/services: throw exception classes thay vì throw new Error()
+ * - Trong controllers: dùng handleControllerError() thay vì try/catch thủ công
+ * - AppError vẫn hoạt động nhưng KHÔNG tích hợp với AdonisJS exception handler
  *
  * @module ErrorUtils
  * @example
@@ -272,10 +285,97 @@ export function logError(
   const code = getErrorCode(error)
   const stack = isError(error) ? error.stack : undefined
 
-  console.error(`[${context}] Error:`, {
+  loggerService.error(`[${context}] Error:`, {
     message,
     code,
     stack,
     ...additionalData,
   })
+}
+
+// ============================================================================
+// Controller Error Handling Helpers
+// ============================================================================
+
+import type { HttpContext } from '@adonisjs/core/http'
+import { Exception } from '@adonisjs/core/exceptions'
+
+/**
+ * Xử lý error trong controller theo chuẩn.
+ * Nếu error là AdonisJS Exception (NotFoundException, ForbiddenException, etc.)
+ * → re-throw để exception handler xử lý.
+ * Nếu error là Error thường → flash message + redirect back.
+ *
+ * Thay thế pattern copy-paste:
+ * ```typescript
+ * catch (error: unknown) {
+ *   const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra'
+ *   session.flash('error', errorMessage)
+ *   response.redirect().back()
+ * }
+ * ```
+ *
+ * Bằng:
+ * ```typescript
+ * catch (error: unknown) {
+ *   handleControllerError(error, ctx, 'TasksController.store')
+ * }
+ * ```
+ *
+ * @param error - Error từ catch block
+ * @param ctx - HttpContext
+ * @param context - Tên controller/method để logging (ví dụ: 'TasksController.store')
+ * @param fallbackMessage - Message mặc định nếu không extract được
+ */
+export function handleControllerError(
+  error: unknown,
+  ctx: HttpContext,
+  context: string,
+  fallbackMessage: string = ErrorMessages.GENERIC_ERROR
+): void {
+  // Nếu là AdonisJS Exception (có status code) → re-throw để handler xử lý
+  if (error instanceof Exception) {
+    throw error
+  }
+
+  // Log error
+  logError(context, error)
+
+  // Flash message + redirect back
+  const message = getErrorMessage(error, fallbackMessage)
+  ctx.session.flash('error', message)
+  ctx.response.redirect().back()
+}
+
+/**
+ * Xử lý error trong API controller → trả JSON chuẩn.
+ *
+ * @example
+ * ```typescript
+ * catch (error: unknown) {
+ *   return handleApiControllerError(error, ctx, 'ApiController.getUsers')
+ * }
+ * ```
+ */
+export function handleApiControllerError(
+  error: unknown,
+  ctx: HttpContext,
+  context: string,
+  fallbackMessage: string = ErrorMessages.GENERIC_ERROR
+): ApiErrorResponse {
+  // Nếu là AdonisJS Exception → re-throw để handler trả JSON chuẩn
+  if (error instanceof Exception) {
+    throw error
+  }
+
+  // Log error
+  logError(context, error)
+
+  const message = getErrorMessage(error, fallbackMessage)
+  const statusCode = getErrorStatusCode(error)
+  const code = getErrorCode(error) ?? 'UNKNOWN_ERROR'
+
+  const apiError = createApiError(code, message)
+  ctx.response.status(statusCode).json(apiError)
+  return apiError
 }

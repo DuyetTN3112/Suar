@@ -13,7 +13,7 @@
     onSubmit: () => void
     canMarkAsCompleted?: boolean
     canDelete?: boolean
-    completedStatusId?: number
+    completedStatus?: string
   }
 
   const {
@@ -25,11 +25,11 @@
     onSubmit,
     canMarkAsCompleted = false,
     canDelete = false,
-    completedStatusId
+    completedStatus = 'done'
   }: Props = $props()
 
   async function handleMarkCompleted() {
-    if (!task?.id || !completedStatusId) return
+    if (!task?.id) return
 
     setSubmitting(true)
 
@@ -41,7 +41,7 @@
           'Accept': 'application/json',
           'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
         },
-        body: JSON.stringify({ status_id: completedStatusId })
+        body: JSON.stringify({ status: completedStatus })
       })
 
       if (response.ok) {
@@ -91,7 +91,7 @@
     }
   }
 
-  const isTaskCompleted = $derived(task.status_id === completedStatusId)
+  const isTaskCompleted = $derived(task.status === completedStatus)
 </script>
 
 <div class="flex justify-between gap-2 mt-4">

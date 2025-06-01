@@ -32,7 +32,7 @@ export default class GetPublicTasksQuery extends BaseQuery<
       page: dto.page,
       perPage: dto.per_page,
       skillIds: dto.skill_ids?.join(','),
-      difficultyLevelId: dto.difficulty_level_id,
+      difficultyLevelId: dto.difficulty,
       minBudget: dto.min_budget,
       maxBudget: dto.max_budget,
       sortBy: dto.sort_by,
@@ -40,26 +40,22 @@ export default class GetPublicTasksQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 120, async () => {
-      const userId = this.getCurrentUser()?.id
+      const userId = this.getCurrentUserId()
 
       const query = Task.query()
         .where('is_public_listing', true)
         .whereNull('deleted_at')
         .whereNull('assigned_to') // Only unassigned tasks
-        .preload('status')
-        .preload('priority')
-        .preload('difficulty_level')
         .preload('organization', (orgQuery) => {
           void orgQuery.select(['id', 'name', 'logo_url'])
         })
         .preload('required_skills_rel', (skillsQuery) => {
           void skillsQuery.preload('skill')
-          void skillsQuery.preload('required_level')
         })
 
       // Filter by difficulty
-      if (dto.difficulty_level_id) {
-        void query.where('difficulty_level_id', dto.difficulty_level_id)
+      if (dto.difficulty) {
+        void query.where('difficulty', dto.difficulty)
       }
 
       // Filter by budget

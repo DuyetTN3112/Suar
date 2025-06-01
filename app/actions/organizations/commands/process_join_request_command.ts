@@ -1,16 +1,26 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
+import OrganizationUser from '#models/organization_user'
+import OrganizationJoinRequest from '#models/organization_join_request'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 interface JoinRequest {
-  id: number
-  organization_id: number
-  user_id: number
+  id: DatabaseId
+  organization_id: DatabaseId
+  user_id: DatabaseId
   status: OrganizationUserStatus
 }
 
@@ -30,7 +40,7 @@ interface JoinRequest {
  */
 export default class ProcessJoinRequestCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -49,67 +59,61 @@ export default class ProcessJoinRequestCommand {
    * 9. Send notification
    */
   async execute(dto: ProcessJoinRequestDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
     const trx = await db.transaction()
 
     try {
-      // 1. Get join request
-      const joinRequest = (await trx
-        .from('organization_join_requests')
-        .where('id', dto.requestId)
-        .first()) as JoinRequest | null
-
-      if (!joinRequest) {
-        throw new Error(`Join request with ID ${String(dto.requestId)} not found`)
-      }
+      // 1. Get join request via Model
+      const joinRequest = await OrganizationJoinRequest.findByIdOrFail(dto.requestId, trx)
 
       // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(joinRequest.organization_id, currentUser.id, trx)
+      await this.checkPermissions(joinRequest.organization_id, userId, trx)
 
       // 3. Validate request is pending
       if (joinRequest.status !== OrganizationUserStatus.PENDING) {
-        throw new Error(`Join request is already ${joinRequest.status}`)
+        throw new BusinessLogicException(`Yêu cầu tham gia đã được xử lý (${joinRequest.status})`)
       }
 
-      // 4. If approved, add user as member (role_id = 4: Member)
+      // 4. If approved, add user as member (org_role = org_member)
       if (dto.isApproval()) {
         // Check if user is already a member
-        const existingMembership: unknown = await trx
-          .from('organization_users')
-          .where('organization_id', joinRequest.organization_id)
-          .where('user_id', joinRequest.user_id)
-          .first()
-
-        if (existingMembership) {
-          throw new Error('User is already a member of this organization')
+        const alreadyMember = await OrganizationUser.hasMembership(
+          joinRequest.organization_id,
+          joinRequest.user_id,
+          trx
+        )
+        if (alreadyMember) {
+          throw ConflictException.alreadyExists('Người dùng đã là thành viên của tổ chức này')
         }
 
-        // Add user as member
-        await trx.insertQuery().table('organization_users').insert({
-          organization_id: joinRequest.organization_id,
-          user_id: joinRequest.user_id,
-          role_id: OrganizationRole.MEMBER,
-          created_at: new Date(),
-          updated_at: new Date(),
-        })
+        // Add user as member via Model
+        await OrganizationUser.addMember(
+          {
+            organization_id: String(joinRequest.organization_id),
+            user_id: String(joinRequest.user_id),
+            org_role: OrganizationRole.MEMBER,
+          },
+          trx
+        )
       }
 
-      // 5. Update request status
-      await trx
-        .from('organization_join_requests')
-        .where('id', dto.requestId)
-        .update({
+      // 5. Update request status via Model
+      await OrganizationJoinRequest.updateStatus(
+        dto.requestId,
+        {
           ...dto.toObject(),
-          processed_by: currentUser.id,
-        })
+          processed_by: userId,
+        },
+        trx
+      )
 
       // 6. Create audit log
       await AuditLog.create(
         {
-          user_id: currentUser.id,
+          user_id: userId,
           action: `${dto.getStatus()}_join_request`,
           entity_type: EntityType.ORGANIZATION,
           entity_id: joinRequest.organization_id,
@@ -121,13 +125,27 @@ export default class ProcessJoinRequestCommand {
             action: dto.getActionVerb(),
             reason: dto.getNormalizedReason(),
           },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       await trx.commit()
+
+      // Emit domain event
+      if (dto.isApproval()) {
+        void emitter.emit('organization:member:added', {
+          organizationId: joinRequest.organization_id,
+          userId: joinRequest.user_id,
+          org_role: OrganizationRole.MEMBER,
+          invitedBy: null,
+        })
+      }
+
+      // Invalidate pending request and member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
 
       // 7. Send notification
       await this.sendProcessedNotification(dto, joinRequest)
@@ -141,19 +159,13 @@ export default class ProcessJoinRequestCommand {
    * Helper: Check if user has permission to process requests
    */
   private async checkPermissions(
-    organizationId: number,
-    userId: number,
+    organizationId: DatabaseId,
+    userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [OrganizationRole.OWNER, OrganizationRole.ADMIN])
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to process join requests for this organization')
+    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    if (!hasPermission) {
+      throw new ForbiddenException('Bạn không có quyền xử lý yêu cầu tham gia tổ chức này')
     }
   }
 
@@ -179,7 +191,7 @@ export default class ProcessJoinRequestCommand {
         related_entity_id: joinRequest.organization_id,
       })
     } catch (error) {
-      console.error('[ProcessJoinRequestCommand] Failed to send notification:', error)
+      loggerService.error('[ProcessJoinRequestCommand] Failed to send notification:', error)
     }
   }
 }

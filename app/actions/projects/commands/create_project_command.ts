@@ -1,9 +1,15 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/create_project_dto.js'
 import Project from '#models/project'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import { ProjectRole } from '#constants/project_constants'
+import { ProjectStatus, ProjectRole } from '#constants'
+import ProjectMember from '#models/project_member'
+import OrganizationUser from '#models/organization_user'
+import type { DatabaseId } from '#types/database'
+import CacheService from '#services/cache_service'
+import loggerService from '#services/logger_service'
+import emitter from '@adonisjs/core/services/emitter'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Command to create a new project
@@ -22,36 +28,41 @@ import { ProjectRole } from '#constants/project_constants'
  */
 export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, Project> {
   async handle(dto: CreateProjectDTO): Promise<Project> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // 1. Check permission can_create_project (logic từ procedure)
       const hasPermission = await this.checkOrgPermission(
-        user.id,
+        userId,
         dto.organization_id,
         'can_create_project',
         trx
       )
 
       if (!hasPermission) {
-        throw new Error('Chỉ org_admin và org_owner mới có thể tạo project')
+        throw new ForbiddenException('Chỉ org_admin và org_owner mới có thể tạo project')
       }
 
-      // 2. Validate status_id exists (logic từ procedure)
-      await this.validateStatusId(dto.status_id, trx)
+      // 2. v3: Validate status is a valid ProjectStatus constant
+      if (dto.status) {
+        const validStatuses = Object.values(ProjectStatus) as string[]
+        if (!validStatuses.includes(String(dto.status))) {
+          throw new BusinessLogicException(`Trạng thái dự án không hợp lệ: ${String(dto.status)}`)
+        }
+      }
 
       // 3. Validate dates (logic từ procedure)
       if (dto.start_date && dto.end_date) {
         if (dto.start_date > dto.end_date) {
-          throw new Error('Start date không được lớn hơn end date')
+          throw new BusinessLogicException('Start date không được lớn hơn end date')
         }
       }
 
       // 4. Validate user is org member
-      await this.validateOrgMembership(user.id, dto.organization_id, trx)
+      await OrganizationUser.findApprovedMemberOrFail(dto.organization_id, userId, trx)
 
       // 5. Set owner_id and manager_id
-      const ownerId = user.id
+      const ownerId = userId
       const managerId = dto.manager_id || ownerId
 
       // 6. Create the project
@@ -59,11 +70,11 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
         {
           name: dto.name,
           description: dto.description ?? null,
-          organization_id: dto.organization_id,
-          creator_id: user.id,
+          organization_id: String(dto.organization_id),
+          creator_id: userId,
           owner_id: ownerId,
-          manager_id: managerId,
-          status_id: dto.status_id,
+          manager_id: managerId ? String(managerId) : null,
+          status: dto.status || ProjectStatus.PENDING,
           visibility: dto.visibility,
           start_date: dto.start_date ?? null,
           end_date: dto.end_date ?? null,
@@ -73,88 +84,53 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
       )
 
       // 7. Add owner as project member (from trigger)
-      await trx.table('project_members').insert({
-        project_id: project.id,
-        user_id: ownerId,
-        project_role_id: ProjectRole.OWNER,
-        created_at: new Date(),
-      })
+      await ProjectMember.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
 
       // 8. Log audit trail
       await this.logAudit('create', 'project', project.id, null, project.toJSON())
 
       // 9. Send notification (từ procedure - outside transaction)
-      this.sendProjectCreatedNotification(project, user.id)
+      this.sendProjectCreatedNotification(project, userId)
 
       // 10. Load and return project with relations
       return await this.loadProjectWithRelations(project.id, trx)
     })
-  }
 
-  /**
-   * Validate status_id exists
-   * Logic từ procedure: IF NOT EXISTS (SELECT 1 FROM project_status WHERE id = p_status_id)
-   */
-  private async validateStatusId(statusId: number, trx: TransactionClientContract): Promise<void> {
-    const status = (await trx.from('project_status').where('id', statusId).first()) as {
-      id: number
-    } | null
+    // Invalidate project list caches
+    await CacheService.deleteByPattern(`organization:tasks:*`)
 
-    if (!status) {
-      throw new Error('Status ID không hợp lệ')
-    }
+    // Emit domain event (replaces after_project_insert trigger side-effects)
+    void emitter.emit('project:created', {
+      project: result,
+      creatorId: userId,
+      organizationId: result.organization_id,
+    })
+
+    return result
   }
 
   /**
    * Send project created notification
    * Logic từ procedure: CALL create_notification(...)
    */
-  private sendProjectCreatedNotification(project: Project, userId: number): void {
-    // Note: Cần inject CreateNotification action nếu muốn dùng
-    // Tạm thời log để track
-    console.log(
+  private sendProjectCreatedNotification(project: Project, userId: DatabaseId): void {
+    loggerService.info(
       `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${String(userId)}`
     )
-  }
-
-  /**
-   * Validate user is approved member of organization
-   * Logic từ before_insert_project_member trigger:
-   *   SELECT COUNT(*) FROM organization_users ou
-   *   JOIN projects p ON ou.organization_id = p.organization_id
-   *   WHERE ou.user_id = NEW.user_id AND p.id = NEW.project_id AND ou.status = 'approved'
-   */
-  private async validateOrgMembership(
-    userId: number,
-    organizationId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .first()
-
-    if (!membership) {
-      throw new Error('Thành viên không thuộc tổ chức của project')
-    }
   }
 
   /**
    * Load project with all necessary relations
    */
   private async loadProjectWithRelations(
-    projectId: number,
-    trx: TransactionClientContract
+    projectId: DatabaseId,
+    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
   ): Promise<Project> {
-    const project = await Project.query({ client: trx })
+    return Project.query({ client: trx })
       .where('id', projectId)
       .preload('creator')
       .preload('manager')
       .preload('organization')
       .firstOrFail()
-
-    return project
   }
 }

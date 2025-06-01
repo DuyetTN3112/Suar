@@ -1,9 +1,6 @@
 <script lang="ts">
   interface Props {
-    priority?: {
-      name?: string
-      color?: string
-    }
+    priority?: string
     priorityName: string
   }
 
@@ -17,7 +14,7 @@
     priorityName.includes('high') || priorityName.includes('cao') ? 'rgb(249, 115, 22)' :
     priorityName.includes('medium') || priorityName.includes('trung') ? 'rgb(139, 92, 246)' :
     priorityName.includes('low') || priorityName.includes('thấp') ? 'rgb(34, 197, 94)' :
-    priority?.color || 'currentColor'
+    'currentColor'
   }
 >
   <span
@@ -27,8 +24,8 @@
       priorityName.includes('high') || priorityName.includes('cao') ? 'rgb(249, 115, 22)' :
       priorityName.includes('medium') || priorityName.includes('trung') ? 'rgb(139, 92, 246)' :
       priorityName.includes('low') || priorityName.includes('thấp') ? 'rgb(34, 197, 94)' :
-      priority?.color || 'currentColor'
+      'currentColor'
     }
   ></span>
-  {priority?.name}
+  {priority}
 </div>

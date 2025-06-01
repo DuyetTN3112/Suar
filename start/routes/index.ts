@@ -10,7 +10,6 @@ import './conversations.js'
 import './api.js'
 import './organizations.js'
 import './projects.js'
-import './errors.js'
 import './reviews.js'
 
 // Health checks controller
@@ -22,20 +21,19 @@ router.get('/test', async ({ inertia }) => {
 })
 
 // Health check route
+// FIX BẢO MẬT: Dùng ApiKeyMiddleware (timing-safe comparison, validate env)
+// thay vì inline check dùng process.env (không validate, không timing-safe)
+const ApiKeyMiddleware = () => import('#middleware/api_key_middleware')
 router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
-  // Kiểm tra API key từ header hoặc từ query parameter
-  const apiKey: string | undefined =
-    ctx.request.header('x-api-key') ?? (ctx.request.qs() as Record<string, string | undefined>).key
-  const expectedApiKey = process.env.HEALTH_CHECK_API_KEY
-
-  if (apiKey !== expectedApiKey) {
-    ctx.response.unauthorized({ message: 'API key không hợp lệ' })
-    return
-  }
-  await next()
+  const { default: Middleware } = await ApiKeyMiddleware()
+  const instance = new Middleware()
+  await instance.handle(ctx, next)
 })
 
 // Thêm routes cho dev tools
 if (process.env.NODE_ENV === 'development') {
   router.post('/api/dev/restart', '#controllers/http/dev_controller.restart')
 }
+
+// ─── Error routes + root redirect + catch-all (PHẢI import cuối cùng) ───
+import './errors.js'

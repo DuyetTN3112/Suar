@@ -1,12 +1,21 @@
 import Task from '#models/task'
 import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
+import TaskVersion from '#models/task_version'
 import type UpdateTaskDTO from '../dtos/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command để cập nhật task
@@ -32,7 +41,7 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
  */
 export default class UpdateTaskCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -43,15 +52,15 @@ export default class UpdateTaskCommand {
    * - before_task_update: Validate assignee thuộc org
    * - task_version_after_update: Tạo version history khi có thay đổi
    */
-  async execute(taskId: number, dto: UpdateTaskDTO): Promise<Task> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<Task> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Check if DTO has any updates
     if (!dto.hasUpdates()) {
-      throw new Error('Không có thay đổi nào để cập nhật')
+      throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
 
     // Start transaction
@@ -66,11 +75,8 @@ export default class UpdateTaskCommand {
         .firstOrFail()
 
       // Validate task thuộc organization hiện tại
-      const currentOrganizationId = this.ctx.session.get('current_organization_id') as
-        | number
-        | undefined
-      if (existingTask.organization_id !== currentOrganizationId) {
-        throw new Error('Task không thuộc tổ chức hiện tại')
+      if (existingTask.organization_id !== this.execCtx.organizationId) {
+        throw new ForbiddenException('Task không thuộc tổ chức hiện tại')
       }
 
       // Validate assignee thuộc org (logic từ before_task_update trigger)
@@ -79,12 +85,12 @@ export default class UpdateTaskCommand {
       }
 
       // Check permission
-      await this.validateUpdatePermission(user, existingTask, dto)
+      await this.validateUpdatePermission(userId, existingTask, dto)
 
       // Save old values for audit and version history
       const oldValues = existingTask.toJSON()
       const oldAssignedTo = existingTask.assigned_to
-      const oldStatusId = existingTask.status_id
+      const oldStatus = existingTask.status
 
       // Merge updates
       existingTask.merge(dto.toObject())
@@ -94,44 +100,56 @@ export default class UpdateTaskCommand {
       const changes = dto.getChangesForAudit(oldValues)
       await AuditLog.create(
         {
-          user_id: user.id,
+          user_id: userId,
           action: AuditAction.UPDATE,
           entity_type: EntityType.TASK,
           entity_id: taskId,
           old_values: oldValues,
           new_values: existingTask.toJSON(),
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent'),
+          ip_address: this.execCtx.ip,
+          user_agent: this.execCtx.userAgent,
         },
         { client: trx }
       )
 
       // Create task version (logic từ task_version_after_update trigger)
-      await this.createTaskVersion(existingTask, oldValues, user.id, trx)
+      await this.createTaskVersion(existingTask, oldValues, userId, trx)
 
       // Store old values for notifications (outside transaction)
       existingTask.$extras.oldAssignedTo = oldAssignedTo
-      existingTask.$extras.oldStatusId = oldStatusId
+      existingTask.$extras.oldStatus = oldStatus
       existingTask.$extras.changes = changes
 
       await trx.commit()
 
-      // Send notifications (outside transaction)
-      await this.sendNotifications(existingTask, user, dto)
+      // Emit domain event (replaces task_version_after_update trigger side-effects)
+      void emitter.emit('task:updated', {
+        task: existingTask,
+        updatedBy: userId,
+        changes: existingTask.$extras.changes as Record<string, unknown>,
+        previousValues: oldValues as Record<string, unknown>,
+      })
 
-      // Load full relations
-      await existingTask.load('status')
-      await existingTask.load('label')
-      await existingTask.load('priority')
-      await existingTask.load('assignee')
-      await existingTask.load('creator')
-      await existingTask.load('updater')
-      await existingTask.load('organization')
-      await existingTask.load('project')
-      await existingTask.load('parentTask')
-      await existingTask.load('childTasks', (query) => {
-        void query.whereNull('deleted_at')
-        void query.preload('status')
+      // Invalidate task-related caches
+      await CacheService.deleteByPattern(`task:${String(taskId)}:*`)
+      await CacheService.deleteByPattern(`organization:tasks:*`)
+      await CacheService.deleteByPattern(`task:user:*`)
+
+      // Send notifications (outside transaction)
+      await this.sendNotifications(existingTask, userId, dto)
+
+      // Load full relations (v3: status/label/priority are inline columns)
+      await existingTask.load((loader) => {
+        loader
+          .load('assignee')
+          .load('creator')
+          .load('updater')
+          .load('organization')
+          .load('project')
+          .load('parentTask')
+          .load('childTasks', (query) => {
+            void query.whereNull('deleted_at')
+          })
       })
 
       return existingTask
@@ -145,55 +163,46 @@ export default class UpdateTaskCommand {
    * Validate permission để update task
    */
   private async validateUpdatePermission(
-    user: User,
+    userId: DatabaseId,
     task: Task,
     dto: UpdateTaskDTO
   ): Promise<void> {
-    // Check if user is system superadmin via system_roles table (suar.sql)
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
+    // Check if user is system superadmin → delegate to Model
+    const isSystemAdmin = await User.isSystemAdmin(userId)
 
     // 1. Superadmin/Admin have full access
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-    if (isSuperAdmin) {
+    if (isSystemAdmin) {
       return
     }
 
     // 2. Creator has full access
-    if (task.creator_id === user.id) {
+    if (task.creator_id === userId) {
       return
     }
 
     // 3. Assignee has full access
-    if (task.assigned_to && task.assigned_to === user.id) {
+    if (task.assigned_to && task.assigned_to === userId) {
       return
     }
 
-    // 4. Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
+    // 4. Check organization role → delegate to Model
 
-    if (!orgUser) {
-      throw new Error('Bạn không có quyền cập nhật task này')
+    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
+
+    if (!orgRole) {
+      throw new ForbiddenException('Bạn không có quyền cập nhật task này')
     }
 
-    // Organization Owner/Manager (role_id 1,2) has limited access
-    const isOrgOwnerOrManager = [1, 2].includes(orgUser.role_id)
-    if (isOrgOwnerOrManager) {
+    // Organization Owner/Admin has limited access
+    const isOrgOwnerOrAdmin = ['org_owner', 'org_admin'].includes(orgRole)
+    if (isOrgOwnerOrAdmin) {
       // Can only update: description, status, due_date, estimated_time
-      const allowedFields = ['description', 'status_id', 'due_date', 'estimated_time']
+      const allowedFields = ['description', 'status', 'due_date', 'estimated_time']
       const updatedFields = dto.getUpdatedFields()
       const restrictedFields = updatedFields.filter((f) => !allowedFields.includes(f))
 
       if (restrictedFields.length > 0) {
-        throw new Error(
+        throw new ForbiddenException(
           `Bạn chỉ có thể cập nhật: ${allowedFields.join(', ')}. Không được phép: ${restrictedFields.join(', ')}`
         )
       }
@@ -202,27 +211,35 @@ export default class UpdateTaskCommand {
     }
 
     // Member không có quyền
-    throw new Error('Bạn không có quyền cập nhật task này')
+    throw new ForbiddenException('Bạn không có quyền cập nhật task này')
   }
 
   /**
    * Send notifications cho các thay đổi
    */
-  private async sendNotifications(task: Task, updater: User, dto: UpdateTaskDTO): Promise<void> {
+  private async sendNotifications(
+    task: Task,
+    updaterId: DatabaseId,
+    dto: UpdateTaskDTO
+  ): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo as number | null | undefined
-      const oldStatusId = task.$extras.oldStatusId as number | undefined
+      const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
+      const oldStatus = task.$extras.oldStatus as string | undefined
+
+      // Load updater info for notification messages
+      const updater = await User.find(updaterId)
+      const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
 
       // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
         // Don't notify if assigning to self
-        if (task.assigned_to !== updater.id) {
+        if (task.assigned_to !== updaterId) {
           const assignee = await User.find(task.assigned_to)
           if (assignee) {
             await this.createNotification.handle({
               user_id: assignee.id,
               title: 'Bạn có nhiệm vụ mới',
-              message: `${updater.username || updater.email} đã giao cho bạn nhiệm vụ: ${task.title}`,
+              message: `${updaterName} đã giao cho bạn nhiệm vụ: ${task.title}`,
               type: 'task_assigned',
               related_entity_type: 'task',
               related_entity_id: task.id,
@@ -232,12 +249,12 @@ export default class UpdateTaskCommand {
       }
 
       // Notify creator if status changed (and creator is not the updater)
-      if (dto.hasStatusChange() && task.status_id !== oldStatusId) {
-        if (task.creator_id && task.creator_id !== updater.id) {
+      if (dto.hasStatusChange() && task.status !== oldStatus) {
+        if (task.creator_id && task.creator_id !== updaterId) {
           await this.createNotification.handle({
             user_id: task.creator_id,
             title: 'Cập nhật nhiệm vụ',
-            message: `${updater.username || updater.email} đã cập nhật trạng thái nhiệm vụ: ${task.title}`,
+            message: `${updaterName} đã cập nhật trạng thái nhiệm vụ: ${task.title}`,
             type: 'task_status_updated',
             related_entity_type: 'task',
             related_entity_id: task.id,
@@ -246,13 +263,13 @@ export default class UpdateTaskCommand {
       }
 
       // Notify old assignee if unassigned
-      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updater.id) {
+      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updaterId) {
         const oldAssignee = await User.find(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
             title: 'Cập nhật nhiệm vụ',
-            message: `${updater.username || updater.email} đã bỏ giao nhiệm vụ: ${task.title}`,
+            message: `${updaterName} đã bỏ giao nhiệm vụ: ${task.title}`,
             type: 'task_updated',
             related_entity_type: 'task',
             related_entity_id: task.id,
@@ -269,7 +286,7 @@ export default class UpdateTaskCommand {
    * Log error
    */
   private logError(message: string, error: unknown): void {
-    console.error(`[UpdateTaskCommand] ${message}`, error)
+    loggerService.error(`[UpdateTaskCommand] ${message}`, error)
   }
 
   /**
@@ -280,27 +297,21 @@ export default class UpdateTaskCommand {
    *     THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Người được gán phải thuộc cùng tổ chức'
    */
   private async validateAssigneeInOrg(
-    assigneeId: number,
-    organizationId: number,
+    assigneeId: DatabaseId,
+    organizationId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const membership = (await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', assigneeId)
-      .where('status', 'approved')
-      .first()) as { id: number } | null
+    // Check org membership → delegate to Model
+    const isApproved = await OrganizationUser.isApprovedMember(assigneeId, organizationId, trx)
 
-    if (!membership) {
-      // Check if freelancer (like in CreateTaskCommand)
-      const isFreelancer = (await trx
-        .from('user_details')
-        .where('user_id', assigneeId)
-        .where('is_freelancer', true)
-        .first()) as { user_id: number } | null
+    if (!isApproved) {
+      // Check if freelancer → delegate to Model
+      const isFreelancer = await User.isFreelancer(assigneeId, trx)
 
       if (!isFreelancer) {
-        throw new Error('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
+        throw new BusinessLogicException(
+          'Người được gán phải thuộc cùng tổ chức hoặc là freelancer'
+        )
       }
     }
   }
@@ -314,16 +325,16 @@ export default class UpdateTaskCommand {
   private async createTaskVersion(
     task: Task,
     oldValues: Record<string, unknown>,
-    changedBy: number,
+    changedBy: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
     // Check if any tracked field changed
     const trackedFields = [
       'title',
       'description',
-      'status_id',
-      'label_id',
-      'priority_id',
+      'status',
+      'label',
+      'priority',
       'assigned_to',
       'due_date',
       'parent_task_id',
@@ -340,17 +351,21 @@ export default class UpdateTaskCommand {
 
     if (!hasChanges) return
 
-    // Insert into task_versions
-    await trx.table('task_versions').insert({
-      task_id: oldValues.id,
-      title: oldValues.title,
-      description: oldValues.description,
-      status_id: oldValues.status_id,
-      label_id: oldValues.label_id,
-      priority_id: oldValues.priority_id,
-      assigned_to: oldValues.assigned_to,
-      changed_by: changedBy,
-      created_at: new Date(),
-    })
+    // Insert into task_versions → delegate to TaskVersion model
+    const snapshot = oldValues as Record<string, string | null>
+    await TaskVersion.createSnapshot(
+      {
+        task_id: snapshot.id as string,
+        title: snapshot.title as string,
+        description: snapshot.description ?? null,
+        status: snapshot.status as string,
+        label: snapshot.label as string,
+        priority: snapshot.priority as string,
+        difficulty: snapshot.difficulty ?? null,
+        assigned_to: snapshot.assigned_to ?? null,
+        changed_by: changedBy,
+      },
+      trx
+    )
   }
 }
