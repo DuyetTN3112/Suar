@@ -73,7 +73,8 @@ export default class LogoutController {
   ) {
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
-      return inertia.location('/login')
+      inertia.location('/login')
+      return
     }
     response.redirect().toPath('/login')
   }
