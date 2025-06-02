@@ -90,7 +90,10 @@ export default class Task extends BaseModel {
 
   // Marketplace columns
   @column()
-  declare is_public_listing: boolean
+  declare task_visibility: string
+
+  @column.dateTime()
+  declare application_deadline: DateTime | null
 
   // v3.0: required_skills JSONB REMOVED — single source: task_required_skills table
 
@@ -99,6 +102,9 @@ export default class Task extends BaseModel {
 
   @column()
   declare external_applications_count: number
+
+  @column()
+  declare sort_order: number
 
   // ===== Relationships =====
 

@@ -318,7 +318,9 @@ export default class OrganizationUser extends BaseModel {
       .preload('user', (q) => {
         void q.select(['id', 'email'])
       })
-      .orderByRaw(`CASE org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`)
+      .orderByRaw(
+        `CASE org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`
+      )
       .limit(limit)
   }
 
@@ -433,7 +435,9 @@ export default class OrganizationUser extends BaseModel {
     // Apply pagination with org_role ordering
     const offset = (options.page - 1) * options.limit
     void query
-      .orderByRaw(`CASE ou.org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`)
+      .orderByRaw(
+        `CASE ou.org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`
+      )
       .limit(options.limit)
       .offset(offset)
 

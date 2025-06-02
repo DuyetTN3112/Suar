@@ -533,8 +533,8 @@ export async function canUserViewTask(
     if (projectMember) return true
   }
 
-  // Public listing check
-  if (task.is_public_listing && task.project_id) {
+  // Marketplace visibility check
+  if (task.task_visibility !== 'internal' && task.project_id) {
     const publicProject = await Project.query(opts)
       .where('id', task.project_id)
       .whereNull('deleted_at')

@@ -6,6 +6,7 @@ import type {
   MessageSentEvent,
   MessageDeletedEvent,
   TaskUpdatedEvent,
+  TaskStatusChangedEvent,
 } from '#events/index'
 
 /**
@@ -132,6 +133,68 @@ emitter.on('task:updated', async (event: TaskUpdatedEvent) => {
     })
   } catch (error) {
     loggerService.error('Failed to create task version snapshot', {
+      taskId: event.task.id,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+})
+
+/**
+ * Task Status Changed → Auto-complete assignments & Create review session
+ *
+ * When task status changes to 'done':
+ * 1. Mark all active assignments as 'completed'
+ * 2. Auto-create review sessions for each completed assignment
+ */
+emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
+  if (event.newStatus !== 'done') return
+
+  try {
+    const { default: TaskAssignment } = await import('#models/task_assignment')
+    const { default: ReviewSession } = await import('#models/review_session')
+
+    // Find all active assignments for this task
+    const activeAssignments = await TaskAssignment.query()
+      .where('task_id', event.task.id)
+      .where('assignment_status', 'active')
+
+    for (const assignment of activeAssignments) {
+      // Mark assignment as completed
+      assignment.assignment_status = 'completed'
+      await assignment.save()
+
+      // Check if review session already exists
+      const existingSession = await ReviewSession.query()
+        .where('task_assignment_id', assignment.id)
+        .first()
+
+      if (!existingSession) {
+        // Auto-create review session
+        await ReviewSession.create({
+          task_assignment_id: assignment.id,
+          reviewee_id: assignment.user_id,
+          status: 'pending',
+          manager_review_completed: false,
+          peer_reviews_count: 0,
+          required_peer_reviews: 2,
+        })
+
+        loggerService.info('Auto-created review session for completed assignment', {
+          taskId: event.task.id,
+          assignmentId: assignment.id,
+          assigneeId: assignment.user_id,
+        })
+      }
+    }
+
+    if (activeAssignments.length > 0) {
+      loggerService.info('Task completed — assignments updated & review sessions created', {
+        taskId: event.task.id,
+        assignmentsCompleted: activeAssignments.length,
+      })
+    }
+  } catch (error) {
+    loggerService.error('Failed to auto-trigger review session on task completion', {
       taskId: event.task.id,
       error: error instanceof Error ? error.message : String(error),
     })

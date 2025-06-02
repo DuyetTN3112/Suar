@@ -29,6 +29,23 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
       reviewerId: event.reviewerId,
       scoreCount: Object.keys(event.scores).length,
     })
+
+    // Auto-trigger anomaly detection
+    try {
+      const { default: DetectAnomalyCommand } =
+        await import('#actions/reviews/commands/detect_anomaly_command')
+      // DetectAnomalyCommand needs HttpContext — create minimal stub for background execution
+      const command = new DetectAnomalyCommand({} as any)
+      await command.handle({
+        reviewSessionId: event.reviewSessionId,
+        reviewerId: event.reviewerId,
+      })
+    } catch (anomalyError) {
+      loggerService.error('ReviewListener: anomaly detection failed', {
+        reviewSessionId: event.reviewSessionId,
+        error: anomalyError instanceof Error ? anomalyError.message : String(anomalyError),
+      })
+    }
   } catch (error) {
     loggerService.error('ReviewListener: review submitted failed', {
       reviewSessionId: event.reviewSessionId,

@@ -89,6 +89,20 @@ export enum TaskDifficulty {
 }
 
 // ============================================================================
+// Task Visibility — Marketplace (v4)
+// ============================================================================
+
+/**
+ * Task Visibility — v4 marketplace CHECK trên tasks.task_visibility
+ * CHECK ('internal','external','all')
+ */
+export enum TaskVisibility {
+  INTERNAL = 'internal',
+  EXTERNAL = 'external',
+  ALL = 'all',
+}
+
+// ============================================================================
 // Task Application Status
 // ============================================================================
 

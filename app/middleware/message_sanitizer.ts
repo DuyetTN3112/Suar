@@ -1,76 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ValidationException from '#exceptions/validation_exception'
-
-function hasTooManyRepeats(
-  str: string
-  // maxRepeat = 20
-): boolean {
-  return /(.)\1{19,}/u.test(str)
-}
-
-// Phát hiện ký tự Zalgo (kết hợp chồng lên nhau) và các ký tự Unicode đặc biệt khác
-function detectZalgoText(str: string): boolean {
-  // Phát hiện số lượng ký tự kết hợp (combining characters) trên mỗi ký tự cơ bản
-  const combiningCharPattern =
-    /(.[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{5,})/gu
-  return combiningCharPattern.test(str)
-}
-
-function countSpecialUnicode(str: string): number {
-  // Đếm số lượng ký tự Unicode ngoài phạm vi thông thường
-  return Array.from(str).filter((ch) => {
-    const codePoint = ch.codePointAt(0)
-    return codePoint !== undefined && codePoint > 0xffff
-  }).length
-}
-
-/**
- * Kiểm tra mật độ ký tự đặc biệt trong văn bản
- * Kỹ thuật này phát hiện khi có quá nhiều ký tự đặc biệt trong một đoạn văn bản nhỏ
- */
-// function checkSpecialCharDensity(str: string): boolean {
-//   const chunks = []
-//   // Chia nhỏ chuỗi thành các đoạn 50 ký tự
-//   for (let i = 0; i < str.length; i += 50) {
-//     chunks.push(str.substring(i, i + 50))
-//   }
-//   // Kiểm tra từng đoạn
-//   return chunks.some((chunk) => {
-//     const specialChars = Array.from(chunk).filter((ch) => {
-//       const code = ch.codePointAt(0)!
-//       return (
-//         code > 0x7f &&
-//         ((code >= 0x300 && code <= 0x36f) || // Combining diacritical marks
-//           (code >= 0x1ab0 && code <= 0x1aff) || // Combining diacritical marks extended
-//           (code >= 0x1dc0 && code <= 0x1dff) || // Combining diacritical marks supplement
-//           (code >= 0x20d0 && code <= 0x20ff) || // Combining diacritical marks for symbols
-//           code === 0x02ec || // Modifier Letter Voicing
-//           code === 0x20dd || // Combining Enclosing Diamond
-//           code === 0xa66f || // Combining Cyrillic Vzmet
-//           /[\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F\u02EC\u20DD\u0489꙰]/.test(
-//             ch
-//           ))
-//       )
-//     })
-//     // Nếu mật độ ký tự đặc biệt > 15% thì xem là tấn công
-//     return specialChars.length > chunk.length * 0.15
-//   })
-// }
-
-// Làm sạch Zalgo text và giới hạn ký tự kết hợp
-function sanitizeMessage(str: string): string {
-  // Loại bỏ hoàn toàn các ký tự đặc biệt thường dùng trong tấn công Zalgo
-  str = str.replace(/[꙰\u02EC\u20DD]/g, '')
-  // Loại bỏ các ký tự kết hợp quá nhiều, giữ lại tối đa 1 ký tự kết hợp cho mỗi ký tự cơ bản
-  str = str.replace(
-    /(.)([\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{1,})/gu,
-    (_match: string, base: string, combining: string) => base + combining.substring(0, 1)
-  )
-  // Giới hạn độ dài của chuỗi lặp lại
-  str = str.replace(/(.)(\1{10,})/g, (_match: string, char: string) => char.repeat(10))
-
-  return str
-}
+import {
+  hasTooManyRepeats,
+  detectZalgoText,
+  countSpecialUnicode,
+  sanitizeMessage,
+} from '#libs/message_utils'
 
 export default class MessageSanitizer {
   public async handle({ request }: HttpContext, next: () => Promise<void>) {
@@ -92,9 +27,7 @@ export default class MessageSanitizer {
     }
     // Phát hiện Zalgo text
     if (detectZalgoText(message)) {
-      // Lựa chọn 1: Từ chối hoàn toàn
-      // return response.badRequest('Tin nhắn chứa định dạng không được phép.')
-      // Lựa chọn 2: Làm sạch tin nhắn
+      // Làm sạch tin nhắn
       request.updateBody({
         ...request.body(),
         message: sanitizeMessage(message),

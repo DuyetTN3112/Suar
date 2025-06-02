@@ -232,9 +232,11 @@ export interface TaskRow {
   actual_time: string // decimal(10,2)
   organization_id: string // v3.0: NOT NULL
   project_id: string | null
-  is_public_listing: boolean
+  task_visibility: 'internal' | 'external' | 'all'
+  application_deadline: Date | null
   estimated_budget: string | null // decimal(15,2)
   external_applications_count: number
+  sort_order: number
   deleted_at: Date | null
   created_at: Date
   updated_at: Date
@@ -319,6 +321,7 @@ export interface ConversationRow {
   id: string
   title: string | null
   organization_id: string | null
+  task_id: string | null
   last_message_id: string | null
   last_message_at: Date | null
   deleted_at: Date | null
