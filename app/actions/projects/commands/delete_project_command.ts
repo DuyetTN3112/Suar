@@ -4,11 +4,12 @@ import Project from '#models/project'
 import Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import { DateTime } from 'luxon'
-import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canDeleteProject } from '../rules/project_permission_policy.js'
+import User from '#models/user'
+import OrganizationUser from '#models/organization_user'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -44,11 +45,25 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       deletedProjectId = project.id
       organizationId = project.organization_id
 
-      // 2. Check permissions (owner or superadmin only)
-      await this.validateDeletePermission(userId, project)
+      // 2. Check permissions and incomplete tasks via pure rule
+      const user = await User.findOrFail(userId)
+      const orgMembership = await OrganizationUser.findMembership(
+        project.organization_id,
+        userId,
+        trx
+      )
+      const incompleteTaskCount = await Task.countIncompleteByProject(project.id, trx)
 
-      // 3. Check for incomplete tasks
-      await this.checkIncompleteTasks(project.id, trx)
+      enforcePolicy(
+        canDeleteProject({
+          actorId: userId,
+          actorSystemRole: user.system_role,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          incompleteTaskCount,
+        })
+      )
 
       // 4. Store old values for audit
       const oldValues = project.toJSON()
@@ -78,39 +93,5 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
     // Invalidate project caches after transaction
     await CacheService.deleteByPattern(`organization:tasks:*`)
-  }
-
-  /**
-   * Validate user has permission to delete project.
-   * Allowed: project owner, project creator, org admin/owner, system superadmin.
-   */
-  private async validateDeletePermission(userId: DatabaseId, project: Project): Promise<void> {
-    const canManage = await PermissionService.canManageProject(
-      userId,
-      project.owner_id,
-      project.creator_id,
-      project.organization_id
-    )
-
-    if (!canManage) {
-      throw new ForbiddenException('Chỉ owner hoặc admin mới có thể xóa dự án')
-    }
-  }
-
-  /**
-   * Check for incomplete tasks and warn user → delegate to Model
-   */
-  private async checkIncompleteTasks(
-    projectId: DatabaseId,
-    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
-  ): Promise<void> {
-    const count = await Task.countIncompleteByProject(projectId, trx)
-
-    if (count > 0) {
-      throw new BusinessLogicException(
-        `Dự án có ${String(count)} công việc chưa hoàn thành. ` +
-          `Vui lòng hoàn thành hoặc hủy các công việc trước khi xóa dự án.`
-      )
-    }
   }
 }

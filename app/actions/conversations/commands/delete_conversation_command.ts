@@ -8,6 +8,9 @@ import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canDeleteConversation } from '../rules/conversation_permission_policy.js'
 
 /**
  * Command: Delete Conversation (Soft Delete)
@@ -43,8 +46,18 @@ export default class DeleteConversationCommand {
     }
 
     try {
-      // Verify user is participant and conversation exists → delegate to Model
-      const conversation = await Conversation.findWithParticipantOrFail(dto.conversationId, userId)
+      // Find conversation
+      const conversation = await Conversation.query()
+        .where('id', dto.conversationId)
+        .whereNull('deleted_at')
+        .first()
+      if (!conversation) {
+        throw new NotFoundException('Cuộc trò chuyện không tồn tại')
+      }
+
+      // Verify user is participant via pure rule
+      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      enforcePolicy(canDeleteConversation({ actorId: userId, isParticipant }))
 
       // Soft delete conversation
       conversation.deleted_at = DateTime.now()

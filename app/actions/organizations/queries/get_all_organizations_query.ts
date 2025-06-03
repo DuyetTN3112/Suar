@@ -27,8 +27,6 @@ interface AllOrganizationsWithMembership {
   [key: string]: unknown
 }
 
-
-
 /**
  * Query: Get All Organizations
  *

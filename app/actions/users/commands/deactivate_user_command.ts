@@ -7,10 +7,10 @@ import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import type { DatabaseId } from '#types/database'
 import { UserStatusName } from '#constants/user_constants'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canDeactivateUser } from '../rules/user_management_rules.js'
 
 /**
  * DTO for deactivating a user
@@ -45,16 +45,15 @@ export default class DeactivateUserCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Check admin is superadmin
+      // 1-2. Check permissions via pure rule
       const isSuperadmin = await PermissionService.isSystemSuperadmin(adminUserId, trx)
-      if (!isSuperadmin) {
-        throw new ForbiddenException('Chỉ superadmin mới có thể deactivate users')
-      }
-
-      // 2. Cannot deactivate self
-      if (adminUserId === dto.user_id) {
-        throw new BusinessLogicException('Không thể deactivate chính mình')
-      }
+      enforcePolicy(
+        canDeactivateUser({
+          actorId: adminUserId,
+          targetUserId: dto.user_id,
+          isActorSuperadmin: isSuperadmin,
+        })
+      )
 
       // 3. Load user
       const user = await User.query({ client: trx })

@@ -12,6 +12,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { validateParticipantsOrgMembership } from '../rules/conversation_state_rules.js'
 
 /**
  * Command: Create Conversation
@@ -135,22 +137,26 @@ export default class CreateConversationCommand {
     title?: string,
     organizationId?: DatabaseId
   ): Promise<Conversation> {
-    // Validate org membership via Fat Model methods
+    // Validate org membership via pure rule
     if (organizationId) {
       const creatorIsApproved = await OrganizationUser.isApprovedMember(creatorId, organizationId)
       if (!creatorIsApproved) {
         throw new BusinessLogicException('Người tạo không thuộc tổ chức')
       }
 
+      let allParticipantsValid = true
       if (participantIds.length > 0) {
-        const allValid = await OrganizationUser.validateAllApprovedMembers(
+        allParticipantsValid = await OrganizationUser.validateAllApprovedMembers(
           participantIds,
           organizationId
         )
-        if (!allValid) {
-          throw new BusinessLogicException('Một hoặc nhiều người tham gia không thuộc tổ chức')
-        }
       }
+      enforcePolicy(
+        validateParticipantsOrgMembership({
+          allParticipantsAreOrgMembers: allParticipantsValid,
+          hasOrganization: true,
+        })
+      )
     }
 
     // Use transaction for atomic creation (conversation + participants)

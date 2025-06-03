@@ -8,6 +8,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canProcessApplication } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * ProcessApplicationCommand
@@ -43,11 +45,13 @@ export default class ProcessApplicationCommand extends BaseCommand<
 
       const task = application.task
 
-      // Verify user has permission (task creator or organization admin)
-      // For now, just check if user is task creator
-      if (task.creator_id !== userId) {
-        throw new ForbiddenException('You do not have permission to process this application')
-      }
+      // Verify user has permission (task creator)
+      enforcePolicy(
+        canProcessApplication({
+          actorId: userId,
+          taskCreatorId: task.creator_id,
+        })
+      )
 
       const oldStatus = application.application_status
 

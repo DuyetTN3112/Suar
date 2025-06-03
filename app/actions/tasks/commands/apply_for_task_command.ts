@@ -6,17 +6,15 @@ import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canApplyForTask } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * ApplyForTaskCommand
  *
  * Allows a freelancer to apply for a public task.
- * Validates:
- * - Task exists and is public listing
- * - User hasn't already applied
- * - User is not the task creator
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, TaskApplication> {
   constructor(protected override ctx: HttpContext) {
@@ -27,30 +25,29 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
-      // Verify task exists and is a public listing
+      // ── FETCH ──────────────────────────────────────────────────────────
       const task = await Task.query({ client: trx })
         .where('id', dto.task_id)
         .whereNull('deleted_at')
-        .where('is_public_listing', true)
         .firstOrFail()
 
-      // Cannot apply to own task
-      if (task.creator_id === userId) {
-        throw new BusinessLogicException('Cannot apply to your own task')
-      }
-
-      // Check if already applied
       const existingApplication = await TaskApplication.query({ client: trx })
         .where('task_id', dto.task_id)
         .where('applicant_id', userId)
         .whereNot('application_status', ApplicationStatus.WITHDRAWN)
         .first()
 
-      if (existingApplication) {
-        throw new ConflictException('You have already applied to this task')
-      }
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canApplyForTask({
+          actorId: userId,
+          taskCreatorId: task.creator_id,
+          taskVisibility: task.task_visibility,
+          hasExistingApplication: !!existingApplication,
+        })
+      )
 
-      // Create application
+      // ── PERSIST ────────────────────────────────────────────────────────
       const application = await TaskApplication.create(
         {
           task_id: String(dto.task_id),

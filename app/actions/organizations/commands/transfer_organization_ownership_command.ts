@@ -11,8 +11,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canTransferOwnership } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * DTO for transferring organization ownership
@@ -27,16 +27,7 @@ export interface TransferOrganizationOwnershipDTO {
  *
  * Migrate từ stored procedure: transfer_organization_ownership
  *
- * Business rules:
- * - Chỉ owner hiện tại mới có thể transfer
- * - Không thể transfer cho chính mình
- * - New owner phải là member approved
- * - New owner phải có role ít nhất là org_admin
- * - Cập nhật role: old owner → org_admin, new owner → org_owner
- *
- * @example
- * const command = new TransferOrganizationOwnershipCommand(ctx, createNotification)
- * await command.execute(dto)
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
@@ -52,49 +43,39 @@ export default class TransferOrganizationOwnershipCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Load organization with lock
+      // ── FETCH ──────────────────────────────────────────────────────────
       const organization = await Organization.query({ client: trx })
         .where('id', dto.organization_id)
         .whereNull('deleted_at')
         .forUpdate()
         .firstOrFail()
 
-      // 2. Validate current user is owner
-      if (organization.owner_id !== userId) {
-        throw new ForbiddenException('Chỉ owner hiện tại mới có thể transfer ownership')
-      }
+      const [isNewOwnerApproved, newOwnerRoleName] = await Promise.all([
+        OrganizationUser.isApprovedMember(dto.new_owner_id, dto.organization_id, trx),
+        OrganizationUser.getMemberRoleName(dto.organization_id, dto.new_owner_id, trx),
+      ])
 
-      // 3. Cannot transfer to self
-      if (userId === dto.new_owner_id) {
-        throw new BusinessLogicException('Không thể transfer ownership cho chính mình')
-      }
-
-      // 4. Validate new owner is approved member
-      await OrganizationUser.findApprovedMemberOrFail(dto.organization_id, dto.new_owner_id, trx)
-
-      // 5. Validate new owner has at least org_admin role
-      const newOwnerRoleName = await OrganizationUser.getMemberRoleName(
-        dto.organization_id,
-        dto.new_owner_id,
-        trx
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canTransferOwnership({
+          actorId: userId,
+          currentOwnerId: organization.owner_id,
+          newOwnerId: dto.new_owner_id,
+          newOwnerRole: newOwnerRoleName,
+          isNewOwnerApprovedMember: isNewOwnerApproved,
+        })
       )
-      if (!newOwnerRoleName || ![OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(newOwnerRoleName as OrganizationRole)) {
-        throw new BusinessLogicException('Owner mới phải có vai trò ít nhất là org_admin')
-      }
 
-      // 6. v3: Use inline role strings directly (no DB lookup)
-
-      // Save old values for audit
+      // ── PERSIST ────────────────────────────────────────────────────────
       const oldOwnerId = organization.owner_id
 
-      // 7. Update organization owner
       organization.owner_id = String(dto.new_owner_id)
       await organization.useTransaction(trx).save()
 
-      // 8. Demote old owner to org_admin
+      // Demote old owner to org_admin
       await OrganizationUser.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
 
-      // 9. Promote new owner to org_owner
+      // Promote new owner to org_owner
       await OrganizationUser.updateRole(
         dto.organization_id,
         dto.new_owner_id,
@@ -102,7 +83,6 @@ export default class TransferOrganizationOwnershipCommand {
         trx
       )
 
-      // 10. Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -130,7 +110,7 @@ export default class TransferOrganizationOwnershipCommand {
       await CacheService.deleteByPattern(`organization:*`)
       await CacheService.deleteByPattern(`organization:members:*`)
 
-      // 11. Send notifications (outside transaction)
+      // Send notifications (outside transaction)
       await this.sendNotifications(organization, userId, dto.new_owner_id)
 
       return organization

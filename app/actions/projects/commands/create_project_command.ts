@@ -9,7 +9,8 @@ import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { validateProjectStatus, validateProjectDates } from '../rules/project_state_rules.js'
 
 /**
  * Command to create a new project
@@ -43,19 +44,19 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
         throw new ForbiddenException('Chỉ org_admin và org_owner mới có thể tạo project')
       }
 
-      // 2. v3: Validate status is a valid ProjectStatus constant
+      // 2. v3: Validate status via pure rule
       if (dto.status) {
-        const validStatuses = Object.values(ProjectStatus) as string[]
-        if (!validStatuses.includes(String(dto.status))) {
-          throw new BusinessLogicException(`Trạng thái dự án không hợp lệ: ${String(dto.status)}`)
-        }
+        enforcePolicy(validateProjectStatus(String(dto.status)))
       }
 
-      // 3. Validate dates (logic từ procedure)
+      // 3. Validate dates via pure rule
       if (dto.start_date && dto.end_date) {
-        if (dto.start_date > dto.end_date) {
-          throw new BusinessLogicException('Start date không được lớn hơn end date')
-        }
+        enforcePolicy(
+          validateProjectDates({
+            startDate: dto.start_date?.toISO() ?? null,
+            endDate: dto.end_date?.toISO() ?? null,
+          })
+        )
       }
 
       // 4. Validate user is org member

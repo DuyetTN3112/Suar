@@ -9,7 +9,6 @@ import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -17,28 +16,21 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canUpdateTaskFields } from '#actions/tasks/rules/task_permission_policy'
+import { validateAssignee } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * Command để cập nhật task
  *
  * Business Rules:
  * - Task phải thuộc organization hiện tại
- * - Permission-based updates:
- *   - Creator: Full access
- *   - Assignee: Full access
- *   - Admin/Superadmin: Full access
- *   - Org Owner/Manager: Limited access (description, dates, status only)
+ * - Permission-based updates with field-level restrictions
  * - Track old values cho audit
- * - Notifications:
- *   - Assignee changed → Notify new assignee
- *   - Status changed → Notify creator (if not self)
- * - Load full relations sau update
+ * - Version history
+ * - Notifications
  *
- * Permissions hierarchy:
- * 1. Superadmin/Admin (role_id: 1,2)
- * 2. Creator
- * 3. Assignee
- * 4. Organization Owner/Manager (role_id: 1,2 trong org)
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskCommand {
   constructor(
@@ -68,7 +60,7 @@ export default class UpdateTaskCommand {
     const trx = await db.transaction()
 
     try {
-      // Load task với lock
+      // ── FETCH ──────────────────────────────────────────────────────────
       const existingTask = await Task.query({ client: trx })
         .where('id', taskId)
         .whereNull('deleted_at')
@@ -82,22 +74,53 @@ export default class UpdateTaskCommand {
 
       // Validate assignee thuộc org (logic từ before_task_update trigger)
       if (dto.assigned_to !== undefined && dto.assigned_to !== null) {
-        await this.validateAssigneeInOrg(dto.assigned_to, existingTask.organization_id, trx)
+        const [isApproved, isFreelancer] = await Promise.all([
+          OrganizationUser.isApprovedMember(dto.assigned_to, existingTask.organization_id, trx),
+          User.isFreelancer(dto.assigned_to, trx),
+        ])
+
+        enforcePolicy(
+          validateAssignee({
+            isOrgMember: isApproved,
+            isFreelancer,
+            taskVisibility: existingTask.task_visibility ?? 'internal',
+          })
+        )
       }
 
-      // Check permission
-      await this.validateUpdatePermission(userId, existingTask, dto)
+      const [systemRole, orgRole] = await Promise.all([
+        User.getSystemRoleName(userId),
+        OrganizationUser.getOrgRole(userId, existingTask.organization_id),
+      ])
 
-      // Save old values for audit and version history
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const fieldsResult = canUpdateTaskFields(
+        {
+          actorId: userId,
+          actorSystemRole: systemRole,
+          actorOrgRole: orgRole,
+          actorProjectRole: null,
+          taskCreatorId: existingTask.creator_id,
+          taskAssignedTo: existingTask.assigned_to,
+          taskOrganizationId: existingTask.organization_id,
+          taskProjectId: existingTask.project_id,
+          isActiveAssignee: false,
+        },
+        dto.getUpdatedFields()
+      )
+
+      if (!fieldsResult.allowed) {
+        throw new ForbiddenException(fieldsResult.reason)
+      }
+
+      // ── PERSIST ────────────────────────────────────────────────────────
       const oldValues = existingTask.toJSON()
       const oldAssignedTo = existingTask.assigned_to
       const oldStatus = existingTask.status
 
-      // Merge updates
       existingTask.merge(dto.toObject())
       await existingTask.save()
 
-      // Create audit log
       const changes = dto.getChangesForAudit(oldValues)
       await AuditLog.create(
         {
@@ -158,61 +181,6 @@ export default class UpdateTaskCommand {
       await trx.rollback()
       throw error
     }
-  }
-
-  /**
-   * Validate permission để update task
-   */
-  private async validateUpdatePermission(
-    userId: DatabaseId,
-    task: Task,
-    dto: UpdateTaskDTO
-  ): Promise<void> {
-    // Check if user is system superadmin → delegate to Model
-    const isSystemAdmin = await User.isSystemAdmin(userId)
-
-    // 1. Superadmin/Admin have full access
-    if (isSystemAdmin) {
-      return
-    }
-
-    // 2. Creator has full access
-    if (task.creator_id === userId) {
-      return
-    }
-
-    // 3. Assignee has full access
-    if (task.assigned_to && task.assigned_to === userId) {
-      return
-    }
-
-    // 4. Check organization role → delegate to Model
-
-    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
-
-    if (!orgRole) {
-      throw new ForbiddenException('Bạn không có quyền cập nhật task này')
-    }
-
-    // Organization Owner/Admin has limited access
-    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
-    if (isOrgOwnerOrAdmin) {
-      // Can only update: description, status, due_date, estimated_time
-      const allowedFields = ['description', 'status', 'due_date', 'estimated_time']
-      const updatedFields = dto.getUpdatedFields()
-      const restrictedFields = updatedFields.filter((f) => !allowedFields.includes(f))
-
-      if (restrictedFields.length > 0) {
-        throw new ForbiddenException(
-          `Bạn chỉ có thể cập nhật: ${allowedFields.join(', ')}. Không được phép: ${restrictedFields.join(', ')}`
-        )
-      }
-
-      return
-    }
-
-    // Member không có quyền
-    throw new ForbiddenException('Bạn không có quyền cập nhật task này')
   }
 
   /**
@@ -288,33 +256,6 @@ export default class UpdateTaskCommand {
    */
   private logError(message: string, error: unknown): void {
     loggerService.error(`[UpdateTaskCommand] ${message}`, error)
-  }
-
-  /**
-   * Validate assignee thuộc organization
-   * Logic từ before_task_update trigger:
-   *   IF NEW.assigned_to IS NOT NULL THEN
-   *     IF NOT EXISTS (SELECT 1 FROM organization_users WHERE user_id = NEW.assigned_to AND organization_id = NEW.organization_id)
-   *     THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Người được gán phải thuộc cùng tổ chức'
-   */
-  private async validateAssigneeInOrg(
-    assigneeId: DatabaseId,
-    organizationId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    // Check org membership → delegate to Model
-    const isApproved = await OrganizationUser.isApprovedMember(assigneeId, organizationId, trx)
-
-    if (!isApproved) {
-      // Check if freelancer → delegate to Model
-      const isFreelancer = await User.isFreelancer(assigneeId, trx)
-
-      if (!isFreelancer) {
-        throw new BusinessLogicException(
-          'Người được gán phải thuộc cùng tổ chức hoặc là freelancer'
-        )
-      }
-    }
   }
 
   /**

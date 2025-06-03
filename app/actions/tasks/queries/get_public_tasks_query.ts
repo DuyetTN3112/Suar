@@ -43,7 +43,7 @@ export default class GetPublicTasksQuery extends BaseQuery<
       const userId = this.getCurrentUserId()
 
       const query = Task.query()
-        .where('is_public_listing', true)
+        .whereIn('task_visibility', ['external', 'all'])
         .whereNull('deleted_at')
         .whereNull('assigned_to') // Only unassigned tasks
         .preload('organization', (orgQuery) => {

@@ -7,29 +7,25 @@ import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { isSameId } from '#libs/id_utils'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canUpdateTaskStatus } from '#actions/tasks/rules/task_permission_policy'
+import { validateTransition } from '#actions/tasks/rules/task_state_machine'
 
 /**
  * Command để cập nhật trạng thái task
  *
  * Business Rules:
- * - Validate status transition (optional, có thể thêm rules)
+ * - Validate status transition (enforced via task state machine)
  * - Set updated_by
  * - Notify creator nếu status thay đổi
  * - Audit log đầy đủ
  *
- * Permissions:
- * - Superadmin/Admin: Full access
- * - Creator: Có thể update
- * - Assignee: Có thể update
- * - Org Owner/Manager: Có thể update
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class UpdateTaskStatusCommand {
   constructor(
@@ -50,31 +46,48 @@ export default class UpdateTaskStatusCommand {
     const trx = await db.transaction()
 
     try {
-      // Load task với lock
+      // ── FETCH ──────────────────────────────────────────────────────────
       const task = await Task.query({ client: trx })
         .where('id', dto.task_id)
         .whereNull('deleted_at')
         .forUpdate()
         .firstOrFail()
 
-      // Check permission
-      await this.validateUpdatePermission(userId, task)
+      const [systemRole, orgRole] = await Promise.all([
+        User.getSystemRoleName(userId),
+        OrganizationUser.getOrgRole(userId, task.organization_id),
+      ])
 
-      // Save old status for notification
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canUpdateTaskStatus({
+          actorId: userId,
+          actorSystemRole: systemRole,
+          actorOrgRole: orgRole,
+          actorProjectRole: null,
+          taskCreatorId: task.creator_id,
+          taskAssignedTo: task.assigned_to,
+          taskOrganizationId: task.organization_id,
+          taskProjectId: task.project_id,
+          isActiveAssignee: false,
+        })
+      )
+
       const oldStatus = task.status
 
-      // Validate transition (optional - có thể thêm rules)
-      // const isValid = dto.validateTransition(oldStatus, statusRules)
-      // if (!isValid) {
-      //   throw new BusinessLogicException('Chuyển trạng thái không hợp lệ')
-      // }
+      enforcePolicy(
+        validateTransition({
+          currentStatus: oldStatus,
+          newStatus: dto.status,
+          isAssigned: task.assigned_to !== null,
+        })
+      )
 
-      // Update status
+      // ── PERSIST ────────────────────────────────────────────────────────
       task.merge(dto.toObject())
       task.updated_by = String(userId)
       await task.save()
 
-      // Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -121,37 +134,6 @@ export default class UpdateTaskStatusCommand {
       await trx.rollback()
       throw error
     }
-  }
-
-  /**
-   * Validate permission → delegate to Model
-   */
-  private async validateUpdatePermission(userId: DatabaseId, task: Task): Promise<void> {
-    // 1. Superadmin/Admin → delegate to Model
-    const isSystemAdmin = await User.isSystemAdmin(userId)
-    if (isSystemAdmin) {
-      return
-    }
-
-    // 2. Creator
-    if (isSameId(task.creator_id, userId)) {
-      return
-    }
-
-    // 3. Assignee
-    if (task.assigned_to !== null && isSameId(task.assigned_to, userId)) {
-      return
-    }
-
-    // 4. Org Owner/Admin → delegate to Model
-
-    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
-
-    if (orgRole && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)) {
-      return
-    }
-
-    throw new ForbiddenException('Bạn không có quyền cập nhật trạng thái task này')
   }
 
   /**

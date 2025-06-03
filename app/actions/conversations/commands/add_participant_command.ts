@@ -7,9 +7,8 @@ import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canAddParticipant } from '../rules/conversation_permission_policy.js'
 
 /**
  * Command: Add Participant To Conversation
@@ -47,14 +46,11 @@ export default class AddParticipantCommand {
     }
 
     try {
-      // Verify current user is participant → delegate to Model
+      // Pre-fetch context for pure rule
       const isCurrentUserParticipant = await ConversationParticipant.isParticipant(
         dto.conversationId,
         userId
       )
-      if (!isCurrentUserParticipant) {
-        throw new ForbiddenException('Bạn không có quyền thêm thành viên vào cuộc trò chuyện này')
-      }
 
       // Verify conversation exists
       const conversation = await Conversation.query()
@@ -62,22 +58,23 @@ export default class AddParticipantCommand {
         .whereNull('deleted_at')
         .firstOrFail()
 
-      // Check if it's a group conversation → delegate to Model
       const count = await ConversationParticipant.countByConversation(dto.conversationId)
-
-      // Only allow adding to group conversations (3+ people or has title)
-      if (count < 2 && !conversation.title) {
-        throw new BusinessLogicException('Không thể thêm thành viên vào cuộc trò chuyện trực tiếp')
-      }
-
-      // Check if user is already a participant → delegate to Model
       const isAlreadyParticipant = await ConversationParticipant.isParticipant(
         dto.conversationId,
         dto.userId
       )
-      if (isAlreadyParticipant) {
-        throw new ConflictException('Người dùng này đã là thành viên của cuộc trò chuyện')
-      }
+
+      // Validate via pure rule
+      enforcePolicy(
+        canAddParticipant({
+          actorId: userId,
+          targetUserId: dto.userId,
+          isActorParticipant: isCurrentUserParticipant,
+          isTargetAlreadyParticipant: isAlreadyParticipant,
+          participantCount: count,
+          hasTitle: !!conversation.title,
+        })
+      )
 
       // Add participant
       await ConversationParticipant.create({

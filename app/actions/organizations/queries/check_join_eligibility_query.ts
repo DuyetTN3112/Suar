@@ -1,7 +1,8 @@
 import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { type OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
+import { checkJoinEligibility } from '#actions/organizations/rules/org_permission_policy'
 
 interface JoinEligibilityResult {
   eligible: boolean
@@ -32,23 +33,14 @@ export default class CheckJoinEligibilityQuery {
       status: OrganizationUserStatus
     } | null
 
-    if (existingMembership) {
-      const status = existingMembership.status
-      let message = ''
+    const membershipStatus = existingMembership?.status ?? null
+    const eligibility = checkJoinEligibility(membershipStatus)
 
-      if (status === OrganizationUserStatus.APPROVED) {
-        message = 'Bạn đã là thành viên của tổ chức này'
-      } else if (status === OrganizationUserStatus.PENDING) {
-        message = 'Yêu cầu tham gia tổ chức của bạn đang chờ được duyệt'
-      } else {
-        message =
-          'Yêu cầu tham gia của bạn đã bị từ chối. Bạn có thể liên hệ với quản trị viên tổ chức'
-      }
-
+    if (!eligibility.eligible) {
       return {
         eligible: false,
         organization: orgJson,
-        message,
+        message: eligibility.message,
         existingMembership,
       }
     }

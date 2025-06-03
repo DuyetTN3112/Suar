@@ -6,8 +6,9 @@ import OrganizationJoinRequest from '#models/organization_join_request'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ConflictException from '#exceptions/conflict_exception'
 import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canCreateJoinRequest } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * Command: Create Join Request
@@ -44,21 +45,19 @@ export default class CreateJoinRequestCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Check if user is already a member
+      // 1. Check eligibility: not already a member, no pending request
       const isMember = await OrganizationUser.hasMembership(organizationId, userId, trx)
-      if (isMember) {
-        throw new ConflictException('You are already a member of this organization')
-      }
-
-      // 2. Check for duplicate pending requests
       const hasPending = await OrganizationJoinRequest.hasPendingRequest(
         organizationId,
         userId,
         trx
       )
-      if (hasPending) {
-        throw new ConflictException('You already have a pending join request for this organization')
-      }
+      enforcePolicy(
+        canCreateJoinRequest({
+          isAlreadyMember: isMember,
+          hasPendingRequest: hasPending,
+        })
+      )
 
       // 3. Create join request via Model
       const joinRequest = await OrganizationJoinRequest.createRequest(

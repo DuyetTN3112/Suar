@@ -3,7 +3,7 @@ import Task from '#models/task'
 import ProjectMember from '#models/project_member'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
-import { ProjectVisibility } from '#constants/project_constants'
+import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { PAGINATION } from '#constants/common_constants'
 

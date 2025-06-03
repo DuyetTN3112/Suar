@@ -6,11 +6,12 @@ import type { DatabaseId } from '#types/database'
 import User from '#models/user'
 import ProjectMember from '#models/project_member'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import PermissionService from '#services/permission_service'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import OrganizationUser from '#models/organization_user'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canRemoveProjectMember } from '../rules/project_permission_policy.js'
 
 /**
  * Command to remove a member from a project
@@ -39,14 +40,27 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         .whereNull('deleted_at')
         .firstOrFail()
 
-      // 2. Check permissions
-      await this.validatePermission(userId, project)
+      // 2. Check permissions via pure rule
+      const actor = await User.findOrFail(userId)
+      const orgMembership = await OrganizationUser.findMembership(
+        project.organization_id,
+        userId,
+        trx
+      )
 
-      // 3. Load user to be removed
+      enforcePolicy(
+        canRemoveProjectMember({
+          actorId: userId,
+          actorSystemRole: actor.system_role,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          targetUserId: dto.user_id,
+        })
+      )
+
+      // 3. Load user to be removed (for audit log)
       const userToRemove = await User.findOrFail(dto.user_id)
-
-      // 4. Check not removing owner
-      this.validateNotOwner(project, dto.user_id)
 
       // 5. Get member role before removal
       const memberRole = await ProjectMember.getRoleName(dto.project_id, dto.user_id, trx)
@@ -90,36 +104,6 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     // Invalidate project member caches
     await CacheService.deleteByPattern(`organization:tasks:*`)
     await CacheService.deleteByPattern(`task:user:*`)
-  }
-
-  /**
-   * Validate requester has permission to remove members.
-   * Allowed: project owner, project creator, org admin/owner, system superadmin.
-   */
-  private async validatePermission(userId: DatabaseId, project: Project): Promise<void> {
-    const canManage = await PermissionService.canManageProject(
-      userId,
-      project.owner_id,
-      project.creator_id,
-      project.organization_id
-    )
-
-    if (!canManage) {
-      throw new ForbiddenException('Chỉ owner hoặc admin mới có thể xóa thành viên khỏi dự án')
-    }
-  }
-
-  /**
-   * Validate not removing the owner
-   */
-  private validateNotOwner(project: Project, userIdToRemove: DatabaseId): void {
-    if (project.owner_id === userIdToRemove) {
-      throw new BusinessLogicException('Không thể xóa owner khỏi dự án')
-    }
-
-    if (project.creator_id === userIdToRemove) {
-      throw new BusinessLogicException('Không thể xóa người tạo dự án')
-    }
   }
 
   /**

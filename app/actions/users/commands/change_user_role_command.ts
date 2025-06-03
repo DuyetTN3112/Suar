@@ -1,10 +1,9 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
 import User from '#models/user'
-import { SystemRoleName } from '#constants'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canChangeUserRole } from '../rules/user_management_rules.js'
 
 /**
  * ChangeUserRoleCommand (v3)
@@ -20,25 +19,19 @@ import emitter from '@adonisjs/core/services/emitter'
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
-    // Verify changer has superadmin permission
+    // Verify permissions via pure rule
     const isSuperadmin = await User.isSuperadmin(dto.changerId)
-    if (!isSuperadmin) {
-      throw new ForbiddenException('Chỉ superadmin mới có thể thay đổi vai trò người dùng')
-    }
-
-    // Prevent self-role-change
-    if (dto.changerId === dto.targetUserId) {
-      throw new BusinessLogicException('Không thể thay đổi vai trò của chính mình')
-    }
+    enforcePolicy(
+      canChangeUserRole({
+        actorId: dto.changerId,
+        targetUserId: dto.targetUserId,
+        isActorSuperadmin: isSuperadmin,
+        newRole: String(dto.newRoleId),
+      })
+    )
 
     // Verify target user exists and not deleted
     const targetUser = await User.findNotDeletedOrFail(dto.targetUserId)
-
-    // v3: Validate new role is a valid SystemRoleName
-    const validRoles = Object.values(SystemRoleName) as string[]
-    if (!validRoles.includes(String(dto.newRoleId))) {
-      throw new BusinessLogicException(`Vai trò không hợp lệ: ${String(dto.newRoleId)}`)
-    }
 
     // Get old role for audit log
     const oldRole = targetUser.system_role

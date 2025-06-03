@@ -5,6 +5,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import User from '#models/user'
 import SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
+import { calculateCredibilityScore } from '#actions/reviews/rules/review_formulas'
 
 /**
  * DTO for updating reviewer credibility
@@ -16,15 +17,9 @@ export interface UpdateReviewerCredibilityDTO {
 /**
  * Command: Update Reviewer Credibility
  *
- * v3: Credibility data stored as JSONB credibility_data on users table
- * instead of separate reviewer_credibility table.
+ * v3: Credibility data stored as JSONB credibility_data on users table.
  *
- * Business rules:
- * - Đếm số reviews đã cho
- * - Đếm số reviews được confirmed
- * - Đếm số reviews bị disputed
- * - Tính credibility score: Base 50 + bonus confirmed - penalty disputed
- * - Update credibility_data JSONB on users table
+ * Pattern: FETCH → DECIDE (pure formula) → PERSIST
  */
 export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   UpdateReviewerCredibilityDTO,
@@ -39,26 +34,20 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
     total_reviews: number
   }> {
     return await this.executeInTransaction(async (trx: TransactionClientContract) => {
-      // 1. Count total reviews given → delegate to SkillReview
-      const totalReviews = await SkillReview.countCompletedByReviewer(dto.user_id, trx)
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const [totalReviews, confirmed, disputed] = await Promise.all([
+        SkillReview.countCompletedByReviewer(dto.user_id, trx),
+        SkillReview.countConfirmedByReviewer(dto.user_id, trx),
+        SkillReview.countDisputedByReviewer(dto.user_id, trx),
+      ])
 
-      // 2. Count confirmed reviews → delegate to SkillReview
-      const confirmed = await SkillReview.countConfirmedByReviewer(dto.user_id, trx)
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const score = calculateCredibilityScore(totalReviews, confirmed, disputed)
 
-      // 3. Count disputed reviews → delegate to SkillReview
-      const disputed = await SkillReview.countDisputedByReviewer(dto.user_id, trx)
-
-      // 4. Calculate credibility score
-      let score = 50.0
-      if (totalReviews > 0) {
-        score = 50.0 + (confirmed / totalReviews) * 40 - (disputed / totalReviews) * 30
-        score = Math.max(0, Math.min(100, score))
-      }
-
-      // 5. v3: Update credibility_data JSONB on user record
+      // ── PERSIST ────────────────────────────────────────────────────────
       const user = await User.query({ client: trx }).where('id', dto.user_id).firstOrFail()
       user.credibility_data = {
-        credibility_score: Math.round(score * 100) / 100,
+        credibility_score: score,
         total_reviews_given: totalReviews,
         accurate_reviews: confirmed,
         disputed_reviews: disputed,
@@ -67,7 +56,7 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
       await user.useTransaction(trx).save()
 
       return {
-        credibility_score: Math.round(score * 100) / 100,
+        credibility_score: score,
         total_reviews: totalReviews,
       }
     })

@@ -9,12 +9,11 @@ import { DateTime } from 'luxon'
 import db from '@adonisjs/lucid/services/db'
 import { getErrorMessage } from '#libs/error_utils'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canDeleteTask, canPermanentDeleteTask } from '#actions/tasks/rules/task_permission_policy'
 
 /**
  * Command để xóa task
@@ -25,10 +24,7 @@ import type { DatabaseId } from '#types/database'
  * - Notify assignee và creator
  * - Audit log đầy đủ
  *
- * Permissions:
- * - Superadmin/Admin: Nếu thuộc organization
- * - Creator: Có thể xóa task của mình
- * - Organization Owner/Manager: Có thể xóa tasks trong org
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class DeleteTaskCommand {
   constructor(
@@ -50,30 +46,49 @@ export default class DeleteTaskCommand {
 
     const trx = await db.transaction()
     try {
-      // Load task
+      // ── FETCH ──────────────────────────────────────────────────────────
       const task = await Task.query({ client: trx })
         .where('id', dto.task_id)
         .whereNull('deleted_at')
         .firstOrFail()
 
-      // Check permission
-      await this.validateDeletePermission(userId, task)
+      const [systemRole, orgRole, isMember] = await Promise.all([
+        User.getSystemRoleName(userId),
+        OrganizationUser.getOrgRole(userId, task.organization_id),
+        OrganizationUser.isMember(userId, task.organization_id),
+      ])
 
-      // Save task info for notifications and audit
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canDeleteTask({
+          actorId: userId,
+          actorSystemRole: systemRole,
+          actorOrgRole: orgRole,
+          actorProjectRole: null,
+          taskCreatorId: task.creator_id,
+          taskAssignedTo: task.assigned_to,
+          taskOrganizationId: task.organization_id,
+          taskProjectId: task.project_id,
+          isActiveAssignee: false,
+          isActorOrgMember: isMember,
+        })
+      )
+
+      // Hard delete requires superadmin (pure rule)
+      if (dto.isPermanentDelete()) {
+        enforcePolicy(canPermanentDeleteTask({ actorSystemRole: systemRole }))
+      }
+
+      // ── PERSIST ────────────────────────────────────────────────────────
       const taskData = task.toJSON()
 
-      // Perform delete
       if (dto.isPermanentDelete()) {
-        // Hard delete (chỉ Superadmin)
-        await this.validateSuperadminPermission(userId)
         await task.useTransaction(trx).delete()
       } else {
-        // Soft delete
         task.deleted_at = DateTime.now()
         await task.useTransaction(trx).save()
       }
 
-      // Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -137,56 +152,6 @@ export default class DeleteTaskCommand {
         success: false,
         message: getErrorMessage(error, 'Có lỗi xảy ra khi xóa nhiệm vụ'),
       }
-    }
-  }
-
-  /**
-   * Validate permission để xóa task
-   */
-  private async validateDeletePermission(userId: DatabaseId, task: Task): Promise<void> {
-    // Check if user is superadmin → delegate to Model
-    const isSystemAdmin = await User.isSystemAdmin(userId)
-
-    if (isSystemAdmin) {
-      // Admin/Superadmin must belong to organization → delegate to Model
-      const isMember = await OrganizationUser.isMember(userId, task.organization_id)
-      if (isMember) {
-        return
-      }
-
-      throw new ForbiddenException('Bạn không thuộc tổ chức của task này')
-    }
-
-    // Creator can delete own tasks
-    if (task.creator_id === userId) {
-      return
-    }
-
-    // Check organization role → delegate to Model
-
-    const orgRole = await OrganizationUser.getOrgRole(userId, task.organization_id)
-
-    if (!orgRole) {
-      throw new ForbiddenException('Bạn không có quyền xóa task này')
-    }
-
-    // Organization Owner/Admin can delete
-    const isOrgOwnerOrAdmin = [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(orgRole as OrganizationRole)
-    if (isOrgOwnerOrAdmin) {
-      return
-    }
-
-    throw new ForbiddenException('Bạn không có quyền xóa task này')
-  }
-
-  /**
-   * Validate Superadmin permission cho hard delete → delegate to Model
-   */
-  private async validateSuperadminPermission(userId: DatabaseId): Promise<void> {
-    const isSystemAdmin = await User.isSystemAdmin(userId)
-
-    if (!isSystemAdmin) {
-      throw new ForbiddenException('Chỉ Superadmin mới có quyền xóa vĩnh viễn nhiệm vụ')
     }
   }
 }

@@ -152,7 +152,9 @@ export default class GetTaskStatisticsQuery {
     }
 
     // Org Owner/Admin sees all
-    if ([OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)) {
+    if (
+      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)
+    ) {
       return
     }
 

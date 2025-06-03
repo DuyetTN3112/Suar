@@ -1,7 +1,5 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
@@ -10,40 +8,21 @@ import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
 import { EntityType } from '#constants/audit_constants'
-import { OrganizationRole } from '#constants/organization_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canDeleteOrganization } from '#actions/organizations/rules/org_permission_policy'
 
 /**
  * Command: Delete Organization
  *
- * Pattern: Soft delete with cascading checks (learned from Tasks module)
- * Business rules:
- * - Only Owner (role_id = 1) can delete
- * - Check for active projects before deletion
- * - Support soft delete (default) or permanent delete
- * - Soft delete sets deleted_at timestamp
+ * Soft delete (default) or permanent delete.
  *
- * @example
- * const command = new DeleteOrganizationCommand(ctx)
- * await command.execute(dto)
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class DeleteOrganizationCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  /**
-   * Execute command: Delete organization
-   *
-   * Steps:
-   * 1. Find organization
-   * 2. Check permissions (Owner only)
-   * 3. Check for active projects
-   * 4. Begin transaction
-   * 5. Delete organization (soft or permanent)
-   * 6. Create audit log
-   * 7. Commit transaction
-   */
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
     const userId = this.execCtx.userId
     if (!userId) {
@@ -52,32 +31,36 @@ export default class DeleteOrganizationCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Find organization
+      // ── FETCH ──────────────────────────────────────────────────────────
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      // 2. Check permissions (Owner only)
-      await this.checkPermissions(organization.id, userId, trx)
+      const [orgRole, activeProjectCount] = await Promise.all([
+        OrganizationUser.getOrgRole(userId, organization.id, trx),
+        Organization.countActiveProjects(organization.id, trx),
+      ])
 
-      // 3. Check for active projects
-      await this.checkActiveProjects(organization.id, trx)
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canDeleteOrganization({
+          actorId: userId,
+          actorOrgRole: orgRole,
+          activeProjectCount,
+        })
+      )
 
-      // 4. Store old values for audit
+      // ── PERSIST ────────────────────────────────────────────────────────
       const oldValues = organization.toJSON()
 
-      // 5. Delete organization (soft or permanent)
       if (dto.isPermanentDelete()) {
-        // Permanent delete - remove from database
         await organization.useTransaction(trx).delete()
       } else {
-        // Soft delete - set deleted_at timestamp
         organization.deleted_at = DateTime.now()
         await organization.useTransaction(trx).save()
       }
 
-      // 6. Create audit log
       await AuditLog.create(
         {
           user_id: userId,
@@ -108,38 +91,6 @@ export default class DeleteOrganizationCommand {
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to delete organization
-   * Only Owner (role_id = 1) can delete → delegate to Model
-   */
-  private async checkPermissions(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
-  ): Promise<void> {
-    // Must be Owner specifically to delete
-    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId, _trx)
-    if (String(orgRole) !== OrganizationRole.OWNER) {
-      throw new ForbiddenException('Chỉ owner mới có thể xóa tổ chức')
-    }
-  }
-
-  /**
-   * Helper: Check for active projects → delegate to Model
-   * Cannot delete organization with active projects
-   */
-  private async checkActiveProjects(
-    organizationId: DatabaseId,
-    _trx: import('@adonisjs/lucid/types/database').TransactionClientContract
-  ): Promise<void> {
-    const total = await Organization.countActiveProjects(organizationId, _trx)
-    if (total > 0) {
-      throw new BusinessLogicException(
-        `Không thể xóa tổ chức có ${String(total)} dự án đang hoạt động. Vui lòng xóa hoặc lưu trữ tất cả dự án trước.`
-      )
     }
   }
 }

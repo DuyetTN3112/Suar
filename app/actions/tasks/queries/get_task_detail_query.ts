@@ -165,7 +165,12 @@ export default class GetTaskDetailQuery {
     }
 
     // Check organization role (Owner/Admin)
-    if (roleData.orgUser && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(roleData.orgUser.org_role as OrganizationRole)) {
+    if (
+      roleData.orgUser &&
+      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(
+        roleData.orgUser.org_role as OrganizationRole
+      )
+    ) {
       return
     }
 
@@ -189,7 +194,10 @@ export default class GetTaskDetailQuery {
     const isCreator = task.creator_id === userId
     const isAssignee = task.assigned_to && task.assigned_to === userId
     const isOrgOwnerOrAdmin =
-      roleData.orgUser && [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(roleData.orgUser.org_role as OrganizationRole)
+      roleData.orgUser &&
+      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(
+        roleData.orgUser.org_role as OrganizationRole
+      )
 
     const canEdit = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
     const canDelete = Boolean(roleData.isSuperAdmin || isCreator || isOrgOwnerOrAdmin)

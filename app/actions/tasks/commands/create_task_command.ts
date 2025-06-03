@@ -4,7 +4,6 @@ import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
 import ProjectMember from '#models/project_member'
 import Project from '#models/project'
-import { TaskStatus, TaskLabel, TaskPriority } from '#constants'
 import AuditLog from '#models/audit_log'
 import type CreateTaskDTO from '../dtos/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -13,12 +12,15 @@ import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { TaskStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
+import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
+import { canCreateTask } from '#actions/tasks/rules/task_permission_policy'
+import { validateTaskCreationFields } from '#actions/tasks/rules/task_assignment_rules'
 
 /**
  * Command để tạo task mới
@@ -66,60 +68,34 @@ export default class CreateTaskCommand {
       // 2. Check org exists (Fat Model method)
       await Organization.findActiveOrFail(dto.organization_id, trx)
 
-      // 3. Check permission: admin/owner OR project_manager (Fat Model methods)
+      // 3. Check permission: admin/owner OR project_manager (pure rule)
       const isOrgAdmin = await OrganizationUser.isOrgAdminOrOwner(userId, dto.organization_id, trx)
-      if (!isOrgAdmin) {
-        if (dto.project_id) {
-          const isProjectManager = await ProjectMember.isProjectManagerOrOwner(
-            userId,
-            dto.project_id,
-            trx
-          )
-          if (!isProjectManager) {
-            throw new ForbiddenException(
-              'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
-            )
-          }
-        } else {
-          throw new ForbiddenException(
-            'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
-          )
-        }
+      let isProjectManager = false
+      if (!isOrgAdmin && dto.project_id) {
+        isProjectManager = await ProjectMember.isProjectManagerOrOwner(userId, dto.project_id, trx)
       }
+      enforcePolicy(
+        canCreateTask({
+          isOrgAdminOrOwner: isOrgAdmin,
+          isProjectManagerOrOwner: isProjectManager,
+          hasProjectId: dto.project_id !== null && dto.project_id !== undefined,
+        })
+      )
 
       // 4. Validate project thuộc org (Fat Model method)
       if (dto.project_id) {
         await Project.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)
       }
 
-      // 5. Validate status is a valid TaskStatus constant
-      if (dto.status) {
-        const validStatuses = Object.values(TaskStatus) as string[]
-        if (!validStatuses.includes(String(dto.status))) {
-          throw new BusinessLogicException(`Trạng thái task không hợp lệ: ${String(dto.status)}`)
-        }
-      }
-
-      // 6. Validate label is a valid TaskLabel constant
-      if (dto.label) {
-        const validLabels = Object.values(TaskLabel) as string[]
-        if (!validLabels.includes(String(dto.label))) {
-          throw new BusinessLogicException(`Nhãn task không hợp lệ: ${String(dto.label)}`)
-        }
-      }
-
-      // 7. Validate priority is a valid TaskPriority constant
-      if (dto.priority) {
-        const validPriorities = Object.values(TaskPriority) as string[]
-        if (!validPriorities.includes(String(dto.priority))) {
-          throw new BusinessLogicException(`Mức ưu tiên không hợp lệ: ${String(dto.priority)}`)
-        }
-      }
-
-      // 8. Validate due_date not past
-      if (dto.due_date && dto.due_date < DateTime.now()) {
-        throw new BusinessLogicException('Due date không thể là thời điểm trong quá khứ')
-      }
+      // 5. Validate creation fields via pure rule
+      enforcePolicy(
+        validateTaskCreationFields({
+          status: dto.status ? String(dto.status) : null,
+          label: dto.label ? String(dto.label) : null,
+          priority: dto.priority ? String(dto.priority) : null,
+          isDueDateInPast: dto.due_date ? dto.due_date < DateTime.now() : false,
+        })
+      )
 
       // 9. Validate assignee (Fat Model methods)
       if (dto.assigned_to) {
