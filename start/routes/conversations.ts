@@ -13,14 +13,12 @@ const ShowConversationController = () =>
   import('#controllers/conversations/show_conversation_controller')
 const ShowConversationApiController = () =>
   import('#controllers/conversations/show_conversation_api_controller')
-const SendMessageController = () =>
-  import('#controllers/conversations/send_message_controller')
+const SendMessageController = () => import('#controllers/conversations/send_message_controller')
 const SendMessageApiController = () =>
   import('#controllers/conversations/send_message_api_controller')
 const MarkConversationReadController = () =>
   import('#controllers/conversations/mark_conversation_read_controller')
-const RecallMessageController = () =>
-  import('#controllers/conversations/recall_message_controller')
+const RecallMessageController = () => import('#controllers/conversations/recall_message_controller')
 
 router
   .group(() => {

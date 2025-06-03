@@ -122,18 +122,20 @@ router
   .prefix('/organizations')
   .use([middleware.auth(), throttle])
 
+const SwitchOrganizationController = () =>
+  import('#controllers/organizations/switch_organization_controller')
+const SwitchAndRedirectController = () =>
+  import('#controllers/organizations/switch_and_redirect_controller')
+
 // API chuyển tổ chức
 router
-  .post('/switch-organization', '#controllers/organizations/switch_organization_controller.handle')
+  .post('/switch-organization', [SwitchOrganizationController, 'handle'])
   .as('organizations.switch.api')
   .use(middleware.auth())
 
 // Thêm route GET để xử lý redirect sau khi chuyển tổ chức
 router
-  .get(
-    '/organizations/switch/:id',
-    '#controllers/organizations/switch_and_redirect_controller.handle'
-  )
+  .get('/organizations/switch/:id', [SwitchAndRedirectController, 'handle'])
   .as('organizations.switch.redirect')
   .use(middleware.auth())
 

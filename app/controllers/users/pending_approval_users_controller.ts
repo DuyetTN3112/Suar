@@ -21,7 +21,8 @@ export default class PendingApprovalUsersController {
     const isSuperAdmin = userExtras?.organization_role === OrganizationRole.OWNER
 
     if (!isSuperAdmin) {
-      return inertia.location('/users')
+      inertia.location('/users')
+      return
     }
 
     const page = Number(request.input('page', 1))

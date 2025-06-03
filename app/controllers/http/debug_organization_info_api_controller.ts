@@ -10,7 +10,9 @@ export default class DebugOrganizationInfoApiController {
     try {
       const user = auth.user
       if (!user) {
-        response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
+        response
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
         return
       }
 

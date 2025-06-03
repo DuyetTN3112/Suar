@@ -12,7 +12,9 @@ export default class CheckExistingConversationApiController {
     const { request, auth, response } = ctx
     try {
       if (!auth.user) {
-        response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
+        response
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
         return
       }
 

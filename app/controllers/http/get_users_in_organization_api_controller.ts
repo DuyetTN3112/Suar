@@ -11,7 +11,9 @@ export default class GetUsersInOrganizationApiController {
     const { auth, response, session } = ctx
     try {
       if (!auth.user) {
-        response.status(HttpStatus.UNAUTHORIZED).json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
+        response
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
         return
       }
 
@@ -20,7 +22,9 @@ export default class GetUsersInOrganizationApiController {
       const organizationId = userOrgId ?? sessionOrgId
 
       if (!organizationId) {
-        response.status(HttpStatus.BAD_REQUEST).json({ success: false, message: ErrorMessages.REQUIRE_ORGANIZATION })
+        response
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ success: false, message: ErrorMessages.REQUIRE_ORGANIZATION })
         return
       }
 
