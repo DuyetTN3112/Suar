@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+set -eu
+
+pnpm run security:secrets
+pnpm run check:arch:backend:side-effects
