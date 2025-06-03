@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatDate } from '../../../utils/task_formatter'
-  import type { Task } from '../../../types'
+  import { formatDate } from '../../../utils/task_formatter.svelte'
+  import type { Task } from '../../../types.svelte'
 
   interface Props {
     auditLogs: Array<{

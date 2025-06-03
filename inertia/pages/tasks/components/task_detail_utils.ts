@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
-import type { Task } from '../types'
+import type { Task } from '../types.svelte'
 
 /**
  * Tạo initials từ tên người dùng
@@ -67,7 +67,7 @@ export const getPermissions = (currentUser: CurrentUser | null | undefined, task
 
   const isAdmin = checkIsAdmin(currentUser)
   const isSameOrganization = currentUser.organization_id === task.organization_id
-  const isCreator = Boolean(currentUser.id && currentUser.id === task.created_by)
+  const isCreator = Boolean(currentUser.id && currentUser.id === task.creator_id)
   const isAssignee = Boolean(currentUser.id && currentUser.id === task.assigned_to)
 
   const canView = true

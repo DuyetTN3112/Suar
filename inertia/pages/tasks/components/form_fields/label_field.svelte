@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Task } from '../../types'
+  import type { Task } from '../../types.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'

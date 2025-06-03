@@ -2,7 +2,7 @@
   import Label from '@/components/ui/label.svelte'
   import Input from '@/components/ui/input.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import type { Task } from '../../types'
+  import type { Task } from '../../types.svelte'
   import TaskCreatorInfo from './info/task_creator_info.svelte'
   import TaskDueDateField from './info/task_due_date_field.svelte'
   import StatusField from '../form_fields/status_field.svelte'

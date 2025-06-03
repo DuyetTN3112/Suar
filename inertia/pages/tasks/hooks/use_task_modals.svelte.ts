@@ -5,7 +5,7 @@ export function createTaskModalsStore() {
   let createModalOpen = $state(false)
   let importModalOpen = $state(false)
   let detailModalOpen = $state<boolean>(false)
-  let selectedTaskId = $state<number | null>(null)
+  let selectedTaskId = $state<string | null>(null)
   let selectedTask = $state<Task | null>(null)
   let isCheckingPermission = $state(false)
 
@@ -90,7 +90,7 @@ export function createTaskModalsStore() {
       get value() {
         return selectedTaskId
       },
-      set value(val: number | null) {
+      set value(val: string | null) {
         selectedTaskId = val
       },
     },

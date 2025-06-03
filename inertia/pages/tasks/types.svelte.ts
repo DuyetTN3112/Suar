@@ -1,24 +1,29 @@
+export type TaskStatus = 'todo' | 'in_progress' | 'done' | 'cancelled' | 'in_review'
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+export type TaskLabel = 'bug' | 'feature' | 'enhancement' | 'documentation'
+export type TaskDifficulty = 'easy' | 'medium' | 'hard' | 'expert'
+
 export type Task = {
   id: string
   title: string
   description?: string
-  status: string
-  label: string
-  priority: string
-  difficulty?: string | null
+  status: TaskStatus
+  label: TaskLabel
+  priority: TaskPriority
+  difficulty?: TaskDifficulty | null
   assignee?: {
     id: string
     username: string
     email: string
   }
-  assigned_to?: string
-  created_by: string
+  assigned_to?: string | null
+  creator_id: string
   creator?: {
     id: string
     username: string
     email: string
   }
-  due_date: string
+  due_date: string | null
   created_at: string
   updated_at: string
   parent_task_id?: string | null
@@ -28,13 +33,18 @@ export type Task = {
     status: string
   } | null
   childTasks?: Task[]
-  organization_id?: string
+  organization_id: string
   organization?: {
     id: string
     name: string
   }
+  project_id?: string | null
   estimated_time?: number
   actual_time?: number
+  task_visibility?: 'internal' | 'external' | 'all'
+  application_deadline?: string | null
+  estimated_budget?: number | null
+  sort_order?: number
   [key: string]: unknown
 }
 

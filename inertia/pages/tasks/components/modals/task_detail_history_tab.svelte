@@ -4,7 +4,7 @@
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import { History } from 'lucide-svelte'
-  import type { Task } from '../../types'
+  import type { Task } from '../../types.svelte'
 
   interface AuditLogEntry {
     id: string
