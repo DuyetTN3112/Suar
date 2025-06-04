@@ -1,0 +1,283 @@
+@import "tailwindcss";
+
+@theme {
+  /* Container settings */
+  --container-center: true;
+  --container-padding: 2rem;
+  --container-2xl: 1400px;
+
+  /* Border radius */
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  /* Colors - using CSS variables for dynamic theming */
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+
+  /* Animations */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+    --radius: 0.5rem;
+
+    /* Sidebar variables */
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    /* Sidebar variables for dark mode */
+    --sidebar: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .desktop-link {
+    @apply text-muted-foreground hover:text-foreground transition-colors;
+  }
+
+  .desktop-link.active {
+    @apply text-foreground;
+  }
+
+  .mobile-link {
+    @apply text-muted-foreground hover:text-foreground;
+  }
+
+  .mobile-link.active {
+    @apply text-foreground;
+  }
+
+  .settings-link {
+    @apply m-[1px] p-2 rounded font-semibold text-primary;
+  }
+
+  .settings-link.active {
+    @apply bg-white shadow-sm m-0 border;
+  }
+  /* Lớp bảo vệ chống tấn công Zalgo và các tin nhắn độc hại */
+  .user-content {
+    /* Ngăn chặn text tràn ra ngoài container */
+    overflow-wrap: break-word !important;
+    word-break: break-word !important;
+    word-wrap: break-word !important;
+
+    /* Cắt bỏ nội dung nếu vượt quá */
+    max-width: 100% !important;
+    overflow: hidden !important;
+
+    /* Kiểm soát cách hiển thị text */
+    white-space: pre-wrap !important;
+    hyphens: auto !important;
+
+    /* Đảm bảo khoảng cách dòng phù hợp tránh chồng lấn */
+    line-height: 1.5 !important;
+
+    /* Giới hạn chiều cao tối đa của một khối text */
+    max-height: 70vh !important;
+
+    /* Chặn các ký tự Zalgo làm thay đổi chiều cao dòng */
+    line-height-step: 0 !important;
+  }
+
+  /* Bộ CSS bảo vệ đặc biệt cho tin nhắn Zalgo */
+  .zalgo-message {
+    position: relative;
+    isolation: isolate;
+    container-type: inline-size;
+    max-height: 80px; /* Giới hạn chiều cao mặc định */
+    box-shadow: 0 0 5px rgba(255, 200, 0, 0.2);
+    border-radius: 0.25rem;
+    padding: 0.25rem;
+    background-color: rgba(255, 248, 225, 0.1);
+    contain: content; /* Cách ly nội dung */
+    content-visibility: auto; /* Tối ưu hóa rendering */
+  }
+
+  /* Hiển thị overlay cho tin nhắn Zalgo khi chưa mở rộng */
+  .zalgo-message:not(.expanded)::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    background: linear-gradient(to bottom, transparent, var(--background));
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Cách ly nội dung nguy hiểm */
+  .zalgo-container {
+    /* Sử dụng CSS containment để ngăn nội dung ảnh hưởng đến bố cục */
+    contain: layout paint style size;
+    isolation: isolate;
+
+    /* Giới hạn chiều cao */
+    max-height: var(--max-zalgo-height, 60px);
+    overflow: hidden;
+
+    /* Hiệu ứng làm mờ */
+    filter: var(--zalgo-filter, none);
+
+    /* Cắt nội dung khi tràn */
+    text-overflow: ellipsis;
+
+    /* Ngăn chặn tràn ra ngoài */
+    overflow-anchor: none;
+
+    /* Sử dụng backdrop-filter để tạo hiệu ứng làm mờ khác */
+    position: relative;
+  }
+
+  /* Shadow DOM bao bọc nội dung nguy hiểm */
+  @supports (display: contents) {
+    .zalgo-isolate {
+      display: contents;
+      isolation: isolate;
+    }
+  }
+
+  /* Giới hạn độ dài hiển thị của inline-text */
+  .user-content-inline {
+    display: inline-block !important;
+    max-width: 100% !important;
+    text-overflow: ellipsis !important;
+    overflow: hidden !important;
+    vertical-align: bottom !important;
+  }
+}
+
+/* Kiểu tin nhắn đến và tin nhắn đi */
+.message-incoming {
+  border-radius: 1rem 1rem 1rem 0;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message-outgoing {
+  border-radius: 1rem 1rem 0 1rem;
+  position: relative;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Hiệu ứng khi nhắn tin nhắn mới */
+.message-outgoing:last-child {
+  animation: pulse 0.5s ease-out;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
