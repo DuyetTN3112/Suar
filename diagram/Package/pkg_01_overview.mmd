@@ -1,0 +1,89 @@
+%% ─────────────────────────────────────────────────────────────
+%% pkg_01_overview: Suar Platform — High-Level Package Overview
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Top-level package layers and their main dependencies.
+%% For detailed breakdown see:
+%%   pkg_02_application_layer.mmd  -- CQRS actions breakdown
+%%   pkg_03_business_rules.mmd     -- Business rules packages
+%%   pkg_04_domain_infra.mmd       -- Domain + Infrastructure
+%%   pkg_05_crosscutting.mmd       -- Cross-cutting concerns
+%% ─────────────────────────────────────────────────────────────
+
+graph TD
+    subgraph external["External Dependencies"]
+        ADONIS["AdonisJS 6
+        (HTTP, Auth, Session, Shield)"]
+        LUCID["Lucid ORM
+        (PostgreSQL)"]
+        INERTIA["Inertia.js + Svelte 5"]
+        MONGOOSE["Mongoose (MongoDB)"]
+        REDIS["Redis Client"]
+    end
+
+    subgraph presentation["Presentation Layer"]
+        ROUTES["Routes (12 files)"]
+        CONTROLLERS["Controllers (110)"]
+        MIDDLEWARE["Middleware"]
+        FRONTEND["Frontend (Svelte)"]
+    end
+
+    subgraph application["Application Layer (CQRS)"]
+        ACTIONS["Actions
+        (Commands + Queries)"]
+    end
+
+    subgraph rules["Business Rules (Pure)"]
+        RULES["Rules
+        (PolicyResult + enforcePolicy)"]
+    end
+
+    subgraph domain["Domain Layer"]
+        MODELS["Models (27 Lucid + 3 Mongo)"]
+        REPOS["Repositories"]
+        SERVICES["Services
+        (PermissionService, Cache)"]
+    end
+
+    subgraph infra["Infrastructure"]
+        PG[("PostgreSQL\n27 tables")]
+        MONGO[("MongoDB Atlas")]
+        REDIS_DB[("Redis\nSessions + Cache")]
+    end
+
+    subgraph crosscutting["Cross-Cutting"]
+        EVENTS["Events"]
+        LISTENERS["Listeners (7)"]
+        CONSTANTS["Constants / Enums"]
+    end
+
+    ROUTES --> CONTROLLERS
+    CONTROLLERS --> MIDDLEWARE
+    CONTROLLERS -->|"DTO"| ACTIONS
+    CONTROLLERS -->|"Inertia render"| FRONTEND
+    ACTIONS --> RULES
+    ACTIONS --> MODELS
+    ACTIONS --> REPOS
+    ACTIONS --> SERVICES
+    MODELS --> LUCID --> PG
+    REPOS --> MONGOOSE --> MONGO
+    SERVICES --> REDIS_DB
+    CONTROLLERS --> ADONIS
+    ACTIONS -->|"emit"| EVENTS
+    EVENTS --> LISTENERS
+    ACTIONS --> CONSTANTS
+
+    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
+    classDef presStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+    classDef infraStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px
+    classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px
+
+    class ADONIS,LUCID,INERTIA,MONGOOSE,REDIS extStyle
+    class ROUTES,CONTROLLERS,MIDDLEWARE,FRONTEND presStyle
+    class ACTIONS appStyle
+    class RULES ruleStyle
+    class MODELS,REPOS,SERVICES domStyle
+    class PG,MONGO,REDIS_DB infraStyle
+    class EVENTS,LISTENERS,CONSTANTS crossStyle

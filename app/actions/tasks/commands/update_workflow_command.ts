@@ -1,5 +1,6 @@
-import TaskStatus from '#models/task_status'
 import TaskWorkflowTransition from '#models/task_workflow_transition'
+import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type { UpdateWorkflowDTO } from '../dtos/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
@@ -33,10 +34,10 @@ export default class UpdateWorkflowCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const statuses = await TaskStatus.findByOrganization(dto.organization_id, trx)
+      const statuses = await TaskStatusRepository.findByOrganization(dto.organization_id, trx)
       const statusIds = new Set(statuses.map((s) => s.id))
 
-      const oldTransitions = await TaskWorkflowTransition.findByOrganization(
+      const oldTransitions = await TaskWorkflowTransitionRepository.findByOrganization(
         dto.organization_id,
         trx
       )
@@ -56,7 +57,7 @@ export default class UpdateWorkflowCommand {
 
       // ── PERSIST ────────────────────────────────────────────────────────
       // Delete all old transitions
-      await TaskWorkflowTransition.deleteByOrganization(dto.organization_id, trx)
+      await TaskWorkflowTransitionRepository.deleteByOrganization(dto.organization_id, trx)
 
       // Insert new transitions
       const newTransitions: TaskWorkflowTransition[] = []

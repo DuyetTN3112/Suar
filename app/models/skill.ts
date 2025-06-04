@@ -56,15 +56,5 @@ export default class Skill extends BaseModel {
   })
   declare user_skills: HasMany<typeof UserSkill>
 
-  // ===== Scopes =====
-  static activeSkills() {
-    return this.query().where('is_active', true).orderBy('sort_order', 'asc')
-  }
-
-  static byCategory(categoryCode: string) {
-    return this.query()
-      .where('category_code', categoryCode)
-      .where('is_active', true)
-      .orderBy('sort_order', 'asc')
-  }
+  // All query methods/scopes have been moved to app/repositories/skill_repository.ts.
 }

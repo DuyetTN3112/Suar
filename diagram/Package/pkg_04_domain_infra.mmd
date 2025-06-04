@@ -1,0 +1,147 @@
+%% ─────────────────────────────────────────────────────────────
+%% pkg_04_domain_infra: Domain Layer + Infrastructure
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Models, Repositories, Services, and their DB backends.
+%% Related: pkg_02_application_layer.mmd — consumers of domain
+%% ─────────────────────────────────────────────────────────────
+
+graph TD
+    subgraph external["External Packages"]
+        LUCID["Lucid ORM
+        (@adonisjs/lucid)"]
+        MONGOOSE["Mongoose
+        (MongoDB ODM)"]
+        TRANSMIT["@adonisjs/transmit
+        (WebSocket / SSE)"]
+        ALLY["@adonisjs/ally
+        (OAuth: Google, GitHub)"]
+        FIREBASE["Firebase Client SDK
+        (Phone Auth — planned)"]
+        VINE["VineJS (Validation)"]
+    end
+
+    subgraph domain["Domain Layer"]
+        direction TB
+
+        subgraph models_pkg["app/models/ — Lucid (PostgreSQL)"]
+            direction LR
+            M_USER["User
+            UserSkill
+            UserActivityLog"]
+            M_ORG["Organization
+            OrganizationUser
+            OrgJoinRequest"]
+            M_PROJECT["Project
+            ProjectMember"]
+            M_TASK["Task
+            TaskVersion
+            TaskAssignment
+            TaskStatus
+            TaskWorkflowTransition"]
+            M_REVIEW["SkillReview
+            Skill"]
+            M_CONV["Conversation
+            Message
+            ConversationParticipant"]
+            M_NOTIF["Notification
+            AuditLog"]
+        end
+
+        subgraph mongo_models_pkg["app/models/mongo/ — Mongoose"]
+            direction LR
+            MM_AUDIT["AuditLog"]
+            MM_NOTIF["Notification"]
+            MM_ACTIVITY["UserActivityLog"]
+        end
+
+        subgraph repos_pkg["app/repositories/"]
+            direction LR
+            R_TASK["TaskRepository"]
+            R_TASKSTATUS["TaskStatusRepository"]
+            R_TASKWF["TaskWorkflowTransitionRepository"]
+            R_PROJECT["ProjectRepository"]
+            R_ORG["OrganizationRepository
+            OrganizationUserRepository"]
+            R_USER["UserRepository"]
+            R_SKILL["SkillRepository
+            SkillReviewRepository"]
+            R_CONV["ConversationRepository
+            MessageRepository
+            ConversationParticipantRepository"]
+            R_AUDIT["LucidAuditLogRepository
+            (RepositoryFactory +
+            multi-DB strategy)"]
+            R_NOTIF["LucidNotificationRepository
+            (RepositoryFactory +
+            multi-DB strategy)"]
+        end
+
+        subgraph services_pkg["app/services/"]
+            PERM_SVC["PermissionService
+            (17 cached methods,
+            3-tier: System→Org→Project)"]
+            CACHE_SVC["CacheService
+            (Redis-backed)"]
+            LOGGER_SVC["LoggerService"]
+        end
+
+        subgraph validators_pkg["app/validators/"]
+            VALIDATORS["VineJS Validators
+            (per-domain, type-safe)"]
+        end
+    end
+
+    subgraph infra["Infrastructure"]
+        PG[("PostgreSQL
+        27 tables, UUIDv7
+        (Lucid ORM)")]
+        MONGO[("MongoDB Atlas
+        audit_logs
+        notifications
+        user_activity_logs")]
+        REDIS[("Redis
+        DB0: Sessions + Locks
+        DB1: App Cache")]
+    end
+
+    M_USER --> LUCID --> PG
+    M_ORG --> LUCID
+    M_PROJECT --> LUCID
+    M_TASK --> LUCID
+    M_REVIEW --> LUCID
+    M_CONV --> LUCID
+    M_NOTIF --> LUCID
+
+    MM_AUDIT --> MONGOOSE --> MONGO
+    MM_NOTIF --> MONGOOSE
+    MM_ACTIVITY --> MONGOOSE
+
+    R_AUDIT -->|"toggle PG/Mongo"| MONGO
+    R_AUDIT --> PG
+    R_NOTIF -->|"toggle PG/Mongo"| MONGO
+    R_NOTIF --> PG
+
+    R_TASK --> M_TASK
+    R_TASKSTATUS --> M_TASK
+    R_TASKWF --> M_TASK
+    R_PROJECT --> M_PROJECT
+    R_ORG --> M_ORG
+    R_USER --> M_USER
+    R_SKILL --> M_REVIEW
+    R_CONV --> M_CONV
+
+    PERM_SVC --> CACHE_SVC --> REDIS
+    VALIDATORS --> VINE
+
+    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
+    classDef modelStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+    classDef repoStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px
+    classDef svcStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef infraStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px
+
+    class LUCID,MONGOOSE,TRANSMIT,ALLY,FIREBASE,VINE extStyle
+    class M_USER,M_ORG,M_PROJECT,M_TASK,M_REVIEW,M_CONV,M_NOTIF modelStyle
+    class MM_AUDIT,MM_NOTIF,MM_ACTIVITY modelStyle
+    class R_TASK,R_TASKSTATUS,R_TASKWF,R_PROJECT,R_ORG,R_USER,R_SKILL,R_CONV,R_AUDIT,R_NOTIF repoStyle
+    class PERM_SVC,CACHE_SVC,LOGGER_SVC,VALIDATORS svcStyle
+    class PG,MONGO,REDIS infraStyle
