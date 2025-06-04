@@ -1,6 +1,6 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/change_user_role_dto.js'
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canChangeUserRole } from '../rules/user_management_rules.js'
@@ -20,7 +20,7 @@ import { canChangeUserRole } from '../rules/user_management_rules.js'
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
     // Verify permissions via pure rule
-    const isSuperadmin = await User.isSuperadmin(dto.changerId)
+    const isSuperadmin = await UserRepository.isSuperadmin(dto.changerId)
     enforcePolicy(
       canChangeUserRole({
         actorId: dto.changerId,
@@ -31,7 +31,7 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
     )
 
     // Verify target user exists and not deleted
-    const targetUser = await User.findNotDeletedOrFail(dto.targetUserId)
+    const targetUser = await UserRepository.findNotDeletedOrFail(dto.targetUserId)
 
     // Get old role for audit log
     const oldRole = targetUser.system_role

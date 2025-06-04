@@ -1,4 +1,4 @@
-import Notification from '#models/notification'
+import LucidNotificationRepository from '#repositories/lucid_notification_repository'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
@@ -12,7 +12,7 @@ export default class MarkNotificationAsRead {
       throw new UnauthorizedException()
     }
     // Tìm thông báo thuộc user → delegate to Model
-    const notification = await Notification.findByUserOrFail(id, userId)
+    const notification = await LucidNotificationRepository.findByUserOrFail(id, userId)
     // Đánh dấu đã đọc
     notification.is_read = true
     await notification.save()
@@ -24,7 +24,7 @@ export default class MarkNotificationAsRead {
     if (!userId) {
       throw new UnauthorizedException()
     }
-    await Notification.markAllAsReadByUser(userId)
+    await LucidNotificationRepository.markAllAsReadByUser(userId)
     return { success: true }
   }
 }

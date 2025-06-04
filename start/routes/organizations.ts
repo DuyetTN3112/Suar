@@ -46,7 +46,7 @@ router
 // Route debug tổ chức - phải đặt trước các route khác
 router
   .get('/organizations/debug', async ({ inertia }) => {
-    return inertia.render('organizations/organization-debug')
+    return inertia.render('organizations/organization-debug', {})
   })
   .as('organizations.debug')
   .use(middleware.auth())
@@ -124,8 +124,6 @@ router
 
 const SwitchOrganizationController = () =>
   import('#controllers/organizations/switch_organization_controller')
-const SwitchAndRedirectController = () =>
-  import('#controllers/organizations/switch_and_redirect_controller')
 
 // API chuyển tổ chức
 router

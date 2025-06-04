@@ -1,20 +1,13 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
-  ProjectFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
-import Project from '#models/project'
-import ProjectMember from '#models/project_member'
-import { ProjectRole, ProjectStatus, ProjectVisibility } from '#constants/project_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import OrganizationUser from '#models/organization_user'
+import { OrganizationFactory, ProjectFactory, cleanupTestData } from '#tests/helpers/factories'
+import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
+import ProjectRepository from '#repositories/project_repository'
 
 test.group('Integration | Create Project', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -75,7 +68,7 @@ test.group('Integration | Create Project', (group) => {
       end_date: endDate,
     })
 
-    const found = await Project.findActiveOrFail(project.id)
+    const found = await ProjectRepository.findActiveOrFail(project.id)
     assert.isNotNull(found.start_date)
     assert.isNotNull(found.end_date)
   })
@@ -91,7 +84,7 @@ test.group('Integration | Create Project', (group) => {
     })
 
     try {
-      await Project.findActiveOrFail(project.id)
+      await ProjectRepository.findActiveOrFail(project.id)
       assert.fail('Should have thrown')
     } catch (error: any) {
       assert.exists(error)
@@ -107,7 +100,7 @@ test.group('Integration | Create Project', (group) => {
     })
 
     // Should not throw
-    await Project.validateBelongsToOrg(project.id, org.id)
+    await ProjectRepository.validateBelongsToOrg(project.id, org.id)
     assert.isTrue(true)
   })
 
@@ -121,7 +114,7 @@ test.group('Integration | Create Project', (group) => {
     })
 
     try {
-      await Project.validateBelongsToOrg(project.id, org2.id)
+      await ProjectRepository.validateBelongsToOrg(project.id, org2.id)
       assert.fail('Should have thrown')
     } catch (error: any) {
       assert.exists(error)
@@ -136,7 +129,7 @@ test.group('Integration | Create Project', (group) => {
     await ProjectFactory.create({ organization_id: org1.id, creator_id: owner1.id })
     await ProjectFactory.create({ organization_id: org2.id, creator_id: owner2.id })
 
-    const counts = await Project.countByOrgIds([org1.id, org2.id])
+    const counts = await ProjectRepository.countByOrgIds([org1.id, org2.id])
     assert.equal(counts.get(org1.id), 2)
     assert.equal(counts.get(org2.id), 1)
   })

@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { EntityType } from '#constants/audit_constants'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -63,10 +63,10 @@ export default class AddMemberCommand {
       }
 
       // 2. Check permissions, role validity, and duplicate membership
-      const actorOrgRole = await OrganizationUser.getOrgRole(userId, dto.organizationId, trx)
-      const alreadyMember = await OrganizationUser.hasMembership(
-        dto.organizationId,
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false)
+      const alreadyMember = await OrganizationUserRepository.isMember(
         dto.userId,
+        dto.organizationId,
         trx
       )
       enforcePolicy(
@@ -78,7 +78,7 @@ export default class AddMemberCommand {
       )
 
       // 5. Add member to organization → delegate to Model
-      await OrganizationUser.addMember(
+      await OrganizationUserRepository.addMember(
         {
           organization_id: dto.organizationId,
           user_id: dto.userId,
@@ -88,23 +88,20 @@ export default class AddMemberCommand {
       )
 
       // 6. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: 'add_member',
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: dto.organizationId,
-          new_values: {
-            ...dto.toObject(),
-            added_user_id: dto.userId,
-            role: dto.getRoleName(),
-            org_role: dto.roleId,
-          },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
+      await AuditLog.create({
+        user_id: userId,
+        action: 'add_member',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        new_values: {
+          ...dto.toObject(),
+          added_user_id: dto.userId,
+          role: dto.getRoleName(),
+          org_role: dto.roleId,
         },
-        { client: trx }
-      )
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

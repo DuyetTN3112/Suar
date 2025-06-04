@@ -551,13 +551,13 @@ test.group('checkJoinEligibility', () => {
     assert.include(result.message, 'chờ')
   })
 
-  test('rejected status returns contact message', ({ assert }) => {
+  test('rejected status allows re-application', ({ assert }) => {
     const result = checkJoinEligibility('rejected')
-    assert.isFalse(result.eligible)
-    assert.include(result.message, 'từ chối')
+    assert.isTrue(result.eligible)
+    assert.equal(result.message, '')
   })
 
-  test('unknown status returns rejected message', ({ assert }) => {
+  test('unknown status returns not eligible', ({ assert }) => {
     const result = checkJoinEligibility('unknown_status')
     assert.isFalse(result.eligible)
   })

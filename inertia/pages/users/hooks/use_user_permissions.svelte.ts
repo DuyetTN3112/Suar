@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
-import { toast } from 'svelte-sonner'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
 export function createUserPermissions() {
@@ -12,7 +12,7 @@ export function createUserPermissions() {
 
   function openEditPermissionsModal(user: User) {
     if (!user || !user.id) {
-      toast.error('Không tìm thấy thông tin người dùng')
+      notificationStore.error('Không tìm thấy thông tin người dùng')
       return
     }
     selectedUserId.set(user.id)
@@ -26,7 +26,7 @@ export function createUserPermissions() {
   function handleUpdatePermissions(e: Event, userId: string | null, orgRole: string) {
     e.preventDefault()
     if (!userId || !orgRole) {
-      toast.error('Vui lòng chọn vai trò')
+      notificationStore.error('Vui lòng chọn vai trò')
       return
     }
     isSubmitting.set(true)
@@ -44,7 +44,7 @@ export function createUserPermissions() {
         preserveScroll: false,
         preserveState: false,
         onSuccess: () => {
-          toast.success('Đã cập nhật quyền người dùng thành công')
+          notificationStore.success('Đã cập nhật quyền người dùng thành công')
           editModalOpen.set(false)
           isSubmitting.set(false)
           router.reload({ only: ['users'] })
@@ -52,7 +52,7 @@ export function createUserPermissions() {
         onError: (errors: any) => {
           console.error('Lỗi khi cập nhật quyền:', errors)
           isSubmitting.set(false)
-          toast.error(errors.message || 'Không thể cập nhật quyền người dùng')
+          notificationStore.error(errors.message || 'Không thể cập nhật quyền người dùng')
         },
       }
     )

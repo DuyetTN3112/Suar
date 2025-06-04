@@ -1,4 +1,4 @@
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 
@@ -13,7 +13,7 @@ export default class CheckSuperAdminPermissionQuery {
    * Returns true if user is approved org_owner in the organization.
    */
   static async execute(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    const membership = await OrganizationUser.findMembership(organizationId, userId)
+    const membership = await OrganizationUserRepository.findMembership(organizationId, userId)
 
     return (
       !!membership &&

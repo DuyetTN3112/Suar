@@ -3,22 +3,19 @@ import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
   OrganizationFactory,
-  OrganizationUserFactory,
   ProjectFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import ProjectMember from '#models/project_member'
-import OrganizationUser from '#models/organization_user'
 import { ProjectRole } from '#constants/project_constants'
 import { OrganizationRole } from '#constants/organization_constants'
-import {
-  canAddProjectMember,
-  canRemoveProjectMember,
-  canManageProjectMembers,
-} from '#actions/projects/rules/project_permission_policy'
+import { canAddProjectMember } from '#actions/projects/rules/project_permission_policy'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 
 test.group('Integration | Project Members', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -26,7 +23,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -38,7 +35,7 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    const member = await ProjectMember.addMember(project.id, user.id, ProjectRole.MEMBER)
+    const member = await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
     assert.isNotNull(member)
     assert.equal(member.project_id, project.id)
     assert.equal(member.user_id, user.id)
@@ -53,9 +50,9 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    await ProjectMember.addMember(project.id, owner.id, ProjectRole.OWNER)
+    await ProjectMemberRepository.addMember(project.id, owner.id, ProjectRole.OWNER)
 
-    const result = await ProjectMember.isMember(project.id, owner.id)
+    const result = await ProjectMemberRepository.isMember(project.id, owner.id)
     assert.isTrue(result)
   })
 
@@ -67,7 +64,7 @@ test.group('Integration | Project Members', (group) => {
       creator_id: owner.id,
     })
 
-    const result = await ProjectMember.isMember(project.id, nonMember.id)
+    const result = await ProjectMemberRepository.isMember(project.id, nonMember.id)
     assert.isFalse(result)
   })
 
@@ -75,7 +72,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const manager = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: manager.id,
       org_role: OrganizationRole.MEMBER,
@@ -87,9 +84,9 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    await ProjectMember.addMember(project.id, manager.id, ProjectRole.MANAGER)
+    await ProjectMemberRepository.addMember(project.id, manager.id, ProjectRole.MANAGER)
 
-    const result = await ProjectMember.isProjectManagerOrOwner(manager.id, project.id)
+    const result = await ProjectMemberRepository.isProjectManagerOrOwner(manager.id, project.id)
     assert.isTrue(result)
   })
 
@@ -97,7 +94,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -109,10 +106,10 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    await ProjectMember.addMember(project.id, user.id, ProjectRole.MEMBER)
-    await ProjectMember.deleteMember(project.id, user.id)
+    await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
+    await ProjectMemberRepository.deleteMember(project.id, user.id)
 
-    const result = await ProjectMember.isMember(project.id, user.id)
+    const result = await ProjectMemberRepository.isMember(project.id, user.id)
     assert.isFalse(result)
   })
 
@@ -120,7 +117,7 @@ test.group('Integration | Project Members', (group) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user.id,
       org_role: OrganizationRole.MEMBER,
@@ -132,10 +129,10 @@ test.group('Integration | Project Members', (group) => {
       owner_id: owner.id,
     })
 
-    await ProjectMember.addMember(project.id, user.id, ProjectRole.MEMBER)
-    await ProjectMember.updateRole(project.id, user.id, ProjectRole.MANAGER)
+    await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
+    await ProjectMemberRepository.updateRole(project.id, user.id, ProjectRole.MANAGER)
 
-    const roleName = await ProjectMember.getRoleName(project.id, user.id)
+    const roleName = await ProjectMemberRepository.getRoleName(project.id, user.id)
     assert.equal(roleName, ProjectRole.MANAGER)
   })
 
@@ -148,7 +145,7 @@ test.group('Integration | Project Members', (group) => {
       creator_id: owner.id,
     })
 
-    const roleName = await ProjectMember.getRoleName(project.id, nonMember.id)
+    const roleName = await ProjectMemberRepository.getRoleName(project.id, nonMember.id)
     assert.equal(roleName, 'unknown')
   })
 
@@ -157,12 +154,12 @@ test.group('Integration | Project Members', (group) => {
     const user1 = await UserFactory.create()
     const user2 = await UserFactory.create()
 
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user1.id,
       org_role: OrganizationRole.MEMBER,
     })
-    await OrganizationUser.addMember({
+    await OrganizationUserRepository.addMember({
       organization_id: org.id,
       user_id: user2.id,
       org_role: OrganizationRole.MEMBER,
@@ -177,12 +174,12 @@ test.group('Integration | Project Members', (group) => {
       creator_id: owner.id,
     })
 
-    await ProjectMember.addMember(project1.id, owner.id, ProjectRole.OWNER)
-    await ProjectMember.addMember(project1.id, user1.id, ProjectRole.MEMBER)
-    await ProjectMember.addMember(project1.id, user2.id, ProjectRole.MEMBER)
-    await ProjectMember.addMember(project2.id, owner.id, ProjectRole.OWNER)
+    await ProjectMemberRepository.addMember(project1.id, owner.id, ProjectRole.OWNER)
+    await ProjectMemberRepository.addMember(project1.id, user1.id, ProjectRole.MEMBER)
+    await ProjectMemberRepository.addMember(project1.id, user2.id, ProjectRole.MEMBER)
+    await ProjectMemberRepository.addMember(project2.id, owner.id, ProjectRole.OWNER)
 
-    const counts = await ProjectMember.countByProjectIds([project1.id, project2.id])
+    const counts = await ProjectMemberRepository.countByProjectIds([project1.id, project2.id])
     assert.equal(counts.get(project1.id), 3)
     assert.equal(counts.get(project2.id), 1)
   })
@@ -190,26 +187,26 @@ test.group('Integration | Project Members', (group) => {
   test('canAddProjectMember policy checks combine properly', async ({ assert }) => {
     // System admin can always add
     const result1 = canAddProjectMember({
+      actorId: 'admin-1',
       actorSystemRole: 'superadmin',
       actorOrgRole: null,
-      isProjectOwner: false,
-      isProjectCreator: false,
-      actorProjectRole: null,
+      projectOwnerId: 'owner-1',
+      projectCreatorId: 'creator-1',
       isTargetOrgMember: true,
-      isTargetAlreadyMember: false,
+      isAlreadyMember: false,
       targetRole: ProjectRole.MEMBER,
     })
     assert.isTrue(result1.allowed)
 
     // Cannot add already-member
     const result2 = canAddProjectMember({
+      actorId: 'admin-1',
       actorSystemRole: 'superadmin',
       actorOrgRole: null,
-      isProjectOwner: true,
-      isProjectCreator: true,
-      actorProjectRole: ProjectRole.OWNER,
+      projectOwnerId: 'admin-1',
+      projectCreatorId: 'admin-1',
       isTargetOrgMember: true,
-      isTargetAlreadyMember: true,
+      isAlreadyMember: true,
       targetRole: ProjectRole.MEMBER,
     })
     assert.isFalse(result2.allowed)

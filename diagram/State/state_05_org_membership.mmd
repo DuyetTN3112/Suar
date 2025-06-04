@@ -1,0 +1,37 @@
+%% state_05_org_membership.mmd — OrganizationUser Status
+%% Ref: organization_user model (status: pending/approved/rejected)
+%% Two entry paths: Invite or Join Request
+%% Composite PK: (organization_id, user_id)
+
+stateDiagram-v2
+    state "Entry Path" as entry_fork <<fork>>
+
+    [*] --> entry_fork
+
+    state invite_path {
+        invite: Org admin/owner\nsends invitation
+    }
+    state join_path {
+        join_req: User submits\njoin request
+    }
+
+    entry_fork --> invite : Via Invitation\n(token + email)
+    entry_fork --> join_req : Via Join Request\n(user-initiated)
+
+    invite --> pending : Invitee accepts\ninvitation link
+    join_req --> pending : Request submitted\n(org_role = org_member)
+
+    pending --> approved : Admin/Owner approves
+    pending --> rejected : Admin/Owner rejects
+
+    approved --> [*] : Active member\n(org_role assigned)
+    rejected --> [*]
+
+    note right of pending
+        org_role options:
+        Built-in: org_owner, org_admin, org_member
+        Custom: validated from organizations.custom_roles JSONB
+        ──────────────────
+        invited_by tracks who sent invitation.
+        Invitation expires after 7 days.
+    end note

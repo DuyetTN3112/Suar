@@ -41,10 +41,35 @@ try {
   await app.boot()
 
   /**
-   * Configure test runner
+   * Parse CLI args first so configure() can use them for suite filtering.
+   * Example: --suites=unit will only run the unit suite.
+   */
+  processCLIArgs(process.argv.splice(2))
+
+  /**
+   * Configure test runner with 3 suites:
+   *   - unit: Pure logic tests, no DB/network
+   *   - integration: Tests that need DB/services
+   *   - match: Pattern matching / snapshot tests
+   *
+   * Run all:          pnpm test
+   * Run one suite:    pnpm test:unit | pnpm test:integration | pnpm test:match
    */
   configure({
-    files: ['tests/**/*.spec.ts'],
+    suites: [
+      {
+        name: 'unit',
+        files: ['tests/unit/**/*.spec.ts'],
+      },
+      {
+        name: 'integration',
+        files: ['tests/integration/**/*.spec.ts'],
+      },
+      {
+        name: 'match',
+        files: ['tests/match/**/*.spec.ts'],
+      },
+    ],
     plugins: [assert(), fileSystem()],
     reporters: {
       activated: ['spec'],
@@ -55,13 +80,13 @@ try {
         },
       ],
     },
+    forceExit: true,
     importer: IMPORTER,
   })
 
   /**
    * Run tests
    */
-  processCLIArgs(process.argv.splice(2))
   await run()
 } catch (error) {
   void prettyPrintError(error as Error)

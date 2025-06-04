@@ -1,4 +1,4 @@
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import { DateTime } from 'luxon'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'

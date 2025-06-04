@@ -1,7 +1,10 @@
 import Task from '#models/task'
 import User from '#models/user'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import TaskStatusModel from '#models/task_status'
+import TaskWorkflowTransition from '#models/task_workflow_transition'
+import UserRepository from '#repositories/user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -10,20 +13,22 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canUpdateTaskStatus } from '#actions/tasks/rules/task_permission_policy'
-import { validateTransition } from '#actions/tasks/rules/task_state_machine'
+import { validateWorkflowTransition } from '#actions/tasks/rules/task_status_rules'
 
 /**
  * Command để cập nhật trạng thái task
  *
  * Business Rules:
- * - Validate status transition (enforced via task state machine)
+ * - Validate status transition via DB-driven workflow (task_workflow_transitions)
  * - Set updated_by
  * - Notify creator nếu status thay đổi
  * - Audit log đầy đủ
+ * - Sets both task_status_id (v4) and status slug (backward compat)
  *
  * Pattern: FETCH → DECIDE → PERSIST
  */
@@ -53,9 +58,36 @@ export default class UpdateTaskStatusCommand {
         .forUpdate()
         .firstOrFail()
 
+      // Load new status and verify it belongs to the same organization
+      const newStatus = await TaskStatusModel.query({ client: trx })
+        .where('id', dto.task_status_id)
+        .where('organization_id', task.organization_id)
+        .whereNull('deleted_at')
+        .first()
+
+      if (!newStatus) {
+        throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+      }
+
+      // Resolve current task_status_id (backward compat: old tasks may only have status slug)
+      let currentStatusId = task.task_status_id
+      if (!currentStatusId) {
+        const currentStatus = await TaskStatusModel.findBySlug(
+          task.organization_id,
+          task.status,
+          trx
+        )
+        if (!currentStatus) {
+          throw new BusinessLogicException(
+            `Không thể xác định trạng thái hiện tại của task (status: ${task.status})`
+          )
+        }
+        currentStatusId = currentStatus.id
+      }
+
       const [systemRole, orgRole] = await Promise.all([
-        User.getSystemRoleName(userId),
-        OrganizationUser.getOrgRole(userId, task.organization_id),
+        UserRepository.getSystemRoleName(userId),
+        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -75,41 +107,53 @@ export default class UpdateTaskStatusCommand {
 
       const oldStatus = task.status
 
+      // Load allowed transitions from DB
+      const transitions = await TaskWorkflowTransition.findFromStatus(
+        task.organization_id,
+        currentStatusId,
+        trx
+      )
+
+      const matchingTransition = transitions.find(
+        (t) => t.to_status_id === dto.task_status_id
+      )
+
       enforcePolicy(
-        validateTransition({
-          currentStatus: oldStatus,
-          newStatus: dto.status,
+        validateWorkflowTransition({
+          currentStatusId,
+          newStatusId: dto.task_status_id,
+          allowedTargetIds: transitions.map((t) => t.to_status_id),
+          conditions: matchingTransition?.conditions ?? {},
           isAssigned: task.assigned_to !== null,
         })
       )
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      task.merge(dto.toObject())
+      task.task_status_id = dto.task_status_id
+      task.status = newStatus.slug // backward compat
       task.updated_by = String(userId)
       await task.save()
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.UPDATE_STATUS,
-          entity_type: EntityType.TASK,
-          entity_id: dto.task_id,
-          old_values: { status: oldStatus },
-          new_values: { status: task.status },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.UPDATE_STATUS,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: { status: oldStatus },
+        new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 
       // Emit domain event
-      if (oldStatus !== task.status) {
+      if (oldStatus !== newStatus.slug) {
         void emitter.emit('task:status:changed', {
           task,
           oldStatus,
-          newStatus: task.status,
+          newStatus: newStatus.slug,
+          newStatusCategory: newStatus.category,
           changedBy: userId,
         })
       }
@@ -120,13 +164,13 @@ export default class UpdateTaskStatusCommand {
       await CacheService.deleteByPattern(`task:user:*`)
 
       // Send notification (outside transaction)
-      if (oldStatus !== task.status) {
+      if (oldStatus !== newStatus.slug) {
         await this.sendStatusChangeNotification(task, userId, dto)
       }
 
-      // Load relations (v3: status/label/priority are inline columns)
+      // Load relations
       await task.load((loader) => {
-        loader.load('assignee').load('creator').load('updater')
+        loader.load('assignee').load('creator').load('updater').load('taskStatus')
       })
 
       return task

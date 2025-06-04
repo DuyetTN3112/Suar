@@ -1,0 +1,81 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_03c: Review Score Calculation + Anomaly Detection
+%% ─────────────────────────────────────────────────────────────
+%% Scope: review completed → scores updated → anomaly check
+%% Anomaly detection runs on EACH review submission (parallel)
+%% Score calculation runs AFTER session finalized
+%% 3/6 anomaly patterns currently implemented
+%%
+%% Related:
+%%   act_03a_review_submit.mmd  — Session creation + Reviews
+%%   act_03b_review_confirm.mmd — Confirmation + Dispute
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    %% ═══════════════════════════════════════════════════════════
+    %% ANOMALY DETECTION (runs per review submission)
+    %% ═══════════════════════════════════════════════════════════
+    ReviewSubmitted(["Event: review:submitted
+    (from act_03a)"]) --> AnomalyCheck{"DetectAnomalyCommand:
+    Anomaly detected?
+    (3/6 patterns active)"}
+
+    AnomalyCheck -->|"bulk_same_level
+    or new_account_high
+    or mutual_high"| CreateFlag["Create flagged_review
+    (flag_type + severity)"]
+    CreateFlag --> NotifyAdmin["Notify Admin"]
+    AnomalyCheck -->|"None"| AnomalyDone(["No anomaly — done"])
+
+    %% ─── Admin resolves flag (async, separate flow) ───
+    NotifyAdmin --> AdminResolve["Admin resolves flag
+    POST /admin/flagged-reviews/:id/resolve"]
+    AdminResolve --> AdminDecision{"Action?"}
+    AdminDecision -->|Dismiss| DismissFlag["flag.status = 'dismissed'"]
+    AdminDecision -->|Confirm| ConfirmFlag["flag.status = 'confirmed'
+    Reduce reviewer
+    credibility_score"]
+    DismissFlag --> FlagDone([End])
+    ConfirmFlag --> FlagDone
+
+    %% ═══════════════════════════════════════════════════════════
+    %% SCORE CALCULATION (runs after session finalized)
+    %% ═══════════════════════════════════════════════════════════
+    SessionFinalized(["From act_03b:
+    Session finalized"]) --> UpdateScores["Update scores
+    (triggered by events,
+    cache invalidation only —
+    recalc commands are separate)"]
+
+    UpdateScores --> CalcSpider["CalculateSpiderChartCommand:
+    AVG skill_reviews.assigned_level
+    → user_skills.avg_percentage
+    → user_skills.level_code
+    (source = 'reviewed')"]
+
+    CalcSpider --> CalcTrust["CalculateTrustScoreCommand:
+    AVG user_skills.avg_percentage
+    × tier_weight
+    → users.trust_data JSONB"]
+
+    CalcTrust --> CalcCredibility["UpdateReviewerCredibilityCommand:
+    50 + (confirmed/total)×40
+    - (disputed/total)×30
+    → users.credibility_data JSONB"]
+
+    CalcCredibility --> UpdateFreelancer["Update users:
+    freelancer_rating
+    completed_tasks_count"]
+
+    UpdateFreelancer --> Done(["Session fully
+    finalized — End"])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef score fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef flag fill:#FFF9C4,stroke:#F57F17,color:#333
+    class ReviewSubmitted,SessionFinalized,AnomalyDone,FlagDone,Done startEnd
+    class UpdateScores,CalcSpider,CalcTrust,CalcCredibility,UpdateFreelancer score
+    class AnomalyCheck,AdminDecision decision
+    class CreateFlag,NotifyAdmin,AdminResolve,DismissFlag,ConfirmFlag flag

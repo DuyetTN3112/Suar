@@ -19,12 +19,6 @@ function readFile(relativePath: string): string {
   return fs.readFileSync(path.join(WORKSPACE_ROOT, relativePath), 'utf-8')
 }
 
-function listFiles(dir: string): string[] {
-  const fullPath = path.join(WORKSPACE_ROOT, dir)
-  if (!fs.existsSync(fullPath)) return []
-  return fs.readdirSync(fullPath, { recursive: true }) as string[]
-}
-
 // ============================================================================
 // Route Files Exist — ~3 tests
 // ============================================================================

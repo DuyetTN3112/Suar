@@ -7,7 +7,7 @@ import type {
   MessageDeletedEvent,
   TaskUpdatedEvent,
   TaskStatusChangedEvent,
-} from '#events/index'
+} from '#events/event_types'
 
 /**
  * Organization Listeners
@@ -142,12 +142,12 @@ emitter.on('task:updated', async (event: TaskUpdatedEvent) => {
 /**
  * Task Status Changed → Auto-complete assignments & Create review session
  *
- * When task status changes to 'done':
+ * When task status changes to a status with category 'done':
  * 1. Mark all active assignments as 'completed'
  * 2. Auto-create review sessions for each completed assignment
  */
 emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
-  if (event.newStatus !== 'done') return
+  if (event.newStatusCategory !== 'done') return
 
   try {
     const { default: TaskAssignment } = await import('#models/task_assignment')
@@ -172,7 +172,7 @@ emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
         // Auto-create review session
         await ReviewSession.create({
           task_assignment_id: assignment.id,
-          reviewee_id: assignment.user_id,
+          reviewee_id: assignment.assignee_id,
           status: 'pending',
           manager_review_completed: false,
           peer_reviews_count: 0,
@@ -182,7 +182,7 @@ emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
         loggerService.info('Auto-created review session for completed assignment', {
           taskId: event.task.id,
           assignmentId: assignment.id,
-          assigneeId: assignment.user_id,
+          assigneeId: assignment.assignee_id,
         })
       }
     }

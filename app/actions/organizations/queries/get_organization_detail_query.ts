@@ -1,9 +1,9 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import User from '#models/user'
-import Project from '#models/project'
+import ProjectRepository from '#repositories/project_repository'
 import type { GetOrganizationDetailDTO } from '../dtos/get_organization_detail_dto.js'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -115,7 +115,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
-    const isMember = await OrganizationUser.isMember(userId, organizationId)
+    const isMember = await OrganizationUserRepository.isMember(userId, organizationId)
     if (!isMember) {
       throw new ForbiddenException('Bạn không có quyền xem tổ chức này')
     }
@@ -139,9 +139,9 @@ export default class GetOrganizationDetailQuery {
     task_count: number
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
-      OrganizationUser.countMembers(organizationId),
-      Project.countByOrgIds([organizationId]).then((m) => m.get(String(organizationId)) ?? 0),
-      Project.countTasksByOrganization(organizationId),
+      OrganizationUserRepository.countMembers(organizationId),
+      ProjectRepository.countByOrgIds([organizationId]).then((m) => m.get(String(organizationId)) ?? 0),
+      ProjectRepository.countTasksByOrganization(organizationId),
     ])
 
     return {
@@ -158,7 +158,7 @@ export default class GetOrganizationDetailQuery {
     organizationId: DatabaseId,
     limit: number
   ): Promise<MemberPreview[]> {
-    const members = await OrganizationUser.getMembersPreview(organizationId, limit)
+    const members = await OrganizationUserRepository.getMembersPreview(organizationId, limit)
     return members.map((m) => ({
       id: m.user?.id ?? m.user_id,
       email: m.user?.email ?? '',

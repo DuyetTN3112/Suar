@@ -63,35 +63,35 @@ test.group('Permission Maps | Structural Integrity', () => {
   })
 
   test('registered_user has no system permissions', ({ assert }) => {
-    const perms = SYSTEM_ROLE_PERMISSIONS[SystemRoleName.REGISTERED_USER]
+    const perms = SYSTEM_ROLE_PERMISSIONS[SystemRoleName.REGISTERED_USER]!
     assert.lengthOf(perms, 0)
   })
 
   test('system_admin has exactly 5 permissions', ({ assert }) => {
-    const perms = SYSTEM_ROLE_PERMISSIONS[SystemRoleName.SYSTEM_ADMIN]
+    const perms = SYSTEM_ROLE_PERMISSIONS[SystemRoleName.SYSTEM_ADMIN]!
     assert.lengthOf(perms, 5)
   })
 
   test('org_owner has more permissions than org_admin', ({ assert }) => {
-    const ownerPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.OWNER]
-    const adminPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]
+    const ownerPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.OWNER]!
+    const adminPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]!
     assert.isAbove(ownerPerms.length, adminPerms.length)
   })
 
   test('org_admin has more permissions than org_member', ({ assert }) => {
-    const adminPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]
-    const memberPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.MEMBER]
+    const adminPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]!
+    const memberPerms = ORG_ROLE_PERMISSIONS[OrganizationRole.MEMBER]!
     assert.isAbove(adminPerms.length, memberPerms.length)
   })
 
   test('project_owner has more permissions than project_manager', ({ assert }) => {
-    const ownerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.OWNER]
-    const managerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.MANAGER]
+    const ownerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.OWNER]!
+    const managerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.MANAGER]!
     assert.isAbove(ownerPerms.length, managerPerms.length)
   })
 
   test('project_viewer has exactly 1 permission', ({ assert }) => {
-    const viewerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.VIEWER]
+    const viewerPerms = PROJECT_ROLE_PERMISSIONS[ProjectRole.VIEWER]!
     assert.lengthOf(viewerPerms, 1)
     assert.include(viewerPerms as unknown as string[], 'can_view_all_tasks')
   })
@@ -439,7 +439,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('system_admin permissions match DB function check_system_permission()', ({ assert }) => {
-    const appPerms = [...SYSTEM_ROLE_PERMISSIONS[SystemRoleName.SYSTEM_ADMIN]]
+    const appPerms = [...SYSTEM_ROLE_PERMISSIONS[SystemRoleName.SYSTEM_ADMIN]!]
     assert.deepEqual(appPerms.sort(), DB_SYSTEM_ADMIN_PERMISSIONS.sort())
   })
 
@@ -461,7 +461,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('org_owner permissions match DB function check_organization_permission()', ({ assert }) => {
-    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.OWNER]]
+    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.OWNER]!]
     assert.deepEqual(appPerms.sort(), DB_ORG_OWNER_PERMISSIONS.sort())
   })
 
@@ -478,7 +478,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('org_admin permissions match DB function check_organization_permission()', ({ assert }) => {
-    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]]
+    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.ADMIN]!]
     assert.deepEqual(appPerms.sort(), DB_ORG_ADMIN_PERMISSIONS.sort())
   })
 
@@ -492,7 +492,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('org_member permissions match DB function check_organization_permission()', ({ assert }) => {
-    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.MEMBER]]
+    const appPerms = [...ORG_ROLE_PERMISSIONS[OrganizationRole.MEMBER]!]
     assert.deepEqual(appPerms.sort(), DB_ORG_MEMBER_PERMISSIONS.sort())
   })
 
@@ -514,7 +514,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('project_owner permissions match DB function check_project_permission()', ({ assert }) => {
-    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.OWNER]]
+    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.OWNER]!]
     assert.deepEqual(appPerms.sort(), DB_PROJECT_OWNER_PERMISSIONS.sort())
   })
 
@@ -534,7 +534,7 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('project_manager permissions match DB function check_project_permission()', ({ assert }) => {
-    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.MANAGER]]
+    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.MANAGER]!]
     assert.deepEqual(appPerms.sort(), DB_PROJECT_MANAGER_PERMISSIONS.sort())
   })
 
@@ -547,13 +547,13 @@ test.group('Cross-validation | App constants match DB schema', () => {
   ]
 
   test('project_member permissions match DB function check_project_permission()', ({ assert }) => {
-    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.MEMBER]]
+    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.MEMBER]!]
     assert.deepEqual(appPerms.sort(), DB_PROJECT_MEMBER_PERMISSIONS.sort())
   })
 
   // DB: check_project_permission() — project_viewer permissions (1)
   test('project_viewer permissions match DB function check_project_permission()', ({ assert }) => {
-    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.VIEWER]]
+    const appPerms = [...PROJECT_ROLE_PERMISSIONS[ProjectRole.VIEWER]!]
     assert.deepEqual(appPerms, ['can_view_all_tasks'])
   })
 

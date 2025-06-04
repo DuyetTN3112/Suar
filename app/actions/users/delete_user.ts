@@ -1,5 +1,6 @@
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { DateTime } from 'luxon'
 import type { ExecutionContext } from '#types/execution_context'
@@ -25,7 +26,7 @@ export default class DeleteUser {
 
     try {
       // Verify current user is superadmin
-      const isSuperadmin = await User.isSuperadmin(currentUserId)
+      const isSuperadmin = await UserRepository.isSuperadmin(currentUserId)
       if (!isSuperadmin) {
         return {
           success: false,

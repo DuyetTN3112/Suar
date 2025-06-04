@@ -1,0 +1,183 @@
+
+%% Class Diagram: Core Domain (User, Org, Project)
+%% Source: app/models/user.ts, organization.ts, organization_user.ts,
+%%         project.ts, project_member.ts, project_attachment.ts,
+%%         user_o_auth_provider.ts
+%% Scope: Columns match @column decorators exactly. Methods show actual
+%%         static/instance methods in model (not business logic in Commands).
+%%         ⚠️ = planned in SQL v3 but not yet in model code.
+%%         Leaked static methods annotated — should migrate to Repository layer.
+classDiagram
+    class User {
+        +UUID id PK
+        +String username UK
+        +String email UK
+        +String status : active | inactive | suspended
+        +String system_role : superadmin | system_admin | registered_user
+        +UUID current_organization_id FK
+        +String auth_method : google | github
+        +String avatar_url
+        +Text bio
+        +String phone
+        +Text address
+        +String timezone
+        +String language
+        +Boolean is_freelancer
+        +Decimal freelancer_rating
+        +Integer freelancer_completed_tasks_count
+        +SmallInt ranking_priority : 1-3
+        +Boolean is_verified_badge
+        +JSONB profile_settings
+        +JSONB trust_data
+        +JSONB credibility_data
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +get isAdmin() Boolean
+        +$findActiveOrFail(userId, trx?)⚡
+        +$isActive(userId, trx?)⚡
+        +$isFreelancer(userId, trx?)⚡
+        +$isSuperadmin(userId, trx?)⚡
+        +$findNotDeletedOrFail(userId, trx?)⚡
+        +$getSystemRoleName(userId, trx?)⚡
+        +$isSystemAdmin(userId, trx?)⚡
+    }
+
+    class UserOAuthProvider {
+        +UUID id PK
+        +UUID user_id FK
+        +String provider : google | github
+        +String provider_id UK
+        +String email
+        +String access_token
+        +String refresh_token
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class RememberMeToken {
+        +SERIAL id PK
+        +UUID tokenable_id FK
+        +String hash
+        +DateTime expires_at
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class Organization {
+        +UUID id PK
+        +String name
+        +String slug UK
+        +Text description
+        +String logo
+        +String website
+        +String plan : free | starter | professional | enterprise
+        +UUID owner_id FK
+        +JSONB custom_roles
+        +String partner_type : gold | silver | bronze
+        +DateTime partner_verified_at
+        +UUID partner_verified_by FK
+        +Text partner_verification_proof
+        +DateTime partner_expires_at
+        +Boolean partner_is_active
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$findActiveOrFail(orgId, trx?)⚡
+        +$existsActive(orgId, trx?)⚡
+        +$slugExists(slug, trx?)⚡
+        +$getUniqueSlug(base, trx?)⚡
+        +$countActiveProjects(orgId, trx?)⚡
+        +$paginateByUser(userId, page, trx?)⚡
+    }
+
+    class OrganizationUser {
+        +UUID organization_id PK_FK
+        +UUID user_id PK_FK
+        +String org_role : org_owner | org_admin | org_member
+        +String status : pending | approved | rejected
+        +UUID invited_by FK
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$findMembership(orgId, userId, trx?)⚡
+        +$findMembershipOrFail(orgId, userId, trx?)⚡
+        +$isApprovedMember(orgId, userId, trx?)⚡
+        +$isOrgAdminOrOwner(orgId, userId, trx?)⚡
+        +$validateAllApprovedMembers(orgId, userIds, trx?)⚡
+        +$findApprovedMemberOrFail(orgId, userId, trx?)⚡
+    }
+
+    class Project {
+        +UUID id PK
+        +UUID creator_id FK
+        +String name
+        +Text description
+        +UUID organization_id FK
+        +DateTime start_date
+        +DateTime end_date
+        +String status : pending | in_progress | completed | cancelled
+        +Decimal budget
+        +UUID manager_id FK
+        +UUID owner_id FK
+        +String visibility : public | private | team
+        +Boolean allow_freelancer
+        +Boolean approval_required_for_members
+        +JSONB tags
+        +JSONB custom_roles
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$findActiveOrFail(projectId, trx?)⚡
+        +$findActiveForUpdate(projectId, trx?)⚡
+        +$validateBelongsToOrg(projectId, orgId, trx?)⚡
+        +$findIdsByOrganization(orgId, trx?)⚡
+    }
+
+    class ProjectMember {
+        +UUID project_id PK_FK
+        +UUID user_id PK_FK
+        +String project_role : project_owner | project_manager | project_member | project_viewer
+        +DateTime created_at
+        --
+        +$findMember(projectId, userId, trx?)⚡
+        +$findMemberOrFail(projectId, userId, trx?)⚡
+        +$deleteMember(projectId, userId, trx?)⚡
+        +$isProjectManagerOrOwner(projectId, userId, trx?)⚡
+    }
+
+    class ProjectAttachment {
+        +UUID id PK
+        +UUID project_id FK
+        +String file_name
+        +String file_path
+        +UUID uploaded_by FK
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    %% Relationships
+    User "1" --> "*" UserOAuthProvider : has
+    User "1" --> "*" RememberMeToken : has tokens
+    User "1" --> "*" OrganizationUser : joins
+    User "1" --> "0..1" Organization : belongsTo (current_organization)
+    Organization "1" --> "*" OrganizationUser : has members
+    Organization "1" --> "*" Project : contains
+    User "1" --> "*" ProjectMember : participates
+    Project "1" --> "*" ProjectMember : has members
+    Project "1" --> "*" ProjectAttachment : has files
+    User "1" --> "*" ProjectAttachment : uploads
+
+    note for User "OAuth only — NO email/password auth.
+    auth_method CHECK ('google','github').
+    ⚡ = leaked static method (should → Repository)."
+    note for RememberMeToken "Framework-managed by @adonisjs/auth
+    DbRememberMeTokensProvider.
+    No custom model file exists."
+    note for ProjectAttachment "No file_size or mime_type columns.
+    Only file_name + file_path stored."
+
+

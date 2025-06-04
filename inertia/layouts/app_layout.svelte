@@ -5,7 +5,7 @@
   import AppSidebar from '@/components/layout/app_sidebar.svelte'
   import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
   import OrganizationRequiredSimpleDialog from '@/components/ui/organization_required_simple_dialog.svelte'
-  import { Toaster } from 'svelte-sonner'
+  import NotificationDialog from '@/components/notification_dialog.svelte'
 
   interface PageProps {
     auth?: {
@@ -68,7 +68,7 @@
   <meta name="referrer" content="strict-origin-when-cross-origin" />
 </svelte:head>
 
-<Toaster richColors position="top-right" />
+<NotificationDialog />
 
 <SidebarProvider defaultOpen={true}>
   <div class="relative flex min-h-screen w-full">

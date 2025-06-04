@@ -1,10 +1,12 @@
 import Task from '#models/task'
 import User from '#models/user'
-import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import ProjectMember from '#models/project_member'
-import Project from '#models/project'
-import AuditLog from '#models/audit_log'
+import TaskStatusModel from '#models/task_status'
+import UserRepository from '#repositories/user_repository'
+import OrganizationRepository from '#repositories/organization_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
+import ProjectRepository from '#repositories/project_repository'
+import AuditLog from '#models/mongo/audit_log'
 import type CreateTaskDTO from '../dtos/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
@@ -63,16 +65,16 @@ export default class CreateTaskCommand {
 
     try {
       // 1. Check creator active (Fat Model method)
-      await User.findActiveOrFail(userId, trx)
+      await UserRepository.findActiveOrFail(userId, trx)
 
       // 2. Check org exists (Fat Model method)
-      await Organization.findActiveOrFail(dto.organization_id, trx)
+      await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
       // 3. Check permission: admin/owner OR project_manager (pure rule)
-      const isOrgAdmin = await OrganizationUser.isOrgAdminOrOwner(userId, dto.organization_id, trx)
+      const isOrgAdmin = await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
       let isProjectManager = false
       if (!isOrgAdmin && dto.project_id) {
-        isProjectManager = await ProjectMember.isProjectManagerOrOwner(userId, dto.project_id, trx)
+        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(userId, dto.project_id, trx)
       }
       enforcePolicy(
         canCreateTask({
@@ -84,7 +86,7 @@ export default class CreateTaskCommand {
 
       // 4. Validate project thuộc org (Fat Model method)
       if (dto.project_id) {
-        await Project.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)
+        await ProjectRepository.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)
       }
 
       // 5. Validate creation fields via pure rule
@@ -99,25 +101,33 @@ export default class CreateTaskCommand {
 
       // 9. Validate assignee (Fat Model methods)
       if (dto.assigned_to) {
-        const isMember = await OrganizationUser.isApprovedMember(
+        const isMember = await OrganizationUserRepository.isApprovedMember(
           dto.assigned_to,
           dto.organization_id,
           trx
         )
         if (!isMember) {
-          const isFreelancer = await User.isFreelancer(dto.assigned_to, trx)
+          const isFreelancer = await UserRepository.isFreelancer(dto.assigned_to, trx)
           if (!isFreelancer) {
             throw new BusinessLogicException('Người được gán phải thuộc tổ chức hoặc là freelancer')
           }
         }
       }
 
+      // 9b. Resolve task_status_id: use org's default status (v4)
+      let taskStatusId: string | null = null
+      const defaultStatus = await TaskStatusModel.findDefault(dto.organization_id, trx)
+      if (defaultStatus) {
+        taskStatusId = defaultStatus.id
+      }
+
       // 10. Create task
       const newTask = await Task.create(
         {
           title: dto.title,
-          description: dto.description,
-          status: dto.status || TaskStatus.TODO,
+          description: dto.description || '',
+          status: dto.status || (defaultStatus?.slug ?? TaskStatus.TODO),
+          task_status_id: taskStatusId,
           label: dto.label || undefined,
           priority: dto.priority || undefined,
           assigned_to: dto.assigned_to ? String(dto.assigned_to) : null,
@@ -133,18 +143,15 @@ export default class CreateTaskCommand {
       )
 
       // 5. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.CREATE,
-          entity_type: EntityType.TASK,
-          entity_id: newTask.id,
-          new_values: newTask.toJSON(),
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.CREATE,
+        entity_type: EntityType.TASK,
+        entity_id: newTask.id,
+        new_values: newTask.toJSON(),
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

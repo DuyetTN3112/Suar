@@ -1,4 +1,5 @@
-import AuditLog from '#models/audit_log'
+import RepositoryFactory from '#repositories/repository_factory'
+import User from '#models/user'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -49,30 +50,39 @@ export default class GetTaskAuditLogsQuery {
       return cached
     }
 
-    // Load audit logs
-    const logs = await AuditLog.query()
-      .where('entity_type', 'task')
-      .where('entity_id', taskId)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .preload('user', (userQuery) => {
-        void userQuery.select(['id', 'username', 'email'])
-      })
+    // Load audit logs via RepositoryFactory
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'task',
+      entity_id: taskId,
+      limit,
+    })
+
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users =
+      userIds.length > 0
+        ? await User.query().whereIn('id', userIds).select(['id', 'username', 'email'])
+        : []
+    const userMap = new Map(users.map((u) => [String(u.id), u]))
 
     // Format logs
     const formattedLogs = logs.map((log) => {
+      const user = userMap.get(String(log.user_id))
       return {
         id: log.id,
         action: log.action,
-        user: {
-          id: log.user.id,
-          name: log.user.username || 'Unknown',
-          email: log.user.email ?? '',
-        },
-        timestamp: log.created_at.toJSDate(),
+        user: user
+          ? {
+              id: user.id,
+              name: user.username || 'Unknown',
+              email: user.email ?? '',
+            }
+          : null,
+        timestamp: log.created_at,
         changes: this.formatChanges(
-          (log.old_values || {}) as Record<string, unknown>,
-          (log.new_values || {}) as Record<string, unknown>
+          log.old_values ?? {},
+          log.new_values ?? {}
         ),
       }
     })

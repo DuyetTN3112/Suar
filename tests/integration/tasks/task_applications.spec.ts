@@ -3,7 +3,6 @@ import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
   OrganizationFactory,
-  OrganizationUserFactory,
   TaskFactory,
   TaskApplicationFactory,
   cleanupTestData,
@@ -15,10 +14,11 @@ import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
 import Task from '#models/task'
 import { ExecutionContext } from '#types/execution_context'
-import { HttpContext } from '@adonisjs/core/http'
 
 test.group('Integration | Task Applications', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -45,7 +45,7 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    const result = await command.execute(dto)
+    const result = await command.handle(dto)
     assert.isNotNull(result)
   })
 
@@ -61,17 +61,17 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const apps = await TaskApplication.query()
       .where('task_id', task.id)
       .where('applicant_id', freelancer.id)
     assert.equal(apps.length, 1)
-    assert.equal(apps[0].application_status, 'pending')
+    assert.equal(apps[0]!.application_status, 'pending')
   })
 
   test('approve application creates TaskAssignment', async ({ assert }) => {
-    const { org, owner, task } = await createPublicTask()
+    const { owner, task } = await createPublicTask()
     const freelancer = await UserFactory.createFreelancer()
 
     const application = await TaskApplicationFactory.create({
@@ -90,14 +90,14 @@ test.group('Integration | Task Applications', (group) => {
       assignment_type: 'freelancer',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const updated = await TaskApplication.findOrFail(application.id)
     assert.equal(updated.application_status, 'approved')
 
     const assignments = await TaskAssignment.query().where('task_id', task.id)
     assert.isAbove(assignments.length, 0)
-    assert.equal(assignments[0].assignee_id, freelancer.id)
+    assert.equal(assignments[0]!.assignee_id, freelancer.id)
   })
 
   test('reject application sets status to rejected with reason', async ({ assert }) => {
@@ -119,7 +119,7 @@ test.group('Integration | Task Applications', (group) => {
       rejection_reason: 'Not enough experience',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const updated = await TaskApplication.findOrFail(application.id)
     assert.equal(updated.application_status, 'rejected')
@@ -144,7 +144,7 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    await assert.rejects(() => command.execute(dto))
+    await assert.rejects(() => command.handle(dto))
   })
 
   test('cannot process already withdrawn application', async ({ assert }) => {
@@ -165,7 +165,7 @@ test.group('Integration | Task Applications', (group) => {
       action: 'approve',
     })
 
-    await assert.rejects(() => command.execute(dto))
+    await assert.rejects(() => command.handle(dto))
   })
 
   test('external_applications_count increments on apply', async ({ assert }) => {
@@ -183,7 +183,7 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const after = await Task.findOrFail(task.id)
     assert.equal(after.external_applications_count, countBefore + 1)
@@ -204,12 +204,12 @@ test.group('Integration | Task Applications', (group) => {
       application_source: 'public_listing',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const apps = await TaskApplication.query()
       .where('task_id', task.id)
       .where('applicant_id', freelancer.id)
-    assert.deepEqual(apps[0].portfolio_links, links)
+    assert.deepEqual(apps[0]!.portfolio_links, links)
   })
 
   test('approve auto-rejects other pending applications', async ({ assert }) => {
@@ -238,7 +238,7 @@ test.group('Integration | Task Applications', (group) => {
       assignment_type: 'freelancer',
     })
 
-    await command.execute(dto)
+    await command.handle(dto)
 
     const updatedApp1 = await TaskApplication.findOrFail(app1.id)
     const updatedApp2 = await TaskApplication.findOrFail(app2.id)

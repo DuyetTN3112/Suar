@@ -266,14 +266,14 @@ test.group('deepClone', () => {
 // ============================================================================
 test.group('deepMerge', () => {
   test('merges flat objects', ({ assert }) => {
-    const result = deepMerge({ a: 1 }, { b: 2 })
+    const result = deepMerge<{ a?: number; b?: number }>({ a: 1 }, { b: 2 })
     assert.deepEqual(result, { a: 1, b: 2 })
   })
 
   test('deep merges nested objects', ({ assert }) => {
-    const result = deepMerge(
+    const result = deepMerge<{ config: { host: string; port: number } }>(
       { config: { host: 'localhost', port: 3000 } },
-      { config: { port: 8080 } }
+      { config: { port: 8080 } } as Partial<{ config: { host: string; port: number } }>
     )
     assert.deepEqual(result, { config: { host: 'localhost', port: 8080 } })
   })

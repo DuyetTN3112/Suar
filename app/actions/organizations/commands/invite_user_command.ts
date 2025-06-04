@@ -1,9 +1,9 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import OrganizationInvitation from '#models/organization_invitation'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrgAccessRepository from '#repositories/org_access_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -63,7 +63,7 @@ export default class InviteUserCommand {
 
       // 4. Create invitation record via Model
       const invitationData = dto.toObject()
-      const invitation = await OrganizationInvitation.createInvitation(
+      const invitation = await OrgAccessRepository.createInvitation(
         {
           ...invitationData,
           organization_id: dto.organizationId,
@@ -74,22 +74,19 @@ export default class InviteUserCommand {
       )
 
       // 5. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.INVITE,
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: dto.organizationId,
-          new_values: {
-            email: dto.getNormalizedEmail(),
-            role: dto.getRoleName(),
-            invitation_id: invitation.id,
-          },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.INVITE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        new_values: {
+          email: dto.getNormalizedEmail(),
+          role: dto.getRoleName(),
+          invitation_id: invitation.id,
         },
-        { client: trx }
-      )
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 
@@ -118,7 +115,7 @@ export default class InviteUserCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId, trx)
+    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(userId, organizationId, trx, false)
     if (!hasPermission) {
       throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
     }
@@ -131,7 +128,7 @@ export default class InviteUserCommand {
     dto: InviteUserDTO,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPending = await OrganizationInvitation.hasPendingInvitation(
+    const hasPending = await OrgAccessRepository.hasPendingInvitation(
       dto.organizationId,
       dto.getNormalizedEmail(),
       trx

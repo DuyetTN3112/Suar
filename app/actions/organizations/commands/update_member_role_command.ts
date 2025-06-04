@@ -1,10 +1,11 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import ConflictException from '#exceptions/conflict_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { UpdateMemberRoleDTO } from '../dtos/update_member_role_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -58,14 +59,14 @@ export default class UpdateMemberRoleCommand {
     try {
       // 1. Get current user's role → delegate to Model
 
-      const currentUserRoleId = await OrganizationUser.getOrgRole(userId, dto.organizationId, trx)
+      const currentUserRoleId = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false)
       if (!currentUserRoleId) {
         throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
       }
 
       // 2. Get target user's current role → delegate to Model
 
-      const targetRoleId = await OrganizationUser.getOrgRole(dto.userId, dto.organizationId, trx)
+      const targetRoleId = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, dto.userId, trx, false)
       if (!targetRoleId) {
         throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
       }
@@ -89,22 +90,19 @@ export default class UpdateMemberRoleCommand {
       const oldRole: string = targetRoleId
 
       // 6. Update role → delegate to Model
-      await OrganizationUser.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
+      await OrganizationUserRepository.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
 
       // 7. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.UPDATE_MEMBER_ROLE,
-          entity_type: EntityType.ORGANIZATION,
-          entity_id: dto.organizationId,
-          old_values: { user_id: dto.userId, org_role: oldRole },
-          new_values: { user_id: dto.userId, org_role: dto.newRoleId },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.UPDATE_MEMBER_ROLE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        old_values: { user_id: dto.userId, org_role: oldRole },
+        new_values: { user_id: dto.userId, org_role: dto.newRoleId },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

@@ -15,7 +15,7 @@ export default class UpdateTaskStatusController {
       const { params, request, response } = ctx
       const dto = new UpdateTaskStatusDTO({
         task_id: params.id as string,
-        status: request.input('status') as string,
+        task_status_id: request.input('task_status_id') as string,
         reason: request.input('reason') as string | undefined,
       })
 

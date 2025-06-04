@@ -1,8 +1,9 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import Project from '#models/project'
-import ProjectMember from '#models/project_member'
-import Task from '#models/task'
-import AuditLog from '#models/audit_log'
+import ProjectMemberRepository from '#repositories/project_member_repository'
+import TaskRepository from '#repositories/task_repository'
+import RepositoryFactory from '#repositories/repository_factory'
+import User from '#models/user'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -114,7 +115,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Validate user has access to this project
    */
   private async validateAccess(userId: DatabaseId, project: Project): Promise<void> {
-    const hasAccess = await ProjectMember.hasAccess(userId, project.id)
+    const hasAccess = await ProjectMemberRepository.hasAccess(userId, project.id)
     if (!hasAccess) {
       throw new ForbiddenException('Bạn không có quyền truy cập dự án này')
     }
@@ -124,10 +125,10 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Get list of project members with details → delegate to Model
    */
   private async getMembers(projectId: DatabaseId): Promise<ProjectMemberResult[]> {
-    const { data: members } = await ProjectMember.getMembersWithDetails(projectId)
+    const { data: members } = await ProjectMemberRepository.getMembersWithDetails(projectId)
 
     // Get task count for each member via Model
-    const taskCountMap = await Task.countByAssignees(projectId)
+    const taskCountMap = await TaskRepository.countByAssignees(projectId)
 
     return members.map((member) => ({
       ...member,
@@ -145,7 +146,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     completed: number
     overdue: number
   }> {
-    return Task.getTasksSummaryByProject(projectId)
+    return TaskRepository.getTasksSummaryByProject(projectId)
   }
 
   /**
@@ -158,21 +159,35 @@ export default class GetProjectDetailQuery extends BaseQuery<
       entity_type: string
       entity_id: DatabaseId | null
       action: string
-      created_at: import('luxon').DateTime
+      created_at: Date
       username: string | null
     }>
   > {
-    const logs = await AuditLog.getRecentActivity('project', projectId, 10)
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'project',
+      entity_id: projectId,
+      limit: 10,
+    })
 
-    return logs.map((log) => ({
-      id: log.id,
-      user_id: log.user_id,
-      entity_type: log.entity_type,
-      entity_id: log.entity_id,
-      action: log.action,
-      created_at: log.created_at,
-      username: log.user?.username ?? null,
-    }))
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users =
+      userIds.length > 0 ? await User.query().whereIn('id', userIds).select(['id', 'username']) : []
+    const userMap = new Map(users.map((u) => [String(u.id), u]))
+
+    return logs.map((log) => {
+      const user = userMap.get(String(log.user_id))
+      return {
+        id: log.id,
+        user_id: log.user_id ?? null,
+        entity_type: log.entity_type,
+        entity_id: log.entity_id ?? null,
+        action: log.action,
+        created_at: log.created_at,
+        username: user?.username ?? null,
+      }
+    })
   }
 
   /**

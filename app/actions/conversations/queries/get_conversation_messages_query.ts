@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import Conversation from '#models/conversation'
-import Message from '#models/message'
+import ConversationRepository from '#repositories/conversation_repository'
+import MessageRepository from '#repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationMessagesDTO } from '../dtos/get_conversation_messages_dto.js'
 import loggerService from '#services/logger_service'
@@ -55,7 +55,7 @@ export default class GetConversationMessagesQuery {
 
     try {
       // Verify user is participant → delegate to Model
-      const conversation = await Conversation.findWithParticipant(conversationId, userId)
+      const conversation = await ConversationRepository.findWithParticipant(conversationId, userId)
       if (!conversation) {
         throw NotFoundException.resource('Cuộc trò chuyện')
       }
@@ -69,7 +69,7 @@ export default class GetConversationMessagesQuery {
       }
 
       // Get messages with pagination → delegate to Model
-      const { data: messages, total } = await Message.paginateByConversation(
+      const { data: messages, total } = await MessageRepository.paginateByConversation(
         conversationId,
         userId,
         { page, limit }

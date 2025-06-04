@@ -1,0 +1,83 @@
+%% uc_04_permission_hierarchy.mmd — 3-Tier Permission Hierarchy
+%% System → Organization → Project
+%% Ref: app/constants/roles.ts, authorize_role middleware
+
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "Superadmin" as SU
+actor "System Admin" as SA
+actor "Org Owner" as OO
+actor "Org Admin" as OA
+actor "Org Member" as OM
+actor "Project Owner" as PO
+actor "Project Manager" as PM
+actor "Project Member" as PMem
+actor "Project Viewer" as PV
+
+rectangle "System Level\n(SystemRoleName)" {
+    usecase "Full System Access\n(bypass all checks)" as UC_SUPER
+    usecase "Manage Users\n(approve / suspend / roles)" as UC_USERS
+    usecase "Manage All Organizations" as UC_ALL_ORG
+    usecase "View System Dashboard" as UC_DASH
+}
+
+rectangle "Organization Level\n(OrganizationRole)" {
+    usecase "Manage Org Settings" as UC_ORG_SET
+    usecase "Manage Members\n(invite / remove / role)" as UC_ORG_MEM
+    usecase "Create Projects" as UC_ORG_PROJ
+    usecase "Configure Task Workflow\n(statuses & transitions)" as UC_ORG_WF
+    usecase "Transfer Org Ownership" as UC_ORG_XFER
+}
+
+rectangle "Project Level\n(ProjectRole)" {
+    usecase "Manage Project Settings" as UC_PROJ_SET
+    usecase "Manage Tasks\n(CRUD / assign / status)" as UC_PROJ_TASK
+    usecase "Manage Project Members" as UC_PROJ_MEM
+    usecase "View Tasks & Boards" as UC_PROJ_VIEW
+    usecase "View-Only Access" as UC_PROJ_RO
+}
+
+rectangle "Cross-Level: Marketplace\n(no org context required)" {
+    usecase "Browse & Apply\n(any authenticated user)" as UC_MKT
+    usecase "Review & Be Reviewed" as UC_REV
+    usecase "Messaging" as UC_MSG
+}
+
+SU --> UC_SUPER
+SU --|> SA : inherits
+
+SA --> UC_USERS
+SA --> UC_ALL_ORG
+SA --> UC_DASH
+
+OO --> UC_ORG_SET
+OO --> UC_ORG_MEM
+OO --> UC_ORG_PROJ
+OO --> UC_ORG_WF
+OO --> UC_ORG_XFER
+OO --|> OA : inherits
+
+OA --> UC_ORG_MEM
+OA --> UC_ORG_PROJ
+OA --|> OM : inherits
+
+OM --> UC_MKT
+OM --> UC_REV
+OM --> UC_MSG
+
+PO --> UC_PROJ_SET
+PO --> UC_PROJ_MEM
+PO --|> PM : inherits
+
+PM --> UC_PROJ_TASK
+PM --|> PMem : inherits
+
+PMem --> UC_PROJ_VIEW
+PMem --|> PV : inherits
+
+PV --> UC_PROJ_RO
+
+note "3-tier permission hierarchy:\n• System: superadmin > system_admin > registered_user\n• Organization: org_owner > org_admin > org_member\n• Project: project_owner > project_manager >\n  project_member > project_viewer\n\nSuperadmin bypasses ALL permission checks.\nMarketplace uses middleware.auth() only\n(no requireOrg)." as N1
+@enduml

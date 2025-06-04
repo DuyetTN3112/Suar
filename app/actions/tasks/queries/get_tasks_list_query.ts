@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
@@ -136,7 +136,7 @@ export default class GetTasksListQuery {
     organizationId: DatabaseId
   ): Promise<void> {
     // Check if user is Admin/Superadmin → delegate to Model
-    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
 
     if (isSuperAdmin) {
       // Admin sees all tasks
@@ -144,7 +144,7 @@ export default class GetTasksListQuery {
     }
 
     // Check organization role → delegate to Model
-    const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
 
     if (!orgRole) {
       // User not in org, no tasks

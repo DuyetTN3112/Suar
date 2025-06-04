@@ -1,6 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
+import ConversationRepository from '#repositories/conversation_repository'
 import Conversation from '#models/conversation'
-import Message from '#models/message'
+import MessageRepository from '#repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
 import loggerService from '#services/logger_service'
@@ -39,7 +40,7 @@ export default class GetConversationDetailQuery {
       }
 
       // Query conversation with participant check → delegate to Model
-      const conversation = await Conversation.findWithParticipant(conversationId, userId)
+      const conversation = await ConversationRepository.findWithParticipant(conversationId, userId)
 
       if (!conversation) {
         throw NotFoundException.resource('Cuộc trò chuyện')
@@ -49,10 +50,10 @@ export default class GetConversationDetailQuery {
       await conversation.load('participants')
 
       // Count unread messages → delegate to Model
-      const unreadCount = await Message.countUnreadInConversation(conversationId, userId)
+      const unreadCount = await MessageRepository.countUnreadInConversation(conversationId, userId)
 
       // Get last message → delegate to Model
-      const lastMessage = await Message.getLastMessageInConversation(conversationId, userId)
+      const lastMessage = await MessageRepository.getLastMessageInConversation(conversationId, userId)
 
       // Attach to conversation object for easy access
       // @ts-expect-error - Adding virtual properties

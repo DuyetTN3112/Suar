@@ -31,7 +31,7 @@ interface NotificationLeanDoc {
 export default class MongoNotificationRepository implements NotificationRepository {
   async create(data: NotificationCreateData): Promise<NotificationRecord | null> {
     try {
-      const doc = await MongoNotification.create({
+      const doc = await new MongoNotification({
         user_id: String(data.user_id),
         title: data.title,
         message: data.message,
@@ -39,7 +39,7 @@ export default class MongoNotificationRepository implements NotificationReposito
         related_entity_type: data.related_entity_type ?? undefined,
         related_entity_id: data.related_entity_id ? String(data.related_entity_id) : undefined,
         metadata: data.metadata ?? undefined,
-      })
+      }).save()
 
       const lean = doc.toObject() as unknown as NotificationLeanDoc
       return this.toRecord(lean)

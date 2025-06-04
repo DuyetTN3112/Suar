@@ -16,7 +16,9 @@ import SkillReview from '#models/skill_review'
 import { ProficiencyLevel, getLevelCodeFromPercentage } from '#constants/user_constants'
 
 test.group('Integration | Spider Chart', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -102,7 +104,7 @@ test.group('Integration | Spider Chart', (group) => {
   })
 
   test('handles no reviews gracefully', async ({ assert }) => {
-    const user = await UserFactory.create()
+    await UserFactory.create()
     const skill = await SkillFactory.create({ display_type: 'spider_chart' })
 
     const reviews = await SkillReview.query().where('skill_id', skill.id)

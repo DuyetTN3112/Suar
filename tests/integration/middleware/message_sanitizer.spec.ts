@@ -22,8 +22,7 @@ test.group('Integration | Message Sanitizer', () => {
     assert.isFalse(detectZalgoText('café'))
 
     // Zalgo text with 5+ combining marks per base char
-    const zalgo =
-      'H\u0300\u0301\u0302\u0303\u0304e\u0300\u0301\u0302\u0303\u0304'
+    const zalgo = 'H\u0300\u0301\u0302\u0303\u0304e\u0300\u0301\u0302\u0303\u0304'
     assert.isTrue(detectZalgoText(zalgo))
   })
 
@@ -34,17 +33,14 @@ test.group('Integration | Message Sanitizer', () => {
   })
 
   test('sanitizeMessage limits combining characters to 1', async ({ assert }) => {
-    const input =
-      'H\u0300\u0301\u0302\u0303\u0304\u0305ello'
+    const input = 'H\u0300\u0301\u0302\u0303\u0304\u0305ello'
     const sanitized = sanitizeMessage(input)
 
     // Should have at most 1 combining char after H
-    const combiningCount = Array.from(sanitized).filter(
-      (ch) => {
-        const cp = ch.codePointAt(0)!
-        return cp >= 0x0300 && cp <= 0x036f
-      }
-    ).length
+    const combiningCount = Array.from(sanitized).filter((ch) => {
+      const cp = ch.codePointAt(0)!
+      return cp >= 0x0300 && cp <= 0x036f
+    }).length
     assert.isAtMost(combiningCount, 1)
   })
 

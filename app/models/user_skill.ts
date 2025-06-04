@@ -34,6 +34,10 @@ export default class UserSkill extends BaseModel {
   @column()
   declare avg_score: number | null
 
+  // v3.1: Skill source — 'imported' (self-declared) or 'reviewed' (confirmed via review)
+  @column()
+  declare source: 'imported' | 'reviewed'
+
   // v3: merged from user_spider_chart_data
   @column()
   declare avg_percentage: number | null
@@ -72,15 +76,5 @@ export default class UserSkill extends BaseModel {
     return `${this.avg_score.toFixed(1)}%`
   }
 
-  // ===== Static Methods =====
-  static async findByUserAndSkill(userId: string, skillId: string) {
-    return await this.query().where('user_id', userId).where('skill_id', skillId).first()
-  }
 
-  static async getUserSkillsWithDetails(userId: string) {
-    return await this.query()
-      .where('user_id', userId)
-      .preload('skill')
-      .orderBy('created_at', 'desc')
-  }
 }

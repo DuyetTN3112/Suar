@@ -1,7 +1,10 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import { RepositoryFactory } from '#repositories/index'
-import type { TaskApplicationSubmittedEvent, TaskApplicationReviewedEvent } from '#events/index'
+import type {
+  TaskApplicationSubmittedEvent,
+  TaskApplicationReviewedEvent,
+} from '#events/event_types'
 
 /**
  * Notification Listener — Sprint 7

@@ -26,7 +26,7 @@ type StorageDriver = 'mysql' | 'mongodb' | 'both'
  * Read a storage driver from env, defaulting to 'mysql'.
  */
 function getStorageDriver(envKey: string): StorageDriver {
-  const value = (process.env[envKey] ?? 'mysql').toLowerCase()
+  const value = (process.env[envKey] ?? 'mongodb').toLowerCase()
   if (value === 'mongodb' || value === 'mongo') return 'mongodb'
   if (value === 'both' || value === 'dual') return 'both'
   return 'mysql'

@@ -1,6 +1,6 @@
 import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
-import { toast } from 'svelte-sonner'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
 export function createUserApproval() {
@@ -54,7 +54,7 @@ export function createUserApproval() {
       }
     } catch (error) {
       console.error('Lỗi khi lấy danh sách người dùng chờ duyệt:', error)
-      toast.error('Không thể tải danh sách người dùng chờ duyệt')
+      notificationStore.error('Không thể tải danh sách người dùng chờ duyệt')
       pendingUsers.set([])
     } finally {
       isLoadingPendingUsers.set(false)
@@ -70,7 +70,7 @@ export function createUserApproval() {
   // Phê duyệt người dùng
   function approveUser(user: User) {
     if (!user || !user.id) {
-      toast.error('Không tìm thấy thông tin người dùng')
+      notificationStore.error('Không tìm thấy thông tin người dùng')
       return
     }
 
@@ -81,14 +81,14 @@ export function createUserApproval() {
       {},
       {
         onSuccess: () => {
-          toast.success('Đã phê duyệt người dùng thành công')
+          notificationStore.success('Đã phê duyệt người dùng thành công')
           pendingUsers.update((prev) => prev.filter((u) => u.id !== user.id))
           isApprovingUser.update((prev) => ({ ...prev, [user.id]: false }))
           pendingCount.update((prev) => Math.max(0, prev - 1))
         },
         onError: (errors: any) => {
           console.error('Lỗi khi phê duyệt người dùng:', errors)
-          toast.error('Không thể phê duyệt người dùng. Vui lòng thử lại.')
+          notificationStore.error('Không thể phê duyệt người dùng. Vui lòng thử lại.')
           isApprovingUser.update((prev) => ({ ...prev, [user.id]: false }))
         },
         onFinish: () => {
@@ -106,7 +106,7 @@ export function createUserApproval() {
     })()
 
     if (currentPendingUsers.length === 0) {
-      toast.info('Không có người dùng nào cần phê duyệt')
+      notificationStore.info('Không có người dùng nào cần phê duyệt')
       return
     }
 
@@ -156,16 +156,16 @@ export function createUserApproval() {
           }
 
           if (successCount > 0) {
-            toast.success(`Đã phê duyệt thành công ${successCount} người dùng`)
+            notificationStore.success(`Đã phê duyệt thành công ${successCount} người dùng`)
             pendingUsers.set([])
             pendingCount.set(0)
           } else {
-            toast.error('Không thể phê duyệt bất kỳ người dùng nào')
+            notificationStore.error('Không thể phê duyệt bất kỳ người dùng nào')
             void loadPendingUsers()
           }
         } catch (error) {
           console.error('Lỗi trong quá trình phê duyệt tất cả người dùng:', error)
-          toast.error('Có lỗi xảy ra khi phê duyệt người dùng. Vui lòng thử lại.')
+          notificationStore.error('Có lỗi xảy ra khi phê duyệt người dùng. Vui lòng thử lại.')
           void loadPendingUsers()
         } finally {
           isApprovingUser.set({})

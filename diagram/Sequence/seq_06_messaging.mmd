@@ -1,0 +1,118 @@
+%% seq_06_messaging.mmd
+%% Scope: Conversation creation, messaging, mark-as-read, recall
+%% Backend refs:
+%%   - POST /conversations → StoreConversationController → CreateConversationCommand
+%%   - POST /conversations/:id/messages → SendMessageController → SendMessageCommand
+%%   - POST /conversations/:id/mark-as-read → MarkConversationReadController → MarkAsReadCommand
+%%   - POST /api/conversations/:id/messages/:messageId/recall → RecallMessageController → RecallMessageCommand
+%%   - conversation_state_rules.ts (detectConversationType, checkDuplicate, validateParticipants)
+%%   - ⚠️ Transmit transport=null (no WebSocket/realtime delivery)
+%%   - ⚠️ send_status default='sent' (no 'sending' server-side state)
+
+sequenceDiagram
+    autonumber
+    actor U1 as User A (Creator)
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Cmd as Command
+    participant Rules as ConversationRules
+    (Pure Functions)
+    participant DB as PostgreSQL
+    actor U2 as User B
+
+    Note over U1, U2: === CREATE CONVERSATION ===
+    Note over C: StoreConversationController
+
+    U1->>B: Create new conversation
+    B->>C: POST /conversations
+    C->>Cmd: CreateConversationCommand.execute(dto)
+
+    Cmd->>Rules: detectConversationType(count, hasTitle)
+    Rules-->>Cmd: { isDirect, isGroup }
+
+    Cmd->>Rules: validateParticipantsOrgMembership(ctx)
+
+    alt isDirect (2 participants)
+        Cmd->>Rules: checkDirectConversationDuplicate(ctx)
+    else isGroup (3+ participants)
+        Cmd->>Rules: checkGroupConversationDuplicate(ctx)
+    end
+
+    Cmd->>Cmd: Determine scope:
+    has freelancer? → org_id = NULL
+
+    Cmd->>DB: INSERT INTO conversations
+    (organization_id, title)
+    loop For each participant
+        Cmd->>DB: INSERT INTO conversation_participants
+        (conversation_id, user_id)
+    end
+    Cmd-->>C: Conversation object
+    C-->>B: Redirect to conversation
+
+    Note over U1, U2: === SEND MESSAGE ===
+    Note over C: SendMessageController
+
+    U1->>B: Type and send message
+    B->>C: POST /conversations/:id/messages
+    C->>C: messageSanitizer middleware
+    C->>Cmd: SendMessageCommand.execute(dto)
+
+    Cmd->>Rules: canSendMessage(ctx)
+    (isParticipant + isOrgMember)
+
+    alt Not authorized
+        Cmd-->>C: ForbiddenException
+    else Authorized
+        Cmd->>DB: INSERT INTO messages
+        (conversation_id, sender_id, message)
+        Note over Cmd: send_status='sent' (DB default)
+        Note over Cmd: ⚠️ No 'sending' state server-side
+        Cmd->>Cmd: emit('message:sent')
+        Note over Cmd: Listener updates:
+        Note over Cmd: conversation.last_message_at
+        Cmd-->>C: Message object
+        C-->>B: Response
+    end
+
+    Note over U1, U2: === MARK AS READ ===
+    Note over C: MarkConversationReadController
+
+    U2->>B: Open conversation
+    B->>C: POST /conversations/:id/mark-as-read
+    C->>Cmd: MarkAsReadCommand.execute(dto)
+    Cmd->>DB: UPDATE conversation_participants
+    SET last_read_at = NOW()
+    WHERE conversation_id = ? AND user_id = ?
+    Cmd-->>C: OK
+    C-->>B: 200 OK
+
+    Note over U1, U2: === RECALL MESSAGE ===
+    Note over C: RecallMessageController
+
+    U1->>B: Recall own message
+    B->>C: POST /api/conversations/:id/messages/:messageId/recall
+    C->>Cmd: RecallMessageCommand.execute(dto)
+
+    Cmd->>Cmd: canRecallMessage rule
+    (isSender + notAlreadyRecalled
+    + validateRecallScope)
+
+    alt recall_scope = 'all'
+        Cmd->>DB: UPDATE messages
+        SET is_recalled=TRUE,
+        recall_scope='all',
+        recalled_at=NOW()
+        Note over Cmd: Content replaced for ALL
+    else recall_scope = 'self'
+        Cmd->>DB: UPDATE messages
+        SET is_recalled=TRUE,
+        recall_scope='self',
+        recalled_at=NOW()
+        Note over Cmd: Hidden only for sender
+    end
+
+    Cmd-->>C: OK
+    C-->>B: 200 OK
+
+

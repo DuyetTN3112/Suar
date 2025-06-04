@@ -15,7 +15,7 @@
   import Badge from '@/components/ui/badge.svelte'
   import { UserCheck, UserX, ArrowLeft } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
   // Định nghĩa các kiểu dữ liệu
   interface PendingRequest {
@@ -48,10 +48,10 @@
       action,
     }, {
       onSuccess: () => {
-        toast.success(`Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu thành công`)
+        notificationStore.success(`Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu thành công`)
       },
       onError: () => {
-        toast.error(`Có lỗi xảy ra khi ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu`)
+        notificationStore.error(`Có lỗi xảy ra khi ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu`)
       },
     })
   }

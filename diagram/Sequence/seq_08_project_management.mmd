@@ -1,0 +1,100 @@
+%% seq_08_project_management.mmd
+%% Scope: Project CRUD, member management, ownership transfer, delete
+%% Backend refs:
+%%   - POST /projects → StoreProjectController → CreateProjectCommand
+%%   - GET /projects/:id → ShowProjectController
+%%   - DELETE /projects/:id → DeleteProjectController → DeleteProjectCommand
+%%   - POST /projects/members → AddProjectMemberController → AddProjectMemberCommand
+%%   - TransferProjectOwnershipCommand (exists but NO route wired)
+%%   - project_state_rules.ts (validateProjectDates, validateProjectStatus)
+%%   - ⚠️ No UpdateProjectCommand route (edit/update TODO in route file)
+%%   - ⚠️ Transfer ownership route NOT wired
+%%   - ⚠️ Transmit transport=null (no WebSocket)
+
+sequenceDiagram
+    autonumber
+    actor U as User (Org Member)
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Cmd as Command
+    participant Rules as ProjectRules
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Note over U, Evt: === CREATE PROJECT ===
+    Note over C: StoreProjectController
+
+    U->>B: Fill project form
+    B->>C: POST /projects
+    C->>Cmd: CreateProjectCommand.execute(dto)
+    Cmd->>Cmd: checkOrgPermission('can_create_project')
+    Cmd->>Rules: validateProjectDates(start, end)
+    Cmd->>Rules: validateProjectStatus(status)
+
+    Cmd->>DB: INSERT INTO projects
+    (name, organization_id, creator_id,
+    owner_id=creator, status='pending')
+    Cmd->>DB: INSERT INTO project_members
+    (project_id, user_id=creator,
+    project_role='project_owner')
+    Cmd->>Evt: emit('project:created')
+    Cmd-->>C: Project object
+    C-->>B: Redirect to project page
+
+    Note over U, Evt: === ADD PROJECT MEMBER ===
+    Note over C: AddProjectMemberController
+
+    U->>B: Add member to project
+    B->>C: POST /projects/members
+    C->>Cmd: AddProjectMemberCommand.execute(dto)
+    Cmd->>DB: Check org membership
+    (OrganizationUser.isApprovedMember)
+
+    alt Not org member
+        Cmd-->>C: Error: not in org
+    else OK
+        Cmd->>DB: INSERT INTO project_members
+        (project_id, user_id, project_role=dto.role)
+        Cmd->>Evt: emit('project:member_added')
+        Cmd-->>C: OK
+        C-->>B: Redirect back
+    end
+
+    Note over U, Evt: === TRANSFER OWNERSHIP ===
+    Note over Cmd: TransferProjectOwnershipCommand
+    Note over Cmd: ⚠️ Command exists but NO route wired
+
+    Cmd->>Rules: canTransferProjectOwnership(ctx)
+    Cmd->>DB: UPDATE project_members
+    SET project_role='project_manager'
+    WHERE user_id = old_owner
+    Cmd->>DB: UPDATE project_members
+    SET project_role='project_owner'
+    WHERE user_id = new_owner
+    Cmd->>DB: UPDATE projects
+    SET owner_id = new_owner_id
+
+    Note over U, Evt: === DELETE PROJECT ===
+    Note over C: DeleteProjectController
+
+    U->>B: Click "Delete Project"
+    B->>C: DELETE /projects/:id
+    C->>Cmd: DeleteProjectCommand.execute(dto)
+
+    Cmd->>DB: Task.countIncompleteByProject()
+    Cmd->>Cmd: canDeleteProject rule
+    (checks org/system role + projectOwnerId
+    + incomplete task count)
+
+    alt Has incomplete tasks
+        Cmd-->>C: Error: has in-progress tasks
+        C-->>B: 400 Bad Request
+    else No blockers
+        Cmd->>DB: UPDATE projects
+        SET deleted_at = NOW()
+        Cmd->>Evt: emit('project:deleted')
+        Cmd-->>C: OK
+        C-->>B: Redirect to projects list
+    end
+
+

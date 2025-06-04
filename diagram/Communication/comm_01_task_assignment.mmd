@@ -1,0 +1,80 @@
+%% Communication Diagram: Task Assignment Flow
+%% Greenwich Thesis — Suar Platform
+%% Cross-referenced with actual backend code 2024
+%% ❌ Fixed: No POST /tasks/:id/assign route (assignment via PUT /tasks/:id edit)
+%% ❌ Fixed: No TaskRepository (uses Lucid model directly)
+%% ❌ Fixed: AssignTaskCommand sets task.assigned_to ONLY (no TaskAssignment record)
+%% ❌ Fixed: No checkMaxAssignees/checkDuplicateAssignment functions
+%% ❌ Fixed: NotificationListener does NOT handle task:assigned
+%% ❌ Fixed: No realtime broadcast (Transmit transport=null)
+
+graph LR
+    %% ==============================
+    %% Objects (Participants)
+    %% ==============================
+    PM["🧑‍💼 ProjectManager
+    (Actor)"]
+    UI["📱 TaskDetailPage
+    :SvelteComponent"]
+    CTRL["⚙️ EditTaskController
+    :HttpController"]
+    CMD["📦 AssignTaskCommand
+    :Command"]
+    RULES["📏 TaskAssignmentRules
+    :PureFunction"]
+    POLICY["🔒 TaskPermissionPolicy
+    :PureFunction"]
+    MODEL["📋 Task
+    :LucidModel"]
+    DB[("💾 PostgreSQL
+    :Database")]
+    EVT["📡 EventBus
+    :Emitter"]
+
+    %% ==============================
+    %% Message Flow (numbered)
+    %% ==============================
+    PM -->|"1: selectAssignee(userId)"| UI
+    UI -->|"2: PUT /tasks/:id
+    (with assigned_to field)"| CTRL
+    CTRL -->|"3: execute(taskId, assigneeId)"| CMD
+
+    CMD -->|"4: canAssignTask(ctx)"| POLICY
+    POLICY -->|"4.1: return PolicyResult"| CMD
+
+    CMD -->|"5: validateAssignee(ctx)"| RULES
+    RULES -->|"5.1: check org membership
+    or freelancer status"| RULES
+    RULES -->|"5.2: return PolicyResult"| CMD
+
+    CMD -->|"6: task.assigned_to = userId
+    (⚠️ no TaskAssignment record)"| MODEL
+    MODEL -->|"6.1: UPDATE tasks
+    SET assigned_to"| DB
+    DB -->|"6.2: confirm"| MODEL
+    MODEL -->|"6.3: return Task"| CMD
+
+    CMD -->|"7: emit('task:assigned', payload)"| EVT
+
+    CMD -->|"8: return Result"| CTRL
+    CTRL -->|"9: Inertia redirect
+    (task detail page)"| UI
+    UI -->|"10: show updated task"| PM
+
+    %% ==============================
+    %% Styling
+    %% ==============================
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef component fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+
+    class PM actor
+    class UI,CTRL,CMD component
+    class RULES,POLICY rule
+    class EVT infra
+    class DB db
+    class MODEL infra
+
+

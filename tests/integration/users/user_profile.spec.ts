@@ -1,11 +1,13 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import User from '#models/user'
 import { UserStatusName, SystemRoleName } from '#constants/user_constants'
+import UserRepository from '#repositories/user_repository'
 
 test.group('Integration | User Profile', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -28,7 +30,7 @@ test.group('Integration | User Profile', (group) => {
   test('findActiveOrFail returns active user', async ({ assert }) => {
     const user = await UserFactory.create({ status: UserStatusName.ACTIVE })
 
-    const found = await User.findActiveOrFail(user.id)
+    const found = await UserRepository.findActiveOrFail(user.id)
     assert.equal(found.id, user.id)
   })
 
@@ -36,7 +38,7 @@ test.group('Integration | User Profile', (group) => {
     const user = await UserFactory.create({ status: UserStatusName.INACTIVE })
 
     try {
-      await User.findActiveOrFail(user.id)
+      await UserRepository.findActiveOrFail(user.id)
       assert.fail('Should have thrown')
     } catch (error: any) {
       assert.exists(error)
@@ -51,7 +53,7 @@ test.group('Integration | User Profile', (group) => {
     await user.save()
 
     try {
-      await User.findNotDeletedOrFail(user.id)
+      await UserRepository.findNotDeletedOrFail(user.id)
       assert.fail('Should have thrown')
     } catch (error: any) {
       assert.exists(error)
@@ -63,7 +65,7 @@ test.group('Integration | User Profile', (group) => {
       system_role: SystemRoleName.SYSTEM_ADMIN,
     })
 
-    const role = await User.getSystemRoleName(user.id)
+    const role = await UserRepository.getSystemRoleName(user.id)
     assert.equal(role, SystemRoleName.SYSTEM_ADMIN)
   })
 
@@ -74,16 +76,16 @@ test.group('Integration | User Profile', (group) => {
     const superadmin = await UserFactory.createSuperadmin()
     const regularUser = await UserFactory.create()
 
-    assert.isTrue(await User.isSystemAdmin(admin.id))
-    assert.isTrue(await User.isSystemAdmin(superadmin.id))
-    assert.isFalse(await User.isSystemAdmin(regularUser.id))
+    assert.isTrue(await UserRepository.isSystemAdmin(admin.id))
+    assert.isTrue(await UserRepository.isSystemAdmin(superadmin.id))
+    assert.isFalse(await UserRepository.isSystemAdmin(regularUser.id))
   })
 
   test('isFreelancer returns correct flag', async ({ assert }) => {
     const freelancer = await UserFactory.createFreelancer()
     const regular = await UserFactory.create()
 
-    assert.isTrue(await User.isFreelancer(freelancer.id))
-    assert.isFalse(await User.isFreelancer(regular.id))
+    assert.isTrue(await UserRepository.isFreelancer(freelancer.id))
+    assert.isFalse(await UserRepository.isFreelancer(regular.id))
   })
 })

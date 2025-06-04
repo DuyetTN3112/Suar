@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import type { AuditLogEvent } from '#events/index'
+import type { AuditLogEvent } from '#events/event_types'
 
 /**
  * Audit Log Listener — ghi nhật ký hành động async.

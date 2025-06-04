@@ -16,7 +16,7 @@
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import Badge from '@/components/ui/badge.svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
   interface Organization {
     id: string
@@ -59,7 +59,7 @@
       const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
       if (!csrfToken) {
-        toast.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
+        notificationStore.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
         return
       }
 
@@ -77,7 +77,7 @@
       const data = await response.json()
 
       if (data.success) {
-        toast.success(data.message || 'Đã gửi yêu cầu tham gia tổ chức thành công')
+        notificationStore.success(data.message || 'Đã gửi yêu cầu tham gia tổ chức thành công')
 
         if (data.joinRequest) {
           orgMembershipStatus[id] = { status: data.joinRequest.status || 'pending' }
@@ -87,7 +87,7 @@
           showDetailDialog = false
         }
       } else {
-        toast.error(data.message || 'Không thể tham gia tổ chức')
+        notificationStore.error(data.message || 'Không thể tham gia tổ chức')
 
         if (data.membership && data.membership.status) {
           orgMembershipStatus[id] = { status: data.membership.status }
@@ -95,7 +95,7 @@
       }
     } catch (error) {
       console.error('Lỗi khi tham gia tổ chức:', error)
-      toast.error('Đã xảy ra lỗi khi xử lý yêu cầu')
+      notificationStore.error('Đã xảy ra lỗi khi xử lý yêu cầu')
     }
   }
 
@@ -105,7 +105,7 @@
       const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
 
       if (!csrfToken) {
-        toast.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
+        notificationStore.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
         return
       }
 
@@ -132,11 +132,11 @@
             showDetailDialog = false
           }
 
-          toast.success('Đã chuyển đổi tổ chức thành công')
+          notificationStore.success('Đã chuyển đổi tổ chức thành công')
           return
         }
 
-        toast.error(`Lỗi: ${response.status} - ${response.statusText}`)
+        notificationStore.error(`Lỗi: ${response.status} - ${response.statusText}`)
         return
       }
 
@@ -148,7 +148,7 @@
           showDetailDialog = false
         }
 
-        toast.success('Đã chuyển đổi tổ chức thành công')
+        notificationStore.success('Đã chuyển đổi tổ chức thành công')
         return
       }
 
@@ -161,13 +161,13 @@
           showDetailDialog = false
         }
 
-        toast.success(data.message || 'Đã chuyển đổi tổ chức thành công')
+        notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
       } else {
-        toast.error(data.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
+        notificationStore.error(data.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức')
       }
     } catch (error) {
       console.error('Lỗi khi chuyển đổi tổ chức:', error)
-      toast.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
+      notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
     }
   }
 

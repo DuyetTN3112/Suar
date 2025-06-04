@@ -1,0 +1,93 @@
+%% Communication Diagram: Marketplace Application Flow
+%% Greenwich Thesis — Suar Platform
+%% Cross-referenced with actual backend code 2024
+%% ❌ Fixed: Controller = ApplyForTaskController (not "ApplicationController")
+%% ❌ Fixed: Command = ApplyForTaskCommand (not "ApplyToTaskCommand")
+%% ❌ Fixed: Route = POST /tasks/:taskId/apply (not /tasks/:id/applications)
+%% ❌ Fixed: canApplyForTask() is in RULES (not POLICY)
+%% ❌ Fixed: No ApplicationRepository/TaskRepository (uses Lucid models directly)
+%% ❌ Fixed: Event = task:application:submitted (not task:application_received)
+%% ❌ Fixed: No realtime broadcast (Transmit transport=null)
+%% ⚠️ Note: Notification type = task_application (not new_application)
+
+graph LR
+    %% ==============================
+    %% Objects (Participants)
+    %% ==============================
+    FL["👷 Freelancer
+    (Actor)"]
+    UI["📱 TaskMarketplacePage
+    :SvelteComponent"]
+    CTRL["⚙️ ApplyForTaskController
+    :HttpController"]
+    CMD["📦 ApplyForTaskCommand
+    :Command"]
+    RULES["📏 TaskAssignmentRules
+    :PureFunction"]
+    TASK_MODEL["📋 Task
+    :LucidModel"]
+    APP_MODEL["📋 TaskApplication
+    :LucidModel"]
+    DB[("💾 PostgreSQL
+    :Database")]
+    EVT["📡 EventBus
+    :Emitter"]
+    NOTIF["🔔 NotificationListener
+    :Listener"]
+    OWNER["🧑‍💼 TaskOwner
+    (Actor)"]
+
+    %% ==============================
+    %% Message Flow (numbered)
+    %% ==============================
+    FL -->|"1: clickApply(taskId)"| UI
+    UI -->|"2: POST /tasks/:taskId/apply"| CTRL
+    CTRL -->|"3: execute(taskId, freelancerId)"| CMD
+
+    CMD -->|"4: findOrFail(taskId)"| TASK_MODEL
+    TASK_MODEL -->|"4.1: SELECT tasks"| DB
+    DB -->|"4.2: return Task"| TASK_MODEL
+    TASK_MODEL -->|"4.3: return Task"| CMD
+
+    CMD -->|"5: canApplyForTask(ctx)"| RULES
+    RULES -->|"5.1: check task_visibility
+    IN ('external','all')"| RULES
+    RULES -->|"5.2: check not already applied
+    (hasExistingApplication)"| RULES
+    RULES -->|"5.3: return PolicyResult"| CMD
+
+    CMD -->|"6: TaskApplication.create()"| APP_MODEL
+    APP_MODEL -->|"6.1: INSERT task_applications
+    (status = pending)"| DB
+    DB -->|"6.2: confirm"| APP_MODEL
+    APP_MODEL -->|"6.3: return Application"| CMD
+
+    CMD -->|"7: increment
+    external_applications_count"| TASK_MODEL
+
+    CMD -->|"8: emit('task:application:submitted')"| EVT
+    EVT -->|"9: onApplicationSubmitted()"| NOTIF
+    NOTIF -->|"9.1: createNotification
+    (type = task_application)"| DB
+
+    CMD -->|"10: return Application"| CTRL
+    CTRL -->|"11: Inertia redirect"| UI
+    UI -->|"12: show 'Applied' badge"| FL
+
+    %% ==============================
+    %% Styling
+    %% ==============================
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef component fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+
+    class FL,OWNER actor
+    class UI,CTRL,CMD component
+    class RULES rule
+    class EVT,NOTIF infra
+    class DB db
+    class TASK_MODEL,APP_MODEL infra
+
+

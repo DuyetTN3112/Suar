@@ -6,8 +6,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import ProjectMember from '#models/project_member'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 import { canUpdateProjectFields } from '../rules/project_permission_policy.js'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
@@ -47,12 +47,12 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
       // 2. Check permissions via pure rule
       const actor = await User.findOrFail(userId)
-      const orgMembership = await OrganizationUser.findMembership(
+      const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
         trx
       )
-      const projectMember = await ProjectMember.findMember(dto.project_id, userId, trx)
+      const projectMember = await ProjectMemberRepository.findMember(dto.project_id, userId, trx)
       const actorProjectRole = projectMember?.project_role ?? null
 
       const fieldResult = canUpdateProjectFields(

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface MemberData {
@@ -44,7 +45,7 @@ export default class GetOrganizationShowDataQuery {
     }))
 
     // User's role in this organization
-    const userOrgRole = await OrganizationUser.getOrgRole(userId, organizationId)
+    const userOrgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
 
     return {
       members,

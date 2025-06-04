@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import Task from '#models/task'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -160,7 +160,7 @@ export default class GetOrganizationTasksQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUser.isMember(userId, organizationId)
+    return OrganizationUserRepository.isMember(userId, organizationId)
   }
 
   /**

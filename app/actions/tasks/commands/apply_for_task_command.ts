@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import Task from '#models/task'
@@ -17,7 +18,7 @@ import { canApplyForTask } from '#actions/tasks/rules/task_assignment_rules'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, TaskApplication> {
-  constructor(protected override ctx: HttpContext) {
+  constructor(ctx: HttpContext | ExecutionContext) {
     super(ctx)
   }
 

@@ -17,11 +17,11 @@ export default class BatchUpdateTaskStatusController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task_ids, status } = request.only(['task_ids', 'status'])
+    const { task_ids, task_status_id } = request.only(['task_ids', 'task_status_id'])
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new BatchUpdateTaskStatusCommand(execCtx)
-    const result = await command.execute(task_ids as string[], status as string, organizationId)
+    const result = await command.execute(task_ids as string[], task_status_id as string, organizationId)
 
     response.json({ success: true, ...result })
   }

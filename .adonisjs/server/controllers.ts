@@ -73,9 +73,12 @@ export const controllers = {
   reviews: {
     ConfirmReview: () => import('#controllers/reviews/confirm_review_controller'),
     CreateReviewSession: () => import('#controllers/reviews/create_review_session_controller'),
+    ListFlaggedReviews: () => import('#controllers/reviews/list_flagged_reviews_controller'),
     ListPendingReviews: () => import('#controllers/reviews/list_pending_reviews_controller'),
     MyReviews: () => import('#controllers/reviews/my_reviews_controller'),
+    ResolveFlaggedReview: () => import('#controllers/reviews/resolve_flagged_review_controller'),
     ShowReview: () => import('#controllers/reviews/show_review_controller'),
+    SubmitReverseReview: () => import('#controllers/reviews/submit_reverse_review_controller'),
     SubmitReview: () => import('#controllers/reviews/submit_review_controller'),
     UserReviews: () => import('#controllers/reviews/user_reviews_controller'),
   },

@@ -137,6 +137,8 @@ export interface TaskStatusChangedEvent {
   task: Task
   oldStatus: string
   newStatus: string
+  /** Category of the new status (todo, in_progress, done, cancelled) */
+  newStatusCategory: string
   changedBy: DatabaseId
 }
 
@@ -353,3 +355,5 @@ declare module '@adonisjs/core/types' {
     'cache:invalidate': CacheInvalidationEvent
   }
 }
+
+export default {}

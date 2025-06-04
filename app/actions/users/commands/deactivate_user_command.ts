@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
 import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -69,19 +69,16 @@ export default class DeactivateUserCommand {
       await user.useTransaction(trx).save()
 
       // 5. Create audit log
-      await AuditLog.create(
-        {
-          user_id: adminUserId,
-          action: 'deactivate_user',
-          entity_type: 'users',
-          entity_id: dto.user_id,
-          old_values: { status: oldStatus },
-          new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: adminUserId,
+        action: 'deactivate_user',
+        entity_type: 'users',
+        entity_id: dto.user_id,
+        old_values: { status: oldStatus },
+        new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

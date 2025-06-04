@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
@@ -7,7 +8,6 @@ import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
 import { canProcessApplication } from '#actions/tasks/rules/task_assignment_rules'
 
@@ -27,7 +27,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
   ProcessApplicationDTO,
   TaskApplication
 > {
-  constructor(protected override ctx: HttpContext) {
+  constructor(ctx: HttpContext | ExecutionContext) {
     super(ctx)
   }
 

@@ -1,0 +1,119 @@
+
+%% ERD: User, Auth, Skills Domain
+%% Source: app/models/user.ts, user_o_auth_provider.ts, skill.ts,
+%%         user_skill.ts, user_subscription.ts, recruiter_bookmark.ts + remember_me_tokens (framework)
+%% Scope: Columns match @column decorators exactly.
+%%         auth_method: 'email' (deprecated) | google | github.
+%%         recruiter_bookmarks has NO routes/controllers wired.
+%%         v3.1: ranking_priority, is_verified_badge, user_subscriptions, user_skills.source
+erDiagram
+    users {
+        UUID id PK
+        VARCHAR username UK
+        VARCHAR email UK
+        VARCHAR status "active/inactive/suspended"
+        VARCHAR system_role "superadmin/system_admin/registered_user"
+        UUID current_organization_id FK
+        VARCHAR auth_method "email(deprecated)/google/github"
+        VARCHAR avatar_url
+        TEXT bio
+        VARCHAR phone
+        TEXT address
+        VARCHAR timezone
+        VARCHAR language
+        BOOLEAN is_freelancer
+        NUMERIC freelancer_rating
+        INT freelancer_completed_tasks_count
+        SMALLINT ranking_priority "1~3 marketplace tier"
+        BOOLEAN is_verified_badge "blue checkmark"
+        JSONB profile_settings
+        JSONB trust_data
+        JSONB credibility_data
+        TIMESTAMPTZ deleted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    user_oauth_providers {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR provider "google/github"
+        VARCHAR provider_id UK
+        VARCHAR email
+        VARCHAR access_token
+        VARCHAR refresh_token
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    remember_me_tokens {
+        SERIAL id PK
+        UUID tokenable_id FK
+        VARCHAR hash
+        TIMESTAMPTZ expires_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    skills {
+        UUID id PK
+        VARCHAR category_code "technical/soft_skill/delivery"
+        VARCHAR display_type "spider_chart/list"
+        VARCHAR skill_code UK
+        VARCHAR skill_name
+        TEXT description
+        VARCHAR icon_url
+        BOOLEAN is_active
+        INT sort_order
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    user_skills {
+        UUID id PK
+        UUID user_id FK
+        UUID skill_id FK
+        VARCHAR level_code "beginner~master"
+        VARCHAR source "imported/reviewed"
+        INT total_reviews
+        NUMERIC avg_score
+        NUMERIC avg_percentage
+        TIMESTAMPTZ last_reviewed_at
+        TIMESTAMPTZ last_calculated_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    recruiter_bookmarks {
+        UUID id PK
+        UUID recruiter_user_id FK
+        UUID talent_user_id FK
+        TEXT notes
+        VARCHAR folder
+        SMALLINT rating "1~5"
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    users ||--o{ user_oauth_providers : "has OAuth"
+    users ||--o{ remember_me_tokens : "has tokens"
+    users ||--o{ user_skills : "has skills"
+    skills ||--o{ user_skills : "required by"
+    users ||--o{ recruiter_bookmarks : "bookmarks as recruiter"
+    users ||--o{ recruiter_bookmarks : "bookmarked as talent"
+
+    user_subscriptions {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR plan "free/pro/enterprise"
+        VARCHAR status "active/expired/cancelled"
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ expires_at
+        BOOLEAN auto_renew
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    users ||--o{ user_subscriptions : "has subscriptions"
+
+

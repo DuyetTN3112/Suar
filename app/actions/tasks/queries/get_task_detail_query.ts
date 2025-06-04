@@ -1,7 +1,8 @@
 import Task from '#models/task'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import RepositoryFactory from '#repositories/repository_factory'
 import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
@@ -126,13 +127,13 @@ export default class GetTaskDetailQuery {
     orgUser: { org_role: string } | null
   }> {
     // Check system admin → delegate to Model
-    const isSuperAdmin = await User.isSystemAdmin(userId)
+    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     const roleName = isSuperAdmin ? 'admin' : null
 
     // Query org membership → delegate to Model
     let orgUser: { org_role: string } | null = null
     if (organizationId) {
-      const orgRole = await OrganizationUser.getOrgRole(userId, organizationId)
+      const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
       if (orgRole) {
         orgUser = { org_role: String(orgRole) }
       }
@@ -216,26 +217,37 @@ export default class GetTaskDetailQuery {
    * Load audit logs
    */
   private async loadAuditLogs(taskId: DatabaseId, limit: number): Promise<unknown[]> {
-    const logs = await AuditLog.query()
-      .where('entity_type', 'task')
-      .where('entity_id', taskId)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .preload('user')
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'task',
+      entity_id: taskId,
+      limit,
+    })
+
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users =
+      userIds.length > 0
+        ? await User.query().whereIn('id', userIds).select(['id', 'username', 'email'])
+        : []
+    const userMap = new Map(users.map((u) => [String(u.id), u]))
 
     return logs.map((log) => {
+      const user = userMap.get(String(log.user_id))
       return {
         id: log.id,
         action: log.action,
-        user: {
-          id: log.user.id,
-          name: log.user.username,
-          email: log.user.email,
-        },
+        user: user
+          ? {
+              id: user.id,
+              name: user.username || 'Unknown',
+              email: user.email ?? '',
+            }
+          : null,
         timestamp: log.created_at,
         changes: this.formatChanges(
-          (log.old_values ?? {}) as Record<string, unknown>,
-          (log.new_values ?? {}) as Record<string, unknown>
+          log.old_values ?? {},
+          log.new_values ?? {}
         ),
       }
     })

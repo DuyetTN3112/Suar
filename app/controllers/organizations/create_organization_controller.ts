@@ -10,7 +10,7 @@ import CreateNotification from '#actions/common/create_notification'
  */
 export default class CreateOrganizationController {
   async showForm({ inertia }: HttpContext) {
-    return await inertia.render('organizations/create')
+    return await inertia.render('organizations/create', {})
   }
 
   async handle(ctx: HttpContext) {

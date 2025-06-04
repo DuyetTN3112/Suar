@@ -3,9 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
-import ProjectMember from '#models/project_member'
+import AuditLog from '#models/mongo/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import ProjectMemberRepository from '#repositories/project_member_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import { ProjectRole } from '#constants/project_constants'
 import { EntityType } from '#constants/audit_constants'
@@ -60,12 +60,12 @@ export default class TransferProjectOwnershipCommand {
       const currentOwnerId = project.owner_id
 
       // 2-4. Validate permissions via pure rule
-      const orgMembership = await OrganizationUser.findMembership(
+      const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         currentUserId,
         trx
       )
-      const isNewOwnerOrgMember = await OrganizationUser.isApprovedMember(
+      const isNewOwnerOrgMember = await OrganizationUserRepository.isApprovedMember(
         project.organization_id,
         dto.new_owner_id,
         trx
@@ -82,18 +82,18 @@ export default class TransferProjectOwnershipCommand {
       )
 
       // 5. Add new owner to project_members if not already
-      const existingMember = await ProjectMember.findMember(dto.project_id, dto.new_owner_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.new_owner_id, trx)
 
       if (!existingMember) {
-        await ProjectMember.addMember(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.addMember(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
       } else {
         // Update to project_owner role
-        await ProjectMember.updateRole(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.updateRole(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
       }
 
       // 6. Demote old owner to project_manager
       if (currentOwnerId) {
-        await ProjectMember.updateRole(dto.project_id, currentOwnerId, ProjectRole.MANAGER, trx)
+        await ProjectMemberRepository.updateRole(dto.project_id, currentOwnerId, ProjectRole.MANAGER, trx)
       }
 
       // 7. Update project owner
@@ -101,19 +101,16 @@ export default class TransferProjectOwnershipCommand {
       await project.useTransaction(trx).save()
 
       // 8. Create audit log
-      await AuditLog.create(
-        {
-          user_id: currentUserId,
-          action: 'transfer_ownership',
-          entity_type: EntityType.PROJECT,
-          entity_id: dto.project_id,
-          old_values: { owner_id: currentOwnerId },
-          new_values: { owner_id: dto.new_owner_id },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: currentUserId,
+        action: 'transfer_ownership',
+        entity_type: EntityType.PROJECT,
+        entity_id: dto.project_id,
+        old_values: { owner_id: currentOwnerId },
+        new_values: { owner_id: dto.new_owner_id },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

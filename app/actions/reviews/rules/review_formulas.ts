@@ -130,12 +130,12 @@ export function determineSessionStatus(
   peerReviewsCount: number,
   requiredPeerReviews: number,
   currentStatus: string
-): string {
+): 'pending' | 'in_progress' | 'completed' | 'disputed' {
   if (managerReviewCompleted && peerReviewsCount >= requiredPeerReviews) {
     return ReviewSessionStatus.COMPLETED
   }
   if (currentStatus === ReviewSessionStatus.PENDING) {
     return ReviewSessionStatus.IN_PROGRESS
   }
-  return currentStatus
+  return currentStatus as 'pending' | 'in_progress' | 'completed' | 'disputed'
 }

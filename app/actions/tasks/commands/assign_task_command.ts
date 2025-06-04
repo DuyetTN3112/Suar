@@ -1,7 +1,8 @@
 import Task from '#models/task'
 import User from '#models/user'
-import AuditLog from '#models/audit_log'
-import OrganizationUser from '#models/organization_user'
+import AuditLog from '#models/mongo/audit_log'
+import UserRepository from '#repositories/user_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import db from '@adonisjs/lucid/services/db'
 import type AssignTaskDTO from '../dtos/assign_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -55,8 +56,8 @@ export default class AssignTaskCommand {
         .firstOrFail()
 
       const [systemRole, orgRole] = await Promise.all([
-        User.getSystemRoleName(userId),
-        OrganizationUser.getOrgRole(userId, existingTask.organization_id),
+        UserRepository.getSystemRoleName(userId),
+        OrganizationUserRepository.getMemberRoleName(existingTask.organization_id, userId, undefined, false),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -82,8 +83,8 @@ export default class AssignTaskCommand {
         }
 
         const [isMember, isFreelancer] = await Promise.all([
-          OrganizationUser.isMember(dto.assigned_to, existingTask.organization_id),
-          User.isFreelancer(dto.assigned_to),
+          OrganizationUserRepository.isMember(dto.assigned_to, existingTask.organization_id),
+          UserRepository.isFreelancer(dto.assigned_to),
         ])
 
         enforcePolicy(
@@ -103,19 +104,16 @@ export default class AssignTaskCommand {
       existingTask.updated_by = userId
       await existingTask.useTransaction(trx).save()
 
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
-          entity_type: EntityType.TASK,
-          entity_id: dto.task_id,
-          old_values: oldValues,
-          new_values: existingTask.toJSON(),
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: oldValues,
+        new_values: existingTask.toJSON(),
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

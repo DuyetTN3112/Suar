@@ -1,0 +1,80 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_04b: Messaging
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Send message + Mark read + Recall + message operations
+%% Realtime: Transmit configured but NOT used — no push yet
+%% task_id column exists but is dead code (not wired up)
+%%
+%% Related: act_04a_conversation_management.mmd
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start(["User opens
+    conversation"]) --> LoadMessages["GetConversationMessagesQuery
+    (paginated, latest first)"]
+    LoadMessages --> UserAction{"Action?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 1: Send Message
+    %% ═══════════════════════════════════════════════════════════
+    UserAction -->|"Send message"| ValidateSender{"Sender is
+    participant?"}
+    ValidateSender -->|No| RejectMsg["Reject message"]
+    RejectMsg --> End1([End])
+    ValidateSender -->|Yes| SaveMessage["SendMessageCommand:
+    INSERT message
+    send_status = 'sent'"]
+    SaveMessage --> UpdateConv["Update conversation:
+    last_message_id
+    last_message_at"]
+    UpdateConv --> EmitEvent["Emit message:sent
+    ⚠️ No realtime push —
+    Transmit not wired up"]
+    EmitEvent --> UserAction
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 2: Mark Read
+    %% ═══════════════════════════════════════════════════════════
+    UserAction -->|"Mark read"| MarkRead["MarkAsReadCommand:
+    Update participant
+    last_read_at = NOW()"]
+    MarkRead --> UserAction
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 3: Recall Message
+    %% ═══════════════════════════════════════════════════════════
+    UserAction -->|"Recall message"| RecallCheck{"RecallMessageCommand:
+    Is sender?
+    Already recalled?"}
+    RecallCheck -->|"Not sender
+    or already recalled"| CannotRecall["❌ Cannot recall"]
+    CannotRecall --> UserAction
+
+    RecallCheck -->|"Valid"| RecallScope{"Recall scope?"}
+    RecallScope -->|"self"| RecallSelf["recall_scope = 'self'
+    is_recalled = true
+    recalled_at = NOW()
+    (message hidden for sender only)"]
+    RecallScope -->|"all"| RecallAll["recall_scope = 'all'
+    is_recalled = true
+    recalled_at = NOW()
+    message = 'Tin nhắn đã bị thu hồi'"]
+    RecallSelf --> UserAction
+    RecallAll --> UserAction
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 4: Close
+    %% ═══════════════════════════════════════════════════════════
+    UserAction -->|"Close"| End([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E0F7FA,stroke:#00695C,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    classDef realtime fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End,End1 startEnd
+    class SaveMessage,UpdateConv,MarkRead,RecallSelf,RecallAll process
+    class ValidateSender,UserAction,RecallCheck,RecallScope decision
+    class RejectMsg,CannotRecall error
+    class EmitEvent realtime

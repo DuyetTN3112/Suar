@@ -6,11 +6,13 @@ import {
   UserSkillFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import UserSkill from '#models/user_skill'
 import { ProficiencyLevel, getLevelCodeFromPercentage } from '#constants/user_constants'
+import SkillRepository from '#repositories/skill_repository'
 
 test.group('Integration | User Skills', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -40,7 +42,7 @@ test.group('Integration | User Skills', (group) => {
       level_code: ProficiencyLevel.SENIOR,
     })
 
-    const found = await UserSkill.findByUserAndSkill(user.id, skill.id)
+    const found = await SkillRepository.findByUserAndSkill(user.id, skill.id)
     assert.isNotNull(found)
     assert.equal(found!.level_code, ProficiencyLevel.SENIOR)
   })
@@ -49,14 +51,14 @@ test.group('Integration | User Skills', (group) => {
     const user = await UserFactory.create()
     const skill = await SkillFactory.create()
 
-    const found = await UserSkill.findByUserAndSkill(user.id, skill.id)
+    const found = await SkillRepository.findByUserAndSkill(user.id, skill.id)
     assert.isNull(found)
   })
 
   test('getUserSkillsWithDetails returns all skills for user', async ({ assert }) => {
     const user = await UserFactory.create()
-    const skill1 = await SkillFactory.create({ name: 'JavaScript' })
-    const skill2 = await SkillFactory.create({ name: 'TypeScript' })
+    const skill1 = await SkillFactory.create({ skill_name: 'JavaScript' })
+    const skill2 = await SkillFactory.create({ skill_name: 'TypeScript' })
 
     await UserSkillFactory.create({
       user_id: user.id,
@@ -69,7 +71,7 @@ test.group('Integration | User Skills', (group) => {
       level_code: ProficiencyLevel.SENIOR,
     })
 
-    const skills = await UserSkill.getUserSkillsWithDetails(user.id)
+    const skills = await SkillRepository.getUserSkillsWithDetails(user.id)
     assert.lengthOf(skills, 2)
   })
 
@@ -106,8 +108,8 @@ test.group('Integration | User Skills', (group) => {
     assert.equal(getLevelCodeFromPercentage(30), ProficiencyLevel.JUNIOR)
     assert.equal(getLevelCodeFromPercentage(45), ProficiencyLevel.MIDDLE)
     assert.equal(getLevelCodeFromPercentage(60), ProficiencyLevel.SENIOR)
-    assert.equal(getLevelCodeFromPercentage(75), ProficiencyLevel.LEAD)
-    assert.equal(getLevelCodeFromPercentage(88), ProficiencyLevel.PRINCIPAL)
+    assert.equal(getLevelCodeFromPercentage(75), ProficiencyLevel.PRINCIPAL)
+    assert.equal(getLevelCodeFromPercentage(88), ProficiencyLevel.MASTER)
     assert.equal(getLevelCodeFromPercentage(100), ProficiencyLevel.MASTER)
   })
 
@@ -124,7 +126,7 @@ test.group('Integration | User Skills', (group) => {
     userSkill.level_code = ProficiencyLevel.LEAD
     await userSkill.save()
 
-    const updated = await UserSkill.findByUserAndSkill(user.id, skill.id)
+    const updated = await SkillRepository.findByUserAndSkill(user.id, skill.id)
     assert.equal(updated!.level_code, ProficiencyLevel.LEAD)
   })
 })

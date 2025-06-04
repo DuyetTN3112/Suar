@@ -29,7 +29,7 @@ interface ActivityLogLeanDoc {
 export default class MongoUserActivityLogRepository implements UserActivityLogRepository {
   async create(data: UserActivityLogCreateData): Promise<void> {
     try {
-      await MongoUserActivityLog.create({
+      await new MongoUserActivityLog({
         user_id: String(data.user_id),
         action_type: data.action_type,
         action_data: data.action_data ?? undefined,
@@ -37,7 +37,7 @@ export default class MongoUserActivityLogRepository implements UserActivityLogRe
         related_entity_id: data.related_entity_id ? String(data.related_entity_id) : undefined,
         ip_address: data.ip_address ?? undefined,
         user_agent: data.user_agent ?? undefined,
-      })
+      }).save()
     } catch (error) {
       loggerService.error('MongoUserActivityLogRepository.create failed', {
         userId: data.user_id,

@@ -59,4 +59,6 @@ export enum EntityType {
   NOTIFICATION = 'notification',
   CONVERSATION = 'conversation',
   MESSAGE = 'message',
+  TASK_STATUS = 'task_status',
+  WORKFLOW = 'workflow',
 }

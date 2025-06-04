@@ -1,0 +1,101 @@
+%% DFD 00 — Context Diagram (Level 0)
+%% Cross-referenced with actual backend code 2024
+%% ❌ Removed: Email Service (no mailer/SMTP exists anywhere)
+%% ✅ Added: Redis (DB0 sessions/locks, DB1 app cache)
+%% ✅ Fixed: "Register" → "OAuth Login" (no email/password registration)
+%% ✅ Fixed: "Auth Token" → "Session cookie" (no JWT)
+%% ✅ Fixed: MongoDB label expanded (audit_logs + notifications + user_activity_logs)
+flowchart LR
+    %% ═══════════════════════════════
+    %% LEFT: External Entities (Actors)
+    %% ═══════════════════════════════
+    subgraph ext[" External Entities"]
+        direction TB
+        U([ User / Employee])
+        FL([ Freelancer])
+        ADM([ System Admin])
+    end
+
+    %% ═══════════════════════════════
+    %% CENTER: Core System
+    %% ═══════════════════════════════
+    subgraph sys[" SUAR SYSTEM"]
+        SUAR[" HR & Project Management System SUAR
+        ───────────────────────────────
+         Organization & Member Management
+         Project & Task Management
+         Job Marketplace
+         360° Review & Spider Chart
+         Messaging & Notifications
+         Skill Management & Profiles"]
+    end
+
+    %% ═══════════════════════════════
+    %% RIGHT TOP: External Services
+    %% ═══════════════════════════════
+    subgraph svc[" External Services"]
+        direction TB
+        OAuth([ OAuth Provider\nGoogle / GitHub])
+    end
+
+    %% ═══════════════════════════════
+    %% RIGHT BOTTOM: Data Stores
+    %% ═══════════════════════════════
+    subgraph store[" Data Stores"]
+        direction TB
+        PG[( PostgreSQL\n27 main tables)]
+        MG[( MongoDB\nAudit Logs / Notifications\n/ User Activity Logs)]
+        RD[( Redis\nDB0: Sessions & Locks\nDB1: App Cache)]
+    end
+
+    %% ═══════════════════════════════
+    %% FLOWS — User
+    %% ═══════════════════════════════
+    U -->|"OAuth Login / Profile"| SUAR
+    U -->|"Manage Org, Projects & Tasks"| SUAR
+    SUAR -->|"Dashboard & Notifications"| U
+
+    %% ═══════════════════════════════
+    %% FLOWS — Freelancer
+    %% ═══════════════════════════════
+    FL -->|"Browse & Apply for Tasks"| SUAR
+    SUAR -->|"Results, Reviews & Rating"| FL
+
+    %% ═══════════════════════════════
+    %% FLOWS — Admin
+    %% ═══════════════════════════════
+    ADM -->|"System Mgmt & Moderation"| SUAR
+    SUAR -->|"Reports & Anomaly Alerts"| ADM
+
+    %% ═══════════════════════════════
+    %% FLOWS — External Services
+    %% ═══════════════════════════════
+    SUAR -->|"Authorization Request"| OAuth
+    OAuth -->|"Session cookie + User Info"| SUAR
+
+    %% ═══════════════════════════════
+    %% FLOWS — Data Stores
+    %% ═══════════════════════════════
+    SUAR -->|"Read / Write Business Data"| PG
+    PG -->|"Query Results"| SUAR
+    SUAR -->|"Log Audit & Notifications"| MG
+    MG -->|"Notification History"| SUAR
+    SUAR <-->|"Sessions, Locks, Cache"| RD
+
+    %% ═══════════════════════════════
+    %% STYLES
+    %% ═══════════════════════════════
+    classDef entity   fill:#DBEAFE,stroke:#2563EB,color:#1e3a8a,stroke-width:2px
+    classDef system   fill:#FEF3C7,stroke:#D97706,color:#78350f,stroke-width:3px
+    classDef service  fill:#EDE9FE,stroke:#7C3AED,color:#3b0764,stroke-width:2px
+    classDef db       fill:#D1FAE5,stroke:#059669,color:#064e3b,stroke-width:2px
+
+    class U,FL,ADM entity
+    class SUAR system
+    class OAuth service
+    class PG,MG,RD db
+
+    style ext   fill:#EFF6FF,stroke:#BFDBFE,stroke-width:1.5px,color:#1e40af
+    style sys   fill:#FFFBEB,stroke:#FDE68A,stroke-width:2px,color:#92400e
+    style svc   fill:#F5F3FF,stroke:#DDD6FE,stroke-width:1.5px,color:#4c1d95
+    style store fill:#ECFDF5,stroke:#A7F3D0,stroke-width:1.5px,color:#064e3b

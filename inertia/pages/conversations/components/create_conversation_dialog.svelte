@@ -12,7 +12,7 @@
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import { AlertCircle } from 'lucide-svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
   import axios from 'axios'
 
   interface Participant {
@@ -48,7 +48,7 @@
       }
     } catch (error) {
       console.error('Không thể tải danh sách người dùng:', error)
-      toast.error('Không thể tải danh sách người dùng')
+      notificationStore.error('Không thể tải danh sách người dùng')
     }
   }
 
@@ -62,7 +62,7 @@
 
   async function handleCreate() {
     if (selectedParticipants.length === 0) {
-      toast.error('Vui lòng chọn ít nhất một người tham gia')
+      notificationStore.error('Vui lòng chọn ít nhất một người tham gia')
       return
     }
 
@@ -73,18 +73,18 @@
         participants: selectedParticipants
       }, {
         onSuccess: () => {
-          toast.success('Tạo cuộc trò chuyện thành công')
+          notificationStore.success('Tạo cuộc trò chuyện thành công')
           open = false
           title = ''
           selectedParticipants = []
         },
         onError: () => {
-          toast.error('Không thể tạo cuộc trò chuyện')
+          notificationStore.error('Không thể tạo cuộc trò chuyện')
         }
       })
     } catch (error) {
       console.error('Lỗi khi tạo cuộc trò chuyện:', error)
-      toast.error('Đã xảy ra lỗi')
+      notificationStore.error('Đã xảy ra lỗi')
     } finally {
       loading = false
     }

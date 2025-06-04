@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import ConversationParticipant from '#models/conversation_participant'
-import Message from '#models/message'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import MessageRepository from '#repositories/message_repository'
 import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -43,13 +43,13 @@ export class MarkAsReadCommand {
 
     try {
       // Verify user is participant → delegate to Model
-      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
       if (!isParticipant) {
         throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
       // Mark all unread messages as read → delegate to Model
-      await Message.markAllAsReadInConversation(dto.conversationId, userId)
+      await MessageRepository.markAllAsReadInConversation(dto.conversationId, userId)
 
       // Invalidate cache
       await this.invalidateCache(dto.conversationId, userId)
@@ -122,13 +122,13 @@ export class MarkMessagesAsReadCommand {
 
     try {
       // Verify user is participant → delegate to Model
-      const isParticipant = await ConversationParticipant.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
       if (!isParticipant) {
         throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
 
       // Mark specified messages as read → delegate to Model
-      await Message.markSpecificAsRead(dto.conversationId, dto.uniqueMessageIds, userId)
+      await MessageRepository.markSpecificAsRead(dto.conversationId, dto.uniqueMessageIds, userId)
 
       // Invalidate cache
       await this.invalidateCache(dto.conversationId, userId)

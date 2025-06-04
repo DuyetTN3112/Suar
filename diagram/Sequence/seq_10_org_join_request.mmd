@@ -1,0 +1,100 @@
+%% seq_10_org_join_request.mmd
+%% Scope: Organization join request lifecycle (submit → pending → approve/reject)
+%% Backend refs:
+%%   - GET/POST /organizations/:id/join → JoinOrganizationController
+%%     → CheckJoinEligibilityQuery + CreateJoinRequestCommand
+%%   - GET /organizations/:id/members/pending → PendingRequestsController
+%%     → GetPendingRequestsQuery
+%%   - POST /organizations/:id/members/process-request/:userId
+%%     → ProcessJoinRequestController → ProcessJoinRequestCommand
+%%   - ⚠️ v3.0 uses organization_users (status='pending') NOT organization_join_requests
+%%   - ⚠️ Transmit transport=null (no WebSocket)
+
+sequenceDiagram
+    autonumber
+    actor User as User (Requester)
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Q as Query
+    participant Cmd as Command
+    participant DB as PostgreSQL
+    actor Admin as Org Owner/Admin
+
+    Note over User, Admin: === CHECK ELIGIBILITY + SUBMIT ===
+    Note over C: JoinOrganizationController
+    Note over C: GET shows join page
+    Note over C: POST submits request
+
+    User->>B: Visit organization page
+    B->>C: GET /organizations/:id/join
+    C->>Q: CheckJoinEligibilityQuery.execute(dto)
+    Q->>DB: SELECT FROM organization_users
+    WHERE organization_id=? AND user_id=?
+
+    alt Already approved member
+        Q-->>C: Not eligible: already_member
+        C-->>B: Show "Already a member"
+    else Has pending request (status='pending')
+        Q-->>C: Not eligible: pending_request
+        C-->>B: Show "Request pending"
+    else Eligible
+        C-->>B: Show join form
+        User->>B: Enter message + submit
+        B->>C: POST /organizations/:id/join
+        C->>Cmd: CreateJoinRequestCommand.execute(dto)
+        Note over Cmd: v3.0: Creates/updates
+        Note over Cmd: organization_users row
+        Note over Cmd: with status='pending'
+        Note over Cmd: NOT organization_join_requests
+        Cmd->>DB: INSERT INTO organization_users
+        (organization_id, user_id,
+        org_role='org_member',
+        status='pending')
+        Cmd->>Cmd: emit('audit:log')
+        Cmd-->>C: OK
+        C-->>B: Redirect with success message
+    end
+
+    Note over User, Admin: === VIEW PENDING REQUESTS ===
+    Note over C: PendingRequestsController
+
+    Admin->>B: Open pending requests
+    B->>C: GET /organizations/:id/members/pending
+    C->>Q: GetPendingRequestsQuery.execute(dto)
+    Q->>DB: SELECT ou.*, u.*
+    FROM organization_users ou
+    JOIN users u ON ou.user_id = u.id
+    WHERE ou.organization_id = ?
+    AND ou.status = 'pending'
+    Q-->>C: Pending list
+    C-->>B: Render pending page
+    B-->>Admin: Show requests
+
+    Note over User, Admin: === APPROVE / REJECT ===
+    Note over C: ProcessJoinRequestController
+
+    Admin->>B: Click Approve or Reject
+    B->>C: POST /organizations/:id/members/process-request/:userId
+    (body: { action: 'approve' | 'reject' })
+
+    C->>Cmd: ProcessJoinRequestCommand.execute(dto)
+    Cmd->>DB: SELECT FROM organization_users
+    WHERE organization_id=? AND user_id=?
+    AND status='pending'
+
+    alt action = 'approve'
+        Cmd->>DB: UPDATE organization_users
+        SET status='approved',
+        processed_by=admin.id
+        Note over Cmd: Row already exists,
+        Note over Cmd: no need to INSERT
+    else action = 'reject'
+        Cmd->>DB: UPDATE organization_users
+        SET status='rejected',
+        processed_by=admin.id
+    end
+
+    Cmd-->>C: OK
+    C-->>B: Redirect back
+
+

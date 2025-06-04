@@ -5,7 +5,7 @@ import type {
   ReviewSubmittedEvent,
   ReviewConfirmedEvent,
   SkillScoreUpdatedEvent,
-} from '#events/index'
+} from '#events/event_types'
 
 /**
  * Review Listener — Sprint 7

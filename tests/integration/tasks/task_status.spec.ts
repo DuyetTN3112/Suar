@@ -15,7 +15,9 @@ import { ExecutionContext } from '#types/execution_context'
 import { TaskStatus } from '#constants/task_constants'
 
 test.group('Integration | Task Status', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -25,6 +27,7 @@ test.group('Integration | Task Status', (group) => {
       organization_id: org.id,
       creator_id: owner.id,
       status: TaskStatus.TODO,
+      assigned_to: owner.id,
     })
     return { org, owner, task }
   }
@@ -116,7 +119,7 @@ test.group('Integration | Task Status', (group) => {
   })
 
   test('only permitted user can change status', async ({ assert }) => {
-    const { org, task } = await createTaskInOrg()
+    const { task } = await createTaskInOrg()
     const outsider = await UserFactory.create()
 
     const ctx = ExecutionContext.system(outsider.id)
@@ -166,11 +169,12 @@ test.group('Integration | Task Status', (group) => {
 
     await command.execute(dto)
 
-    const { default: AuditLog } = await import('#models/audit_log')
-    const logs = await AuditLog.query()
-      .where('entity_type', 'task')
-      .where('entity_id', task.id)
-      .where('action', 'update_status')
+    const { default: AuditLog } = await import('#models/mongo/audit_log')
+    const logs = await AuditLog.find({
+      entity_type: 'task',
+      entity_id: String(task.id),
+      action: 'update_status',
+    })
     assert.isAbove(logs.length, 0)
   })
 })

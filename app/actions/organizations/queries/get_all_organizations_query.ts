@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import User from '#models/user'
 import type { DatabaseId } from '#types/database'
 
@@ -51,7 +52,7 @@ export default class GetAllOrganizationsQuery {
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: member counts
-    const memberCountMap = await OrganizationUser.countMembersByOrgIds(orgIds)
+    const memberCountMap = await OrganizationUserRepository.countMembersByOrgIds(orgIds)
 
     return allOrganizations.map((org) => ({
       ...org.toJSON(),

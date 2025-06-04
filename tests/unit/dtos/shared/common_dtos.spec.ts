@@ -103,9 +103,9 @@ test.group('PaginatedResult', () => {
 // ============================================================================
 test.group('OrganizationContextDTO', () => {
   test('creates with organization and user id', ({ assert }) => {
-    const dto = new OrganizationContextDTO(1, 42)
-    assert.equal(dto.organizationId, 1)
-    assert.equal(dto.userId, 42)
+    const dto = new OrganizationContextDTO('1', '42')
+    assert.equal(dto.organizationId, '1')
+    assert.equal(dto.userId, '42')
   })
 })
 
@@ -178,20 +178,20 @@ test.group('SearchDTO', () => {
 // ============================================================================
 test.group('IdDTO', () => {
   test('creates with valid id', ({ assert }) => {
-    const dto = new IdDTO(42)
-    assert.equal(dto.id, 42)
+    const dto = new IdDTO('42')
+    assert.equal(dto.id, '42')
   })
 
   test('allows id of 1', ({ assert }) => {
-    const dto = new IdDTO(1)
-    assert.equal(dto.id, 1)
+    const dto = new IdDTO('1')
+    assert.equal(dto.id, '1')
   })
 
   test('throws for id of 0', ({ assert }) => {
-    assert.throws(() => new IdDTO(0), /id/i)
+    assert.throws(() => new IdDTO('0'), /id/i)
   })
 
   test('throws for negative id', ({ assert }) => {
-    assert.throws(() => new IdDTO(-5), /id/i)
+    assert.throws(() => new IdDTO('-5'), /id/i)
   })
 })

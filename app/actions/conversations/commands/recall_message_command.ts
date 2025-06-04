@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
-import ConversationParticipant from '#models/conversation_participant'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import { DateTime } from 'luxon'
 import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
@@ -109,7 +109,7 @@ export default class RecallMessageCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants → delegate to Model
-      const participantIds = await ConversationParticipant.getParticipantIds(conversationId)
+      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache
       for (const userId of participantIds) {

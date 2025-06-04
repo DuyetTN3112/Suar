@@ -1,0 +1,71 @@
+
+%% ─────────────────────────────────────────────────────────────
+%% seq_07: Org Member Approval & User Management
+%% ─────────────────────────────────────────────────────────────
+%% Join Request flow (ProcessJoinRequestCommand)
+%% NO email/password — org member approval only
+%% System role change: superadmin only
+%% ─────────────────────────────────────────────────────────────
+
+sequenceDiagram
+    autonumber
+    actor SA as Org Owner / Admin
+    participant B as Browser (Svelte)
+    participant C as OrgController
+    participant Cmd as ProcessJoinRequestCommand
+    participant DB as PostgreSQL
+    participant N as NotificationService
+
+    Note over SA, N: === VIEW PENDING JOIN REQUESTS ===
+
+    SA->>B: Navigate to Org Members page
+    B->>C: GET /organizations/:orgId/members?status=pending
+    C->>C: Verify org_owner or org_admin<br/>(canProcessJoinRequest policy)
+
+    alt Unauthorized
+        C-->>B: 403 Forbidden
+        B-->>SA: "Insufficient permissions"
+    else Authorized
+        C->>DB: SELECT ou.*, u.username, u.email<br/>FROM organization_users ou<br/>JOIN users u ON ou.user_id = u.id<br/>WHERE ou.organization_id = ?<br/>AND ou.status = 'pending'
+        DB-->>C: Pending members list
+        C-->>B: 200 OK + pending list
+        B-->>SA: Show pending members table
+    end
+
+    Note over SA, N: === APPROVE JOIN REQUEST ===
+
+    SA->>B: Click "Approve" on member row
+    B->>C: POST /organizations/:orgId/join-requests/:id/process
+    C->>Cmd: execute(action: 'approve')
+
+    Cmd->>DB: SELECT * FROM organization_users<br/>WHERE id = ? AND status = 'pending'
+    DB-->>Cmd: Membership record
+
+    alt Not found or already processed
+        Cmd-->>C: Error: Not found
+        C-->>B: 404 Not Found
+    else Pending found
+        Cmd->>DB: UPDATE organization_users<br/>SET status = 'approved',<br/>org_role = 'org_member'
+        DB-->>Cmd: Updated
+        Cmd->>DB: Log audit entry
+        Cmd->>N: Notify user: "Membership approved"
+        Cmd-->>C: Approved member
+        C-->>B: 200 OK
+        B-->>SA: User moved to active members
+    end
+
+    Note over SA, N: === REJECT JOIN REQUEST ===
+
+    SA->>B: Click "Reject" on member row
+    B->>C: POST /organizations/:orgId/join-requests/:id/process
+    C->>Cmd: execute(action: 'reject')
+
+    Cmd->>DB: UPDATE organization_users<br/>SET status = 'rejected'
+    DB-->>Cmd: Updated
+    Cmd->>DB: Log audit entry
+    Cmd->>N: Notify user: "Request rejected"
+    Cmd-->>C: OK
+    C-->>B: 200 OK
+    B-->>SA: Request removed from list
+
+

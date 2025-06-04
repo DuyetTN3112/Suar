@@ -1,0 +1,119 @@
+%% seq_02_task_crud.mmd
+%% Scope: Task CRUD operations (Create, Update, Status Change, Assign, Delete)
+%% Backend refs:
+%%   - POST /tasks → CreateTaskController → CreateTaskCommand
+%%   - PUT /tasks/:id → EditTaskController → UpdateTaskCommand
+%%   - PUT /tasks/:id/status → UpdateTaskStatusController → UpdateTaskStatusCommand
+%%   - DELETE /tasks/:id → DeleteTaskController → DeleteTaskCommand
+%%   - AssignTaskCommand (called from UpdateTaskCommand, no dedicated route)
+%%   - ⚠️ No dedicated visibility change or assign route
+%%   - ⚠️ Transmit transport=null (no WebSocket delivery)
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Cmd as Command
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Note over U, Evt: === CREATE TASK ===
+    Note over C: CreateTaskController
+
+    U->>B: Fill task creation form
+    B->>C: POST /tasks
+    C->>C: Validate (createTaskValidator)
+    C->>Cmd: CreateTaskCommand.execute(dto)
+    Cmd->>Cmd: canCreateTask rule
+    (checks org role + project role)
+
+    alt Unauthorized
+        Cmd-->>C: ForbiddenException
+        C-->>B: 403 Forbidden
+    else Authorized
+        Cmd->>DB: INSERT INTO tasks
+        (project_id, title, status='todo',
+        task_visibility='internal', ...)
+        DB-->>Cmd: Task created
+        Note over Cmd: ⚠️ NO task_version on create
+        Note over Cmd: Version only on UpdateTaskCommand
+        Cmd->>Evt: emit('task:created', task)
+        Cmd-->>C: Task object
+        C-->>B: Redirect to task detail
+    end
+
+    Note over U, Evt: === UPDATE TASK ===
+    Note over C: EditTaskController
+
+    U->>B: Edit task fields
+    B->>C: PUT /tasks/:id
+    C->>Cmd: UpdateTaskCommand.execute(dto)
+    Cmd->>Cmd: canUpdateTask rule
+    Cmd->>DB: SELECT task (with lock)
+    Cmd->>Cmd: dto.getChangesForAudit(oldValues)
+    Cmd->>DB: UPDATE tasks SET ... WHERE id = ?
+    Cmd->>DB: INSERT INTO task_versions
+    (snapshot of changed fields)
+    Cmd->>Evt: emit('task:updated', { task, changes })
+    Cmd-->>C: Updated task
+    C-->>B: Redirect back
+
+    Note over U, Evt: === CHANGE STATUS ===
+    Note over C: UpdateTaskStatusController
+
+    U->>B: Change task status
+    B->>C: PUT /tasks/:id/status
+    C->>Cmd: UpdateTaskStatusCommand.execute(dto)
+    Cmd->>Cmd: validateTransition(current, target)
+
+    alt Invalid transition
+        Cmd-->>C: ValidationException
+        C-->>B: 422 Invalid transition
+    else todo → in_progress
+        Cmd->>Cmd: Check assigned_to ≠ null
+        alt No assignee
+            Cmd-->>C: Error: requires assignee
+        else Has assignee
+            Cmd->>DB: UPDATE tasks SET status = 'in_progress'
+            Cmd->>Evt: emit('task:status:changed')
+        end
+    else Other valid transition
+        Cmd->>DB: UPDATE tasks SET status = ?
+        Cmd->>Evt: emit('task:status:changed',
+        { taskId, oldStatus, newStatus })
+    end
+
+    Note over Evt: When newStatus = 'done':
+    Note over Evt: → auto-complete assignments
+    Note over Evt: → auto-create ReviewSessions
+
+    Note over U, Evt: === ASSIGN TASK ===
+    Note over C: (via UpdateTaskCommand)
+
+    U->>B: Set assigned_to on task
+    B->>C: PUT /tasks/:id
+    (body includes assigned_to)
+    C->>Cmd: UpdateTaskCommand → AssignTaskCommand
+    Cmd->>DB: UPDATE tasks SET assigned_to = ?
+    Note over Cmd: ⚠️ Status stays UNCHANGED
+    Note over Cmd: Assignment does NOT create
+    Note over Cmd: task_assignments row
+    Cmd->>Evt: emit('task:assigned', { task, assignee })
+    Cmd-->>C: OK
+    C-->>B: Updated
+
+    Note over U, Evt: === DELETE TASK ===
+    Note over C: DeleteTaskController
+
+    U->>B: Click delete task
+    B->>C: DELETE /tasks/:id
+    C->>Cmd: DeleteTaskCommand.execute(dto)
+    Cmd->>Cmd: canDeleteTask rule
+    (checks org/system role, NO status check)
+    Cmd->>DB: UPDATE tasks SET deleted_at = NOW()
+    Cmd->>Evt: emit('task:deleted', taskId)
+    Cmd-->>C: OK
+    C-->>B: Redirect to task list
+
+

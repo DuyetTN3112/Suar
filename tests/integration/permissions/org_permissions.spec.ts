@@ -5,65 +5,63 @@ import { OrganizationRole } from '#constants/organization_constants'
 import {
   canTransferOwnership,
   canRemoveMember,
-  canDeleteOrganization,
-  canChangeRole,
-  canAddMember,
   canProcessJoinRequest,
 } from '#actions/organizations/rules/org_permission_policy'
-import {
-  hasOrgPermission,
-  hasSystemPermission,
-  hasProjectPermission,
-  getOrgRoleLevel,
-  getProjectRoleLevel,
-  ORG_ROLE_LEVEL,
-  PROJECT_ROLE_LEVEL,
-} from '#constants/permissions'
+import { hasSystemPermission, getOrgRoleLevel } from '#constants/permissions'
 
 test.group('Integration | Organization Permissions', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
   test('only owner can transfer ownership', async ({ assert }) => {
     const allowed = canTransferOwnership({
-      actorOrgRole: OrganizationRole.OWNER,
-      newOwnerOrgRole: OrganizationRole.ADMIN,
-      isSelf: false,
+      actorId: 'actor-1',
+      currentOwnerId: 'actor-1',
+      newOwnerId: 'target-1',
+      newOwnerRole: OrganizationRole.ADMIN,
+      isNewOwnerApprovedMember: true,
     })
     assert.isTrue(allowed.allowed)
 
     const denied = canTransferOwnership({
-      actorOrgRole: OrganizationRole.ADMIN,
-      newOwnerOrgRole: OrganizationRole.MEMBER,
-      isSelf: false,
+      actorId: 'actor-2',
+      currentOwnerId: 'actor-1',
+      newOwnerId: 'target-2',
+      newOwnerRole: OrganizationRole.MEMBER,
+      isNewOwnerApprovedMember: true,
     })
     assert.isFalse(denied.allowed)
   })
 
   test('cannot remove org owner', async ({ assert }) => {
     const result = canRemoveMember({
+      actorId: 'admin-1',
       actorOrgRole: OrganizationRole.ADMIN,
+      targetUserId: 'owner-1',
       targetOrgRole: OrganizationRole.OWNER,
-      isSelf: false,
     })
     assert.isFalse(result.allowed)
   })
 
   test('admin can remove member', async ({ assert }) => {
     const result = canRemoveMember({
+      actorId: 'admin-1',
       actorOrgRole: OrganizationRole.ADMIN,
+      targetUserId: 'member-1',
       targetOrgRole: OrganizationRole.MEMBER,
-      isSelf: false,
     })
     assert.isTrue(result.allowed)
   })
 
   test('member cannot remove other member', async ({ assert }) => {
     const result = canRemoveMember({
+      actorId: 'member-1',
       actorOrgRole: OrganizationRole.MEMBER,
+      targetUserId: 'member-2',
       targetOrgRole: OrganizationRole.MEMBER,
-      isSelf: false,
     })
     assert.isFalse(result.allowed)
   })
@@ -92,7 +90,10 @@ test.group('Integration | Organization Permissions', (group) => {
 
   test('role levels order correctly', async ({ assert }) => {
     assert.isBelow(getOrgRoleLevel(OrganizationRole.OWNER), getOrgRoleLevel(OrganizationRole.ADMIN))
-    assert.isBelow(getOrgRoleLevel(OrganizationRole.ADMIN), getOrgRoleLevel(OrganizationRole.MEMBER))
+    assert.isBelow(
+      getOrgRoleLevel(OrganizationRole.ADMIN),
+      getOrgRoleLevel(OrganizationRole.MEMBER)
+    )
     assert.equal(getOrgRoleLevel('unknown_role'), 0)
   })
 })

@@ -1,0 +1,75 @@
+%% uc_01_auth_org.mmd — Authentication & Organization Management
+%% Actors: User, Org Owner, Org Admin, System Admin, Superadmin
+%% Auth: OAuth only (Google/GitHub) — NO email/password
+
+@startuml
+left to right direction
+skinparam packageStyle rectangle
+
+actor "User" as U
+actor "Org Owner" as OO
+actor "Org Admin" as OA
+actor "System Admin" as SA
+actor "Superadmin" as SU
+
+rectangle "Authentication" {
+    usecase "Login with OAuth\n(Google / GitHub)" as UC_LOGIN
+    usecase "Link OAuth Provider" as UC_LINK
+    usecase "Logout" as UC_LOGOUT
+    usecase "Remember Me" as UC_REMEMBER
+}
+
+rectangle "Profile & Account" {
+    usecase "View Profile" as UC_VIEW_PROF
+    usecase "Edit Profile Details" as UC_EDIT_PROF
+    usecase "Manage Skills\n(add / update / remove)" as UC_SKILLS
+}
+
+rectangle "Organization Management" {
+    usecase "Create Organization" as UC_CREATE_ORG
+    usecase "Switch Organization" as UC_SWITCH_ORG
+    usecase "Invite Member" as UC_INVITE
+    usecase "Add Direct Member" as UC_ADD_DIRECT
+    usecase "Process Join Request\n(approve / reject)" as UC_JOIN_REQ
+    usecase "Remove Member" as UC_REMOVE
+    usecase "Update Member Role" as UC_ROLE
+    usecase "Transfer Ownership" as UC_TRANSFER
+}
+
+rectangle "System Administration" {
+    usecase "Approve Pending Users" as UC_APPROVE
+    usecase "Suspend / Deactivate User" as UC_SUSPEND
+    usecase "Change System Role" as UC_SYS_ROLE
+    usecase "Manage All Organizations" as UC_MANAGE_ORG
+}
+
+U --> UC_LOGIN
+U --> UC_LINK
+U --> UC_LOGOUT
+U --> UC_REMEMBER
+U --> UC_VIEW_PROF
+U --> UC_EDIT_PROF
+U --> UC_SKILLS
+U --> UC_CREATE_ORG
+U --> UC_SWITCH_ORG
+
+OO --> UC_INVITE
+OO --> UC_ADD_DIRECT
+OO --> UC_JOIN_REQ
+OO --> UC_REMOVE
+OO --> UC_ROLE
+OO --> UC_TRANSFER
+
+OA --> UC_INVITE
+OA --> UC_JOIN_REQ
+OA --> UC_REMOVE
+
+SA --> UC_APPROVE
+SA --> UC_SUSPEND
+SA --> UC_MANAGE_ORG
+
+SU --> UC_SYS_ROLE
+SU --|> SA : inherits
+
+note "OAuth only: Google & GitHub.\nNo email/password registration.\n100% transparent profiles." as N1
+@enduml

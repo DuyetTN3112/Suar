@@ -28,7 +28,7 @@
   import Badge from '@/components/ui/badge.svelte'
   import { Plus, UserCheck, CheckCircle, XCircle, Mail, Trash2 } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
-  import { toast } from 'svelte-sonner'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
   // Định nghĩa các kiểu dữ liệu
   interface OrganizationMember {
@@ -94,11 +94,11 @@
       action,
     }, {
       onSuccess: () => {
-        toast.success(`Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu thành công`)
+        notificationStore.success(`Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu thành công`)
         refreshPage()
       },
       onError: () => {
-        toast.error(`Có lỗi xảy ra khi ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu`)
+        notificationStore.error(`Có lỗi xảy ra khi ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu`)
       },
     })
   }
@@ -109,11 +109,11 @@
       org_role: newRole,
     }, {
       onSuccess: () => {
-        toast.success('Đã cập nhật vai trò thành công')
+        notificationStore.success('Đã cập nhật vai trò thành công')
         refreshPage()
       },
       onError: () => {
-        toast.error('Có lỗi xảy ra khi cập nhật vai trò')
+        notificationStore.error('Có lỗi xảy ra khi cập nhật vai trò')
       },
     })
   }
@@ -123,11 +123,11 @@
     if (confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi tổ chức?')) {
       router.delete(`/organizations/${organization.id}/members/${memberId}`, {
         onSuccess: () => {
-          toast.success('Đã xóa thành viên thành công')
+          notificationStore.success('Đã xóa thành viên thành công')
           refreshPage()
         },
         onError: () => {
-          toast.error('Có lỗi xảy ra khi xóa thành viên')
+          notificationStore.error('Có lỗi xảy ra khi xóa thành viên')
         },
       })
     }
@@ -385,11 +385,11 @@
     form.post(`/organizations/${organization.id}/members/add`, {
       onSuccess: () => {
         form.reset()
-        toast.success('Đã thêm thành viên thành công')
+        notificationStore.success('Đã thêm thành viên thành công')
         if (onSuccess) onSuccess()
       },
       onError: () => {
-        toast.error('Có lỗi xảy ra khi thêm thành viên')
+        notificationStore.error('Có lỗi xảy ra khi thêm thành viên')
       },
     })
   }} class="space-y-4">
@@ -446,11 +446,11 @@
     form.post(`/organizations/${organization.id}/members/invite`, {
       onSuccess: () => {
         form.reset()
-        toast.success('Đã gửi lời mời thành công')
+        notificationStore.success('Đã gửi lời mời thành công')
         if (onSuccess) onSuccess()
       },
       onError: () => {
-        toast.error('Có lỗi xảy ra khi gửi lời mời')
+        notificationStore.error('Có lỗi xảy ra khi gửi lời mời')
       },
     })
   }} class="space-y-4">

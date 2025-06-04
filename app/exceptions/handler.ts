@@ -3,8 +3,7 @@ import { ExceptionHandler } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
-import Youch from 'youch'
-import YouchTerminal from 'youch-terminal'
+import { Youch } from 'youch'
 import loggerService from '#services/logger_service'
 import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#constants/error_constants'
 import { AuthRoutes, InertiaPages } from '#constants/route_constants'
@@ -17,11 +16,6 @@ interface HttpError {
   code?: string
   message?: string
   messages?: unknown
-}
-
-interface YouchInstance {
-  toHTML: () => Promise<string>
-  toJSON: () => Promise<Record<string, unknown>>
 }
 
 /**
@@ -55,8 +49,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   protected override renderStatusPages = true
 
   protected override statusPages: Record<StatusPageRange, StatusPageRenderer> = {
-    '404': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_NOT_FOUND),
-    '403': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_FORBIDDEN),
+    '404': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_NOT_FOUND, {}),
+    '403': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_FORBIDDEN, {}),
     '500..599': (error, { inertia }) => inertia.render(InertiaPages.ERROR_SERVER_ERROR, { error }),
   }
 
@@ -68,8 +62,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // ----------------------------------------------------------------
     if (!app.inProduction && error instanceof Error) {
       if (!isInertiaRequest(request) || isApiRequest(request)) {
-        const youch = new Youch(error, request.request) as unknown as YouchInstance
-        const html = await youch.toHTML()
+        const youch = new Youch()
+        const html = await youch.toHTML(error)
         response
           .status(HttpStatus.INTERNAL_SERVER_ERROR)
           .header('content-type', 'text/html')
@@ -227,9 +221,9 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
   override async report(error: unknown, ctx: HttpContext): Promise<void> {
     if (!app.inProduction && error instanceof Error) {
-      const youch = new Youch(error, ctx.request.request) as unknown as YouchInstance
-      const output = await youch.toJSON()
-      console.log(YouchTerminal(output))
+      const youch = new Youch()
+      const output = await youch.toANSI(error)
+      console.log(output)
     }
 
     // Structured logging cho production

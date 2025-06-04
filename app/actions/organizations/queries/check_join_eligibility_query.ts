@@ -1,5 +1,5 @@
 import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { type OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 import { checkJoinEligibility } from '#actions/organizations/rules/org_permission_policy'
@@ -29,7 +29,7 @@ export default class CheckJoinEligibilityQuery {
 
     const orgJson = { id: organization.id, name: organization.name }
 
-    const existingMembership = (await OrganizationUser.findMembership(organizationId, userId)) as {
+    const existingMembership = (await OrganizationUserRepository.findMembership(organizationId, userId)) as {
       status: OrganizationUserStatus
     } | null
 

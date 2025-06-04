@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -44,7 +44,7 @@ export default class SwitchOrganizationCommand {
 
     try {
       // 1. Validate user is member of target organization → delegate to Model
-      const isMember = await OrganizationUser.isMember(userId, organizationId, trx)
+      const isMember = await OrganizationUserRepository.isMember(userId, organizationId, trx)
       if (!isMember) {
         throw new BusinessLogicException('You are not a member of this organization')
       }
@@ -58,19 +58,16 @@ export default class SwitchOrganizationCommand {
       await userModel.useTransaction(trx).save()
 
       // 4. Create audit log
-      await AuditLog.create(
-        {
-          user_id: userId,
-          action: AuditAction.SWITCH_ORGANIZATION,
-          entity_type: EntityType.USER,
-          entity_id: userId,
-          old_values: { current_organization_id: currentOrganizationId },
-          new_values: { current_organization_id: organizationId },
-          ip_address: this.execCtx.ip,
-          user_agent: this.execCtx.userAgent,
-        },
-        { client: trx }
-      )
+      await AuditLog.create({
+        user_id: userId,
+        action: AuditAction.SWITCH_ORGANIZATION,
+        entity_type: EntityType.USER,
+        entity_id: userId,
+        old_values: { current_organization_id: currentOrganizationId },
+        new_values: { current_organization_id: organizationId },
+        ip_address: this.execCtx.ip,
+        user_agent: this.execCtx.userAgent,
+      })
 
       await trx.commit()
 

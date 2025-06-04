@@ -1,0 +1,94 @@
+%% seq_05_org_invite.mmd
+%% Scope: Organization invitation, direct-add, and role management
+%% Backend refs:
+%%   - POST /organizations/:id/members/invite → InviteMemberController → InviteUserCommand
+%%   - POST /organizations/:id/members/add → AddMemberController → AddMemberCommand
+%%   - POST /organizations/:id/members/add-direct → AddDirectMemberController
+%%   - POST /organizations/:id/members/update-role/:userId → UpdateMemberRoleController
+%%   - DELETE /organizations/:id/members/:userId → RemoveMemberController
+%%   - GET /organizations/:id/members/ → ListMembersController
+%%   - ⚠️ AcceptInvitationCommand does NOT exist (invitation accept is NOT implemented)
+%%   - ⚠️ No email sending — invitation creates record only
+%%   - ⚠️ Transmit transport=null (no WebSocket)
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Cmd as Command
+    participant DB as PostgreSQL
+    actor User as Target User
+
+    Note over Admin, User: === INVITE MEMBER ===
+    Note over C: InviteMemberController
+
+    Admin->>B: Enter user to invite
+    B->>C: POST /organizations/:id/members/invite
+    C->>Cmd: InviteUserCommand.execute(dto)
+    Cmd->>DB: INSERT INTO organization_invitations
+    (organization_id, invited_email,
+    invitation_token, expires_at = 7 days,
+    invited_by)
+    DB-->>Cmd: Invitation created
+    Note over Cmd: ⚠️ No email sent
+    Note over Cmd: ⚠️ AcceptInvitationCommand
+    Note over Cmd: does NOT exist —
+    Note over Cmd: invitation flow is INCOMPLETE
+    Cmd-->>C: Invitation object
+    C-->>B: Redirect back
+
+    Note over Admin, User: === DIRECT ADD MEMBER ===
+    Note over C: AddMemberCommand (bypasses invitation)
+
+    Admin->>B: Add member directly
+    B->>C: POST /organizations/:id/members/add
+    C->>Cmd: AddMemberCommand.execute(dto)
+    Cmd->>DB: Check user exists
+    Cmd->>DB: Check not already member
+    Cmd->>DB: INSERT INTO organization_users
+    (organization_id, user_id,
+    org_role='org_member',
+    status='approved',
+    invited_by=admin.id)
+    Cmd-->>C: Member added
+    C-->>B: Redirect back
+
+    Note over Admin, User: === LIST MEMBERS ===
+    Note over C: ListMembersController
+
+    Admin->>B: Open member page
+    B->>C: GET /organizations/:id/members/
+    C->>DB: SELECT ou.*, u.*
+    FROM organization_users ou
+    JOIN users u ...
+    WHERE status='approved'
+    C-->>B: Member list
+    B-->>Admin: Show members with roles
+
+    Note over Admin, User: === CHANGE ROLE ===
+    Note over C: UpdateMemberRoleController
+
+    Admin->>B: Change member role
+    B->>C: POST /organizations/:id/members/update-role/:userId
+    C->>Cmd: UpdateMemberRoleCommand.execute(dto)
+    Cmd->>Cmd: Permission check
+    (only org_owner/org_admin can change)
+    Cmd->>DB: UPDATE organization_users
+    SET org_role = ? WHERE user_id = ?
+    Cmd-->>C: OK
+    C-->>B: Redirect back
+
+    Note over Admin, User: === REMOVE MEMBER ===
+    Note over C: RemoveMemberController
+
+    Admin->>B: Remove member
+    B->>C: DELETE /organizations/:id/members/:userId
+    C->>Cmd: RemoveMemberCommand.execute(dto)
+    Cmd->>Cmd: Check not last owner
+    Cmd->>DB: DELETE FROM organization_users
+    WHERE user_id = ? AND organization_id = ?
+    Cmd-->>C: OK
+    C-->>B: Redirect back
+
+

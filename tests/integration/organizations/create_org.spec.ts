@@ -1,21 +1,18 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
+import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
 import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'
 import CreateNotification from '#actions/common/create_notification'
 import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Create Organization', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 

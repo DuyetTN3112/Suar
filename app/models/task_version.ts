@@ -1,8 +1,6 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
 import User from './user.js'
 import Task from './task.js'
 
@@ -65,39 +63,4 @@ export default class TaskVersion extends BaseModel {
     foreignKey: 'changed_by',
   })
   declare changer: BelongsTo<typeof User>
-
-  // ===== Fat Model Methods =====
-
-  /**
-   * Tạo version snapshot cho task — v3: uses inline strings
-   */
-  static async createSnapshot(
-    data: {
-      task_id: DatabaseId
-      title: string
-      description: string | null
-      status: string
-      label: string
-      priority: string
-      difficulty: string | null
-      assigned_to: DatabaseId | null
-      changed_by: DatabaseId
-    },
-    trx?: TransactionClientContract
-  ): Promise<void> {
-    await this.create(
-      {
-        task_id: String(data.task_id),
-        title: data.title,
-        description: data.description,
-        status: data.status,
-        label: data.label,
-        priority: data.priority,
-        difficulty: data.difficulty,
-        assigned_to: data.assigned_to ? String(data.assigned_to) : null,
-        changed_by: String(data.changed_by),
-      } as Partial<TaskVersion>,
-      trx ? { client: trx } : undefined
-    )
-  }
 }

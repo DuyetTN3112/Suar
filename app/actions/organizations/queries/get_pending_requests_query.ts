@@ -1,7 +1,8 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import OrganizationUser from '#models/organization_user'
-import OrganizationJoinRequest from '#models/organization_join_request'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -65,23 +66,32 @@ export default class GetPendingRequestsQuery {
       return cached
     }
 
-    // 3. Query pending requests via Model
-    const requests = await OrganizationJoinRequest.getPendingByOrganization(organizationId)
+    // 3. Query pending memberships from organization_users
+    const pendingMembers = await OrganizationUser.query()
+      .where('organization_id', organizationId)
+      .where('status', OrganizationUserStatus.PENDING)
+      .preload('user', (q) => {
+        void q.select(['id', 'username', 'email'])
+      })
+      .preload('organization', (q) => {
+        void q.select(['id', 'name'])
+      })
+      .orderBy('created_at', 'desc')
 
     // 4. Format response
-    const result: RequestResult[] = requests.map((request) => ({
-      id: request.id,
-      user_id: request.user_id,
-      organization_id: request.organization_id,
-      organization_name: request.organization?.name ?? '',
-      message: request.message,
-      status: request.status,
-      created_at: request.created_at?.toJSDate() ?? new Date(),
-      updated_at: request.updated_at?.toJSDate() ?? new Date(),
+    const result: RequestResult[] = pendingMembers.map((member) => ({
+      id: member.user_id,
+      user_id: member.user_id,
+      organization_id: member.organization_id,
+      organization_name: member.organization?.name ?? '',
+      message: '',
+      status: member.status,
+      created_at: member.created_at?.toJSDate() ?? new Date(),
+      updated_at: member.updated_at?.toJSDate() ?? new Date(),
       user: {
-        id: request.user_id,
-        username: request.user?.username ?? '',
-        email: request.user?.email ?? '',
+        id: member.user_id,
+        username: member.user?.username ?? '',
+        email: member.user?.email ?? '',
       },
     }))
 
@@ -95,7 +105,7 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUser.isAdminOrOwnerByRoleId(userId, organizationId)
+    return OrganizationUserRepository.isAdminOrOwner(userId, organizationId, undefined, false)
   }
 
   /**

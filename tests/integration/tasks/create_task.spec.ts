@@ -13,12 +13,14 @@ import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
 import CreateTaskDTO from '#actions/tasks/dtos/create_task_dto'
 import CreateNotification from '#actions/common/create_notification'
 import Task from '#models/task'
-import AuditLog from '#models/audit_log'
+import AuditLog from '#models/mongo/audit_log'
 import { ExecutionContext } from '#types/execution_context'
 import { TaskStatus } from '#constants/task_constants'
 
 test.group('Integration | Create Task', (group) => {
-  group.setup(() => setupApp())
+  group.setup(async () => {
+    await setupApp()
+  })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
@@ -76,7 +78,7 @@ test.group('Integration | Create Task', (group) => {
 
     const logs = await AuditLog.query().where('entity_type', 'task').where('entity_id', task.id)
     assert.isAbove(logs.length, 0)
-    assert.equal(logs[0].action, 'create')
+    assert.equal(logs[0]!.action, 'create')
   })
 
   test('throws when user is not active', async ({ assert }) => {

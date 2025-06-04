@@ -1,0 +1,126 @@
+
+%% ─────────────────────────────────────────────────────────────
+%% act_06: OAuth Authentication (Google / GitHub)
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Chỉ OAuth login/register — KHÔNG có email/password
+%% Backend: SocialAuthController → SocialLoginCommand
+%% Session: AdonisJS session (cookie), KHÔNG JWT
+%% Rate limit: 5 req/min/IP (loginThrottle)
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> VisitLogin["User visits /login"]
+
+    VisitLogin --> ChooseProvider{"Choose OAuth
+    provider"}
+
+    ChooseProvider -->|Google| RedirectGoogle["GET /auth/google/redirect
+    → ally.use('google').redirect()"]
+    ChooseProvider -->|GitHub| RedirectGitHub["GET /auth/github/redirect
+    → ally.use('github').redirect()"]
+
+    RedirectGoogle --> OAuthConsent["User accepts consent
+    on provider screen"]
+    RedirectGitHub --> OAuthConsent
+
+    OAuthConsent --> Callback["GET /auth/:provider/callback
+    → SocialAuthController.callback"]
+
+    Callback --> CheckOAuthError{"OAuth error?
+    (denied / state mismatch)"}
+
+    CheckOAuthError -->|"accessDenied
+    or stateMisMatch
+    or hasError"| RedirectLoginError["Redirect /login
+    with error message"]
+    RedirectLoginError --> End2([End])
+
+    CheckOAuthError -->|No error| FetchSocialUser["ally.use(provider).user()
+    → get email, name,
+    provider_id, tokens"]
+
+    FetchSocialUser --> CheckEmail{"Email present
+    in response?"}
+    CheckEmail -->|No| RedirectLoginError
+
+    CheckEmail -->|Yes| SocialLoginCommand["SocialLoginCommand
+    .execute(provider, socialData)"]
+
+    %% ─── 3-Step Cascade (SocialLoginCommand) ───
+    SocialLoginCommand --> Step1{"Step 1: Find by
+    (provider, provider_id)
+    in user_oauth_providers?"}
+
+    Step1 -->|Found| UpdateTokens["Update access_token
+    & refresh_token
+    on existing record"]
+    UpdateTokens --> EmitLogin1["Emit user:login event"]
+    EmitLogin1 --> LoginSession
+
+    Step1 -->|Not found| Step2{"Step 2: Find user
+    by email in users?"}
+
+    Step2 -->|Found| LinkProvider["Create new
+    user_oauth_providers record
+    (link provider to existing user)"]
+    LinkProvider --> UpdateAuthMethod["Update user.auth_method
+    → provider name
+    (if was 'email')"]
+    UpdateAuthMethod --> EmitLogin2["Emit user:login event"]
+    EmitLogin2 --> LoginSession
+
+    Step2 -->|Not found| Step3["Step 3: Create new user
+    (DB transaction)"]
+
+    Step3 --> CreateUser["Create User:
+    status = 'active'
+    system_role = 'registered_user'
+    auth_method = provider
+    username = nickname || email prefix"]
+    CreateUser --> CreateProvider["Create
+    user_oauth_providers record"]
+    CreateProvider --> EmitLogin3["Emit user:login event"]
+    EmitLogin3 --> LoginSessionNew
+
+    %% ─── Session Creation ───
+    LoginSession["auth.use('web').login(user)
+    → Create server session (cookie)"]
+    LoginSession --> RedirectTasks["Redirect → /tasks"]
+    RedirectTasks --> End1([End])
+
+    LoginSessionNew["auth.use('web').login(user)
+    → Create server session (cookie)"]
+    LoginSessionNew --> RedirectOrgs["Redirect → /organizations
+    (new user, chưa có org)"]
+    RedirectOrgs --> End1
+
+    %% ─── Logout Flow ───
+    LogoutStart(["User clicks Logout"]) --> LogoutCommand["POST /logout
+    → LogoutUserCommand.handle()"]
+    LogoutCommand --> DestroySession["auth.use('web').logout()
+    session.forget('auth')
+    clear Inertia shared data"]
+    DestroySession --> EmitLogout["Emit user:logout event"]
+    EmitLogout --> AuditLog["Create audit_log +
+    user_activity_log entries"]
+    AuditLog --> RedirectLogin["Redirect → /login
+    with success flash"]
+    RedirectLogin --> EndLogout([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef oauth fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    classDef event fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef session fill:#FFF9C4,stroke:#F57F17,color:#333
+    class Start,End1,End2,LogoutStart,EndLogout startEnd
+    class VisitLogin,CreateUser,CreateProvider,UpdateTokens,LinkProvider,UpdateAuthMethod,DestroySession,AuditLog process
+    class ChooseProvider,CheckOAuthError,CheckEmail,Step1,Step2 decision
+    class RedirectGoogle,RedirectGitHub,OAuthConsent,Callback,FetchSocialUser,SocialLoginCommand,Step3 oauth
+    class RedirectLoginError error
+    class EmitLogin1,EmitLogin2,EmitLogin3,EmitLogout event
+    class LoginSession,LoginSessionNew,RedirectTasks,RedirectOrgs,RedirectLogin,LogoutCommand session
+
+
