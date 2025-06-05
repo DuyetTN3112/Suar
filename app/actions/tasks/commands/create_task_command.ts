@@ -1,11 +1,11 @@
 import Task from '#models/task'
 import User from '#models/user'
-import TaskStatusModel from '#models/task_status'
 import UserRepository from '#repositories/user_repository'
 import OrganizationRepository from '#repositories/organization_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import ProjectMemberRepository from '#repositories/project_member_repository'
 import ProjectRepository from '#repositories/project_repository'
+import TaskStatusRepository from '#repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type CreateTaskDTO from '../dtos/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
@@ -116,7 +116,7 @@ export default class CreateTaskCommand {
 
       // 9b. Resolve task_status_id: use org's default status (v4)
       let taskStatusId: string | null = null
-      const defaultStatus = await TaskStatusModel.findDefault(dto.organization_id, trx)
+      const defaultStatus = await TaskStatusRepository.findDefault(dto.organization_id, trx)
       if (defaultStatus) {
         taskStatusId = defaultStatus.id
       }

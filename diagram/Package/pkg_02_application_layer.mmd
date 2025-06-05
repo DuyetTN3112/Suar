@@ -1,0 +1,156 @@
+%% ─────────────────────────────────────────────────────────────
+%% pkg_02_application_layer: CQRS Application Layer — Actions
+%% ─────────────────────────────────────────────────────────────
+%% Scope: All action sub-packages (Commands + Queries) by domain.
+%% Related: pkg_01_overview.mmd — overall architecture context
+%% ─────────────────────────────────────────────────────────────
+
+graph TD
+    subgraph application["Application Layer (CQRS) — app/actions/"]
+        direction LR
+
+        subgraph task_actions["tasks/"]
+            T_CMD["Commands
+            (CreateTask, UpdateTask,
+            DeleteTask, AssignTask,
+            UpdateStatus, UpdateSortOrder,
+            BatchUpdateStatus,
+            CreateTaskStatus, UpdateWorkflow,
+            SeedDefaultStatuses)"]
+            T_QRY["Queries
+            (ListTasks, GetTask,
+            GetTaskBoard, GetTaskStats,
+            ListTaskStatuses, ListWorkflow)"]
+        end
+
+        subgraph project_actions["projects/"]
+            P_CMD["Commands
+            (CreateProject, DeleteProject,
+            AddMember, RemoveMember,
+            TransferOwnership)"]
+            P_QRY["Queries
+            (ListProjects, GetProjectDetail,
+            GetProjectMembers)"]
+        end
+
+        subgraph org_actions["organizations/"]
+            O_CMD["Commands
+            (CreateOrg, InviteUser,
+            AddMember, RemoveMember,
+            UpdateMemberRole, CreateJoinRequest,
+            ProcessJoinRequest,
+            TransferOwnership, UpdateOrg,
+            DeleteOrg, SwitchOrg)"]
+            O_QRY["Queries
+            (ListOrgs, GetOrg,
+            GetOrgMembers)"]
+        end
+
+        subgraph conv_actions["conversations/"]
+            C_CMD["Commands
+            (CreateConversation,
+            SendMessage, RecallMessage,
+            AddParticipant)"]
+            C_QRY["Queries
+            (ListConversations,
+            GetMessages)"]
+        end
+
+        subgraph review_actions["reviews/"]
+            R_CMD["Commands
+            (SubmitSkillReview,
+            SubmitReverseReview,
+            ConfirmReview,
+            ResolveFlaggedReview,
+            CalculateTrustScore,
+            CalculateSpiderChart,
+            DetectAnomaly,
+            UpdateReviewerCredibility)"]
+            R_QRY["Queries
+            (GetReviewSession,
+            GetUserReviews,
+            GetPendingReviews,
+            GetFlaggedReviews)"]
+        end
+
+        subgraph user_actions["users/"]
+            U_CMD["Commands
+            (ApproveUser, UpdateRole,
+            DeactivateUser,
+            AddUserSkill, RemoveUserSkill)"]
+            U_QRY["Queries
+            (ListUsers, GetUserProfile,
+            GetActiveSkills)"]
+        end
+
+        subgraph auth_actions["auth/"]
+            A_CMD["Commands
+            (SocialLogin)"]
+        end
+
+        subgraph common_actions["common/"]
+            CMN["CreateNotification
+            CreateAuditLog
+            AuditLogging"]
+        end
+
+        subgraph shared_actions["shared/"]
+            SHR["BaseCommand / BaseQuery
+            GetActiveSkillsQuery"]
+        end
+    end
+
+    subgraph rules["Business Rules"]
+        TASK_RULES["tasks/rules/
+        (TaskStateMachine,
+        TaskPermissionPolicy,
+        TaskStatusRules,
+        TaskAssignmentRules)"]
+        ORG_RULES["org/rules/
+        (OrgPermissionPolicy)"]
+        PROJ_RULES["projects/rules/
+        (ProjectPermissionPolicy)"]
+        REVIEW_RULES["reviews/rules/
+        (ReviewPolicy, ReviewFormulas)"]
+        CONV_RULES["conversations/rules/"]
+        USER_RULES["users/rules/"]
+    end
+
+    subgraph repos["Repositories"]
+        TS_REPO["TaskStatusRepository"]
+        TW_REPO["TaskWorkflowTransitionRepository"]
+        TASK_REPO["TaskRepository"]
+        PROJ_REPO["ProjectRepository"]
+        ORG_REPO["OrganizationRepository"]
+        USER_REPO["UserRepository"]
+        SKILL_REPO["SkillRepository"]
+        AUDIT_REPO["LucidAuditLogRepository"]
+    end
+
+    T_CMD --> TASK_RULES
+    T_CMD --> TS_REPO
+    T_CMD --> TW_REPO
+    T_CMD --> TASK_REPO
+    P_CMD --> PROJ_RULES
+    P_CMD --> PROJ_REPO
+    O_CMD --> ORG_RULES
+    O_CMD --> ORG_REPO
+    R_CMD --> REVIEW_RULES
+    R_CMD --> SKILL_REPO
+    C_CMD --> CONV_RULES
+    U_CMD --> USER_RULES
+    U_CMD --> SKILL_REPO
+    T_QRY --> TS_REPO
+    T_QRY --> TW_REPO
+    U_QRY --> SKILL_REPO
+    common_actions --> AUDIT_REPO
+
+    classDef cmdStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    classDef qryStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px
+    classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef repoStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px
+
+    class T_CMD,P_CMD,O_CMD,C_CMD,R_CMD,U_CMD,A_CMD cmdStyle
+    class T_QRY,P_QRY,O_QRY,C_QRY,R_QRY,U_QRY qryStyle
+    class TASK_RULES,ORG_RULES,PROJ_RULES,REVIEW_RULES,CONV_RULES,USER_RULES ruleStyle
+    class TS_REPO,TW_REPO,TASK_REPO,PROJ_REPO,ORG_REPO,USER_REPO,SKILL_REPO,AUDIT_REPO repoStyle
