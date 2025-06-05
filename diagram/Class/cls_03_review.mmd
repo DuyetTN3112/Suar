@@ -1,0 +1,83 @@
+
+%% Class Diagram: Review Domain
+%% Source: app/models/review_session.ts, skill_review.ts, reverse_review.ts,
+%%         flagged_review.ts
+%% Scope: Columns match @column decorators exactly.
+%%         ⚡ = leaked static method (should → Repository layer).
+classDiagram
+    class ReviewSession {
+        +UUID id PK
+        +UUID task_assignment_id FK
+        +UUID reviewee_id FK
+        +String status : pending | in_progress | completed | disputed
+        +Boolean manager_review_completed
+        +Integer peer_reviews_count
+        +Integer required_peer_reviews
+        +JSONB confirmations
+        +DateTime deadline
+        +DateTime completed_at
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class SkillReview {
+        +UUID id PK
+        +UUID review_session_id FK
+        +UUID reviewer_id FK
+        +String reviewer_type : manager | peer
+        +UUID skill_id FK
+        +String assigned_level_code : beginner ~ master
+        +Text comment
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$countCompletedByReviewer(userId, trx?)⚡
+        +$countConfirmedByReviewer(userId, trx?)⚡
+        +$countDisputedByReviewer(userId, trx?)⚡
+        +$calculateSkillAvgPercentage(userId, skillId, trx?)⚡
+    }
+
+    class ReverseReview {
+        +UUID id PK
+        +UUID review_session_id FK
+        +UUID reviewer_id FK
+        +String target_type : peer | manager | project | organization
+        +UUID target_id FK
+        +Smallint rating : 1 ~ 5
+        +Text comment
+        +Boolean is_anonymous
+        +DateTime created_at
+    }
+
+    class FlaggedReview {
+        +UUID id PK
+        +UUID skill_review_id FK
+        +String flag_type : sudden_spike | mutual_high | bulk_same_level | frequency_anomaly | new_account_high | ip_collusion
+        +String severity : low | medium | high | critical
+        +String status : pending | reviewed | dismissed | confirmed
+        +DateTime detected_at
+        +UUID reviewed_by FK
+        +DateTime reviewed_at
+        +Text notes
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    %% Review relationships
+    ReviewSession "1" --> "*" SkillReview : contains
+    ReviewSession "1" --> "*" ReverseReview : has reverse
+    SkillReview "1" --> "0..1" FlaggedReview : may be flagged
+
+    %% Review cross-references
+    ReviewSession ..> TaskAssignment : triggered by (task_assignment_id)
+
+    note for ReviewSession "Zero methods — fully driven by Commands.
+    Reviews are PARALLEL (manager + peers independently).
+    deadline = auto-set to NOW()+14 days on creation."
+    note for ReverseReview "Only created_at — NO updated_at.
+    Polymorphic target via target_type + target_id.
+    Updates credibility_data of reviewer."
+    note for FlaggedReview "'reviewed' status exists in CHECK but
+    NEVER SET by any code (dead status).
+    Only 3/6 flag_type patterns implemented."
+

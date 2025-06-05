@@ -1,0 +1,47 @@
+%% Package Diagram: Suar Platform — Domain & Infrastructure Layers (Detail)
+%% Shows models, permission service, validators, repositories, and data stores.
+%% Domain is consumed by Application Layer (pkg_03).
+
+graph TD
+    subgraph domain["📦 Domain Layer"]
+        direction LR
+        subgraph models_pkg["app/models/"]
+            MODELS["27 Lucid + 3 Mongoose\nModels\n(Fat Models with\nstatic methods,\nscopes, hooks,\ncomputed properties)"]
+        end
+        subgraph services_pkg["app/services/"]
+            PERM_SVC["PermissionService\n(17 methods, cached)\n3-tier: System→Org→Project"]
+        end
+        subgraph validators_pkg["app/validators/"]
+            VALIDATORS["VineJS Validators\n(type-safe input)"]
+        end
+        subgraph repos_pkg["app/repositories/"]
+            REPOS["RepositoryFactory\n(toggle PG ↔ MongoDB\nfor audit + notification\nonly)"]
+        end
+    end
+
+    subgraph infrastructure["📦 Infrastructure Layer"]
+        direction LR
+        PG[("PostgreSQL\n27 tables\nUUIDv7")]
+        MONGO[("MongoDB Atlas\naudit_logs\nnotifications\nuser_activity_logs")]
+        REDIS[("Redis\nDB0: Sessions + Locks\nDB1: App Cache")]
+    end
+
+    subgraph external["📦 External Dependencies"]
+        direction LR
+        LUCID["Lucid ORM\n(PostgreSQL driver)"]
+        VINE["VineJS\n(Validation)"]
+        MONGOOSE["Mongoose\n(MongoDB ODM)"]
+        ALLY["@adonisjs/ally\n(OAuth: Google, GitHub)"]
+        FIREBASE["Firebase Client SDK\n(Phone Auth — planned)"]
+    end
+
+    MODELS --> LUCID --> PG
+    REPOS --> MONGOOSE --> MONGO
+    PERM_SVC --> REDIS
+
+    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238
+    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#B71C1C
+    classDef infraStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    class LUCID,VINE,MONGOOSE,ALLY,FIREBASE extStyle
+    class MODELS,PERM_SVC,VALIDATORS,REPOS domStyle
+    class PG,MONGO,REDIS infraStyle

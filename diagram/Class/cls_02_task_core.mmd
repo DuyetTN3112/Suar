@@ -1,0 +1,154 @@
+
+%% Class Diagram: Task Core Domain
+%% Source: app/models/task.ts, task_status.ts, task_workflow_transition.ts,
+%%         task_version.ts, task_assignment.ts, task_application.ts
+%% Scope: Columns match @column decorators exactly.
+%%         ⚡ = leaked static method (should → Repository layer).
+%%         No created_at/updated_at on TaskAssignment (uses assigned_at).
+%%         No created_at/updated_at on TaskApplication (uses applied_at).
+%%         Phase 4: TaskStatus + TaskWorkflowTransition added.
+classDiagram
+    class Task {
+        +UUID id PK
+        +String title
+        +Text description
+        +String status : DEPRECATED (use task_status_id)
+        +UUID task_status_id FK : Phase 4
+        +String label : bug | feature | enhancement | documentation
+        +String priority : low | medium | high | urgent
+        +String difficulty : easy | medium | hard | expert
+        +UUID assigned_to FK
+        +UUID creator_id FK
+        +UUID updated_by FK
+        +DateTime due_date
+        +UUID parent_task_id FK
+        +Decimal estimated_time
+        +Decimal actual_time
+        +UUID organization_id FK
+        +UUID project_id FK
+        +String task_visibility : internal | external | all
+        +DateTime application_deadline
+        +Decimal estimated_budget
+        +Integer external_applications_count
+        +Integer sort_order
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +serialize() override
+        +$countIncompleteByProject(projectId, trx?)⚡
+        +$reassignByUser(projectId, from, to, trx?)⚡
+        +$unassignByUserInProjects(pIds, userId, trx?)⚡
+        +$getTasksSummaryByProject(projectId, trx?)⚡
+        +$countByAssignees(projectId, userIds?, trx?)⚡
+        +$countByProjectIds(projectIds, trx?)⚡
+    }
+
+    class TaskStatusModel {
+        +UUID id PK
+        +UUID organization_id FK
+        +String name
+        +String slug UK(org, slug)
+        +String category : todo | in_progress | done | cancelled
+        +String color : hex
+        +String icon
+        +String description
+        +Integer sort_order
+        +Boolean is_default
+        +Boolean is_system
+        +DateTime deleted_at
+        +DateTime created_at
+        +DateTime updated_at
+        --
+        +$findByOrganization(orgId, trx?)
+        +$findDefault(orgId, trx?)
+        +$findBySlug(orgId, slug, trx?)
+        +$slugExists(orgId, slug, excludeId?, trx?)
+    }
+
+    class TaskWorkflowTransition {
+        +UUID id PK
+        +UUID organization_id FK
+        +UUID from_status_id FK
+        +UUID to_status_id FK
+        +JSONB conditions
+        +DateTime created_at
+        --
+        +$findByOrganization(orgId, trx?)
+        +$findFromStatus(orgId, fromId, trx?)
+        +$deleteByOrganization(orgId, trx?)
+    }
+
+    class TaskVersion {
+        +UUID id PK
+        +UUID task_id FK
+        +String title
+        +Text description
+        +String status
+        +String label
+        +String priority
+        +String difficulty
+        +UUID assigned_to FK
+        +UUID changed_by FK
+        +DateTime changed_at
+        --
+        +$createSnapshot(data, trx?)⚡
+    }
+
+    class TaskAssignment {
+        +UUID id PK
+        +UUID task_id FK
+        +UUID assignee_id FK
+        +UUID assigned_by FK
+        +String assignment_type : member | freelancer | volunteer
+        +String assignment_status : active | completed | cancelled
+        +Decimal estimated_hours
+        +Decimal actual_hours
+        +Integer progress_percentage
+        +Text completion_notes
+        +UUID verified_by FK
+        +DateTime verified_at
+        +DateTime assigned_at ⟵ autoCreate (no created_at)
+        +DateTime completed_at
+        --
+        +$findActiveWithDetails(assignmentId, trx?)⚡
+        +$cancelAssignment(assignmentId, notes, trx?)⚡
+        +$findProjectManagerIds(projectId, exclude?, trx?)⚡
+    }
+
+    class TaskApplication {
+        +UUID id PK
+        +UUID task_id FK
+        +UUID applicant_id FK
+        +String application_status : pending | approved | rejected | withdrawn
+        +String application_source : public_listing | invitation | referral
+        +Text message
+        +Decimal expected_rate
+        +JSONB portfolio_links
+        +UUID reviewed_by FK
+        +String rejection_reason
+        +DateTime applied_at ⟵ autoCreate (no created_at)
+        +DateTime reviewed_at
+    }
+
+    %% Relationships
+    Task "1" --> "*" TaskVersion : versioned by
+    Task "1" --> "*" TaskAssignment : assigned via
+    Task "1" --> "*" TaskApplication : receives
+    Task "0..1" --> "*" Task : parent of (subtasks)
+    Task "*" --> "1" TaskStatusModel : has status (Phase 4)
+    TaskStatusModel "1" --> "*" TaskWorkflowTransition : from_status
+    TaskStatusModel "1" --> "*" TaskWorkflowTransition : to_status
+
+    note for Task "task_visibility controls Marketplace visibility.
+    ⚡ = leaked static → should be in Repository.
+    Assignment does NOT change task status."
+    note for TaskAssignment "NO created_at/updated_at columns.
+    Uses assigned_at (autoCreate) instead.
+    verified_by/verified_at exist but NEVER SET by code."
+    note for TaskApplication "NO created_at/updated_at columns.
+    Uses applied_at (autoCreate) instead.
+    application_deadline NOT enforced by ApplyForTaskCommand."
+    note for TaskVersion "Stores FULL snapshot of task fields.
+    Only created by UpdateTaskCommand (not create/status)."
+
