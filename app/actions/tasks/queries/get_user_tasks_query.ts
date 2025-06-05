@@ -1,4 +1,4 @@
-import TaskRepository from '#repositories/task_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'

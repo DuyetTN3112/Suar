@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { OrganizationFactory, ProjectFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
-import ProjectRepository from '#repositories/project_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
 
 test.group('Integration | Create Project', (group) => {
   group.setup(async () => {

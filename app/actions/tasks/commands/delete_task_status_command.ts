@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import Task from '#models/task'
 import AuditLog from '#models/mongo/audit_log'
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'

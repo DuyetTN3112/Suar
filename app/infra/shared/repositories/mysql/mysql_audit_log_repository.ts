@@ -6,7 +6,7 @@ import type {
   AuditLogQuery,
   AuditLogRecord,
   AuditLogRepository,
-} from '#repositories/interfaces'
+} from '#infra/shared/repositories/interfaces'
 
 /**
  * MySQL/PostgreSQL AuditLog Repository — Lucid ORM implementation.

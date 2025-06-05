@@ -3,7 +3,7 @@ import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
   UserActivityLogRepository,
-} from '#repositories/interfaces'
+} from '#infra/shared/repositories/interfaces'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
 

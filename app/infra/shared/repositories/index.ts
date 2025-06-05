@@ -7,8 +7,8 @@
  *
  * Usage:
  * ```ts
- * import RepositoryFactory from '#repositories/repository_factory'
- * import type { AuditLogRepository } from '#repositories/interfaces'
+ * import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+ * import type { AuditLogRepository } from '#infra/shared/repositories/interfaces'
  *
  * const auditRepo = await RepositoryFactory.getAuditLogRepository()
  * await auditRepo.create({ ... })
@@ -31,6 +31,6 @@ export type {
   UserActivityLogRepository,
   UserActivityLogCreateData,
   UserActivityLogRecord,
-} from './interfaces.js'
+} from '#infra/shared/repositories/interfaces'
 
-export { default as RepositoryFactory } from './repository_factory.js'
+export { default as RepositoryFactory } from '#infra/shared/repositories/repository_factory'

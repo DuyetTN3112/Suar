@@ -10,7 +10,7 @@ import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
   UserActivityLogRepository,
-} from '#repositories/interfaces'
+} from '#infra/shared/repositories/interfaces'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -144,32 +144,32 @@ class DualWriteUserActivityLogRepository implements UserActivityLogRepository {
  * Lazily create MySQL repository instances (dynamic import avoids circular deps).
  */
 async function createMysqlAuditLogRepo(): Promise<AuditLogRepository> {
-  const { default: Repo } = await import('#repositories/mysql/mysql_audit_log_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mysql/mysql_audit_log_repository')
   return new Repo()
 }
 
 async function createMysqlNotificationRepo(): Promise<NotificationRepository> {
-  const { default: Repo } = await import('#repositories/mysql/mysql_notification_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mysql/mysql_notification_repository')
   return new Repo()
 }
 
 async function createMysqlActivityLogRepo(): Promise<UserActivityLogRepository> {
-  const { default: Repo } = await import('#repositories/mysql/mysql_user_activity_log_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mysql/mysql_user_activity_log_repository')
   return new Repo()
 }
 
 async function createMongoAuditLogRepo(): Promise<AuditLogRepository> {
-  const { default: Repo } = await import('#repositories/mongo/mongo_audit_log_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mongo/mongo_audit_log_repository')
   return new Repo()
 }
 
 async function createMongoNotificationRepo(): Promise<NotificationRepository> {
-  const { default: Repo } = await import('#repositories/mongo/mongo_notification_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mongo/mongo_notification_repository')
   return new Repo()
 }
 
 async function createMongoActivityLogRepo(): Promise<UserActivityLogRepository> {
-  const { default: Repo } = await import('#repositories/mongo/mongo_user_activity_log_repository')
+  const { default: Repo } = await import('#infra/shared/repositories/mongo/mongo_user_activity_log_repository')
   return new Repo()
 }
 

@@ -1,6 +1,6 @@
 import TaskWorkflowTransition from '#models/task_workflow_transition'
-import TaskStatusRepository from '#repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'

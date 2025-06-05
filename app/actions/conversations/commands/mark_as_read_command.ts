@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import MessageRepository from '#repositories/message_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
+import MessageRepository from '#infra/conversations/repositories/message_repository'
 import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/request/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'

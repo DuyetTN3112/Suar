@@ -7,7 +7,7 @@ import PermissionService from '#services/permission_service'
 import type { ExecutionContext } from '#types/execution_context'
 import { ExecutionContext as ExecutionContextFactory } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
-import { RepositoryFactory } from '#repositories/index'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 

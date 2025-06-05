@@ -1,4 +1,4 @@
-import OrganizationRepository from '#repositories/organization_repository'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface BasicOrgInfo {

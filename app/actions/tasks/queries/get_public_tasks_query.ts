@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import TaskRepository from '#repositories/task_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type Task from '#models/task'
 import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 

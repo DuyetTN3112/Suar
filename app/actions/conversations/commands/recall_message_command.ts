@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import { DateTime } from 'luxon'
 import type { RecallMessageDTO } from '../dtos/request/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'

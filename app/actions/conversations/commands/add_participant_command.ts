@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipant from '#models/conversation_participant'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import Conversation from '#models/conversation'
 import type { AddParticipantDTO } from '../dtos/request/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'

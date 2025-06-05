@@ -7,7 +7,7 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Organization Membership', (group) => {
   group.setup(async () => {

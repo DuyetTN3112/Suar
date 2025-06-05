@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import UserRepository from '#repositories/user_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'

@@ -1,6 +1,6 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import PermissionService from '#services/permission_service'
 import emitter from '@adonisjs/core/services/emitter'

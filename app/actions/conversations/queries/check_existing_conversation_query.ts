@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import ConversationRepository from '#repositories/conversation_repository'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import type { DatabaseId } from '#types/database'
 
 interface FoundConversation {

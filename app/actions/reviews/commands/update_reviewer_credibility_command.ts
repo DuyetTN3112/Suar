@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import User from '#models/user'
-import SkillReviewRepository from '#repositories/skill_review_repository'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
 import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
 

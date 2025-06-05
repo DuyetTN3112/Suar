@@ -1,6 +1,6 @@
 import AuditLog from '#models/mongo/audit_log'
 import User from '#models/user'
-import UserRepository from '#repositories/user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { DateTime } from 'luxon'
 import type { ExecutionContext } from '#types/execution_context'

@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import type ReviewSession from '#models/review_session'
 import type { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
-import ReviewSessionRepository from '#repositories/review_session_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 
 interface UserReviewsResult {
   data: ReviewSession[]

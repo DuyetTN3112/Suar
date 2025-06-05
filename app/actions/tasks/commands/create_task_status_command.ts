@@ -1,5 +1,5 @@
 import TaskStatus from '#models/task_status'
-import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
