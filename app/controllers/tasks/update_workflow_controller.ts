@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateWorkflowCommand from '#actions/tasks/commands/update_workflow_command'
-import { UpdateWorkflowDTO } from '#actions/tasks/dtos/task_status_dtos'
+import { UpdateWorkflowDTO } from '#actions/tasks/dtos/request/task_status_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 

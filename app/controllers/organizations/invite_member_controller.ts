@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import { InviteUserDTO } from '#actions/organizations/dtos/invite_user_dto'
+import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import loggerService from '#services/logger_service'
 import { HttpStatus } from '#constants/error_constants'
 

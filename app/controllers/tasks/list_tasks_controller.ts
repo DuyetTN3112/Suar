@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import GetTasksListDTO from '#actions/tasks/dtos/get_tasks_list_dto'
+import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
 import GetTasksListQuery from '#actions/tasks/queries/get_tasks_list_query'
 import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
 

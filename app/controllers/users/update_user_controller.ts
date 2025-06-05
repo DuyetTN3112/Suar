@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/update_user_profile_dto'
+import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
 
 /**
  * PUT /users/:id → Update user profile

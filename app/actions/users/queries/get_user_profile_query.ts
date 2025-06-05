@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import User from '#models/user'
+import type User from '#models/user'
 import UserRepository from '#repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 

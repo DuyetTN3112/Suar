@@ -1,5 +1,5 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateProjectDTO } from '../dtos/update_project_dto.js'
+import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'

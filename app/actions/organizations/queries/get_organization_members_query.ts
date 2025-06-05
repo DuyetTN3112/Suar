@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import type { GetOrganizationMembersDTO } from '../dtos/get_organization_members_dto.js'
+import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'

@@ -7,7 +7,7 @@ import ProjectMemberRepository from '#repositories/project_member_repository'
 import ProjectRepository from '#repositories/project_repository'
 import TaskStatusRepository from '#repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
-import type CreateTaskDTO from '../dtos/create_task_dto.js'
+import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
 import type { ExecutionContext } from '#types/execution_context'
@@ -71,10 +71,18 @@ export default class CreateTaskCommand {
       await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
       // 3. Check permission: admin/owner OR project_manager (pure rule)
-      const isOrgAdmin = await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
+      const isOrgAdmin = await OrganizationUserRepository.isAdminOrOwner(
+        userId,
+        dto.organization_id,
+        trx
+      )
       let isProjectManager = false
       if (!isOrgAdmin && dto.project_id) {
-        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(userId, dto.project_id, trx)
+        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(
+          userId,
+          dto.project_id,
+          trx
+        )
       }
       enforcePolicy(
         canCreateTask({

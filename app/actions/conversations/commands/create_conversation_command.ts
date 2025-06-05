@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
 import Message from '#models/message'
 import { DateTime } from 'luxon'
-import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
+import type { CreateConversationDTO } from '../dtos/request/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
@@ -140,7 +140,10 @@ export default class CreateConversationCommand {
   ): Promise<Conversation> {
     // Validate org membership via pure rule
     if (organizationId) {
-      const creatorIsApproved = await OrganizationUserRepository.isApprovedMember(creatorId, organizationId)
+      const creatorIsApproved = await OrganizationUserRepository.isApprovedMember(
+        creatorId,
+        organizationId
+      )
       if (!creatorIsApproved) {
         throw new BusinessLogicException('Người tạo không thuộc tổ chức')
       }

@@ -14,7 +14,11 @@ export default class UpdateTaskSortOrderController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new UpdateTaskSortOrderCommand(execCtx)
-    const task = await command.execute(taskId, sort_order as number, task_status_id as string | undefined)
+    const task = await command.execute(
+      taskId,
+      sort_order as number,
+      task_status_id as string | undefined
+    )
 
     response.json({ success: true, data: task })
   }

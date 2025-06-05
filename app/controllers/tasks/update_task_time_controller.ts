@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import UpdateTaskTimeDTO from '#actions/tasks/dtos/update_task_time_dto'
+import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
 import UpdateTaskTimeCommand from '#actions/tasks/commands/update_task_time_command'
 
 /**

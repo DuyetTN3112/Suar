@@ -35,19 +35,13 @@ export default class UserRepository {
     }
   }
 
-  static async isFreelancer(
-    userId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<boolean> {
+  static async isFreelancer(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
     const query = trx ? User.query({ client: trx }) : User.query()
     const user = await query.where('id', userId).whereNull('deleted_at').first()
     return !!user?.is_freelancer
   }
 
-  static async isSuperadmin(
-    userId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<boolean> {
+  static async isSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
     const query = trx ? User.query({ client: trx }) : User.query()
     const user = await query.where('id', userId).whereNull('deleted_at').first()
     return user?.system_role === SystemRoleName.SUPERADMIN
@@ -100,10 +94,7 @@ export default class UserRepository {
       .orderBy('users.username', 'asc')
   }
 
-  static async findById(
-    userId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<User | null> {
+  static async findById(userId: DatabaseId, trx?: TransactionClientContract): Promise<User | null> {
     if (trx) {
       return User.query({ client: trx }).where('id', userId).first()
     }

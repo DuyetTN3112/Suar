@@ -17,6 +17,8 @@ sequenceDiagram
     participant B as Browser (Svelte)
     participant C as Controller
     participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     actor User as Target User
 
@@ -26,15 +28,22 @@ sequenceDiagram
     Admin->>B: Enter user to invite
     B->>C: POST /organizations/:id/members/invite
     C->>Cmd: InviteUserCommand.execute(dto)
-    Cmd->>DB: INSERT INTO organization_invitations
+    Note over Cmd: App Mapper: Request DTO → Domain params
+    Cmd->>Entity: OrganizationInvitation.create(orgId,<br/>invitedEmail, token, expiresAt=7days,<br/>invitedBy)
+    Note over Entity: Domain validation
+    Cmd->>Repo: save(invitationEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: INSERT INTO organization_invitations
     (organization_id, invited_email,
     invitation_token, expires_at = 7 days,
     invited_by)
-    DB-->>Cmd: Invitation created
+    DB-->>Repo: Invitation created
+    Repo-->>Cmd: Persisted entity
     Note over Cmd: ⚠️ No email sent
     Note over Cmd: ⚠️ AcceptInvitationCommand
     Note over Cmd: does NOT exist —
     Note over Cmd: invitation flow is INCOMPLETE
+    Note over Cmd: App Mapper: Domain Entity → Response DTO
     Cmd-->>C: Invitation object
     C-->>B: Redirect back
 
@@ -44,13 +53,26 @@ sequenceDiagram
     Admin->>B: Add member directly
     B->>C: POST /organizations/:id/members/add
     C->>Cmd: AddMemberCommand.execute(dto)
-    Cmd->>DB: Check user exists
-    Cmd->>DB: Check not already member
-    Cmd->>DB: INSERT INTO organization_users
+    Note over Cmd: App Mapper: Request DTO → Domain params
+    Cmd->>Repo: findUserById(userId)
+    Repo->>DB: Check user exists
+    DB-->>Repo: Result
+    Repo-->>Cmd: User entity or null
+    Cmd->>Repo: findMembership(orgId, userId)
+    Repo->>DB: Check not already member
+    DB-->>Repo: Result
+    Repo-->>Cmd: Membership or null
+    Cmd->>Entity: OrganizationUser.create(orgId,<br/>userId, role='org_member',<br/>status='approved', invitedBy=admin.id)
+    Note over Entity: Domain validation
+    Cmd->>Repo: save(membershipEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: INSERT INTO organization_users
     (organization_id, user_id,
     org_role='org_member',
     status='approved',
     invited_by=admin.id)
+    DB-->>Repo: Created
+    Repo-->>Cmd: Persisted entity
     Cmd-->>C: Member added
     C-->>B: Redirect back
 
@@ -59,10 +81,15 @@ sequenceDiagram
 
     Admin->>B: Open member page
     B->>C: GET /organizations/:id/members/
-    C->>DB: SELECT ou.*, u.*
+    C->>Repo: findApprovedMembers(orgId)
+    Repo->>DB: SELECT ou.*, u.*
     FROM organization_users ou
     JOIN users u ...
     WHERE status='approved'
+    DB-->>Repo: Result set
+    Note over Repo: Infra Mapper: ORM Models → Domain Entities
+    Repo-->>C: Member entities
+    Note over C: App Mapper: Domain Entities → Response DTOs
     C-->>B: Member list
     B-->>Admin: Show members with roles
 
@@ -74,7 +101,14 @@ sequenceDiagram
     C->>Cmd: UpdateMemberRoleCommand.execute(dto)
     Cmd->>Cmd: Permission check
     (only org_owner/org_admin can change)
-    Cmd->>DB: UPDATE organization_users
+    Cmd->>Repo: findMembership(orgId, userId)
+    Repo->>DB: SELECT organization_users
+    DB-->>Repo: Result
+    Repo-->>Cmd: Membership entity
+    Cmd->>Entity: membership.changeRole(newRole)
+    Cmd->>Repo: save(membershipEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: UPDATE organization_users
     SET org_role = ? WHERE user_id = ?
     Cmd-->>C: OK
     C-->>B: Redirect back
@@ -85,10 +119,14 @@ sequenceDiagram
     Admin->>B: Remove member
     B->>C: DELETE /organizations/:id/members/:userId
     C->>Cmd: RemoveMemberCommand.execute(dto)
-    Cmd->>Cmd: Check not last owner
-    Cmd->>DB: DELETE FROM organization_users
+    Cmd->>Repo: findMembership(orgId, userId)
+    Repo->>DB: SELECT organization_users
+    DB-->>Repo: Result
+    Repo-->>Cmd: Membership entity
+    Cmd->>Entity: membership.validateNotLastOwner()
+    Cmd->>Repo: delete(membershipEntity)
+    Repo->>DB: DELETE FROM organization_users
     WHERE user_id = ? AND organization_id = ?
     Cmd-->>C: OK
     C-->>B: Redirect back
-
 

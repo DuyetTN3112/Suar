@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskApplicationRepository from '#repositories/task_application_repository'
 import type TaskApplication from '#models/task_application'
-import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 interface ApplicationListResult {
   data: TaskApplication[]

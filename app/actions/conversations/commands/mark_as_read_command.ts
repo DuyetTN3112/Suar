@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import MessageRepository from '#repositories/message_repository'
-import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
+import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/request/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -43,7 +43,10 @@ export class MarkAsReadCommand {
 
     try {
       // Verify user is participant → delegate to Model
-      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(
+        dto.conversationId,
+        userId
+      )
       if (!isParticipant) {
         throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }
@@ -122,7 +125,10 @@ export class MarkMessagesAsReadCommand {
 
     try {
       // Verify user is participant → delegate to Model
-      const isParticipant = await ConversationParticipantRepository.isParticipant(dto.conversationId, userId)
+      const isParticipant = await ConversationParticipantRepository.isParticipant(
+        dto.conversationId,
+        userId
+      )
       if (!isParticipant) {
         throw new ForbiddenException('Bạn không có quyền truy cập cuộc trò chuyện này')
       }

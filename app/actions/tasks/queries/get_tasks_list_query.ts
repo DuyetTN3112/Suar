@@ -2,7 +2,7 @@ import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import TaskRepository from '#repositories/task_repository'
 import type { TaskPermissionFilter } from '#repositories/task_repository'
-import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
+import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -85,7 +85,10 @@ export default class GetTasksListQuery {
     )
 
     // Calculate statistics via repository
-    const stats = await TaskRepository.getListStatsByOrganization(dto.organization_id, permissionFilter)
+    const stats = await TaskRepository.getListStatsByOrganization(
+      dto.organization_id,
+      permissionFilter
+    )
 
     const result = {
       data: paginator.all(),
@@ -117,7 +120,12 @@ export default class GetTasksListQuery {
     const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     if (isSuperAdmin) return { type: 'all' }
 
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      false
+    )
 
     if (!orgRole) {
       return { type: 'none' }

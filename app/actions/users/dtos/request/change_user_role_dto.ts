@@ -1,4 +1,4 @@
-import type { Command } from '../../shared/interfaces.js'
+import type { Command } from '../../../shared/interfaces.js'
 import type { DatabaseId } from '#types/database'
 import { SystemRoleName } from '#constants'
 import ValidationException from '#exceptions/validation_exception'

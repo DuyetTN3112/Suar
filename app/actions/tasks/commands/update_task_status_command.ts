@@ -5,7 +5,7 @@ import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transi
 import UserRepository from '#repositories/user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import type UpdateTaskStatusDTO from '../dtos/update_task_status_dto.js'
+import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -66,7 +66,9 @@ export default class UpdateTaskStatusCommand {
       )
 
       if (!newStatus) {
-        throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+        throw new BusinessLogicException(
+          'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+        )
       }
 
       // Resolve current task_status_id (backward compat: old tasks may only have status slug)
@@ -87,7 +89,12 @@ export default class UpdateTaskStatusCommand {
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          task.organization_id,
+          userId,
+          undefined,
+          false
+        ),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
@@ -114,9 +121,7 @@ export default class UpdateTaskStatusCommand {
         trx
       )
 
-      const matchingTransition = transitions.find(
-        (t) => t.to_status_id === dto.task_status_id
-      )
+      const matchingTransition = transitions.find((t) => t.to_status_id === dto.task_status_id)
 
       enforcePolicy(
         validateWorkflowTransition({

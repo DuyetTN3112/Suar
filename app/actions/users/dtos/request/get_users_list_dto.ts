@@ -1,4 +1,4 @@
-import type { PaginationDTO, Query } from '../../shared/index.js'
+import type { PaginationDTO, Query } from '../../../shared/index.js'
 import type { DatabaseId } from '#types/database'
 import type { OrganizationUserStatus } from '#constants/organization_constants'
 

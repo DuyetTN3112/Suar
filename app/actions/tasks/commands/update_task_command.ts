@@ -4,7 +4,7 @@ import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import AuditLog from '#models/mongo/audit_log'
 import TaskVersionRepository from '#repositories/task_version_repository'
-import type UpdateTaskDTO from '../dtos/update_task_dto.js'
+import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -76,7 +76,11 @@ export default class UpdateTaskCommand {
       // Validate assignee thuộc org (logic từ before_task_update trigger)
       if (dto.assigned_to !== undefined && dto.assigned_to !== null) {
         const [isApproved, isFreelancer] = await Promise.all([
-          OrganizationUserRepository.isApprovedMember(dto.assigned_to, existingTask.organization_id, trx),
+          OrganizationUserRepository.isApprovedMember(
+            dto.assigned_to,
+            existingTask.organization_id,
+            trx
+          ),
           UserRepository.isFreelancer(dto.assigned_to, trx),
         ])
 
@@ -91,7 +95,12 @@ export default class UpdateTaskCommand {
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(existingTask.organization_id, userId, undefined, false),
+        OrganizationUserRepository.getMemberRoleName(
+          existingTask.organization_id,
+          userId,
+          undefined,
+          false
+        ),
       ])
 
       // ── DECIDE (pure, sync) ────────────────────────────────────────────

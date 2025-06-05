@@ -34,7 +34,12 @@ export default class ListNotifications {
     }
 
     // Delegate to Model static method
-    const paginator = await LucidNotificationRepository.paginateByUser(userId, { page, limit, isRead, type })
+    const paginator = await LucidNotificationRepository.paginateByUser(userId, {
+      page,
+      limit,
+      isRead,
+      type,
+    })
 
     // Chuyển đổi kết quả phân trang vào format tương thích
     return {

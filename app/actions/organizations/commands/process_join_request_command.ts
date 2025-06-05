@@ -3,7 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUser from '#models/organization_user'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
+import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { EntityType } from '#constants/audit_constants'
@@ -52,7 +52,12 @@ export default class ProcessJoinRequestCommand {
       }
 
       // 2. Check permissions
-      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false)
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        userId,
+        trx,
+        false
+      )
       enforcePolicy(
         canProcessJoinRequest({
           actorOrgRole,
@@ -63,7 +68,12 @@ export default class ProcessJoinRequestCommand {
 
       // 3. Update membership status
       const newStatus = dto.isApproval() ? 'approved' : 'rejected'
-      await OrganizationUserRepository.updateStatus(dto.organizationId, dto.targetUserId, newStatus, trx)
+      await OrganizationUserRepository.updateStatus(
+        dto.organizationId,
+        dto.targetUserId,
+        newStatus,
+        trx
+      )
 
       // 4. Create audit log
       await AuditLog.create({

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
-import { CreateReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { HttpStatus } from '#constants/error_constants'
 
 /**

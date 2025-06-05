@@ -77,10 +77,7 @@ export default class GetTaskAuditLogsQuery {
             }
           : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(
-          log.old_values ?? {},
-          log.new_values ?? {}
-        ),
+        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
 

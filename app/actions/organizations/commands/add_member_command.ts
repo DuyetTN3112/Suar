@@ -4,7 +4,7 @@ import User from '#models/user'
 import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import { EntityType } from '#constants/audit_constants'
-import type { AddMemberDTO } from '../dtos/add_member_dto.js'
+import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
@@ -63,7 +63,12 @@ export default class AddMemberCommand {
       }
 
       // 2. Check permissions, role validity, and duplicate membership
-      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false)
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        userId,
+        trx,
+        false
+      )
       const alreadyMember = await OrganizationUserRepository.isMember(
         dto.userId,
         dto.organizationId,

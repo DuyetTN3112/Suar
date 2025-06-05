@@ -166,9 +166,7 @@ export default class ProjectMemberRepository {
     if (options?.search && options.search.trim().length > 0) {
       const searchTerm = `%${options.search.trim()}%`
       void query.where((builder) => {
-        void builder
-          .where('u.username', 'like', searchTerm)
-          .orWhere('u.email', 'like', searchTerm)
+        void builder.where('u.username', 'like', searchTerm).orWhere('u.email', 'like', searchTerm)
       })
     }
 

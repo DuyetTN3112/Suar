@@ -5,6 +5,9 @@
 %% ✅ Fixed: "Register" → "OAuth Login" (no email/password registration)
 %% ✅ Fixed: "Auth Token" → "Session cookie" (no JWT)
 %% ✅ Fixed: MongoDB label expanded (audit_logs + notifications + user_activity_logs)
+%% ✅ Architecture: Clean Architecture + DDD — internal layers:
+%%    Application (Actions) → Domain (Entities, Repository Interfaces)
+%%    → Infrastructure (Repository Impls via Lucid ORM, Infra Mappers) → DB
 flowchart LR
     %% ═══════════════════════════════
     %% LEFT: External Entities (Actors)

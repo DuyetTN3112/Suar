@@ -406,7 +406,17 @@ export default class TaskRepository {
       this.statTimeTracking(base),
     ])
 
-    return { total, byStatus, byPriority, byLabel, overdue, completedThisWeek, completedThisMonth, avgCompletionDays, timeTracking }
+    return {
+      total,
+      byStatus,
+      byPriority,
+      byLabel,
+      overdue,
+      completedThisWeek,
+      completedThisMonth,
+      avgCompletionDays,
+      timeTracking,
+    }
   }
 
   private static async statTotal(base: ModelQueryBuilderContract<typeof Task>): Promise<number> {
@@ -456,10 +466,10 @@ export default class TaskRepository {
   private static async statAvgCompletionDays(
     base: ModelQueryBuilderContract<typeof Task>
   ): Promise<number | null> {
-    const completedTasks = (await base
+    const completedTasks = await base
       .clone()
       .where('status', TaskStatus.DONE)
-      .select('created_at', 'updated_at')) as Task[]
+      .select('created_at', 'updated_at')
 
     if (completedTasks.length === 0) return null
 
@@ -472,9 +482,7 @@ export default class TaskRepository {
     return Math.round(totalDays / completedTasks.length)
   }
 
-  private static async statTimeTracking(
-    base: ModelQueryBuilderContract<typeof Task>
-  ): Promise<{
+  private static async statTimeTracking(base: ModelQueryBuilderContract<typeof Task>): Promise<{
     tasksWithEstimate: number
     tasksWithActual: number
     totalEstimated: number
@@ -483,7 +491,7 @@ export default class TaskRepository {
     avgActual: number
     efficiency: number | null
   }> {
-    const tasks = (await base.clone().select('estimated_time', 'actual_time')) as Task[]
+    const tasks = await base.clone().select('estimated_time', 'actual_time')
 
     const tasksWithEstimate = tasks.filter((t) => t.estimated_time).length
     const tasksWithActual = tasks.filter((t) => t.actual_time).length

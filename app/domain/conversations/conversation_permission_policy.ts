@@ -15,7 +15,7 @@ import type {
 } from './conversation_types.js'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 import { MessageRecallScope } from '#constants/conversation_constants'
 
 /**

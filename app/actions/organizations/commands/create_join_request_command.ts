@@ -46,7 +46,11 @@ export default class CreateJoinRequestCommand {
 
     try {
       // 1. Check existing membership in organization_users
-      const existingMembership = await OrganizationUserRepository.findMembership(organizationId, userId, trx)
+      const existingMembership = await OrganizationUserRepository.findMembership(
+        organizationId,
+        userId,
+        trx
+      )
       const isApprovedMember = existingMembership?.status === OrganizationUserStatus.APPROVED
       const hasPending = existingMembership?.status === OrganizationUserStatus.PENDING
 

@@ -3,7 +3,7 @@ import ConversationRepository from '#repositories/conversation_repository'
 import type Conversation from '#models/conversation'
 import MessageRepository from '#repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
-import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
+import type { GetConversationDetailDTO } from '../dtos/request/get_conversation_detail_dto.js'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
@@ -53,7 +53,10 @@ export default class GetConversationDetailQuery {
       const unreadCount = await MessageRepository.countUnreadInConversation(conversationId, userId)
 
       // Get last message → delegate to Model
-      const lastMessage = await MessageRepository.getLastMessageInConversation(conversationId, userId)
+      const lastMessage = await MessageRepository.getLastMessageInConversation(
+        conversationId,
+        userId
+      )
 
       // Attach to conversation object for easy access
       // @ts-expect-error - Adding virtual properties

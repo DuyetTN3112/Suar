@@ -10,7 +10,7 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import CreateTaskDTO from '#actions/tasks/dtos/create_task_dto'
+import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import CreateNotification from '#actions/common/create_notification'
 import Task from '#models/task'
 import AuditLog from '#models/mongo/audit_log'

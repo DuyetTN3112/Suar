@@ -7,6 +7,9 @@
 %% ❌ Fixed: P66 score calculation is NOT auto-triggered after confirmation
 %% ⚠️ Note: DetectAnomalyCommand is manually called (not auto after reviews)
 %% ⚠️ Note: P67 reverse review does NOT directly update credibility_data
+%% ✅ Architecture: Clean Architecture + DDD
+%%    Sub-processes (Actions) access data stores via Repository Interfaces
+%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
 flowchart TD
     %% External Entities
     Mgr([👤 Manager / PM])
@@ -50,14 +53,39 @@ flowchart TD
     D1[(D1: users)]
     D4[(D4: tasks)]
 
+    %% ═══════════════════════════════════════════
+    %% Infrastructure Layer — Repositories
+    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
+    %% ═══════════════════════════════════════════
+    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
+        direction TB
+        R_REV[["ReviewRepository
+        + ReviewMapper"]]
+        R_SKILL[["UserSkillRepository
+        + SkillMapper"]]
+        R_USER[["UserRepository
+        + UserMapper"]]
+        R_TASK[["TaskRepository
+        + TaskMapper"]]
+    end
+
+    %% Repository → Data Store connections (Lucid ORM)
+    R_REV <-->|"Lucid ORM"| D6a
+    R_REV <-->|"Lucid ORM"| D6b
+    R_REV <-->|"Lucid ORM"| D6c
+    R_REV <-->|"Lucid ORM"| D6d
+    R_SKILL <-->|"Lucid ORM"| D8
+    R_USER <-->|"Lucid ORM"| D1
+    R_TASK <-->|"Lucid ORM"| D4
+
     %% 6.1 Create ReviewSession (triggered by task status=done)
     P4 -->|"Event: task status
     changed to done"| P61
     P61 -->|"Read task details
-    (assigned_to, project)"| D4
+    (assigned_to, project)"| R_TASK
     P61 -->|"INSERT review_session
     (status = pending,
-    deadline = NOW()+14d)"| D6a
+    deadline = NOW()+14d)"| R_REV
 
     %% 6.T Timeout Monitor (scheduled — force close overdue sessions)
     P6T[["6.T
@@ -65,9 +93,9 @@ flowchart TD
     Monitor
     (scheduled)"]]
     P6T -->|"SELECT sessions WHERE
-    deadline < NOW()"| D6a
+    deadline < NOW()"| R_REV
     P6T -->|"Force close: UPDATE
-    status = completed"| D6a
+    status = completed"| R_REV
     P6T -->|"Score with available
     reviews only"| P66
 
@@ -76,7 +104,7 @@ flowchart TD
     Late Task
     Check"]]
     P6L -->|"Read task due_date
-    vs completed_at"| D4
+    vs completed_at"| R_TASK
     P6L -->|"Late penalty
     flag (TBD)"| P66
 
@@ -86,61 +114,61 @@ flowchart TD
     + comment"| P62
     P62 -->|"Review form
     + required skills"| Mgr
-    P62 -->|"Read session info"| D6a
+    P62 -->|"Read session info"| R_REV
     P62 -->|"INSERT skill_reviews
-    (reviewer_type = manager)"| D6b
+    (reviewer_type = manager)"| R_REV
     P62 -->|"UPDATE session:
     manager_review_completed
-    = TRUE"| D6a
+    = TRUE"| R_REV
 
     %% 6.3 Peer Review (independent, parallel with manager)
     Peer -->|"Rate skills
     + comment"| P63
     P63 -->|"Review form"| Peer
-    P63 -->|"Read session info"| D6a
+    P63 -->|"Read session info"| R_REV
     P63 -->|"INSERT skill_reviews
-    (reviewer_type = peer)"| D6b
+    (reviewer_type = peer)"| R_REV
     P63 -->|"UPDATE session:
-    peer_reviews_count += 1"| D6a
+    peer_reviews_count += 1"| R_REV
 
     %% 6.4 Anomaly Detection (manual trigger, only 3 patterns)
     %% Patterns: bulk_same_level, new_account_high, mutual_high
     %% Missing patterns: self_review, timing_anomaly, cross_org
     P64 -->|"Read all reviews
-    for session"| D6b
-    D6b -->|"Review data"| P64
+    for session"| R_REV
+    R_REV -->|"Review data"| P64
     P64 -->|"INSERT flagged_review
     (flag_type, severity)
-    3/6 patterns only"| D6d
+    3/6 patterns only"| R_REV
     ADM -->|"Investigate:
     dismiss / confirm"| P64
     P64 -->|"UPDATE flagged_review
-    status"| D6d
+    status"| R_REV
 
     %% 6.5 Confirmation & Dispute
     P65 -->|"Review results
     + spider chart"| Rev
     Rev -->|"Confirm or Dispute
     (+ reason)"| P65
-    P65 -->|"Read session reviews"| D6b
+    P65 -->|"Read session reviews"| R_REV
     P65 -->|"UPDATE confirmations
-    JSONB"| D6a
+    JSONB"| R_REV
     P65 -->|"UPDATE status =
-    completed / disputed"| D6a
+    completed / disputed"| R_REV
 
     %% 6.6 Score Calculation (must be triggered manually)
-    P66 -->|"Read valid reviews"| D6b
-    P66 -->|"Read flagged reviews"| D6d
+    P66 -->|"Read valid reviews"| R_REV
+    P66 -->|"Read flagged reviews"| R_REV
     P66 -->|"UPDATE level_code,
     avg_score, avg_percentage,
-    total_reviews"| D8
+    total_reviews"| R_SKILL
     P66 -->|"UPDATE trust_data,
     freelancer_rating,
-    completed_tasks_count"| D1
+    completed_tasks_count"| R_USER
     P66 -->|"UPDATE credibility_data
-    (reviewers)"| D1
+    (reviewers)"| R_USER
     P66 -->|"UPDATE session
-    status = completed"| D6a
+    status = completed"| R_REV
 
     %% 6.7 Reverse Review (360° feedback — inserts record only)
     Rev -->|"Rate reviewer:
@@ -148,15 +176,18 @@ flowchart TD
     comment, anonymous"| P67
     P67 -->|"INSERT reverse_reviews
     (target_type: peer/manager/
-    project/organization)"| D6c
+    project/organization)"| R_REV
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
     class Mgr,Peer,Rev,ADM entity
     class P61,P62,P63,P64,P65,P66,P67,P6T,P6L process
     class D6a,D6b,D6c,D6d,D8,D1 datastore
     class P4 extProcess
+    class R_REV,R_SKILL,R_USER,R_TASK repo
+    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
 
 

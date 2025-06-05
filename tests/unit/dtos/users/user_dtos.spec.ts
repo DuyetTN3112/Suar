@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
-import { RegisterUserDTO } from '#actions/users/dtos/register_user_dto'
-import { ChangeUserRoleDTO } from '#actions/users/dtos/change_user_role_dto'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/update_user_profile_dto'
+import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
+import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
+import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
 import {
   AddUserSkillDTO,
   UpdateUserSkillDTO,
   RemoveUserSkillDTO,
-} from '#actions/users/dtos/user_skill_dtos'
+} from '#actions/users/dtos/request/user_skill_dtos'
 import { SystemRoleName } from '#constants/user_constants'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'

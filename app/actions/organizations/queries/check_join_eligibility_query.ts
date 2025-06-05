@@ -29,7 +29,10 @@ export default class CheckJoinEligibilityQuery {
 
     const orgJson = { id: organization.id, name: organization.name }
 
-    const existingMembership = (await OrganizationUserRepository.findMembership(organizationId, userId)) as {
+    const existingMembership = (await OrganizationUserRepository.findMembership(
+      organizationId,
+      userId
+    )) as {
       status: OrganizationUserStatus
     } | null
 

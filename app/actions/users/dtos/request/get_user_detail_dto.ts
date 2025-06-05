@@ -1,4 +1,4 @@
-import { IdDTO, type Query } from '../../shared/index.js'
+import { IdDTO, type Query } from '../../../shared/index.js'
 
 /**
  * GetUserDetailDTO

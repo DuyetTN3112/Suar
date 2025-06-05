@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { ProjectRole } from '#constants/project_constants'
 import AddProjectMemberCommand from '#actions/projects/commands/add_project_member_command.js'
-import { AddProjectMemberDTO } from '#actions/projects/dtos/add_project_member_dto.js'
+import { AddProjectMemberDTO } from '#actions/projects/dtos/request/add_project_member_dto.js'
 
 /**
  * POST /projects/members → Add member to project

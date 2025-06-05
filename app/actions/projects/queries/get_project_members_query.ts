@@ -79,12 +79,15 @@ export default class GetProjectMembersQuery extends BaseQuery<
     const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
-    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(dto.project_id, {
-      page,
-      limit,
-      role: dto.role,
-      search: dto.search,
-    })
+    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
+      dto.project_id,
+      {
+        page,
+        limit,
+        role: dto.role,
+        search: dto.search,
+      }
+    )
 
     // Enrich with task counts and last activity
     const enrichedMembers = await this.enrichMembers(members as MemberRow[], dto.project_id)

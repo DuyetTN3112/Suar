@@ -17,6 +17,8 @@ sequenceDiagram
     participant B as Browser (Svelte)
     participant C as Controller
     participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     actor V as Viewer
 
@@ -25,7 +27,12 @@ sequenceDiagram
 
     U->>B: Open profile page
     B->>C: GET /profile
-    C->>DB: SELECT user + user_skills + skills
+    C->>Repo: findUserWithSkills(userId)
+    Repo->>DB: SELECT user + user_skills + skills
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>C: User entity (with skills)
+    Note over C: App Mapper: Domain Entity → Response DTO
     C-->>B: Profile data (includes skills)
     B-->>U: Show profile + skills list
 
@@ -35,17 +42,28 @@ sequenceDiagram
     U->>B: Add new skill
     B->>C: POST /profile/skills
     C->>Cmd: AddUserSkillCommand.execute(dto)
+    Note over Cmd: App Mapper: Request DTO → Domain params
 
-    Cmd->>DB: Check existing user_skill
+    Cmd->>Repo: findUserSkill(userId, skillId)
+    Repo->>DB: Check existing user_skill
     (user_id + skill_id)
+    DB-->>Repo: Result
+    Repo-->>Cmd: UserSkill or null
 
     alt Already has this skill
         Cmd-->>C: ConflictException (409)
     else New skill
-        Cmd->>DB: INSERT INTO user_skills
+        Cmd->>Entity: UserSkill.create(userId, skillId,<br/>levelCode, source='imported',<br/>avgScore=0, totalReviews=0)
+        Note over Entity: Domain validation
+        Cmd->>Repo: save(userSkillEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO user_skills
         (user_id, skill_id, level_code,
         source='imported',
         avg_score=0, total_reviews=0)
+        DB-->>Repo: Created
+        Repo-->>Cmd: Persisted entity
+        Note over Cmd: App Mapper: Domain Entity → Response DTO
         Cmd-->>C: UserSkill object
         C-->>B: Redirect back
     end
@@ -56,7 +74,15 @@ sequenceDiagram
     U->>B: Change proficiency level
     B->>C: PUT /profile/skills/:id
     C->>Cmd: UpdateUserSkillCommand.execute(dto)
-    Cmd->>DB: UPDATE user_skills
+    Note over Cmd: App Mapper: Request DTO → Domain params
+    Cmd->>Repo: findById(skillId, userId)
+    Repo->>DB: SELECT user_skill WHERE id = ? AND user_id = ?
+    DB-->>Repo: Result
+    Repo-->>Cmd: UserSkill entity
+    Cmd->>Entity: userSkill.updateLevel(newLevelCode)
+    Cmd->>Repo: save(userSkillEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: UPDATE user_skills
     SET level_code = ?
     WHERE id = ? AND user_id = ?
     Cmd-->>C: Updated
@@ -67,7 +93,12 @@ sequenceDiagram
 
     U->>B: Remove skill
     B->>C: DELETE /profile/skills/:id
-    C->>DB: DELETE FROM user_skills
+    C->>Repo: findById(skillId, userId)
+    Repo->>DB: SELECT user_skill WHERE id = ? AND user_id = ?
+    DB-->>Repo: Result
+    Repo-->>C: UserSkill entity
+    C->>Repo: delete(userSkillEntity)
+    Repo->>DB: DELETE FROM user_skills
     WHERE id = ? AND user_id = ?
     C-->>B: Redirect back
 
@@ -76,7 +107,12 @@ sequenceDiagram
 
     V->>B: Browse user profile
     B->>C: GET /users/:id/profile
-    C->>DB: SELECT user + skills + reviews
+    C->>Repo: findUserWithSkillsAndReviews(userId)
+    Repo->>DB: SELECT user + skills + reviews
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>C: User entity
+    Note over C: App Mapper: Domain Entity → Response DTO
     C-->>B: Profile data
     B-->>V: Show profile + spider chart
 
@@ -94,5 +130,4 @@ sequenceDiagram
     Note over Cmd: and model EXIST but
     Note over Cmd: NO route/controller wired.
     Note over Cmd: Bookmark feature is NOT functional.
-
 

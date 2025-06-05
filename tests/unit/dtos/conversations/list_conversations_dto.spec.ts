@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { ListConversationsDTO } from '#actions/conversations/dtos/list_conversations_dto'
+import { ListConversationsDTO } from '#actions/conversations/dtos/request/list_conversations_dto'
 
 // ============================================================================
 // ListConversationsDTO - Construction

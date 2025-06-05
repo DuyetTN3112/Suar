@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { InviteUserDTO } from '#actions/organizations/dtos/invite_user_dto'
+import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import { OrganizationRole } from '#constants/organization_constants'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'

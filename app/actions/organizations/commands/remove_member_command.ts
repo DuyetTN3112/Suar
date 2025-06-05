@@ -8,7 +8,7 @@ import ProjectRepository from '#repositories/project_repository'
 import TaskRepository from '#repositories/task_repository'
 import ConversationRepository from '#repositories/conversation_repository'
 import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
-import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
+import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { EntityType } from '#constants/audit_constants'
@@ -136,7 +136,11 @@ export default class RemoveMemberCommand {
     if (conversationIds.length === 0) return
 
     // Delete user from these conversations via Model
-    await ConversationParticipantRepository.removeByUserInConversations(userId, conversationIds, trx)
+    await ConversationParticipantRepository.removeByUserInConversations(
+      userId,
+      conversationIds,
+      trx
+    )
   }
 
   /**

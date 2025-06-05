@@ -3,9 +3,9 @@ import { ExecutionContext } from '#types/execution_context'
 import GetConversationDetailQuery from '#actions/conversations/queries/get_conversation_detail_query'
 import GetConversationMessagesQuery from '#actions/conversations/queries/get_conversation_messages_query'
 import { MarkAsReadCommand } from '#actions/conversations/commands/mark_as_read_command'
-import { GetConversationDetailDTO } from '#actions/conversations/dtos/get_conversation_detail_dto'
-import { GetConversationMessagesDTO } from '#actions/conversations/dtos/get_conversation_messages_dto'
-import { MarkAsReadDTO } from '#actions/conversations/dtos/mark_as_read_dto'
+import { GetConversationDetailDTO } from '#actions/conversations/dtos/request/get_conversation_detail_dto'
+import { GetConversationMessagesDTO } from '#actions/conversations/dtos/request/get_conversation_messages_dto'
+import { MarkAsReadDTO } from '#actions/conversations/dtos/request/mark_as_read_dto'
 import { getErrorMessage } from '#libs/error_utils'
 
 /**

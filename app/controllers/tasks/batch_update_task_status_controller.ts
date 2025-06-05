@@ -21,7 +21,11 @@ export default class BatchUpdateTaskStatusController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new BatchUpdateTaskStatusCommand(execCtx)
-    const result = await command.execute(task_ids as string[], task_status_id as string, organizationId)
+    const result = await command.execute(
+      task_ids as string[],
+      task_status_id as string,
+      organizationId
+    )
 
     response.json({ success: true, ...result })
   }

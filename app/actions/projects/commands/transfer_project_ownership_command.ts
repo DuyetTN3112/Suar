@@ -82,18 +82,37 @@ export default class TransferProjectOwnershipCommand {
       )
 
       // 5. Add new owner to project_members if not already
-      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.new_owner_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(
+        dto.project_id,
+        dto.new_owner_id,
+        trx
+      )
 
       if (!existingMember) {
-        await ProjectMemberRepository.addMember(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.addMember(
+          dto.project_id,
+          dto.new_owner_id,
+          ProjectRole.OWNER,
+          trx
+        )
       } else {
         // Update to project_owner role
-        await ProjectMemberRepository.updateRole(dto.project_id, dto.new_owner_id, ProjectRole.OWNER, trx)
+        await ProjectMemberRepository.updateRole(
+          dto.project_id,
+          dto.new_owner_id,
+          ProjectRole.OWNER,
+          trx
+        )
       }
 
       // 6. Demote old owner to project_manager
       if (currentOwnerId) {
-        await ProjectMemberRepository.updateRole(dto.project_id, currentOwnerId, ProjectRole.MANAGER, trx)
+        await ProjectMemberRepository.updateRole(
+          dto.project_id,
+          currentOwnerId,
+          ProjectRole.MANAGER,
+          trx
+        )
       }
 
       // 7. Update project owner

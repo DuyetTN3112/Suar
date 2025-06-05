@@ -240,6 +240,7 @@ export const TaskFactory = {
       task_visibility: string
       sort_order: number
       due_date: any
+      task_status_id: string | null
     }> = {}
   ): Promise<Task> {
     return Task.create({
@@ -260,6 +261,7 @@ export const TaskFactory = {
       task_visibility: overrides.task_visibility ?? 'internal',
       sort_order: overrides.sort_order ?? 0,
       due_date: overrides.due_date ?? DateTime.now().plus({ days: 7 }),
+      ...(overrides.task_status_id ? { task_status_id: overrides.task_status_id } : {}),
     })
   },
 }

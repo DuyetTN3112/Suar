@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import DeleteProjectCommand from '#actions/projects/commands/delete_project_command.js'
-import { DeleteProjectDTO } from '#actions/projects/dtos/delete_project_dto.js'
+import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto.js'
 
 /**
  * DELETE /projects/:id → Delete project
