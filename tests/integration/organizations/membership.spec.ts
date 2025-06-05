@@ -43,7 +43,7 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const existing = await OrganizationUserRepository.isMember(org.id, member.id)
+    const existing = await OrganizationUserRepository.isMember(member.id, org.id)
     assert.isTrue(existing)
   })
 

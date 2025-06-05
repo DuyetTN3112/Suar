@@ -77,6 +77,7 @@ export default class CreateOrganizationCommand {
           logo: dto.logo || null,
           website: dto.website || null,
           owner_id: String(userId),
+          plan: dto.plan || 'free',
         },
         { client: trx }
       )

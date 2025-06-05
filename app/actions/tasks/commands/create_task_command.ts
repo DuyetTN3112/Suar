@@ -70,14 +70,13 @@ export default class CreateTaskCommand {
       // 2. Check org exists (Fat Model method)
       await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
-      // 3. Check permission: admin/owner OR project_manager (pure rule)
-      const isOrgAdmin = await OrganizationUserRepository.isAdminOrOwner(
-        userId,
-        dto.organization_id,
-        trx
-      )
+      // 3. Check permission: admin/owner OR project_manager OR superadmin (pure rule)
+      const isSuperadmin = await UserRepository.isSystemAdmin(userId, trx)
+      const isOrgAdmin = isSuperadmin
+        ? false
+        : await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
       let isProjectManager = false
-      if (!isOrgAdmin && dto.project_id) {
+      if (!isSuperadmin && !isOrgAdmin && dto.project_id) {
         isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(
           userId,
           dto.project_id,
@@ -89,6 +88,7 @@ export default class CreateTaskCommand {
           isOrgAdminOrOwner: isOrgAdmin,
           isProjectManagerOrOwner: isProjectManager,
           hasProjectId: dto.project_id !== null && dto.project_id !== undefined,
+          isSuperadmin,
         })
       )
 

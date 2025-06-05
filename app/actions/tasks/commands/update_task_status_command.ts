@@ -135,7 +135,7 @@ export default class UpdateTaskStatusCommand {
 
       // ── PERSIST ────────────────────────────────────────────────────────
       task.task_status_id = dto.task_status_id
-      task.status = newStatus.slug // backward compat
+      task.status = newStatus.category // backward compat: use category for legacy status column
       task.updated_by = String(userId)
       await task.save()
 
