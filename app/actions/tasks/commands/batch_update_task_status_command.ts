@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import TaskStatusRepository from '#repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
+import TaskStatusModel from '#models/task_status'
+import TaskWorkflowTransition from '#models/task_workflow_transition'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
@@ -50,11 +50,11 @@ export default class BatchUpdateTaskStatusCommand {
 
     try {
       // Verify the target status exists and belongs to this org
-      const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
-        newTaskStatusId,
-        organizationId,
-        trx
-      )
+      const newStatus = await TaskStatusModel.query({ client: trx })
+        .where('id', newTaskStatusId)
+        .where('organization_id', organizationId)
+        .whereNull('deleted_at')
+        .first()
 
       if (!newStatus) {
         throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
@@ -73,7 +73,7 @@ export default class BatchUpdateTaskStatusCommand {
         // Resolve current task_status_id (backward compat)
         let currentStatusId = task.task_status_id
         if (!currentStatusId) {
-          const currentStatus = await TaskStatusRepository.findBySlug(
+          const currentStatus = await TaskStatusModel.findBySlug(
             task.organization_id,
             task.status,
             trx
@@ -87,7 +87,7 @@ export default class BatchUpdateTaskStatusCommand {
         }
 
         // Load transitions for this task's current status
-        const transitions = await TaskWorkflowTransitionRepository.findFromStatus(
+        const transitions = await TaskWorkflowTransition.findFromStatus(
           organizationId,
           currentStatusId,
           trx

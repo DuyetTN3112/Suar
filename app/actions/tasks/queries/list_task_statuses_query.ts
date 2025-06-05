@@ -1,5 +1,4 @@
 import TaskStatus from '#models/task_status'
-import TaskStatusRepository from '#repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -7,6 +6,6 @@ import type { DatabaseId } from '#types/database'
  */
 export default class ListTaskStatusesQuery {
   async execute(organizationId: DatabaseId): Promise<TaskStatus[]> {
-    return TaskStatusRepository.findByOrganization(organizationId)
+    return TaskStatus.findByOrganization(organizationId)
   }
 }

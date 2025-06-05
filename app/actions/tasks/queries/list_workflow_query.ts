@@ -1,5 +1,4 @@
 import TaskWorkflowTransition from '#models/task_workflow_transition'
-import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -8,6 +7,6 @@ import type { DatabaseId } from '#types/database'
  */
 export default class ListWorkflowQuery {
   async execute(organizationId: DatabaseId): Promise<TaskWorkflowTransition[]> {
-    return TaskWorkflowTransitionRepository.findByOrganization(organizationId)
+    return TaskWorkflowTransition.findByOrganization(organizationId)
   }
 }
