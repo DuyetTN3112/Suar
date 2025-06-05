@@ -1,14 +1,15 @@
-import Task from '#models/task'
 import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
+import TaskRepository from '#repositories/task_repository'
+import type { TaskPermissionFilter } from '#repositories/task_repository'
 import type GetTasksListDTO from '../dtos/get_tasks_list_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
-import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { OrganizationRole } from '#constants/organization_constants'
+import type Task from '#models/task'
 
 /**
  * Query để lấy danh sách tasks với filters và permissions
@@ -61,51 +62,30 @@ export default class GetTasksListQuery {
       return cached
     }
 
-    // Build query
-    const query = Task.query().where('organization_id', dto.organization_id).whereNull('deleted_at')
+    // Determine permission filter
+    const permissionFilter = await this.resolvePermissionFilter(userId, dto.organization_id)
 
-    // Apply permission filtering
-    await this.applyPermissionFilters(query, userId, dto.organization_id)
+    // Execute with pagination via repository
+    const paginator = await TaskRepository.paginateByOrganization(
+      dto.organization_id,
+      {
+        status: dto.hasStatusFilter() ? dto.status : undefined,
+        priority: dto.hasPriorityFilter() ? dto.priority : undefined,
+        label: dto.hasLabelFilter() ? dto.label : undefined,
+        assigned_to: dto.hasAssigneeFilter() ? dto.assigned_to : undefined,
+        parent_task_id: dto.hasParentFilter() ? dto.parent_task_id : undefined,
+        project_id: dto.hasProjectFilter() ? dto.project_id : undefined,
+        search: dto.hasSearch() ? dto.search : undefined,
+        sort_by: dto.sort_by ?? 'due_date',
+        sort_order: dto.sort_order ?? 'asc',
+        page: dto.page,
+        limit: dto.limit,
+      },
+      permissionFilter
+    )
 
-    // Apply filters
-    this.applyFilters(query, dto)
-
-    // Apply search
-    if (dto.hasSearch()) {
-      const searchTerm = dto.search ?? ''
-      void query.where((searchQuery) => {
-        void searchQuery
-          .whereILike('title', `%${searchTerm}%`)
-          .orWhereILike('description', `%${searchTerm}%`)
-          .orWhere('id', searchTerm)
-      })
-    }
-
-    // Apply sorting
-    const sortBy = dto.sort_by ?? 'due_date'
-    void query.orderBy(sortBy, dto.sort_order ?? 'asc')
-
-    // Preload relations (v3: status/label/priority are inline columns, no preload)
-    void query
-      .preload('assignee', (assigneeQuery) => {
-        void assigneeQuery.select(['id', 'username', 'email'])
-      })
-      .preload('creator', (creatorQuery) => {
-        void creatorQuery.select(['id', 'username'])
-      })
-      .preload('parentTask', (parentQuery) => {
-        void parentQuery.select(['id', 'title', 'status'])
-      })
-      .preload('childTasks', (childQuery) => {
-        void childQuery.whereNull('deleted_at')
-        void childQuery.select(['id', 'title', 'status'])
-      })
-
-    // Execute with pagination
-    const paginator = await query.paginate(dto.page, dto.limit)
-
-    // Calculate statistics
-    const stats = await this.calculateStats(dto.organization_id, userId)
+    // Calculate statistics via repository
+    const stats = await TaskRepository.getListStatsByOrganization(dto.organization_id, permissionFilter)
 
     const result = {
       data: paginator.all(),
@@ -128,117 +108,28 @@ export default class GetTasksListQuery {
   }
 
   /**
-   * Apply permission-based filters → delegate to Model
+   * Resolve permission filter
    */
-  private async applyPermissionFilters(
-    query: ModelQueryBuilderContract<typeof Task>,
+  private async resolvePermissionFilter(
     userId: DatabaseId,
     organizationId: DatabaseId
-  ): Promise<void> {
-    // Check if user is Admin/Superadmin → delegate to Model
+  ): Promise<TaskPermissionFilter> {
     const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
+    if (isSuperAdmin) return { type: 'all' }
 
-    if (isSuperAdmin) {
-      // Admin sees all tasks
-      return
-    }
-
-    // Check organization role → delegate to Model
     const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
 
     if (!orgRole) {
-      // User not in org, no tasks
-      void query.where('id', -1) // No results
-      return
+      return { type: 'none' }
     }
 
-    // Org Owner/Admin sees all tasks
     if (
       [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)
     ) {
-      return
+      return { type: 'all' }
     }
 
-    // Member: Only tasks created by or assigned to user
-    void query.where((memberQuery) => {
-      void memberQuery.where('creator_id', userId).orWhere('assigned_to', userId)
-    })
-  }
-
-  /**
-   * Apply filters from DTO
-   */
-  private applyFilters(query: ModelQueryBuilderContract<typeof Task>, dto: GetTasksListDTO): void {
-    if (dto.hasStatusFilter() && dto.status) {
-      void query.where('status', dto.status)
-    }
-
-    if (dto.hasPriorityFilter() && dto.priority) {
-      void query.where('priority', dto.priority)
-    }
-
-    if (dto.hasLabelFilter() && dto.label) {
-      void query.where('label', dto.label)
-    }
-
-    if (dto.hasAssigneeFilter() && dto.assigned_to) {
-      void query.where('assigned_to', dto.assigned_to)
-    }
-
-    if (dto.hasParentFilter()) {
-      if (dto.parent_task_id === null) {
-        // Root tasks only
-        void query.whereNull('parent_task_id')
-      } else if (dto.parent_task_id) {
-        // Subtasks of specific parent
-        void query.where('parent_task_id', dto.parent_task_id)
-      }
-    }
-
-    if (dto.hasProjectFilter()) {
-      if (dto.project_id === null) {
-        // Tasks without project
-        void query.whereNull('project_id')
-      } else if (dto.project_id) {
-        // Tasks in specific project
-        void query.where('project_id', dto.project_id)
-      }
-    }
-  }
-
-  /**
-   * Calculate statistics
-   */
-  private async calculateStats(
-    organizationId: DatabaseId,
-    userId: DatabaseId
-  ): Promise<{ total: number; by_status: Record<string, number> }> {
-    const baseQuery = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
-
-    // Apply same permission filters
-    await this.applyPermissionFilters(baseQuery, userId, organizationId)
-
-    // Total count
-    const total = await baseQuery.clone().count('* as total').first()
-
-    // Count by status
-    const byStatusResults = await baseQuery
-      .clone()
-      .select('status')
-      .count('* as count')
-      .groupBy('status')
-
-    const byStatus: Record<string, number> = {}
-    byStatusResults.forEach((row) => {
-      const status = row.status
-      const count = row.$extras.count as number
-      byStatus[String(status)] = count
-    })
-
-    return {
-      total: Number(total?.$extras.total || 0),
-      by_status: byStatus,
-    }
+    return { type: 'own_or_assigned', userId }
   }
 
   /**

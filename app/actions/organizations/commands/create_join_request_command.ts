@@ -7,8 +7,8 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canCreateJoinRequest } from '#actions/organizations/rules/org_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canCreateJoinRequest } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Create Join Request

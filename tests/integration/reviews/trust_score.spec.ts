@@ -11,7 +11,7 @@ import {
   calculateRawScore,
   determineTier,
   calculateWeightedTrustScore,
-} from '#actions/reviews/rules/review_formulas'
+} from '#domain/reviews/review_formulas'
 
 test.group('Integration | Trust Score', (group) => {
   group.setup(async () => {

@@ -128,6 +128,22 @@ export default class ConversationRepository {
     }
   }
 
+  static async findByOrganizationAndParticipant(
+    organizationId: DatabaseId,
+    userId: DatabaseId
+  ): Promise<Conversation[]> {
+    return Conversation.query()
+      .where('organization_id', organizationId)
+      .whereHas('participants', (q) => {
+        void q.where('user_id', userId)
+      })
+      .select('id', 'title')
+  }
+
+  static async loadParticipants(conversation: Conversation): Promise<void> {
+    await conversation.load('participants')
+  }
+
   static async findIdsByOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract

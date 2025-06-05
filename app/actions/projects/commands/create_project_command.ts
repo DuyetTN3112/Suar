@@ -9,8 +9,8 @@ import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { validateProjectStatus, validateProjectDates } from '../rules/project_state_rules.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { validateProjectStatus, validateProjectDates } from '#domain/projects/project_state_rules'
 
 /**
  * Command to create a new project

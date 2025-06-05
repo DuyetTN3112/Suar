@@ -6,8 +6,8 @@ import OrganizationUserRepository from '#repositories/organization_user_reposito
 import ProjectMemberRepository from '#repositories/project_member_repository'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canAddProjectMember } from '../rules/project_permission_policy.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canAddProjectMember } from '#domain/projects/project_permission_policy'
 
 /**
  * Command to add a member to a project

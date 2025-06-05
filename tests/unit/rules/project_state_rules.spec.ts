@@ -4,7 +4,7 @@ import {
   validateProjectStatus,
   canDeleteProjectWithTasks,
   canRemoveMemberFromProject,
-} from '#actions/projects/rules/project_state_rules'
+} from '#domain/projects/project_state_rules'
 import { ProjectStatus } from '#constants/project_constants'
 
 /**

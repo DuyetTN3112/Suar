@@ -8,7 +8,7 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import User from '#models/user'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import ProjectMemberRepository from '#repositories/project_member_repository'
-import { canUpdateProjectFields } from '../rules/project_permission_policy.js'
+import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**

@@ -9,8 +9,8 @@ import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { DatabaseId } from '#types/database'
 import { UserStatusName } from '#constants/user_constants'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canDeactivateUser } from '../rules/user_management_rules.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canDeactivateUser } from '#domain/users/user_management_rules'
 
 /**
  * DTO for deactivating a user

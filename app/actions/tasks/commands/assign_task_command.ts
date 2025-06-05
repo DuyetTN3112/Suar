@@ -14,9 +14,9 @@ import NotFoundException from '#exceptions/not_found_exception'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canAssignTask } from '#actions/tasks/rules/task_permission_policy'
-import { validateAssignee } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canAssignTask } from '#domain/tasks/task_permission_policy'
+import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 
 /**
  * Command để giao task cho người dùng

@@ -4,7 +4,7 @@ import {
   canRecallMessage,
   canAddParticipant,
   canDeleteConversation,
-} from '#actions/conversations/rules/conversation_permission_policy'
+} from '#domain/conversations/conversation_permission_policy'
 import { MessageRecallScope } from '#constants/conversation_constants'
 
 /**

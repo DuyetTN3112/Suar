@@ -8,7 +8,7 @@ import {
   canProcessJoinRequest,
   canCreateJoinRequest,
   checkJoinEligibility,
-} from '#actions/organizations/rules/org_permission_policy'
+} from '#domain/organizations/org_permission_policy'
 import { OrganizationRole } from '#constants/organization_constants'
 
 /**

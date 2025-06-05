@@ -40,6 +40,7 @@
     "#database/*": "./database/*.js",
     "#start/*": "./start/*.js",
     "#config/*": "./config/*.js",
+    "#domain/*": "./app/domain/*.js",
     "#actions/*": "./app/actions/*.js",
     "#constants/*": "./app/constants/*.js",
     "#constants": "./app/constants/index.js",

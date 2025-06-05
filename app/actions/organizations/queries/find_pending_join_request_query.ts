@@ -1,5 +1,5 @@
 import OrganizationUser from '#models/organization_user'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 
@@ -15,11 +15,7 @@ export default class FindPendingJoinRequestQuery {
    * Find a pending join request. Throws NotFoundException if not found.
    */
   static async execute(organizationId: DatabaseId, userId: DatabaseId): Promise<OrganizationUser> {
-    const membership = await OrganizationUser.query()
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .where('status', OrganizationUserStatus.PENDING)
-      .first()
+    const membership = await OrganizationUserRepository.findPendingMembership(organizationId, userId)
 
     if (!membership) {
       throw new NotFoundException('Không tìm thấy yêu cầu tham gia')

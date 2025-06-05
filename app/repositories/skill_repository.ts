@@ -47,4 +47,12 @@ export default class SkillRepository {
       .preload('skill')
       .orderBy('created_at', 'desc')
   }
+
+  static async findUserSkillsWithSkill(
+    userId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<UserSkill[]> {
+    const query = trx ? UserSkill.query({ client: trx }) : UserSkill.query()
+    return query.where('user_id', userId).preload('skill')
+  }
 }

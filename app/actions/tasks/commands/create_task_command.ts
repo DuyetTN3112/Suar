@@ -20,9 +20,9 @@ import { TaskStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canCreateTask } from '#actions/tasks/rules/task_permission_policy'
-import { validateTaskCreationFields } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canCreateTask } from '#domain/tasks/task_permission_policy'
+import { validateTaskCreationFields } from '#domain/tasks/task_assignment_rules'
 
 /**
  * Command để tạo task mới

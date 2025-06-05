@@ -107,7 +107,7 @@ test.group('Integration | Confirm Review', (group) => {
 
   test('credibility score increases on confirm (+2)', async ({ assert }) => {
     const { reviewer: _reviewer } = await createCompletedSession()
-    const { adjustCredibility } = await import('#actions/reviews/rules/review_formulas')
+    const { adjustCredibility } = await import('#domain/reviews/review_formulas')
 
     const newScore = adjustCredibility(50, 'confirmed')
     assert.equal(newScore, 52)
@@ -115,14 +115,14 @@ test.group('Integration | Confirm Review', (group) => {
 
   test('credibility score decreases on dispute (-5)', async ({ assert }) => {
     const { reviewer: _reviewer } = await createCompletedSession()
-    const { adjustCredibility } = await import('#actions/reviews/rules/review_formulas')
+    const { adjustCredibility } = await import('#domain/reviews/review_formulas')
 
     const newScore = adjustCredibility(50, 'disputed')
     assert.equal(newScore, 45)
   })
 
   test('credibility score clamped between 0 and 100', async ({ assert }) => {
-    const { adjustCredibility } = await import('#actions/reviews/rules/review_formulas')
+    const { adjustCredibility } = await import('#domain/reviews/review_formulas')
 
     assert.equal(adjustCredibility(99, 'confirmed'), 100) // capped at 100
     assert.equal(adjustCredibility(2, 'disputed'), 0) // capped at 0

@@ -1,8 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
+import OrganizationRepository from '#repositories/organization_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface EnhancedOrganization {
@@ -42,13 +41,13 @@ export default class GetAllOrganizationsQuery {
    * Used by ListOrganizationsController.
    */
   async getEnhanced(): Promise<EnhancedOrganization[]> {
-    const allOrganizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
+    const allOrganizations = await OrganizationRepository.findAllActive()
 
     const orgIds = allOrganizations.map((org) => org.id)
 
     // Batch query: owner usernames
     const ownerIds = [...new Set(allOrganizations.map((org) => org.owner_id))]
-    const owners = await User.query().whereIn('id', ownerIds).select('id', 'username')
+    const owners = await UserRepository.findByIds(ownerIds, ['id', 'username'])
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: member counts
@@ -72,11 +71,9 @@ export default class GetAllOrganizationsQuery {
    * Used by AllOrganizationsController.
    */
   async getWithMembershipStatus(userId: DatabaseId): Promise<AllOrganizationsWithMembership[]> {
-    const organizations = await Organization.query().whereNull('deleted_at').orderBy('id', 'asc')
+    const organizations = await OrganizationRepository.findAllActive()
 
-    const memberships = await OrganizationUser.query()
-      .where('user_id', userId)
-      .select('organization_id', 'status')
+    const memberships = await OrganizationUserRepository.findMembershipsByUser(userId)
 
     return organizations.map((org) => {
       const membership = memberships.find((m) => m.organization_id === org.id)
@@ -103,10 +100,7 @@ export default class GetAllOrganizationsQuery {
       plan?: string | null
     }>
   > {
-    const organizations = await Organization.query()
-      .whereNull('deleted_at')
-      .orderBy('id', 'asc')
-      .select('id', 'name', 'description', 'logo', 'website', 'plan')
+    const organizations = await OrganizationRepository.findAllActiveBasicList()
 
     return organizations.map((org) => org.serialize()) as Array<{
       id: DatabaseId

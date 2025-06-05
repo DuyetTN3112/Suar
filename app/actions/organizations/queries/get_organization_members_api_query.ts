@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
+import OrganizationRepository from '#repositories/organization_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 import { parseId } from '#libs/id_utils'
@@ -33,15 +33,12 @@ export default class GetOrganizationMembersApiQuery {
   async execute(rawId: string): Promise<OrganizationMembersResult> {
     const organizationId = parseId(rawId)
 
-    const organization = await Organization.find(organizationId)
+    const organization = await OrganizationRepository.findById(organizationId)
     if (!organization) {
       throw NotFoundException.resource('Tổ chức', organizationId)
     }
 
-    const members = await OrganizationUser.query()
-      .where('organization_id', organizationId)
-      .preload('user')
-      .orderBy('created_at', 'asc')
+    const members = await OrganizationUserRepository.findMembersWithUser(organizationId)
 
     const formattedMembers: FormattedMember[] = members.map((member) => ({
       id: `${member.organization_id}-${member.user_id}`,

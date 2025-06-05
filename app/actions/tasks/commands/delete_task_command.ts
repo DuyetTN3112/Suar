@@ -12,8 +12,8 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canDeleteTask, canPermanentDeleteTask } from '#actions/tasks/rules/task_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
 
 /**
  * Command để xóa task

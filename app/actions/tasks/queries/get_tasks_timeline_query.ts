@@ -1,12 +1,14 @@
-import Task from '#models/task'
 import UserRepository from '#repositories/user_repository'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import TaskRepository from '#repositories/task_repository'
+import type { TaskPermissionFilter } from '#repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { OrganizationRole } from '#constants/organization_constants'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
+import type Task from '#models/task'
 
 /**
  * Query để lấy tasks cho Gantt Timeline view
@@ -29,22 +31,10 @@ export default class GetTasksTimelineQuery {
       return cached
     }
 
-    const query = Task.query()
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .whereNull('parent_task_id')
-      .whereNotNull('due_date')
-      .orderBy('due_date', 'asc')
+    // Determine permission filter
+    const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
-    // Apply permission filtering
-    await this.applyPermissionFilters(query, userId, organizationId)
-
-    // Preload relations
-    void query
-      .preload('assignee', (q) => void q.select(['id', 'username', 'email']))
-      .preload('creator', (q) => void q.select(['id', 'username']))
-
-    const tasks = await query
+    const tasks = await TaskRepository.findTasksForTimeline(organizationId, permissionFilter)
 
     // Cache 2 minutes
     await this.saveToCache(cacheKey, tasks, 120)
@@ -52,34 +42,26 @@ export default class GetTasksTimelineQuery {
     return tasks
   }
 
-  private async applyPermissionFilters(
-    query: ReturnType<typeof Task.query>,
+  private async resolvePermissionFilter(
     userId: DatabaseId,
     organizationId: DatabaseId
-  ): Promise<void> {
+  ): Promise<TaskPermissionFilter> {
     const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
-    if (isSuperAdmin) return
+    if (isSuperAdmin) return { type: 'all' }
 
-    const membership = await OrganizationUser.query()
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('status', 'approved')
-      .first()
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
 
-    if (!membership) {
-      void query.where('creator_id', userId)
-      return
+    if (!orgRole) {
+      return { type: 'own_only', userId }
     }
 
     const isOrgAdmin =
-      membership.org_role === OrganizationRole.ADMIN ||
-      membership.org_role === OrganizationRole.OWNER
+      orgRole === OrganizationRole.ADMIN ||
+      orgRole === OrganizationRole.OWNER
 
-    if (!isOrgAdmin) {
-      void query.where((q) => {
-        void q.where('creator_id', userId).orWhere('assigned_to', userId)
-      })
-    }
+    if (isOrgAdmin) return { type: 'all' }
+
+    return { type: 'own_or_assigned', userId }
   }
 
   private async getFromCache(key: string): Promise<Task[] | null> {

@@ -1,8 +1,8 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import Organization from '#models/organization'
+import OrganizationRepository from '#repositories/organization_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
-import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import ProjectRepository from '#repositories/project_repository'
 import type { GetOrganizationDetailDTO } from '../dtos/get_organization_detail_dto.js'
 import type { DatabaseId } from '#types/database'
@@ -81,7 +81,7 @@ export default class GetOrganizationDetailQuery {
     }
 
     // 3. Get organization
-    const organization = await Organization.find(dto.organizationId)
+    const organization = await OrganizationRepository.findById(dto.organizationId)
     if (!organization) {
       throw NotFoundException.resource('Tổ chức', dto.organizationId)
     }
@@ -125,7 +125,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Get owner details
    */
   private async getOwner(ownerId: DatabaseId): Promise<OwnerRecord | null> {
-    const owner = await User.find(ownerId)
+    const owner = await UserRepository.findById(ownerId)
     if (!owner) return null
     return { id: owner.id, email: owner.email ?? '' }
   }

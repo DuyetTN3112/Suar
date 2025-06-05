@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import UserSkill from '#models/user_skill'
+import SkillRepository from '#repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -53,7 +53,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const query = UserSkill.query().where('user_id', dto.user_id).preload('skill')
+      const query = SkillRepository.findUserSkillsWithSkill(dto.user_id)
 
       const userSkills = await query
 

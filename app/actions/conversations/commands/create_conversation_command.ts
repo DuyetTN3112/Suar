@@ -13,8 +13,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { validateParticipantsOrgMembership } from '../rules/conversation_state_rules.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { validateParticipantsOrgMembership } from '#domain/conversations/conversation_state_rules'
 
 /**
  * Command: Create Conversation

@@ -9,9 +9,9 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { validateWorkflowTransition } from '#actions/tasks/rules/task_status_rules'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { validateBatchStatusUpdate } from '#actions/tasks/rules/task_assignment_rules'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc

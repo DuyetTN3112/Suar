@@ -8,7 +8,7 @@ import {
   determineSessionStatus,
   calculateRawScore,
   determineTier,
-} from '#actions/reviews/rules/review_formulas'
+} from '#domain/reviews/review_formulas'
 
 /**
  * Business formula tests for review system.

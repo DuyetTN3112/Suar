@@ -8,8 +8,8 @@ import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canProcessApplication } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
 
 /**
  * ProcessApplicationCommand

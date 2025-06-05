@@ -6,7 +6,7 @@ import {
   canTransferOwnership,
   canRemoveMember,
   canProcessJoinRequest,
-} from '#actions/organizations/rules/org_permission_policy'
+} from '#domain/organizations/org_permission_policy'
 import { hasSystemPermission, getOrgRoleLevel } from '#constants/permissions'
 
 test.group('Integration | Organization Permissions', (group) => {

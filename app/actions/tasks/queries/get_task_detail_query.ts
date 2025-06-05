@@ -1,7 +1,7 @@
 import Task from '#models/task'
-import User from '#models/user'
 import UserRepository from '#repositories/user_repository'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
+import TaskRepository from '#repositories/task_repository'
 import RepositoryFactory from '#repositories/repository_factory'
 import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
@@ -60,16 +60,7 @@ export default class GetTaskDetailQuery {
     }
 
     // Load task với basic relations (v3: status/label/priority are inline columns)
-    const task = await Task.query()
-      .where('id', dto.task_id)
-      .whereNull('deleted_at')
-      .preload('assignee')
-      .preload('creator')
-      .preload('updater')
-      .preload('organization')
-      .preload('project')
-      .preload('parentTask')
-      .firstOrFail()
+    const task = await TaskRepository.findByIdWithDetailRelations(dto.task_id)
 
     // Fetch user role data ONCE (avoid duplicate queries for permission check + permissions calc)
     const userRoleData = await this.fetchUserRoleData(userId, task.organization_id)
@@ -226,10 +217,7 @@ export default class GetTaskDetailQuery {
 
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users =
-      userIds.length > 0
-        ? await User.query().whereIn('id', userIds).select(['id', 'username', 'email'])
-        : []
+    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
     const userMap = new Map(users.map((u) => [String(u.id), u]))
 
     return logs.map((log) => {

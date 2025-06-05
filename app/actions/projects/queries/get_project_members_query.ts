@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import ProjectMemberRepository from '#repositories/project_member_repository'
 import TaskRepository from '#repositories/task_repository'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import RepositoryFactory from '#repositories/repository_factory'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
@@ -129,22 +129,9 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
       TaskRepository.countByAssignees(projectId, userIds),
-      MongoAuditLogModel.aggregate([
-        {
-          $match: {
-            entity_type: 'project',
-            entity_id: String(projectId),
-            user_id: { $in: userIds.map(String) },
-          },
-        },
-        { $group: { _id: '$user_id', last_active: { $max: '$created_at' } } },
-      ]).then((results: Array<{ _id: string; last_active: Date }>) => {
-        const map = new Map<string, Date | null>()
-        for (const row of results) {
-          map.set(row._id, row.last_active)
-        }
-        return map
-      }),
+      RepositoryFactory.getAuditLogRepository().then((repo) =>
+        repo.getLastActivityByUsers('project', projectId, userIds)
+      ),
     ])
 
     // Enrich members

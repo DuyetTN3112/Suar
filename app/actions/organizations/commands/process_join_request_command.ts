@@ -11,8 +11,8 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canProcessJoinRequest } from '#actions/organizations/rules/org_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canProcessJoinRequest } from '#domain/organizations/org_permission_policy'
 
 /**
  * Command: Process Join Request (Approve or Reject)

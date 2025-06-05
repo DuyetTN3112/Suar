@@ -14,8 +14,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canRevokeAssignment } from '#actions/tasks/rules/task_assignment_rules'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
 
 /**
  * DTO for revoking task access

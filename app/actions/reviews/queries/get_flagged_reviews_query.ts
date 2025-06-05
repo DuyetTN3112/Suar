@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import FlaggedReview from '#models/flagged_review'
+import FlaggedReviewRepository from '#repositories/flagged_review_repository'
 
 interface GetFlaggedReviewsDTO {
   page: number
@@ -33,31 +34,11 @@ export default class GetFlaggedReviewsQuery extends BaseQuery<
   }
 
   async handle(dto: GetFlaggedReviewsDTO): Promise<GetFlaggedReviewsResult> {
-    const query = FlaggedReview.query()
-      .preload('skill_review', (srQuery) => {
-        void srQuery
-          .preload('reviewer', (uQuery) => {
-            void uQuery.select(['id', 'username', 'email'])
-          })
-          .preload('review_session', (rsQuery) => {
-            void rsQuery.preload('reviewee', (uQuery) => {
-              void uQuery.select(['id', 'username', 'email'])
-            })
-          })
-          .preload('skill', (sQuery) => {
-            void sQuery.select(['id', 'name', 'category'])
-          })
-      })
-      .preload('reviewer', (uQuery) => {
-        void uQuery.select(['id', 'username', 'email'])
-      })
-      .orderBy('created_at', 'desc')
-
-    if (dto.status) {
-      void query.where('status', dto.status)
-    }
-
-    const paginated = await query.paginate(dto.page, dto.per_page)
+    const paginated = await FlaggedReviewRepository.paginateWithRelations(
+      dto.page,
+      dto.per_page,
+      dto.status
+    )
 
     return {
       data: paginated.all(),

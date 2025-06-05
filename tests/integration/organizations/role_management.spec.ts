@@ -3,7 +3,7 @@ import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
 import { hasOrgPermission, getOrgRoleLevel, ORG_ROLE_LEVEL } from '#constants/permissions'
-import { canChangeRole, canRemoveMember } from '#actions/organizations/rules/org_permission_policy'
+import { canChangeRole, canRemoveMember } from '#domain/organizations/org_permission_policy'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 
 test.group('Integration | Organization Role Management', (group) => {

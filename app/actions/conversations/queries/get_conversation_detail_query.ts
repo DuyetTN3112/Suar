@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import ConversationRepository from '#repositories/conversation_repository'
-import Conversation from '#models/conversation'
+import type Conversation from '#models/conversation'
 import MessageRepository from '#repositories/message_repository'
 import redis from '@adonisjs/redis/services/main'
 import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
@@ -47,7 +47,7 @@ export default class GetConversationDetailQuery {
       }
 
       // Preload participants
-      await conversation.load('participants')
+      await ConversationRepository.loadParticipants(conversation)
 
       // Count unread messages → delegate to Model
       const unreadCount = await MessageRepository.countUnreadInConversation(conversationId, userId)

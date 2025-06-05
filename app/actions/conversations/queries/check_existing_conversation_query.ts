@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
-import Conversation from '#models/conversation'
-import ConversationParticipant from '#models/conversation_participant'
+import ConversationRepository from '#repositories/conversation_repository'
+import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
 import type { DatabaseId } from '#types/database'
 
 interface FoundConversation {
@@ -29,21 +29,16 @@ export default class CheckExistingConversationQuery {
     const participantCount = sortedParticipantIds.length
 
     // Find conversations in org where current user participates
-    const userConversations = await Conversation.query()
-      .where('organization_id', organizationId)
-      .whereHas('participants', (q) => {
-        void q.where('user_id', currentUserId)
-      })
-      .select('id', 'title')
+    const userConversations = await ConversationRepository.findByOrganizationAndParticipant(
+      organizationId,
+      currentUserId
+    )
 
     // Check each conversation for exact participant match
     for (const conv of userConversations) {
-      const convParticipants = await ConversationParticipant.query()
-        .where('conversation_id', conv.id)
-        .orderBy('user_id', 'asc')
-        .select('user_id')
-
-      const convParticipantIds = convParticipants.map((p) => String(p.user_id)).sort()
+      const convParticipantIds = (
+        await ConversationParticipantRepository.getParticipantIds(conv.id)
+      ).sort()
 
       if (
         convParticipantIds.length === participantCount &&

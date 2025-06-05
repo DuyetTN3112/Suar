@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSession from '#models/review_session'
 import type { GetReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import ReviewSessionRepository from '#repositories/review_session_repository'
 
 /**
  * GetReviewSessionQuery
@@ -19,22 +20,7 @@ export default class GetReviewSessionQuery extends BaseQuery<GetReviewSessionDTO
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const session = await ReviewSession.query()
-        .where('id', dto.review_session_id)
-        .preload('reviewee')
-        .preload('task_assignment', (assignmentQuery) => {
-          void assignmentQuery.preload('task')
-        })
-        .preload('skill_reviews', (reviewQuery) => {
-          void reviewQuery.preload('skill')
-          void reviewQuery.preload(
-            'reviewer',
-            (userQuery) => void userQuery.select(['id', 'username', 'email'])
-          )
-        })
-        .firstOrFail()
-
-      return session
+      return ReviewSessionRepository.findByIdWithRelations(dto.review_session_id)
     })
   }
 }

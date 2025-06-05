@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import OrganizationUser from '#models/organization_user'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface PendingUser {
@@ -26,14 +25,8 @@ export default class GetPendingApprovalUsersQuery {
    * Get list of pending approval users in the organization.
    */
   async getList(organizationId: DatabaseId): Promise<PendingUser[]> {
-    const pendingMemberships = await OrganizationUser.query()
-      .where('organization_id', organizationId)
-      .where('status', OrganizationUserStatus.PENDING)
-      .preload('user', (q) => {
-        void q
-          .select(['id', 'email', 'username', 'system_role', 'status', 'created_at', 'avatar_url'])
-          .whereNull('deleted_at')
-      })
+    const pendingMemberships =
+      await OrganizationUserRepository.findPendingMembershipsWithUserInfo(organizationId)
 
     return pendingMemberships
       .filter((m) => m.user)
@@ -52,12 +45,6 @@ export default class GetPendingApprovalUsersQuery {
    * Get count of pending approval users in the organization.
    */
   async getCount(organizationId: DatabaseId): Promise<number> {
-    const count = await OrganizationUser.query()
-      .where('organization_id', organizationId)
-      .where('status', OrganizationUserStatus.PENDING)
-      .count('user_id as count')
-      .first()
-
-    return Number((count as any)?.$extras?.count || 0)
+    return OrganizationUserRepository.countPendingMembers(organizationId)
   }
 }

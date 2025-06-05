@@ -1,6 +1,5 @@
-import OrganizationUser from '#models/organization_user'
-import Organization from '#models/organization'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationRepository from '#repositories/organization_repository'
 import type { DatabaseId } from '#types/database'
 
 interface OwnedOrg {
@@ -16,19 +15,10 @@ interface OwnedOrg {
  */
 export default class GetUserOwnedOrganizationsQuery {
   static async execute(userId: DatabaseId): Promise<OwnedOrg[]> {
-    const memberships = await OrganizationUser.query()
-      .where('user_id', userId)
-      .where('org_role', OrganizationRole.OWNER)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .select('organization_id')
-
-    const orgIds = memberships.map((m) => String(m.organization_id))
+    const orgIds = await OrganizationUserRepository.findOwnerMembershipIds(userId)
     if (orgIds.length === 0) return []
 
-    const orgs = await Organization.query()
-      .whereIn('id', orgIds)
-      .whereNull('deleted_at')
-      .select('id', 'name')
+    const orgs = await OrganizationRepository.findActiveByIds(orgIds, ['id', 'name'])
 
     return orgs.map((o) => ({ id: o.id, name: o.name }))
   }

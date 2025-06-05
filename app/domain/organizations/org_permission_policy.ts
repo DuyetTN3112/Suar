@@ -16,8 +16,8 @@ import type {
   OrgJoinRequestProcessContext,
   OrgJoinRequestEligibility,
 } from './org_types.js'
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { OrganizationRole } from '#constants/organization_constants'
 import { isSameId } from '#libs/id_utils'
 

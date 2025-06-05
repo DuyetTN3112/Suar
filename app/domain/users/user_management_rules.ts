@@ -12,8 +12,8 @@ import type {
   UserRoleChangeContext,
   UserDeactivationContext,
 } from './user_types.js'
-import type { PolicyResult } from '#actions/shared/rules/policy_result'
-import { PolicyResult as PR } from '#actions/shared/rules/policy_result'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { isSameId } from '#libs/id_utils'

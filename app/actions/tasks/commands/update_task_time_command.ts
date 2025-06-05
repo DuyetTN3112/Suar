@@ -9,8 +9,8 @@ import { AuditAction, EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canUpdateTaskTime } from '#actions/tasks/rules/task_permission_policy'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canUpdateTaskTime } from '#domain/tasks/task_permission_policy'
 
 /**
  * Command để cập nhật thời gian của task

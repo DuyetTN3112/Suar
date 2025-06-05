@@ -14,7 +14,7 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import { determineSessionStatus } from '#actions/reviews/rules/review_formulas'
+import { determineSessionStatus } from '#domain/reviews/review_formulas'
 
 /**
  * SubmitSkillReviewCommand

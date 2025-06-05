@@ -8,7 +8,7 @@ import {
 } from '#tests/helpers/factories'
 import { ProjectRole } from '#constants/project_constants'
 import { OrganizationRole } from '#constants/organization_constants'
-import { canAddProjectMember } from '#actions/projects/rules/project_permission_policy'
+import { canAddProjectMember } from '#domain/projects/project_permission_policy'
 import OrganizationUserRepository from '#repositories/organization_user_repository'
 import ProjectMemberRepository from '#repositories/project_member_repository'
 

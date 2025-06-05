@@ -9,8 +9,8 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import { enforcePolicy } from '#actions/shared/rules/enforce_policy'
-import { canDeleteConversation } from '../rules/conversation_permission_policy.js'
+import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { canDeleteConversation } from '#domain/conversations/conversation_permission_policy'
 
 /**
  * Command: Delete Conversation (Soft Delete)

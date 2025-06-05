@@ -5,7 +5,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import User from '#models/user'
 import SkillReviewRepository from '#repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
-import { calculateCredibilityScore } from '#actions/reviews/rules/review_formulas'
+import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
 
 /**
  * DTO for updating reviewer credibility

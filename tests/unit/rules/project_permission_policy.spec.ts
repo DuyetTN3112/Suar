@@ -10,7 +10,7 @@ import {
   canTransferProjectOwnership,
   canViewProject,
   calculateProjectPermissions,
-} from '#actions/projects/rules/project_permission_policy'
+} from '#domain/projects/project_permission_policy'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'

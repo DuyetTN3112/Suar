@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import User from '#models/user'
+import UserRepository from '#repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -45,25 +46,9 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const query = User.query()
-        .where('id', dto.user_id)
-        .whereNull('deleted_at')
-        .preload('current_organization')
-
-      if (dto.include_skills) {
-        // v3: skill has inline category_code, no nested preload('category')
-        // v3: user_skill has inline level_code, no preload('proficiency_level')
-        void query.preload('skills', (skillsQuery) => {
-          void skillsQuery.preload('skill')
-        })
-      }
-
-      // v3: spider chart data is now inline on user_skills (avg_percentage, level_code)
-      // No separate spider_chart_data relationship needed
-
-      const user = await query.firstOrFail()
-
-      return user
+      return await UserRepository.findProfileWithRelations(dto.user_id, {
+        includeSkills: dto.include_skills,
+      })
     })
   }
 }
