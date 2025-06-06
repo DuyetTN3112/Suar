@@ -8,6 +8,9 @@
 %% ❌ Removed: "bookmark freelancer" (RecruiterBookmark has no routes)
 %% ✅ Added: Redis as data store (DB0 sessions, DB1 cache)
 %% ⚠️ P3 note: Kanban is for tasks (P4), not projects
+%% ✅ Architecture: Clean Architecture + DDD
+%%    Action → Repository Interface → Repository Impl (Lucid ORM) → Database
+%%    Infra Mappers convert between ORM Models and Domain Entities
 flowchart TD
     %% External Entities
     U([👤 User])
@@ -69,36 +72,65 @@ flowchart TD
     DB0: sessions & locks
     DB1: cache)]
 
+    %% ═══════════════════════════════════════════
+    %% Infrastructure Layer — Repositories
+    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
+    %% Infra Mappers convert ORM Models ↔ Domain Entities
+    %% ═══════════════════════════════════════════
+    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
+        direction TB
+        R1[["R1: User
+        Repository"]]
+        R2[["R2: Org
+        Repository"]]
+        R3[["R3: Project
+        Repository"]]
+        R4[["R4: Task
+        Repository"]]
+        R5[["R5: Application
+        Repository"]]
+        R6[["R6: Review
+        Repository"]]
+        R7[["R7: Message
+        Repository"]]
+        R8[["R8: Skill
+        Repository"]]
+    end
+
     %% Auth flows
     U -->|"OAuth code
     (Google / GitHub)"| P1
     OAuth -->|"User info + token"| P1
     P1 -->|"Authorization request"| OAuth
     P1 -->|"Session cookie"| U
-    P1 <-->|"Read/Write user data"| D1
+    P1 <-->|"Read/Write user data"| R1
+    R1 <-->|"ORM Read/Write"| D1
     P1 <-->|"Session store"| DR
 
     %% Organization flows
     U -->|"Create org, invite members,
     join requests, approve, assign roles"| P2
     P2 -->|"Org info, member list"| U
-    P2 <-->|"CRUD org data"| D2
-    P2 -->|"Lookup user"| D1
+    P2 <-->|"CRUD org data"| R2
+    R2 <-->|"ORM Read/Write"| D2
+    P2 -->|"Lookup user"| R1
 
     %% Project flows
     U -->|"Create project,
     add members"| P3
     P3 -->|"Project list, details"| U
-    P3 <-->|"CRUD project data"| D3
-    P3 -->|"Verify org membership"| D2
+    P3 <-->|"CRUD project data"| R3
+    R3 <-->|"ORM Read/Write"| D3
+    P3 -->|"Verify org membership"| R2
 
     %% Task flows
     U -->|"Create task, CRUD,
     assign, change status"| P4
     P4 -->|"Task list, Kanban,
     version history"| U
-    P4 <-->|"CRUD task data"| D4
-    P4 -->|"Project permission"| D3
+    P4 <-->|"CRUD task data"| R4
+    R4 <-->|"ORM Read/Write"| D4
+    P4 -->|"Project permission"| R3
     P4 -->|"Task status=done
     → trigger review"| P6
     P4 -->|"Change visibility"| P5
@@ -108,8 +140,9 @@ flowchart TD
     apply"| P5
     P5 -->|"Task list,
     application results"| FL
-    P5 <-->|"Applications data"| D5
-    P5 -->|"Public tasks"| D4
+    P5 <-->|"Applications data"| R5
+    R5 <-->|"ORM Read/Write"| D5
+    P5 -->|"Public tasks"| R4
     P5 -->|"Assign freelancer"| P4
     U -->|"Review applications,
     approve/reject"| P5
@@ -122,10 +155,11 @@ flowchart TD
     ADM -->|"Moderate
     flagged reviews"| P6
     P6 -->|"Anomaly alerts"| ADM
-    P6 <-->|"Review data"| D6
-    P6 -->|"Update proficiency"| D8
+    P6 <-->|"Review data"| R6
+    R6 <-->|"ORM Read/Write"| D6
+    P6 -->|"Update proficiency"| R8
     P6 -->|"Update credibility,
-    freelancer_rating"| D1
+    freelancer_rating"| R1
 
     %% Messaging flows
     U -->|"Send messages,
@@ -134,20 +168,25 @@ flowchart TD
     (polling, no realtime)"| U
     FL -->|"Chat with PM"| P7
     P7 -->|"Messages"| FL
-    P7 <-->|"Message data"| D7
+    P7 <-->|"Message data"| R7
+    R7 <-->|"ORM Read/Write"| D7
 
     %% Skills flows
     U -->|"Add/edit skills"| P8
     P8 -->|"Skill profile,
     spider chart data"| U
-    P8 <-->|"Skills data"| D8
-    P8 -->|"User profile"| D1
+    P8 <-->|"Skills data"| R8
+    R8 <-->|"ORM Read/Write"| D8
+    P8 -->|"User profile"| R1
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
     class U,FL,ADM,OAuth entity
     class P1,P2,P3,P4,P5,P6,P7,P8 process
     class D1,D2,D3,D4,D5,D6,D7,D8,DR datastore
+    class R1,R2,R3,R4,R5,R6,R7,R8 repo
+    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
 
 

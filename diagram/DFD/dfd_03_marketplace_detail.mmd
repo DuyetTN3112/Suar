@@ -7,6 +7,9 @@
 %% ❌ Fixed: Approve does NOT change status to in_progress
 %% ✅ Merged: P54+P55 into single P54 (ProcessApplicationCommand handles both approve+assign)
 %% ⚠️ Note: external_applications_count NOT updated on approve/reject (only on withdraw)
+%% ✅ Architecture: Clean Architecture + DDD
+%%    Sub-processes (Actions) access data stores via Repository Interfaces
+%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
 flowchart TD
     %% External Entities
     FL([👷 Freelancer])
@@ -34,6 +37,24 @@ flowchart TD
     D5b[(D5b: task_required_skills)]
     D4c[(D4c: task_assignments)]
 
+    %% ═══════════════════════════════════════════
+    %% Infrastructure Layer — Repositories
+    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
+    %% ═══════════════════════════════════════════
+    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
+        direction TB
+        R_TASK[["TaskRepository
+        + TaskMapper"]]
+        R_APP[["ApplicationRepository
+        + ApplicationMapper"]]
+    end
+
+    %% Repository → Data Store connections (Lucid ORM)
+    R_TASK <-->|"Lucid ORM"| D4
+    R_TASK <-->|"Lucid ORM"| D4c
+    R_APP <-->|"Lucid ORM"| D5a
+    R_APP <-->|"Lucid ORM"| D5b
+
     %% 5.1 Browse & Search Tasks (NO skill matching)
     FL -->|"Search: skills, difficulty,
     deadline, duration"| P51
@@ -41,23 +62,23 @@ flowchart TD
     (⚠️ no skill_match_percentage)"| FL
     P51 -->|"SELECT tasks WHERE
     task_visibility IN
-    ('external','all')"| D4
-    D4 -->|"Public tasks"| P51
+    ('external','all')"| R_TASK
+    R_TASK -->|"Public tasks"| P51
     P51 -->|"Required skills list
-    (display only)"| D5b
-    D5b -->|"Task required skills"| P51
+    (display only)"| R_APP
+    R_APP -->|"Task required skills"| P51
 
     %% 5.2 View Task Details
     FL -->|"Click task card"| P52
     P52 -->|"Task details:
     org name, required skills,
     applicant count"| FL
-    P52 -->|"Read task details"| D4
-    D4 -->|"Task record"| P52
+    P52 -->|"Read task details"| R_TASK
+    R_TASK -->|"Task record"| P52
     P52 -->|"Count pending
-    applications"| D5a
-    D5a -->|"Application count"| P52
-    P52 -->|"Required skills list"| D5b
+    applications"| R_APP
+    R_APP -->|"Application count"| P52
+    P52 -->|"Required skills list"| R_APP
 
     %% 5.3 Submit Application (NO deadline check)
     FL -->|"1-click apply
@@ -65,11 +86,11 @@ flowchart TD
     P53 -->|"Application status
     (pending / duplicate)"| FL
     P53 -->|"Check existing
-    application"| D5a
+    application"| R_APP
     P53 -->|"INSERT application
-    (status = pending)"| D5a
+    (status = pending)"| R_APP
     P53 -->|"Increment
-    external_applications_count"| D4
+    external_applications_count"| R_TASK
 
     %% 5.4 Process Application (approve/reject + auto-assign on approve)
     %% ONLY task creator can do this (not PM/manager)
@@ -78,16 +99,16 @@ flowchart TD
     P54 -->|"Applications list
     + freelancer profiles"| CR
     P54 -->|"Read applications
-    with user profiles"| D5a
+    with user profiles"| R_APP
     P54 -->|"UPDATE application_status
-    (approved / rejected)"| D5a
+    (approved / rejected)"| R_APP
     P54 -->|"On approve:
     INSERT task_assignment
-    + UPDATE task.assigned_to"| D4c
+    + UPDATE task.assigned_to"| R_TASK
     P54 -->|"On approve:
-    UPDATE assigned_to"| D4
+    UPDATE assigned_to"| R_TASK
     P54 -->|"⚠️ Does NOT change
-    status to in_progress"| D4
+    status to in_progress"| R_TASK
     P54 -->|"Task assigned
     → update Kanban"| P4
 
@@ -95,9 +116,12 @@ flowchart TD
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
     class FL,CR entity
     class P51,P52,P53,P54 process
     class D4,D5a,D5b,D4c datastore
     class P4 extProcess
+    class R_TASK,R_APP repo
+    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
 
 

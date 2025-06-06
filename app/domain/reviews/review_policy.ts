@@ -12,7 +12,7 @@ import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { AssignmentStatus } from '#constants/task_constants'
 import { ReviewSessionStatus } from '#constants/review_constants'
 import type { DatabaseId } from '#types/database'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 
 // ============================================================================
 // Review Session

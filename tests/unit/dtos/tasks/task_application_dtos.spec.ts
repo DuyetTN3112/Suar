@@ -5,7 +5,7 @@ import {
   WithdrawApplicationDTO,
   GetTaskApplicationsDTO,
   GetPublicTasksDTO,
-} from '#actions/tasks/dtos/task_application_dtos'
+} from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#constants/task_constants'
 
 test.group('ApplyForTaskDTO', () => {

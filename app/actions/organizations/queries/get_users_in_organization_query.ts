@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface FormattedUser {
@@ -18,7 +18,10 @@ export default class GetUsersInOrganizationQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(organizationId: DatabaseId, excludeUserId: DatabaseId): Promise<FormattedUser[]> {
-    const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(organizationId, excludeUserId)
+    const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(
+      organizationId,
+      excludeUserId
+    )
 
     return orgMembers
       .map((m) => ({

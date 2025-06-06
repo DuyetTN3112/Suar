@@ -1,5 +1,5 @@
-import TaskStatus from '#models/task_status'
-import TaskStatusRepository from '#repositories/task_status_repository'
+import type TaskStatus from '#models/task_status'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 
 /**

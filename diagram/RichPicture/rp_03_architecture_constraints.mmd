@@ -7,13 +7,30 @@ mindmap
         Svelte 5 + Inertia.js
         Server-side rendering
       ⚙️ Server
-        AdonisJS 6 / TypeScript
-        CQRS
-         Commands + Queries
-        Fat Models + Thin Controllers
+        AdonisJS 7 / TypeScript
+        Clean Architecture + DDD
+        CQRS Commands + Queries
+        Thin Controllers — HTTP adapter only
         Event-driven architecture
+      🧩 Layers
+        📨 DTO Layer
+          Request DTOs — input validation
+          Response DTOs — API output shape
+        📋 Application Layer — Actions
+          Commands — Fetch → Decide → Persist
+          Queries — Fetch → Transform → Return
+          Application Mapper — DTO ↔ Domain Entity
+        🧠 Domain Layer — Business Core
+          Domain Entity — business logic, pure TS
+          Repository Interface — data access contract
+          Domain Mapper — entity ↔ props
+          Rules/Policies — pure functions, PolicyResult
+        🔌 Infrastructure Layer
+          ORM Entity — Lucid model, table mapping
+          Repository Impl — implements domain interface
+          Infra Mapper — ORM Model ↔ Domain Entity
       🗄️ Data Layer
-        PostgreSQL 27 tables, UUIDv7, no FK
+        PostgreSQL 23 tables, UUIDv7, no FK
         MongoDB 3 collections
          Audit logs, Notifications, Activity logs
         Redis 2 connections
@@ -40,6 +57,10 @@ mindmap
         ❌ frequency_anomaly (not implemented)
         ❌ ip_collusion (placeholder)
       📏 Business Rules
-        Pure functions, 0 DB deps
+        Domain Entity methods
+        Pure rule functions, 0 DB deps
         PolicyResult pattern
         Testable in isolation
+      🗺️ Mapper Flow
+        Write: Request DTO → Domain Entity → ORM Entity
+        Read: ORM Entity → Domain Entity → Response DTO

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import DeleteTaskStatusCommand from '#actions/tasks/commands/delete_task_status_command'
-import { DeleteTaskStatusDTO } from '#actions/tasks/dtos/task_status_dtos'
+import { DeleteTaskStatusDTO } from '#actions/tasks/dtos/request/task_status_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 

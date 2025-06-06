@@ -16,7 +16,7 @@ import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
-import { isSameId } from '#libs/id_utils'
+import { isSameId } from '#domain/shared/id_utils'
 
 /**
  * Check if actor can approve a pending user in an organization.

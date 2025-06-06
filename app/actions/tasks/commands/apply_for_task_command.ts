@@ -3,11 +3,11 @@ import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import Task from '#models/task'
-import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
 
 /**

@@ -4,7 +4,7 @@ import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helper
 import { OrganizationRole } from '#constants/organization_constants'
 import { hasOrgPermission, getOrgRoleLevel, ORG_ROLE_LEVEL } from '#constants/permissions'
 import { canChangeRole, canRemoveMember } from '#domain/organizations/org_permission_policy'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Organization Role Management', (group) => {
   group.setup(async () => {

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetReviewSessionQuery from '#actions/reviews/queries/get_review_session_query'
 import GetActiveSkillsQuery from '#actions/shared/queries/get_active_skills_query'
-import { GetReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import { GetReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { proficiencyLevelOptions } from '#constants/user_constants'
 
 /**

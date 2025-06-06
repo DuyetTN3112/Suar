@@ -2,7 +2,7 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/mongo/audit_log'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { OrganizationRole } from '#constants'
 import type CreateNotification from '#actions/common/create_notification'
 import { EntityType } from '#constants/audit_constants'
@@ -11,7 +11,7 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
 
 /**
@@ -73,7 +73,12 @@ export default class TransferOrganizationOwnershipCommand {
       await organization.useTransaction(trx).save()
 
       // Demote old owner to org_admin
-      await OrganizationUserRepository.updateRole(dto.organization_id, userId, OrganizationRole.ADMIN, trx)
+      await OrganizationUserRepository.updateRole(
+        dto.organization_id,
+        userId,
+        OrganizationRole.ADMIN,
+        trx
+      )
 
       // Promote new owner to org_owner
       await OrganizationUserRepository.updateRole(

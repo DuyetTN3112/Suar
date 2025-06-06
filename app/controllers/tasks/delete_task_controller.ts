@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import DeleteTaskDTO from '#actions/tasks/dtos/delete_task_dto'
+import DeleteTaskDTO from '#actions/tasks/dtos/request/delete_task_dto'
 import DeleteTaskCommand from '#actions/tasks/commands/delete_task_command'
 import CreateNotification from '#actions/common/create_notification'
 import { HttpStatus } from '#constants/error_constants'

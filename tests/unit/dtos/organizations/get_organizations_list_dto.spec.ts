@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { GetOrganizationsListDTO } from '#actions/organizations/dtos/get_organizations_list_dto'
+import { GetOrganizationsListDTO } from '#actions/organizations/dtos/request/get_organizations_list_dto'
 
 const USER_UUID = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
 

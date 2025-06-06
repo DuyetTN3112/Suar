@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import SendMessageCommand from '#actions/conversations/commands/send_message_command'
-import { SendMessageDTO } from '#actions/conversations/dtos/send_message_dto'
+import { SendMessageDTO } from '#actions/conversations/dtos/request/send_message_dto'
 import { getErrorMessage } from '#libs/error_utils'
 import loggerService from '#services/logger_service'
 import { HttpStatus } from '#constants/error_constants'

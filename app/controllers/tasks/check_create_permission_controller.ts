@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { isOrgAdminOrOwner } from '#services/permission_service'
+import CheckTaskCreatePermissionQuery from '#actions/tasks/queries/check_task_create_permission_query'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -23,7 +23,7 @@ export default class CheckCreatePermissionController {
       return
     }
 
-    const canCreate = await isOrgAdminOrOwner(user.id, organizationId)
+    const canCreate = await CheckTaskCreatePermissionQuery.execute(user.id, organizationId)
 
     response.json({ success: true, canCreate })
   }

@@ -40,54 +40,56 @@ try {
   await app.init()
   await app.boot()
 
-  /**
-   * Parse CLI args first so configure() can use them for suite filtering.
-   * Example: --suites=unit will only run the unit suite.
-   */
-  processCLIArgs(process.argv.splice(2))
+  await app.start(async () => {
+    /**
+     * Parse CLI args first so configure() can use them for suite filtering.
+     * Example: --suites=unit will only run the unit suite.
+     */
+    processCLIArgs(process.argv.splice(2))
 
-  /**
-   * Configure test runner with 3 suites:
-   *   - unit: Pure logic tests, no DB/network
-   *   - integration: Tests that need DB/services
-   *   - match: Pattern matching / snapshot tests
-   *
-   * Run all:          pnpm test
-   * Run one suite:    pnpm test:unit | pnpm test:integration | pnpm test:match
-   */
-  configure({
-    suites: [
-      {
-        name: 'unit',
-        files: ['tests/unit/**/*.spec.ts'],
-      },
-      {
-        name: 'integration',
-        files: ['tests/integration/**/*.spec.ts'],
-      },
-      {
-        name: 'match',
-        files: ['tests/match/**/*.spec.ts'],
-      },
-    ],
-    plugins: [assert(), fileSystem()],
-    reporters: {
-      activated: ['spec'],
-      list: [
+    /**
+     * Configure test runner with 3 suites:
+     *   - unit: Pure logic tests, no DB/network
+     *   - integration: Tests that need DB/services
+     *   - match: Pattern matching / snapshot tests
+     *
+     * Run all:          pnpm test
+     * Run one suite:    pnpm test:unit | pnpm test:integration | pnpm test:match
+     */
+    configure({
+      suites: [
         {
-          name: 'spec',
-          handler: specReporter(),
+          name: 'unit',
+          files: ['tests/unit/**/*.spec.ts'],
+        },
+        {
+          name: 'integration',
+          files: ['tests/integration/**/*.spec.ts'],
+        },
+        {
+          name: 'match',
+          files: ['tests/match/**/*.spec.ts'],
         },
       ],
-    },
-    forceExit: true,
-    importer: IMPORTER,
-  })
+      plugins: [assert(), fileSystem()],
+      reporters: {
+        activated: ['spec'],
+        list: [
+          {
+            name: 'spec',
+            handler: specReporter(),
+          },
+        ],
+      },
+      forceExit: true,
+      importer: IMPORTER,
+    })
 
-  /**
-   * Run tests
-   */
-  await run()
+    /**
+     * Run tests
+     */
+    await run()
+  })
 } catch (error) {
   void prettyPrintError(error as Error)
   process.exitCode = 1

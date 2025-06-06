@@ -16,6 +16,8 @@
 sequenceDiagram
     autonumber
     participant Sys as System (Event Listener)
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     actor Mgr as Manager
     actor Peer as Peer Reviewer
@@ -27,13 +29,22 @@ sequenceDiagram
 
     Sys->>Sys: Event 'task:status:changed'
     (newStatus === 'done')
-    Sys->>DB: Find active assignments for task
-    DB-->>Sys: Assignment(s)
+    Sys->>Repo: findActiveAssignments(taskId)
+    Repo->>DB: Find active assignments for task
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Models → Domain Entities
+    Repo-->>Sys: Assignment entities
 
     loop For each active assignment
-        Sys->>DB: UPDATE assignment
+        Sys->>Entity: assignment.complete()
+        Sys->>Repo: save(assignmentEntity)
+        Repo->>DB: UPDATE assignment
         SET status = 'completed'
-        Sys->>DB: INSERT INTO review_sessions
+        Sys->>Entity: ReviewSession.create(assignmentId,<br/>revieweeId, requiredPeerReviews=2,<br/>deadline=NOW()+14days)
+        Note over Entity: Domain validation
+        Sys->>Repo: save(reviewSessionEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO review_sessions
         (task_assignment_id, reviewee_id,
         status='pending',
         required_peer_reviews=2,
@@ -46,20 +57,33 @@ sequenceDiagram
 
     Mgr->>B: Open review
     B->>Cmd: GET /reviews/:id
+    Cmd->>Repo: findById(reviewId)
+    Repo->>DB: SELECT review session + skills
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Cmd: ReviewSession entity
+    Note over Cmd: App Mapper: Domain Entity → Response DTO
     Cmd-->>B: Session + skills to review
 
     Mgr->>B: Rate each skill (level + comment)
     B->>Cmd: POST /reviews/:id/submit
     Note over Cmd: SubmitSkillReviewCommand
+    Note over Cmd: App Mapper: Request DTO → Domain params
 
-    Cmd->>DB: INSERT INTO skill_reviews
+    Cmd->>Entity: SkillReview.create(reviewerType='manager',<br/>assignedLevelCode, comment)
+    Note over Entity: Domain validation
+    Cmd->>Repo: save(skillReviewEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: INSERT INTO skill_reviews
     (reviewer_type='manager',
     assigned_level_code, comment)
-    Cmd->>DB: UPDATE review_sessions
+    Cmd->>Entity: session.markManagerReviewCompleted()
+    Cmd->>Entity: session.determineStatus()
+    Note over Entity: pending → in_progress
+    Note over Entity: (on first submission)
+    Cmd->>Repo: save(sessionEntity)
+    Repo->>DB: UPDATE review_sessions
     SET manager_review_completed = TRUE
-    Cmd->>Cmd: determineSessionStatus()
-    Note over Cmd: pending → in_progress
-    Note over Cmd: (on first submission)
     Cmd->>Sys: emit('review:submitted')
 
     Note over Sys: Async: DetectAnomalyCommand
@@ -70,15 +94,19 @@ sequenceDiagram
     par Peer reviews (parallel)
         Peer->>B: Rate skills
         B->>Cmd: POST /reviews/:id/submit
-        Cmd->>DB: INSERT INTO skill_reviews
+        Cmd->>Entity: SkillReview.create(reviewerType='peer')
+        Cmd->>Repo: save(skillReviewEntity)
+        Repo->>DB: INSERT INTO skill_reviews
         (reviewer_type='peer')
-        Cmd->>DB: peer_reviews_count += 1
-        Cmd->>Cmd: determineSessionStatus()
+        Cmd->>Entity: session.incrementPeerReviewCount()
+        Cmd->>Entity: session.determineStatus()
+        Cmd->>Repo: save(sessionEntity)
+        Repo->>DB: peer_reviews_count += 1
     end
 
-    Note over Cmd: When managerReviewCompleted
-    Note over Cmd: && peerReviewsCount >= required:
-    Note over Cmd: status → 'completed' (auto)
+    Note over Entity: When managerReviewCompleted
+    Note over Entity: && peerReviewsCount >= required:
+    Note over Entity: status → 'completed' (auto)
 
     Note over Sys, Cmd: === REVIEWEE CONFIRM / DISPUTE ===
     Note over Cmd: ConfirmReviewCommand
@@ -86,30 +114,42 @@ sequenceDiagram
 
     Rev->>B: View completed review
     B->>Cmd: GET /reviews/:id
+    Cmd->>Repo: findById(reviewId)
+    Repo->>DB: SELECT review session
+    DB-->>Repo: Result
+    Repo-->>Cmd: ReviewSession entity
     Cmd-->>B: spider chart + skill levels
 
     alt Agree
         Rev->>B: Click "Confirm"
         B->>Cmd: POST /reviews/:id/confirm
         (body: { action: 'confirmed' })
-        Cmd->>DB: UPDATE confirmations JSONB
+        Cmd->>Entity: session.confirm()
+        Cmd->>Repo: save(sessionEntity)
+        Repo->>DB: UPDATE confirmations JSONB
         Cmd->>Sys: emit('review:confirmed')
         Note over Sys: Updates credibility_data
     else Dispute
         Rev->>B: Click "Dispute" + reason
         B->>Cmd: POST /reviews/:id/confirm
         (body: { action: 'disputed', reason })
-        Cmd->>DB: UPDATE confirmations JSONB
-        Cmd->>DB: SET status = 'disputed'
+        Cmd->>Entity: session.dispute(reason)
+        Cmd->>Repo: save(sessionEntity)
+        Repo->>DB: UPDATE confirmations JSONB
+        Repo->>DB: SET status = 'disputed'
     end
 
     Note over Sys, Cmd: === REVERSE REVIEW ===
 
     Rev->>B: Rate reviewers
     B->>Cmd: POST /reviews/:id/reverse
-    Cmd->>DB: INSERT INTO reverse_reviews
+    Cmd->>Entity: ReverseReview.create(targetType,<br/>targetId, rating, comment, isAnonymous)
+    Cmd->>Repo: save(reverseReviewEntity)
+    Note over Repo: Infra Mapper: Domain Entity → ORM Model
+    Repo->>DB: INSERT INTO reverse_reviews
     (target_type, target_id, rating,
     comment, is_anonymous)
+    Repo-->>Cmd: Persisted entity
     Cmd-->>B: Saved
 
     Note over Sys, Cmd: === SCORE CALCULATION ===
@@ -118,11 +158,17 @@ sequenceDiagram
     Note over Sys: Scheduler runs periodically:
     Note over Sys: CloseExpiredReviewSessionsCommand
     alt Review deadline exceeded
-        Sys->>DB: SELECT review_sessions
+        Sys->>Repo: findExpiredSessions()
+        Repo->>DB: SELECT review_sessions
         WHERE status IN ('pending','in_progress')
         AND deadline < NOW()
-        DB-->>Sys: Expired sessions
-        Sys->>DB: UPDATE review_sessions
+        DB-->>Repo: Expired sessions
+        Repo-->>Sys: Expired session entities
+        loop For each expired session
+            Sys->>Entity: session.forceClose()
+            Sys->>Repo: save(sessionEntity)
+        end
+        Repo->>DB: UPDATE review_sessions
         SET status = 'completed'
         (force-close with available reviews)
         Sys->>Sys: emit('review:force_closed')
@@ -130,11 +176,13 @@ sequenceDiagram
 
     Note over Sys, Cmd: === LATE TASK CHECK ===
     alt Task completed after due_date
-        Cmd->>DB: SELECT completed_at, due_date
+        Cmd->>Repo: findAssignmentWithTask(id)
+        Repo->>DB: SELECT completed_at, due_date
         FROM task_assignments JOIN tasks
-        DB-->>Cmd: Dates comparison
-        Note over Cmd: Mark as late submission
-        Note over Cmd: Late penalty applied to scores (TBD)
+        DB-->>Repo: Dates comparison
+        Repo-->>Cmd: Assignment entity
+        Note over Entity: Mark as late submission
+        Note over Entity: Late penalty applied to scores (TBD)
     end
 
     Note over Cmd: ⚠️ NOT auto-triggered
@@ -143,18 +191,22 @@ sequenceDiagram
     Note over Cmd: CalculateTrustScoreCommand
 
     opt Reviewee is freelancer
-        Calc->>DB: UPDATE users
+        Cmd->>Entity: user.updateFreelancerRating(newRating)
+        Cmd->>Repo: save(userEntity)
+        Repo->>DB: UPDATE users
         SET freelancer_rating = new_rating,
         freelancer_completed_tasks_count += 1
         WHERE id = reviewee_id
-        DB-->>Calc: Freelancer rating updated
+        DB-->>Repo: Freelancer rating updated
     end
 
-    Calc->>DB: UPDATE review_sessions
+    Cmd->>Entity: session.finalize()
+    Cmd->>Repo: save(sessionEntity)
+    Repo->>DB: UPDATE review_sessions
     SET status = 'completed',
     completed_at = NOW()
-    DB-->>Calc: Session finalized
+    DB-->>Repo: Session finalized
 
-    Sys->>WS: Notify all: "Review completed"
-
+    Sys->>Sys: Notify all: "Review completed"
+    Note over Sys: ⚠️ Transmit transport=null (no WebSocket)
 

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
-import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/update_member_role_dto'
+import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
 import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
 import { HttpStatus } from '#constants/error_constants'

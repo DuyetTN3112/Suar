@@ -1,5 +1,5 @@
-import { RepositoryFactory } from '#repositories/index'
-import type { NotificationRecord } from '#repositories/interfaces'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
 import type { DatabaseId } from '#types/database'
 
 type NotificationData = {

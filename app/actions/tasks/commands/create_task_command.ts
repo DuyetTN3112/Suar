@@ -1,13 +1,13 @@
 import Task from '#models/task'
 import User from '#models/user'
-import UserRepository from '#repositories/user_repository'
-import OrganizationRepository from '#repositories/organization_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ProjectMemberRepository from '#repositories/project_member_repository'
-import ProjectRepository from '#repositories/project_repository'
-import TaskStatusRepository from '#repositories/task_status_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import AuditLog from '#models/mongo/audit_log'
-import type CreateTaskDTO from '../dtos/create_task_dto.js'
+import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
 import type { ExecutionContext } from '#types/execution_context'
@@ -20,7 +20,7 @@ import { TaskStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canCreateTask } from '#domain/tasks/task_permission_policy'
 import { validateTaskCreationFields } from '#domain/tasks/task_assignment_rules'
 
@@ -70,17 +70,25 @@ export default class CreateTaskCommand {
       // 2. Check org exists (Fat Model method)
       await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
-      // 3. Check permission: admin/owner OR project_manager (pure rule)
-      const isOrgAdmin = await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
+      // 3. Check permission: admin/owner OR project_manager OR superadmin (pure rule)
+      const isSuperadmin = await UserRepository.isSystemAdmin(userId, trx)
+      const isOrgAdmin = isSuperadmin
+        ? false
+        : await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
       let isProjectManager = false
-      if (!isOrgAdmin && dto.project_id) {
-        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(userId, dto.project_id, trx)
+      if (!isSuperadmin && !isOrgAdmin && dto.project_id) {
+        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(
+          userId,
+          dto.project_id,
+          trx
+        )
       }
       enforcePolicy(
         canCreateTask({
           isOrgAdminOrOwner: isOrgAdmin,
           isProjectManagerOrOwner: isProjectManager,
           hasProjectId: dto.project_id !== null && dto.project_id !== undefined,
+          isSuperadmin,
         })
       )
 

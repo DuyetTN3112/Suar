@@ -1,7 +1,7 @@
-import UserRepository from '#repositories/user_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import TaskRepository from '#repositories/task_repository'
-import type { TaskPermissionFilter } from '#repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -67,7 +67,10 @@ export default class GetTaskStatisticsQuery {
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
     // Execute all statistics queries via repository
-    const result = await TaskRepository.getStatisticsByOrganization(organizationId, permissionFilter)
+    const result = await TaskRepository.getStatisticsByOrganization(
+      organizationId,
+      permissionFilter
+    )
 
     // Cache result
     await this.saveToCache(cacheKey, result, 300) // 5 minutes
@@ -85,7 +88,12 @@ export default class GetTaskStatisticsQuery {
     const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     if (isSuperAdmin) return { type: 'all' }
 
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      false
+    )
 
     if (!orgRole) {
       return { type: 'none' }

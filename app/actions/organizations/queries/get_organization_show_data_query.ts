@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
 interface MemberData {
@@ -29,7 +29,8 @@ export default class GetOrganizationShowDataQuery {
    */
   async execute(organizationId: DatabaseId, userId: DatabaseId): Promise<ShowOrganizationResult> {
     // Members preview with user preload
-    const membersPreview = await OrganizationUserRepository.findMembersWithUserProfile(organizationId)
+    const membersPreview =
+      await OrganizationUserRepository.findMembersWithUserProfile(organizationId)
 
     const members = membersPreview.map((m) => ({
       id: m.user.id,
@@ -40,7 +41,12 @@ export default class GetOrganizationShowDataQuery {
     }))
 
     // User's role in this organization
-    const userOrgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
+    const userOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      false
+    )
 
     return {
       members,

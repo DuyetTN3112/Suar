@@ -5,6 +5,9 @@
 %% Scope: Columns match @column decorators exactly.
 %%         ⚡ = leaked static method (should → Repository layer).
 %%         RecruiterBookmark: model + table exist but NO routes wired.
+%%         🏛️ NOTE: No domain entities / repositories / mappers exist yet
+%%         for the Skill module. Clean Architecture DDD migration is pending.
+%%         Skill data is still accessed directly via ORM models.
 classDiagram
     class Skill {
         +UUID id PK
@@ -71,4 +74,7 @@ classDiagram
 
     note for RecruiterBookmark "Model + table exist but NO routes/controllers wired.
     Zero methods — completely passive entity."
+    note for Skill "🏛️ No Domain Entity / Repository yet.
+    DDD migration pending for Skill module.
+    Currently accessed directly via ORM model."
 

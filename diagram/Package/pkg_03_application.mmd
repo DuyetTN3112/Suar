@@ -1,6 +1,7 @@
 %% Package Diagram: Suar Platform — Application Layer & Business Rules (Detail)
-%% Shows CQRS actions (Commands + Queries) and pure business rule modules.
-%% Dependencies: calls Domain Layer (pkg_04) for models / validators / permissions.
+%% Shows CQRS actions (Commands + Queries), application mappers, and pure business rule modules.
+%% Dependencies: calls Domain Layer (pkg_04) for entities / rules / permissions.
+%% ✅ Updated 2026-03: enforcePolicy in Application, rules in Domain
 
 graph TD
     subgraph application["📦 Application Layer (CQRS)"]
@@ -8,34 +9,46 @@ graph TD
         subgraph task_actions["tasks/"]
             T_CMD["Commands\n(create, update,\nassign, delete)"]
             T_QRY["Queries\n(list, detail,\nboard, filter)"]
+            T_MAP["Mapper\n(tasks/mapper/)"]
         end
         subgraph project_actions["projects/"]
             P_CMD["Commands\n(create, delete)\n⚠️ update/transfer\nhave no routes"]
             P_QRY["Queries\n(list, detail)"]
+            P_MAP["Mapper\n(projects/mapper/)"]
         end
         subgraph org_actions["organizations/"]
             O_CMD["Commands\n(create, invite,\njoin, roles)\n⚠️ update/delete\nroutes commented out"]
             O_QRY["Queries\n(list, detail,\nmembers)"]
+            O_MAP["Mapper\n(organizations/mapper/)"]
         end
         subgraph conv_actions["conversations/"]
             C_CMD["Commands\n(create, send,\nrecall, add)"]
             C_QRY["Queries\n(list, messages)"]
+            C_MAP["Mapper\n(conversations/mapper/)"]
         end
         subgraph review_actions["reviews/"]
             R_CMD["Commands\n(submit, respond)"]
             R_QRY["Queries\n(list, stats)"]
+            R_MAP["Mapper\n(reviews/mapper/)"]
         end
         subgraph user_actions["users/"]
             U_CMD["Commands\n(approve, role,\ndeactivate, subscription)"]
             U_QRY["Queries\n(list, profile)"]
+            U_MAP["Mapper\n(users/mapper/)"]
+        end
+        subgraph dtos_app["dtos/"]
+            REQ_DTO["Request DTOs\n(dtos/request/)"]
+            RES_DTO["Response DTOs\n(dtos/response/)"]
         end
     end
 
-    subgraph rules["📦 Business Rules (Pure)"]
+    subgraph rules["📦 Domain Rules (Pure — in app/domain/)"]
         direction LR
         subgraph shared_rules["shared/rules/"]
             POLICY_RESULT["PolicyResult\n(discriminated union)"]
-            ENFORCE["enforcePolicy()\n(exception bridge)"]
+        end
+        subgraph enforce_bridge["shared/ (Application Layer)"]
+            ENFORCE["enforcePolicy()\n(exception bridge)\n✅ In app/actions/shared/"]
         end
         subgraph task_rules["tasks/rules/"]
             TSM["TaskStateMachine"]
@@ -63,11 +76,17 @@ graph TD
     end
 
     T_CMD --> task_rules
+    T_CMD --> T_MAP
     P_CMD --> project_rules
+    P_CMD --> P_MAP
     O_CMD --> org_rules
+    O_CMD --> O_MAP
     R_CMD --> review_rules_pkg
+    R_CMD --> R_MAP
     C_CMD --> conv_rules
+    C_CMD --> C_MAP
     U_CMD --> user_rules
+    U_CMD --> U_MAP
 
     task_rules --> POLICY_RESULT
     project_rules --> POLICY_RESULT
@@ -78,5 +97,9 @@ graph TD
 
     classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
     classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef mapStyle fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#4A148C
+    classDef dtoStyle fill:#E0F7FA,stroke:#00695C,stroke-width:2px,color:#004D40
     class T_CMD,T_QRY,P_CMD,P_QRY,O_CMD,O_QRY,C_CMD,C_QRY,R_CMD,R_QRY,U_CMD,U_QRY appStyle
     class POLICY_RESULT,ENFORCE,TSM,TAR,TPP,PPP,PSR,OPP,RP,RF,CPP,CSR,UMR ruleStyle
+    class T_MAP,P_MAP,O_MAP,C_MAP,R_MAP,U_MAP mapStyle
+    class REQ_DTO,RES_DTO dtoStyle

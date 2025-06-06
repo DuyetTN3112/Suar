@@ -2,10 +2,10 @@ import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/mongo/audit_log'
 import Organization from '#models/organization'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import OrgAccessRepository from '#repositories/org_access_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrgAccessRepository from '#infra/organizations/repositories/org_access_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import type { InviteUserDTO } from '../dtos/invite_user_dto.js'
+import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -115,7 +115,12 @@ export default class InviteUserCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(userId, organizationId, trx, false)
+    const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
+      userId,
+      organizationId,
+      trx,
+      false
+    )
     if (!hasPermission) {
       throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
     }

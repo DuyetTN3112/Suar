@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
-import { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 /**
  * POST /applications/:id/withdraw → Withdraw my application

@@ -1,13 +1,13 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/mongo/audit_log'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canCreateJoinRequest } from '#domain/organizations/org_permission_policy'
 
 /**
@@ -46,7 +46,11 @@ export default class CreateJoinRequestCommand {
 
     try {
       // 1. Check existing membership in organization_users
-      const existingMembership = await OrganizationUserRepository.findMembership(organizationId, userId, trx)
+      const existingMembership = await OrganizationUserRepository.findMembership(
+        organizationId,
+        userId,
+        trx
+      )
       const isApprovedMember = existingMembership?.status === OrganizationUserStatus.APPROVED
       const hasPending = existingMembership?.status === OrganizationUserStatus.PENDING
 

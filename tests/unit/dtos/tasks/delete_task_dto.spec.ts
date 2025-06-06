@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import DeleteTaskDTO from '#actions/tasks/dtos/delete_task_dto'
+import DeleteTaskDTO from '#actions/tasks/dtos/request/delete_task_dto'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 

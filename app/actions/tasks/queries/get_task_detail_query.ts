@@ -1,9 +1,9 @@
-import Task from '#models/task'
-import UserRepository from '#repositories/user_repository'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import TaskRepository from '#repositories/task_repository'
-import RepositoryFactory from '#repositories/repository_factory'
-import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
+import type Task from '#models/task'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -124,7 +124,12 @@ export default class GetTaskDetailQuery {
     // Query org membership → delegate to Model
     let orgUser: { org_role: string } | null = null
     if (organizationId) {
-      const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId, undefined, false)
+      const orgRole = await OrganizationUserRepository.getMemberRoleName(
+        organizationId,
+        userId,
+        undefined,
+        false
+      )
       if (orgRole) {
         orgUser = { org_role: String(orgRole) }
       }
@@ -233,10 +238,7 @@ export default class GetTaskDetailQuery {
             }
           : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(
-          log.old_values ?? {},
-          log.new_values ?? {}
-        ),
+        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
   }

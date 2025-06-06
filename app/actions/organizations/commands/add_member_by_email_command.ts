@@ -1,7 +1,7 @@
 import { type ExecutionContext } from '#types/execution_context'
 import User from '#models/user'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
-import { AddMemberDTO } from '#actions/organizations/dtos/add_member_dto'
+import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
 import CreateNotification from '#actions/common/create_notification'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { DatabaseId } from '#types/database'

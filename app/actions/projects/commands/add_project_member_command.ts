@@ -1,12 +1,12 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { AddProjectMemberDTO } from '../dtos/add_project_member_dto.js'
+import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
 import Project from '#models/project'
 import User from '#models/user'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
-import ProjectMemberRepository from '#repositories/project_member_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAddProjectMember } from '#domain/projects/project_permission_policy'
 
 /**
@@ -49,7 +49,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
         dto.user_id,
         trx
       )
-      const existingMember = await ProjectMemberRepository.findMember(dto.project_id, dto.user_id, trx)
+      const existingMember = await ProjectMemberRepository.findMember(
+        dto.project_id,
+        dto.user_id,
+        trx
+      )
 
       enforcePolicy(
         canAddProjectMember({
@@ -68,7 +72,12 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const userToAdd = await User.findOrFail(dto.user_id)
 
       // 7. Add user as member
-      await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, String(dto.project_role), trx)
+      await ProjectMemberRepository.addMember(
+        dto.project_id,
+        dto.user_id,
+        String(dto.project_role),
+        trx
+      )
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {

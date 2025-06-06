@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
-import { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 function validateAssignmentType(value: string): 'member' | 'freelancer' | 'volunteer' {
   if (['member', 'freelancer', 'volunteer'].includes(value)) {

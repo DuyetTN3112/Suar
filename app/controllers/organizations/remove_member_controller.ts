@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/remove_member_dto'
+import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
 import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
 import { HttpStatus } from '#constants/error_constants'

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
-import { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { HttpStatus } from '#constants/error_constants'
 
 function validateApplicationSource(value: string): 'public_listing' | 'invitation' | 'referral' {

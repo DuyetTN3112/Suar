@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetPublicTasksQuery from '#actions/tasks/queries/get_public_tasks_query'
-import { GetPublicTasksDTO } from '#actions/tasks/dtos/task_application_dtos'
+import { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 /**
  * GET /api/marketplace/tasks → Browse public tasks (JSON API)

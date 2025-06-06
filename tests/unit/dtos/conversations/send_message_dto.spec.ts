@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import { SendMessageDTO } from '#actions/conversations/dtos/send_message_dto'
+import { SendMessageDTO } from '#actions/conversations/dtos/request/send_message_dto'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 

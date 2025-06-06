@@ -7,7 +7,7 @@ import {
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 test.group('Integration | Organization Membership', (group) => {
   group.setup(async () => {
@@ -43,7 +43,7 @@ test.group('Integration | Organization Membership', (group) => {
       status: 'approved',
     })
 
-    const existing = await OrganizationUserRepository.isMember(org.id, member.id)
+    const existing = await OrganizationUserRepository.isMember(member.id, org.id)
     assert.isTrue(existing)
   })
 

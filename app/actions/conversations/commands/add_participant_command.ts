@@ -1,14 +1,14 @@
 import type { ExecutionContext } from '#types/execution_context'
 import ConversationParticipant from '#models/conversation_participant'
-import ConversationParticipantRepository from '#repositories/conversation_participant_repository'
+import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import Conversation from '#models/conversation'
-import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
+import type { AddParticipantDTO } from '../dtos/request/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAddParticipant } from '#domain/conversations/conversation_permission_policy'
 
 /**
@@ -106,7 +106,8 @@ export default class AddParticipantCommand {
   private async invalidateCache(conversationId: DatabaseId): Promise<void> {
     try {
       // Get all participants (including new one) → delegate to Model
-      const participantIds = await ConversationParticipantRepository.getParticipantIds(conversationId)
+      const participantIds =
+        await ConversationParticipantRepository.getParticipantIds(conversationId)
 
       // Invalidate conversation list cache for all participants
       for (const userId of participantIds) {

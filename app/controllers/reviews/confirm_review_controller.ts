@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
-import { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 
 /**
  * POST /reviews/:id/confirm → Confirm or dispute review

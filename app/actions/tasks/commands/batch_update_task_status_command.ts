@@ -1,6 +1,6 @@
 import Task from '#models/task'
-import TaskStatusRepository from '#repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
@@ -10,7 +10,7 @@ import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
-import { enforcePolicy } from '#domain/shared/enforce_policy'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
 
 /**
@@ -57,7 +57,9 @@ export default class BatchUpdateTaskStatusCommand {
       )
 
       if (!newStatus) {
-        throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
+        throw new BusinessLogicException(
+          'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+        )
       }
 
       // ── FETCH ──────────────────────────────────────────────────────────
@@ -93,9 +95,7 @@ export default class BatchUpdateTaskStatusCommand {
           trx
         )
 
-        const matchingTransition = transitions.find(
-          (t) => t.to_status_id === newTaskStatusId
-        )
+        const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
 
         const result = validateWorkflowTransition({
           currentStatusId,

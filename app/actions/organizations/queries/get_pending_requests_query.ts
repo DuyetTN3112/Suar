@@ -1,6 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationUserRepository from '#repositories/organization_user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -65,7 +65,8 @@ export default class GetPendingRequestsQuery {
     }
 
     // 3. Query pending memberships from organization_users
-    const pendingMembers = await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
+    const pendingMembers =
+      await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
 
     // 4. Format response
     const result: RequestResult[] = pendingMembers.map((member) => ({

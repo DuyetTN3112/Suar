@@ -49,8 +49,7 @@
     "#utils/*": "./app/utils/*.js",
     "#helpers/*": "./app/helpers/*.js",
     "#types/*": "./app/types/*.js",
-    "#repositories/*": "./app/repositories/*.js",
-    "#repositories": "./app/repositories/index.js",
+    "#infra/*": "./app/infra/*.js",
     "#generated/*": "./.adonisjs/server/*.js",
     "#transformers/*": "./app/transformers/*.js",
     "#tests/*": "./tests/*.js"

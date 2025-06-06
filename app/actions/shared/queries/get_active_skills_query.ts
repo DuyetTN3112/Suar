@@ -1,4 +1,4 @@
-import SkillRepository from '#repositories/skill_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
 
 /**
  * Query: Get Active Skills

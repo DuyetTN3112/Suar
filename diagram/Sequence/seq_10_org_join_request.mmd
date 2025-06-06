@@ -17,6 +17,8 @@ sequenceDiagram
     participant C as Controller
     participant Q as Query
     participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
     participant DB as PostgreSQL
     actor Admin as Org Owner/Admin
 
@@ -28,8 +30,12 @@ sequenceDiagram
     User->>B: Visit organization page
     B->>C: GET /organizations/:id/join
     C->>Q: CheckJoinEligibilityQuery.execute(dto)
-    Q->>DB: SELECT FROM organization_users
+    Q->>Repo: findMembership(orgId, userId)
+    Repo->>DB: SELECT FROM organization_users
     WHERE organization_id=? AND user_id=?
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Q: Membership entity or null
 
     alt Already approved member
         Q-->>C: Not eligible: already_member
@@ -42,14 +48,21 @@ sequenceDiagram
         User->>B: Enter message + submit
         B->>C: POST /organizations/:id/join
         C->>Cmd: CreateJoinRequestCommand.execute(dto)
+        Note over Cmd: App Mapper: Request DTO → Domain params
         Note over Cmd: v3.0: Creates/updates
         Note over Cmd: organization_users row
         Note over Cmd: with status='pending'
         Note over Cmd: NOT organization_join_requests
-        Cmd->>DB: INSERT INTO organization_users
+        Cmd->>Entity: OrganizationUser.create(orgId,<br/>userId, role='org_member', status='pending')
+        Note over Entity: Domain validation
+        Cmd->>Repo: save(membershipEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT INTO organization_users
         (organization_id, user_id,
         org_role='org_member',
         status='pending')
+        DB-->>Repo: Created
+        Repo-->>Cmd: Persisted entity
         Cmd->>Cmd: emit('audit:log')
         Cmd-->>C: OK
         C-->>B: Redirect with success message
@@ -61,11 +74,16 @@ sequenceDiagram
     Admin->>B: Open pending requests
     B->>C: GET /organizations/:id/members/pending
     C->>Q: GetPendingRequestsQuery.execute(dto)
-    Q->>DB: SELECT ou.*, u.*
+    Q->>Repo: findPendingMembers(orgId)
+    Repo->>DB: SELECT ou.*, u.*
     FROM organization_users ou
     JOIN users u ON ou.user_id = u.id
     WHERE ou.organization_id = ?
     AND ou.status = 'pending'
+    DB-->>Repo: Result set
+    Note over Repo: Infra Mapper: ORM Models → Domain Entities
+    Repo-->>Q: Pending member entities
+    Note over Q: App Mapper: Domain Entities → Response DTOs
     Q-->>C: Pending list
     C-->>B: Render pending page
     B-->>Admin: Show requests
@@ -78,23 +96,32 @@ sequenceDiagram
     (body: { action: 'approve' | 'reject' })
 
     C->>Cmd: ProcessJoinRequestCommand.execute(dto)
-    Cmd->>DB: SELECT FROM organization_users
+    Cmd->>Repo: findPendingMembership(orgId, userId)
+    Repo->>DB: SELECT FROM organization_users
     WHERE organization_id=? AND user_id=?
     AND status='pending'
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Cmd: Membership entity
 
     alt action = 'approve'
-        Cmd->>DB: UPDATE organization_users
+        Cmd->>Entity: membership.approve(processedBy=admin.id)
+        Note over Entity: Row already exists,
+        Note over Entity: no need to INSERT
+        Cmd->>Repo: save(membershipEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: UPDATE organization_users
         SET status='approved',
         processed_by=admin.id
-        Note over Cmd: Row already exists,
-        Note over Cmd: no need to INSERT
     else action = 'reject'
-        Cmd->>DB: UPDATE organization_users
+        Cmd->>Entity: membership.reject(processedBy=admin.id)
+        Cmd->>Repo: save(membershipEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: UPDATE organization_users
         SET status='rejected',
         processed_by=admin.id
     end
 
     Cmd-->>C: OK
     C-->>B: Redirect back
-
 

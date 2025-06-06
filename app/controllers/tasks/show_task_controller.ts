@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import GetTaskDetailDTO from '#actions/tasks/dtos/get_task_detail_dto'
+import GetTaskDetailDTO from '#actions/tasks/dtos/request/get_task_detail_dto'
 import GetTaskDetailQuery from '#actions/tasks/queries/get_task_detail_query'
 
 /**

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import ReviewSession from '#models/review_session'
-import ReviewSessionRepository from '#repositories/review_session_repository'
+import type ReviewSession from '#models/review_session'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 
 interface PendingReviewsDTO {
   page: number

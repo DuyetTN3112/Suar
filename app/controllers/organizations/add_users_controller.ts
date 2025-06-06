@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import BulkAddMembersCommand from '#actions/organizations/commands/bulk_add_members_command'
-import { BulkAddMembersDTO } from '#actions/organizations/dtos/bulk_add_members_dto'
+import { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
 import loggerService from '#services/logger_service'
 import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 
