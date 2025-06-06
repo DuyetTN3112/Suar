@@ -11,15 +11,27 @@ export default class PendingApprovalCountApiController {
     const { response, auth } = ctx
 
     try {
-      const hasPermission = await this.checkSuperAdminPermission(auth, response)
-      if (!hasPermission) return
+      const user = auth.user
+      if (!user) {
+        response
+          .status(HttpStatus.UNAUTHORIZED)
+          .json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
+        return
+      }
 
-      const organizationId = auth.user?.current_organization_id
+      const organizationId = user.current_organization_id ?? ''
       if (!organizationId) {
-        response.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'Không tìm thấy thông tin tổ chức hiện tại',
-        })
+        response
+          .status(HttpStatus.BAD_REQUEST)
+          .json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
+        return
+      }
+
+      const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
+      if (!isSuperAdmin) {
+        response
+          .status(HttpStatus.FORBIDDEN)
+          .json({ success: false, message: ErrorMessages.FORBIDDEN })
         return
       }
 
@@ -39,36 +51,5 @@ export default class PendingApprovalCountApiController {
       })
       return
     }
-  }
-
-  private async checkSuperAdminPermission(
-    auth: HttpContext['auth'],
-    response: HttpContext['response']
-  ): Promise<boolean> {
-    const user = auth.user
-    if (!user) {
-      response
-        .status(HttpStatus.UNAUTHORIZED)
-        .json({ success: false, message: ErrorMessages.PLEASE_LOGIN })
-      return false
-    }
-
-    const organizationId = user.current_organization_id ?? ''
-    if (!organizationId) {
-      response
-        .status(HttpStatus.BAD_REQUEST)
-        .json({ success: false, message: ErrorMessages.ORGANIZATION_NOT_FOUND })
-      return false
-    }
-
-    const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
-    if (!isSuperAdmin) {
-      response
-        .status(HttpStatus.FORBIDDEN)
-        .json({ success: false, message: ErrorMessages.FORBIDDEN })
-      return false
-    }
-
-    return true
   }
 }
