@@ -1,8 +1,8 @@
 %% Architecture Diagram: System Overview
-%% Cross-referenced with actual backend code 2025
+%% Cross-referenced with actual backend code 2024
 %% ❌ Removed: Email Service (no mailer/SMTP exists)
 %% ❌ Fixed: Transmit transport=null (realtime not working)
-%% ⚠️ Fixed: 110 → 116 controllers, Clean Architecture + DDD
+%% ⚠️ Fixed: 107 → 110 controllers
 flowchart TD
     subgraph client["Client Layer"]
         Browser["🖥️ Browser
@@ -10,20 +10,19 @@ flowchart TD
     end
 
     subgraph server["Application Server"]
-        Adonis["⚙️ AdonisJS 7
+        Adonis["⚙️ AdonisJS 6
         (Node.js / TypeScript)
 
-        • 116 Thin Controllers
-        • Clean Architecture + DDD
+        • 110 Thin Controllers
         • CQRS: Commands + Queries
-        • Infrastructure Layer (app/infra/)
+        • Fat Model (Lucid ORM)
         • PermissionService (17 methods)
         • Event-Driven Architecture"]
     end
 
     subgraph databases["Data Layer"]
         PG[("🐘 PostgreSQL
-        23 tables
+        27 tables
         (UUIDv7, no FK)
         ─────────────
         Core business data:

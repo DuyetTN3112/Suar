@@ -1,7 +1,7 @@
 import Task from '#models/task'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import TaskStatusRepository from '#repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#repositories/task_workflow_transition_repository'
+import OrganizationUserRepository from '#repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
@@ -69,9 +69,7 @@ export default class UpdateTaskSortOrderCommand {
         )
 
         if (!newStatus) {
-          throw new BusinessLogicException(
-            'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
-          )
+          throw new BusinessLogicException('Trạng thái mới không tồn tại hoặc không thuộc tổ chức này')
         }
 
         // Resolve current task_status_id (backward compat)
@@ -94,7 +92,9 @@ export default class UpdateTaskSortOrderCommand {
             currentStatusId,
             trx
           )
-          const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
+          const matchingTransition = transitions.find(
+            (t) => t.to_status_id === newTaskStatusId
+          )
 
           enforcePolicy(
             validateWorkflowTransition({

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
-import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
+import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query.js'
+import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query.js'
 import { ProjectVisibility } from '#constants/project_constants'
 
 /**

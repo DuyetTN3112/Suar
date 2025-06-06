@@ -59,9 +59,6 @@ export async function setupApp(): Promise<ApplicationService> {
   await app.init()
   await app.boot()
 
-  // Start providers (including MongooseProvider for MongoDB connection)
-  await app.start(async () => {})
-
   return app
 }
 

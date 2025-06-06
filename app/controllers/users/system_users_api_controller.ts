@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import type GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
-import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
+import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_list_dto'
 import { PaginationDTO } from '#actions/shared/index'
 import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 
@@ -10,8 +10,7 @@ import { HttpStatus, ErrorMessages } from '#constants/error_constants'
  * Permission: Superadmin only
  */
 export default class SystemUsersApiController {
-  async handle(ctx: HttpContext) {
-    const getUsersListQuery = new GetUsersListQuery(ctx)
+  async handle(ctx: HttpContext, getUsersListQuery: GetUsersListQuery) {
     const { request, response, auth } = ctx
 
     try {

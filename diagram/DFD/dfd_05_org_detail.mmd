@@ -8,9 +8,6 @@
 %% ❌ Fixed: P27 Transfer Ownership — command exists but NO ROUTE registered
 %% ❌ Fixed: P27 Delete Organization — route is COMMENTED OUT (dead code)
 %% ❌ Removed: P27 "Check no active projects" (no such check exists)
-%% ✅ Architecture: Clean Architecture + DDD
-%%    Sub-processes (Actions) access data stores via Repository Interfaces
-%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
 flowchart TD
     %% External Entities
     OW([👑 Org Owner])
@@ -51,40 +48,18 @@ flowchart TD
     DA[(DA: audit_logs
     — MongoDB)]
 
-    %% ═══════════════════════════════════════════
-    %% Infrastructure Layer — Repositories
-    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
-    %% ═══════════════════════════════════════════
-    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
-        direction TB
-        R_ORG[["OrganizationRepository
-        + OrgMapper"]]
-        R_USER[["UserRepository
-        + UserMapper"]]
-        R_AUDIT[["AuditRepository
-        (MongoDB driver)"]]
-    end
-
-    %% Repository → Data Store connections (Lucid ORM / MongoDB)
-    R_ORG <-->|"Lucid ORM"| D2a
-    R_ORG <-->|"Lucid ORM"| D2b
-    R_ORG <-->|"Lucid ORM"| D2c
-    R_ORG <-->|"Lucid ORM"| D2d
-    R_USER <-->|"Lucid ORM"| D1
-    R_AUDIT <-->|"MongoDB driver"| DA
-
     %% 2.1 Create Organization
     OW -->|"Name, description,
     logo, plan"| P21
     P21 -->|"Organization created
     (id, slug)"| OW
     P21 -->|"INSERT organization
-    (auto-generate slug)"| R_ORG
+    (auto-generate slug)"| D2a
     P21 -->|"INSERT owner
     (org_role = org_owner,
-    status = approved)"| R_ORG
-    P21 -->|"Verify user is active"| R_USER
-    P21 -->|"Log: organization:created"| R_AUDIT
+    status = approved)"| D2b
+    P21 -->|"Verify user is active"| D1
+    P21 -->|"Log: organization:created"| DA
 
     %% 2.2 Invite Members (send only — NO acceptance command exists)
     OW -->|"Email(s) to invite,
@@ -92,15 +67,15 @@ flowchart TD
     ADM -->|"Email(s) to invite"| P22
     P22 -->|"Invitation status
     (sent / duplicate)"| OW
-    P22 -->|"Check existing user"| R_USER
+    P22 -->|"Check existing user"| D1
     P22 -->|"Check existing
-    membership"| R_ORG
+    membership"| D2b
     P22 -->|"INSERT invitation
-    (token, expires_at)"| R_ORG
+    (token, expires_at)"| D2c
     P22 -->|"INSERT member
     (status = pending,
-    invited_by)"| R_ORG
-    P22 -->|"Log: audit:log"| R_AUDIT
+    invited_by)"| D2b
+    P22 -->|"Log: audit:log"| DA
 
     %% 2.3 Join Requests (Self-Service)
     USR -->|"Request to join
@@ -108,12 +83,12 @@ flowchart TD
     P23 -->|"Request status
     (pending / duplicate)"| USR
     P23 -->|"Check not already
-    member"| R_ORG
+    member"| D2b
     P23 -->|"Check no pending
-    request exists"| R_ORG
+    request exists"| D2d
     P23 -->|"INSERT join_request
-    (status = pending)"| R_ORG
-    P23 -->|"Log: audit:log"| R_AUDIT
+    (status = pending)"| D2d
+    P23 -->|"Log: audit:log"| DA
 
     %% Process Join Requests (admin-side)
     OW -->|"Approve / Reject
@@ -123,12 +98,12 @@ flowchart TD
     P23 -->|"Pending requests list"| OW
     P23 -->|"Pending requests list"| ADM
     P23 -->|"Read pending
-    requests + user info"| R_ORG
+    requests + user info"| D2d
     P23 -->|"UPDATE request status
-    (approved / rejected)"| R_ORG
+    (approved / rejected)"| D2d
     P23 -->|"On approve: INSERT
     organization_user
-    (role = org_member)"| R_ORG
+    (role = org_member)"| D2b
 
     %% 2.4 Manage Roles (fixed roles only — no custom_roles)
     OW -->|"Change member role
@@ -136,9 +111,9 @@ flowchart TD
     ADM -->|"Change member role"| P24
     P24 -->|"Role updated"| OW
     P24 -->|"SELECT current
-    membership + role"| R_ORG
-    P24 -->|"UPDATE org_role"| R_ORG
-    P24 -->|"Log: role_changed"| R_AUDIT
+    membership + role"| D2b
+    P24 -->|"UPDATE org_role"| D2b
+    P24 -->|"Log: role_changed"| DA
 
     %% 2.5 Update Organization (⚠️ route commented out — dead code)
     OW -->|"Edit name, description,
@@ -146,8 +121,8 @@ flowchart TD
     ADM -->|"Edit org info"| P25
     P25 -->|"Updated org info"| OW
     P25 -->|"UPDATE organization
-    (partial update)"| R_ORG
-    P25 -->|"Log: organization:updated"| R_AUDIT
+    (partial update)"| D2a
+    P25 -->|"Log: organization:updated"| DA
 
     %% 2.6 Remove Members (basic removal only — no cascading)
     OW -->|"Remove member
@@ -156,9 +131,9 @@ flowchart TD
     (org_member only)"| P26
     P26 -->|"Member removed"| OW
     P26 -->|"DELETE from
-    organization_users"| R_ORG
-    P26 -->|"Log: member:removed"| R_AUDIT
-    P26 -->|"Check: is last owner?"| R_ORG
+    organization_users"| D2b
+    P26 -->|"Log: member:removed"| DA
+    P26 -->|"Check: is last owner?"| D2b
 
     %% 2.7 Transfer Ownership & Delete (⚠️ both routes not wired)
     OW -->|"Transfer to admin,
@@ -166,13 +141,13 @@ flowchart TD
     P27 -->|"Ownership transferred
     / org deleted"| OW
     P27 -->|"UPDATE owner_id
-    + swap roles"| R_ORG
+    + swap roles"| D2a
     P27 -->|"Old owner → org_admin,
-    New owner → org_owner"| R_ORG
+    New owner → org_owner"| D2b
     P27 -->|"Soft delete
-    (deleted_at = NOW())"| R_ORG
+    (deleted_at = NOW())"| D2a
     P27 -->|"Log: organization:deleted
-    / ownership:transferred"| R_AUDIT
+    / ownership:transferred"| DA
 
     %% Cross-process: Auth provides verified user
     P1 -->|"Authenticated user
@@ -183,12 +158,9 @@ flowchart TD
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
-    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
     class OW,ADM,USR entity
     class P21,P22,P23,P24,P25,P26,P27 process
     class D1,D2a,D2b,D2c,D2d,DA datastore
     class P1 extProcess
-    class R_ORG,R_USER,R_AUDIT repo
-    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
 
 

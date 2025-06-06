@@ -53,12 +53,6 @@ export type ScannedRoutes = {
     'applications.process': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'applications.withdraw': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'applications.mine': { paramsTuple?: []; params?: {} }
-    'api.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'api.task_statuses.store': { paramsTuple?: []; params?: {} }
-    'api.task_statuses.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.workflow.index': { paramsTuple?: []; params?: {} }
-    'api.workflow.update': { paramsTuple?: []; params?: {} }
     'marketplace.tasks': { paramsTuple?: []; params?: {} }
     'api.marketplace.tasks': { paramsTuple?: []; params?: {} }
     'api.tasks.apply': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
@@ -173,8 +167,6 @@ export type ScannedRoutes = {
     'tasks.audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'applications.mine': { paramsTuple?: []; params?: {} }
-    'api.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'api.workflow.index': { paramsTuple?: []; params?: {} }
     'marketplace.tasks': { paramsTuple?: []; params?: {} }
     'api.marketplace.tasks': { paramsTuple?: []; params?: {} }
     'settings.index': { paramsTuple?: []; params?: {} }
@@ -246,8 +238,6 @@ export type ScannedRoutes = {
     'tasks.audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.applications': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'applications.mine': { paramsTuple?: []; params?: {} }
-    'api.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'api.workflow.index': { paramsTuple?: []; params?: {} }
     'marketplace.tasks': { paramsTuple?: []; params?: {} }
     'api.marketplace.tasks': { paramsTuple?: []; params?: {} }
     'settings.index': { paramsTuple?: []; params?: {} }
@@ -298,7 +288,6 @@ export type ScannedRoutes = {
     'tasks.apply': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'applications.process': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'applications.withdraw': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.store': { paramsTuple?: []; params?: {} }
     'api.tasks.apply': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'settings.profile.update': { paramsTuple?: []; params?: {} }
     'settings.account.update': { paramsTuple?: []; params?: {} }
@@ -343,15 +332,12 @@ export type ScannedRoutes = {
     'profile.update_settings': { paramsTuple?: []; params?: {} }
     'tasks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.update.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.workflow.update': { paramsTuple?: []; params?: {} }
     'settings.update': { paramsTuple?: []; params?: {} }
   }
   DELETE: {
     'users.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'profile.skills.remove': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'account.destroy': { paramsTuple?: []; params?: {} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }

@@ -13,8 +13,6 @@ sequenceDiagram
     participant B as Browser (Svelte)
     participant C as OrgController
     participant Cmd as ProcessJoinRequestCommand
-    participant Entity as Domain Entity
-    participant Repo as Repository
     participant DB as PostgreSQL
     participant N as NotificationService
 
@@ -28,12 +26,8 @@ sequenceDiagram
         C-->>B: 403 Forbidden
         B-->>SA: "Insufficient permissions"
     else Authorized
-        C->>Repo: findPendingMembers(orgId)
-        Repo->>DB: SELECT ou.*, u.username, u.email<br/>FROM organization_users ou<br/>JOIN users u ON ou.user_id = u.id<br/>WHERE ou.organization_id = ?<br/>AND ou.status = 'pending'
-        DB-->>Repo: Result set
-        Note over Repo: Infra Mapper: ORM Models → Domain Entities
-        Repo-->>C: Pending member entities
-        Note over C: App Mapper: Domain Entities → Response DTOs
+        C->>DB: SELECT ou.*, u.username, u.email<br/>FROM organization_users ou<br/>JOIN users u ON ou.user_id = u.id<br/>WHERE ou.organization_id = ?<br/>AND ou.status = 'pending'
+        DB-->>C: Pending members list
         C-->>B: 200 OK + pending list
         B-->>SA: Show pending members table
     end
@@ -44,23 +38,16 @@ sequenceDiagram
     B->>C: POST /organizations/:orgId/join-requests/:id/process
     C->>Cmd: execute(action: 'approve')
 
-    Cmd->>Repo: findPendingMembership(id)
-    Repo->>DB: SELECT * FROM organization_users<br/>WHERE id = ? AND status = 'pending'
-    DB-->>Repo: Result
-    Note over Repo: Infra Mapper: ORM Model → Domain Entity
-    Repo-->>Cmd: Membership entity or null
+    Cmd->>DB: SELECT * FROM organization_users<br/>WHERE id = ? AND status = 'pending'
+    DB-->>Cmd: Membership record
 
     alt Not found or already processed
         Cmd-->>C: Error: Not found
         C-->>B: 404 Not Found
     else Pending found
-        Cmd->>Entity: membership.approve(role='org_member')
-        Cmd->>Repo: save(membershipEntity)
-        Note over Repo: Infra Mapper: Domain Entity → ORM Model
-        Repo->>DB: UPDATE organization_users<br/>SET status = 'approved',<br/>org_role = 'org_member'
-        DB-->>Repo: Updated
-        Cmd->>Repo: logAudit(event)
-        Repo->>DB: Log audit entry
+        Cmd->>DB: UPDATE organization_users<br/>SET status = 'approved',<br/>org_role = 'org_member'
+        DB-->>Cmd: Updated
+        Cmd->>DB: Log audit entry
         Cmd->>N: Notify user: "Membership approved"
         Cmd-->>C: Approved member
         C-->>B: 200 OK
@@ -73,19 +60,12 @@ sequenceDiagram
     B->>C: POST /organizations/:orgId/join-requests/:id/process
     C->>Cmd: execute(action: 'reject')
 
-    Cmd->>Repo: findPendingMembership(id)
-    Repo->>DB: SELECT * FROM organization_users<br/>WHERE id = ? AND status = 'pending'
-    DB-->>Repo: Result
-    Repo-->>Cmd: Membership entity
-    Cmd->>Entity: membership.reject()
-    Cmd->>Repo: save(membershipEntity)
-    Note over Repo: Infra Mapper: Domain Entity → ORM Model
-    Repo->>DB: UPDATE organization_users<br/>SET status = 'rejected'
-    DB-->>Repo: Updated
-    Cmd->>Repo: logAudit(event)
-    Repo->>DB: Log audit entry
+    Cmd->>DB: UPDATE organization_users<br/>SET status = 'rejected'
+    DB-->>Cmd: Updated
+    Cmd->>DB: Log audit entry
     Cmd->>N: Notify user: "Request rejected"
     Cmd-->>C: OK
     C-->>B: 200 OK
     B-->>SA: Request removed from list
+
 

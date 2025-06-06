@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import GetUserMetadata from '#actions/users/get_user_metadata'
-import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
+import type GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import type GetUserMetadata from '#actions/users/get_user_metadata'
+import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_list_dto'
 import { PaginationDTO } from '#actions/shared/index'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { UserStatusName } from '#constants/user_constants'
@@ -10,7 +10,11 @@ import { UserStatusName } from '#constants/user_constants'
  * GET /users → Paginated list of users for current organization
  */
 export default class ListUsersController {
-  async handle(ctx: HttpContext) {
+  async handle(
+    ctx: HttpContext,
+    getUsersListQuery: GetUsersListQuery,
+    getUserMetadata: GetUserMetadata
+  ) {
     const { request, inertia, auth } = ctx
 
     const page = Number(request.input('page', 1))
@@ -29,10 +33,7 @@ export default class ListUsersController {
       )
     )
 
-    const getUsersListQuery = new GetUsersListQuery(ctx)
     const users = await getUsersListQuery.handle(dto)
-
-    const getUserMetadata = new GetUserMetadata(ctx)
     const metadata = await getUserMetadata.handle()
 
     return inertia.render('users/index', {

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import ApproveUserCommand from '#actions/users/commands/approve_user_command'
-import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
+import type ApproveUserCommand from '#actions/users/commands/approve_user_command'
+import { ApproveUserDTO } from '#actions/users/dtos/approve_user_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { HttpStatus } from '#constants/error_constants'
 
@@ -8,8 +8,7 @@ import { HttpStatus } from '#constants/error_constants'
  * PUT /users/:id/approve → Approve a pending user in organization
  */
 export default class ApproveUserController {
-  async handle(ctx: HttpContext) {
-    const approveUserCommand = new ApproveUserCommand(ctx)
+  async handle(ctx: HttpContext, approveUserCommand: ApproveUserCommand) {
     const { params, response, auth } = ctx
 
     const organizationId = auth.user?.current_organization_id

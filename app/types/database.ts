@@ -380,8 +380,6 @@ export interface ReviewSessionRow {
   completed_at: Date | null
   // v3.0: Merged from review_confirmations table
   confirmations: ReviewConfirmationEntry[] | null
-  // v3.1: Auto-calculated deadline
-  deadline: Date | null
   created_at: Date
   updated_at: Date
 }
