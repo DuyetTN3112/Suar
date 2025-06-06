@@ -19,26 +19,19 @@ export default class CreateOrganizationController {
       ExecutionContext.fromHttp(ctx),
       new CreateNotification()
     )
-    try {
-      const dto = new CreateOrganizationDTO(
-        request.input('name') as string,
-        request.input('slug') as string,
-        request.input('description') as string | undefined,
-        request.input('logo') as string | undefined,
-        request.input('website') as string | undefined,
-        request.input('plan') as string | undefined
-      )
 
-      const organization = await createOrganization.execute(dto)
+    const dto = new CreateOrganizationDTO(
+      request.input('name') as string,
+      request.input('slug') as string,
+      request.input('description') as string | undefined,
+      request.input('logo') as string | undefined,
+      request.input('website') as string | undefined,
+      request.input('plan') as string | undefined
+    )
 
-      session.flash('success', 'Tổ chức đã được tạo thành công')
-      response.redirect().toRoute('organizations.show', { id: organization.id })
-      return
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo tổ chức'
-      session.flash('error', errorMessage)
-      response.redirect().back()
-      return
-    }
+    const organization = await createOrganization.execute(dto)
+
+    session.flash('success', 'Tổ chức đã được tạo thành công')
+    response.redirect().toRoute('organizations.show', { id: organization.id })
   }
 }

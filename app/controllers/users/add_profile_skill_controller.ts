@@ -9,19 +9,14 @@ export default class AddProfileSkillController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
 
-    try {
-      const dto = new AddUserSkillDTO(
-        request.input('skill_id') as string,
-        request.input('level_code') as string
-      )
-      const command = new AddUserSkillCommand(ctx)
-      await command.handle(dto)
+    const dto = new AddUserSkillDTO(
+      request.input('skill_id') as string,
+      request.input('level_code') as string
+    )
+    const command = new AddUserSkillCommand(ctx)
+    await command.handle(dto)
 
-      session.flash('success', 'Skill added successfully')
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to add skill'
-      session.flash('error', message)
-    }
+    session.flash('success', 'Skill added successfully')
 
     response.redirect().back()
   }

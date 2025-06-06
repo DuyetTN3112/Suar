@@ -1,6 +1,5 @@
 import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
 import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
-import logger from '@adonisjs/core/services/logger'
 import type { HttpContext } from '@adonisjs/core/http'
 
 /**
@@ -20,46 +19,23 @@ export default class LogoutController {
    */
   async handle(ctx: HttpContext) {
     const { request, response, inertia, session, auth } = ctx
-    try {
-      // Only logout if user is authenticated
-      if (!auth.isAuthenticated) {
-        await this.redirectToLogin(request, response, inertia)
-        return
-      }
 
-      const user = auth.user
-      if (!user) {
-        await this.redirectToLogin(request, response, inertia)
-        return
-      }
+    // 1. Build DTO
+    const dto = new LogoutUserDTO({
+      userId: auth.user!.id,
+      sessionId: session.sessionId,
+      ipAddress: request.ip(),
+    })
 
-      // 1. Build DTO
-      const dto = new LogoutUserDTO({
-        userId: user.id,
-        sessionId: session.sessionId,
-        ipAddress: request.ip(),
-      })
+    // 2. Execute command
+    const command = new LogoutUserCommand(ctx)
+    await command.handle(dto)
 
-      // 2. Execute command
-      const command = new LogoutUserCommand(ctx)
-      await command.handle(dto)
+    // 3. Set success message
+    session.flash('success', 'Đã đăng xuất thành công')
 
-      // 3. Clear additional session data
-      session.forget('show_organization_required_modal')
-      session.forget('intended_url')
-
-      // 4. Set success message
-      session.flash('success', 'Đã đăng xuất thành công')
-
-      // 5. Redirect to login
-      await this.redirectToLogin(request, response, inertia)
-      return
-    } catch (error: unknown) {
-      logger.error('Error during logout', { error, userId: auth.user?.id })
-      session.flash('error', 'Có lỗi xảy ra khi đăng xuất')
-      await this.redirectToLogin(request, response, inertia)
-      return
-    }
+    // 4. Redirect to login
+    await this.redirectToLogin(request, response, inertia)
   }
 
   /**

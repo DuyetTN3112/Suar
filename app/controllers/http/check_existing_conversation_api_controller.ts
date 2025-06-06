@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import CheckExistingConversationQuery from '#actions/conversations/queries/check_existing_conversation_query'
-import loggerService from '#services/logger_service'
-import { HttpStatus, ErrorMessages } from '#constants/error_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * POST /api/check-existing-conversation → Check if conversation already exists
@@ -10,63 +10,37 @@ import { HttpStatus, ErrorMessages } from '#constants/error_constants'
 export default class CheckExistingConversationApiController {
   async handle(ctx: HttpContext) {
     const { request, auth, response } = ctx
-    try {
-      if (!auth.user) {
-        response
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ success: false, message: ErrorMessages.NOT_AUTHENTICATED })
-        return
-      }
 
-      const currentUser = auth.user
-      const { participants } = request.body()
+    if (!auth.user) {
+      throw new UnauthorizedException()
+    }
 
-      if (!participants || !Array.isArray(participants) || participants.length === 0) {
-        response.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'Danh sách người tham gia không hợp lệ',
-        })
-        return
-      }
+    const currentUser = auth.user
+    const { participants } = request.body()
 
-      const participantsList = participants.filter((p): p is string => typeof p === 'string')
+    if (!participants || !Array.isArray(participants) || participants.length === 0) {
+      throw new BusinessLogicException('Danh sách người tham gia không hợp lệ')
+    }
 
-      if (participantsList.length !== participants.length) {
-        response.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'Danh sách người tham gia chứa giá trị không hợp lệ',
-        })
-        return
-      }
+    const participantsList = participants.filter((p): p is string => typeof p === 'string')
 
-      const organizationId = currentUser.current_organization_id
-      if (!organizationId) {
-        response.status(HttpStatus.BAD_REQUEST).json({
-          success: false,
-          message: 'Không tìm thấy ID tổ chức hiện tại',
-        })
-        return
-      }
+    if (participantsList.length !== participants.length) {
+      throw new BusinessLogicException('Danh sách người tham gia chứa giá trị không hợp lệ')
+    }
 
-      const query = new CheckExistingConversationQuery(ExecutionContext.fromHttp(ctx))
-      const result = await query.execute(organizationId, currentUser.id, participantsList)
+    const organizationId = currentUser.current_organization_id
+    if (!organizationId) {
+      throw new BusinessLogicException('Không tìm thấy ID tổ chức hiện tại')
+    }
 
-      if (result.exists) {
-        response.json({ exists: true, conversation: result.conversation })
-        return
-      }
+    const query = new CheckExistingConversationQuery(ExecutionContext.fromHttp(ctx))
+    const result = await query.execute(organizationId, currentUser.id, participantsList)
 
-      response.json({ exists: false })
-      return
-    } catch (error) {
-      const err = error as Error
-      loggerService.error('Lỗi khi kiểm tra cuộc hội thoại đã tồn tại', err)
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: 'Lỗi khi kiểm tra cuộc hội thoại đã tồn tại',
-        error: err.message,
-      })
+    if (result.exists) {
+      response.json({ exists: true, conversation: result.conversation })
       return
     }
+
+    response.json({ exists: false })
   }
 }

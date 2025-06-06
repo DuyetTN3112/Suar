@@ -9,16 +9,11 @@ export default class RemoveProfileSkillController {
   async handle(ctx: HttpContext) {
     const { response, session, params } = ctx
 
-    try {
-      const dto = new RemoveUserSkillDTO(params.id as string)
-      const command = new RemoveUserSkillCommand(ctx)
-      await command.handle(dto)
+    const dto = new RemoveUserSkillDTO(params.id as string)
+    const command = new RemoveUserSkillCommand(ctx)
+    await command.handle(dto)
 
-      session.flash('success', 'Skill removed successfully')
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to remove skill'
-      session.flash('error', message)
-    }
+    session.flash('success', 'Skill removed successfully')
 
     response.redirect().back()
   }

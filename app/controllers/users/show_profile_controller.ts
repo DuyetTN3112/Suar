@@ -5,7 +5,6 @@ import GetUserProfileQuery, {
 import GetSpiderChartDataQuery, {
   GetSpiderChartDataDTO,
 } from '#actions/users/queries/get_spider_chart_data_query'
-import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
@@ -19,13 +18,10 @@ export default class ShowProfileController {
     }
     const userId = currentUser.id
 
-    const query = new GetUserProfileQuery(ctx)
-    const user = await query.handle(new GetUserProfileDTO(userId))
-
-    const spiderChartQuery = new GetSpiderChartDataQuery(ctx)
-    const spiderChartData = await spiderChartQuery.handle(new GetSpiderChartDataDTO(userId))
-
-    const completeness = calculateProfileCompleteness(user.serialize())
+    const [{ user, completeness }, spiderChartData] = await Promise.all([
+      new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
+      new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
+    ])
 
     return ctx.inertia.render('profile/show', {
       user: user.serialize(),

@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
 import CheckJoinEligibilityQuery from '#actions/organizations/queries/check_join_eligibility_query'
-import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET/POST /organizations/:id/join
@@ -23,73 +23,28 @@ export default class JoinOrganizationController {
     const eligibility = await CheckJoinEligibilityQuery.execute(organizationId, user.id)
 
     if (!eligibility.organization) {
-      if (
-        request.accepts(['html', 'json']) === 'json' ||
-        request.header('X-Requested-With') === 'XMLHttpRequest'
-      ) {
-        response.status(HttpStatus.NOT_FOUND).json({
-          success: false,
-          message: eligibility.message!,
-        })
-        return
-      }
-      session.flash('error', eligibility.message!)
-      response.redirect().back()
-      return
+      throw new BusinessLogicException(eligibility.message)
     }
 
     if (!eligibility.eligible) {
-      if (
-        request.accepts(['html', 'json']) === 'json' ||
-        request.header('X-Requested-With') === 'XMLHttpRequest'
-      ) {
-        response.json({
-          success: false,
-          message: eligibility.message!,
-          organization: eligibility.organization,
-          membership: eligibility.existingMembership,
-        })
-        return
-      }
-      session.flash('info', eligibility.message!)
-      response.redirect().toRoute('organizations.show', { id: organizationId })
-      return
+      throw new BusinessLogicException(eligibility.message)
     }
 
-    try {
-      await createJoinRequest.execute(organizationId)
+    await createJoinRequest.execute(organizationId)
 
-      const contentType = request.accepts(['html', 'json'])
-      const xmlHttpHeader = request.header('X-Requested-With')
-      const isXMLHttp = xmlHttpHeader === 'XMLHttpRequest'
+    const contentType = request.accepts(['html', 'json'])
+    const xmlHttpHeader = request.header('X-Requested-With')
+    const isXMLHttp = xmlHttpHeader === 'XMLHttpRequest'
 
-      if (contentType === 'json' || isXMLHttp) {
-        response.json({
-          success: true,
-          message: 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt',
-          organization: eligibility.organization,
-        })
-        return
-      }
-      session.flash('success', 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt')
-      response.redirect().toRoute('organizations.index')
-      return
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Có lỗi xảy ra khi xử lý yêu cầu tham gia tổ chức'
-      if (
-        request.accepts(['html', 'json']) === 'json' ||
-        request.header('X-Requested-With') === 'XMLHttpRequest'
-      ) {
-        response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-          success: false,
-          message: errorMessage,
-        })
-        return
-      }
-      session.flash('error', errorMessage)
-      response.redirect().back()
+    if (contentType === 'json' || isXMLHttp) {
+      response.json({
+        success: true,
+        message: 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt',
+        organization: eligibility.organization,
+      })
       return
     }
+    session.flash('success', 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt')
+    response.redirect().toRoute('organizations.index')
   }
 }

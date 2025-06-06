@@ -9,16 +9,11 @@ export default class UpdateProfileDetailsController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
 
-    try {
-      const dto = new UpdateUserDetailsDTO(request.all())
-      const command = new UpdateUserDetailsCommand(ctx)
-      await command.handle(dto)
+    const dto = new UpdateUserDetailsDTO(request.all())
+    const command = new UpdateUserDetailsCommand(ctx)
+    await command.handle(dto)
 
-      session.flash('success', 'Profile updated successfully')
-    } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to update profile'
-      session.flash('error', message)
-    }
+    session.flash('success', 'Profile updated successfully')
 
     response.redirect().back()
   }

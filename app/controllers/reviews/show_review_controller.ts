@@ -11,10 +11,11 @@ export default class ShowReviewController {
   async handle(ctx: HttpContext) {
     const { params, inertia } = ctx
 
-    const query = new GetReviewSessionQuery(ctx)
-    const session = await query.handle(new GetReviewSessionDTO(params.id as string))
+    const [session, skills] = await Promise.all([
+      new GetReviewSessionQuery(ctx).handle(new GetReviewSessionDTO(params.id as string)),
+      GetActiveSkillsQuery.execute(),
+    ])
 
-    const skills = await GetActiveSkillsQuery.execute()
     const proficiencyLevels = proficiencyLevelOptions
 
     return inertia.render('reviews/show', {

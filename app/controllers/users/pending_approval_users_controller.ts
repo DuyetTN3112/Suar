@@ -39,8 +39,10 @@ export default class PendingApprovalUsersController {
       )
     )
 
-    const users = await getUsersListQuery.handle(dto)
-    const metadata = await getUserMetadata.handle()
+    const [users, metadata] = await Promise.all([
+      getUsersListQuery.handle(dto),
+      getUserMetadata.handle(),
+    ])
 
     return inertia.render('users/pending_approval', {
       users,

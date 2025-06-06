@@ -74,3 +74,38 @@ export const taskFilterValidator = vine.create(
     limit: vine.number().optional(),
   })
 )
+
+/**
+ * Validator cho ứng tuyển vào task
+ */
+export const applyForTaskValidator = vine.create(
+  vine.object({
+    message: vine.string().optional(),
+    expected_rate: vine.number().optional(),
+    portfolio_links: vine.string().optional(),
+    application_source: vine.enum(['direct', 'referral', 'platform'] as const),
+  })
+)
+
+/**
+ * Validator cho xử lý đơn ứng tuyển (approve/reject)
+ */
+export const processApplicationValidator = vine.create(
+  vine.object({
+    action: vine.enum(['approve', 'reject'] as const),
+    rejection_reason: vine.string().optional(),
+    assignment_type: vine.enum(['salary', 'budget', 'volunteer'] as const),
+    estimated_hours: vine.number().optional(),
+  })
+)
+
+/**
+ * Validator cho danh sách đơn ứng tuyển của task
+ */
+export const listTaskApplicationsValidator = vine.create(
+  vine.object({
+    status: vine.enum(['pending', 'approved', 'rejected', 'withdrawn'] as const).optional(),
+    page: vine.number().min(1).optional(),
+    per_page: vine.number().min(1).max(100).optional(),
+  })
+)

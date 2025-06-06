@@ -8,19 +8,11 @@ import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_
 export default class DeleteProjectController {
   async handle(ctx: HttpContext) {
     const { params, response, session } = ctx
-    try {
-      const dto = new DeleteProjectDTO({ project_id: params.id as string })
-      const command = new DeleteProjectCommand(ctx)
-      await command.handle(dto)
+    const dto = new DeleteProjectDTO({ project_id: params.id as string })
+    const command = new DeleteProjectCommand(ctx)
+    await command.handle(dto)
 
-      session.flash('success', 'Dự án đã được xóa thành công')
-      response.redirect().toRoute('projects.index')
-      return
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi xóa dự án'
-      session.flash('error', errorMessage)
-      response.redirect().back()
-      return
-    }
+    session.flash('success', 'Dự án đã được xóa thành công')
+    response.redirect().toRoute('projects.index')
   }
 }

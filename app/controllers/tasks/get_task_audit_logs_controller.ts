@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_query'
-import { HttpStatus } from '#constants/error_constants'
 
 /**
  * GET /tasks/:id/audit-logs
@@ -8,26 +7,16 @@ import { HttpStatus } from '#constants/error_constants'
  */
 export default class GetTaskAuditLogsController {
   async handle(ctx: HttpContext) {
-    try {
-      const taskId = ctx.params.id as string
-      const limit = ctx.request.input('limit', 20) as number
+    const taskId = ctx.params.id as string
+    const limit = ctx.request.input('limit', 20) as number
 
-      const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
-      const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
+    const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
+    const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
 
-      ctx.response.json({
-        success: true,
-        data: auditLogs,
-      })
-      return
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải lịch sử thay đổi'
-      ctx.response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        success: false,
-        message: errorMessage,
-      })
-      return
-    }
+    ctx.response.json({
+      success: true,
+      data: auditLogs,
+    })
+    return
   }
 }

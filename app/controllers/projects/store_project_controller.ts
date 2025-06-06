@@ -10,20 +10,12 @@ import { ProjectVisibility } from '#constants/project_constants'
 export default class StoreProjectController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    try {
-      const dto = this.buildCreateDTO(request)
-      const command = new CreateProjectCommand(ctx)
-      const project = await command.handle(dto)
+    const dto = this.buildCreateDTO(request)
+    const command = new CreateProjectCommand(ctx)
+    const project = await command.handle(dto)
 
-      session.flash('success', 'Dự án đã được tạo thành công')
-      response.redirect().toRoute('projects.show', { id: project.id })
-      return
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Có lỗi xảy ra khi tạo dự án'
-      session.flash('error', errorMessage)
-      response.redirect().back()
-      return
-    }
+    session.flash('success', 'Dự án đã được tạo thành công')
+    response.redirect().toRoute('projects.show', { id: project.id })
   }
 
   private buildCreateDTO(request: HttpContext['request']): CreateProjectDTO {

@@ -32,9 +32,13 @@ const isHttpError = (err: unknown): err is HttpError => {
 
 /**
  * Kiểm tra xem request có phải là API request không
+ * - URL bắt đầu bằng /api/
+ * - Hoặc client Accept JSON nhưng KHÔNG phải Inertia (AJAX thuần)
  */
 const isApiRequest = (request: HttpContext['request']): boolean => {
-  return request.url().startsWith('/api/')
+  if (request.url().startsWith('/api/')) return true
+  if (request.header('X-Inertia')) return false
+  return request.accepts(['json', 'html']) === 'json'
 }
 
 /**

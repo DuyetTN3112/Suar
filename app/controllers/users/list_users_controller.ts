@@ -30,10 +30,12 @@ export default class ListUsersController {
     )
 
     const getUsersListQuery = new GetUsersListQuery(ctx)
-    const users = await getUsersListQuery.handle(dto)
-
     const getUserMetadata = new GetUserMetadata(ctx)
-    const metadata = await getUserMetadata.handle()
+
+    const [users, metadata] = await Promise.all([
+      getUsersListQuery.handle(dto),
+      getUserMetadata.handle(),
+    ])
 
     return inertia.render('users/index', {
       users,

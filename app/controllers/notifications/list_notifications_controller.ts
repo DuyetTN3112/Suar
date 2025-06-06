@@ -12,17 +12,11 @@ export default class ListNotificationsController {
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 15))
     const unreadOnly = request.input('unread_only') === 'true'
-    try {
-      const result = await getUserNotifications.handle({ page, limit, unread_only: unreadOnly })
-      return await inertia.render('notifications/index', {
-        notifications: result.notifications,
-        unread_count: result.unread_count,
-        filters: { page, limit, unread_only: unreadOnly },
-      })
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Có lỗi xảy ra khi tải thông báo'
-      return inertia.render('notifications/index', { error: errorMessage })
-    }
+    const result = await getUserNotifications.handle({ page, limit, unread_only: unreadOnly })
+    return await inertia.render('notifications/index', {
+      notifications: result.notifications,
+      unread_count: result.unread_count,
+      filters: { page, limit, unread_only: unreadOnly },
+    })
   }
 }

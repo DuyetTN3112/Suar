@@ -1,8 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { exec } from 'node:child_process'
 import { promisify } from 'node:util'
-import { getErrorMessage } from '#libs/error_utils'
-import { HttpStatus } from '#constants/error_constants'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 const execAsync = promisify(exec)
 
@@ -14,49 +13,36 @@ export default class DevController {
   restart({ response, logger }: HttpContext) {
     // Kiểm tra môi trường
     if (process.env.NODE_ENV !== 'development') {
-      response.status(HttpStatus.FORBIDDEN).json({
-        error: 'Chỉ có thể khởi động lại server trong môi trường development',
-      })
-      return
+      throw new ForbiddenException('Chỉ có thể khởi động lại server trong môi trường development')
     }
 
-    try {
-      logger.info('Đang khởi động lại dev server...')
+    logger.info('Đang khởi động lại dev server...')
 
-      // Lưu process ID để restart
-      const pid = process.pid
-      logger.info(`Process ID: ${String(pid)}`)
+    // Lưu process ID để restart
+    const pid = process.pid
+    logger.info(`Process ID: ${String(pid)}`)
 
-      // Thực hiện restart sau 1 giây
-      setTimeout(() => {
-        void (async () => {
-          try {
-            // Thực hiện restart dựa trên OS
-            if (process.platform === 'win32') {
-              // Windows
-              await execAsync(`taskkill /F /PID ${String(pid)} & npm run dev`)
-            } else {
-              // Linux/Mac
-              await execAsync(`kill -9 ${String(pid)} && npm run dev &`)
-            }
-          } catch (error) {
-            logger.error('Lỗi khi khởi động lại server:', error)
+    // Thực hiện restart sau 1 giây
+    setTimeout(() => {
+      void (async () => {
+        try {
+          // Thực hiện restart dựa trên OS
+          if (process.platform === 'win32') {
+            // Windows
+            await execAsync(`taskkill /F /PID ${String(pid)} & npm run dev`)
+          } else {
+            // Linux/Mac
+            await execAsync(`kill -9 ${String(pid)} && npm run dev &`)
           }
-        })()
-      }, 1000)
+        } catch (error) {
+          logger.error('Lỗi khi khởi động lại server:', error)
+        }
+      })()
+    }, 1000)
 
-      response.json({
-        success: true,
-        message: 'Đang khởi động lại dev server...',
-      })
-      return
-    } catch (error: unknown) {
-      logger.error('Lỗi khi xử lý yêu cầu khởi động lại:', error)
-      response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
-        error: 'Không thể khởi động lại server',
-        details: getErrorMessage(error, 'Unknown error'),
-      })
-      return
-    }
+    response.json({
+      success: true,
+      message: 'Đang khởi động lại dev server...',
+    })
   }
 }
