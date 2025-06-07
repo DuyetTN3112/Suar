@@ -1,0 +1,58 @@
+{
+  "extends": "@adonisjs/tsconfig/tsconfig.app.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./build",
+    "rewriteRelativeImportExtensions": true,
+
+    /* 🚨 STRICT MODE - Kiểm tra nghiêm ngặt */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false, // Tắt để tương thích với Lucid ORM decorators
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* 🔍 Kiểm tra bổ sung - Code quality */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+
+    /* 🛡️ Safer indexing */
+    "noUncheckedIndexedAccess": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "exactOptionalPropertyTypes": true,
+
+    "paths": {
+      "#*": ["./app/*"],
+      "#mails/*": ["./app/mails/*"],
+      "#platform/*": ["./app/infra/*"],
+      "#services/*": ["./app/services/*"],
+      "#providers/*": ["./providers/*"],
+      "#policies/*": ["./app/policies/*"],
+      "#abilities/*": ["./app/abilities/*"],
+      "#database/*": ["./database/*"],
+      "#composition/*": ["./app/composition/*"],
+      "#start/*": ["./start/*"],
+      "#config/*": ["./config/*"],
+      "#types/*": ["./app/types/*"],
+      "#utils/*": ["./app/utils/*"],
+      "#modules/*": ["./app/modules/*"],
+      "#tests/*": ["./tests/*"]
+    }
+  },
+  "exclude": [
+    "./inertia/**/*",
+    "./inertia/tests/component/**/*",
+    "./.cache/**/*",
+    "node_modules",
+    "build"
+  ]
+}
