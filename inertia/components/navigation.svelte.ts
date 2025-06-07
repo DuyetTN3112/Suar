@@ -70,6 +70,12 @@ const navigationData = [
         iconName: 'MessageSquare',
       },
       {
+        title: 'Thông báo',
+        titleKey: 'navigation.notifications',
+        url: '/notifications',
+        iconName: 'Bell',
+      },
+      {
         title: 'Người dùng',
         titleKey: 'navigation.users',
         url: '/users',
@@ -88,6 +94,12 @@ const navigationData = [
         iconName: 'Building',
       },
       {
+        title: 'Tất cả tổ chức',
+        titleKey: 'navigation.all_organizations',
+        url: '/all-organizations',
+        iconName: 'Globe',
+      },
+      {
         title: 'Dự án',
         titleKey: 'navigation.projects',
         url: '/projects',
@@ -96,9 +108,27 @@ const navigationData = [
     ],
   },
   {
+    title: 'Ứng tuyển',
+    titleKey: 'navigation.applications',
+    items: [
+      {
+        title: 'Đơn của tôi',
+        titleKey: 'navigation.my_applications',
+        url: '/my-applications',
+        iconName: 'FileText',
+      },
+    ],
+  },
+  {
     title: 'Cài đặt',
     titleKey: 'navigation.settings',
     items: [
+      {
+        title: 'Hồ sơ',
+        titleKey: 'navigation.profile',
+        url: '/profile',
+        iconName: 'UserCircle',
+      },
       {
         title: 'Cài đặt',
         titleKey: 'navigation.settings',
