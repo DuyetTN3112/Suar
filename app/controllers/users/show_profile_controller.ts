@@ -23,8 +23,11 @@ export default class ShowProfileController {
       new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
     ])
 
+    // user may be a Lucid model (fresh) or plain object (from cache)
+    const serializedUser = typeof user.serialize === 'function' ? user.serialize() : user
+
     return ctx.inertia.render('profile/show', {
-      user: user.serialize(),
+      user: serializedUser,
       completeness,
       spiderChartData,
     })

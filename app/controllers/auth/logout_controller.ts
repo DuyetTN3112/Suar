@@ -27,26 +27,12 @@ export default class LogoutController {
       ipAddress: request.ip(),
     })
 
-    // 2. Execute command
+    // 2. Execute command (clears auth, session data)
     const command = new LogoutUserCommand(ctx)
     await command.handle(dto)
 
-    // 3. Set success message
-    session.flash('success', 'Đã đăng xuất thành công')
-
-    // 4. Redirect to login
-    await this.redirectToLogin(request, response, inertia)
-  }
-
-  /**
-   * Redirect to login page
-   * Supports both Inertia and regular redirects
-   */
-  private async redirectToLogin(
-    request: HttpContext['request'],
-    response: HttpContext['response'],
-    inertia: HttpContext['inertia']
-  ) {
+    // 3. Redirect to login — always use inertia.location for full page redirect
+    //    (session.flash won't work after session is cleared)
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
       inertia.location('/login')
