@@ -1,7 +1,5 @@
-import { writable, get } from 'svelte/store'
 import axios from 'axios'
 
-// Check if we're in browser (not SSR)
 const browser = typeof window !== 'undefined'
 
 export interface Notification {
@@ -19,7 +17,6 @@ export interface Notification {
   updated_at: string
 }
 
-// Raw notification data from API
 interface RawNotification {
   id?: string
   user_id?: string
@@ -35,169 +32,116 @@ interface RawNotification {
   read_at?: string | null
 }
 
-interface NotificationsState {
-  notifications: Notification[]
-  unreadCount: number
-  loading: boolean
-  error: string | null
-}
-
 function getCsrfToken(): string {
   if (!browser) return ''
   return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 }
 
-function createNotificationsStore() {
-  const { subscribe, set, update } = writable<NotificationsState>({
-    notifications: [],
-    unreadCount: 0,
-    loading: false,
-    error: null,
-  })
-
+function getHeaders() {
   return {
-    subscribe,
-
-    // Lấy thông báo mới nhất
-    fetchLatest: async (limit: number = 10) => {
-      update((state) => ({ ...state, loading: true }))
-
-      try {
-        const response = await axios.get('/notifications/latest', {
-          params: { limit },
-          headers: {
-            'X-CSRF-TOKEN': getCsrfToken(),
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        })
-
-        const notificationsData = response.data.notifications || []
-        const unreadCountData = response.data.unread_count || 0
-
-        const processedNotifications: Notification[] = notificationsData.map(
-          (notification: RawNotification) => ({
-            id: notification.id ?? '',
-            user_id: notification.user_id ?? '',
-            title: notification.title ?? '',
-            message: notification.message ?? '',
-            is_read: notification.is_read ?? false,
-            type: notification.type ?? 'default',
-            related_entity_type: notification.related_entity_type ?? null,
-            related_entity_id: notification.related_entity_id ?? null,
-            metadata: notification.metadata ?? null,
-            created_at: notification.created_at ?? new Date().toISOString(),
-            updated_at: notification.updated_at ?? new Date().toISOString(),
-            read_at: notification.read_at ?? null,
-          })
-        )
-
-        update((state) => ({
-          ...state,
-          notifications: processedNotifications,
-          unreadCount: unreadCountData,
-          loading: false,
-          error: null,
-        }))
-      } catch (err: unknown) {
-        console.error('Lỗi khi tải thông báo:', err)
-        const errorMessage = err instanceof Error ? err.message : 'Không thể tải thông báo'
-        update((state) => ({
-          ...state,
-          loading: false,
-          error: errorMessage,
-        }))
-      }
-    },
-
-    // Đánh dấu thông báo đã đọc
-    markAsRead: async (id: string) => {
-      try {
-        await axios.post(
-          `/notifications/${id}/read`,
-          {},
-          {
-            headers: {
-              'X-CSRF-TOKEN': getCsrfToken(),
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          }
-        )
-
-        update((state) => ({
-          ...state,
-          notifications: state.notifications.map((n) =>
-            n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
-          ),
-          unreadCount: Math.max(0, state.unreadCount - 1),
-        }))
-      } catch (err) {
-        console.error('Lỗi khi đánh dấu đã đọc:', err)
-      }
-    },
-
-    // Đánh dấu tất cả đã đọc
-    markAllAsRead: async () => {
-      try {
-        await axios.post(
-          '/notifications/read-all',
-          {},
-          {
-            headers: {
-              'X-CSRF-TOKEN': getCsrfToken(),
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          }
-        )
-
-        update((state) => ({
-          ...state,
-          notifications: state.notifications.map((n) => ({
-            ...n,
-            is_read: true,
-            read_at: new Date().toISOString(),
-          })),
-          unreadCount: 0,
-        }))
-      } catch (err) {
-        console.error('Lỗi khi đánh dấu tất cả đã đọc:', err)
-      }
-    },
-
-    // Xóa thông báo
-    deleteNotification: async (id: string) => {
-      try {
-        await axios.delete(`/notifications/${id}`, {
-          headers: {
-            'X-CSRF-TOKEN': getCsrfToken(),
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-        })
-
-        update((state) => {
-          const notification = state.notifications.find((n) => n.id === id)
-          return {
-            ...state,
-            notifications: state.notifications.filter((n) => n.id !== id),
-            unreadCount:
-              notification && !notification.is_read
-                ? Math.max(0, state.unreadCount - 1)
-                : state.unreadCount,
-          }
-        })
-      } catch (err) {
-        console.error('Lỗi khi xóa thông báo:', err)
-      }
-    },
+    'X-CSRF-TOKEN': getCsrfToken(),
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   }
 }
 
-export const notificationsStore = createNotificationsStore()
+// Svelte 5 runes-based notification state
+let notifications = $state<Notification[]>([])
+let unreadCount = $state(0)
+let loading = $state(false)
+let error = $state<string | null>(null)
+let fetched = $state(false)
 
-// Hook-like function
+async function fetchLatest(limit: number = 10) {
+  if (!browser) return
+  loading = true
+  try {
+    const response = await axios.get('/notifications/latest', {
+      params: { limit },
+      headers: getHeaders(),
+    })
+    const data = response.data.notifications || []
+    const unread = response.data.unread_count || 0
+
+    notifications = data.map((n: RawNotification) => ({
+      id: n.id ?? '',
+      user_id: n.user_id ?? '',
+      title: n.title ?? '',
+      message: n.message ?? '',
+      is_read: n.is_read ?? false,
+      type: n.type ?? 'default',
+      related_entity_type: n.related_entity_type ?? null,
+      related_entity_id: n.related_entity_id ?? null,
+      metadata: n.metadata ?? null,
+      created_at: n.created_at ?? new Date().toISOString(),
+      updated_at: n.updated_at ?? new Date().toISOString(),
+      read_at: n.read_at ?? null,
+    }))
+    unreadCount = unread
+    error = null
+    fetched = true
+  } catch {
+    // Silently handle — notifications table may not exist yet
+    notifications = []
+    unreadCount = 0
+    error = null
+    fetched = true
+  } finally {
+    loading = false
+  }
+}
+
+async function markAsRead(id: string) {
+  try {
+    await axios.post(`/notifications/${id}/mark-as-read`, {}, { headers: getHeaders() })
+    notifications = notifications.map((n) =>
+      n.id === id ? { ...n, is_read: true, read_at: new Date().toISOString() } : n
+    )
+    unreadCount = Math.max(0, unreadCount - 1)
+  } catch { /* ignore */ }
+}
+
+async function markAllAsRead() {
+  try {
+    await axios.post('/notifications/mark-all-as-read', {}, { headers: getHeaders() })
+    notifications = notifications.map((n) => ({
+      ...n,
+      is_read: true,
+      read_at: new Date().toISOString(),
+    }))
+    unreadCount = 0
+  } catch { /* ignore */ }
+}
+
+async function deleteNotification(id: string) {
+  try {
+    const target = notifications.find((n) => n.id === id)
+    await axios.delete(`/notifications/${id}`, { headers: getHeaders() })
+    notifications = notifications.filter((n) => n.id !== id)
+    if (target && !target.is_read) {
+      unreadCount = Math.max(0, unreadCount - 1)
+    }
+  } catch { /* ignore */ }
+}
+
+async function refresh() {
+  await fetchLatest()
+}
+
 export function useNotifications() {
-  return notificationsStore
+  // Auto-fetch on first use
+  if (browser && !fetched && !loading) {
+    fetchLatest()
+  }
+
+  return {
+    get notifications() { return notifications },
+    get unreadCount() { return unreadCount },
+    get loading() { return loading },
+    get error() { return error },
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    refresh,
+  }
 }

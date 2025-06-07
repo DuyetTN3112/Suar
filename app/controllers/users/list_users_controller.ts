@@ -15,7 +15,14 @@ export default class ListUsersController {
 
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
-    const organizationId = auth.user?.current_organization_id ?? ''
+    const organizationId = auth.user?.current_organization_id
+    if (!organizationId) {
+      return inertia.render('users/index', {
+        users: { data: [], meta: { total: 0, per_page: limit, current_page: page, last_page: 1 } },
+        metadata: { roles: [], statuses: [], total_count: 0 },
+        filters: { page, limit, role: undefined, status: undefined, search: undefined },
+      })
+    }
 
     const dto = new GetUsersListDTO(
       new PaginationDTO(page, limit),

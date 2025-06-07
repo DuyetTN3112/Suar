@@ -25,7 +25,11 @@ export default class PendingApprovalUsersController {
 
     const page = Number(request.input('page', 1))
     const limit = Number(request.input('limit', 10))
-    const organizationId = auth.user?.current_organization_id ?? ''
+    const organizationId = auth.user?.current_organization_id
+    if (!organizationId) {
+      inertia.location('/users')
+      return
+    }
 
     const dto = new GetUsersListDTO(
       new PaginationDTO(page, limit),
