@@ -53,7 +53,7 @@
   }
 </script>
 
-<header class="border-b bg-background px-4 py-3">
+<header class="border-b-2 border-border bg-background px-4 py-3">
   <div class="flex items-center justify-between">
     <div class="flex items-center gap-2 lg:gap-4">
       <Button

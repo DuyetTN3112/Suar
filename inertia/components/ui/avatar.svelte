@@ -26,7 +26,7 @@
 <AvatarPrimitive.Root
   data-slot="avatar"
   class={cn(
-    'relative flex size-8 shrink-0 overflow-hidden rounded-full',
+    'relative flex size-8 shrink-0 overflow-hidden rounded-full border-2 border-border',
     className
   )}
   {...restProps}

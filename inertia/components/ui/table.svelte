@@ -22,7 +22,7 @@
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<div data-slot="table-container" class="relative w-full overflow-x-auto">
+<div data-slot="table-container" class="relative w-full overflow-x-auto rounded-md border-2 border-border shadow-neo">
   <table
     data-slot="table"
     class={cn('w-full caption-bottom text-sm', className)}

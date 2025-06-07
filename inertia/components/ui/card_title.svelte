@@ -18,7 +18,7 @@
 </script>
 
 <h3
-  class={cn('text-2xl font-semibold leading-none tracking-tight', className)}
+  class={cn('text-2xl font-bold leading-none tracking-tight', className)}
   {...restProps}
 >
   {@render children?.()}

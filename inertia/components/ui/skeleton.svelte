@@ -17,6 +17,6 @@
 
 <div
   data-slot="skeleton"
-  class={cn('bg-accent animate-pulse rounded-md', className)}
+  class={cn('bg-accent animate-pulse rounded-md border-2 border-border/30', className)}
   {...restProps}
 />

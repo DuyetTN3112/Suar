@@ -35,6 +35,20 @@
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
 
+  /* Neo-Brutalism accent colors */
+  --color-neo-pink: var(--neo-pink);
+  --color-neo-blue: var(--neo-blue);
+  --color-neo-green: var(--neo-green);
+  --color-neo-orange: var(--neo-orange);
+  --color-neo-purple: var(--neo-purple);
+  --color-neo-lime: var(--neo-lime);
+  --color-neo-peach: var(--neo-peach);
+
+  /* Neo-Brutalism shadows */
+  --shadow-neo: var(--neo-shadow);
+  --shadow-neo-sm: var(--neo-shadow-sm);
+  --shadow-neo-lg: var(--neo-shadow-lg);
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -60,58 +74,81 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    /* Neo-Brutalism Light Mode */
+    --background: 60 9% 98%;
+    --foreground: 240 20% 10%;
+    --card: 60 9% 98%;
+    --card-foreground: 240 20% 10%;
+    --popover: 60 9% 98%;
+    --popover-foreground: 240 20% 10%;
+    --primary: 0 100% 71%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 174 59% 55%;
+    --secondary-foreground: 240 20% 10%;
+    --muted: 45 30% 93%;
+    --muted-foreground: 240 10% 45%;
+    --accent: 50 100% 71%;
+    --accent-foreground: 240 20% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 100% 71%;
+    --radius: 6px;
+
+    /* Neo-Brutalism tokens */
+    --neo-border-width: 2px;
+    --neo-shadow: 4px 4px 0px 0px #000;
+    --neo-shadow-sm: 2px 2px 0px 0px #000;
+    --neo-shadow-lg: 6px 6px 0px 0px #000;
+    --neo-translate: 4px;
+    --neo-translate-sm: 2px;
+
+    /* Neo accent colors */
+    --neo-pink: #FF8FAB;
+    --neo-blue: #89CFF0;
+    --neo-green: #77DD77;
+    --neo-orange: #FFB347;
+    --neo-purple: #B19CD9;
+    --neo-lime: #BFFF00;
+    --neo-peach: #FFDAB9;
 
     /* Sidebar variables */
-    --sidebar: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar: 45 30% 93%;
+    --sidebar-foreground: 240 20% 10%;
+    --sidebar-border: 0 0% 0%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Neo-Brutalism Dark Mode */
+    --background: 240 20% 8%;
+    --foreground: 60 9% 95%;
+    --card: 240 18% 12%;
+    --card-foreground: 60 9% 95%;
+    --popover: 240 18% 12%;
+    --popover-foreground: 60 9% 95%;
+    --primary: 0 100% 71%;
+    --primary-foreground: 240 20% 8%;
+    --secondary: 174 59% 45%;
+    --secondary-foreground: 60 9% 95%;
+    --muted: 240 15% 18%;
+    --muted-foreground: 240 10% 60%;
+    --accent: 50 100% 65%;
+    --accent-foreground: 240 20% 10%;
+    --destructive: 0 84% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 80%;
+    --input: 0 0% 80%;
+    --ring: 0 100% 71%;
+
+    --neo-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.2);
+    --neo-shadow-sm: 2px 2px 0px 0px rgba(255, 255, 255, 0.2);
+    --neo-shadow-lg: 6px 6px 0px 0px rgba(255, 255, 255, 0.2);
 
     /* Sidebar variables for dark mode */
-    --sidebar: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar: 240 15% 18%;
+    --sidebar-foreground: 60 9% 95%;
+    --sidebar-border: 0 0% 80%;
   }
 
   * {
@@ -141,11 +178,11 @@
   }
 
   .settings-link {
-    @apply m-[1px] p-2 rounded font-semibold text-primary;
+    @apply m-[1px] p-2 rounded font-bold text-foreground;
   }
 
   .settings-link.active {
-    @apply bg-white shadow-sm m-0 border;
+    @apply bg-accent shadow-neo-sm m-0 border-2 border-border;
   }
   /* Lớp bảo vệ chống tấn công Zalgo và các tin nhắn độc hại */
   .user-content {
@@ -240,17 +277,19 @@
   }
 }
 
-/* Kiểu tin nhắn đến và tin nhắn đi */
+/* Neo-Brutalism message styles */
 .message-incoming {
-  border-radius: 1rem 1rem 1rem 0;
+  border-radius: 0.75rem 0.75rem 0.75rem 0;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--neo-shadow-sm);
 }
 
 .message-outgoing {
-  border-radius: 1rem 1rem 0 1rem;
+  border-radius: 0.75rem 0.75rem 0 0.75rem;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--neo-shadow-sm);
   animation: fadeIn 0.3s ease-out;
 }
 

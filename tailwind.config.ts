@@ -4,7 +4,7 @@ import animate from 'tailwindcss-animate'
 const config: Config = {
   darkMode: 'class',
   content: [
-    './inertia/{pages,components,app,layouts}/**/*.{ts,tsx,jsx,js}',
+    './inertia/{pages,components,app,layouts}/**/*.{ts,tsx,jsx,js,svelte}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './resources/**/*.{edge,js,ts,jsx,tsx,vue}',
   ],
@@ -56,11 +56,33 @@ const config: Config = {
           foreground: 'hsl(var(--sidebar-foreground))',
           border: 'hsl(var(--sidebar-border))',
         },
+        neo: {
+          pink: 'var(--neo-pink)',
+          blue: 'var(--neo-blue)',
+          green: 'var(--neo-green)',
+          orange: 'var(--neo-orange)',
+          purple: 'var(--neo-purple)',
+          lime: 'var(--neo-lime)',
+          peach: 'var(--neo-peach)',
+        },
       },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+      },
+      borderWidth: {
+        neo: 'var(--neo-border-width)',
+      },
+      boxShadow: {
+        neo: 'var(--neo-shadow)',
+        'neo-sm': 'var(--neo-shadow-sm)',
+        'neo-lg': 'var(--neo-shadow-lg)',
+        'neo-none': '0 0 0 0 #000',
+      },
+      translate: {
+        neo: 'var(--neo-translate)',
+        'neo-sm': 'var(--neo-translate-sm)',
       },
       keyframes: {
         'accordion-down': {
