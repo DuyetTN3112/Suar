@@ -7,7 +7,7 @@ import UpdateUserSettings from '#actions/settings/update_user_settings'
 export default class UpdateDisplaySettingsController {
   handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const updateUserSettings = new UpdateUserSettings(ctx)
+    const updateUserSettings = new UpdateUserSettings()
 
     const data = request.only(['layout', 'density', 'animations_enabled', 'custom_scrollbars']) as {
       layout?: string

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 
 /**
@@ -7,7 +8,7 @@ import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_
 export default class ShowProjectController {
   async handle(ctx: HttpContext) {
     const { params, inertia } = ctx
-    const query = new GetProjectDetailQuery(ctx)
+    const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
     const result = await query.handle({ projectId })
 

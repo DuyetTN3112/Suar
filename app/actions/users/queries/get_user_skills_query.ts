@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
@@ -39,8 +39,8 @@ interface UserSkillResult {
  * Uses caching for performance (5 min TTL)
  */
 export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, UserSkillResult[]> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   /**

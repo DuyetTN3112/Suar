@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetMyApplicationsQuery from '#actions/tasks/queries/get_my_applications_query'
 import { ApplicationStatus } from '#constants/task_constants'
 
@@ -17,7 +18,7 @@ export default class MyApplicationsController {
   async handle(ctx: HttpContext) {
     const { request, inertia } = ctx
 
-    const query = new GetMyApplicationsQuery(ctx)
+    const query = new GetMyApplicationsQuery(ExecutionContext.fromHttp(ctx))
     const statusFilter = validateStatus(String(request.input('status', 'all')))
     const result = await query.handle({
       status: statusFilter,

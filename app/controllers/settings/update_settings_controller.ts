@@ -8,7 +8,7 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 export default class UpdateSettingsController {
   handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const updateUserSettings = new UpdateUserSettings(ctx)
+    const updateUserSettings = new UpdateUserSettings()
 
     const data = request.only(['theme', 'notifications_enabled', 'display_mode']) as {
       theme?: string

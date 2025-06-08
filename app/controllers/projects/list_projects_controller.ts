@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
 import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
 import { ProjectVisibility } from '#constants/project_constants'
@@ -10,7 +11,7 @@ export default class ListProjectsController {
   async handle(ctx: HttpContext) {
     const { inertia, session, request } = ctx
     const dto = this.buildListDTO(request)
-    const query = new GetProjectsListQuery(ctx)
+    const query = new GetProjectsListQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
     const showOrganizationRequiredModal = session.has('show_organization_required_modal')
 

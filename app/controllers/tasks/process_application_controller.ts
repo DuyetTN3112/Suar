@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
 import { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -23,7 +24,7 @@ export default class ProcessApplicationController {
       estimated_hours: request.input('estimated_hours') as number | undefined,
     })
 
-    const command = new ProcessApplicationCommand(ctx)
+    const command = new ProcessApplicationCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     const message =

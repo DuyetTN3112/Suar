@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -29,7 +30,7 @@ export default class SubmitReviewController {
       })),
     })
 
-    const command = new SubmitSkillReviewCommand(ctx)
+    const command = new SubmitSkillReviewCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Review submitted successfully')

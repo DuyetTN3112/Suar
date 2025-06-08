@@ -6,7 +6,7 @@ import GetUserMetadata from '#actions/users/get_user_metadata'
  */
 export default class CreateUserController {
   async handle(ctx: HttpContext) {
-    const getUserMetadata = new GetUserMetadata(ctx)
+    const getUserMetadata = new GetUserMetadata()
     const { inertia } = ctx
     const metadata = await getUserMetadata.handle()
     return inertia.render('users/create', { metadata })

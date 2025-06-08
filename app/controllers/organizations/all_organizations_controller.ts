@@ -13,7 +13,7 @@ export default class AllOrganizationsController {
     }
     const user = auth.user
 
-    const getAllOrganizations = new GetAllOrganizationsQuery({ auth, inertia } as any)
+    const getAllOrganizations = new GetAllOrganizationsQuery()
     const enhancedOrganizations = await getAllOrganizations.getWithMembershipStatus(user.id)
 
     return inertia.render('organizations/all', {

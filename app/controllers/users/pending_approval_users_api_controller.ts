@@ -27,7 +27,7 @@ export default class PendingApprovalUsersApiController {
       throw new ForbiddenException()
     }
 
-    const query = new GetPendingApprovalUsersQuery(ctx)
+    const query = new GetPendingApprovalUsersQuery()
     const formattedUsers = await query.getList(organizationId)
 
     response.json({
