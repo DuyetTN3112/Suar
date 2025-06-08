@@ -33,6 +33,23 @@
 
   const pageTitle = $derived(t('profile.show', {}, 'Hồ sơ cá nhân'))
 
+  // Map serialized user.skills to UserSkillResult[] for ProfileStats
+  const userSkills = $derived(
+    (user.skills ?? []).map((s) => ({
+      id: s.id,
+      skill_id: s.skill_id,
+      skill_name: s.skill?.skill_name ?? '',
+      skill_code: s.skill?.skill_code ?? '',
+      category_name: s.skill?.category_code ?? '',
+      category_code: s.skill?.category_code ?? '',
+      level_code: s.level_code,
+      total_reviews: s.total_reviews,
+      avg_score: s.avg_score,
+      avg_percentage: s.avg_percentage,
+      last_reviewed_at: s.last_reviewed_at,
+    }))
+  )
+
   // Flash messages
   const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
 </script>
@@ -74,7 +91,7 @@
     </Card>
 
     <!-- Stats -->
-    <ProfileStats {user} />
+    <ProfileStats {user} skills={userSkills} />
 
     <!-- Tabs: Spider Chart / Info -->
     <Tabs value="chart">
