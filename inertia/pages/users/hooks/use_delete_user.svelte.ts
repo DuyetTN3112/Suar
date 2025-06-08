@@ -44,6 +44,9 @@ export function createDeleteUser(authUserId: string) {
 
   return {
     deleteModalOpen,
+    setDeleteModalOpen: (value: boolean) => {
+      deleteModalOpen.set(value)
+    },
     userToDelete,
     isDeleting,
     openDeleteConfirmModal,

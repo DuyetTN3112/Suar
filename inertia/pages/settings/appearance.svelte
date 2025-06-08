@@ -27,7 +27,7 @@
     font: user.user_setting?.font || 'inter'
   })
 
-  let selectedTheme = $state(form.data.theme)
+  let selectedTheme = $state(form.data?.theme || 'light')
 
   function handleSubmit(e: Event) {
     e.preventDefault()
