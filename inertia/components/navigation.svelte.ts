@@ -70,12 +70,6 @@ const navigationData = [
         iconName: 'Store',
       },
       {
-        title: 'Tin nhắn',
-        titleKey: 'navigation.messages',
-        url: '/conversations',
-        iconName: 'MessageSquare',
-      },
-      {
         title: 'Người dùng',
         titleKey: 'navigation.users',
         url: '/users',
@@ -92,12 +86,6 @@ const navigationData = [
         titleKey: 'navigation.organizations',
         url: '/organizations',
         iconName: 'Building',
-      },
-      {
-        title: 'Tất cả tổ chức',
-        titleKey: 'navigation.all_organizations',
-        url: '/all-organizations',
-        iconName: 'Globe',
       },
       {
         title: 'Dự án',
@@ -130,10 +118,22 @@ const navigationData = [
         iconName: 'UserCircle',
       },
       {
-        title: 'Cài đặt',
-        titleKey: 'navigation.settings',
-        url: '/settings',
-        iconName: 'Settings',
+        title: 'Tài khoản',
+        titleKey: 'navigation.account',
+        url: '/settings/account',
+        iconName: 'User',
+      },
+      {
+        title: 'Giao diện',
+        titleKey: 'navigation.appearance',
+        url: '/settings/appearance',
+        iconName: 'Palette',
+      },
+      {
+        title: 'Thông báo',
+        titleKey: 'navigation.notifications_settings',
+        url: '/settings/notifications',
+        iconName: 'Bell',
       },
     ],
   },

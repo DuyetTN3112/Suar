@@ -39,6 +39,10 @@ export type Task = {
     name: string
   }
   project_id?: string | null
+  project?: {
+    id: string
+    name: string
+  }
   estimated_time?: number
   actual_time?: number
   task_visibility?: 'internal' | 'external' | 'all'
