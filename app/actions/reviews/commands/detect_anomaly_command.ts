@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import SkillReview from '#models/skill_review'
 import FlaggedReview from '#models/flagged_review'
@@ -34,8 +34,8 @@ export default class DetectAnomalyCommand extends BaseCommand<
   { reviewSessionId: DatabaseId; reviewerId: DatabaseId },
   FlaggedReview[]
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(input: {

@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import GetPublicTasksQuery from '#actions/tasks/queries/get_public_tasks_query'
 import { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
@@ -21,7 +20,7 @@ export default class ListPublicTasksController {
       sort_order: request.input('sort_order', 'desc') as 'asc' | 'desc',
     })
 
-    const query = new GetPublicTasksQuery(ExecutionContext.fromHttp(ctx))
+    const query = new GetPublicTasksQuery(ctx)
     const result = await query.handle(dto)
 
     return inertia.render('marketplace/tasks', {

@@ -1,3 +1,4 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
@@ -27,7 +28,7 @@ interface OrganizationMembersResult {
  * Returns organization info + formatted member list for API consumption.
  */
 export default class GetOrganizationMembersApiQuery {
-  constructor() {}
+  constructor(protected ctx: HttpContext) {}
 
   async execute(rawId: string): Promise<OrganizationMembersResult> {
     const organizationId = parseId(rawId)

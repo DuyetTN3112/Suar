@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import GetReviewSessionQuery from '#actions/reviews/queries/get_review_session_query'
 import GetActiveSkillsQuery from '#actions/shared/queries/get_active_skills_query'
 import { GetReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
@@ -13,7 +12,7 @@ export default class ShowReviewController {
     const { params, inertia } = ctx
 
     const [session, skills] = await Promise.all([
-      new GetReviewSessionQuery(ExecutionContext.fromHttp(ctx)).handle(new GetReviewSessionDTO(params.id as string)),
+      new GetReviewSessionQuery(ctx).handle(new GetReviewSessionDTO(params.id as string)),
       GetActiveSkillsQuery.execute(),
     ])
 

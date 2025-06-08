@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import type User from '#models/user'
 import UserRepository from '#infra/users/repositories/user_repository'
@@ -38,8 +38,8 @@ export interface UserProfileResult {
  * Uses caching for performance (5 min TTL)
  */
 export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, UserProfileResult> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {

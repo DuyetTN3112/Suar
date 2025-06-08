@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
@@ -25,8 +25,8 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
   UpdateReviewerCredibilityDTO,
   { credibility_score: number; total_reviews: number }
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(dto: UpdateReviewerCredibilityDTO): Promise<{

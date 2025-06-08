@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationMembersPageQuery from '#actions/organizations/queries/get_organization_members_page_query'
 import loggerService from '#services/logger_service'
@@ -19,7 +18,7 @@ export default class ListMembersController {
     const organizationId = params.id as string
 
     try {
-      const pageData = await new GetOrganizationMembersPageQuery(ExecutionContext.fromHttp(ctx)).execute(
+      const pageData = await new GetOrganizationMembersPageQuery(ctx).execute(
         organizationId,
         user.id
       )

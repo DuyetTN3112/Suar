@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
@@ -37,8 +36,8 @@ export default class ListUsersController {
       )
     )
 
-    const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
-    const getUserMetadata = new GetUserMetadata()
+    const getUsersListQuery = new GetUsersListQuery(ctx)
+    const getUserMetadata = new GetUserMetadata(ctx)
 
     const [users, metadata] = await Promise.all([
       getUsersListQuery.handle(dto),

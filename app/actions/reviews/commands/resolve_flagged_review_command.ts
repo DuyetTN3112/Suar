@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import FlaggedReview from '#models/flagged_review'
 import { FlaggedReviewStatus } from '#constants/review_constants'
@@ -24,8 +24,8 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
   ResolveFlaggedReviewDTO,
   FlaggedReview
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(dto: ResolveFlaggedReviewDTO): Promise<FlaggedReview> {

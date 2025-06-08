@@ -1,3 +1,4 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
@@ -18,7 +19,7 @@ interface PendingUser {
  * Also provides a count-only method for badge display.
  */
 export default class GetPendingApprovalUsersQuery {
-  constructor() {}
+  constructor(protected ctx: HttpContext) {}
 
   /**
    * Get list of pending approval users in the organization.

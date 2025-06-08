@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
 import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 
@@ -14,7 +13,7 @@ export default class AddProfileSkillController {
       request.input('skill_id') as string,
       request.input('level_code') as string
     )
-    const command = new AddUserSkillCommand(ExecutionContext.fromHttp(ctx))
+    const command = new AddUserSkillCommand(ctx)
     await command.handle(dto)
 
     session.flash('success', 'Skill added successfully')

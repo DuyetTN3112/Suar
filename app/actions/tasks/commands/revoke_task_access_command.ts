@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
@@ -39,8 +39,8 @@ export interface RevokeTaskAccessDTO {
 export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAccessDTO> {
   private notificationService: CreateNotification
 
-  constructor(execCtx: ExecutionContext, createNotification: CreateNotification) {
-    super(execCtx)
+  constructor(ctx: HttpContext, createNotification: CreateNotification) {
+    super(ctx)
     this.notificationService = createNotification
   }
 

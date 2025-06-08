@@ -1,4 +1,5 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import GetOrganizationDetailQuery from './get_organization_detail_query.js'
 import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
@@ -41,14 +42,15 @@ export interface OrganizationShowPageResult {
  * by running GetOrganizationDetailQuery and GetOrganizationShowDataQuery in parallel.
  */
 export default class GetOrganizationShowPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected ctx: HttpContext) {}
 
   async execute(organizationId: string, userId: DatabaseId): Promise<OrganizationShowPageResult> {
+    const execCtx = ExecutionContext.fromHttp(this.ctx)
     const dto = new GetOrganizationDetailDTO(organizationId, true, false, false)
 
     const [organization, showData] = await Promise.all([
-      new GetOrganizationDetailQuery(this.execCtx).execute(dto),
-      new GetOrganizationShowDataQuery().execute(organizationId, userId),
+      new GetOrganizationDetailQuery(execCtx).execute(dto),
+      new GetOrganizationShowDataQuery(this.ctx).execute(organizationId, userId),
     ])
 
     return {

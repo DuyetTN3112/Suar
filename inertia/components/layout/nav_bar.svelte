@@ -1,8 +1,6 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
-  import { Menu } from 'lucide-svelte'
   import Button from '../ui/button.svelte'
-  import Search from '@/components/search.svelte'
   import DropdownMenu from '../ui/dropdown_menu.svelte'
   import DropdownMenuTrigger from '../ui/dropdown_menu_trigger.svelte'
   import DropdownMenuContent from '../ui/dropdown_menu_content.svelte'
@@ -14,9 +12,7 @@
   import AvatarFallback from '../ui/avatar_fallback.svelte'
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
-  import NotificationDropdown from './notification_dropdown.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import { getContext } from 'svelte'
 
   interface AuthUser {
     id?: string
@@ -36,7 +32,6 @@
     [key: string]: unknown
   }
 
-  const sidebar = getContext<{ toggleSidebar: () => void }>('sidebar')
   const { t } = useTranslation()
 
   const props = $derived($page.props as unknown as PageProps)
@@ -55,30 +50,14 @@
 
 <header class="border-b-2 border-border bg-background px-4 py-3">
   <div class="flex items-center justify-between">
-    <div class="flex items-center gap-2 lg:gap-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        class="text-muted-foreground"
-        onclick={sidebar?.toggleSidebar}
-      >
-        <Menu class="h-5 w-5" />
-        <span class="sr-only">Toggle Sidebar</span>
-      </Button>
-
-      <div class="relative h-9 w-60 lg:w-80 hidden sm:flex">
-        <Search placeholder={t('common.search', {}, 'Tìm kiếm...')} />
-      </div>
+    <div>
+      <Link href="/" class="text-lg font-semibold">Suar</Link>
     </div>
 
     <div class="flex items-center gap-2">
       <ThemeSwitch />
 
       <LanguageSwitcher />
-
-      {#if user}
-        <NotificationDropdown />
-      {/if}
 
       <DropdownMenu>
         <DropdownMenuTrigger>
@@ -102,8 +81,10 @@
             <Link href="/settings/account">{t('settings.account', {}, 'Cài đặt tài khoản')}</Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onclick={handleLogout}>
-            {t('auth.logout', {}, 'Đăng xuất')}
+          <DropdownMenuItem>
+            <button type="button" class="w-full text-left" onclick={handleLogout}>
+              {t('auth.logout', {}, 'Đăng xuất')}
+            </button>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

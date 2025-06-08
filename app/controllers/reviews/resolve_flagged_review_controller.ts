@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import ResolveFlaggedReviewCommand from '#actions/reviews/commands/resolve_flagged_review_command'
 import type { ResolveFlaggedReviewDTO } from '#actions/reviews/commands/resolve_flagged_review_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -22,7 +21,7 @@ export default class ResolveFlaggedReviewController {
       notes: request.input('notes') as string | null,
     }
 
-    const command = new ResolveFlaggedReviewCommand(ExecutionContext.fromHttp(ctx))
+    const command = new ResolveFlaggedReviewCommand(ctx)
     await command.handle(dto)
 
     const message =

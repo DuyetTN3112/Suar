@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
@@ -42,8 +42,8 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
   GetSpiderChartDataDTO,
   SpiderChartResult
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   /**

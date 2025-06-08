@@ -1,4 +1,5 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationMembersQuery from './get_organization_members_query.js'
@@ -23,7 +24,7 @@ export interface OrganizationMembersPageResult {
  * the organization members management page.
  */
 export default class GetOrganizationMembersPageQuery {
-  constructor(protected execCtx: ExecutionContext) {}
+  constructor(protected ctx: HttpContext) {}
 
   async execute(
     organizationId: DatabaseId,
@@ -34,14 +35,15 @@ export default class GetOrganizationMembersPageQuery {
       throw new UnauthorizedException()
     }
 
+    const execCtx = ExecutionContext.fromHttp(this.ctx)
     const membersDTO = new GetOrganizationMembersDTO(organizationId, 1, 100, undefined, undefined)
 
     const [membersResult, pendingRequests, metadata, organization, showData] = await Promise.all([
-      new GetOrganizationMembersQuery(this.execCtx).execute(membersDTO),
-      new GetPendingRequestsQuery(this.execCtx).execute(organizationId),
-      new GetOrganizationMetadataQuery().execute(),
+      new GetOrganizationMembersQuery(execCtx).execute(membersDTO),
+      new GetPendingRequestsQuery(execCtx).execute(organizationId),
+      new GetOrganizationMetadataQuery(this.ctx).execute(),
       GetOrganizationBasicInfoQuery.execute(organizationId),
-      new GetOrganizationShowDataQuery().execute(organizationId, userId),
+      new GetOrganizationShowDataQuery(this.ctx).execute(organizationId, userId),
     ])
 
     return {

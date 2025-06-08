@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from '@inertiajs/svelte'
-  import { getContext } from 'svelte'
   import Sidebar from '@/components/ui/sidebar/sidebar.svelte'
   import SidebarContent from '@/components/ui/sidebar/sidebar_content.svelte'
   import SidebarFooter from '@/components/ui/sidebar/sidebar_footer.svelte'
@@ -9,7 +8,6 @@
   import NavUser from '@/components/layout/nav_user.svelte'
   import TeamSwitcher from '@/components/layout/team_switcher.svelte'
   import { mainNavigation } from '@/components/navigation.svelte'
-  import type { NavGroup as NavGroupType } from '@/components/navigation.svelte'
 
   interface AuthUser {
     id?: string
@@ -50,7 +48,7 @@
 
 <Sidebar
   class="h-screen overflow-hidden"
-  collapsible="offcanvas"
+  collapsible="none"
   variant="sidebar"
 >
   <SidebarHeader class="px-2 py-2">

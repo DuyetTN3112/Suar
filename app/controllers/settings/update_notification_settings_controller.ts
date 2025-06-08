@@ -7,7 +7,7 @@ import UpdateUserSettings from '#actions/settings/update_user_settings'
 export default class UpdateNotificationSettingsController {
   handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const updateUserSettings = new UpdateUserSettings()
+    const updateUserSettings = new UpdateUserSettings(ctx)
 
     const emailNotifications = request.input('emailNotifications', false) as boolean
 

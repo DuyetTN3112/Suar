@@ -1,3 +1,4 @@
+import type { HttpContext } from '@adonisjs/core/http'
 
 /**
  * Get user settings
@@ -5,7 +6,7 @@
  * This returns default values for server-side rendering
  */
 export default class GetUserSettings {
-  constructor() {}
+  constructor(protected ctx: HttpContext) {}
 
   handle() {
     // Return default settings for SSR

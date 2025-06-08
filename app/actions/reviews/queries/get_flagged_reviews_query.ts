@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import type FlaggedReview from '#models/flagged_review'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
@@ -29,8 +29,8 @@ export default class GetFlaggedReviewsQuery extends BaseQuery<
   GetFlaggedReviewsDTO,
   GetFlaggedReviewsResult
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(dto: GetFlaggedReviewsDTO): Promise<GetFlaggedReviewsResult> {

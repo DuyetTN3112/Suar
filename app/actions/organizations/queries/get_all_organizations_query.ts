@@ -1,3 +1,4 @@
+import type { HttpContext } from '@adonisjs/core/http'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
@@ -33,7 +34,7 @@ interface AllOrganizationsWithMembership {
  * depending on the caller's needs.
  */
 export default class GetAllOrganizationsQuery {
-  constructor() {}
+  constructor(protected ctx: HttpContext) {}
 
   /**
    * Get all organizations enhanced with owner names and member counts.

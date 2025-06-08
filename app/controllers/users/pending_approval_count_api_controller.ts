@@ -27,7 +27,7 @@ export default class PendingApprovalCountApiController {
       throw new ForbiddenException()
     }
 
-    const query = new GetPendingApprovalUsersQuery()
+    const query = new GetPendingApprovalUsersQuery(ctx)
     const count = await query.getCount(organizationId)
 
     response.json({

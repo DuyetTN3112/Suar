@@ -1,4 +1,4 @@
-import type { ExecutionContext } from '#types/execution_context'
+import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
@@ -21,8 +21,8 @@ export default class ConfirmReviewCommand extends BaseCommand<
   ConfirmReviewDTO,
   ReviewConfirmationEntry
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
+  constructor(protected override ctx: HttpContext) {
+    super(ctx)
   }
 
   async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmationEntry> {

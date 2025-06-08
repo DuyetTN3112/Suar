@@ -8,7 +8,6 @@
   import {
     LayoutGrid,
     List,
-    GanttChart,
     Plus,
     SlidersHorizontal,
     X,
@@ -34,7 +33,6 @@
   const layouts = [
     { key: 'list' as const, icon: List, label: 'List' },
     { key: 'kanban' as const, icon: LayoutGrid, label: 'Kanban' },
-    { key: 'gantt' as const, icon: GanttChart, label: 'Gantt' },
   ]
 </script>
 

@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
 import { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 
@@ -16,7 +15,7 @@ export default class ConfirmReviewController {
       dispute_reason: request.input('dispute_reason') as string | undefined,
     })
 
-    const command = new ConfirmReviewCommand(ExecutionContext.fromHttp(ctx))
+    const command = new ConfirmReviewCommand(ctx)
     await command.handle(dto)
 
     const message =

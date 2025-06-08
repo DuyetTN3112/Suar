@@ -1,5 +1,6 @@
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import UserRepository from '#infra/users/repositories/user_repository'
+import type { HttpContext } from '@adonisjs/core/http'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
@@ -20,7 +21,7 @@ import { PAGINATION } from '#constants/common_constants'
  * - changes: [{ field, oldValue, newValue }]
  */
 export default class GetTaskAuditLogsQuery {
-  constructor() {}
+  constructor(protected ctx: HttpContext) {}
 
   /**
    * Execute query

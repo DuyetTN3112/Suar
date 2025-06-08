@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
 import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get_users_list_dto'
@@ -11,8 +10,8 @@ import { OrganizationRole, OrganizationUserStatus } from '#constants/organizatio
  */
 export default class PendingApprovalUsersController {
   async handle(ctx: HttpContext) {
-    const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
-    const getUserMetadata = new GetUserMetadata()
+    const getUsersListQuery = new GetUsersListQuery(ctx)
+    const getUserMetadata = new GetUserMetadata(ctx)
     const { request, inertia, auth } = ctx
 
     // Check superadmin permission

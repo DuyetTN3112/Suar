@@ -1,5 +1,4 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
 import type { ProjectRole } from '#constants/project_constants'
 import AddProjectMemberCommand from '#actions/projects/commands/add_project_member_command'
 import { AddProjectMemberDTO } from '#actions/projects/dtos/request/add_project_member_dto'
@@ -16,7 +15,7 @@ export default class AddProjectMemberController {
       project_role: request.input('project_role') as ProjectRole,
     })
 
-    const command = new AddProjectMemberCommand(ExecutionContext.fromHttp(ctx))
+    const command = new AddProjectMemberCommand(ctx)
     await command.handle(dto)
 
     session.flash('success', 'Đã thêm thành viên vào dự án thành công')

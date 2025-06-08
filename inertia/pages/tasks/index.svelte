@@ -7,7 +7,6 @@
   import TaskHeader from './components/header/task_header.svelte'
   import TasksWrapper from './components/task_list/tasks_wrapper.svelte'
   import KanbanBoard from './components/views/kanban/kanban_board.svelte'
-  import GanttTimeline from './components/views/gantt/gantt_timeline.svelte'
   import CreateTaskModal from './components/modals/create_task_modal.svelte'
   import ImportTasksModal from './components/modals/import_tasks_modal.svelte'
   import TaskDetailPanel from './components/detail/task_detail_panel.svelte'
@@ -82,14 +81,6 @@
       />
     {/if}
 
-    <!-- View: Gantt -->
-    {#if store.activeLayout === 'gantt'}
-      <GanttTimeline
-        {store}
-        {metadata}
-        onTaskClick={handleViewTaskDetail}
-      />
-    {/if}
   </div>
 
   <CreateTaskModal
