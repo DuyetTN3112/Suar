@@ -8,23 +8,11 @@ export const controllers = {
     Logout: () => import('#controllers/auth/logout_controller'),
     SocialAuth: () => import('#controllers/auth/social_auth_controller'),
   },
-  conversations: {
-    CreateConversation: () => import('#controllers/conversations/create_conversation_controller'),
-    ListConversations: () => import('#controllers/conversations/list_conversations_controller'),
-    MarkConversationRead: () => import('#controllers/conversations/mark_conversation_read_controller'),
-    RecallMessage: () => import('#controllers/conversations/recall_message_controller'),
-    SendMessageApi: () => import('#controllers/conversations/send_message_api_controller'),
-    SendMessage: () => import('#controllers/conversations/send_message_controller'),
-    ShowConversationApi: () => import('#controllers/conversations/show_conversation_api_controller'),
-    ShowConversation: () => import('#controllers/conversations/show_conversation_controller'),
-    StoreConversation: () => import('#controllers/conversations/store_conversation_controller'),
-  },
   errors: {
     Error: () => import('#controllers/errors/error_controller'),
   },
   HealthChecks: () => import('#controllers/health_checks_controller'),
   http: {
-    CheckExistingConversationApi: () => import('#controllers/http/check_existing_conversation_api_controller'),
     DebugOrganizationInfoApi: () => import('#controllers/http/debug_organization_info_api_controller'),
     Dev: () => import('#controllers/http/dev_controller'),
     GetMeApi: () => import('#controllers/http/get_me_api_controller'),

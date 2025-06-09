@@ -2,10 +2,8 @@
   import AppLayout from '@/layouts/app_layout.svelte'
   import type { Task, TasksProps } from './types.svelte'
   import { createTaskStore } from '@/stores/tasks.svelte'
-  import { formatDate } from './utils/task_formatter.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import TaskHeader from './components/header/task_header.svelte'
-  import TasksWrapper from './components/task_list/tasks_wrapper.svelte'
   import KanbanBoard from './components/views/kanban/kanban_board.svelte'
   import CreateTaskModal from './components/modals/create_task_modal.svelte'
   import ImportTasksModal from './components/modals/import_tasks_modal.svelte'
@@ -42,10 +40,6 @@
     detailModalOpen = true
   }
 
-  function handleTaskStatusChange(task: Task, newStatus: string) {
-    void store.moveTaskStatus(task.id, newStatus as Task['status'])
-  }
-
   const pageTitle = $derived(t('task.task_list', {}, 'Quản lý nhiệm vụ'))
 </script>
 
@@ -55,32 +49,15 @@
 
 <AppLayout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-4">
-    <!-- New Header with Layout Switcher, Filters, Display Properties -->
+    <!-- Header with Filters, Display Properties -->
     <TaskHeader {store} {metadata} onCreateClick={handleCreateClick} />
 
-    <!-- View: List -->
-    {#if store.activeLayout === 'list'}
-      <TasksWrapper
-        tasks={{ data: store.sortedTasks, meta: tasks.meta }}
-        {filters}
-        activeTab="all"
-        completedStatusId={metadata.statuses.find(s => s.label === 'Completed')?.value}
-        pendingStatusId={metadata.statuses.find(s => s.label === 'Pending')?.value}
-        onToggleStatus={handleTaskStatusChange}
-        {formatDate}
-        onViewTaskDetail={handleViewTaskDetail}
-      />
-    {/if}
-
-    <!-- View: Kanban -->
-    {#if store.activeLayout === 'kanban'}
-      <KanbanBoard
-        {store}
-        {metadata}
-        onTaskClick={handleViewTaskDetail}
-      />
-    {/if}
-
+    <!-- Kanban View Only -->
+    <KanbanBoard
+      {store}
+      {metadata}
+      onTaskClick={handleViewTaskDetail}
+    />
   </div>
 
   <CreateTaskModal
