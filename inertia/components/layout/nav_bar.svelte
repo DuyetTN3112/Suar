@@ -43,11 +43,11 @@
 
   function handleLogout(e: Event) {
     e.preventDefault()
-    
+
     if (!confirm(t('auth.confirm_logout', {}, 'Bạn có chắc muốn đăng xuất?'))) {
       return
     }
-    
+
     router.post('/logout', {}, {
       onSuccess: () => {
         window.location.href = '/login'
@@ -70,14 +70,28 @@
 
       <LanguageSwitcher />
 
-      <!-- Notification Icon -->
-      <Button variant="ghost" size="icon" class="relative">
-        <Bell class="h-5 w-5" />
-        <!-- Badge for unread count (optional) -->
-        <span class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
-          3
-        </span>
-      </Button>
+      <!-- Notification Dropdown -->
+      <DropdownMenu>
+        <DropdownMenuTrigger>
+          <Button variant="ghost" size="icon" class="relative">
+            <Bell class="h-5 w-5" />
+            <!-- Badge for unread count -->
+            <span class="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+              3
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" class="w-80">
+          <DropdownMenuLabel>Thông báo</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <div class="max-h-96 overflow-y-auto">
+            <!-- Empty state for now -->
+            <div class="px-4 py-8 text-center text-sm text-muted-foreground">
+              Chưa có thông báo mới
+            </div>
+          </div>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <DropdownMenu>
         <DropdownMenuTrigger>
