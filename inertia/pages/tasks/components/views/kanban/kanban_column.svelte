@@ -19,11 +19,15 @@
     }
     onTaskClick?: (task: Task) => void
     onDropTask: (taskId: string, newStatus: string, sortOrder: number) => void
+    onCreateTask?: (status: string) => void
+    onEditStatus?: (status: string, newLabel: string) => void
   }
 
-  const { status, label, color, tasks, displayProperties, metadata, onTaskClick, onDropTask }: Props = $props()
+  const { status, label, color, tasks, displayProperties, metadata, onTaskClick, onDropTask, onCreateTask, onEditStatus }: Props = $props()
 
   let isDragOver = $state(false)
+  let isEditingLabel = $state(false)
+  let editedLabel = $state(label)
 
   const statusColors: Record<string, string> = {
     todo: 'border-t-slate-400',
@@ -83,6 +87,22 @@
       // Ignore invalid drop data
     }
   }
+
+  function handleLabelEdit() {
+    if (editedLabel.trim() && editedLabel !== label) {
+      onEditStatus?.(status, editedLabel.trim())
+    }
+    isEditingLabel = false
+  }
+
+  function handleLabelKeydown(e: KeyboardEvent) {
+    if (e.key === 'Enter') {
+      handleLabelEdit()
+    } else if (e.key === 'Escape') {
+      editedLabel = label
+      isEditingLabel = false
+    }
+  }
 </script>
 
 <div
@@ -94,9 +114,26 @@
   ondrop={handleDrop}
 >
   <!-- Column Header -->
-  <div class="flex items-center justify-between px-3 py-2.5 {statusBgColors[status] ?? ''}">
-    <div class="flex items-center gap-2">
-      <h3 class="text-sm font-semibold">{label}</h3>
+  <div class="flex items-center justify-between px-3 py-2.5 {statusBgColors[status] ?? ''} group">
+    <div class="flex items-center gap-2 flex-1">
+      {#if isEditingLabel}
+        <input
+          type="text"
+          bind:value={editedLabel}
+          onblur={handleLabelEdit}
+          onkeydown={handleLabelKeydown}
+          class="text-sm font-semibold bg-transparent border-b border-primary focus:outline-none w-32"
+          autofocus
+        />
+      {:else}
+        <h3 
+          class="text-sm font-semibold cursor-pointer hover:text-primary transition-colors"
+          onclick={() => { isEditingLabel = true; }}
+          title="Click để đổi tên"
+        >
+          {label}
+        </h3>
+      {/if}
       <Badge variant="secondary" class="h-5 min-w-[20px] px-1.5 text-[10px]">
         {tasks.length}
       </Badge>
@@ -120,5 +157,15 @@
         />
       {/each}
     {/if}
+    
+    <!-- Add Task Button -->
+    <button
+      class="w-full rounded-md border-2 border-dashed border-muted-foreground/20 bg-muted/10 hover:bg-muted/30 hover:border-muted-foreground/40 transition-colors p-2 text-xs text-muted-foreground flex items-center justify-center gap-1.5 group"
+      onclick={() => { onCreateTask?.(status); }}
+      type="button"
+    >
+      <Plus class="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+      <span>Tạo task mới</span>
+    </button>
   </div>
 </div>
