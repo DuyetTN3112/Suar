@@ -167,7 +167,7 @@
       onClose={() => { setDeleteModalOpen(false) }}
       user={$userToDelete}
       isDeleting={$isDeleting}
-      onConfirm={handleDeleteUser}
+      onConfirm={() => handleDeleteUser($userToDelete)}
     />
 
     <ApprovalModal
