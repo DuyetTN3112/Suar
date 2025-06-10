@@ -68,6 +68,7 @@ export type TasksProps = {
     label?: string
     search?: string
     assigned_to?: string
+    project_id?: string | null
   }
   metadata: {
     statuses: Array<{ value: string; label: string; color: string }>
@@ -78,6 +79,19 @@ export type TasksProps = {
       username: string
       email: string
     }>
+    parentTasks?: Array<{
+      id: string
+      title: string
+      status: string
+    }>
+    availableSkills?: Array<{
+      id: string
+      name: string
+    }>
+  }
+  projectOptions?: Array<{ id: string; name: string }>
+  projectContext?: {
+    selectedProject: { id: string; name: string } | null
   }
   auth?: {
     user?: {

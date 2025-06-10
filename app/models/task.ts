@@ -149,7 +149,10 @@ export default class Task extends BaseModel {
   })
   declare childTasks: HasMany<typeof Task>
 
-  @hasMany(() => TaskVersion)
+  @hasMany(() => TaskVersion, {
+    foreignKey: 'task_id',
+    localKey: 'id',
+  })
   declare versions: HasMany<typeof TaskVersion>
 
   @hasMany(() => TaskApplication, { foreignKey: 'task_id' })

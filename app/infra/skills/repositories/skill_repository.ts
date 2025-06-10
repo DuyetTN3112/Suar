@@ -35,6 +35,15 @@ export default class SkillRepository {
     return skills.map((s) => ({ id: s.id }))
   }
 
+  static async findActiveByIds(
+    ids: DatabaseId[],
+    trx?: TransactionClientContract
+  ): Promise<Skill[]> {
+    if (ids.length === 0) return []
+    const query = trx ? Skill.query({ client: trx }) : Skill.query()
+    return query.whereIn('id', ids).where('is_active', true)
+  }
+
   // ── UserSkill queries ──
 
   static async findByUserAndSkill(userId: string, skillId: string) {
