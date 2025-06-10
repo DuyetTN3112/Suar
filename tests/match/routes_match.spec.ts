@@ -34,7 +34,6 @@ test.group('Match | Route Files Exist', () => {
       'start/routes/users.ts',
       'start/routes/organizations.ts',
       'start/routes/projects.ts',
-      'start/routes/conversations.ts',
     ]
 
     for (const file of expectedRouteFiles) {
@@ -46,7 +45,7 @@ test.group('Match | Route Files Exist', () => {
     const indexPath = 'start/routes/index.ts'
     if (fileExists(indexPath)) {
       const content = readFile(indexPath)
-      const domains = ['tasks', 'reviews', 'users', 'organizations', 'projects', 'conversations']
+      const domains = ['tasks', 'reviews', 'users', 'organizations', 'projects']
       for (const domain of domains) {
         assert.isTrue(content.includes(domain), `Route index missing import for: ${domain}`)
       }
@@ -201,10 +200,6 @@ test.group('Match | Frontend Pages Match Route Domains', () => {
   test('marketplace pages exist', ({ assert }) => {
     assert.isTrue(fileExists(`${pagesDir}/marketplace`))
     assert.isTrue(fileExists(`${pagesDir}/marketplace/tasks.svelte`))
-  })
-
-  test('conversation pages exist', ({ assert }) => {
-    assert.isTrue(fileExists(`${pagesDir}/conversations`))
   })
 })
 

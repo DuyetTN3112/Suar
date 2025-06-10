@@ -33,11 +33,6 @@ import {
   OrganizationPlan,
 } from '#constants/organization_constants'
 import { ProjectStatus, ProjectVisibility, ProjectRole } from '#constants/project_constants'
-import {
-  MessageSendStatus,
-  MessageRecallScope,
-  CONVERSATION_DEFAULTS,
-} from '#constants/conversation_constants'
 import fs from 'node:fs'
 import path from 'node:path'
 
@@ -322,30 +317,6 @@ test.group('Match | Project Constants', () => {
 
 // ============================================================================
 // Conversation Constants Match — ~3 tests
-// ============================================================================
-test.group('Match | Conversation Constants', () => {
-  test('MessageSendStatus has 3 statuses', ({ assert }) => {
-    const values = Object.values(MessageSendStatus)
-    assert.equal(values.length, 3)
-    assert.include(values, 'sending')
-    assert.include(values, 'sent')
-    assert.include(values, 'failed')
-  })
-
-  test('MessageRecallScope has 2 scopes', ({ assert }) => {
-    const values = Object.values(MessageRecallScope)
-    assert.equal(values.length, 2)
-    assert.include(values, 'self')
-    assert.include(values, 'all')
-  })
-
-  test('CONVERSATION_DEFAULTS has reasonable values', ({ assert }) => {
-    assert.isAbove(CONVERSATION_DEFAULTS.MESSAGES_PER_PAGE, 0)
-    assert.isAbove(CONVERSATION_DEFAULTS.MAX_MESSAGE_LENGTH, 0)
-    assert.isAbove(CONVERSATION_DEFAULTS.CONVERSATIONS_PER_PAGE, 0)
-  })
-})
-
 // ============================================================================
 // Frontend ↔ Backend Constants Cross-check — ~3 tests
 // ============================================================================

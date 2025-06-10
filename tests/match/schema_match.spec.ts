@@ -505,38 +505,6 @@ test.group('Match | ReverseReview Model Schema', () => {
 })
 
 // ============================================================================
-// Conversation + Message Models — ~3 tests
-// ============================================================================
-test.group('Match | Conversation Model Schema', () => {
-  test('Conversation model has all essential columns', ({ assert }) => {
-    const content = readModelFile('conversation')
-    const columns = extractColumns(content)
-
-    const required = ['id', 'organization_id', 'created_at', 'updated_at']
-
-    for (const col of required) {
-      assert.include(columns, col, `Conversation model missing column: ${col}`)
-    }
-  })
-
-  test('Conversation model has task_id for task-linked conversations', ({ assert }) => {
-    const content = readModelFile('conversation')
-    const columns = extractColumns(content)
-
-    assert.include(columns, 'task_id')
-  })
-
-  test('Message model has recall fields', ({ assert }) => {
-    const content = readModelFile('message')
-    const columns = extractColumns(content)
-
-    assert.include(columns, 'is_recalled')
-    assert.include(columns, 'recalled_at')
-    assert.include(columns, 'recall_scope')
-  })
-})
-
-// ============================================================================
 // Skill + UserSkill Models — ~3 tests
 // ============================================================================
 test.group('Match | Skill Model Schema', () => {
@@ -611,8 +579,6 @@ test.group('Match | Database Types File', () => {
       'FlaggedReviewRow',
       'UserSkillRow',
       'RecruiterBookmarkRow',
-      'ConversationRow',
-      'MessageRow',
       'ProjectRow',
       'ProjectMemberRow',
       'OrganizationUserRow',

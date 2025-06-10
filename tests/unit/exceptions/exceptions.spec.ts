@@ -52,11 +52,6 @@ test.group('NotFoundException', () => {
     const err = NotFoundException.task()
     assert.include(err.message, 'công việc')
   })
-
-  test('conversation() factory', ({ assert }) => {
-    const err = NotFoundException.conversation()
-    assert.include(err.message, 'cuộc trò chuyện')
-  })
 })
 
 test.group('ValidationException', () => {
