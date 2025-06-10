@@ -1010,68 +1010,103 @@ export default class SeedData extends BaseCommand {
   // ── 10. Tasks ────────────────────────────────────────────────
   private async seedTasks(
     trx: any,
-    orgData: Array<{ id: string; ownerId: string }>,
+    _orgData: Array<{ id: string; ownerId: string }>,
     projectData: Array<{ id: string; orgId: string }>,
     userIds: string[],
     taskStatusMap: Map<string, Map<string, string>>
-  ): Promise<Array<{ id: string; orgId: string; creatorId: string; assignedTo: string | null }>> {
+  ): Promise<
+    Array<{
+      id: string
+      orgId: string
+      creatorId: string
+      assignedTo: string | null
+      visibility: 'internal' | 'external' | 'all'
+    }>
+  > {
     const tasks: Array<{
       id: string
       orgId: string
       creatorId: string
       assignedTo: string | null
+      visibility: 'internal' | 'external' | 'all'
     }> = []
     const statuses = ['todo', 'in_progress', 'done', 'cancelled', 'in_review'] as const
     const labels = ['bug', 'feature', 'enhancement', 'documentation'] as const
     const priorities = ['low', 'medium', 'high', 'urgent'] as const
     const difficulties = ['easy', 'medium', 'hard', 'expert'] as const
     const visibilities = ['internal', 'external', 'all'] as const
+    const marketplaceStatuses = ['todo', 'in_progress', 'in_review'] as const
+    const minTasksPerProject = 20
 
-    for (let i = 0; i < 30; i++) {
-      const id = this.uuid()
-      const org = orgData[i % orgData.length]!
-      const creatorId = this.pick(userIds.slice(0, 15))
-      const assignedTo = Math.random() > 0.2 ? this.pick(userIds) : null
-      tasks.push({ id, orgId: org.id, creatorId, assignedTo })
+    let globalOrder = 0
 
-      const project = projectData.find((p) => p.orgId === org.id) || null
-      const status = this.pick(statuses)
-      const slugMap = taskStatusMap.get(org.id)
-      const taskStatusId = slugMap?.get(status === 'in_review' ? 'in_progress' : status) || null
+    for (const project of projectData) {
+      for (let i = 0; i < minTasksPerProject; i++) {
+        const id = this.uuid()
+        const creatorId = this.pick(userIds.slice(0, 15))
 
-      await trx
-        .insertQuery()
-        .table('tasks')
-        .insert({
+        // Keep a strong amount of external/all + unassigned tasks so marketplace always has enough data.
+        const visibility =
+          i < 12
+            ? this.pick(['external', 'all', 'external', 'all', 'internal'] as const)
+            : this.pick(visibilities)
+        const isMarketplaceVisible = visibility !== 'internal'
+        const assignedTo =
+          isMarketplaceVisible && Math.random() > 0.1
+            ? null
+            : Math.random() > 0.2
+              ? this.pick(userIds)
+              : null
+        const status = isMarketplaceVisible ? this.pick(marketplaceStatuses) : this.pick(statuses)
+
+        tasks.push({
           id,
-          title: this.TASK_TITLES[i % this.TASK_TITLES.length],
-          description: this.pick(this.TASK_DESCRIPTIONS),
-          status,
-          label: this.pick(labels),
-          priority: this.pick(priorities),
-          difficulty: this.pick(difficulties),
-          assigned_to: assignedTo,
-          creator_id: creatorId,
-          updated_by: this.pick(userIds.slice(0, 10)),
-          due_date: Math.random() > 0.3 ? this.futureDate(60) : null,
-          parent_task_id: null,
-          estimated_time: this.randomDecimal(1, 40),
-          actual_time: status === 'done' ? this.randomDecimal(1, 50) : this.randomDecimal(0, 20),
-          organization_id: org.id,
-          project_id: project ? project.id : null,
-          task_visibility: this.pick(visibilities),
-          application_deadline: this.pick(visibilities) !== 'internal' ? this.futureDate(30) : null,
-          estimated_budget: this.randomDecimal(500000, 20000000),
-          external_applications_count: this.randomInt(0, 15),
-          sort_order: i,
-          task_status_id: taskStatusId,
-          created_at: this.randomDate(120),
-          updated_at: this.randomDate(14),
+          orgId: project.orgId,
+          creatorId,
+          assignedTo,
+          visibility,
         })
+
+        const slugMap = taskStatusMap.get(project.orgId)
+        const statusForMap = status === 'in_review' ? 'in_progress' : status
+        const taskStatusId = slugMap?.get(statusForMap) || null
+
+        await trx
+          .insertQuery()
+          .table('tasks')
+          .insert({
+            id,
+            title: `${this.TASK_TITLES[globalOrder % this.TASK_TITLES.length]} #${globalOrder + 1}`,
+            description: this.pick(this.TASK_DESCRIPTIONS),
+            status,
+            label: this.pick(labels),
+            priority: this.pick(priorities),
+            difficulty: this.pick(difficulties),
+            assigned_to: assignedTo,
+            creator_id: creatorId,
+            updated_by: this.pick(userIds.slice(0, 10)),
+            due_date: Math.random() > 0.25 ? this.futureDate(90) : null,
+            parent_task_id: null,
+            estimated_time: this.randomDecimal(1, 60),
+            actual_time: status === 'done' ? this.randomDecimal(1, 80) : this.randomDecimal(0, 30),
+            organization_id: project.orgId,
+            project_id: project.id,
+            task_visibility: visibility,
+            application_deadline: isMarketplaceVisible ? this.futureDate(45) : null,
+            estimated_budget: this.randomDecimal(500000, 30000000),
+            external_applications_count: isMarketplaceVisible ? this.randomInt(0, 30) : this.randomInt(0, 5),
+            sort_order: globalOrder,
+            task_status_id: taskStatusId,
+            created_at: this.randomDate(120),
+            updated_at: this.randomDate(14),
+          })
+
+        globalOrder++
+      }
     }
 
     // Set some parent_task_id for subtask relations
-    for (let i = 25; i < 30; i++) {
+    for (let i = Math.max(0, tasks.length - 5); i < tasks.length; i++) {
       const child = tasks[i]!
       const parent = tasks.find((t) => t.orgId === child.orgId && t.id !== child.id)
       if (parent) {
@@ -1115,15 +1150,20 @@ export default class SeedData extends BaseCommand {
   // ── 12. Task Applications ────────────────────────────────────
   private async seedTaskApplications(
     trx: any,
-    taskData: Array<{ id: string }>,
+    taskData: Array<{ id: string; creatorId: string; visibility: 'internal' | 'external' | 'all' }>,
     userIds: string[]
   ): Promise<number> {
     let count = 0
     const added = new Set<string>()
+    const marketplaceTasks = taskData.filter((t) => t.visibility !== 'internal')
+    if (marketplaceTasks.length === 0) return 0
 
-    for (let i = 0; i < 15; i++) {
-      const task = taskData[i % taskData.length]!
+    const targetApplications = Math.min(220, marketplaceTasks.length * 2)
+
+    for (let i = 0; i < targetApplications; i++) {
+      const task = marketplaceTasks[i % marketplaceTasks.length]!
       const applicantId = userIds[20 + (i % 10)]! // freelancers
+      if (applicantId === task.creatorId) continue
       const key = `${task.id}:${applicantId}`
       if (added.has(key)) continue
       added.add(key)
@@ -1206,25 +1246,28 @@ export default class SeedData extends BaseCommand {
     const added = new Set<string>()
     const levels = ['beginner', 'elementary', 'junior', 'middle', 'senior', 'lead'] as const
 
-    for (let i = 0; i < 25; i++) {
-      const task = taskData[i % taskData.length]!
-      const skillId = this.pick(skillIds)
-      const key = `${task.id}:${skillId}`
-      if (added.has(key)) continue
-      added.add(key)
+    for (const task of taskData) {
+      const skillsPerTask = this.randomInt(1, 3)
+      const selectedSkills = this.pickN(skillIds, skillsPerTask)
 
-      await trx
-        .insertQuery()
-        .table('task_required_skills')
-        .insert({
-          id: this.uuid(),
-          task_id: task.id,
-          skill_id: skillId,
-          required_level_code: this.pick(levels),
-          is_mandatory: Math.random() > 0.3,
-          created_at: this.randomDate(60),
-        })
-      count++
+      for (const skillId of selectedSkills) {
+        const key = `${task.id}:${skillId}`
+        if (added.has(key)) continue
+        added.add(key)
+
+        await trx
+          .insertQuery()
+          .table('task_required_skills')
+          .insert({
+            id: this.uuid(),
+            task_id: task.id,
+            skill_id: skillId,
+            required_level_code: this.pick(levels),
+            is_mandatory: Math.random() > 0.3,
+            created_at: this.randomDate(60),
+          })
+        count++
+      }
     }
     return count
   }
@@ -1641,14 +1684,68 @@ export default class SeedData extends BaseCommand {
     const GITHUB_EMAIL = 'tranngocduyet31@gmail.com'
 
     // Find existing user by email
-    const existingUser = await trx
-      .from('users')
-      .where('email', GITHUB_EMAIL)
-      .first()
+    let existingUser = await trx.from('users').where('email', GITHUB_EMAIL).first()
 
     if (!existingUser) {
-      this.logger.warning(`⚠️ GitHub user ${GITHUB_EMAIL} not found — skip linking`)
-      return 0
+      const generatedId = this.uuid()
+      await trx
+        .insertQuery()
+        .table('users')
+        .insert({
+          id: generatedId,
+          username: 'tranngocduyet31',
+          email: GITHUB_EMAIL,
+          status: 'active',
+          system_role: 'registered_user',
+          current_organization_id: null,
+          auth_method: 'github',
+          avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=tranngocduyet31',
+          bio: 'GitHub test account for marketplace and external task flows.',
+          timezone: 'Asia/Ho_Chi_Minh',
+          language: 'vi',
+          is_freelancer: true,
+          freelancer_rating: this.randomDecimal(4.0, 5.0),
+          freelancer_completed_tasks_count: this.randomInt(30, 120),
+          ranking_priority: 1,
+          is_verified_badge: true,
+          profile_settings: JSON.stringify({
+            is_searchable: true,
+            show_contact_info: true,
+            show_organizations: true,
+            show_projects: true,
+            show_spider_chart: true,
+            show_technical_skills: true,
+            custom_headline: 'Full-stack engineer focused on marketplace workflows',
+            preferred_job_types: ['freelance', 'contract'],
+            preferred_locations: ['remote', 'Ho Chi Minh'],
+            min_salary_expectation: 25000000,
+            salary_currency: 'VND',
+            available_from: this.futureDate(15),
+          }),
+          trust_data: JSON.stringify({
+            current_tier_code: 'partner',
+            calculated_score: 95,
+            raw_score: 110,
+            total_verified_reviews: 50,
+            last_calculated_at: this.randomDate(7),
+          }),
+          credibility_data: JSON.stringify({
+            credibility_score: 94,
+            total_reviews_given: 80,
+            accurate_reviews: 76,
+            disputed_reviews: 1,
+            last_calculated_at: this.randomDate(7),
+          }),
+          created_at: this.randomDate(365),
+          updated_at: this.randomDate(7),
+        })
+      existingUser = await trx.from('users').where('id', generatedId).first()
+      count++
+    }
+
+    if (!existingUser) {
+      this.logger.warning(`⚠️ Unable to create/find GitHub user ${GITHUB_EMAIL}`)
+      return count
     }
 
     const userId = existingUser.id
@@ -1715,7 +1812,7 @@ export default class SeedData extends BaseCommand {
       }
     }
 
-    // Create 15 extra tasks assigned to this user across different orgs
+    // Create many extra tasks for this account to stress-test marketplace and task boards.
     const taskTitles = [
       'Thiết kế giao diện dashboard mới',
       'Tối ưu hóa API endpoint cho mobile',
@@ -1735,54 +1832,91 @@ export default class SeedData extends BaseCommand {
     ]
     const priorities = ['low', 'medium', 'high', 'urgent'] as const
     const statuses = ['todo', 'in_progress', 'in_review', 'done', 'cancelled'] as const
+    const marketplaceStatuses = ['todo', 'in_progress', 'in_review'] as const
     const labels = ['feature', 'bug', 'enhancement', 'documentation'] as const
     const difficulties = ['easy', 'medium', 'hard', 'expert'] as const
     const visibilities = ['internal', 'external', 'all'] as const
+    const levels = ['beginner', 'elementary', 'junior', 'middle', 'senior', 'lead'] as const
+    const allSkillIds = (await trx.from('skills').select('id')).map((row: { id: string }) =>
+      String(row.id)
+    )
+    const freelancerIds = (await trx.from('users').where('is_freelancer', true).limit(30)).map(
+      (u: { id: string }) => String(u.id)
+    )
 
-    for (let i = 0; i < taskTitles.length; i++) {
-      const org = orgData[i % orgData.length]!
-      const proj = projectData[i % projectData.length]!
-      const slugMap = taskStatusMap.get(org.id)
-      const statusIds = slugMap ? Array.from(slugMap.values()) : []
-      const statusId = statusIds.length > 0 ? this.pick(statusIds) : null
+    let taskSequence = 0
 
-      const taskId = this.uuid()
-      await trx.insertQuery().table('tasks').insert({
-        id: taskId,
-        organization_id: org.id,
-        project_id: proj.id,
-        title: taskTitles[i],
-        description: `Chi tiết nhiệm vụ: ${taskTitles[i]}. Đây là nhiệm vụ được tạo cho user ${existingUser.username} để kiểm thử giao diện với dữ liệu sinh động.`,
-        label: this.pick(labels),
-        priority: this.pick(priorities),
-        status: this.pick(statuses),
-        difficulty: this.pick(difficulties),
-        task_visibility: this.pick(visibilities),
-        task_status_id: statusId,
-        creator_id: userId,
-        assigned_to: i % 3 === 0 ? userId : null,
-        estimated_budget: this.randomDecimal(500000, 50000000),
-        estimated_time: this.randomInt(2, 80),
-        due_date: this.futureDate(this.randomInt(7, 90)),
-        created_at: this.randomDate(60),
-        updated_at: this.randomDate(7),
-      })
+    for (const proj of projectData) {
+      for (let i = 0; i < 6; i++) {
+        const org = orgData.find((o) => o.id === proj.orgId) || orgData[0]!
+        const isMarketplaceFocused = i < 4
+        const visibility = isMarketplaceFocused
+          ? this.pick(['external', 'all', 'external'] as const)
+          : this.pick(visibilities)
+        const status = isMarketplaceFocused ? this.pick(marketplaceStatuses) : this.pick(statuses)
 
-      // Create task application for some tasks
-      if (i % 2 === 0) {
-        await trx.insertQuery().table('task_applications').insert({
-          id: this.uuid(),
-          task_id: taskId,
-          applicant_id: userId,
-          application_status: this.pick(['pending', 'approved', 'rejected']),
-          application_source: this.pick(['public_listing', 'invitation', 'referral']),
-          message: `Tôi muốn đảm nhận nhiệm vụ "${taskTitles[i]}" vì có kinh nghiệm phù hợp trong lĩnh vực này.`,
-          expected_rate: this.randomDecimal(100000, 5000000),
-          applied_at: this.randomDate(30),
+        const title = `${taskTitles[taskSequence % taskTitles.length]} (GH-${taskSequence + 1})`
+        const slugMap = taskStatusMap.get(org.id)
+        const statusIds = slugMap ? Array.from(slugMap.values()) : []
+        const statusId = statusIds.length > 0 ? this.pick(statusIds) : null
+
+        const taskId = this.uuid()
+        await trx.insertQuery().table('tasks').insert({
+          id: taskId,
+          organization_id: org.id,
+          project_id: proj.id,
+          title,
+          description: `Chi tiết nhiệm vụ: ${title}. Đây là nhiệm vụ được tạo cho user ${existingUser.username} để kiểm thử giao diện với dữ liệu sinh động.`,
+          label: this.pick(labels),
+          priority: this.pick(priorities),
+          status,
+          difficulty: this.pick(difficulties),
+          task_visibility: visibility,
+          task_status_id: statusId,
+          creator_id: userId,
+          assigned_to: visibility === 'internal' && i % 3 === 0 ? userId : null,
+          application_deadline: visibility !== 'internal' ? this.futureDate(50) : null,
+          estimated_budget: this.randomDecimal(500000, 50000000),
+          external_applications_count: visibility !== 'internal' ? this.randomInt(0, 40) : 0,
+          estimated_time: this.randomInt(2, 80),
+          due_date: this.futureDate(this.randomInt(7, 90)),
+          sort_order: 10000 + taskSequence,
+          created_at: this.randomDate(90),
+          updated_at: this.randomDate(7),
         })
+
+        // Add required skills for marketplace readability.
+        for (const skillId of this.pickN(allSkillIds, this.randomInt(2, 4))) {
+          await trx
+            .insertQuery()
+            .table('task_required_skills')
+            .insert({
+              id: this.uuid(),
+              task_id: taskId,
+              skill_id: skillId,
+              required_level_code: this.pick(levels),
+              is_mandatory: Math.random() > 0.35,
+              created_at: this.randomDate(30),
+            })
+        }
+
+        // Create task application for some tasks
+        if (visibility !== 'internal' && i % 2 === 0 && freelancerIds.length > 0) {
+          await trx.insertQuery().table('task_applications').insert({
+            id: this.uuid(),
+            task_id: taskId,
+            applicant_id: this.pick(freelancerIds),
+            application_status: this.pick(['pending', 'approved', 'rejected']),
+            application_source: this.pick(['public_listing', 'invitation', 'referral']),
+            message: `Tôi muốn đảm nhận nhiệm vụ "${title}" vì có kinh nghiệm phù hợp trong lĩnh vực này.`,
+            expected_rate: this.randomDecimal(100000, 5000000),
+            applied_at: this.randomDate(30),
+          })
+          count++
+        }
         count++
+        taskSequence++
       }
-      count++
     }
 
     return count
