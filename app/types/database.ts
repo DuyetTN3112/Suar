@@ -320,53 +320,7 @@ export interface TaskRequiredSkillRow {
 }
 
 // ============================================
-// BẢNG 14/23: conversations
-// ============================================
-
-export interface ConversationRow {
-  id: string
-  title: string | null
-  organization_id: string | null
-  task_id: string | null
-  last_message_id: string | null
-  last_message_at: Date | null
-  deleted_at: Date | null
-  created_at: Date
-  updated_at: Date
-}
-
-// ============================================
-// BẢNG 15/23: conversation_participants
-// ============================================
-
-export interface ConversationParticipantRow {
-  id: string
-  conversation_id: string
-  user_id: string
-  last_read_at: Date | null
-  created_at: Date
-}
-
-// ============================================
-// BẢNG 16/23: messages
-// ============================================
-
-export interface MessageRow {
-  id: string
-  conversation_id: string
-  sender_id: string
-  message: string
-  send_status: 'sending' | 'sent' | 'failed'
-  is_recalled: boolean
-  recalled_at: Date | null
-  recall_scope: 'self' | 'all' | null
-  read_at: Date | null
-  created_at: Date
-  updated_at: Date
-}
-
-// ============================================
-// BẢNG 17/23: review_sessions
+// BẢNG 14/23: review_sessions
 // ============================================
 
 export interface ReviewSessionRow {

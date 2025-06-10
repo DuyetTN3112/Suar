@@ -7,7 +7,6 @@ import { SystemRoleName } from '#constants'
 import Organization from './organization.js'
 import Task from './task.js'
 import Project from './project.js'
-import Conversation from './conversation.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
@@ -160,11 +159,6 @@ export default class User extends BaseModel {
 
   @hasMany(() => AuditLog)
   declare audit_logs: HasMany<typeof AuditLog>
-
-  @manyToMany(() => Conversation, {
-    pivotTable: 'conversation_participants',
-  })
-  declare conversations: ManyToMany<typeof Conversation>
 
   @hasMany(() => UserOAuthProvider, {
     foreignKey: 'user_id',

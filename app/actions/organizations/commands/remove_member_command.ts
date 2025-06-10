@@ -6,8 +6,6 @@ import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import ConversationRepository from '#infra/conversations/repositories/conversation_repository'
-import ConversationParticipantRepository from '#infra/conversations/repositories/conversation_participant_repository'
 import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -64,9 +62,6 @@ export default class RemoveMemberCommand {
       // Handle task reassignment (unassign all tasks)
       await this.unassignMemberTasks(dto.organizationId, dto.userId, trx)
 
-      // Remove from conversation_participants
-      await this.removeFromConversations(dto.organizationId, dto.userId, trx)
-
       // Remove member from organization
       await OrganizationUserRepository.deleteMember(dto.organizationId, dto.userId, trx)
 
@@ -120,27 +115,6 @@ export default class RemoveMemberCommand {
 
     // Unassign tasks in these projects via Model
     await TaskRepository.unassignByUserInProjects(projectIds, userId, trx)
-  }
-
-  /**
-   * Helper: Remove user from all organization conversations
-   * Logic từ after_organization_user_update trigger
-   */
-  private async removeFromConversations(
-    organizationId: DatabaseId,
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    // Get all conversation IDs in this organization via Model
-    const conversationIds = await ConversationRepository.findIdsByOrganization(organizationId, trx)
-    if (conversationIds.length === 0) return
-
-    // Delete user from these conversations via Model
-    await ConversationParticipantRepository.removeByUserInConversations(
-      userId,
-      conversationIds,
-      trx
-    )
   }
 
   /**

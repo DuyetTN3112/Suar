@@ -2,8 +2,6 @@ import type OrganizationUser from '#models/organization_user'
 import type Organization from '#models/organization'
 import type Project from '#models/project'
 import type Task from '#models/task'
-import type Message from '#models/message'
-import type Conversation from '#models/conversation'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -156,29 +154,6 @@ export interface TaskAccessRevokedEvent {
   reason?: string
 }
 
-// === MESSAGE EVENTS ===
-// Thay thế: update_last_message_at trigger (after INSERT on messages)
-// Thay thế: after_message_delete trigger (update last_message_id)
-
-export interface MessageSentEvent {
-  message: Message
-  conversation: Conversation
-  senderId: DatabaseId
-}
-
-export interface MessageDeletedEvent {
-  messageId: DatabaseId
-  conversationId: DatabaseId
-}
-
-// === CONVERSATION EVENTS ===
-
-export interface ConversationCreatedEvent {
-  conversation: Conversation
-  creatorId: DatabaseId
-  participantIds: DatabaseId[]
-}
-
 // === USER EVENTS ===
 // Thay thế: before_update_user_current_org trigger (validate org membership)
 // Thay thế: before_user_insert/update triggers
@@ -325,11 +300,6 @@ declare module '@adonisjs/core/types' {
     'task:status:changed': TaskStatusChangedEvent
     'task:assigned': TaskAssignedEvent
     'task:access:revoked': TaskAccessRevokedEvent
-
-    // Conversation & Message
-    'message:sent': MessageSentEvent
-    'message:deleted': MessageDeletedEvent
-    'conversation:created': ConversationCreatedEvent
 
     // User
     'user:approved': UserApprovedEvent

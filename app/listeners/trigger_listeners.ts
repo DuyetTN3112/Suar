@@ -1,10 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
+import { DateTime } from 'luxon'
 import type {
   OrganizationCreatedEvent,
   ProjectCreatedEvent,
-  MessageSentEvent,
-  MessageDeletedEvent,
   TaskUpdatedEvent,
   TaskStatusChangedEvent,
 } from '#events/event_types'
@@ -39,69 +38,6 @@ emitter.on('project:created', (event: ProjectCreatedEvent) => {
     creatorId: event.creatorId,
     organizationId: event.organizationId,
   })
-})
-
-/**
- * Message Listeners
- *
- * Thay thế MySQL trigger: update_last_message_at
- * Logic: Khi message mới → update conversations.last_message_at và last_message_id
- */
-emitter.on('message:sent', async (event: MessageSentEvent) => {
-  try {
-    const { default: Conversation } = await import('#models/conversation')
-
-    await Conversation.query().where('id', event.conversation.id).update({
-      last_message_at: new Date(),
-      last_message_id: event.message.id,
-    })
-
-    loggerService.debug('Updated conversation last_message_at', {
-      conversationId: event.conversation.id,
-      messageId: event.message.id,
-    })
-  } catch (error) {
-    loggerService.error('Failed to update conversation last_message_at', {
-      conversationId: event.conversation.id,
-      error: error instanceof Error ? error.message : String(error),
-    })
-  }
-})
-
-/**
- * Message Delete Listener
- *
- * Thay thế MySQL trigger: after_message_delete
- * Logic: Khi message bị xóa → update last_message_id của conversation
- */
-emitter.on('message:deleted', async (event: MessageDeletedEvent) => {
-  try {
-    const { default: Message } = await import('#models/message')
-    const { default: Conversation } = await import('#models/conversation')
-
-    // Tìm message mới nhất còn lại trong conversation
-    const latestMessage = await Message.query()
-      .where('conversation_id', event.conversationId)
-      .orderBy('created_at', 'desc')
-      .first()
-
-    await Conversation.query()
-      .where('id', event.conversationId)
-      .update({
-        last_message_id: latestMessage?.id ?? null,
-        last_message_at: latestMessage?.created_at.toISO() ?? null,
-      })
-
-    loggerService.debug('Updated conversation after message delete', {
-      conversationId: event.conversationId,
-      deletedMessageId: event.messageId,
-    })
-  } catch (error) {
-    loggerService.error('Failed to update conversation after message delete', {
-      conversationId: event.conversationId,
-      error: error instanceof Error ? error.message : String(error),
-    })
-  }
 })
 
 /**
@@ -154,14 +90,45 @@ emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
     const { default: ReviewSession } = await import('#models/review_session')
 
     // Find all active assignments for this task
-    const activeAssignments = await TaskAssignment.query()
+    let activeAssignments = await TaskAssignment.query()
       .where('task_id', event.task.id)
       .where('assignment_status', 'active')
 
+    // Fallback path: legacy/internal tasks may only have task.assigned_to,
+    // but no task_assignments rows yet.
+    if (activeAssignments.length === 0 && event.task.assigned_to) {
+      const existingAssignment = await TaskAssignment.query()
+        .where('task_id', event.task.id)
+        .where('assignee_id', event.task.assigned_to)
+        .whereIn('assignment_status', ['active', 'completed'])
+        .orderBy('assigned_at', 'desc')
+        .first()
+
+      if (!existingAssignment) {
+        const fallbackAssignment = await TaskAssignment.create({
+          task_id: event.task.id,
+          assignee_id: event.task.assigned_to,
+          assigned_by: event.changedBy,
+          assignment_type: 'member',
+          assignment_status: 'completed',
+          progress_percentage: 100,
+          assigned_at: DateTime.now(),
+          completed_at: DateTime.now(),
+        })
+
+        activeAssignments = [fallbackAssignment]
+      } else {
+        activeAssignments = [existingAssignment]
+      }
+    }
+
     for (const assignment of activeAssignments) {
       // Mark assignment as completed
-      assignment.assignment_status = 'completed'
-      await assignment.save()
+      if (assignment.assignment_status !== 'completed') {
+        assignment.assignment_status = 'completed'
+        assignment.completed_at = DateTime.now()
+        await assignment.save()
+      }
 
       // Check if review session already exists
       const existingSession = await ReviewSession.query()
@@ -191,6 +158,10 @@ emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
       loggerService.info('Task completed — assignments updated & review sessions created', {
         taskId: event.task.id,
         assignmentsCompleted: activeAssignments.length,
+      })
+    } else {
+      loggerService.warn('Task moved to done but no assignee/assignment found for review creation', {
+        taskId: event.task.id,
       })
     }
   } catch (error) {

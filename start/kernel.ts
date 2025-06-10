@@ -65,7 +65,7 @@ router.use([
  *
  * Đã xóa: silentAuth (empty implementation, dead code)
  * Đã thêm: auditLog (middleware ghi nhật ký)
- * Đã giữ: guest, auth, cache, authorizeRole, requireOrg, messageSanitizer
+ * Đã giữ: guest, auth, cache, authorizeRole, requireOrg
  *
  * Note: requireOrg giờ chỉ là alias backup — OrganizationResolver
  * đã chạy trong router.use() global. Giữ lại cho routes cần strict check.
@@ -76,7 +76,6 @@ export const middleware = router.named({
   cache: () => import('#middleware/cache_middleware'),
   authorizeRole: () => import('#middleware/authorize_role'),
   requireOrg: () => import('#middleware/require_organization_middleware'),
-  messageSanitizer: () => import('#middleware/message_sanitizer'),
   auditLog: () => import('#middleware/audit_log_middleware'),
 })
 
