@@ -4,6 +4,7 @@ import ProjectMemberRepository from '#infra/projects/repositories/project_member
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -67,13 +68,19 @@ export interface GetProjectDetailResult {
  * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
 export default class GetProjectDetailQuery extends BaseQuery<
-  { projectId: DatabaseId },
+  {
+    projectId: DatabaseId
+    organizationId?: DatabaseId
+  },
   GetProjectDetailResult
 > {
   /**
    * Execute the query
    */
-  async handle(input: { projectId: DatabaseId }): Promise<GetProjectDetailResult> {
+  async handle(input: {
+    projectId: DatabaseId
+    organizationId?: DatabaseId
+  }): Promise<GetProjectDetailResult> {
     const projectId = input.projectId
     const userId = this.getCurrentUserId()
     if (!userId) {
@@ -84,7 +91,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const project = await ProjectRepository.findDetailWithRelations(projectId)
 
     // Check access permission
-    await this.validateAccess(userId, project)
+    await this.validateAccess(userId, project, input.organizationId)
 
     // Fetch all related data in parallel
     const [members, tasksSummary, recentActivity] = await Promise.all([
@@ -108,16 +115,28 @@ export default class GetProjectDetailQuery extends BaseQuery<
   /**
    * Validate user has access to this project
    */
-  private async validateAccess(userId: DatabaseId, project: Project): Promise<void> {
-    // System admins bypass project-level access check
-    const User = (await import('#models/user')).default
-    const user = await User.find(userId)
-    if (user?.isAdmin) return
-
-    const hasAccess = await ProjectMemberRepository.hasAccess(project.id, userId)
-    if (!hasAccess) {
-      throw new ForbiddenException('Bạn không có quyền truy cập dự án này')
+  private async validateAccess(
+    userId: DatabaseId,
+    project: Project,
+    currentOrganizationId?: DatabaseId
+  ): Promise<void> {
+    if (currentOrganizationId && project.organization_id !== currentOrganizationId) {
+      throw new ForbiddenException('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
     }
+
+    const orgId = currentOrganizationId ?? project.organization_id
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(
+      orgId,
+      userId,
+      undefined,
+      true
+    )
+    if (!orgRole) {
+      throw new ForbiddenException('Bạn không có quyền truy cập dự án của tổ chức này')
+    }
+
+    // Project-specific membership is not required for read access.
+    // Any approved member in current organization can view project details.
   }
 
   /**
@@ -131,7 +150,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
 
     return members.map((member) => ({
       ...member,
-      task_count: taskCountMap.get(String(member.user_id)) ?? 0,
+      task_count: taskCountMap.get(member.user_id) ?? 0,
     }))
   }
 
@@ -172,7 +191,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
     const users = await UserRepository.findByIds(userIds, ['id', 'username'])
-    const userMap = new Map(users.map((u) => [String(u.id), u]))
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
     return logs.map((log) => {
       const user = userMap.get(String(log.user_id))

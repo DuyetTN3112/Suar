@@ -19,6 +19,11 @@ router.get('/test', async ({ inertia }) => {
   return inertia.render('index', {})
 })
 
+// Chrome DevTools probe on Linux desktop; return 204 to avoid noisy logs.
+router.get('/.well-known/appspecific/com.chrome.devtools.json', async ({ response }) => {
+  return response.noContent()
+})
+
 // Health check route
 // FIX BẢO MẬT: Dùng ApiKeyMiddleware (timing-safe comparison, validate env)
 // thay vì inline check dùng process.env (không validate, không timing-safe)

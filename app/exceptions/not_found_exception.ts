@@ -59,12 +59,4 @@ export default class NotFoundException extends Exception {
       id ? `${ErrorMessages.TASK_NOT_FOUND} (ID: ${id})` : ErrorMessages.TASK_NOT_FOUND
     )
   }
-
-  static conversation(id?: string | number): NotFoundException {
-    return new NotFoundException(
-      id
-        ? `${ErrorMessages.CONVERSATION_NOT_FOUND} (ID: ${id})`
-        : ErrorMessages.CONVERSATION_NOT_FOUND
-    )
-  }
 }

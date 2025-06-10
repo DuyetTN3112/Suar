@@ -53,10 +53,13 @@ export const controllers = {
   projects: {
     AddProjectMember: () => import('#controllers/projects/add_project_member_controller'),
     CreateProject: () => import('#controllers/projects/create_project_controller'),
+    DeleteProjectApi: () => import('#controllers/projects/delete_project_api_controller'),
     DeleteProject: () => import('#controllers/projects/delete_project_controller'),
+    GetProjectDetailApi: () => import('#controllers/projects/get_project_detail_api_controller'),
     ListProjects: () => import('#controllers/projects/list_projects_controller'),
     ShowProject: () => import('#controllers/projects/show_project_controller'),
     StoreProject: () => import('#controllers/projects/store_project_controller'),
+    UpdateProjectApi: () => import('#controllers/projects/update_project_api_controller'),
   },
   reviews: {
     ConfirmReview: () => import('#controllers/reviews/confirm_review_controller'),

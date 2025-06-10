@@ -82,17 +82,10 @@ export type ScannedRoutes = {
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }
-    'conversations.index': { paramsTuple?: []; params?: {} }
-    'conversations.create': { paramsTuple?: []; params?: {} }
-    'conversations.store': { paramsTuple?: []; params?: {} }
-    'conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'conversations.send_message': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'conversations.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.send_message': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.recall_message': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'messageId': ParamValue} }
     'get_task_audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.projects.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.projects.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'redis_list_keys': { paramsTuple?: []; params?: {} }
     'redis_set_cache': { paramsTuple?: []; params?: {} }
     'redis_get_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
@@ -101,7 +94,6 @@ export type ScannedRoutes = {
     'get_organization_members_api': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'get_me_api': { paramsTuple?: []; params?: {} }
     'get_users_in_organization_api': { paramsTuple?: []; params?: {} }
-    'check_existing_conversation_api': { paramsTuple?: []; params?: {} }
     'debug_organization_info_api': { paramsTuple?: []; params?: {} }
     'organizations.all': { paramsTuple?: []; params?: {} }
     'api.organizations.list': { paramsTuple?: []; params?: {} }
@@ -186,11 +178,8 @@ export type ScannedRoutes = {
     'account.index': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.latest': { paramsTuple?: []; params?: {} }
-    'conversations.index': { paramsTuple?: []; params?: {} }
-    'conversations.create': { paramsTuple?: []; params?: {} }
-    'conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'get_task_audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.projects.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'redis_list_keys': { paramsTuple?: []; params?: {} }
     'redis_get_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'get_organization_members_api': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -259,11 +248,8 @@ export type ScannedRoutes = {
     'account.index': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
     'notifications.latest': { paramsTuple?: []; params?: {} }
-    'conversations.index': { paramsTuple?: []; params?: {} }
-    'conversations.create': { paramsTuple?: []; params?: {} }
-    'conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'get_task_audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.projects.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'redis_list_keys': { paramsTuple?: []; params?: {} }
     'redis_get_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'get_organization_members_api': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -307,14 +293,7 @@ export type ScannedRoutes = {
     'settings.notifications.update': { paramsTuple?: []; params?: {} }
     'notifications.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.mark_all_as_read': { paramsTuple?: []; params?: {} }
-    'conversations.store': { paramsTuple?: []; params?: {} }
-    'conversations.send_message': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'conversations.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.send_message': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.mark_as_read': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.conversations.recall_message': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'messageId': ParamValue} }
     'redis_set_cache': { paramsTuple?: []; params?: {} }
-    'check_existing_conversation_api': { paramsTuple?: []; params?: {} }
     'organizations.join.post': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'organizations.store': { paramsTuple?: []; params?: {} }
     'organizations.switch': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -346,6 +325,7 @@ export type ScannedRoutes = {
     'api.task_statuses.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'api.workflow.update': { paramsTuple?: []; params?: {} }
     'settings.update': { paramsTuple?: []; params?: {} }
+    'api.projects.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
   DELETE: {
     'users.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -355,6 +335,7 @@ export type ScannedRoutes = {
     'account.destroy': { paramsTuple?: []; params?: {} }
     'notifications.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }
+    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'redis_clear_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
     'redis_flush_cache': { paramsTuple?: []; params?: {} }
     'organizations.members.remove': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'userId': ParamValue} }
