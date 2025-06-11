@@ -22,10 +22,9 @@
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import DialogTrigger from '@/components/ui/dialog_trigger.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import type { ProjectShowProps, Task } from './types'
+  import type { ProjectShowProps } from './types'
   import { formatDate } from '@/lib/utils'
 
   const { project, members, tasks, permissions }: ProjectShowProps = $props()
@@ -52,14 +51,6 @@
     addMemberOpen = false
   }
 
-  function getInitials(name: string) {
-    return name
-      .split(' ')
-      .map(part => part[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2)
-  }
 </script>
 
 <svelte:head>
@@ -140,11 +131,9 @@
             <CardTitle>Thành viên</CardTitle>
             {#if permissions.isCreator || permissions.isManager}
               <Dialog bind:open={addMemberOpen}>
-                <DialogTrigger asChild let:builder>
-                  <Button size="sm" builders={[builder]}>
-                    Thêm thành viên
-                  </Button>
-                </DialogTrigger>
+                <Button size="sm" onclick={() => { addMemberOpen = true }}>
+                  Thêm thành viên
+                </Button>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Thêm thành viên</DialogTitle>
@@ -173,7 +162,7 @@
                   Chưa có thành viên nào
                 </p>
               {:else}
-                {#each safeMembers as member (member.id)}
+                {#each safeMembers as member, index (`${member.user_id ?? member.email ?? 'member'}-${index}`)}
                   <div class="flex items-center space-x-3 p-3 border rounded-md">
                     <Avatar>
                       <AvatarFallback>{member.username?.[0]?.toUpperCase() || member.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
@@ -195,7 +184,7 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Công việc</CardTitle>
-            <Button size="sm" onclick={() => { router.get('/tasks'); }}>
+            <Button size="sm" onclick={() => { router.get('/tasks', { project_id: project.id }); }}>
               Xem tất cả công việc
             </Button>
           </CardHeader>
