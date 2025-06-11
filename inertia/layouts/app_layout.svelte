@@ -74,7 +74,7 @@
   <div class="relative flex min-h-screen w-full">
     <AppSidebar />
 
-    <div class="flex flex-col w-full min-h-screen transition-all duration-300 ease-in-out">
+    <div class="flex min-w-0 flex-1 flex-col min-h-screen transition-all duration-300 ease-in-out">
       <NavBar />
       <main class="flex-1">
         {@render children()}

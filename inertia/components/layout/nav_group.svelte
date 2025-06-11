@@ -65,23 +65,16 @@
   function handleNavigation(url: string, callback?: () => void) {
     if (!url) return
 
-    // Kiểm tra nếu đây là URL của trang chi tiết hội thoại
-    if (url.match(/^\/conversations\/[^\/]+$/)) {
-      // Sử dụng router.get cho trang chi tiết hội thoại để đảm bảo tải dữ liệu đầy đủ
-      router.get(url)
-    } else {
-      // Giữ nguyên router.visit cho các trang khác để duy trì SPA
-      router.visit(url, {
-        preserveScroll: true,
-        preserveState: true,
-        onError: (errors) => {
-          // Only log in development
-          if (import.meta.env.MODE === 'development') {
-            console.error('[Navigation] Lỗi khi điều hướng:', errors)
-          }
+    router.visit(url, {
+      preserveScroll: true,
+      preserveState: true,
+      onError: (errors) => {
+        // Only log in development
+        if (import.meta.env.MODE === 'development') {
+          console.error('[Navigation] Lỗi khi điều hướng:', errors)
         }
-      })
-    }
+      },
+    })
 
     // Execute callback after navigation (e.g. close mobile sidebar)
     if (callback) {

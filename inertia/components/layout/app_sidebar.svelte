@@ -47,8 +47,8 @@
 </script>
 
 <Sidebar
-  class="h-screen overflow-hidden"
-  collapsible="none"
+  class="h-screen shrink-0 overflow-hidden"
+  collapsible="offcanvas"
   variant="sidebar"
 >
   <SidebarHeader class="px-2 py-2">

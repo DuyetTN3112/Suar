@@ -169,10 +169,8 @@
           <AvatarFallback>S</AvatarFallback>
         </Avatar>
         <div class="grid flex-1 text-left text-sm leading-tight">
-          <span class="truncate font-semibold">Suar</span>
-          <span class="truncate text-xs text-red-500">
-            Không có tổ chức
-          </span>
+          <span class="truncate font-semibold">Không có tổ chức</span>
+          <span class="truncate text-xs text-red-500">Suar</span>
         </div>
       </SidebarMenuButton>
     </SidebarMenuItem>
@@ -193,16 +191,16 @@
                 <AvatarFallback class="!block">S</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">Suar</span>
-                <span class="truncate text-xs">{selectedTeam.name}{currentProject ? ` / ${currentProject.name}` : ''}</span>
+                <span class="truncate font-semibold">{selectedTeam.name}</span>
+                <span class="truncate text-xs">Suar{currentProject ? ` / ${currentProject.name}` : ''}</span>
               </div>
             {:else}
               <Avatar class="h-8 w-8 rounded-lg !block">
                 <AvatarFallback class="!block">S</AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-semibold">Suar</span>
-                <span class="truncate text-xs">Chưa chọn tổ chức</span>
+                <span class="truncate font-semibold">Chưa chọn tổ chức</span>
+                <span class="truncate text-xs">Suar</span>
               </div>
             {/if}
             {#if isLoading}
