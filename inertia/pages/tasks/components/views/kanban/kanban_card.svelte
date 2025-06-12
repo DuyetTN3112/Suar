@@ -24,17 +24,17 @@
   const { task, displayProperties, metadata, onTaskClick, ondragstart }: Props = $props()
 
   const priorityColors: Record<string, string> = {
-    urgent: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-    high: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
-    medium: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
-    low: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    urgent: 'border border-red-300 bg-red-100 text-red-900',
+    high: 'border border-orange-300 bg-orange-100 text-orange-900',
+    medium: 'border border-amber-300 bg-amber-100 text-amber-900',
+    low: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
   }
 
   const labelColors: Record<string, string> = {
-    bug: 'bg-red-50 text-red-600 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
-    feature: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800',
-    enhancement: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800',
-    documentation: 'bg-teal-50 text-teal-600 border-teal-200 dark:bg-teal-900/20 dark:text-teal-400 dark:border-teal-800',
+    bug: 'border border-red-300 bg-red-100 text-red-900',
+    feature: 'border border-blue-300 bg-blue-100 text-blue-900',
+    enhancement: 'border border-emerald-300 bg-emerald-100 text-emerald-900',
+    documentation: 'border border-cyan-300 bg-cyan-100 text-cyan-900',
   }
 
   const priorityLabel = $derived(
@@ -87,13 +87,13 @@
   <!-- Metadata row -->
   <div class="flex flex-wrap items-center gap-1.5 mt-2">
     {#if displayProperties.priority}
-      <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium {priorityColors[task.priority] ?? 'bg-muted text-muted-foreground'}">
+      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {priorityColors[task.priority] ?? 'border border-muted bg-muted/40 text-foreground'}">
         {priorityLabel}
       </span>
     {/if}
 
     {#if displayProperties.label}
-      <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-medium border {labelColors[task.label] ?? 'bg-muted text-muted-foreground border-border'}">
+      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold {labelColors[task.label] ?? 'border border-muted bg-muted/40 text-foreground'}">
         {labelLabel}
       </span>
     {/if}

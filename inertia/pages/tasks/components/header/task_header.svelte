@@ -6,9 +6,6 @@
   import TaskFiltersBar from './task_filters_bar.svelte'
   import DisplayProperties from './display_properties.svelte'
   import {
-    LayoutGrid,
-    List,
-    Plus,
     SlidersHorizontal,
     X,
   } from 'lucide-svelte'
@@ -21,19 +18,13 @@
       priorities: Array<{ value: string; label: string; color?: string }>
       users: Array<{ id: string; username: string; email: string }>
     }
-    onCreateClick: () => void
   }
 
-  const { store, metadata, onCreateClick }: Props = $props()
+  const { store, metadata }: Props = $props()
   const { t } = useTranslation()
 
   let showFilters = $state(false)
   let showDisplayProperties = $state(false)
-
-  const layouts = [
-    { key: 'list' as const, icon: List, label: 'List' },
-    { key: 'kanban' as const, icon: LayoutGrid, label: 'Kanban' },
-  ]
 </script>
 
 <div class="space-y-3">
@@ -45,22 +36,6 @@
     </h1>
 
     <div class="flex items-center gap-2">
-      <!-- Layout Switcher -->
-      <div class="flex items-center rounded-md border bg-muted/50 p-0.5">
-        {#each layouts as layout}
-          <button
-            class="inline-flex items-center justify-center rounded-sm px-2.5 py-1.5 text-sm font-medium transition-colors {store.activeLayout === layout.key
-              ? 'bg-background text-foreground shadow-sm'
-              : 'text-muted-foreground hover:text-foreground'}"
-            onclick={() => { store.setLayout(layout.key); }}
-            title={layout.label}
-          >
-            <layout.icon class="h-4 w-4" />
-            <span class="ml-1.5 hidden sm:inline">{layout.label}</span>
-          </button>
-        {/each}
-      </div>
-
       <!-- Filter Toggle -->
       <Button
         size="sm"
@@ -85,11 +60,6 @@
         <SlidersHorizontal class="h-4 w-4" />
       </Button>
 
-      <!-- Create Task -->
-      <Button size="sm" onclick={onCreateClick}>
-        <Plus class="h-4 w-4 mr-1" />
-        {t('task.add_task', {}, 'Tạo mới')}
-      </Button>
     </div>
   </div>
 
