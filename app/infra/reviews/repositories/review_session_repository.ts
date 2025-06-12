@@ -65,7 +65,12 @@ export default class ReviewSessionRepository {
   ) {
     return this.baseQuery(trx)
       .where('reviewee_id', userId)
-      .whereIn('status', ['completed', 'disputed'])
+      .whereIn('status', [
+        ReviewSessionStatus.PENDING,
+        ReviewSessionStatus.IN_PROGRESS,
+        ReviewSessionStatus.COMPLETED,
+        ReviewSessionStatus.DISPUTED,
+      ])
       .preload('task_assignment', (assignmentQuery) => {
         void assignmentQuery.preload('task', (taskQuery) => {
           void taskQuery.select(['id', 'title'])
@@ -74,7 +79,7 @@ export default class ReviewSessionRepository {
       .preload('skill_reviews', (reviewQuery) => {
         void reviewQuery.preload('skill')
       })
-      .orderBy('completed_at', 'desc')
+      .orderBy('updated_at', 'desc')
       .paginate(page, perPage)
   }
 }

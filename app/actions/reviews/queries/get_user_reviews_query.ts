@@ -25,27 +25,20 @@ export default class GetUserReviewsQuery extends BaseQuery<GetUserReviewsDTO, Us
   }
 
   async handle(dto: GetUserReviewsDTO): Promise<UserReviewsResult> {
-    const cacheKey = this.generateCacheKey('user:reviews', {
-      userId: dto.user_id,
-      page: dto.page,
-    })
+    const result = await ReviewSessionRepository.paginateByReviewee(
+      dto.user_id,
+      dto.page,
+      dto.per_page
+    )
 
-    return await this.executeWithCache(cacheKey, 120, async () => {
-      const result = await ReviewSessionRepository.paginateByReviewee(
-        dto.user_id,
-        dto.page,
-        dto.per_page
-      )
-
-      return {
-        data: result.all(),
-        meta: {
-          total: result.total,
-          per_page: result.perPage,
-          current_page: result.currentPage,
-          last_page: result.lastPage,
-        },
-      }
-    })
+    return {
+      data: result.all(),
+      meta: {
+        total: result.total,
+        per_page: result.perPage,
+        current_page: result.currentPage,
+        last_page: result.lastPage,
+      },
+    }
   }
 }
