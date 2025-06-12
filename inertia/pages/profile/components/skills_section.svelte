@@ -34,7 +34,7 @@
     switch (code) {
       case 'technical': return 'Kỹ năng kỹ thuật'
       case 'soft_skill': return 'Kỹ năng mềm'
-      case 'delivery': return 'Kỹ năng giao hàng'
+      case 'delivery': return 'Kỹ năng thực thi'
       default: return code
     }
   }

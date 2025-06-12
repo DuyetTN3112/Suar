@@ -73,7 +73,7 @@
         <p class="text-sm mt-1">Thử thay đổi bộ lọc hoặc quay lại sau</p>
       </div>
     {:else}
-      <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="grid gap-5 grid-cols-1">
         {#each tasks as task (task.id)}
           <MarketplaceTaskCard {task} onApply={handleApply} />
         {/each}

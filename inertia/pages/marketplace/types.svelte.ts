@@ -21,7 +21,27 @@ export interface SerializedSkill {
 export interface SerializedRequiredSkill {
   id: string
   skill_id: string
+  required_level_code?: string
+  is_mandatory?: boolean
   skill?: SerializedSkill
+}
+
+export interface SerializedUserLite {
+  id: string
+  username?: string | null
+  email?: string | null
+  avatar_url?: string | null
+}
+
+export interface SerializedProject {
+  id: string
+  name: string
+  owner?: SerializedUserLite
+}
+
+export interface SerializedTaskLite {
+  id: string
+  title: string
 }
 
 export interface MarketplaceTask {
@@ -34,7 +54,12 @@ export interface MarketplaceTask {
   estimated_budget?: number | null
   task_visibility: 'external' | 'all'
   created_at: string
+  updated_at?: string
+  parent_task_id?: string | null
   organization?: SerializedOrganization
+  project?: SerializedProject
+  creator?: SerializedUserLite
+  parentTask?: SerializedTaskLite
   required_skills_rel?: SerializedRequiredSkill[]
   /** Count of current user's applications (0 = not applied, >0 = applied) */
   user_applied?: number

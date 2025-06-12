@@ -24,6 +24,14 @@
       ? new Date(skill.last_reviewed_at).toLocaleDateString('vi-VN')
       : null
   )
+
+  const scoreText = $derived(() => {
+    const raw = skill.avg_percentage
+    if (typeof raw !== 'number' || !Number.isFinite(raw)) {
+      return null
+    }
+    return `${raw.toFixed(1)}%`
+  })
 </script>
 
 <div class="rounded-lg border p-3 space-y-2 hover:shadow-sm transition-shadow">
@@ -46,8 +54,10 @@
   </div>
 
   <div class="flex items-center gap-3 text-xs text-muted-foreground">
-    {#if skill.avg_percentage !== null}
-      <span>Điểm: {skill.avg_percentage.toFixed(1)}%</span>
+    {#if scoreText()}
+      <span>Điểm: {scoreText()}</span>
+    {:else}
+      <span>Điểm: Chưa có</span>
     {/if}
     <span>{skill.total_reviews} đánh giá</span>
     {#if lastReviewed}
