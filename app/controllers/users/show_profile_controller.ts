@@ -5,6 +5,12 @@ import GetUserProfileQuery, {
 import GetSpiderChartDataQuery, {
   GetSpiderChartDataDTO,
 } from '#actions/users/queries/get_spider_chart_data_query'
+import GetUserDeliveryMetricsQuery, {
+  GetUserDeliveryMetricsDTO,
+} from '#actions/users/queries/get_user_delivery_metrics_query'
+import GetFeaturedReviewsQuery, {
+  GetFeaturedReviewsDTO,
+} from '#actions/users/queries/get_featured_reviews_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
@@ -18,10 +24,13 @@ export default class ShowProfileController {
     }
     const userId = currentUser.id
 
-    const [{ user, completeness }, spiderChartData] = await Promise.all([
-      new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
-      new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
-    ])
+    const [{ user, completeness }, spiderChartData, deliveryMetrics, featuredReviews] =
+      await Promise.all([
+        new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
+        new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
+        new GetUserDeliveryMetricsQuery(ctx).handle(new GetUserDeliveryMetricsDTO(userId)),
+        new GetFeaturedReviewsQuery(ctx).handle(new GetFeaturedReviewsDTO(userId, 2)),
+      ])
 
     // user may be a Lucid model (fresh) or plain object (from cache)
     const serializedUser = typeof user.serialize === 'function' ? user.serialize() : user
@@ -30,6 +39,8 @@ export default class ShowProfileController {
       user: serializedUser,
       completeness,
       spiderChartData,
+      deliveryMetrics,
+      featuredReviews,
     })
   }
 }
