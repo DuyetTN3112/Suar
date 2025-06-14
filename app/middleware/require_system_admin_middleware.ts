@@ -1,0 +1,56 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import { SystemRoleName } from '#constants/user_constants'
+
+/**
+ * RequireSystemAdminMiddleware
+ *
+ * Protects routes that require SYSTEM-level admin access.
+ * Only users with system_role = 'superadmin' or 'system_admin' can proceed.
+ *
+ * ⚠️ IMPORTANT:
+ * - This is for SYSTEM admins (manage entire platform)
+ * - NOT for organization admins (manage their org only)
+ * - System admin ≠ Organization owner/admin
+ *
+ * Usage:
+ * ```typescript
+ * router.group(() => {
+ *   // System admin routes
+ * }).use([middleware.auth(), middleware.requireSystemAdmin()])
+ * ```
+ */
+export default class RequireSystemAdminMiddleware {
+  /**
+   * Handle the request
+   */
+  async handle({ auth, session, response, request }: HttpContext, next: NextFn): Promise<void> {
+    // Check if user is authenticated
+    if (!auth.user) {
+      session.flash('error', 'You must be logged in to access this page')
+      return response.redirect().toRoute('auth.login')
+    }
+
+    // Check system_role
+    const systemRole = auth.user.system_role?.toLowerCase()
+    const isSystemAdmin =
+      systemRole === SystemRoleName.SUPERADMIN || systemRole === SystemRoleName.SYSTEM_ADMIN
+
+    if (!isSystemAdmin) {
+      session.flash('error', 'Access denied. System administrator privileges required.')
+      return response.redirect().toRoute('home')
+    }
+
+    // TODO: Log system admin access to audit log
+    // await AuditLog.create({
+    //   user_id: auth.user.id,
+    //   action: 'system_admin_access',
+    //   resource_type: 'system',
+    //   resource_id: null,
+    //   ip_address: request.ip(),
+    //   user_agent: request.header('user-agent'),
+    // })
+
+    await next()
+  }
+}
