@@ -1,0 +1,35 @@
+%% pkg_02_application_layer: CQRS Application Layer Overview
+%% Detail files:
+%%   - pkg_02a_application_task_project.mmd
+%%   - pkg_02b_application_org_admin.mmd
+%%   - pkg_02c_application_review_user.mmd
+
+graph TD
+    APP["app/actions/"]
+    TASKS["tasks/"]
+    PROJECTS["projects/"]
+    ORGS["organizations/"]
+    REVIEWS["reviews/"]
+    USERS["users/"]
+    AUTH["auth/"]
+    SHARED["shared/ + common/ + dtos/"]
+
+    APP --> TASKS
+    APP --> PROJECTS
+    APP --> ORGS
+    APP --> REVIEWS
+    APP --> USERS
+    APP --> AUTH
+    APP --> SHARED
+
+    TASKS --> SHARED
+    PROJECTS --> SHARED
+    ORGS --> SHARED
+    REVIEWS --> SHARED
+    USERS --> SHARED
+    AUTH --> SHARED
+
+    classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef shared fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    class APP,TASKS,PROJECTS,ORGS,REVIEWS,USERS,AUTH pkg
+    class SHARED shared

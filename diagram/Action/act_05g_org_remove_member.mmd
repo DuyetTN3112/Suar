@@ -1,0 +1,26 @@
+%% act_05g_org_remove_member.mmd
+%% Scope: Remove member only.
+%% Backend refs:
+%%   - DELETE /organizations/:id/members/:userId
+%%   - DELETE /org/members/:id
+%%   - RemoveMemberCommand
+
+flowchart TD
+    Start([Start]) --> Input["Owner/Admin requests member removal"]
+    Input --> Load["Load actor role + target membership"]
+    Load --> Policy{"Removal allowed\nby org policy?"}
+    Policy -->|No| Deny["Reject request"]
+    Policy -->|Yes| Unassign["Unassign member from tasks\nin org projects"]
+    Unassign --> Delete["Delete organization membership"]
+    Delete --> Audit["Audit + notification"]
+    Audit --> End([Member removed])
+    Deny --> End2([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,End2 startEnd
+    class Input,Load,Unassign,Delete,Audit process
+    class Policy decision
+    class Deny error

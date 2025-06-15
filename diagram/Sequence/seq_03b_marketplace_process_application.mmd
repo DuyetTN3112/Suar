@@ -1,0 +1,38 @@
+%% seq_03b_marketplace_process_application.mmd
+%% Scope: Approve or reject a task application only.
+
+sequenceDiagram
+    autonumber
+    actor Creator as Task Creator
+    participant B as Browser
+    participant C as ProcessApplicationController
+    participant Cmd as ProcessApplicationCommand
+    participant Repo as TaskRepository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Creator->>B: Choose approve / reject
+    B->>C: POST /applications/:id/process
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: load application + task
+    Repo->>DB: SELECT application, task
+    DB-->>Repo: Results
+    Cmd->>Cmd: validate creator permission
+
+    alt Approve
+        Cmd->>Repo: update application approved
+        Repo->>DB: UPDATE task_applications
+        Cmd->>Repo: create task assignment
+        Repo->>DB: INSERT task_assignments
+        Cmd->>Repo: update task assignee + reject others
+        Repo->>DB: UPDATE tasks and other applications
+        Cmd->>Evt: emit task:application:approved
+    else Reject
+        Cmd->>Repo: update application rejected
+        Repo->>DB: UPDATE task_applications
+        Cmd->>Evt: emit task:application:rejected
+    end
+
+    C-->>B: Redirect back
+    B-->>Creator: Updated application status
+

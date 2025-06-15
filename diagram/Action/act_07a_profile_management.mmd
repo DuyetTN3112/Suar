@@ -1,0 +1,65 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_07a: Profile Management
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Update profile (bio, avatar, phone, etc.)
+%%        View own / other user's profile
+%%
+%% NOT in scope (separate diagrams):
+%%   - Skill CRUD → act_07b_skill_management.mmd
+%%   - Recruiter Bookmark → Phase 2
+%%   - Subscription → Phase 2
+%%   - Configure Public Profile → XÓA (transparency)
+%%
+%% Backend: ProfileController → UserAction commands/queries
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> ProfileAction{"Action?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 1: Update Own Profile
+    %% ═══════════════════════════════════════════════════════════
+    ProfileAction -->|"Update Profile"| EditProfile["User opens
+    GET /profile/edit"]
+    EditProfile --> UpdateFields["Edit fields:
+    bio, phone, address,
+    timezone, language,
+    avatar_url, is_freelancer"]
+    UpdateFields --> ValidateProfile{"Validate
+    input?"}
+    ValidateProfile -->|Invalid| ShowProfileErrors["Show validation
+    errors"]
+    ShowProfileErrors --> UpdateFields
+    ValidateProfile -->|Valid| SaveProfile["PUT /profile/details
+    → UpdateUserDetailsCommand
+    UPDATE users SET ..."]
+    SaveProfile --> AuditProfile["Log audit +
+    invalidate cache
+    user:profile:{userId}"]
+    AuditProfile --> ProfileDone["Profile updated
+    successfully"]
+    ProfileDone --> End1([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 2: View Other User's Profile
+    %% ═══════════════════════════════════════════════════════════
+    ProfileAction -->|"View Other User"| ViewOther["GET /users/:id/profile
+    → ViewUserProfileController
+    → GetUserProfileQuery (5min cache)"]
+    ViewOther --> ShowPublic["Show public profile:
+    • Bio, avatar, timezone
+    • Spider chart (2-color)
+    • Skills & levels
+    • Trust score
+    • is_freelancer status"]
+    ShowPublic --> End2([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End1,End2 startEnd
+    class EditProfile,UpdateFields,SaveProfile,AuditProfile,ProfileDone,ViewOther,ShowPublic process
+    class ProfileAction,ValidateProfile decision
+    class ShowProfileErrors error

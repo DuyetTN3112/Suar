@@ -1,0 +1,34 @@
+%% pkg_02b_application_org_admin: Organization & Admin Action Packages
+%% Scope: CQRS package split for org/admin surfaces.
+
+graph TD
+    subgraph organizations["organizations/"]
+        O_CMD["Commands"]
+        O_QRY["Queries"]
+        O_MAP["Mapper"]
+    end
+
+    subgraph admin["admin/"]
+        A_CMD["Commands"]
+        A_QRY["Queries"]
+    end
+
+    RULES["organization + admin rules"]
+    DTOS["request + response DTOs"]
+    REPOS["repositories"]
+
+    O_CMD --> RULES
+    O_CMD --> REPOS
+    O_CMD --> O_MAP
+    O_QRY --> REPOS
+    O_QRY --> O_MAP
+
+    A_CMD --> REPOS
+    A_QRY --> REPOS
+
+    O_MAP --> DTOS
+
+    classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class O_CMD,O_QRY,O_MAP,A_CMD,A_QRY pkg
+    class RULES,DTOS,REPOS aux

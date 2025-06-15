@@ -898,3 +898,42 @@ export class UserSchema extends BaseModel {
   declare bio: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare credibilityData: any | null
+  @column()
+  declare currentOrganizationId: string | null
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column()
+  declare email: string | null
+  @column()
+  declare freelancerCompletedTasksCount: number | null
+  @column()
+  declare freelancerRating: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isFreelancer: boolean | null
+  @column()
+  declare isVerifiedBadge: boolean | null
+  @column()
+  declare language: string | null
+  @column()
+  declare phone: string | null
+  @column()
+  declare profileSettings: any | null
+  @column()
+  declare rankingPriority: number | null
+  @column()
+  declare status: string
+  @column()
+  declare systemRole: string
+  @column()
+  declare timezone: string | null
+  @column()
+  declare trustData: any | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare username: string
+}

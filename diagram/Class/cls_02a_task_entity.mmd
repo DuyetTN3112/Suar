@@ -1,0 +1,47 @@
+%% Class Diagram: Task Aggregate Detail
+%% Scope: Task ORM model and TaskEntity only.
+
+classDiagram
+    class Task {
+        +UUID id
+        +String title
+        +String status
+        +UUID task_status_id
+        +UUID assigned_to
+        +UUID project_id
+        +String task_visibility
+        +DateTime application_deadline
+        +Decimal estimated_budget
+        +Integer external_applications_count
+        +DateTime due_date
+        +Integer sort_order
+        +DateTime deleted_at
+    }
+
+    class TaskEntity {
+        <<Domain Entity>>
+        +String id
+        +String title
+        +TaskStatus status
+        +String taskStatusId
+        +String assignedTo
+        +String projectId
+        +TaskVisibility taskVisibility
+        +Date applicationDeadline
+        +Number estimatedBudget
+        +Number externalApplicationsCount
+        +Date dueDate
+        +Number sortOrder
+        +isOverdue
+        +isAssigned
+        +isCompleted
+        +isExternal
+        +isApplicationOpen
+    }
+
+    Task --> TaskEntity : mapped to domain
+
+    note for Task "Only the aggregate-critical persistence fields are shown here.
+    The real ORM model also carries richer delivery metadata."
+    note for TaskEntity "Pure domain entity.
+    No framework imports."

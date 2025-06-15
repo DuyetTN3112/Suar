@@ -1,0 +1,30 @@
+%% Architecture Diagram: Layered Architecture Overview
+%% Detail files:
+%%   - arch_02a_request_flow.mmd
+%%   - arch_02b_runtime_support.mmd
+
+flowchart TD
+    Presentation["Presentation Layer
+    routes + middleware + controllers"]
+    Application["Application Layer
+    commands + queries + DTO mapping"]
+    Domain["Domain Layer
+    entities + policies + repository interfaces"]
+    Infrastructure["Infrastructure Layer
+    repository implementations + ORM mapping"]
+    Data["Data Layer
+    PostgreSQL + MongoDB + Redis"]
+    Runtime["Runtime Support
+    events + listeners + cache + realtime"]
+
+    Presentation --> Application
+    Application --> Domain
+    Domain --> Infrastructure
+    Infrastructure --> Data
+    Application --> Runtime
+    Runtime --> Data
+
+    classDef layer fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef support fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    class Presentation,Application,Domain,Infrastructure,Data layer
+    class Runtime support

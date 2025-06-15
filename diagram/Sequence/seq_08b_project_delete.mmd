@@ -1,0 +1,30 @@
+%% seq_08b_project_delete.mmd
+%% Scope: Delete project with blocker checks.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Owner
+    participant B as Browser
+    participant C as DeleteProjectController
+    participant Cmd as DeleteProjectCommand
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    U->>B: Confirm delete project
+    B->>C: DELETE /projects/:id
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: countIncompleteTasks(projectId)
+    Repo->>DB: SELECT incomplete task count
+
+    alt Incomplete tasks exist
+        Cmd-->>C: Reject delete
+        C-->>B: 400 validation error
+    else No blockers
+        Cmd->>Repo: findById(projectId)
+        Repo->>DB: SELECT project
+        Cmd->>Repo: save(project.softDelete)
+        Repo->>DB: UPDATE projects.deleted_at = NOW()
+        Cmd->>Evt: emit(project:deleted)
+        C-->>B: Redirect to projects list
+    end

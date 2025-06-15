@@ -1,0 +1,79 @@
+%% state_01_task.mmd — Task Status (v4 Configurable Workflow)
+%% DB-driven: task_statuses + task_workflow_transitions per organization
+%% 4 system categories: todo, in_progress, done, cancelled
+%% 7 default statuses seeded per org (4 system + 3 custom)
+%% Ref: task_state_machine.ts (deprecated), task_status_rules.ts (v4)
+
+stateDiagram-v2
+    %% ==============================
+    %% Status Categories (system-fixed)
+    %% ==============================
+
+    state "Category: TODO" as cat_todo {
+        TODO: TODO\n(default, is_system)
+    }
+
+    state "Category: IN_PROGRESS" as cat_ip {
+        IN_PROGRESS: IN_PROGRESS\n(is_system)
+        DONE_DEV: DONE_DEV\n(custom)
+        IN_TESTING: IN_TESTING\n(custom)
+        REJECTED: REJECTED\n(custom)
+    }
+
+    state "Category: DONE" as cat_done {
+        DONE: DONE\n(is_system, TERMINAL)
+    }
+
+    state "Category: CANCELLED" as cat_cancel {
+        CANCELLED: CANCELLED\n(is_system)
+    }
+
+    %% ==============================
+    %% Transitions (from DEFAULT_WORKFLOW_TRANSITIONS)
+    %% ==============================
+
+    [*] --> TODO : Task created\n(default status)
+
+    TODO --> IN_PROGRESS : Start work\n[requires assigned_to ≠ null]
+    TODO --> CANCELLED : Cancel
+
+    IN_PROGRESS --> DONE_DEV : Dev complete
+    IN_PROGRESS --> TODO : Unassign\n(back to queue)
+    IN_PROGRESS --> CANCELLED : Cancel
+
+    DONE_DEV --> IN_TESTING : Ready for QA
+    DONE_DEV --> IN_PROGRESS : Rework needed
+    DONE_DEV --> CANCELLED : Cancel
+
+    IN_TESTING --> DONE : Test passed\n→ AUTO-TRIGGER REVIEW
+    IN_TESTING --> REJECTED : Test failed
+    IN_TESTING --> CANCELLED : Cancel
+
+    REJECTED --> IN_PROGRESS : Fix and retry
+    REJECTED --> CANCELLED : Cancel
+
+    CANCELLED --> TODO : Reopen
+
+    DONE --> [*] : TERMINAL\n(no transitions out)
+
+    %% ==============================
+    %% Notes
+    %% ==============================
+
+    note right of cat_done
+        When ANY status with category=done is entered:
+        1. Mark all active TaskAssignments → completed
+        2. Auto-create ReviewSession per assignment
+        3. Review is MANDATORY for ALL tasks
+        ──────────────────
+        Assign does NOT change status.
+        Assignee must manually move to IN_PROGRESS.
+    end note
+
+    note left of cat_todo
+        Configurable per organization:
+        • Add custom statuses to any category
+        • Add/remove transitions
+        • System statuses cannot be deleted
+        • Transitions stored in task_workflow_transitions
+    end note

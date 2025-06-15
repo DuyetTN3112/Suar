@@ -1,0 +1,46 @@
+%% state_09_message_status.mmd — Message Status
+%% Ref: message model
+%%   send_status: 'sending' | 'sent' | 'failed' (enum)
+%%   is_recalled: boolean + recalled_at + recall_scope
+%%   read_at: DateTime (separate tracking, not part of send_status)
+
+stateDiagram-v2
+    %% ==============================
+    %% Send Status FSM (send_status column)
+    %% ==============================
+
+    state "Send Status FSM" as send_fsm {
+        [*] --> sending : User sends message
+
+        sending --> sent : Delivery confirmed
+        sending --> failed : Network/server error
+
+        failed --> sending : Retry send
+
+        sent --> recalled : Sender recalls\n(recall_scope: self | all)
+    }
+
+    %% ==============================
+    %% Read Tracking (separate from send_status)
+    %% ==============================
+
+    state "Read Tracking" as read_track {
+        unread : read_at IS NULL
+        read : read_at IS NOT NULL
+
+        [*] --> unread : Message delivered
+        unread --> read : Recipient opens\n(PATCH /messages/:id/read)
+    }
+
+    note right of send_fsm
+        send_status enum: sending, sent, failed
+        Recall sets is_recalled=true + recalled_at.
+        recall_scope: 'self' hides for sender only,
+        'all' hides for all participants.
+    end note
+
+    note right of read_track
+        read_at is a DateTime column on Message.
+        NOT part of send_status FSM.
+        Tracked independently per message.
+    end note

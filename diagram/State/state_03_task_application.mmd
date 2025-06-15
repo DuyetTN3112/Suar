@@ -1,0 +1,32 @@
+%% state_03_task_application.mmd — TaskApplication Status
+%% Ref: task_application model (application_status: pending/approved/rejected/withdrawn)
+%% Constraint: UNIQUE(task_id, applicant_id) — 1 application per task per user
+
+stateDiagram-v2
+    [*] --> pending : Freelancer applies\n(1-click, profile auto-attached)
+
+    pending --> approved : Creator/PM approves\n→ Create TaskAssignment
+    pending --> rejected : Creator/PM rejects\n(with rejection_reason)
+    pending --> withdrawn : Applicant withdraws
+
+    approved --> [*]
+    rejected --> [*]
+    withdrawn --> [*]
+
+    note right of pending
+        1-click apply: no form, no cover letter.
+        Profile data (skills, spider chart, trust score)
+        auto-attached from user_skills + users.
+        ──────────────────
+        Approving does NOT change task status.
+        Task stays in current status (e.g. todo).
+        Assignee must manually start work.
+    end note
+
+    note left of approved
+        On approval:
+        • INSERT task_assignment (status=active)
+        • SET task.assigned_to = applicant_id
+        • Reject all other pending applications
+        • Notify applicant
+    end note

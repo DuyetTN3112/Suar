@@ -1,0 +1,35 @@
+%% uc_01_auth_org.mmd — Identity & Organization Overview
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_01a_auth_account.mmd
+%%   - uc_01b_organization_membership.mmd
+
+flowchart LR
+    user["<<actor>> User"]
+    orgAdmin["<<actor>> Org Admin"]
+    orgOwner["<<actor>> Org Owner"]
+    systemAdmin["<<actor>> System Admin"]
+    superadmin["<<actor>> Superadmin"]
+
+    subgraph system["Identity & Organization"]
+        oauth([Authenticate with OAuth])
+        account([Manage account profile and skills])
+        membership([Join, create, or switch organization])
+        orgAdminUc([Manage organization members and roles])
+        systemAdminUc([Administer users, organizations, and packages])
+    end
+
+    user --> oauth
+    user --> account
+    user --> membership
+    orgAdmin --> orgAdminUc
+    orgOwner --> orgAdminUc
+    systemAdmin --> systemAdminUc
+
+    orgOwner -.->|generalization| orgAdmin
+    superadmin -.->|generalization| systemAdmin
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class user,orgAdmin,orgOwner,systemAdmin,superadmin actor
+    class oauth,account,membership,orgAdminUc,systemAdminUc usecase

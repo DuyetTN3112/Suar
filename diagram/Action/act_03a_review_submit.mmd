@@ -1,0 +1,87 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_03a: Review Submit (Session Creation + Parallel Reviews)
+%% ─────────────────────────────────────────────────────────────
+%% Scope: task → done → session created → reviews submitted
+%% Trigger: Event task:status:changed → status = 'done'
+%% Manager + Peer reviews run PARALLEL (no ordering)
+%% Session completes when: manager done AND peer_count >= required
+%% required_peer_reviews default = 2
+%%
+%% Related:
+%%   act_03b_review_confirm.mmd — Confirmation + Dispute
+%%   act_03c_review_score.mmd  — Score calculation + Anomaly
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start(["Event: task:status:changed
+    → status = 'done'"]) --> MarkComplete["Mark all active
+    TaskAssignments
+    → status = 'completed'"]
+
+    MarkComplete --> AutoCreate["Auto-create ReviewSession
+    per assignment:
+    status = 'pending'
+    required_peer_reviews = 2"]
+
+    AutoCreate --> NotifyAll["Notify Manager + Peers
+    to submit reviews
+    (SIMULTANEOUSLY)"]
+
+    %% ═══════════════════════════════════════════════════════════
+    %% PARALLEL REVIEWS (Manager + Peers simultaneously)
+    %% ═══════════════════════════════════════════════════════════
+    NotifyAll --> ManagerReview["Manager submits
+    POST /reviews/:id/submit
+    reviewer_type = 'manager'"]
+    NotifyAll --> PeerReview["Peers submit
+    POST /reviews/:id/submit
+    reviewer_type = 'peer'"]
+
+    ManagerReview --> RateSkillsM["SubmitSkillReviewCommand:
+    Rate each skill
+    (beginner → master)
+    + comment per skill"]
+    RateSkillsM --> SaveSkillReviewM["INSERT skill_reviews
+    reviewer_type = 'manager'"]
+    SaveSkillReviewM --> SetManagerDone["manager_review_completed
+    = TRUE"]
+    SetManagerDone --> CheckBoth
+
+    PeerReview --> RateSkillsP["SubmitSkillReviewCommand:
+    Rate each skill
+    + comment per skill"]
+    RateSkillsP --> SaveSkillReviewP["INSERT skill_reviews
+    reviewer_type = 'peer'"]
+    SaveSkillReviewP --> IncrementPeer["peer_reviews_count += 1"]
+    IncrementPeer --> MorePeers{"peer_count >=
+    required?"}
+    MorePeers -->|"Not yet"| PeerReview
+    MorePeers -->|"Yes"| CheckBoth
+
+    %% ═══════════════════════════════════════════════════════════
+    %% SESSION COMPLETION CHECK
+    %% ═══════════════════════════════════════════════════════════
+    CheckBoth{"determineSessionStatus():
+    manager_done = true
+    AND peer_count >= required?"}
+    CheckBoth -->|"Not yet"| WaitMore["Session stays
+    in_progress
+    ⚠️ No timeout — waits
+    indefinitely"]
+    CheckBoth -->|"Both met"| SessionCompleted["session.status = 'completed'
+    session.completed_at = now"]
+
+    SessionCompleted --> GoConfirm(["→ Continue:
+    act_03b (Confirm/Dispute)"])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef review fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef parallel fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,GoConfirm startEnd
+    class MarkComplete,AutoCreate,NotifyAll,RateSkillsM,SaveSkillReviewM,SetManagerDone,RateSkillsP,SaveSkillReviewP,IncrementPeer,SessionCompleted review
+    class CheckBoth,MorePeers decision
+    class ManagerReview,PeerReview parallel
+    class WaitMore error

@@ -1,0 +1,38 @@
+%% state_06_flagged_review.mmd — FlaggedReview Status
+%% Ref: flagged_review model (status: pending/reviewed/dismissed/confirmed)
+%% 6 flag_type patterns, 3 severity levels
+%% Auto-created by DetectAnomalyCommand
+
+stateDiagram-v2
+    [*] --> pending : DetectAnomalyCommand\nfinds anomaly pattern
+
+    pending --> reviewed : System Admin\ninvestigates
+    pending --> dismissed : Auto-dismissed\n(false positive)
+
+    reviewed --> dismissed : Admin determines\nfalse positive
+    reviewed --> confirmed : Admin confirms\nanomaly is real
+
+    dismissed --> [*]
+    confirmed --> [*]
+
+    note right of pending
+        6 flag_type patterns:
+        ✅ bulk_same_level — same level for many skills
+        ✅ new_account_high — new account rates too high
+        ✅ mutual_high — 2 users rate each other high
+        ⚠️ self_review — not implemented
+        ⚠️ timing_anomaly — not implemented
+        ⚠️ cross_org — not implemented
+        ──────────────────
+        3 severity levels: low, medium, high
+    end note
+
+    note left of confirmed
+        On confirmation:
+        • Affected reviews may be invalidated
+        • Scores recalculated excluding flagged data
+        • User credibility_data updated
+        ──────────────────
+        Only System Admin can resolve
+        (superadmin / system_admin role)
+    end note

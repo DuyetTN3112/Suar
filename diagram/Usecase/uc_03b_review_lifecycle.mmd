@@ -1,0 +1,38 @@
+%% uc_03b_review_lifecycle.mmd — Review Session Lifecycle
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    reviewer["<<actor>> Reviewer"]
+    reviewee["<<actor>> Reviewee"]
+    systemAdmin["<<actor>> System Admin"]
+    scheduler["<<actor>> Scheduler"]
+
+    subgraph system["Review Lifecycle"]
+        submitSkill([Submit skill review])
+        attachEvidence([Attach evidence])
+        selfAssessment([Submit self-assessment])
+        confirmResult([Confirm or dispute result])
+        reverseReview([Submit reverse review])
+        myReviews([View my reviews])
+        resolveFlag([Resolve flagged review])
+        expireSession([Force-close overdue session])
+    end
+
+    reviewer --> submitSkill
+    reviewer --> attachEvidence
+
+    reviewee --> selfAssessment
+    reviewee --> confirmResult
+    reviewee --> reverseReview
+    reviewee --> myReviews
+
+    systemAdmin --> resolveFlag
+    scheduler --> expireSession
+
+    attachEvidence -.->|<<extend>>| submitSkill
+    reverseReview -.->|<<extend>>| confirmResult
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class reviewer,reviewee,systemAdmin,scheduler actor
+    class submitSkill,attachEvidence,selfAssessment,confirmResult,reverseReview,myReviews,resolveFlag,expireSession usecase

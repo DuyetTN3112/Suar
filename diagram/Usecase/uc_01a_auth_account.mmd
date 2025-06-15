@@ -1,0 +1,31 @@
+%% uc_01a_auth_account.mmd — Account Authentication & Profile
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    user["<<actor>> Authenticated User"]
+    viewer["<<actor>> Profile Viewer"]
+
+    subgraph system["Account & Profile"]
+        login([Start OAuth sign-in])
+        logout([Logout])
+        viewOwn([View own profile])
+        updateOwn([Update profile details])
+        manageSkills([Manage profile skills])
+        viewPublic([View public profile])
+    end
+
+    user --> login
+    user --> logout
+    user --> viewOwn
+    user --> updateOwn
+    user --> manageSkills
+    user --> viewPublic
+    viewer --> viewPublic
+
+    updateOwn -.->|<<include>>| viewOwn
+    manageSkills -.->|<<extend>>| updateOwn
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class user,viewer actor
+    class login,logout,viewOwn,updateOwn,manageSkills,viewPublic usecase

@@ -1,0 +1,42 @@
+%% DFD 02b — Task Execution
+%% Scope: Assignment, status changes, and task views.
+
+flowchart TD
+    PM([Project Manager])
+    MEM([Project Member])
+    MKT([Marketplace])
+    REV([Review])
+
+    P1[[Assign Task]]
+    P2[[Change Task Status]]
+    P3[[View and Filter Tasks]]
+
+    D1[(tasks)]
+    D2[(task_assignments)]
+    D3[(task_versions)]
+
+    PM -->|"assignee choice"| P1
+    PM -->|"target status"| P2
+    MEM -->|"progress status"| P2
+    PM -->|"filters"| P3
+    MEM -->|"my work view"| P3
+
+    MKT -->|"approved application creates assignment"| P1
+    P1 -->|"update assigned_to"| D1
+    P1 -->|"marketplace-created assignment"| D2
+
+    P2 -->|"save new status"| D1
+    P2 -->|"done-category transition"| REV
+
+    P3 -->|"read tasks"| D1
+    P3 -->|"read assignments"| D2
+    P3 -->|"read version history"| D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef external fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    class PM,MEM entity
+    class P1,P2,P3 process
+    class D1,D2,D3 datastore
+    class MKT,REV external

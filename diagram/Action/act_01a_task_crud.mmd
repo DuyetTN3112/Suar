@@ -1,0 +1,87 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_01a: Task CRUD
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Create + Update + Delete task data management
+%%        Including subtask, visibility, required skills, versioning
+%%
+%% Business rules:
+%%   - required_skills currently optional (plan: make mandatory)
+%%   - Version snapshot: only on UpdateTaskCommand (general edit)
+%%   - Status-only change: audit log only, NO version snapshot
+%%
+%% Related: act_01b_task_workflow.mmd — Status lifecycle
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> TaskAction{"Action?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 1: Create Task
+    %% ═══════════════════════════════════════════════════════════
+    TaskAction -->|"Create"| CreateTask["PM creates task
+    POST /tasks
+    → CreateTaskCommand
+    (status = 'todo')"]
+
+    CreateTask --> SetDetails["Fill in details:
+    title, description, label,
+    priority, difficulty, due_date,
+    estimated_time, estimated_budget"]
+
+    SetDetails --> AddSkills{"Add required
+    skills?
+    (optional)"}
+    AddSkills -->|Yes| AddRequiredSkills["Add task_required_skills
+    (skill + level + mandatory flag)"]
+    AddSkills -->|No| SetVisibility
+    AddRequiredSkills --> SetVisibility
+
+    SetVisibility{"Set visibility?"}
+    SetVisibility -->|"internal
+    (default)"| TaskCreated
+    SetVisibility -->|"external / all
+    (marketplace)"| MarketplaceNote["Task appears on
+    GET /marketplace/tasks
+    ⚠️ No field validation
+    enforced by backend"]
+    MarketplaceNote --> TaskCreated
+
+    TaskCreated["Task created
+    status = 'todo'
+    assigned_to = NULL"]
+    TaskCreated --> End1([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 2: Update Task (with version snapshot)
+    %% ═══════════════════════════════════════════════════════════
+    TaskAction -->|"Update"| UpdateTask["UpdateTaskCommand
+    PATCH /tasks/:id
+    → Version snapshot saved
+    (old values recorded)"]
+    UpdateTask --> End2([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 3: Update Time/Budget
+    %% ═══════════════════════════════════════════════════════════
+    TaskAction -->|"Update Time"| UpdateTime["UpdateTaskTimeCommand
+    → estimated/actual time
+    (no version snapshot)"]
+    UpdateTime --> End3([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 4: Delete Task
+    %% ═══════════════════════════════════════════════════════════
+    TaskAction -->|"Delete"| DeleteTask["DeleteTaskCommand
+    → Soft delete
+    (deleted_at = NOW)"]
+    DeleteTask --> End4([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef marketplace fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    class Start,End1,End2,End3,End4 startEnd
+    class CreateTask,SetDetails,AddRequiredSkills,UpdateTask,UpdateTime,DeleteTask,TaskCreated process
+    class TaskAction,AddSkills,SetVisibility decision
+    class MarketplaceNote marketplace

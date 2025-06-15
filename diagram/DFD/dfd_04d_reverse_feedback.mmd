@@ -1,0 +1,21 @@
+%% DFD 04D — Reverse Feedback
+%% Scope: Reverse review creation only.
+
+flowchart TD
+    Reviewee([Reviewee])
+
+    P1[["4D.1 Submit reverse review"]]
+
+    D1[(review_sessions)]
+    D2[(reverse_reviews)]
+
+    Reviewee --> P1
+    P1 --> D1
+    P1 --> D2
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Reviewee entity
+    class P1 process
+    class D1,D2 datastore

@@ -1,0 +1,22 @@
+%% act_05c_org_create.mmd
+%% Scope: Create organization only.
+%% Backend refs:
+%%   - POST /organizations
+%%   - CreateOrganizationController
+%%   - CreateOrganizationCommand
+
+flowchart TD
+    Start([Start]) --> Submit["Authenticated user submits organization form"]
+    Submit --> Validate["Validate creator is active"]
+    Validate --> Slug["Generate unique slug"]
+    Slug --> CreateOrg["Insert organization row"]
+    CreateOrg --> Owner["Insert owner membership\norg_role = org_owner\nstatus = approved"]
+    Owner --> CurrentOrg["Set users.current_organization_id"]
+    CurrentOrg --> Seed["Seed default task statuses + workflow"]
+    Seed --> Audit["Write audit log + notification"]
+    Audit --> End([Organization ready])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Submit,Validate,Slug,CreateOrg,Owner,CurrentOrg,Seed,Audit process

@@ -1,0 +1,50 @@
+%% uc_02b_task_lifecycle.mmd — Task Lifecycle & Work Views
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    projectManager["<<actor>> Project Manager"]
+    projectMember["<<actor>> Project Member"]
+    projectViewer["<<actor>> Project Viewer"]
+
+    subgraph system["Task Lifecycle"]
+        createTask([Create task])
+        editTask([Edit task details])
+        deleteTask([Delete task])
+        assignTask([Assign task])
+        updateStatus([Update task status])
+        updateTime([Update task time])
+        batchStatus([Batch update status])
+        reorderTask([Update task sort order])
+        viewTask([View task detail])
+        viewBoards([View Kanban and timeline])
+        viewAudit([View task audit logs])
+    end
+
+    projectManager --> createTask
+    projectManager --> editTask
+    projectManager --> deleteTask
+    projectManager --> assignTask
+    projectManager --> updateStatus
+    projectManager --> updateTime
+    projectManager --> batchStatus
+    projectManager --> reorderTask
+    projectManager --> viewTask
+    projectManager --> viewBoards
+    projectManager --> viewAudit
+
+    projectMember --> viewTask
+    projectMember --> updateStatus
+    projectMember --> updateTime
+    projectMember --> viewBoards
+
+    projectViewer --> viewTask
+    projectViewer --> viewBoards
+    projectViewer --> viewAudit
+
+    editTask -.->|<<include>>| viewTask
+    updateStatus -.->|<<include>>| viewTask
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class projectManager,projectMember,projectViewer actor
+    class createTask,editTask,deleteTask,assignTask,updateStatus,updateTime,batchStatus,reorderTask,viewTask,viewBoards,viewAudit usecase

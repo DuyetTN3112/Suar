@@ -1,0 +1,24 @@
+%% seq_02c_task_delete.mmd
+%% Scope: Soft-delete task flow.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Manager
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as DeleteTaskCommand
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    U->>B: Confirm delete task
+    B->>C: DELETE /tasks/:id
+    C->>Cmd: execute(dto)
+    Cmd->>Cmd: Validate delete permission
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Repo: save(task.softDelete)
+    Repo->>DB: UPDATE tasks.deleted_at = NOW()
+    Cmd->>Evt: emit(task:deleted)
+    C-->>B: Redirect to task list

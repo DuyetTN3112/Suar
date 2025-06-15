@@ -1,0 +1,28 @@
+%% act_05d_org_invite_member.mmd
+%% Scope: Invite member only.
+%% Backend refs:
+%%   - POST /organizations/:id/members/invite
+%%   - POST /org/members/invite
+%%   - InviteUserCommand
+
+flowchart TD
+    Start([Start]) --> Input["Owner/Admin enters email + role"]
+    Input --> Permission{"Actor is org_owner\nor org_admin?"}
+    Permission -->|No| Deny["Reject request"]
+    Permission -->|Yes| Duplicate{"Pending invitation\nalready exists?"}
+    Duplicate -->|Yes| Conflict["Return duplicate error"]
+    Duplicate -->|No| CreateInvite["Create organization invitation\ntoken + expires_at"]
+    CreateInvite --> Audit["Write audit log"]
+    Audit --> Notify["Send in-app notification\n(no email delivery yet)"]
+    Notify --> End([Invitation created])
+    Deny --> End2([End])
+    Conflict --> End3([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,End2,End3 startEnd
+    class Input,CreateInvite,Audit,Notify process
+    class Permission,Duplicate decision
+    class Deny,Conflict error

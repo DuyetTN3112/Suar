@@ -1,0 +1,37 @@
+%% seq_04_review.mmd
+%% Scope: Submit review only.
+%% Backend refs:
+%%   - GET /reviews/:id
+%%   - POST /reviews/:id/submit
+%%   - SubmitSkillReviewCommand
+%%   - review:submitted listener triggers anomaly detection
+
+sequenceDiagram
+    autonumber
+    actor Reviewer as Manager / Peer
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as SubmitSkillReviewCommand
+    participant Repo as ReviewRepository
+    participant DB as PostgreSQL
+    participant Listener as review_listener
+
+    Reviewer->>B: Open review form
+    B->>C: GET /reviews/:id
+    C->>Repo: find session + skills
+    Repo->>DB: SELECT review session data
+    DB-->>Repo: Session + skills
+    Repo-->>C: Response DTO
+    C-->>B: Render review form
+
+    Reviewer->>B: Submit skill ratings
+    B->>C: POST /reviews/:id/submit
+    C->>Cmd: handle(dto)
+    Cmd->>Repo: persist skill reviews
+    Repo->>DB: INSERT skill_reviews
+    Cmd->>Repo: update session counters/status
+    Repo->>DB: UPDATE review_sessions
+    Cmd-->>Listener: emit review:submitted
+    Listener->>Listener: Invalidate skill/spider cache
+    Listener->>Listener: Run DetectAnomalyCommand
+    C-->>B: Redirect with success flash
