@@ -10,14 +10,15 @@ import UpdateUserSystemRoleCommand from '#actions/admin/users/commands/update_us
  * PUT /admin/users/:id/role
  */
 export default class UpdateUserRoleController {
-  async handle({ request, response, params, session, auth }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { request, response, params, session } = ctx
     const userId = params.id
     const { system_role } = request.only(['system_role'])
 
-    const execCtx = ExecutionContext.fromHttp({ auth, request })
+    const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new UpdateUserSystemRoleCommand(execCtx)
 
-    await command.execute({
+    await command.handle({
       userId,
       systemRole: system_role,
     })

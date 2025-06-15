@@ -37,12 +37,12 @@ export interface GetDashboardStatsResult {
   }
 }
 
-export default class GetDashboardStatsQuery extends BaseQuery<void, GetDashboardStatsResult> {
+export default class GetDashboardStatsQuery extends BaseQuery<{}, GetDashboardStatsResult> {
   constructor(execCtx: ExecutionContext) {
     super(execCtx)
   }
 
-  async handle(): Promise<GetDashboardStatsResult> {
+  async handle(_dto?: {}): Promise<GetDashboardStatsResult> {
     const now = new Date()
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 

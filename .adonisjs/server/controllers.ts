@@ -4,6 +4,26 @@
  */
 
 export const controllers = {
+  admin: {
+    auditLogs: {
+      ListAuditLogs: () => import('#controllers/admin/audit_logs/list_audit_logs_controller'),
+    },
+    Dashboard: () => import('#controllers/admin/dashboard_controller'),
+    organizations: {
+      ListOrganizations: () => import('#controllers/admin/organizations/list_organizations_controller'),
+      ShowOrganization: () => import('#controllers/admin/organizations/show_organization_controller'),
+    },
+    reviews: {
+      ListFlaggedReviews: () => import('#controllers/admin/reviews/list_flagged_reviews_controller'),
+      ResolveFlaggedReview: () => import('#controllers/admin/reviews/resolve_flagged_review_controller'),
+    },
+    users: {
+      ListUsers: () => import('#controllers/admin/users/list_users_controller'),
+      ShowUser: () => import('#controllers/admin/users/show_user_controller'),
+      SuspendUser: () => import('#controllers/admin/users/suspend_user_controller'),
+      UpdateUserRole: () => import('#controllers/admin/users/update_user_role_controller'),
+    },
+  },
   auth: {
     Logout: () => import('#controllers/auth/logout_controller'),
     SocialAuth: () => import('#controllers/auth/social_auth_controller'),
@@ -30,6 +50,36 @@ export const controllers = {
     LatestNotifications: () => import('#controllers/notifications/latest_notifications_controller'),
     ListNotifications: () => import('#controllers/notifications/list_notifications_controller'),
     MarkNotificationRead: () => import('#controllers/notifications/mark_notification_read_controller'),
+  },
+  organization: {
+    billing: {
+      ShowBilling: () => import('#controllers/organization/billing/show_billing_controller'),
+      UpdatePlan: () => import('#controllers/organization/billing/update_plan_controller'),
+    },
+    Dashboard: () => import('#controllers/organization/dashboard_controller'),
+    invitations: {
+      ApproveJoinRequest: () => import('#controllers/organization/invitations/approve_join_request_controller'),
+      ListInvitations: () => import('#controllers/organization/invitations/list_invitations_controller'),
+      ListJoinRequests: () => import('#controllers/organization/invitations/list_join_requests_controller'),
+    },
+    members: {
+      InviteMember: () => import('#controllers/organization/members/invite_member_controller'),
+      ListMembers: () => import('#controllers/organization/members/list_members_controller'),
+      RemoveMember: () => import('#controllers/organization/members/remove_member_controller'),
+      UpdateMemberRole: () => import('#controllers/organization/members/update_member_role_controller'),
+    },
+    projects: {
+      CreateProject: () => import('#controllers/organization/projects/create_project_controller'),
+      ListProjects: () => import('#controllers/organization/projects/list_projects_controller'),
+    },
+    settings: {
+      ShowSettings: () => import('#controllers/organization/settings/show_settings_controller'),
+      UpdateSettings: () => import('#controllers/organization/settings/update_settings_controller'),
+    },
+    workflow: {
+      CreateTaskStatus: () => import('#controllers/organization/workflow/create_task_status_controller'),
+      ListTaskStatuses: () => import('#controllers/organization/workflow/list_task_statuses_controller'),
+    },
   },
   organizations: {
     AddDirectMember: () => import('#controllers/organizations/add_direct_member_controller'),

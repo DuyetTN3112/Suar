@@ -10,12 +10,13 @@ import ListOrganizationMembersQuery from '#actions/organization/members/queries/
  * GET /org/members
  */
 export default class ListMembersController {
-  async handle({ inertia, auth, request }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ auth, request })
-    const user = auth.getUserOrFail()
+  async handle(ctx: HttpContext) {
+    const { inertia, auth, request } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
+    const user = auth.user!
 
     if (!user.current_organization_id) {
-      return inertia.render('org/no_org')
+      return inertia.render('org/no_org', {})
     }
 
     const page = Number(request.qs().page) || 1
@@ -24,7 +25,7 @@ export default class ListMembersController {
     const status = request.qs().status
 
     const query = new ListOrganizationMembersQuery(execCtx)
-    const result = await query.execute({
+    const result = await query.handle({
       organizationId: user.current_organization_id,
       page,
       perPage: 50,
