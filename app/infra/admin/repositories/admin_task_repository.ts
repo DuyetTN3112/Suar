@@ -22,13 +22,13 @@ export default class AdminTaskRepository {
       db
         .from('tasks')
         .count('* as total')
-        .where('status_category', 'in_progress')
+        .whereIn('status', ['in_progress', 'in_review']) // in_progress category includes in_review
         .whereNull('deleted_at')
         .first(),
       db
         .from('tasks')
         .count('* as total')
-        .where('status_category', 'done')
+        .where('status', 'done')
         .whereNull('deleted_at')
         .first(),
     ])
