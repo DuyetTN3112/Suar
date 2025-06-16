@@ -120,4 +120,22 @@ export default class AdminUserRepository {
     user.system_role = systemRole
     await user.save()
   }
+
+  /**
+   * Suspend user account
+   */
+  async suspendUser(userId: string): Promise<void> {
+    const user = await User.findOrFail(userId)
+    user.status = 'suspended'
+    await user.save()
+  }
+
+  /**
+   * Activate user account
+   */
+  async activateUser(userId: string): Promise<void> {
+    const user = await User.findOrFail(userId)
+    user.status = 'active'
+    await user.save()
+  }
 }

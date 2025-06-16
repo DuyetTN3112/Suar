@@ -1,29 +1,49 @@
 # SUAR Platform — User / Admin / Organization Separation Plan
 
 **Generated:** 2026-03-22  
+**Last Updated:** 2026-03-24  
 **Author:** AI Assistant  
-**Purpose:** Kế hoạch refactor hệ thống để phân tách rõ ràng giữa User, Admin, và Organization
+**Purpose:** Kế hoạch refactor hệ thống để phân tách rõ ràng giữa User, Admin, và Organization  
+**Status:** 🟢 Phase 1 & 2 COMPLETED | 🟡 Phase 3 IN PROGRESS
 
 ---
 
 ## 📋 Tóm tắt Executive Summary
 
-Hệ thống SUAR hiện tại đang có **thiếu sót nghiêm trọng về phân tách vai trò**: User bình thường, System Admin, và Organization đang bị trộn lẫn trong cùng một giao diện và logic. Điều này gây ra:
+### ⚠️ Vấn đề Ban đầu (RESOLVED)
+
+Hệ thống SUAR trước đây có **thiếu sót nghiêm trọng về phân tách vai trò**: User bình thường, System Admin, và Organization đang bị trộn lẫn trong cùng một giao diện và logic. Điều này gây ra:
 
 - **Confusion về phân quyền**: User thường thấy menu/tính năng không phù hợp với vai trò
 - **Security risk**: Không có ranh giới rõ ràng cho admin interface
 - **Scalability issue**: Khó mở rộng tính năng quản trị hệ thống và quản trị tổ chức
 - **UX degradation**: Giao diện lộn xộn, không tối ưu cho từng nhóm người dùng
 
-Kế hoạch này đề xuất **kiến trúc 3-namespace interface** với base structure rõ ràng:
-1. **User Interface** - Người dùng cá nhân (`registered_user`)
-2. **System Admin Interface** - Quản trị hệ thống (`system_admin`, `superadmin`)
-3. **Organization Interface** - Quản trị tổ chức (`org_owner`, `org_admin`)
+### ✅ Giải pháp Đã Triển khai
+
+**Kiến trúc 3-namespace interface** với base structure rõ ràng:
+1. **User Interface** (`/`) - Người dùng cá nhân (`registered_user`)
+2. **System Admin Interface** (`/admin`) - Quản trị hệ thống (`system_admin`, `superadmin`)
+3. **Organization Interface** (`/org`) - Quản trị tổ chức (`org_owner`, `org_admin`)
 
 **Lưu ý phân biệt:**
 - **System Superadmin/Admin** ≠ **Organization Owner/Admin**
 - System Admin quản lý toàn hệ thống, không cần thuộc org
 - Org Owner/Admin chỉ quản lý tổ chức của mình
+
+### 🎯 Tiến độ Hiện tại
+
+**✅ HOÀN THÀNH:**
+- **Phase 0:** Preparation & Planning
+- **Phase 1:** Backend Foundation (Middleware, Routes, Controllers, Actions)
+- **Phase 2:** Frontend Foundation (Layouts, Navigation, Pages)
+
+**🟡 ĐANG THỰC HIỆN:**
+- **Phase 3:** Module Implementation & Integration
+
+**📝 KẾ HOẠCH:**
+- **Phase 4:** Testing & Refinement
+- **Phase 5:** Advanced Features
 
 ---
 
@@ -2124,6 +2144,192 @@ export default class SubmitReviewController {
 
 ---
 
+## 🔧 Phase 3: Công việc cần hoàn thành (CURRENT FOCUS)
+
+### 3.1 Backend Integration (PRIORITY: HIGH)
+
+#### ✅ Đã có (Review & Test)
+- [x] Middleware layer (7 middlewares)
+- [x] Route definitions (admin.ts, organization.ts)
+- [x] Controllers structure (26 controllers)
+- [x] Basic queries/commands (13 files)
+
+#### 🔨 Cần hoàn thiện
+
+**Admin Actions:**
+- [ ] `ListUsersQuery`: Add filtering (by role, status, search), pagination
+- [ ] `UpdateUserSystemRoleCommand`: Implement role change logic with validation
+- [ ] `SuspendUserCommand`: Implement user suspension logic
+- [ ] `ListAuditLogsQuery`: Query MongoDB audit_logs collection with filters
+- [ ] `ListOrganizationsQuery`: Bypass membership check for system admins
+- [ ] `ListFlaggedReviewsQuery`: Query flagged_reviews table
+- [ ] `ResolveFlaggedReviewCommand`: Implement dismiss/confirm logic
+
+**Organization Actions:**
+- [ ] `ListOrganizationMembersQuery`: Complete with role filtering
+- [ ] `InviteMemberCommand`: Implement invitation creation logic
+- [ ] `RemoveMemberCommand`: Implement member removal with validation
+- [ ] `UpdateMemberRoleCommand`: Implement role change logic
+- [ ] `ApproveJoinRequestCommand`: Implement join request approval
+- [ ] `UpdateOrganizationSettingsCommand`: Complete settings update logic
+- [ ] `ListTaskStatusesQuery`: Query task_statuses table
+- [ ] `CreateTaskStatusCommand`: Implement custom status creation
+
+### 3.2 Frontend Integration (PRIORITY: HIGH)
+
+#### ✅ Đã có UI Components
+- [x] Admin sidebar & navigation (red theme)
+- [x] Organization sidebar & navigation (blue theme)
+- [x] Admin pages structure (4 pages)
+- [x] Organization pages structure (7 pages)
+
+#### 🔨 Cần hoàn thiện
+
+**Data Fetching & State:**
+- [ ] Wire backend queries to frontend pages
+- [ ] Implement loading states và error handling
+- [ ] Add empty states (no data placeholders)
+- [ ] Implement pagination controls
+- [ ] Add form validation
+
+**Admin Pages:**
+- [ ] `admin/dashboard.svelte`: Connect to `GetDashboardStatsQuery`
+- [ ] `admin/users/index.svelte`: 
+  - [ ] Connect to `ListUsersQuery`
+  - [ ] Implement filters (role, status, search)
+  - [ ] Add edit role modal
+  - [ ] Add suspend/activate actions
+- [ ] `admin/audit_logs/index.svelte`: Connect to `ListAuditLogsQuery`
+- [ ] `admin/organizations/index.svelte`: Connect to `ListOrganizationsQuery`
+- [ ] Create `admin/reviews/index.svelte`: Flagged reviews page
+
+**Organization Pages:**
+- [ ] `org/dashboard.svelte`: Connect to `GetOrganizationDashboardStatsQuery`
+- [ ] `org/members/index.svelte`: 
+  - [ ] Connect to `ListOrganizationMembersQuery`
+  - [ ] Add invite member form
+  - [ ] Add remove member confirmation
+  - [ ] Add role change dropdown
+- [ ] `org/invitations/index.svelte`: Connect to `ListInvitationsQuery`
+- [ ] `org/settings/index.svelte`: Connect to settings query/command
+- [ ] `org/billing/index.svelte`: Connect to billing query
+- [ ] `org/workflow/index.svelte`: Connect to workflow queries
+
+### 3.3 Permission & Access Control (PRIORITY: CRITICAL)
+
+#### 🚨 Security Issues Cần Fix
+- [ ] **Navigation visibility:** Remove "Người dùng" menu for normal users
+  - File: `inertia/components/navigation.svelte.ts`
+  - Solution: Add conditional rendering based on `system_role`
+  
+- [ ] **Route protection:** Ensure all `/admin` routes check system_role
+  - Verify middleware chain: `auth() → requireSystemAdmin() → systemAdminContext()`
+  
+- [ ] **Route protection:** Ensure all `/org` routes check org_role
+  - Verify middleware chain: `auth() → requireOrg() → requireOrgAdmin() → orgAdminContext()`
+
+- [ ] **Component-level checks:** Add permission guards in UI
+  - Example: Hide "Delete" button if user doesn't have permission
+  
+- [ ] **API response filtering:** Don't send sensitive data to unauthorized users
+
+### 3.4 Context Switching & UX (PRIORITY: MEDIUM)
+
+- [ ] **Admin Mode Toggle:** Create toggle component for system admins
+  - File: `inertia/components/layout/admin_mode_toggle.svelte`
+  - Location: Add to `nav_user.svelte`
+  - Action: POST to `/admin/toggle-mode`
+
+- [ ] **Organization Switcher Enhancement:**
+  - File: `inertia/components/layout/team_switcher.svelte`
+  - Show role badge (Owner/Admin/Member)
+  - Detect org_role after switch
+  - Auto-redirect: `/org/dashboard` if admin, `/tasks` if member
+
+- [ ] **Breadcrumbs:** Add to admin and org layouts
+  - Show current path: Admin > Users > Edit Role
+  - Show current org: Suar > Members
+
+### 3.5 Bug Fixes từ ISSUES.md (PRIORITY: CRITICAL)
+
+- [ ] **Users Page Issues (CRITICAL - P0):**
+  - [ ] Fix `[object Object]` in search input
+  - [ ] Disable auto-popup on page load
+  - [ ] Fix popup cascade (event propagation)
+  - [ ] Fix infinite loading spinner
+  - [ ] **Add permission check:** Hide `/users` menu for normal users
+
+- [ ] **Sidebar Org Selector (HIGH - P1):**
+  - [ ] Backend: Include organizations in user props
+  - [ ] Fix "Không có tổ chức" error
+  - [ ] Swap position: Org name first
+  - [ ] Display project name if available
+
+---
+
+## 📝 Detailed Task Breakdown (Checklist cho Phase 3)
+
+### Week 1: Backend Actions Implementation
+
+**Day 1-2: Admin User Management**
+- [ ] Implement `ListUsersQuery` with filters
+- [ ] Implement `UpdateUserSystemRoleCommand`
+- [ ] Implement `SuspendUserCommand`
+- [ ] Test endpoints with Postman/Insomnia
+- [ ] Write unit tests
+
+**Day 3: Admin Audit Logs & Organizations**
+- [ ] Implement `ListAuditLogsQuery` (MongoDB)
+- [ ] Implement `ListOrganizationsQuery`
+- [ ] Implement `ListFlaggedReviewsQuery`
+- [ ] Test endpoints
+
+**Day 4-5: Organization Actions**
+- [ ] Implement all organization member management commands
+- [ ] Implement join request approval
+- [ ] Implement settings & workflow queries
+- [ ] Test endpoints
+
+### Week 2: Frontend Integration
+
+**Day 6-7: Admin Pages**
+- [ ] Wire admin/dashboard
+- [ ] Wire admin/users with filters, modals, actions
+- [ ] Wire admin/audit_logs
+- [ ] Wire admin/organizations
+- [ ] Create admin/reviews page
+
+**Day 8-9: Organization Pages**
+- [ ] Wire org/dashboard
+- [ ] Wire org/members with all actions
+- [ ] Wire org/invitations, settings, billing
+- [ ] Wire org/workflow
+
+**Day 10: Permission & Bug Fixes**
+- [ ] Fix navigation visibility
+- [ ] Add permission checks throughout UI
+- [ ] Fix Users page issues (P0)
+- [ ] Fix Sidebar org selector (P1)
+- [ ] Implement context switching (admin toggle, org switcher)
+
+### Week 3: Testing & Refinement
+
+**Day 11-12: Testing**
+- [ ] Manual testing all admin features
+- [ ] Manual testing all org features
+- [ ] Test permission boundaries
+- [ ] Test context switching
+- [ ] Fix bugs found during testing
+
+**Day 13: Documentation & Deployment Prep**
+- [ ] Update README.md
+- [ ] Create admin guide
+- [ ] Update API documentation
+- [ ] Code review
+- [ ] Create rollback plan
+
+---
+
 ### **Phase 4: Testing & Refinement** (2-3 days)
 
 **Goal:** Test toàn bộ flow, fix bugs, polish UX
@@ -2172,6 +2378,66 @@ export default class SubmitReviewController {
   - ADD `organizations.account_type`
   - ADD `organizations.login_email`
   - Implement organization login (separate OAuth flow)
+
+---
+
+## 📊 Thống kê Implementation (Updated: 2026-03-24)
+
+### Backend (COMPLETED ✅)
+
+| Component | Created | Status |
+|-----------|---------|---------|
+| **Middleware** | 7 files | ✅ Complete |
+| **Routes** | 2 files (admin.ts, organization.ts) | ✅ Complete |
+| **Controllers** | 26 files | ✅ Structure created |
+| **Actions (Queries)** | 8 files | ⚠️ Needs implementation |
+| **Actions (Commands)** | 5 files | ⚠️ Needs implementation |
+| **Total Lines** | ~2,500 lines | ✅ Phase 1 done |
+
+**Middleware Details:**
+- `require_system_admin_middleware.ts` (51 lines)
+- `system_admin_context_middleware.ts` (48 lines)
+- `require_org_admin_middleware.ts` (68 lines)
+- `require_org_owner_middleware.ts` (66 lines)
+- `organization_admin_context_middleware.ts` (67 lines)
+- Plus existing: `organization_resolver_middleware.ts`, `require_organization_middleware.ts`
+
+**Route Details:**
+- `/admin` namespace: 10 endpoints (dashboard, users, orgs, audit logs, reviews)
+- `/org` namespace: 15 endpoints (dashboard, members, settings, projects, workflow, billing, invitations)
+
+### Frontend (COMPLETED ✅)
+
+| Component | Created | Status |
+|-----------|---------|---------|
+| **Layouts** | 2 files | ✅ Complete |
+| **Sidebars** | 2 files | ✅ Complete |
+| **Navigation Configs** | 2 configs | ✅ Complete |
+| **Admin Pages** | 4 files | ✅ UI created, needs data |
+| **Org Pages** | 7 files | ✅ UI created, needs data |
+| **Total Lines** | ~1,500 lines | ✅ Phase 2 done |
+
+**Layout Details:**
+- `admin_sidebar.svelte` (red theme, system branding)
+- `organization_sidebar.svelte` (blue theme, org branding)
+
+**Navigation Details:**
+- `adminNavigation`: 4 groups, 8 items
+- `organizationNavigation`: 4 groups, 9 items
+
+**Page Summary:**
+- Admin: dashboard, users, audit_logs, organizations
+- Org: dashboard, members, invitations, settings, billing, projects, workflow
+
+### Integration Status (Phase 3 - IN PROGRESS ⚠️)
+
+| Task | Status | Priority |
+|------|--------|----------|
+| Backend actions implementation | ⚠️ In Progress | 🔴 HIGH |
+| Frontend data wiring | ⚠️ Not started | 🔴 HIGH |
+| Permission checks | ⚠️ Partial | 🔴 CRITICAL |
+| Context switching UI | ⚠️ Not started | 🟡 MEDIUM |
+| Bug fixes (ISSUES.md) | ⚠️ Not started | 🔴 CRITICAL |
 
 ---
 
@@ -2426,15 +2692,50 @@ Focus: Organization enhancements
   - [x] Committed initial plan to repository
   - [x] Skipped HttpContext cleanup (incremental migration pattern exists)
 - [x] Phase 1: Backend Foundation - System + Org Admin (COMPLETED)
-  - [x] Phase 1.1: Middleware Layer (5 middlewares + kernel registration)
+  - [x] Phase 1.1: Middleware Layer (7 middlewares created + kernel registration)
+    - [x] `require_system_admin_middleware.ts`
+    - [x] `system_admin_context_middleware.ts`
+    - [x] `require_org_admin_middleware.ts`
+    - [x] `require_org_owner_middleware.ts`
+    - [x] `organization_admin_context_middleware.ts`
   - [x] Phase 1.2: Routes Layer (admin.ts + organization.ts + index import)
+    - [x] `/admin` routes (10 endpoints)
+    - [x] `/org` routes (15 endpoints)
   - [x] Phase 1.3: Controllers Layer (26 placeholder controllers)
-  - [x] Phase 1.4: Actions Layer (6 queries/commands + wired controllers)
+    - [x] Admin controllers (10 controllers)
+    - [x] Organization controllers (16 controllers)
+  - [x] Phase 1.4: Actions Layer (13 queries/commands + wired controllers)
+    - [x] Admin actions: 5 files (dashboard, users, orgs, audit logs, reviews)
+    - [x] Organization actions: 8 files (dashboard, members, settings, invitations, workflow, billing, projects)
   - [x] All TypeScript errors resolved
-- [ ] Phase 2: Frontend Foundation - System + Org UI (4-5 days)
-- [ ] Phase 3: Module Implementation (6-8 days)
+- [x] Phase 2: Frontend Foundation - System + Org UI (COMPLETED)
+  - [x] Phase 2.1: Layouts
+    - [x] `admin_sidebar.svelte` (red theme, system admin branding)
+    - [x] `organization_sidebar.svelte` (blue theme, org branding)
+  - [x] Phase 2.2: Navigation Configs
+    - [x] `adminNavigation` in navigation.svelte.ts (4 groups, 8 items)
+    - [x] `organizationNavigation` in navigation.svelte.ts (4 groups, 9 items)
+  - [x] Phase 2.3: Pages Created
+    - [x] Admin Pages (4 pages, ~1,391 lines total):
+      - [x] `admin/dashboard.svelte`
+      - [x] `admin/users/index.svelte`
+      - [x] `admin/audit_logs/index.svelte`
+      - [x] `admin/organizations/index.svelte`
+    - [x] Organization Pages (7 pages):
+      - [x] `org/dashboard.svelte`
+      - [x] `org/members/index.svelte`
+      - [x] `org/invitations/index.svelte`
+      - [x] `org/settings/index.svelte`
+      - [x] `org/billing/index.svelte`
+      - [x] `org/projects/index.svelte`
+      - [x] `org/workflow/index.svelte`
+- [ ] Phase 3: Module Implementation & Integration (IN PROGRESS)
+  - [ ] Wiring backend actions to frontend pages
+  - [ ] Implement data fetching and state management
   - [ ] System Admin modules (Users, Orgs, Audit Logs)
   - [ ] Organization Admin modules (Members, Settings, Workflow)
+  - [ ] Add permission checks and access control UI
+  - [ ] Fix navigation visibility (hide /users for regular users)
 - [ ] Phase 4: Testing & Refinement (2-3 days)
 - [ ] Phase 5: Advanced Features (Future)
 

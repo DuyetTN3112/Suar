@@ -69,12 +69,8 @@ const navigationData = [
         url: '/marketplace/tasks',
         iconName: 'Store',
       },
-      {
-        title: 'Người dùng',
-        titleKey: 'navigation.users',
-        url: '/users',
-        iconName: 'Users',
-      },
+      // NOTE: "Người dùng" menu removed - now only accessible via /admin/users for system admins
+      // This fixes ISSUES.md P0 - normal users should not see user management
     ],
   },
   {
