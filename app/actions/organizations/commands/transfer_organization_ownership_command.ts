@@ -1,29 +1,29 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import Organization from '#models/organization'
-import AuditLog from '#models/audit_log'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
+import { OrganizationRole } from '#constants'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { EntityType } from '#constants/audit_constants'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * DTO for transferring organization ownership
  */
 export interface TransferOrganizationOwnershipDTO {
-  organization_id: number
-  new_owner_id: number
-}
-
-interface MembershipRecord {
-  user_id: number
-  organization_id: number
-  role_id: number
-  status: string
-}
-
-interface RoleRecord {
-  id: number
-  name: string
-  role_name?: string
+  organization_id: DatabaseId
+  new_owner_id: DatabaseId
 }
 
 /**
@@ -31,20 +31,11 @@ interface RoleRecord {
  *
  * Migrate từ stored procedure: transfer_organization_ownership
  *
- * Business rules:
- * - Chỉ owner hiện tại mới có thể transfer
- * - Không thể transfer cho chính mình
- * - New owner phải là member approved
- * - New owner phải có role ít nhất là org_admin
- * - Cập nhật role: old owner → org_admin, new owner → org_owner
- *
- * @example
- * const command = new TransferOrganizationOwnershipCommand(ctx, createNotification)
- * await command.execute(dto)
+ * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
