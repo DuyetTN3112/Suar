@@ -1,7 +1,10 @@
 <script lang="ts">
   import AdminLayout from '@/layouts/admin_layout.svelte'
-  import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-  import { Button } from '@/components/ui/button'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import Button from '@/components/ui/button.svelte'
   import { Link } from '@inertiajs/svelte'
 
   interface User {

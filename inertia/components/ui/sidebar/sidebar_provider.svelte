@@ -40,7 +40,11 @@
   // Mobile detection
   let isMobile = $state(false)
   let openMobile = $state(false)
-  let internalOpen = $state(defaultOpen)
+  let internalOpen = $state(false)
+
+  if (openProp === undefined) {
+    internalOpen = defaultOpen
+  }
 
   // Get open state
   const open = $derived(openProp ?? internalOpen)
