@@ -66,7 +66,11 @@ export default class UpdateTaskSortOrderCommand {
 
       // Optionally update status (when dragging between Kanban columns)
       const resolvedStatus = newTaskStatusId
-        ? await TaskStatusRepository.findByIdAndOrgActive(newTaskStatusId, task.organization_id, trx)
+        ? await TaskStatusRepository.findByIdAndOrgActive(
+            newTaskStatusId,
+            task.organization_id,
+            trx
+          )
         : newStatusSlug
           ? await TaskStatusRepository.findBySlug(task.organization_id, newStatusSlug, trx)
           : null

@@ -51,7 +51,9 @@ export default class GetOrganizationDashboardStatsQuery extends BaseQuery<
     super(execCtx)
   }
 
-  async handle(dto: GetOrganizationDashboardStatsDTO): Promise<GetOrganizationDashboardStatsResult> {
+  async handle(
+    dto: GetOrganizationDashboardStatsDTO
+  ): Promise<GetOrganizationDashboardStatsResult> {
     const orgId = dto.organizationId
 
     // Fetch stats from repositories (Infrastructure layer)

@@ -39,6 +39,11 @@ export default class AdminOrganizationRepository {
     perPage: number
   ): Promise<ListOrganizationsResult> {
     const query = Organization.query()
+      .preload('owner', (q) => {
+        q.select('id', 'username', 'email')
+      })
+      .withCount('members')
+      .withCount('projects')
 
     // Apply filters
     if (filters.search) {

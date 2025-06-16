@@ -77,7 +77,12 @@ export default class AdminUserRepository {
 
     const [total, active, suspended, newThisMonth] = await Promise.all([
       db.from('users').count('* as total').whereNull('deleted_at').first(),
-      db.from('users').count('* as total').where('status', 'active').whereNull('deleted_at').first(),
+      db
+        .from('users')
+        .count('* as total')
+        .where('status', 'active')
+        .whereNull('deleted_at')
+        .first(),
       db
         .from('users')
         .count('* as total')

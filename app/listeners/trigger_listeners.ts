@@ -160,9 +160,12 @@ emitter.on('task:status:changed', async (event: TaskStatusChangedEvent) => {
         assignmentsCompleted: activeAssignments.length,
       })
     } else {
-      loggerService.warn('Task moved to done but no assignee/assignment found for review creation', {
-        taskId: event.task.id,
-      })
+      loggerService.warn(
+        'Task moved to done but no assignee/assignment found for review creation',
+        {
+          taskId: event.task.id,
+        }
+      )
     }
   } catch (error) {
     loggerService.error('Failed to auto-trigger review session on task completion', {

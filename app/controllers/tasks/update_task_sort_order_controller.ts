@@ -10,7 +10,11 @@ export default class UpdateTaskSortOrderController {
   async handle(ctx: HttpContext) {
     const { request, response, params } = ctx
     const taskId = params.id as string
-    const { sort_order, task_status_id, status } = request.only(['sort_order', 'task_status_id', 'status'])
+    const { sort_order, task_status_id, status } = request.only([
+      'sort_order',
+      'task_status_id',
+      'status',
+    ])
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new UpdateTaskSortOrderCommand(execCtx)

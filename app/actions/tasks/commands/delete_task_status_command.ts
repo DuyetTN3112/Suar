@@ -59,9 +59,7 @@ export default class DeleteTaskStatusCommand {
         const hasReviewedTask = await ReviewSession.query({ client: trx })
           .whereHas('task_assignment', (assignmentQuery) => {
             void assignmentQuery.whereHas('task', (taskQuery) => {
-              void taskQuery
-                .where('task_status_id', dto.status_id)
-                .whereNull('deleted_at')
+              void taskQuery.where('task_status_id', dto.status_id).whereNull('deleted_at')
             })
           })
           .first()

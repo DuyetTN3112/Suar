@@ -24,6 +24,6 @@ export default class UpdateUserRoleController {
     })
 
     session.flash('success', 'User role updated successfully')
-    return response.redirect().back()
+    response.redirect().back()
   }
 }

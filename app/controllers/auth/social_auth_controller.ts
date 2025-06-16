@@ -108,12 +108,12 @@ export default class SocialAuthController {
 
     // Login user
     await auth.use('web').login(result.user)
-    
+
     // Set current_organization_id in session if user has one
     if (result.user.current_organization_id) {
       session.put('current_organization_id', result.user.current_organization_id)
     }
-    
+
     response.redirect(result.redirectTo)
   }
 }

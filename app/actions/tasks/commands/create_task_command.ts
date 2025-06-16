@@ -161,7 +161,9 @@ export default class CreateTaskCommand {
       const activeSkills = await SkillRepository.findActiveByIds(skillIds, trx)
       const activeSkillIds = new Set(activeSkills.map((skill) => String(skill.id)))
 
-      const invalidSkill = dto.required_skills.find((skill) => !activeSkillIds.has(String(skill.id)))
+      const invalidSkill = dto.required_skills.find(
+        (skill) => !activeSkillIds.has(String(skill.id))
+      )
       if (invalidSkill) {
         throw new BusinessLogicException('Có kỹ năng yêu cầu không tồn tại hoặc đã bị vô hiệu hóa')
       }

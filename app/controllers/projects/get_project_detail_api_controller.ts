@@ -20,7 +20,8 @@ export default class GetProjectDetailApiController {
 
     try {
       const result = await query.handle({ projectId, organizationId })
-      return response.json(result)
+      response.json(result)
+      return
     } catch (error) {
       // Let error middleware handle it
       throw error

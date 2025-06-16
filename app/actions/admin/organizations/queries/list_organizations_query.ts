@@ -69,11 +69,22 @@ export default class ListOrganizationsQuery extends BaseQuery<
         id: org.id,
         name: org.name,
         slug: org.slug,
+        description: org.description || null,
         plan: org.plan || 'free',
         owner_id: org.owner_id,
+        owner: {
+          id: org.owner.id,
+          username: org.owner.username,
+          email: org.owner.email,
+        },
         partner_type: org.partner_type,
         partner_is_active: org.partner_is_active || false,
         created_at: org.created_at?.toISO() || new Date().toISOString(),
+        updated_at: org.updated_at?.toISO() || new Date().toISOString(),
+        _count: {
+          members: org.$extras.members_count || 0,
+          projects: org.$extras.projects_count || 0,
+        },
       })),
       meta: {
         total: result.total,

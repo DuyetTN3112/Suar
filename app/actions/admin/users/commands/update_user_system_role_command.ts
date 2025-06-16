@@ -20,10 +20,7 @@ export interface UpdateUserSystemRoleDTO {
   systemRole: 'superadmin' | 'system_admin' | 'registered_user'
 }
 
-export default class UpdateUserSystemRoleCommand extends BaseCommand<
-  UpdateUserSystemRoleDTO,
-  void
-> {
+export default class UpdateUserSystemRoleCommand extends BaseCommand<UpdateUserSystemRoleDTO> {
   constructor(
     execCtx: ExecutionContext,
     private userRepo = new AdminUserRepository()

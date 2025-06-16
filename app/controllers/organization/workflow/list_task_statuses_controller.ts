@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
+import ListTaskStatusesQuery from '#actions/organization/workflow/queries/list_task_statuses_query'
 
 /**
  * ListTaskStatusesController
@@ -8,8 +10,13 @@ import type { HttpContext } from '@adonisjs/core/http'
  * GET /org/workflow/statuses
  */
 export default class ListTaskStatusesController {
-  async handle({ inertia, response, params, session }: HttpContext) {
-    // TODO Phase 1.4: Implement action/query logic
-    return inertia.render('org/workflow/statuses', {})
+  async handle({ inertia, request }: HttpContext) {
+    const execCtx = ExecutionContext.fromHttp({ request } as any)
+
+    // Execute query
+    const query = new ListTaskStatusesQuery(execCtx)
+    const result = await query.handle({})
+
+    return inertia.render('org/workflow/index', result)
   }
 }
