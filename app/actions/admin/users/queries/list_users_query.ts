@@ -1,12 +1,12 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
-import User from '#models/user'
+import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
 
 /**
  * ListUsersQuery (System Admin)
  *
  * Query to list all users in the system with filtering and pagination.
- * Only accessible by system admins.
+ * Uses repository (Infrastructure layer) for DB queries.
  */
 
 export interface ListUsersDTO {
@@ -37,7 +37,10 @@ export interface ListUsersResult {
 }
 
 export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersResult> {
-  constructor(execCtx: ExecutionContext) {
+  constructor(
+    execCtx: ExecutionContext,
+    private userRepo = new AdminUserRepository()
+  ) {
     super(execCtx)
   }
 
@@ -45,38 +48,21 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
     const page = dto.page || 1
     const perPage = dto.perPage || 50
 
-    // Build query
-    const query = User.query()
+    // Fetch from repository (Infrastructure layer)
+    const result = await this.userRepo.listUsers(
+      {
+        search: dto.search,
+        systemRole: dto.systemRole,
+        status: dto.status,
+      },
+      page,
+      perPage
+    )
 
-    // Search filter
-    if (dto.search) {
-      query.where((q) => {
-        q.where('username', 'ilike', `%${dto.search}%`).orWhere(
-          'email',
-          'ilike',
-          `%${dto.search}%`
-        )
-      })
-    }
-
-    // System role filter
-    if (dto.systemRole) {
-      query.where('system_role', dto.systemRole)
-    }
-
-    // Status filter
-    if (dto.status) {
-      query.where('status', dto.status)
-    }
-
-    // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
-
-    // Execute with pagination
-    const result = await query.paginate(page, perPage)
+    const lastPage = Math.ceil(result.total / perPage)
 
     return {
-      data: result.all().map((user) => ({
+      data: result.users.map((user) => ({
         id: user.id,
         username: user.username,
         email: user.email,
@@ -88,9 +74,9 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
       })),
       meta: {
         total: result.total,
-        perPage: result.perPage,
-        currentPage: result.currentPage,
-        lastPage: result.lastPage,
+        perPage,
+        currentPage: page,
+        lastPage,
       },
     }
   }

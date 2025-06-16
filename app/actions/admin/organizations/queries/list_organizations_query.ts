@@ -1,12 +1,12 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
-import Organization from '#models/organization'
+import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 
 /**
  * ListOrganizationsQuery (System Admin)
  *
  * Query to list all organizations in the system with filtering and pagination.
- * Only accessible by system admins.
+ * Uses repository (Infrastructure layer) for DB queries.
  */
 
 export interface ListOrganizationsDTO {
@@ -40,7 +40,10 @@ export default class ListOrganizationsQuery extends BaseQuery<
   ListOrganizationsDTO,
   ListOrganizationsResult
 > {
-  constructor(execCtx: ExecutionContext) {
+  constructor(
+    execCtx: ExecutionContext,
+    private orgRepo = new AdminOrganizationRepository()
+  ) {
     super(execCtx)
   }
 
@@ -48,34 +51,21 @@ export default class ListOrganizationsQuery extends BaseQuery<
     const page = dto.page || 1
     const perPage = dto.perPage || 50
 
-    // Build query
-    const query = Organization.query()
+    // Fetch from repository (Infrastructure layer)
+    const result = await this.orgRepo.listOrganizations(
+      {
+        search: dto.search,
+        plan: dto.plan,
+        partnerType: dto.partnerType,
+      },
+      page,
+      perPage
+    )
 
-    // Search filter
-    if (dto.search) {
-      query.where((q) => {
-        q.where('name', 'ilike', `%${dto.search}%`).orWhere('slug', 'ilike', `%${dto.search}%`)
-      })
-    }
-
-    // Plan filter
-    if (dto.plan) {
-      query.where('plan', dto.plan)
-    }
-
-    // Partner type filter
-    if (dto.partnerType) {
-      query.where('partner_type', dto.partnerType)
-    }
-
-    // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
-
-    // Execute with pagination
-    const result = await query.paginate(page, perPage)
+    const lastPage = Math.ceil(result.total / perPage)
 
     return {
-      data: result.all().map((org) => ({
+      data: result.organizations.map((org) => ({
         id: org.id,
         name: org.name,
         slug: org.slug,
@@ -87,9 +77,9 @@ export default class ListOrganizationsQuery extends BaseQuery<
       })),
       meta: {
         total: result.total,
-        perPage: result.perPage,
-        currentPage: result.currentPage,
-        lastPage: result.lastPage,
+        perPage,
+        currentPage: page,
+        lastPage,
       },
     }
   }

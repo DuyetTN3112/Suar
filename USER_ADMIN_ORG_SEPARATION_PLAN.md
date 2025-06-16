@@ -2503,14 +2503,5 @@ Focus: Organization enhancements
 
 ---
 
-## 🤝 Contributors
-
-- **AI Assistant**: Phân tích và lập kế hoạch
-- **Team Lead**: Review và approve
-- **Backend Engineer**: Implement Phase 1 (System + Org backend)
-- **Frontend Engineer**: Implement Phase 2 (System + Org UI)
-- **Full-stack Engineer**: Implement Phase 3 (modules)
-
----
 
 **End of Document**
