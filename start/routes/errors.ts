@@ -16,11 +16,21 @@ router.get('/errors/require-organization', [ErrorController, 'requireOrganizatio
 router.get('/', async ({ auth, response, session }) => {
   try {
     await auth.check()
+
+    // 1. Check system_role FIRST - Superadmin/System Admin ALWAYS go to /admin
+    if (auth.user?.system_role === 'superadmin' || auth.user?.system_role === 'system_admin') {
+      response.redirect('/admin')
+      return
+    }
+
+    // 2. Regular users - check organization context
     const orgId = session.get('current_organization_id') ?? auth.user?.current_organization_id
     if (orgId) {
       response.redirect('/tasks')
       return
     }
+
+    // 3. No organization - go to org selection
     response.redirect('/organizations')
     return
   } catch {
