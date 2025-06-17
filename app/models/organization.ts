@@ -84,6 +84,8 @@ export default class Organization extends BaseModel {
   @hasMany(() => Task)
   declare tasks: HasMany<typeof Task>
 
-  @hasMany(() => Project)
+  @hasMany(() => Project, {
+    foreignKey: 'organization_id',
+  })
   declare projects: HasMany<typeof Project>
 }
