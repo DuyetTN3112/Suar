@@ -1,22 +1,27 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import { DateTime } from 'luxon'
+import type { DatabaseId } from '#types/database'
+import { calculateTrustScoreV2, determineTier } from '#domain/reviews/review_formulas'
 
 /**
  * DTO for CalculateTrustScore
  */
 export interface CalculateTrustScoreDTO {
-  userId: number
+  userId: DatabaseId
 }
 
 /**
  * Result of trust score calculation
  */
 export interface TrustScoreResult {
-  userId: number
+  userId: DatabaseId
   rawScore: number
   calculatedScore: number
-  tierId: number
+  tierCode: string
   tierName: string
   totalVerifiedReviews: number
 }
@@ -24,182 +29,190 @@ export interface TrustScoreResult {
 /**
  * Command: Calculate Trust Score for a User
  *
- * Di chuyển từ database procedure: calculate_user_trust_score(p_user_id)
+ * v3: Trust score stored as JSONB trust_data on users table.
  *
- * Business logic:
- * 1. Tính raw score từ user_spider_chart_data (avg của tất cả skills)
- * 2. Xác định tier cao nhất dựa trên organizations user thuộc về:
- *    - Partner (tier 3, weight 1.00) - verified partner
- *    - Organization (tier 2, weight 0.80) - org member
- *    - Community (tier 1, weight 0.50) - default
- * 3. Tính weighted score = raw_score * tier_weight
- * 4. Upsert vào user_trust_scores
- *
- * @example
- * const command = new CalculateTrustScoreCommand(ctx)
- * const result = await command.handle({ userId: 123 })
+ * Pattern: FETCH → DECIDE (pure formulas) → PERSIST
  */
 export default class CalculateTrustScoreCommand extends BaseCommand<
   CalculateTrustScoreDTO,
   TrustScoreResult
 > {
+  private static readonly TRUST_SCORING_VERSION = 'trust_v2'
+
+  private mapLevelCodeToNumber(levelCode: string): number {
+    const map: Record<string, number> = {
+      beginner: 1,
+      elementary: 2,
+      junior: 3,
+      middle: 4,
+      senior: 5,
+      lead: 6,
+      principal: 7,
+      master: 8,
+    }
+
+    return map[levelCode] ?? 1
+  }
+
   async handle(dto: CalculateTrustScoreDTO): Promise<TrustScoreResult> {
     return await this.executeInTransaction(async (trx) => {
-      // 1. Tính raw score từ spider chart data
-      const { rawScore, totalReviews } = await this.calculateRawScore(dto.userId, trx)
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const sessions = (await ReviewMetricsRepository.listCompletedSessionsForTrust(
+        dto.userId,
+        trx
+      )) as Array<{ id: string; created_at: string | Date }>
 
-      // 2. Xác định tier cao nhất
-      const { tierId, tierWeight, tierName } = await this.determineUserTier(dto.userId, trx)
+      const totalCompletedSessions = sessions.length
 
-      // 3. Tính weighted score
-      const calculatedScore = Number((rawScore * tierWeight).toFixed(2))
+      const sessionIds = sessions.map((s) => s.id)
 
-      // 4. Upsert vào user_trust_scores
-      await this.upsertTrustScore(dto.userId, tierId, calculatedScore, rawScore, totalReviews, trx)
+      const reviews = sessionIds.length
+        ? ((await ReviewMetricsRepository.listSkillReviewTrustRows(sessionIds, trx)) as Array<{
+            review_session_id: string
+            reviewer_type: 'manager' | 'peer'
+            assigned_level_code: string
+            reviewer_credibility_score: number | string
+          }>)
+        : []
 
-      // 5. Log audit
-      await this.logAudit('calculate_trust_score', 'user_trust_scores', dto.userId, null, {
+      const totalReviews = reviews.length
+
+      const evidenceCountResult = sessionIds.length
+        ? await ReviewMetricsRepository.countSessionsWithEvidence(sessionIds, trx)
+        : [{ total: 0 }]
+      const sessionsWithEvidence = Number(
+        (evidenceCountResult[0] as { total: number | string }).total
+      )
+
+      const recentCutoff = DateTime.now().minus({ days: 90 })
+      const recentSessions = sessions.filter((s) => {
+        const createdAt =
+          s.created_at instanceof Date
+            ? DateTime.fromJSDate(s.created_at)
+            : DateTime.fromISO(s.created_at)
+        return createdAt.isValid && createdAt.toMillis() >= recentCutoff.toMillis()
+      }).length
+
+      const reviewConsistencyBySession = new Map<
+        string,
+        { managerLevels: number[]; peerLevels: number[] }
+      >()
+      let reviewerCredibilityTotal = 0
+      let reviewerCredibilityCount = 0
+
+      for (const review of reviews) {
+        const bucket = reviewConsistencyBySession.get(review.review_session_id) ?? {
+          managerLevels: [],
+          peerLevels: [],
+        }
+
+        const levelNum = this.mapLevelCodeToNumber(review.assigned_level_code)
+        if (review.reviewer_type === 'manager') {
+          bucket.managerLevels.push(levelNum)
+        } else {
+          bucket.peerLevels.push(levelNum)
+        }
+        reviewConsistencyBySession.set(review.review_session_id, bucket)
+
+        reviewerCredibilityTotal += Number(review.reviewer_credibility_score)
+        reviewerCredibilityCount += 1
+      }
+
+      const consistencyScores: number[] = []
+      for (const bucket of reviewConsistencyBySession.values()) {
+        if (bucket.managerLevels.length === 0 || bucket.peerLevels.length === 0) {
+          continue
+        }
+
+        const managerAvg =
+          bucket.managerLevels.reduce((sum, value) => sum + value, 0) / bucket.managerLevels.length
+        const peerAvg =
+          bucket.peerLevels.reduce((sum, value) => sum + value, 0) / bucket.peerLevels.length
+        const delta = Math.abs(managerAvg - peerAvg)
+        consistencyScores.push(Math.max(0, 100 - delta * 15))
+      }
+
+      const reviewConsistency =
+        consistencyScores.length > 0
+          ? consistencyScores.reduce((sum, value) => sum + value, 0) / consistencyScores.length
+          : 50
+
+      const reviewerCredibility =
+        reviewerCredibilityCount > 0 ? reviewerCredibilityTotal / reviewerCredibilityCount : 50
+
+      const evidenceCoverage =
+        totalCompletedSessions > 0 ? (sessionsWithEvidence / totalCompletedSessions) * 100 : 0
+
+      const volumeScore = Math.min(100, totalCompletedSessions * 2)
+      const recencyScore = Math.min(100, recentSessions * 10)
+      const volumeRecency = (volumeScore + recencyScore) / 2
+
+      const orgMemberships = await OrganizationUserRepository.listMembershipsByUser(dto.userId, trx)
+
+      let belongsToPartnerOrg = false
+      if (orgMemberships.length > 0) {
+        const orgIds = orgMemberships.map((m) => m.organization_id)
+        belongsToPartnerOrg = await OrganizationRepository.hasAnyActivePartnerByIds(orgIds, trx)
+      }
+
+      const orgPartnerWeight = belongsToPartnerOrg ? 100 : orgMemberships.length > 0 ? 70 : 30
+
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const rawScore = calculateTrustScoreV2({
+        reviewConsistency,
+        reviewerCredibility,
+        evidenceCoverage,
+        orgPartnerWeight,
+        volumeRecency,
+      })
+
+      const { tierCode, tierWeight, tierName } = determineTier(
+        orgMemberships.length > 0,
+        belongsToPartnerOrg
+      )
+
+      // v2: org trust signal already contributes in orgPartnerWeight.
+      // Keep `calculated_score` equal to raw score to avoid double weighting.
+      const calculatedScore = rawScore
+
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const user = await UserRepository.findNotDeletedOrFail(dto.userId, trx)
+      user.trust_data = {
+        ...(user.trust_data ?? {}),
+        current_tier_code: tierCode,
+        calculated_score: calculatedScore,
+        raw_score: rawScore,
+        total_verified_reviews: totalReviews,
+        last_calculated_at: DateTime.now().toISO(),
+        scoring_version: CalculateTrustScoreCommand.TRUST_SCORING_VERSION,
+      }
+      await UserRepository.save(user, trx)
+
+      await this.logAudit('calculate_trust_score', 'user', dto.userId, null, {
         raw_score: rawScore,
         calculated_score: calculatedScore,
-        tier_id: tierId,
+        tier_code: tierCode,
         tier_name: tierName,
         total_reviews: totalReviews,
+        v2_signals: {
+          review_consistency: Math.round(reviewConsistency * 10) / 10,
+          reviewer_credibility: Math.round(reviewerCredibility * 10) / 10,
+          evidence_coverage: Math.round(evidenceCoverage * 10) / 10,
+          org_partner_weight: orgPartnerWeight,
+          volume_recency: Math.round(volumeRecency * 10) / 10,
+          tier_weight: tierWeight,
+          scoring_version: CalculateTrustScoreCommand.TRUST_SCORING_VERSION,
+        },
       })
 
       return {
         userId: dto.userId,
         rawScore,
         calculatedScore,
-        tierId,
+        tierCode,
         tierName,
         totalVerifiedReviews: totalReviews,
       }
     })
-  }
-
-  /**
-   * Tính raw score từ user_spider_chart_data
-   * Raw score = average của tất cả avg_percentage
-   */
-  private async calculateRawScore(
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<{ rawScore: number; totalReviews: number }> {
-    const result = (await trx
-      .from('user_spider_chart_data')
-      .where('user_id', userId)
-      .select(
-        db.raw('COALESCE(AVG(avg_percentage), 0) as raw_score'),
-        db.raw('COUNT(*) as total_reviews')
-      )
-      .first()) as { raw_score?: unknown; total_reviews?: unknown } | null
-
-    const row = result
-    return {
-      rawScore: Number(row?.raw_score || 0),
-      totalReviews: Number(row?.total_reviews || 0),
-    }
-  }
-
-  /**
-   * Xác định tier cao nhất của user dựa trên organizations
-   *
-   * Logic từ database:
-   * - Nếu user thuộc verified_partner → tier 3 (Partner, weight 1.00)
-   * - Nếu user thuộc organization → tier 2 (Organization, weight 0.80)
-   * - Default → tier 1 (Community, weight 0.50)
-   */
-  private async determineUserTier(
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<{ tierId: number; tierWeight: number; tierName: string }> {
-    // Check nếu user thuộc verified partner
-    const partnerCheck = (await trx
-      .from('organization_users')
-      .join('organizations', 'organization_users.organization_id', 'organizations.id')
-      .join('verified_partners', (join) => {
-        join
-          .on('verified_partners.organization_id', 'organizations.id')
-          .andOnVal('verified_partners.is_active', true)
-      })
-      .where('organization_users.user_id', userId)
-      .where('organization_users.status', 'approved')
-      .select('verified_partners.id')
-      .first()) as { id: number } | null
-
-    if (partnerCheck) {
-      // Tier 3: Partner-Verified
-      return {
-        tierId: 3,
-        tierWeight: 1.0,
-        tierName: 'Partner-Verified',
-      }
-    }
-
-    // Check nếu user thuộc organization
-    const orgCheck = (await trx
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('status', 'approved')
-      .first()) as { id: number } | null
-
-    if (orgCheck) {
-      // Tier 2: Org-Verified
-      return {
-        tierId: 2,
-        tierWeight: 0.8,
-        tierName: 'Org-Verified',
-      }
-    }
-
-    // Default: Tier 1: Community-Verified
-    return {
-      tierId: 1,
-      tierWeight: 0.5,
-      tierName: 'Community-Verified',
-    }
-  }
-
-  /**
-   * Upsert vào user_trust_scores
-   */
-  private async upsertTrustScore(
-    userId: number,
-    tierId: number,
-    calculatedScore: number,
-    rawScore: number,
-    totalReviews: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const now = new Date()
-
-    // Check if exists
-    const existing = (await trx.from('user_trust_scores').where('user_id', userId).first()) as {
-      id: number
-    } | null
-
-    if (existing) {
-      // Update
-      await trx.from('user_trust_scores').where('user_id', userId).update({
-        current_tier_id: tierId,
-        calculated_score: calculatedScore,
-        raw_score: rawScore,
-        total_verified_reviews: totalReviews,
-        last_calculated_at: now,
-        updated_at: now,
-      })
-    } else {
-      // Insert
-      await trx.table('user_trust_scores').insert({
-        user_id: userId,
-        current_tier_id: tierId,
-        calculated_score: calculatedScore,
-        raw_score: rawScore,
-        total_verified_reviews: totalReviews,
-        last_calculated_at: now,
-        created_at: now,
-        updated_at: now,
-      })
-    }
   }
 }

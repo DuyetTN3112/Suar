@@ -1,112 +1,88 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSession from '#models/review_session'
-import ReviewConfirmation from '#models/review_confirmation'
-import ReviewerCredibility from '#models/reviewer_credibility'
-import type { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import type { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import ConflictException from '#exceptions/conflict_exception'
+import type { ReviewConfirmationEntry } from '#types/database'
 
 /**
  * ConfirmReviewCommand
  *
  * Reviewee confirms or disputes the review results.
- * Updates reviewer credibility scores based on confirmation.
+ * v3: Confirmation stored in review_sessions.confirmations JSONB array.
+ * Credibility stored in users.credibility_data JSONB.
  */
 export default class ConfirmReviewCommand extends BaseCommand<
   ConfirmReviewDTO,
-  ReviewConfirmation
+  ReviewConfirmationEntry
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
-  async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmation> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+  async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmationEntry> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
 
       // Get review session
-      const session = await ReviewSession.query({ client: trx })
-        .where('id', dto.review_session_id)
-        .where('reviewee_id', userId)
-        .where('status', 'completed')
-        .preload('skill_reviews')
-        .firstOrFail()
+      const session = await ReviewSessionRepository.findCompletedForRevieweeForUpdate(
+        dto.review_session_id,
+        userId,
+        trx
+      )
 
-      // Check if already confirmed
-      const existing = await ReviewConfirmation.query({ client: trx })
-        .where('review_session_id', dto.review_session_id)
-        .where('user_id', userId)
-        .first()
-
-      if (existing) {
-        throw new Error('You have already confirmed or disputed this review')
+      if (!session) {
+        throw new ConflictException('Review session không tồn tại hoặc không thể xác nhận')
       }
 
-      // Create confirmation
-      const confirmation = await ReviewConfirmation.create(
-        {
-          review_session_id: dto.review_session_id,
-          user_id: userId,
-          action: dto.action,
-          dispute_reason: dto.dispute_reason,
-        },
-        { client: trx }
-      )
+      // v3: Check if already confirmed in JSONB confirmations array
+      const confirmations: ReviewConfirmationEntry[] = session.confirmations ?? []
+      const existing = confirmations.find((c) => c.user_id === userId)
+
+      if (existing) {
+        throw new ConflictException('You have already confirmed or disputed this review')
+      }
+
+      // v3: Append to confirmations JSONB array
+      const newConfirmation: ReviewConfirmationEntry = {
+        user_id: userId,
+        action: dto.action,
+        dispute_reason: dto.dispute_reason ?? null,
+        created_at: DateTime.now().toISO(),
+      }
+      confirmations.push(newConfirmation)
+      session.confirmations = confirmations
 
       // Update session status if disputed
       if (dto.action === 'disputed') {
         session.status = 'disputed'
-        await session.useTransaction(trx).save()
       }
 
-      // Update reviewer credibility scores
-      const reviewerIds = [...new Set(session.skill_reviews.map((r) => r.reviewer_id))]
-      for (const reviewerId of reviewerIds) {
-        let credibility = await ReviewerCredibility.query({ client: trx })
-          .where('user_id', reviewerId)
-          .first()
+      await ReviewSessionRepository.save(session, trx)
 
-        if (!credibility) {
-          credibility = await ReviewerCredibility.create(
-            {
-              user_id: reviewerId,
-              credibility_score: 50,
-              total_reviews_given: 0,
-              accurate_reviews: 0,
-              disputed_reviews: 0,
-            },
-            { client: trx }
-          )
-        }
-
-        credibility.total_reviews_given += 1
-
-        if (dto.action === 'confirmed') {
-          credibility.accurate_reviews += 1
-          // Increase credibility (max 100)
-          credibility.credibility_score = Math.min(100, credibility.credibility_score + 2)
-        } else {
-          credibility.disputed_reviews += 1
-          // Decrease credibility (min 0)
-          credibility.credibility_score = Math.max(0, credibility.credibility_score - 5)
-        }
-
-        credibility.last_calculated_at = DateTime.now()
-        await credibility.useTransaction(trx).save()
-      }
+      const skillReviews = await SkillReviewRepository.listBySession(session.id, trx)
+      const reviewerIds = [...new Set(skillReviews.map((review) => review.reviewer_id))]
 
       // Log audit
-      await this.logAudit('confirm_review', 'review_confirmation', confirmation.id, null, {
+      await this.logAudit('confirm_review', 'review_session', session.id, null, {
         review_session_id: dto.review_session_id,
         action: dto.action,
         dispute_reason: dto.dispute_reason,
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${String(dto.review_session_id)}`)
+      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
 
-      return confirmation
+      return {
+        confirmation: newConfirmation,
+        reviewConfirmedEvent: {
+          confirmationId: newConfirmation.user_id,
+          reviewSessionId: dto.review_session_id,
+          revieweeId: session.reviewee_id,
+          reviewerIds,
+          confirmedBy: userId,
+          action: dto.action,
+        },
+      }
     })
   }
 }
