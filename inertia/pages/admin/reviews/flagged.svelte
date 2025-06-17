@@ -8,11 +8,24 @@
   import Button from '@/components/ui/button.svelte'
   import { Link } from '@inertiajs/svelte'
 
-  interface Props {
-    reviews?: any[]
+  interface Review {
+    id: string
+    content: string
+    flagged_reason: string
+    created_at: string
   }
 
-  let { reviews = $bindable([]) }: Props = $props()
+  interface Props {
+    reviews: Review[]
+    meta: {
+      total: number
+      perPage: number
+      currentPage: number
+      lastPage: number
+    }
+  }
+
+  let { reviews, meta }: Props = $props()
 </script>
 
 <AdminLayout title="Flagged Reviews - System Admin">
@@ -29,40 +42,63 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>Review Moderation</CardTitle>
-        <CardDescription>Handle reported and flagged reviews (Phase 3 - In Development)</CardDescription>
+        <CardTitle>Review Moderation ({meta.total})</CardTitle>
+        <CardDescription>Handle reported and flagged reviews</CardDescription>
       </CardHeader>
       <CardContent>
-        <div class="flex items-center justify-center py-12">
-          <div class="text-center max-w-md">
-            <svg
-              class="mx-auto h-16 w-16 text-slate-400 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9"
-              />
-            </svg>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Flagged Reviews Management</h3>
-            <p class="text-slate-600 mb-6">
-              This feature is currently under development as part of Phase 3 implementation.
-              You will be able to review flagged content, take moderation actions, and manage user reports here.
-            </p>
-            <div class="flex items-center justify-center gap-3">
-              <Link href="/admin">
-                <Button variant="default">Back to Dashboard</Button>
-              </Link>
-              <Link href="/admin/users">
-                <Button variant="outline">Manage Users</Button>
-              </Link>
+        {#if reviews.length === 0}
+          <div class="flex items-center justify-center py-12">
+            <div class="text-center max-w-md">
+              <div class="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                <svg
+                  class="w-8 h-8 text-green-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+              <h3 class="text-lg font-semibold text-slate-900 mb-2">No Flagged Reviews</h3>
+              <p class="text-slate-600">
+                There are currently no flagged or reported reviews to moderate.
+              </p>
             </div>
           </div>
-        </div>
+        {:else}
+          <div class="overflow-x-auto">
+            <table class="w-full">
+              <thead class="border-b">
+                <tr class="text-left text-sm text-slate-600">
+                  <th class="pb-3 font-medium">Review Content</th>
+                  <th class="pb-3 font-medium">Reason</th>
+                  <th class="pb-3 font-medium">Flagged At</th>
+                  <th class="pb-3 font-medium">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                {#each reviews as review}
+                  <tr class="text-sm">
+                    <td class="py-3">{review.content}</td>
+                    <td class="py-3 text-slate-600">{review.flagged_reason}</td>
+                    <td class="py-3 text-slate-600">{new Date(review.created_at).toLocaleDateString()}</td>
+                    <td class="py-3">
+                      <div class="flex gap-2">
+                        <Button variant="outline" size="sm" disabled>Approve</Button>
+                        <Button variant="destructive" size="sm" disabled>Remove</Button>
+                      </div>
+                    </td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {/if}
       </CardContent>
     </Card>
   </div>

@@ -9,7 +9,16 @@ import type { HttpContext } from '@adonisjs/core/http'
  */
 export default class ListFlaggedReviewsController {
   async handle({ inertia }: HttpContext) {
-    // TODO Phase 1.4: Implement action/query logic
-    return inertia.render('admin/reviews/flagged', {})
+    // TODO: Implement flagged reviews repository and query
+    // This feature requires review flagging system to be implemented first
+    return inertia.render('admin/reviews/flagged', {
+      reviews: [],
+      meta: {
+        total: 0,
+        perPage: 50,
+        currentPage: 1,
+        lastPage: 1,
+      },
+    })
   }
 }

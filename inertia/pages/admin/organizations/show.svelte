@@ -8,61 +8,152 @@
   import Button from '@/components/ui/button.svelte'
   import { Link } from '@inertiajs/svelte'
 
-  interface Props {
-    organization?: any
+  interface Organization {
+    id: string
+    name: string
+    slug: string
+    description: string | null
+    plan: string | null
+    partner_type: string | null
+    created_at: string
+    updated_at: string
+    owner: {
+      id: string
+      username: string
+      email: string | null
+    }
+    stats: {
+      usersCount: number
+      projectsCount: number
+    }
   }
 
-  let { organization = $bindable() }: Props = $props()
+  interface Props {
+    organization: Organization
+  }
+
+  let { organization }: Props = $props()
 </script>
 
 <AdminLayout title="Organization Details - System Admin">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold">Organization Details</h1>
-        <p class="text-slate-600 mt-1">View and manage organization information</p>
+        <h1 class="text-3xl font-bold">{organization.name}</h1>
+        <p class="text-slate-600 mt-1">Organization details and settings</p>
       </div>
       <Link href="/admin/organizations">
         <Button variant="outline">Back to Organizations</Button>
       </Link>
     </div>
 
+    <div class="grid gap-6 md:grid-cols-2">
+      <Card>
+        <CardHeader>
+          <CardTitle>Organization Information</CardTitle>
+          <CardDescription>Basic organization details</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl class="space-y-4">
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Organization ID</dt>
+              <dd class="mt-1 text-sm text-slate-900 font-mono">{organization.id}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Name</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.name}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Slug</dt>
+              <dd class="mt-1 text-sm text-slate-900 font-mono">{organization.slug}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Description</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.description || 'No description'}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Plan</dt>
+              <dd class="mt-1">
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium
+                  {organization.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
+                   organization.plan === 'professional' ? 'bg-blue-100 text-blue-700' :
+                   organization.plan === 'starter' ? 'bg-green-100 text-green-700' :
+                   'bg-slate-100 text-slate-700'}">
+                  {organization.plan || 'free'}
+                </span>
+              </dd>
+            </div>
+            {#if organization.partner_type}
+              <div>
+                <dt class="text-sm font-medium text-slate-600">Partner Type</dt>
+                <dd class="mt-1">
+                  <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-orange-100 text-orange-700">
+                    {organization.partner_type}
+                  </span>
+                </dd>
+              </div>
+            {/if}
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Owner & Statistics</CardTitle>
+          <CardDescription>Organization owner and usage stats</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <dl class="space-y-4">
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Owner</dt>
+              <dd class="mt-1">
+                <Link href="/admin/users/{organization.owner.id}" class="text-blue-600 hover:underline">
+                  {organization.owner.username}
+                </Link>
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Owner Email</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.owner.email || 'Not provided'}</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Members</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.stats.usersCount} member(s)</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Projects</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.stats.projectsCount} project(s)</dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Created At</dt>
+              <dd class="mt-1 text-sm text-slate-900">
+                {new Date(organization.created_at).toLocaleString()}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-sm font-medium text-slate-600">Last Updated</dt>
+              <dd class="mt-1 text-sm text-slate-900">
+                {new Date(organization.updated_at).toLocaleString()}
+              </dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+    </div>
+
     <Card>
       <CardHeader>
-        <CardTitle>Organization Information</CardTitle>
-        <CardDescription>Detailed view of organization (Phase 3 - In Development)</CardDescription>
+        <CardTitle>Actions</CardTitle>
+        <CardDescription>Manage this organization</CardDescription>
       </CardHeader>
       <CardContent>
-        <div class="flex items-center justify-center py-12">
-          <div class="text-center max-w-md">
-            <svg
-              class="mx-auto h-16 w-16 text-slate-400 mb-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
-            <h3 class="text-lg font-semibold text-slate-900 mb-2">Organization Details Page</h3>
-            <p class="text-slate-600 mb-6">
-              This feature is currently under development as part of Phase 3 implementation.
-              You will be able to view detailed organization information, members, projects, and subscription plans here.
-            </p>
-            <div class="flex items-center justify-center gap-3">
-              <Link href="/admin/organizations">
-                <Button variant="default">Back to Organizations List</Button>
-              </Link>
-              <Link href="/admin">
-                <Button variant="outline">Go to Dashboard</Button>
-              </Link>
-            </div>
-          </div>
+        <div class="flex flex-wrap gap-2">
+          <Button variant="outline" disabled>Edit Organization</Button>
+          <Button variant="outline" disabled>Change Plan</Button>
+          <Button variant="outline" disabled>View Members</Button>
+          <Button variant="destructive" disabled>Suspend Organization</Button>
         </div>
+        <p class="text-xs text-slate-500 mt-2">Actions will be implemented in Phase 3</p>
       </CardContent>
     </Card>
   </div>
