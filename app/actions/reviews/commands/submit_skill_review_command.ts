@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
@@ -26,8 +26,8 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   SubmitSkillReviewDTO,
   SkillReview[]
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {

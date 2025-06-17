@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import type TaskApplication from '#models/task_application'
@@ -30,8 +30,8 @@ export default class GetMyApplicationsQuery extends BaseQuery<
   MyApplicationsDTO,
   MyApplicationsResult
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
+  constructor(execCtx: ExecutionContext) {
+    super(execCtx)
   }
 
   async handle(dto: MyApplicationsDTO): Promise<MyApplicationsResult> {

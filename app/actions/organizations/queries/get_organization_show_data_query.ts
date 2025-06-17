@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 
@@ -22,7 +21,7 @@ interface ShowOrganizationResult {
  * Works alongside GetOrganizationDetailQuery for the full show page data.
  */
 export default class GetOrganizationShowDataQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor() {}
 
   /**
    * Get members list and user's role for the show page.

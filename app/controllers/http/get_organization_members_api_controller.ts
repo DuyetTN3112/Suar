@@ -7,7 +7,7 @@ import GetOrganizationMembersApiQuery from '#actions/organizations/queries/get_o
 export default class GetOrganizationMembersApiController {
   async handle(ctx: HttpContext) {
     const { params, response } = ctx
-    const query = new GetOrganizationMembersApiQuery(ctx)
+    const query = new GetOrganizationMembersApiQuery()
     const result = await query.execute(params.id as string)
 
     response.json({

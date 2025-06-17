@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
 import GetTasksPageQuery from '#actions/tasks/queries/get_tasks_page_query'
 import GetTaskProjectsQuery from '#actions/tasks/queries/get_task_projects_query'
 import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /tasks
@@ -49,7 +49,7 @@ export default class ListTasksController {
     })
 
     const { tasksResult, metadata } = selectedProject
-      ? await new GetTasksPageQuery(ctx).execute(dto, organizationId)
+      ? await new GetTasksPageQuery(execCtx).execute(dto, organizationId)
       : {
           tasksResult: {
             data: [],

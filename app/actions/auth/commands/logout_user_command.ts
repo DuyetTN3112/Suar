@@ -10,34 +10,10 @@ export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
       sessionId: dto.sessionId,
     })
 
-    await this.logoutFromWebGuard()
-
-    this.clearSessionData()
-
-    this.clearInertiaAuthProps()
-
     // Emit user:logout event
     void emitter.emit('user:logout', {
       userId: dto.userId,
       ip: dto.ipAddress || '',
-    })
-  }
-
-  private async logoutFromWebGuard(): Promise<void> {
-    await this.ctx.auth.use('web').logout()
-  }
-
-  private clearSessionData(): void {
-    this.ctx.session.forget('auth')
-    this.ctx.session.forget('show_organization_required_modal')
-    this.ctx.session.forget('intended_url')
-  }
-
-  private clearInertiaAuthProps(): void {
-    this.ctx.inertia.share({
-      auth: {
-        user: null,
-      },
     })
   }
 }

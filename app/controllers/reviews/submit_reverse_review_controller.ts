@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import SubmitReverseReviewCommand from '#actions/reviews/commands/submit_reverse_review_command'
 import { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ReverseReviewTargetType } from '#constants/review_constants'
@@ -26,7 +27,7 @@ export default class SubmitReverseReviewController {
       is_anonymous: Boolean(request.input('is_anonymous', false)),
     })
 
-    const command = new SubmitReverseReviewCommand(ctx)
+    const command = new SubmitReverseReviewCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     session.flash('success', 'Đánh giá ngược đã được gửi thành công')

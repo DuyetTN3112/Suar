@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetUserReviewsQuery from '#actions/reviews/queries/get_user_reviews_query'
 import { GetUserReviewsDTO } from '#actions/reviews/dtos/request/review_dtos'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -20,7 +21,7 @@ export default class MyReviewsController {
       per_page: request.input('per_page', 20) as number,
     })
 
-    const query = new GetUserReviewsQuery(ctx)
+    const query = new GetUserReviewsQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
 
     return inertia.render('reviews/my-reviews', {

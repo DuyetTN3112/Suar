@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 import GetUserProfileQuery, {
   GetUserProfileDTO,
 } from '#actions/users/queries/get_user_profile_query'
@@ -24,12 +25,14 @@ export default class ShowProfileController {
     }
     const userId = currentUser.id
 
+    const execCtx = ExecutionContext.fromHttp(ctx)
+
     const [{ user, completeness }, spiderChartData, deliveryMetrics, featuredReviews] =
       await Promise.all([
-        new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
-        new GetSpiderChartDataQuery(ctx).handle(new GetSpiderChartDataDTO(userId)),
-        new GetUserDeliveryMetricsQuery(ctx).handle(new GetUserDeliveryMetricsDTO(userId)),
-        new GetFeaturedReviewsQuery(ctx).handle(new GetFeaturedReviewsDTO(userId, 2)),
+        new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
+        new GetSpiderChartDataQuery(execCtx).handle(new GetSpiderChartDataDTO(userId)),
+        new GetUserDeliveryMetricsQuery(execCtx).handle(new GetUserDeliveryMetricsDTO(userId)),
+        new GetFeaturedReviewsQuery(execCtx).handle(new GetFeaturedReviewsDTO(userId, 2)),
       ])
 
     // user may be a Lucid model (fresh) or plain object (from cache)

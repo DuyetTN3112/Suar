@@ -10,7 +10,7 @@ export default class GetTaskAuditLogsController {
     const taskId = ctx.params.id as string
     const limit = ctx.request.input('limit', 20) as number
 
-    const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery(ctx)
+    const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery()
     const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
 
     ctx.response.json({

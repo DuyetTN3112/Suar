@@ -1,4 +1,3 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { OrganizationRole } from '#constants'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -42,7 +41,7 @@ interface MetadataResult {
  * // { roles: [...], plans: [...] }
  */
 export default class GetOrganizationMetadataQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor() {}
 
   async execute(): Promise<MetadataResult> {
     // Try cache first
