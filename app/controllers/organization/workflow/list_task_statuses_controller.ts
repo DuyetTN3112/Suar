@@ -10,8 +10,9 @@ import ListTaskStatusesQuery from '#actions/organization/workflow/queries/list_t
  * GET /org/workflow/statuses
  */
 export default class ListTaskStatusesController {
-  async handle({ inertia, request }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ request } as any)
+  async handle(ctx: HttpContext) {
+    const { inertia } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
 
     // Execute query
     const query = new ListTaskStatusesQuery(execCtx)

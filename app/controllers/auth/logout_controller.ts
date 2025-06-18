@@ -22,8 +22,13 @@ export default class LogoutController {
     const { request, response, inertia, session, auth } = ctx
 
     // 1. Build DTO
+    if (!auth.user) {
+      response.redirect().toPath('/login')
+      return
+    }
+
     const dto = new LogoutUserDTO({
-      userId: auth.user!.id,
+      userId: auth.user.id,
       sessionId: session.sessionId,
       ipAddress: request.ip(),
     })

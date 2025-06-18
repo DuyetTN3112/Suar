@@ -15,8 +15,9 @@ export default class ShowOrganizationController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new GetOrganizationDetailsQuery(execCtx)
+    const organizationId = String(params.id)
 
-    const organization = await query.handle({ organizationId: params.id })
+    const organization = await query.handle({ organizationId })
 
     return inertia.render('admin/organizations/show', { organization })
   }

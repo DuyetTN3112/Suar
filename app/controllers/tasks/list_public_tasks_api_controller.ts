@@ -25,7 +25,7 @@ export default class ListPublicTasksApiController {
     const result = await query.handle(dto)
 
     const serializedTasks = result.data.map((task) => {
-      if (task && typeof (task as { serialize?: () => unknown }).serialize === 'function') {
+      if (typeof (task as { serialize?: () => unknown }).serialize === 'function') {
         return (task as { serialize: () => unknown }).serialize()
       }
       return task

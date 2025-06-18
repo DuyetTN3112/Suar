@@ -10,8 +10,9 @@ import GetOrganizationSettingsQuery from '#actions/organization/settings/queries
  * GET /org/settings
  */
 export default class ShowSettingsController {
-  async handle({ inertia, request }: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp({ request } as any)
+  async handle(ctx: HttpContext) {
+    const { inertia } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
 
     // Execute query
     const query = new GetOrganizationSettingsQuery(execCtx)

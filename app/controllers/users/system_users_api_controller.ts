@@ -6,6 +6,7 @@ import { PaginationDTO } from '#actions/shared/index'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /api/system-users → Get system users (not in current organization)
@@ -13,7 +14,7 @@ import ForbiddenException from '#exceptions/forbidden_exception'
  */
 export default class SystemUsersApiController {
   async handle(ctx: HttpContext) {
-    const getUsersListQuery = new GetUsersListQuery(ctx)
+    const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
     const { request, response, auth } = ctx
 
     const user = auth.user

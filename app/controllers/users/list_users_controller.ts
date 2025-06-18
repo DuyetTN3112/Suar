@@ -40,10 +40,8 @@ export default class ListUsersController {
     const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
     const getUserMetadata = new GetUserMetadata()
 
-    const [users, metadata] = await Promise.all([
-      getUsersListQuery.handle(dto),
-      getUserMetadata.handle(),
-    ])
+    const users = await getUsersListQuery.handle(dto)
+    const metadata = getUserMetadata.handle()
 
     return inertia.render('users/index', {
       users,

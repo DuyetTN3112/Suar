@@ -4,6 +4,7 @@ import UpdateProjectCommand from '#actions/projects/commands/update_project_comm
 import { UpdateProjectDTO } from '#actions/projects/dtos/request/update_project_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * PUT /api/projects/:id → Update project (API)
@@ -30,7 +31,7 @@ export default class UpdateProjectApiController {
       end_date: endDateInput ? DateTime.fromISO(endDateInput) : null,
     })
 
-    const command = new UpdateProjectCommand(ctx)
+    const command = new UpdateProjectCommand(ExecutionContext.fromHttp(ctx))
     const project = await command.handle(dto)
 
     response.json({ success: true, data: project })

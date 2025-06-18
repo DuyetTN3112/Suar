@@ -8,7 +8,7 @@ import type { HttpContext } from '@adonisjs/core/http'
  * PUT /admin/reviews/:id/resolve
  */
 export default class ResolveFlaggedReviewController {
-  async handle({ response, session }: HttpContext) {
+  handle({ response, session }: HttpContext) {
     // TODO Phase 1.4: Implement action/query logic
     session.flash('success', 'Action completed')
     response.redirect().back()

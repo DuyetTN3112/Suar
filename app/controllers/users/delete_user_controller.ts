@@ -9,8 +9,9 @@ export default class DeleteUserController {
   async handle(ctx: HttpContext) {
     const deleteUser = new DeleteUser(ExecutionContext.fromHttp(ctx))
     const { params, response, session } = ctx
+    const userId = String(params.id)
 
-    const result = await deleteUser.handle({ id: params.id })
+    const result = await deleteUser.handle({ id: userId })
     session.flash(result.success ? 'success' : 'error', result.message)
     response.redirect().toRoute('users.index')
   }

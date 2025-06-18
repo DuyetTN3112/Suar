@@ -15,8 +15,9 @@ export default class ShowUserController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new GetUserDetailsQuery(execCtx)
+    const userId = String(params.id)
 
-    const user = await query.handle({ userId: params.id })
+    const user = await query.handle({ userId })
 
     return inertia.render('admin/users/show', { user })
   }

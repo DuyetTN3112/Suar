@@ -13,7 +13,9 @@ export default class ShowReviewController {
     const { params, inertia } = ctx
 
     const [session, skills] = await Promise.all([
-      new GetReviewSessionQuery(ExecutionContext.fromHttp(ctx)).handle(new GetReviewSessionDTO(params.id as string)),
+      new GetReviewSessionQuery(ExecutionContext.fromHttp(ctx)).handle(
+        new GetReviewSessionDTO(params.id as string)
+      ),
       GetActiveSkillsQuery.execute(),
     ])
 

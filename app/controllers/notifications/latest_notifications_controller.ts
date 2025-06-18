@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import { serializeNotifications } from '#actions/notifications/serializers/notification_serializer'
+import type { RawNotificationData } from '#actions/notifications/serializers/notification_serializer'
 
 /**
  * GET /notifications/latest → Get latest notifications (JSON API)
@@ -14,7 +15,7 @@ export default class LatestNotificationsController {
       const limit = Number(request.input('limit', 10))
       const result = await getUserNotifications.handle({ page: 1, limit, unread_only: false })
       const jsonResult = result.notifications.toJSON()
-      const notificationsData = serializeNotifications(jsonResult.data as any[])
+      const notificationsData = serializeNotifications(jsonResult.data as RawNotificationData[])
 
       response.json({
         notifications: notificationsData,

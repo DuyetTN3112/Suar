@@ -21,10 +21,9 @@ export default class EditTaskController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task, taskData, metadata } = await new GetTaskEditPageQuery(ExecutionContext.fromHttp(ctx)).execute(
-      ctx.params.id as string,
-      organizationId
-    )
+    const { task, taskData, metadata } = await new GetTaskEditPageQuery(
+      ExecutionContext.fromHttp(ctx)
+    ).execute(ctx.params.id as string, organizationId)
 
     if (!taskData.permissions.canEdit) {
       throw new ForbiddenException('Bạn không có quyền chỉnh sửa nhiệm vụ này')

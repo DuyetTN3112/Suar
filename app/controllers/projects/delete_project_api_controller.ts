@@ -3,6 +3,7 @@ import DeleteProjectCommand from '#actions/projects/commands/delete_project_comm
 import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /api/projects/:id → Delete project (API)
@@ -23,7 +24,7 @@ export default class DeleteProjectApiController {
       project_id: params.id as string,
       current_organization_id: organizationId,
     })
-    const command = new DeleteProjectCommand(ctx)
+    const command = new DeleteProjectCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
     response.json({ success: true, message: 'Dự án đã được xóa' })

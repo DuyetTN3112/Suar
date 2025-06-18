@@ -6,6 +6,7 @@ import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get
 import GetActiveSkillsQuery from '#actions/shared/queries/get_active_skills_query'
 import { skillCategoryOptions, proficiencyLevelOptions } from '#constants/user_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /profile/edit → Display profile edit form
@@ -17,11 +18,12 @@ export default class EditProfileController {
       throw new UnauthorizedException()
     }
     const userId = currentUser.id
+    const execCtx = ExecutionContext.fromHttp(ctx)
 
     const [{ user, completeness }, availableSkills, userSkills] = await Promise.all([
-      new GetUserProfileQuery(ctx).handle(new GetUserProfileDTO(userId)),
+      new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
       GetActiveSkillsQuery.execute(),
-      new GetUserSkillsQuery(ctx).handle(new GetUserSkillsDTO(userId)),
+      new GetUserSkillsQuery(execCtx).handle(new GetUserSkillsDTO(userId)),
     ])
 
     return ctx.inertia.render('profile/edit', {

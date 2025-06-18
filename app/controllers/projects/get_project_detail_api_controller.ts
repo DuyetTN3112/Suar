@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /api/projects/:id → Fetch project detail as JSON (for modal)
@@ -15,7 +16,7 @@ export default class GetProjectDetailApiController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const query = new GetProjectDetailQuery(ctx)
+    const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
 
     try {

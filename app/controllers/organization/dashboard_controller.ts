@@ -13,7 +13,11 @@ export default class OrgDashboardController {
   async handle(ctx: HttpContext) {
     const { inertia, auth } = ctx
     const execCtx = ExecutionContext.fromHttp(ctx)
-    const user = auth.user!
+    const { user } = auth
+
+    if (!user) {
+      return inertia.render('org/no_org', {})
+    }
 
     if (!user.current_organization_id) {
       return inertia.render('org/no_org', {})

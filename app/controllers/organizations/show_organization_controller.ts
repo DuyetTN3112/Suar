@@ -17,10 +17,9 @@ export default class ShowOrganizationController {
     const user = auth.user
     const organizationId = params.id as string
 
-    const { organization, members, userRole } = await new GetOrganizationShowPageQuery(ExecutionContext.fromHttp(ctx)).execute(
-      organizationId,
-      user.id
-    )
+    const { organization, members, userRole } = await new GetOrganizationShowPageQuery(
+      ExecutionContext.fromHttp(ctx)
+    ).execute(organizationId, user.id)
 
     return await inertia.render('organizations/show', {
       organization,
