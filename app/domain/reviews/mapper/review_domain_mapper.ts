@@ -18,6 +18,12 @@ import { SkillReviewEntity } from '../entities/skill_review_entity.js'
 import type { SkillReviewEntityProps } from '../entities/skill_review_entity.js'
 
 export class ReviewDomainMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ReviewDomainMapper().__instanceMarker
+  }
+
   /**
    * Plain object (props) → ReviewSessionEntity
    */

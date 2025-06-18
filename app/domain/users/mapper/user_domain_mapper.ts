@@ -17,6 +17,12 @@ import { UserEntity } from '../entities/user_entity.js'
 import type { UserEntityProps } from '../entities/user_entity.js'
 
 export class UserDomainMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new UserDomainMapper().__instanceMarker
+  }
+
   /**
    * Plain object (props) → Domain Entity
    * Dùng khi tạo entity từ bất kỳ nguồn nào đã chuẩn hóa

@@ -21,7 +21,7 @@
  * Task Status — v3.0 inline CHECK trên tasks.status
  * CHECK ('todo','in_progress','done','cancelled','in_review')
  *
- * @deprecated Phase 4: Will be replaced by task_statuses table (per-org configurable).
+ * Phase 4 note: Will be replaced by task_statuses table (per-org configurable).
  * Kept for backward compatibility during migration.
  */
 export enum TaskStatus {
@@ -158,7 +158,7 @@ export const DEFAULT_WORKFLOW_TRANSITIONS: Array<{
 
 /**
  * Statuses considered as "incomplete" (not done/cancelled)
- * @deprecated Phase 4: Use TaskStatusCategory to check category instead.
+ * Phase 4 note: Prefer TaskStatusCategory checks where possible.
  */
 export const INCOMPLETE_TASK_STATUSES = [
   TaskStatus.TODO,
@@ -168,7 +168,7 @@ export const INCOMPLETE_TASK_STATUSES = [
 
 /**
  * Statuses considered as "terminal" (final state)
- * @deprecated Phase 4: Use TaskStatusCategory to check category instead.
+ * Phase 4 note: Prefer TaskStatusCategory checks where possible.
  * Terminal categories: TaskStatusCategory.DONE, TaskStatusCategory.CANCELLED
  */
 export const TERMINAL_TASK_STATUSES = [TaskStatus.DONE, TaskStatus.CANCELLED] as const

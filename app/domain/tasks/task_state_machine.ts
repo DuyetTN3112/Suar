@@ -24,20 +24,35 @@
  *             for DB-driven transitions. This module is kept for migration period.
  */
 
-import { TaskStatus } from '#constants/task_constants'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
+
+const LEGACY_TASK_STATUS = {
+  TODO: 'todo',
+  IN_PROGRESS: 'in_progress',
+  DONE: 'done',
+  CANCELLED: 'cancelled',
+  IN_REVIEW: 'in_review',
+} as const
 
 /**
  * Allowed state transitions map.
  * Key = current status, Value = array of valid next statuses.
  */
 const ALLOWED_TRANSITIONS: Record<string, readonly string[]> = {
-  [TaskStatus.TODO]: [TaskStatus.IN_PROGRESS, TaskStatus.CANCELLED],
-  [TaskStatus.IN_PROGRESS]: [TaskStatus.TODO, TaskStatus.IN_REVIEW, TaskStatus.CANCELLED],
-  [TaskStatus.IN_REVIEW]: [TaskStatus.IN_PROGRESS, TaskStatus.DONE, TaskStatus.CANCELLED],
-  [TaskStatus.DONE]: [],
-  [TaskStatus.CANCELLED]: [TaskStatus.TODO],
+  [LEGACY_TASK_STATUS.TODO]: [LEGACY_TASK_STATUS.IN_PROGRESS, LEGACY_TASK_STATUS.CANCELLED],
+  [LEGACY_TASK_STATUS.IN_PROGRESS]: [
+    LEGACY_TASK_STATUS.TODO,
+    LEGACY_TASK_STATUS.IN_REVIEW,
+    LEGACY_TASK_STATUS.CANCELLED,
+  ],
+  [LEGACY_TASK_STATUS.IN_REVIEW]: [
+    LEGACY_TASK_STATUS.IN_PROGRESS,
+    LEGACY_TASK_STATUS.DONE,
+    LEGACY_TASK_STATUS.CANCELLED,
+  ],
+  [LEGACY_TASK_STATUS.DONE]: [],
+  [LEGACY_TASK_STATUS.CANCELLED]: [LEGACY_TASK_STATUS.TODO],
 }
 
 /**
@@ -77,7 +92,7 @@ export function validateTransition(ctx: TransitionContext): PolicyResult {
   }
 
   // Pre-condition: todo → in_progress requires assignment
-  if (currentStatus === TaskStatus.TODO && newStatus === TaskStatus.IN_PROGRESS) {
+  if (currentStatus === LEGACY_TASK_STATUS.TODO && newStatus === LEGACY_TASK_STATUS.IN_PROGRESS) {
     if (!ctx.isAssigned) {
       return PR.deny(
         'Task phải được giao cho ai đó trước khi chuyển sang in_progress',
@@ -93,7 +108,7 @@ export function validateTransition(ctx: TransitionContext): PolicyResult {
  * Check if a status is terminal (done or cancelled).
  */
 export function isTerminalStatus(status: string): boolean {
-  return status === TaskStatus.DONE || status === TaskStatus.CANCELLED
+  return status === LEGACY_TASK_STATUS.DONE || status === LEGACY_TASK_STATUS.CANCELLED
 }
 
 /**

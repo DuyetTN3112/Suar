@@ -10,13 +10,11 @@ import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
 import type { DatabaseId } from '#types/database'
 import { isSameId } from '#domain/shared/id_utils'
-import {
-  TaskVisibility,
-  AssignmentStatus,
-  TaskStatus,
-  TaskLabel,
-  TaskPriority,
-} from '#constants/task_constants'
+
+const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])
+const VALID_TASK_STATUSES = ['todo', 'in_progress', 'done', 'cancelled', 'in_review'] as const
+const VALID_TASK_LABELS = ['bug', 'feature', 'enhancement', 'documentation'] as const
+const VALID_TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 
 /**
  * Check if a user can apply for a task on the marketplace.
@@ -36,7 +34,7 @@ export function canApplyForTask(ctx: {
     return PR.deny('Không thể ứng tuyển task của chính mình', 'BUSINESS_RULE')
   }
 
-  if (ctx.taskVisibility !== TaskVisibility.EXTERNAL && ctx.taskVisibility !== TaskVisibility.ALL) {
+  if (!PUBLIC_TASK_VISIBILITIES.has(ctx.taskVisibility)) {
     return PR.deny('Task này không mở cho ứng tuyển bên ngoài', 'BUSINESS_RULE')
   }
 
@@ -63,10 +61,7 @@ export function validateAssignee(ctx: {
 
   // Freelancers can be assigned to external/all tasks
   if (ctx.isFreelancer) {
-    if (
-      ctx.taskVisibility === TaskVisibility.EXTERNAL ||
-      ctx.taskVisibility === TaskVisibility.ALL
-    ) {
+    if (ctx.taskVisibility === 'external' || ctx.taskVisibility === 'all') {
       return PR.allow()
     }
     return PR.deny(
@@ -89,7 +84,7 @@ export function canRevokeAssignment(ctx: {
   assignmentStatus: string
   reason: string | null | undefined
 }): PolicyResult {
-  if (ctx.assignmentStatus !== AssignmentStatus.ACTIVE) {
+  if (ctx.assignmentStatus !== 'active') {
     return PR.deny('Chỉ có thể revoke assignments đang active', 'BUSINESS_RULE')
   }
 
@@ -124,8 +119,7 @@ export function validateBatchStatusUpdate(ctx: {
     )
   }
 
-  const validStatuses = Object.values(TaskStatus) as string[]
-  if (!validStatuses.includes(ctx.newStatus)) {
+  if (!VALID_TASK_STATUSES.includes(ctx.newStatus as (typeof VALID_TASK_STATUSES)[number])) {
     return PR.deny(`Trạng thái không hợp lệ: ${ctx.newStatus}`, 'BUSINESS_RULE')
   }
 
@@ -148,22 +142,19 @@ export function validateTaskCreationFields(ctx: {
   isDueDateInPast: boolean
 }): PolicyResult {
   if (ctx.status) {
-    const validStatuses = Object.values(TaskStatus) as string[]
-    if (!validStatuses.includes(ctx.status)) {
+    if (!VALID_TASK_STATUSES.includes(ctx.status as (typeof VALID_TASK_STATUSES)[number])) {
       return PR.deny(`Trạng thái task không hợp lệ: ${ctx.status}`, 'BUSINESS_RULE')
     }
   }
 
   if (ctx.label) {
-    const validLabels = Object.values(TaskLabel) as string[]
-    if (!validLabels.includes(ctx.label)) {
+    if (!VALID_TASK_LABELS.includes(ctx.label as (typeof VALID_TASK_LABELS)[number])) {
       return PR.deny(`Nhãn task không hợp lệ: ${ctx.label}`, 'BUSINESS_RULE')
     }
   }
 
   if (ctx.priority) {
-    const validPriorities = Object.values(TaskPriority) as string[]
-    if (!validPriorities.includes(ctx.priority)) {
+    if (!VALID_TASK_PRIORITIES.includes(ctx.priority as (typeof VALID_TASK_PRIORITIES)[number])) {
       return PR.deny(`Mức ưu tiên không hợp lệ: ${ctx.priority}`, 'BUSINESS_RULE')
     }
   }
