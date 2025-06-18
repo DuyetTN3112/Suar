@@ -1,6 +1,10 @@
-import Task from '#models/task'
-import type { HttpContext } from '@adonisjs/core/http'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
+import type Task from '#models/task'
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -20,17 +24,15 @@ import redis from '@adonisjs/redis/services/main'
  * Returns: Tasks với pagination
  */
 export default class GetUserTasksQuery {
-  constructor(protected ctx: HttpContext) {}
-
   /**
    * Execute query
    */
   async execute(options: {
-    userId: number
-    organizationId: number
+    userId: DatabaseId
+    organizationId: DatabaseId
     filterType?: 'assigned' | 'created' | 'both' // default: 'both'
-    statusId?: number
-    priorityId?: number
+    statusId?: DatabaseId
+    priorityId?: DatabaseId
     page?: number
     limit?: number
   }): Promise<{
@@ -53,8 +55,8 @@ export default class GetUserTasksQuery {
     } = options
 
     // Validate
-    if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
+      throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
@@ -64,51 +66,16 @@ export default class GetUserTasksQuery {
       return cached
     }
 
-    // Build query
-    const query = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
-
-    // Apply user filter
-    if (filterType === 'assigned') {
-      void query.where('assigned_to', userId)
-    } else if (filterType === 'created') {
-      void query.where('creator_id', userId)
-    } else {
-      // both
-      void query.where((bothQuery) => {
-        void bothQuery.where('assigned_to', userId).orWhere('creator_id', userId)
-      })
-    }
-
-    // Apply status filter
-    if (statusId) {
-      void query.where('status_id', statusId)
-    }
-
-    // Apply priority filter
-    if (priorityId) {
-      void query.where('priority_id', priorityId)
-    }
-
-    // Preload relations
-    void query
-      .preload('status')
-      .preload('label')
-      .preload('priority')
-      .preload('assignee', (q) => {
-        void q.select(['id', 'username'])
-      })
-      .preload('creator', (q) => {
-        void q.select(['id', 'username'])
-      })
-      .preload('project', (q) => {
-        void q.select(['id', 'name'])
-      })
-
-    // Sort by due date
-    void query.orderBy('due_date', 'asc')
-
-    // Execute with pagination
-    const paginator = await query.paginate(page, limit)
+    // Execute via repository
+    const paginator = await TaskRepository.paginateByUser({
+      userId,
+      organizationId,
+      filterType,
+      status: statusId,
+      priority: priorityId,
+      page,
+      limit,
+    })
 
     const result = {
       data: paginator.all(),
@@ -130,11 +97,11 @@ export default class GetUserTasksQuery {
    * Build cache key
    */
   private buildCacheKey(options: {
-    userId: number
-    organizationId: number
+    userId: DatabaseId
+    organizationId: DatabaseId
     filterType?: 'assigned' | 'created' | 'both'
-    statusId?: number
-    priorityId?: number
+    statusId?: DatabaseId
+    priorityId?: DatabaseId
     page?: number
     limit?: number
   }): string {
@@ -185,7 +152,7 @@ export default class GetUserTasksQuery {
         }
       }
     } catch (error: unknown) {
-      console.error('[GetUserTasksQuery] Cache get error:', error)
+      loggerService.error('[GetUserTasksQuery] Cache get error:', error)
     }
     return null
   }
@@ -197,7 +164,7 @@ export default class GetUserTasksQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error: unknown) {
-      console.error('[GetUserTasksQuery] Cache set error:', error)
+      loggerService.error('[GetUserTasksQuery] Cache set error:', error)
     }
   }
 }

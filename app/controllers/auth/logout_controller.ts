@@ -1,7 +1,7 @@
-import { LogoutUserCommand } from '#actions/auth/commands/index'
-import { LogoutUserDTO } from '#actions/auth/dtos/index'
-import logger from '@adonisjs/core/services/logger'
+import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
+import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * LogoutController
@@ -20,56 +20,36 @@ export default class LogoutController {
    */
   async handle(ctx: HttpContext) {
     const { request, response, inertia, session, auth } = ctx
-    try {
-      // Only logout if user is authenticated
-      if (!auth.isAuthenticated) {
-        return await this.redirectToLogin(request, response, inertia)
-      }
 
-      const user = auth.user
-      if (!user) {
-        return await this.redirectToLogin(request, response, inertia)
-      }
-
-      // 1. Build DTO
-      const dto = new LogoutUserDTO({
-        userId: user.id,
-        sessionId: session.sessionId,
-        ipAddress: request.ip(),
-      })
-
-      // 2. Execute command
-      const command = new LogoutUserCommand(ctx)
-      await command.handle(dto)
-
-      // 3. Clear additional session data
-      session.forget('show_organization_required_modal')
-      session.forget('intended_url')
-
-      // 4. Set success message
-      session.flash('success', 'Đã đăng xuất thành công')
-
-      // 5. Redirect to login
-      return await this.redirectToLogin(request, response, inertia)
-    } catch (error: unknown) {
-      logger.error('Error during logout', { error, userId: auth.user?.id })
-      session.flash('error', 'Có lỗi xảy ra khi đăng xuất')
-      return await this.redirectToLogin(request, response, inertia)
+    // 1. Build DTO
+    if (!auth.user) {
+      response.redirect().toPath('/login')
+      return
     }
-  }
 
-  /**
-   * Redirect to login page
-   * Supports both Inertia and regular redirects
-   */
-  private redirectToLogin(
-    request: HttpContext['request'],
-    response: HttpContext['response'],
-    inertia: HttpContext['inertia']
-  ) {
+    const dto = new LogoutUserDTO({
+      userId: auth.user.id,
+      sessionId: session.sessionId,
+      ipAddress: request.ip(),
+    })
+
+    // 2. Execute command (audit log + event emission)
+    const command = new LogoutUserCommand(ExecutionContext.fromHttp(ctx))
+    await command.handle(dto)
+
+    // 3. Handle HTTP-specific logout operations (auth, session, inertia)
+    await auth.use('web').logout()
+    session.forget('auth')
+    session.forget('show_organization_required_modal')
+    session.forget('intended_url')
+    inertia.share({ auth: { user: null } })
+
+    // 4. Redirect to login — always use inertia.location for full page redirect
+    //    (session.flash won't work after session is cleared)
     const isInertia = request.header('X-Inertia')
     if (isInertia) {
-      return inertia.location('/login')
+      inertia.location('/login')
+      return
     }
     response.redirect().toPath('/login')
   }
