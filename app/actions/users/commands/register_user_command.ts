@@ -59,7 +59,7 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
         username: dto.username,
         email: dto.email,
         system_role: dto.roleId || SystemRoleName.REGISTERED_USER,
-        status: String(dto.statusId),
+        status: dto.statusId,
       },
       { client: trx }
     )

@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
@@ -26,10 +25,6 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   SubmitSkillReviewDTO,
   SkillReview[]
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -58,11 +53,11 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       for (const rating of dto.skill_ratings) {
         const review = await SkillReview.create(
           {
-            review_session_id: String(dto.review_session_id),
-            reviewer_id: String(userId),
+            review_session_id: dto.review_session_id,
+            reviewer_id: userId,
             reviewer_type: dto.reviewer_type,
-            skill_id: String(rating.skill_id),
-            assigned_level_code: String(rating.assigned_level_code),
+            skill_id: rating.skill_id,
+            assigned_level_code: rating.assigned_level_code,
             comment: rating.comment || null,
           },
           { client: trx }
@@ -85,7 +80,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         session.status
       )
       session.status = newStatus
-      if (newStatus === ReviewSessionStatus.COMPLETED) {
+      if (newStatus === 'completed') {
         session.completed_at = DateTime.now()
       }
 
@@ -99,13 +94,13 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`user:${String(session.reviewee_id)}:*`)
-      await CacheService.deleteByPattern(`review:session:${String(session.id)}`)
+      await CacheService.deleteByPattern(`user:${session.reviewee_id}:*`)
+      await CacheService.deleteByPattern(`review:session:${session.id}`)
 
       // Emit domain event for spider chart recalculation
       const scores: Record<string, number> = {}
       for (const review of skillReviews) {
-        scores[String(review.skill_id)] = 0 // Placeholder — actual score computed by spider chart
+        scores[review.skill_id] = 0 // Placeholder — actual score computed by spider chart
       }
       void emitter.emit('review:submitted', {
         reviewSessionId: dto.review_session_id,
@@ -130,14 +125,14 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       // Validate skill_id
       const skill = await Skill.query({ client: trx }).where('id', rating.skill_id).first()
       if (!skill) {
-        throw new NotFoundException(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
+        throw new NotFoundException(`Skill với ID ${rating.skill_id} không tồn tại`)
       }
 
       // Validate assigned_level_code is a valid ProficiencyLevel constant
       const validLevels = Object.values(ProficiencyLevel) as string[]
-      if (!validLevels.includes(String(rating.assigned_level_code))) {
+      if (!validLevels.includes(rating.assigned_level_code)) {
         throw new BusinessLogicException(
-          `Proficiency level không hợp lệ: ${String(rating.assigned_level_code)}`
+          `Proficiency level không hợp lệ: ${rating.assigned_level_code}`
         )
       }
     }

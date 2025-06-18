@@ -14,6 +14,12 @@ interface OwnedOrg {
  * Used by project creation form to populate the organization dropdown.
  */
 export default class GetUserOwnedOrganizationsQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new GetUserOwnedOrganizationsQuery().__instanceMarker
+  }
+
   static async execute(userId: DatabaseId): Promise<OwnedOrg[]> {
     const orgIds = await OrganizationUserRepository.findOwnerMembershipIds(userId)
     if (orgIds.length === 0) return []

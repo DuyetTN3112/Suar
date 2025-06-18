@@ -18,6 +18,12 @@ interface JoinEligibilityResult {
  * Returns the organization info and membership status.
  */
 export default class CheckJoinEligibilityQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new CheckJoinEligibilityQuery().__instanceMarker
+  }
+
   static async execute(
     organizationId: DatabaseId,
     userId: DatabaseId

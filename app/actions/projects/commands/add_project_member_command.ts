@@ -62,7 +62,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
           actorOrgRole: actorOrgMembership?.org_role ?? null,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
-          targetRole: String(dto.project_role),
+          targetRole: dto.project_role,
           isTargetOrgMember,
           isAlreadyMember: !!existingMember,
         })
@@ -72,12 +72,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const userToAdd = await User.findOrFail(dto.user_id)
 
       // 7. Add user as member
-      await ProjectMemberRepository.addMember(
-        dto.project_id,
-        dto.user_id,
-        String(dto.project_role),
-        trx
-      )
+      await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {

@@ -110,7 +110,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     })
 
     // 2. Enrich with stats → delegate to Models
-    const projectsWithStats = await this.enrichWithStats(projects as ProjectRow[])
+    const projectsWithStats = await this.enrichWithStats(projects as unknown as ProjectRow[])
 
     // 3. Get stats → delegate to Project model
     const stats = await ProjectRepository.getStatsByUserAccess(userId, {
@@ -148,8 +148,8 @@ export default class GetProjectsListQuery extends BaseQuery<
 
     return projects.map((project) => ({
       ...project,
-      task_count: taskCountMap.get(String(project.id)) ?? 0,
-      member_count: memberCountMap.get(String(project.id)) ?? 0,
+      task_count: taskCountMap.get(project.id) ?? 0,
+      member_count: memberCountMap.get(project.id) ?? 0,
     }))
   }
 

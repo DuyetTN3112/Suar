@@ -113,7 +113,7 @@ export default class DeleteTaskCommand {
       })
 
       // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
       await CacheService.deleteByPattern(`organization:tasks:*`)
       await CacheService.deleteByPattern(`tasks:public:*`)
       await CacheService.deleteByPattern(`task:user:*`)

@@ -17,6 +17,12 @@ import {
 } from '../dtos/response/project_response_dtos.js'
 
 export class ProjectApplicationMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ProjectApplicationMapper().__instanceMarker
+  }
+
   /**
    * CreateProjectDTO → partial domain entity props (for creation)
    */

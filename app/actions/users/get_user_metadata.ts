@@ -5,7 +5,7 @@ import { SystemRoleName, UserStatusName } from '#constants'
  * Return static enum values instead of DB queries.
  */
 export default class GetUserMetadata {
-  async handle() {
+  handle() {
     const roles = Object.values(SystemRoleName).map((name) => ({ name }))
     const statuses = Object.values(UserStatusName).map((name) => ({ name }))
     return {

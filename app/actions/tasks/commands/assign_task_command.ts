@@ -96,7 +96,7 @@ export default class AssignTaskCommand {
           validateAssignee({
             isOrgMember: isMember,
             isFreelancer,
-            taskVisibility: existingTask.task_visibility ?? 'internal',
+            taskVisibility: existingTask.task_visibility,
           })
         )
       }
@@ -105,7 +105,7 @@ export default class AssignTaskCommand {
       const oldAssignedTo = existingTask.assigned_to
       const oldValues = existingTask.toJSON()
 
-      existingTask.assigned_to = dto.assigned_to !== null ? String(dto.assigned_to) : null
+      existingTask.assigned_to = dto.assigned_to
       existingTask.updated_by = userId
       await existingTask.useTransaction(trx).save()
 
@@ -133,7 +133,7 @@ export default class AssignTaskCommand {
       }
 
       // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${String(dto.task_id)}:*`)
+      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
       await CacheService.deleteByPattern(`task:user:*`)
       await CacheService.deleteByPattern(`task:applications:*`)
 

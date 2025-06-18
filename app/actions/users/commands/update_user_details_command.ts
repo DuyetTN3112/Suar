@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
 import User from '#models/user'
@@ -17,10 +16,6 @@ import emitter from '@adonisjs/core/services/emitter'
  * - Logs audit trail for tracking changes
  */
 export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDetailsDTO, User> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   /**
    * Execute the command to update user details
    */

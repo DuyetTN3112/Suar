@@ -20,7 +20,7 @@ export interface ListAuditLogsResult {
     action: string
     resource_type: string
     resource_id: string | null
-    details: any
+    details: Record<string, unknown>
     ip_address: string
     user_agent: string
     created_at: string
@@ -63,22 +63,20 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
     return {
       data: result.all().map((log) => ({
         id: log.id,
-        user: log.user
-          ? {
-              id: log.user.id,
-              username: log.user.username,
-            }
-          : null,
+        user: {
+          id: log.user.id,
+          username: log.user.username,
+        },
         action: log.action,
         resource_type: log.entity_type,
-        resource_id: log.entity_id ? String(log.entity_id) : null,
+        resource_id: log.entity_id ?? null,
         details: {
           old_values: log.old_values,
           new_values: log.new_values,
         },
         ip_address: log.ip_address || '',
         user_agent: log.user_agent || '',
-        created_at: log.created_at.toISO() || new Date().toISOString(),
+        created_at: log.created_at.toISO() ?? new Date().toISOString(),
       })),
       meta: {
         total: result.total,

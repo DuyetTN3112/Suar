@@ -104,7 +104,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
           assignmentRecord.task_id,
           assignmentRecord.assignee_id,
           assignmentRecord.task.project_id,
-          assignmentRecord.assignee?.username ?? 'Unknown',
+          assignmentRecord.assignee.username,
           dto.reason,
           userId
         )
@@ -112,7 +112,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
     })
 
     // Invalidate task-related caches after transaction
-    await CacheService.deleteByPattern(`task:${String(dto.assignment_id)}:*`)
+    await CacheService.deleteByPattern(`task:${dto.assignment_id}:*`)
     await CacheService.deleteByPattern(`task:user:*`)
 
     // Emit domain event

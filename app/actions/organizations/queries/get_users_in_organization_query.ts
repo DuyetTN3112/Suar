@@ -14,8 +14,6 @@ interface FormattedUser {
  * Sorted by username.
  */
 export default class GetUsersInOrganizationQuery {
-  constructor() {}
-
   async execute(organizationId: DatabaseId, excludeUserId: DatabaseId): Promise<FormattedUser[]> {
     const orgMembers = await OrganizationUserRepository.findMembersExcludingUser(
       organizationId,
@@ -24,7 +22,7 @@ export default class GetUsersInOrganizationQuery {
 
     return orgMembers
       .map((m) => ({
-        id: String(m.user.id),
+        id: m.user.id,
         username: m.user.username,
         email: m.user.email,
       }))

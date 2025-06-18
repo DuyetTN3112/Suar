@@ -18,8 +18,6 @@ interface PendingUser {
  * Also provides a count-only method for badge display.
  */
 export default class GetPendingApprovalUsersQuery {
-  constructor() {}
-
   /**
    * Get list of pending approval users in the organization.
    */
@@ -27,17 +25,15 @@ export default class GetPendingApprovalUsersQuery {
     const pendingMemberships =
       await OrganizationUserRepository.findPendingMembershipsWithUserInfo(organizationId)
 
-    return pendingMemberships
-      .filter((m) => m.user)
-      .map((m) => ({
-        id: m.user.id,
-        email: m.user.email ?? '',
-        username: m.user.username,
-        system_role: m.user.system_role,
-        status: m.user.status,
-        avatar_url: m.user.avatar_url,
-        created_at: m.user.created_at?.toISO() ?? '',
-      }))
+    return pendingMemberships.map((m) => ({
+      id: m.user.id,
+      email: m.user.email ?? '',
+      username: m.user.username,
+      system_role: m.user.system_role,
+      status: m.user.status,
+      avatar_url: m.user.avatar_url,
+      created_at: m.user.created_at.toISO() ?? '',
+    }))
   }
 
   /**

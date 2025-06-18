@@ -89,7 +89,7 @@ export default class CreateTaskCommand {
         canCreateTask({
           isOrgAdminOrOwner: isOrgAdmin,
           isProjectManagerOrOwner: isProjectManager,
-          hasProjectId: dto.project_id !== null && dto.project_id !== undefined,
+          hasProjectId: dto.project_id !== undefined,
           isSuperadmin,
         })
       )
@@ -102,9 +102,9 @@ export default class CreateTaskCommand {
       // 5. Validate creation fields via pure rule
       enforcePolicy(
         validateTaskCreationFields({
-          status: dto.status ? String(dto.status) : null,
-          label: dto.label ? String(dto.label) : null,
-          priority: dto.priority ? String(dto.priority) : null,
+          status: dto.status,
+          label: dto.label ?? null,
+          priority: dto.priority ?? null,
           isDueDateInPast: dto.due_date ? dto.due_date < DateTime.now() : false,
         })
       )
@@ -140,14 +140,14 @@ export default class CreateTaskCommand {
           task_status_id: taskStatusId,
           label: dto.label || undefined,
           priority: dto.priority || undefined,
-          assigned_to: dto.assigned_to ? String(dto.assigned_to) : null,
+          assigned_to: dto.assigned_to ?? null,
           due_date: dto.due_date,
-          parent_task_id: dto.parent_task_id ? String(dto.parent_task_id) : null,
+          parent_task_id: dto.parent_task_id ?? null,
           estimated_time: dto.estimated_time,
           actual_time: dto.actual_time,
-          project_id: dto.project_id ? String(dto.project_id) : null,
-          organization_id: String(dto.organization_id),
-          creator_id: String(userId),
+          project_id: dto.project_id ?? null,
+          organization_id: dto.organization_id,
+          creator_id: userId,
         },
         { client: trx }
       )
@@ -159,19 +159,17 @@ export default class CreateTaskCommand {
 
       const skillIds = dto.required_skills.map((skill) => skill.id)
       const activeSkills = await SkillRepository.findActiveByIds(skillIds, trx)
-      const activeSkillIds = new Set(activeSkills.map((skill) => String(skill.id)))
+      const activeSkillIds = new Set(activeSkills.map((skill) => skill.id))
 
-      const invalidSkill = dto.required_skills.find(
-        (skill) => !activeSkillIds.has(String(skill.id))
-      )
+      const invalidSkill = dto.required_skills.find((skill) => !activeSkillIds.has(skill.id))
       if (invalidSkill) {
         throw new BusinessLogicException('Có kỹ năng yêu cầu không tồn tại hoặc đã bị vô hiệu hóa')
       }
 
       await TaskRequiredSkill.createMany(
         dto.required_skills.map((skill) => ({
-          task_id: String(newTask.id),
-          skill_id: String(skill.id),
+          task_id: newTask.id,
+          skill_id: skill.id,
           required_level_code: skill.level,
           is_mandatory: true,
         })),
@@ -255,7 +253,7 @@ export default class CreateTaskCommand {
       await this.createNotification.handle({
         user_id: assignee.id,
         title: 'Bạn có nhiệm vụ mới',
-        message: `${creator.username || creator.email} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
+        message: `${creator.username || creator.email || 'Người dùng'} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
         type: 'task_assigned',
         related_entity_type: 'task',
         related_entity_id: task.id,

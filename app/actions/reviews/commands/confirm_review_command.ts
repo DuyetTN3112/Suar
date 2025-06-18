@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
@@ -21,10 +20,6 @@ export default class ConfirmReviewCommand extends BaseCommand<
   ConfirmReviewDTO,
   ReviewConfirmationEntry
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmationEntry> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -39,7 +34,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
       // v3: Check if already confirmed in JSONB confirmations array
       const confirmations: ReviewConfirmationEntry[] = session.confirmations ?? []
-      const existing = confirmations.find((c) => c.user_id === String(userId))
+      const existing = confirmations.find((c) => c.user_id === userId)
 
       if (existing) {
         throw new ConflictException('You have already confirmed or disputed this review')
@@ -47,7 +42,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
       // v3: Append to confirmations JSONB array
       const newConfirmation: ReviewConfirmationEntry = {
-        user_id: String(userId),
+        user_id: userId,
         action: dto.action,
         dispute_reason: dto.dispute_reason ?? null,
         created_at: DateTime.now().toISO(),
@@ -75,18 +70,18 @@ export default class ConfirmReviewCommand extends BaseCommand<
           last_calculated_at: null,
         }
 
-        credData.total_reviews_given = (credData.total_reviews_given ?? 0) + 1
+        credData.total_reviews_given += 1
 
         if (dto.action === 'confirmed') {
-          credData.accurate_reviews = (credData.accurate_reviews ?? 0) + 1
+          credData.accurate_reviews += 1
         } else {
-          credData.disputed_reviews = (credData.disputed_reviews ?? 0) + 1
+          credData.disputed_reviews += 1
         }
 
         // DECIDE (pure)
-        credData.credibility_score = adjustCredibility(credData.credibility_score ?? 50, dto.action)
+        credData.credibility_score = adjustCredibility(credData.credibility_score, dto.action)
 
-        credData.last_calculated_at = DateTime.now().toISO()!
+        credData.last_calculated_at = DateTime.now().toISO() || new Date().toISOString()
         reviewer.credibility_data = credData
         await reviewer.useTransaction(trx).save()
       }
@@ -99,7 +94,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${String(dto.review_session_id)}`)
+      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
 
       // Emit domain events for each reviewer
       for (const reviewerId of reviewerIds) {

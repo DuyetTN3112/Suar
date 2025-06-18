@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import type TaskApplication from '#models/task_application'
@@ -24,10 +23,6 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
   GetTaskApplicationsDTO,
   ApplicationListResult
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: GetTaskApplicationsDTO): Promise<ApplicationListResult> {
     const cacheKey = this.generateCacheKey('task:applications', {
       taskId: dto.task_id,

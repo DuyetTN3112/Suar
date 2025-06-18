@@ -140,8 +140,8 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Enrich members
     return members.map((member) => ({
       ...member,
-      task_count: taskCountMap.get(String(member.user_id)) ?? 0,
-      last_active_at: lastActivityMap.get(String(member.user_id)) ?? null,
+      task_count: taskCountMap.get(member.user_id) ?? 0,
+      last_active_at: lastActivityMap.get(member.user_id) ?? null,
     }))
   }
 

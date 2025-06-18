@@ -7,7 +7,6 @@ import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { OrganizationRole } from '#constants/organization_constants'
 
 /**
  * Query để lấy statistics của tasks
@@ -99,9 +98,7 @@ export default class GetTaskStatisticsQuery {
       return { type: 'none' }
     }
 
-    if (
-      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(String(orgRole) as OrganizationRole)
-    ) {
+    if (orgRole === 'org_owner' || orgRole === 'org_admin') {
       return { type: 'all' }
     }
 

@@ -1,5 +1,5 @@
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
 import User from '#models/user'
 
@@ -10,6 +10,12 @@ import User from '#models/user'
  * Returns boolean — caller handles response.
  */
 export default class CheckSuperAdminPermissionQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new CheckSuperAdminPermissionQuery().__instanceMarker
+  }
+
   static async execute(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
     const user = await User.find(userId)
     if (user?.isAdmin) {
@@ -20,7 +26,7 @@ export default class CheckSuperAdminPermissionQuery {
 
     return (
       !!membership &&
-      membership.org_role === OrganizationRole.OWNER &&
+      membership.org_role === 'org_owner' &&
       membership.status === OrganizationUserStatus.APPROVED
     )
   }

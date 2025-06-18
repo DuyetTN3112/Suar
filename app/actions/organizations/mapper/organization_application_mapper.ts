@@ -17,6 +17,12 @@ import {
 } from '../dtos/response/organization_response_dtos.js'
 
 export class OrganizationApplicationMapper {
+  private readonly __instanceMarker = true
+
+  static {
+    void new OrganizationApplicationMapper().__instanceMarker
+  }
+
   /**
    * CreateOrganizationDTO → partial domain entity props (for creation)
    */

@@ -113,6 +113,6 @@ export class ProcessJoinRequestDTO {
   getSummary(): string {
     const action = this.getActionVerb()
     const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
-    return `${action} join request for user ${String(this.targetUserId)} in org ${String(this.organizationId)}${reason}`
+    return `${action} join request for user ${this.targetUserId} in org ${this.organizationId}${reason}`
   }
 }

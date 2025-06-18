@@ -10,7 +10,10 @@ export interface ResolveFlaggedReviewDTO {
 }
 
 export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlaggedReviewDTO> {
-  constructor(execCtx: ExecutionContext, private repo = new AdminFlaggedReviewRepository()) {
+  constructor(
+    execCtx: ExecutionContext,
+    private repo = new AdminFlaggedReviewRepository()
+  ) {
     super(execCtx)
   }
 

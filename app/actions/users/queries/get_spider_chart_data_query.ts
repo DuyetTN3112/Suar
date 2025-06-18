@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
@@ -43,15 +42,11 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
   GetSpiderChartDataDTO,
   SpiderChartResult
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   /**
    * Execute the query to get spider chart data
    */
   async handle(dto: GetSpiderChartDataDTO): Promise<SpiderChartResult> {
-    const cacheKey = `users:spider_chart:${String(dto.user_id)}`
+    const cacheKey = `users:spider_chart:${dto.user_id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // v3: Query UserSkill with inline skill data (category_code, display_type on skills table)

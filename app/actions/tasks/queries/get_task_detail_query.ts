@@ -10,7 +10,6 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
-import { OrganizationRole } from '#constants/organization_constants'
 
 /**
  * Query để lấy chi tiết một task
@@ -69,14 +68,14 @@ export default class GetTaskDetailQuery {
     this.validateViewPermission(userId, task, userRoleData)
 
     // Load optional relations (batch load)
-    const optionalLoads: string[] = []
+    const optionalLoads: Array<'childTasks' | 'versions'> = []
     if (dto.shouldLoadChildTasks()) optionalLoads.push('childTasks')
     if (dto.shouldLoadVersions()) optionalLoads.push('versions')
 
     if (optionalLoads.length > 0) {
       await task.load((loader) => {
         for (const rel of optionalLoads) {
-          loader.load(rel as any)
+          loader.load(rel)
         }
       })
     }
@@ -131,7 +130,7 @@ export default class GetTaskDetailQuery {
         false
       )
       if (orgRole) {
-        orgUser = { org_role: String(orgRole) }
+        orgUser = { org_role: orgRole }
       }
     }
 
@@ -162,12 +161,7 @@ export default class GetTaskDetailQuery {
     }
 
     // Check organization role (Owner/Admin)
-    if (
-      roleData.orgUser &&
-      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(
-        roleData.orgUser.org_role as OrganizationRole
-      )
-    ) {
+    if (roleData.orgUser && ['org_owner', 'org_admin'].includes(roleData.orgUser.org_role)) {
       return
     }
 
@@ -191,10 +185,7 @@ export default class GetTaskDetailQuery {
     const isCreator = task.creator_id === userId
     const isAssignee = task.assigned_to && task.assigned_to === userId
     const isOrgOwnerOrAdmin =
-      roleData.orgUser &&
-      [OrganizationRole.OWNER, OrganizationRole.ADMIN].includes(
-        roleData.orgUser.org_role as OrganizationRole
-      )
+      roleData.orgUser && ['org_owner', 'org_admin'].includes(roleData.orgUser.org_role)
 
     const canEdit = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
     const canDelete = Boolean(roleData.isSuperAdmin || isCreator || isOrgOwnerOrAdmin)
@@ -223,10 +214,10 @@ export default class GetTaskDetailQuery {
     // Load users from PostgreSQL
     const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
     const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
-    const userMap = new Map(users.map((u) => [String(u.id), u]))
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
     return logs.map((log) => {
-      const user = userMap.get(String(log.user_id))
+      const user = userMap.get(log.user_id ?? '')
       return {
         id: log.id,
         action: log.action,

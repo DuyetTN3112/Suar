@@ -120,8 +120,8 @@ export default class GetOrganizationsListQuery {
     // Enrich organizations
     return organizations.map((org) => ({
       ...org,
-      member_count: memberCountMap.get(String(org.id)) ?? 0,
-      project_count: projectCountMap.get(String(org.id)) ?? 0,
+      member_count: memberCountMap.get(org.id) ?? 0,
+      project_count: projectCountMap.get(org.id) ?? 0,
     }))
   }
 }

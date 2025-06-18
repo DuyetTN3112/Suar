@@ -1,4 +1,3 @@
-
 type SettingsData = {
   theme?: 'light' | 'dark' | 'system'
   notifications_enabled?: boolean
@@ -16,8 +15,6 @@ type SettingsData = {
  * This is a no-op for backwards compatibility
  */
 export default class UpdateUserSettings {
-  constructor() {}
-
   handle({ data }: { data: SettingsData }) {
     // Settings are managed client-side
     // This method exists for backwards compatibility but does nothing

@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseQuery } from '#actions/shared/base_query'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type Task from '#models/task'
@@ -24,10 +23,6 @@ export default class GetPublicTasksQuery extends BaseQuery<
   GetPublicTasksDTO,
   PublicTaskListResult
 > {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: GetPublicTasksDTO): Promise<PublicTaskListResult> {
     const cacheKey = this.generateCacheKey('tasks:public', {
       page: dto.page,

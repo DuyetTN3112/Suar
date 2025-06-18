@@ -4,7 +4,7 @@
  * Handles the date formatting (DateTime objects → ISO strings)
  * that used to live in NotificationsController.latest().
  */
-interface RawNotificationData {
+export interface RawNotificationData {
   id: string
   user_id: string
   title: string
@@ -19,7 +19,7 @@ interface RawNotificationData {
   read_at?: string | { toISO: () => string } | null
 }
 
-interface SerializedNotification {
+export interface SerializedNotification {
   id: string
   user_id: string
   title: string

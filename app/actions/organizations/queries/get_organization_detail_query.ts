@@ -17,7 +17,7 @@ interface OwnerRecord {
 
 interface MemberPreview {
   id: DatabaseId
-  email: string
+  email: string | null
   org_role: string
   joined_at: Date
 }
@@ -140,9 +140,7 @@ export default class GetOrganizationDetailQuery {
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
       OrganizationUserRepository.countMembers(organizationId),
-      ProjectRepository.countByOrgIds([organizationId]).then(
-        (m) => m.get(String(organizationId)) ?? 0
-      ),
+      ProjectRepository.countByOrgIds([organizationId]).then((m) => m.get(organizationId) ?? 0),
       ProjectRepository.countTasksByOrganization(organizationId),
     ])
 
@@ -162,10 +160,10 @@ export default class GetOrganizationDetailQuery {
   ): Promise<MemberPreview[]> {
     const members = await OrganizationUserRepository.getMembersPreview(organizationId, limit)
     return members.map((m) => ({
-      id: m.user?.id ?? m.user_id,
-      email: m.user?.email ?? '',
+      id: m.user.id,
+      email: m.user.email,
       org_role: m.org_role,
-      joined_at: m.created_at?.toJSDate() ?? new Date(),
+      joined_at: m.created_at.toJSDate(),
     }))
   }
 }

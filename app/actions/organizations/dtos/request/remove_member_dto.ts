@@ -68,6 +68,6 @@ export class RemoveMemberDTO {
    */
   getSummary(): string {
     const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
-    return `Removed user ${String(this.userId)} from organization ${String(this.organizationId)}${reason}`
+    return `Removed user ${this.userId} from organization ${this.organizationId}${reason}`
   }
 }

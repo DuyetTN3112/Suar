@@ -17,7 +17,7 @@ export default class DeleteUser {
       }
     }
     // Kiểm tra không thể xóa chính mình
-    if (String(currentUserId) === String(id)) {
+    if (currentUserId === id) {
       return {
         success: false,
         message: 'Bạn không thể xóa tài khoản của chính mình',

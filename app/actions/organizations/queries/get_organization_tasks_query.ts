@@ -138,15 +138,15 @@ export default class GetOrganizationTasksQuery {
   private buildCacheKey(options: QueryOptions): string {
     const parts = [
       'organization:tasks',
-      `org:${String(options.organizationId)}`,
-      `page:${String(options.page ?? 1)}`,
-      `limit:${String(options.limit ?? PAGINATION.DEFAULT_PER_PAGE)}`,
+      `org:${options.organizationId}`,
+      `page:${options.page ?? 1}`,
+      `limit:${options.limit ?? PAGINATION.DEFAULT_PER_PAGE}`,
     ]
 
-    if (options.statusId) parts.push(`status:${String(options.statusId)}`)
-    if (options.priorityId) parts.push(`priority:${String(options.priorityId)}`)
-    if (options.projectId) parts.push(`project:${String(options.projectId)}`)
-    if (options.assignedTo) parts.push(`assigned:${String(options.assignedTo)}`)
+    if (options.statusId) parts.push(`status:${options.statusId}`)
+    if (options.priorityId) parts.push(`priority:${options.priorityId}`)
+    if (options.projectId) parts.push(`project:${options.projectId}`)
+    if (options.assignedTo) parts.push(`assigned:${options.assignedTo}`)
     if (options.search) parts.push(`search:${options.search}`)
     if (options.sortBy) parts.push(`sort:${options.sortBy}`)
     if (options.sortOrder) parts.push(`order:${options.sortOrder}`)

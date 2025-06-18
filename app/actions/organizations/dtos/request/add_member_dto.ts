@@ -2,6 +2,8 @@ import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
 
+const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))
+
 /**
  * DTO for adding a member to an organization
  *
@@ -40,14 +42,14 @@ export class AddMemberDTO {
       throw new ValidationException('Role is required')
     }
 
-    const validRoles = Object.values(OrganizationRole) as string[]
-    if (!validRoles.includes(this.roleId)) {
+    if (!VALID_ORG_ROLES.has(this.roleId)) {
+      const validRoles = [...VALID_ORG_ROLES]
       throw new ValidationException(`Role must be one of: ${validRoles.join(', ')}`)
     }
 
     // Cannot directly add as Owner (org_owner)
     // Owner is only set during organization creation
-    if (this.roleId === OrganizationRole.OWNER) {
+    if (this.roleId === 'org_owner') {
       throw new ValidationException(
         'Cannot directly add a member as Owner. Owner is set during organization creation.'
       )
@@ -83,14 +85,14 @@ export class AddMemberDTO {
    * Admin is an elevated role that needs Owner approval
    */
   isElevatedRole(): boolean {
-    return this.roleId === OrganizationRole.ADMIN
+    return this.roleId === 'org_admin'
   }
 
   /**
    * Helper: Check if role is basic (Member)
    */
   isBasicRole(): boolean {
-    return this.roleId === OrganizationRole.MEMBER
+    return this.roleId === 'org_member'
   }
 
   /**
@@ -109,6 +111,6 @@ export class AddMemberDTO {
    * Pattern: Audit logging description (learned from Tasks module)
    */
   getSummary(): string {
-    return `Added user ${String(this.userId)} as ${this.getRoleName()} to organization ${String(this.organizationId)}`
+    return `Added user ${this.userId} as ${this.getRoleName()} to organization ${this.organizationId}`
   }
 }

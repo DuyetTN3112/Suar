@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 import Project from '#models/project'
-import { ProjectStatus, ProjectRole } from '#constants'
+import { ProjectRole } from '#constants'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
@@ -46,15 +46,15 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
 
       // 2. v3: Validate status via pure rule
       if (dto.status) {
-        enforcePolicy(validateProjectStatus(String(dto.status)))
+        enforcePolicy(validateProjectStatus(dto.status))
       }
 
       // 3. Validate dates via pure rule
       if (dto.start_date && dto.end_date) {
         enforcePolicy(
           validateProjectDates({
-            startDate: dto.start_date?.toISO() ?? null,
-            endDate: dto.end_date?.toISO() ?? null,
+            startDate: dto.start_date.toISO() ?? null,
+            endDate: dto.end_date.toISO() ?? null,
           })
         )
       }
@@ -71,11 +71,11 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
         {
           name: dto.name,
           description: dto.description ?? null,
-          organization_id: String(dto.organization_id),
+          organization_id: dto.organization_id,
           creator_id: userId,
           owner_id: ownerId,
-          manager_id: managerId ? String(managerId) : null,
-          status: dto.status || ProjectStatus.PENDING,
+          manager_id: managerId,
+          status: dto.status,
           visibility: dto.visibility,
           start_date: dto.start_date ?? null,
           end_date: dto.end_date ?? null,
@@ -116,7 +116,7 @@ export default class CreateProjectCommand extends BaseCommand<CreateProjectDTO, 
    */
   private sendProjectCreatedNotification(project: Project, userId: DatabaseId): void {
     loggerService.info(
-      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${String(userId)}`
+      `[CreateProjectCommand] Notification: Project "${project.name}" created for user ${userId}`
     )
   }
 

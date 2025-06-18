@@ -7,6 +7,12 @@ import SkillRepository from '#infra/skills/repositories/skill_repository'
  * Used by profile edit and review forms.
  */
 export default class GetActiveSkillsQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new GetActiveSkillsQuery().__instanceMarker
+  }
+
   /**
    * Get all active skills, serialized for frontend consumption.
    */

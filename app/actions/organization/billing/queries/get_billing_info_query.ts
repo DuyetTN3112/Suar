@@ -8,9 +8,7 @@ import OrganizationBillingRepository from '#infra/organization/repositories/orga
  * Query to get organization billing and subscription information.
  */
 
-export interface GetBillingInfoDTO {
-  // Empty DTO - no input needed
-}
+export type GetBillingInfoDTO = Record<string, never>
 
 export interface GetBillingInfoResult {
   subscription: {
@@ -46,10 +44,8 @@ export default class GetBillingInfoQuery extends BaseQuery<
     }
 
     // Fetch from repository
-    const [subscription, plans] = await Promise.all([
-      this.billingRepo.getSubscription(organizationId),
-      this.billingRepo.getAvailablePlans(),
-    ])
+    const subscription = await this.billingRepo.getSubscription(organizationId)
+    const plans = this.billingRepo.getAvailablePlans()
 
     return {
       subscription,

@@ -1,5 +1,4 @@
 import AuditLog from '#models/mongo/audit_log'
-import { DateTime } from 'luxon'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -48,7 +47,6 @@ export default class AuditLogging {
       new_values: new_values,
       ip_address: this.execCtx.ip || null,
       user_agent: this.execCtx.userAgent || null,
-      created_at: DateTime.now(),
     })
   }
 

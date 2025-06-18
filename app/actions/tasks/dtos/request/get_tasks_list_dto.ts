@@ -201,27 +201,27 @@ export default class GetTasksListDTO {
     ]
 
     if (this.hasStatusFilter() && this.status !== undefined) {
-      filterParts.push(`status:${String(this.status)}`)
+      filterParts.push(`status:${this.status}`)
     }
 
     if (this.hasPriorityFilter() && this.priority !== undefined) {
-      filterParts.push(`priority:${String(this.priority)}`)
+      filterParts.push(`priority:${this.priority}`)
     }
 
     if (this.hasLabelFilter() && this.label !== undefined) {
-      filterParts.push(`label:${String(this.label)}`)
+      filterParts.push(`label:${this.label}`)
     }
 
     if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
-      filterParts.push(`assignee:${String(this.assigned_to)}`)
+      filterParts.push(`assignee:${this.assigned_to}`)
     }
 
     if (this.hasParentFilter() && this.parent_task_id !== undefined) {
-      filterParts.push(`parent:${String(this.parent_task_id)}`)
+      filterParts.push(`parent:${this.parent_task_id ?? 'none'}`)
     }
 
     if (this.hasProjectFilter() && this.project_id !== undefined) {
-      filterParts.push(`project:${String(this.project_id)}`)
+      filterParts.push(`project:${this.project_id ?? 'none'}`)
     }
 
     if (this.hasSearch() && this.search) {
@@ -229,7 +229,7 @@ export default class GetTasksListDTO {
       filterParts.push(`search:${this.hashString(this.search)}`)
     }
 
-    filterParts.push(`sort:${String(this.sort_by)}:${String(this.sort_order)}`)
+    filterParts.push(`sort:${this.sort_by ?? 'due_date'}:${this.sort_order ?? 'asc'}`)
 
     return `tasks:list:${filterParts.join(':')}`
   }
@@ -279,19 +279,19 @@ export default class GetTasksListDTO {
     const filters: string[] = []
 
     if (this.hasStatusFilter() && this.status !== undefined) {
-      filters.push(`Status: ${String(this.status)}`)
+      filters.push(`Status: ${this.status}`)
     }
 
     if (this.hasPriorityFilter() && this.priority !== undefined) {
-      filters.push(`Priority: ${String(this.priority)}`)
+      filters.push(`Priority: ${this.priority}`)
     }
 
     if (this.hasLabelFilter() && this.label !== undefined) {
-      filters.push(`Label: ${String(this.label)}`)
+      filters.push(`Label: ${this.label}`)
     }
 
     if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
-      filters.push(`Assignee: ${String(this.assigned_to)}`)
+      filters.push(`Assignee: ${this.assigned_to}`)
     }
 
     if (
@@ -299,7 +299,7 @@ export default class GetTasksListDTO {
       this.parent_task_id !== undefined &&
       this.parent_task_id !== null
     ) {
-      filters.push(`Subtasks of: ${String(this.parent_task_id)}`)
+      filters.push(`Subtasks of: ${this.parent_task_id}`)
     }
 
     if (this.isRootTasksOnly()) {
@@ -307,7 +307,7 @@ export default class GetTasksListDTO {
     }
 
     if (this.hasProjectFilter() && this.project_id !== null && this.project_id !== undefined) {
-      filters.push(`Project: ${String(this.project_id)}`)
+      filters.push(`Project: ${this.project_id}`)
     }
 
     if (this.isWithoutProject()) {

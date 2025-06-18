@@ -129,7 +129,7 @@ export default class CreateTaskDTO {
     ])
     const seenSkillIds = new Set<string>()
     for (const skill of requiredSkills) {
-      const skillId = String(skill?.id ?? '')
+      const skillId = skill.id
       if (!skillId) {
         throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
       }
@@ -138,9 +138,7 @@ export default class CreateTaskDTO {
       }
       seenSkillIds.add(skillId)
 
-      const level = String(skill?.level ?? '')
-        .trim()
-        .toLowerCase()
+      const level = skill.level.trim().toLowerCase()
       if (!validLevels.has(level)) {
         throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
       }
@@ -192,8 +190,8 @@ export default class CreateTaskDTO {
     this.project_id = data.project_id
     this.organization_id = data.organization_id
     this.required_skills = requiredSkills.map((skill) => ({
-      id: String(skill.id),
-      level: String(skill.level).trim().toLowerCase(),
+      id: skill.id,
+      level: skill.level.trim().toLowerCase(),
     }))
   }
 
@@ -286,15 +284,15 @@ export default class CreateTaskDTO {
     let message = `Tạo task: ${this.title}`
 
     if (this.isAssigned() && this.assigned_to !== undefined) {
-      message += ` (giao cho user #${String(this.assigned_to)})`
+      message += ` (giao cho user #${this.assigned_to})`
     }
 
     if (this.isSubtask() && this.parent_task_id !== undefined) {
-      message += ` (subtask của #${String(this.parent_task_id)})`
+      message += ` (subtask của #${this.parent_task_id})`
     }
 
     if (this.belongsToProject() && this.project_id !== undefined) {
-      message += ` (thuộc dự án #${String(this.project_id)})`
+      message += ` (thuộc dự án #${this.project_id})`
     }
 
     return message

@@ -2,7 +2,6 @@ import User from '#models/user'
 import UserOAuthProvider from '#models/user_oauth_provider'
 import db from '@adonisjs/lucid/services/db'
 import * as AuthLogger from '#libs/auth_logger'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { SystemRoleName } from '#constants/user_constants'
 import emitter from '@adonisjs/core/services/emitter'
 
@@ -215,10 +214,10 @@ export default class SocialLoginCommand {
     })
 
     if (!user) {
-      throw new BusinessLogicException('User creation failed')
+      throw new Error('User creation failed')
     }
 
-    const createdUser = user as User
+    const createdUser: User = user
     AuthLogger.userLogin(createdUser.id, createdUser.email || '', provider)
 
     // Emit user:login event for new user

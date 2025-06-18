@@ -139,8 +139,8 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     } else {
       await UserSkill.create(
         {
-          user_id: String(userId),
-          skill_id: String(skillId),
+          user_id: userId,
+          skill_id: skillId,
           level_code: levelCode,
           avg_percentage: avgPercentage,
           last_calculated_at: DateTime.now(),

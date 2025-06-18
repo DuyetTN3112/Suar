@@ -117,7 +117,7 @@ export class GetOrganizationsListDTO {
   getCacheKey(userId: DatabaseId): string {
     const parts = [
       'orgs:list',
-      `user:${String(userId)}`,
+      `user:${userId}`,
       `page:${String(this.page)}`,
       `limit:${String(this.limit)}`,
       `sort:${this.sortBy}:${this.sortOrder}`,

@@ -116,7 +116,7 @@ export default class TransferProjectOwnershipCommand {
       }
 
       // 7. Update project owner
-      project.owner_id = String(dto.new_owner_id)
+      project.owner_id = dto.new_owner_id
       await project.useTransaction(trx).save()
 
       // 8. Create audit log
@@ -136,7 +136,7 @@ export default class TransferProjectOwnershipCommand {
       // Emit domain event
       void emitter.emit('project:ownership:transferred', {
         projectId: dto.project_id,
-        fromUserId: String(currentOwnerId ?? ''),
+        fromUserId: currentOwnerId ?? '',
         toUserId: dto.new_owner_id,
         transferredBy: currentUserId,
       })

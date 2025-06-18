@@ -88,7 +88,7 @@ export default class UpdateTaskCommand {
           validateAssignee({
             isOrgMember: isApproved,
             isFreelancer,
-            taskVisibility: existingTask.task_visibility ?? 'internal',
+            taskVisibility: existingTask.task_visibility,
           })
         )
       }
@@ -162,7 +162,7 @@ export default class UpdateTaskCommand {
       })
 
       // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${String(taskId)}:*`)
+      await CacheService.deleteByPattern(`task:${taskId}:*`)
       await CacheService.deleteByPattern(`organization:tasks:*`)
       await CacheService.deleteByPattern(`task:user:*`)
 

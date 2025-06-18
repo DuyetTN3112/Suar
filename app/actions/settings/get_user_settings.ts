@@ -1,12 +1,9 @@
-
 /**
  * Get user settings
  * Note: Settings are now stored client-side (localStorage/cookies)
  * This returns default values for server-side rendering
  */
 export default class GetUserSettings {
-  constructor() {}
-
   handle() {
     // Return default settings for SSR
     // Actual settings are managed client-side

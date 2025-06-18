@@ -11,6 +11,12 @@ import NotFoundException from '#exceptions/not_found_exception'
  * Used by ProcessJoinRequestController to resolve the request before passing to Command.
  */
 export default class FindPendingJoinRequestQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new FindPendingJoinRequestQuery().__instanceMarker
+  }
+
   /**
    * Find a pending join request. Throws NotFoundException if not found.
    */

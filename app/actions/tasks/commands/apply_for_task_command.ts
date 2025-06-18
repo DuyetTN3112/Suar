@@ -1,4 +1,3 @@
-import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import Task from '#models/task'
@@ -17,10 +16,6 @@ import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
  * Pattern: FETCH → DECIDE → PERSIST
  */
 export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, TaskApplication> {
-  constructor(execCtx: ExecutionContext) {
-    super(execCtx)
-  }
-
   async handle(dto: ApplyForTaskDTO): Promise<TaskApplication> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
@@ -50,8 +45,8 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
       // ── PERSIST ────────────────────────────────────────────────────────
       const application = await TaskApplication.create(
         {
-          task_id: String(dto.task_id),
-          applicant_id: String(userId),
+          task_id: dto.task_id,
+          applicant_id: userId,
           application_status: ApplicationStatus.PENDING,
           application_source: dto.application_source,
           message: dto.message,

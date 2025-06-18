@@ -41,8 +41,6 @@ interface MetadataResult {
  * // { roles: [...], plans: [...] }
  */
 export default class GetOrganizationMetadataQuery {
-  constructor() {}
-
   async execute(): Promise<MetadataResult> {
     // Try cache first
     const cacheKey = 'organization:metadata'
@@ -52,7 +50,7 @@ export default class GetOrganizationMetadataQuery {
     }
 
     // Load metadata
-    const roles = await this.loadRoles()
+    const roles = this.loadRoles()
     const plans = this.loadPlans()
 
     const result: MetadataResult = {
@@ -69,7 +67,7 @@ export default class GetOrganizationMetadataQuery {
   /**
    * v3: Return static role constants — no DB query needed
    */
-  private async loadRoles(): Promise<RoleRecord[]> {
+  private loadRoles(): RoleRecord[] {
     return [
       { name: OrganizationRole.OWNER, display_name: 'Owner', description: 'Chủ tổ chức' },
       { name: OrganizationRole.ADMIN, display_name: 'Admin', description: 'Quản trị viên' },
