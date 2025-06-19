@@ -1,5 +1,20 @@
 import db from '@adonisjs/lucid/services/db'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * AdminTaskRepository (Infrastructure Layer)
  *
@@ -17,7 +32,7 @@ export default class AdminTaskRepository {
    * Get task statistics for dashboard
    */
   async getTaskStats(): Promise<DashboardTaskStats> {
-    const [total, inProgress, completed] = await Promise.all([
+    const statsResults = (await Promise.all([
       db.from('tasks').count('* as total').whereNull('deleted_at').first(),
       db
         .from('tasks')
@@ -25,18 +40,17 @@ export default class AdminTaskRepository {
         .whereIn('status', ['in_progress', 'in_review']) // in_progress category includes in_review
         .whereNull('deleted_at')
         .first(),
-      db
-        .from('tasks')
-        .count('* as total')
-        .where('status', 'done')
-        .whereNull('deleted_at')
-        .first(),
-    ])
+      db.from('tasks').count('* as total').where('status', 'done').whereNull('deleted_at').first(),
+    ])) as unknown[]
+
+    const total = statsResults[0]
+    const inProgress = statsResults[1]
+    const completed = statsResults[2]
 
     return {
-      total: Number(total?.total || 0),
-      inProgress: Number(inProgress?.total || 0),
-      completed: Number(completed?.total || 0),
+      total: isRecord(total) ? toNumberValue(total.total) : 0,
+      inProgress: isRecord(inProgress) ? toNumberValue(inProgress.total) : 0,
+      completed: isRecord(completed) ? toNumberValue(completed.total) : 0,
     }
   }
 }

@@ -1,6 +1,7 @@
 import OrganizationInvitation from '#models/organization_invitation'
 import User from '#models/user'
 import type { DatabaseId } from '#types/database'
+import { DateTime } from 'luxon'
 
 /**
  * OrganizationInvitationRepository
@@ -45,15 +46,15 @@ export default class OrganizationInvitationRepository {
 
     // Apply filters
     if (filters.search) {
-      query.where('email', 'ilike', `%${filters.search}%`)
+      void query.where('email', 'ilike', `%${filters.search}%`)
     }
 
     if (filters.status) {
-      query.where('status', filters.status)
+      void query.where('status', filters.status)
     }
 
     // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
+    void query.orderBy('created_at', 'desc')
 
     // Execute with pagination
     const result = await query.paginate(page, perPage)
@@ -72,11 +73,11 @@ export default class OrganizationInvitationRepository {
         org_role: invitation.org_role,
         invited_by: {
           id: invitation.invited_by,
-          username: inviter?.username || 'Unknown',
+          username: inviter ? inviter.username : 'Unknown',
         },
         status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
-        invited_at: invitation.created_at?.toISO() || new Date().toISOString(),
-        expires_at: invitation.expires_at?.toISO() || new Date().toISOString(),
+        invited_at: invitation.created_at.toISO() || new Date().toISOString(),
+        expires_at: invitation.expires_at?.toISO() ?? new Date().toISOString(),
       }
     })
 
@@ -105,7 +106,7 @@ export default class OrganizationInvitationRepository {
       invited_by: data.invitedById,
       status: 'pending',
       token: '',
-      expires_at: expiresAt as any,
+      expires_at: DateTime.fromJSDate(expiresAt),
     })
   }
 

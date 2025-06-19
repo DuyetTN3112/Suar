@@ -33,13 +33,11 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
   async create(data: AuditLogCreateData): Promise<void> {
     try {
       const doc: Record<string, unknown> = {
-        user_id: data.user_id !== null ? String(data.user_id) : undefined,
+        user_id: data.user_id ?? undefined,
         action: data.action,
         entity_type: data.entity_type,
         entity_id:
-          data.entity_id !== null && data.entity_id !== undefined
-            ? String(data.entity_id)
-            : undefined,
+          data.entity_id !== null && data.entity_id !== undefined ? data.entity_id : undefined,
         old_values: data.old_values ?? undefined,
         new_values: data.new_values ?? undefined,
         ip_address: data.ip_address ?? undefined,
@@ -84,13 +82,13 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
     const filter: Record<string, string | Record<string, Date>> = {}
 
     if (query.user_id !== undefined) {
-      filter.user_id = String(query.user_id)
+      filter.user_id = query.user_id
     }
     if (query.entity_type !== undefined) {
       filter.entity_type = query.entity_type
     }
     if (query.entity_id !== undefined) {
-      filter.entity_id = String(query.entity_id)
+      filter.entity_id = query.entity_id
     }
     if (query.action !== undefined) {
       filter.action = query.action
@@ -118,8 +116,8 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
         {
           $match: {
             entity_type: entityType,
-            entity_id: String(entityId),
-            user_id: { $in: userIds.map(String) },
+            entity_id: entityId,
+            user_id: { $in: userIds },
           },
         },
         { $group: { _id: '$user_id', last_active: { $max: '$created_at' } } },

@@ -5,6 +5,32 @@ import { PAGINATION } from '#constants/common_constants'
 import db from '@adonisjs/lucid/services/db'
 import ProjectMember from '#models/project_member'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const toDateValue = (value: unknown): Date => {
+  if (value instanceof Date) {
+    return value
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? new Date(0) : date
+  }
+  return new Date(0)
+}
+
 /**
  * ProjectMemberRepository
  *
@@ -12,6 +38,11 @@ import ProjectMember from '#models/project_member'
  * Extracted from ProjectMember model static methods.
  */
 export default class ProjectMemberRepository {
+  // Keep one instance member so this is not a static-only utility class.
+  isReady(): true {
+    return true
+  }
+
   static async findMember(
     projectId: DatabaseId,
     userId: DatabaseId,
@@ -75,9 +106,9 @@ export default class ProjectMemberRepository {
   ): Promise<ProjectMember> {
     return ProjectMember.create(
       {
-        project_id: String(projectId),
-        user_id: String(userId),
-        project_role: String(projectRole),
+        project_id: projectId,
+        user_id: userId,
+        project_role: projectRole,
       },
       trx ? { client: trx } : undefined
     )
@@ -113,16 +144,15 @@ export default class ProjectMemberRepository {
     const memberExists = await this.isMember(projectId, userId, trx)
     if (memberExists) return true
 
-    const Project = (await import('#models/project')).default
+    const projectModule = await import('#models/project')
+    const Project = projectModule.default
     const query = trx ? Project.query({ client: trx }) : Project.query()
     const project = await query.where('id', projectId).whereNull('deleted_at').first()
 
     if (!project) return false
 
     return (
-      project.creator_id === String(userId) ||
-      project.manager_id === String(userId) ||
-      project.owner_id === String(userId)
+      project.creator_id === userId || project.manager_id === userId || project.owner_id === userId
     )
   }
 
@@ -179,7 +209,16 @@ export default class ProjectMemberRepository {
     const offset = (page - 1) * limit
     void query.orderBy('pm.created_at', 'asc').limit(limit).offset(offset)
 
-    const members = await query
+    const membersRaw = (await query) as unknown
+    const members = Array.isArray(membersRaw)
+      ? membersRaw.filter(isRecord).map((member) => ({
+          user_id: typeof member.user_id === 'string' ? member.user_id : '',
+          role: typeof member.role === 'string' ? member.role : '',
+          joined_at: toDateValue(member.joined_at),
+          username: typeof member.username === 'string' ? member.username : '',
+          email: typeof member.email === 'string' ? member.email : '',
+        }))
+      : []
 
     return { data: members, total }
   }
@@ -198,7 +237,7 @@ export default class ProjectMemberRepository {
 
     const map = new Map<string, number>()
     for (const row of results) {
-      map.set(String(row.project_id), Number((row as any).$extras?.total ?? 0))
+      map.set(row.project_id, toNumberValue(isRecord(row.$extras) ? row.$extras.total : 0))
     }
     return map
   }

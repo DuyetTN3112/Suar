@@ -11,6 +11,12 @@ import OrganizationJoinRequest from '#models/organization_join_request'
  * Extracted from OrganizationInvitation + OrganizationJoinRequest model static methods.
  */
 export default class OrgAccessRepository {
+  private readonly _instanceMarker = true
+
+  static {
+    void new OrgAccessRepository()._instanceMarker
+  }
+
   // ── Invitation queries ──
 
   static async hasPendingInvitation(
@@ -42,11 +48,11 @@ export default class OrgAccessRepository {
     trx?: TransactionClientContract
   ): Promise<OrganizationInvitation> {
     const createData = {
-      organization_id: String(data.organization_id),
+      organization_id: data.organization_id,
       email: data.email,
       org_role: data.org_role ?? OrganizationRole.MEMBER,
       token: data.token ?? '',
-      invited_by: String(data.invited_by),
+      invited_by: data.invited_by,
       status: OrganizationUserStatus.PENDING,
     }
     if (trx) {
@@ -93,12 +99,17 @@ export default class OrgAccessRepository {
     },
     trx?: TransactionClientContract
   ): Promise<OrganizationJoinRequest> {
-    const createData: Record<string, any> = {
-      organization_id: String(data.organization_id),
-      user_id: String(data.user_id),
+    const createData: {
+      organization_id: string
+      user_id: string
+      status: OrganizationUserStatus
+      message?: string
+    } = {
+      organization_id: data.organization_id,
+      user_id: data.user_id,
       status: OrganizationUserStatus.PENDING,
     }
-    if (data.message != null) {
+    if (data.message !== undefined) {
       createData.message = data.message
     }
     if (trx) {

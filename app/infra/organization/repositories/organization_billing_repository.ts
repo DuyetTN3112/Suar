@@ -43,7 +43,7 @@ export default class OrganizationBillingRepository {
   /**
    * Get available subscription plans
    */
-  async getAvailablePlans(): Promise<PlanData[]> {
+  getAvailablePlans(): PlanData[] {
     return [
       {
         id: 'free',

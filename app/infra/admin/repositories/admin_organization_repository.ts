@@ -1,6 +1,21 @@
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
 /**
  * AdminOrganizationRepository (Infrastructure Layer)
  *
@@ -40,32 +55,29 @@ export default class AdminOrganizationRepository {
   ): Promise<ListOrganizationsResult> {
     const query = Organization.query()
       .preload('owner', (q) => {
-        q.select('id', 'username', 'email')
+        void q.select('id', 'username', 'email')
       })
       .withCount('users')
       .withCount('projects')
 
     // Apply filters
-    if (filters.search) {
-      query.where((q) => {
-        q.where('name', 'ilike', `%${filters.search}%`).orWhere(
-          'slug',
-          'ilike',
-          `%${filters.search}%`
-        )
+    const search = filters.search
+    if (search) {
+      void query.where((q) => {
+        void q.where('name', 'ilike', `%${search}%`).orWhere('slug', 'ilike', `%${search}%`)
       })
     }
 
     if (filters.plan) {
-      query.where('plan', filters.plan)
+      void query.where('plan', filters.plan)
     }
 
     if (filters.partnerType) {
-      query.where('partner_type', filters.partnerType)
+      void query.where('partner_type', filters.partnerType)
     }
 
     // Order by created_at DESC
-    query.orderBy('created_at', 'desc')
+    void query.orderBy('created_at', 'desc')
 
     // Execute with pagination
     const result = await query.paginate(page, perPage)
@@ -83,7 +95,7 @@ export default class AdminOrganizationRepository {
     const now = new Date()
     const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
-    const [total, byPlan, newThisMonth] = await Promise.all([
+    const statsResults = (await Promise.all([
       db.from('organizations').count('* as total').whereNull('deleted_at').first(),
       db
         .from('organizations')
@@ -97,20 +109,31 @@ export default class AdminOrganizationRepository {
         .where('created_at', '>=', firstDayOfMonth)
         .whereNull('deleted_at')
         .first(),
-    ])
+    ])) as unknown[]
+
+    const total = statsResults[0]
+    const byPlanRaw = statsResults[1]
+    const newThisMonth = statsResults[2]
+    const byPlan = Array.isArray(byPlanRaw) ? byPlanRaw : []
 
     // Build plan counts
     const planCounts = { free: 0, starter: 0, professional: 0, enterprise: 0 }
-    for (const row of byPlan) {
-      if (row.plan in planCounts) {
-        planCounts[row.plan as keyof typeof planCounts] = Number(row.count)
+    for (const rowRaw of byPlan) {
+      if (!isRecord(rowRaw)) {
+        continue
+      }
+
+      const plan = rowRaw.plan
+      const count = rowRaw.count
+      if (typeof plan === 'string' && plan in planCounts) {
+        planCounts[plan as keyof typeof planCounts] = toNumberValue(count)
       }
     }
 
     return {
-      total: Number(total?.total || 0),
+      total: isRecord(total) ? toNumberValue(total.total) : 0,
       byPlan: planCounts,
-      newThisMonth: Number(newThisMonth?.total || 0),
+      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
     }
   }
 
@@ -121,7 +144,7 @@ export default class AdminOrganizationRepository {
     return await Organization.query()
       .where('id', orgId)
       .preload('owner', (q) => {
-        q.select('id', 'username', 'email')
+        void q.select('id', 'username', 'email')
       })
       .withCount('users')
       .withCount('projects')

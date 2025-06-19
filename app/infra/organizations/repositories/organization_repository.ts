@@ -3,6 +3,36 @@ import type { DatabaseId } from '#types/database'
 import Organization from '#models/organization'
 import NotFoundException from '#exceptions/not_found_exception'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const toNullableString = (value: unknown): string | null => {
+  return typeof value === 'string' ? value : null
+}
+
+const toDateValue = (value: unknown): Date => {
+  if (value instanceof Date) {
+    return value
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? new Date(0) : date
+  }
+  return new Date(0)
+}
+
 /**
  * OrganizationRepository
  *
@@ -10,6 +40,11 @@ import NotFoundException from '#exceptions/not_found_exception'
  * Extracted from Organization model static methods.
  */
 export default class OrganizationRepository {
+  // Keep one instance member so this is not a static-only utility class.
+  isReady(): true {
+    return true
+  }
+
   static async findActiveOrFail(orgId: DatabaseId, trx?: TransactionClientContract) {
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
     const org = await query.where('id', orgId).whereNull('deleted_at').first()
@@ -48,7 +83,8 @@ export default class OrganizationRepository {
       slug = `${baseSlug}-${String(counter)}`
     }
 
-    const BusinessLogicException = (await import('#exceptions/business_logic_exception')).default
+    const exceptionModule = await import('#exceptions/business_logic_exception')
+    const BusinessLogicException = exceptionModule.default
     throw new BusinessLogicException('Không thể tạo slug unique')
   }
 
@@ -60,13 +96,18 @@ export default class OrganizationRepository {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    const ProjectModel = (await import('#models/project')).default
+    const projectModule = await import('#models/project')
+    const ProjectModel = projectModule.default
     const query = trx ? ProjectModel.query({ client: trx }) : ProjectModel.query()
     const result = await query
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
       .count('* as total')
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    const firstResult = result[0] as unknown
+    if (!isRecord(firstResult) || !isRecord(firstResult.$extras)) {
+      return 0
+    }
+    return toNumberValue(firstResult.$extras.total)
   }
 
   static async findById(
@@ -136,7 +177,8 @@ export default class OrganizationRepository {
     }>
     total: number
   }> {
-    const db = (await import('@adonisjs/lucid/services/db')).default
+    const dbModule = await import('@adonisjs/lucid/services/db')
+    const db = dbModule.default
     const baseDb = trx ?? db
 
     const query = baseDb
@@ -168,7 +210,7 @@ export default class OrganizationRepository {
     const sortDirection = options.sortDirection ?? 'desc'
     const offset = (options.page - 1) * options.limit
 
-    const organizations = await query
+    const organizationsRaw = (await query
       .select(
         'o.id',
         'o.name',
@@ -183,7 +225,22 @@ export default class OrganizationRepository {
       )
       .orderBy(sortColumn, sortDirection)
       .limit(options.limit)
-      .offset(offset)
+      .offset(offset)) as unknown
+
+    const organizations = Array.isArray(organizationsRaw)
+      ? organizationsRaw.filter(isRecord).map((row) => ({
+          id: typeof row.id === 'string' ? row.id : '',
+          name: typeof row.name === 'string' ? row.name : '',
+          slug: typeof row.slug === 'string' ? row.slug : '',
+          description: toNullableString(row.description),
+          logo: toNullableString(row.logo),
+          website: toNullableString(row.website),
+          plan: typeof row.plan === 'string' ? row.plan : 'free',
+          owner_id: typeof row.owner_id === 'string' ? row.owner_id : '',
+          created_at: toDateValue(row.created_at),
+          updated_at: toDateValue(row.updated_at),
+        }))
+      : []
 
     return { data: organizations, total }
   }

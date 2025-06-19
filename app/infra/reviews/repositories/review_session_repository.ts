@@ -9,6 +9,12 @@ import ReviewSession from '#models/review_session'
  * Data access for review sessions.
  */
 export default class ReviewSessionRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new ReviewSessionRepository().__instanceMarker
+  }
+
   private static baseQuery(trx?: TransactionClientContract) {
     return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
   }

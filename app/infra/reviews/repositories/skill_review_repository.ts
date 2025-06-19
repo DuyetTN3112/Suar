@@ -3,6 +3,32 @@ import type { DatabaseId } from '#types/database'
 import { proficiencyLevelOptions } from '#constants'
 import SkillReview from '#models/skill_review'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const getExtraNumber = (value: unknown, key: string): number => {
+  if (!isRecord(value)) {
+    return 0
+  }
+  const extras = value.$extras
+  if (!isRecord(extras)) {
+    return 0
+  }
+  return toNumberValue(extras[key])
+}
+
 /**
  * SkillReviewRepository
  *
@@ -10,6 +36,11 @@ import SkillReview from '#models/skill_review'
  * Extracted from SkillReview model static methods.
  */
 export default class SkillReviewRepository {
+  // Keep one instance member so this is not a static-only utility class.
+  isReady(): true {
+    return true
+  }
+
   static async countCompletedByReviewer(
     userId: DatabaseId,
     trx?: TransactionClientContract
@@ -21,17 +52,18 @@ export default class SkillReviewRepository {
       .where('review_sessions.status', 'completed')
       .count('* as total')
 
-    return Number((result[0] as any)?.$extras?.total ?? 0)
+    return getExtraNumber(result[0], 'total')
   }
 
   static async countConfirmedByReviewer(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    const db = (await import('@adonisjs/lucid/services/db')).default
+    const dbModule = await import('@adonisjs/lucid/services/db')
+    const db = dbModule.default
     const baseDb = trx ?? db
 
-    const result = await baseDb
+    const result = (await baseDb
       .from('skill_reviews as sr')
       .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .where('sr.reviewer_id', userId)
@@ -40,19 +72,20 @@ export default class SkillReviewRepository {
         `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = 'confirmed')`
       )
       .countDistinct('sr.review_session_id as total')
-      .first()
+      .first()) as unknown
 
-    return Number(result?.total ?? 0)
+    return isRecord(result) ? toNumberValue(result.total) : 0
   }
 
   static async countDisputedByReviewer(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    const db = (await import('@adonisjs/lucid/services/db')).default
+    const dbModule = await import('@adonisjs/lucid/services/db')
+    const db = dbModule.default
     const baseDb = trx ?? db
 
-    const result = await baseDb
+    const result = (await baseDb
       .from('skill_reviews as sr')
       .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .where('sr.reviewer_id', userId)
@@ -61,9 +94,9 @@ export default class SkillReviewRepository {
         `EXISTS (SELECT 1 FROM jsonb_array_elements(rs.confirmations) AS c WHERE c->>'action' = 'disputed')`
       )
       .countDistinct('sr.review_session_id as total')
-      .first()
+      .first()) as unknown
 
-    return Number(result?.total ?? 0)
+    return isRecord(result) ? toNumberValue(result.total) : 0
   }
 
   /**
@@ -89,8 +122,16 @@ export default class SkillReviewRepository {
 
     let sum = 0
     for (const review of reviews) {
+      const assignedLevelCode = review.assigned_level_code
+      const extraAssignedLevelCode = isRecord(review.$extras)
+        ? review.$extras.assigned_level_code
+        : undefined
       const code =
-        (review as any).assigned_level_code || (review as any).$extras?.assigned_level_code
+        typeof assignedLevelCode === 'string'
+          ? assignedLevelCode
+          : typeof extraAssignedLevelCode === 'string'
+            ? extraAssignedLevelCode
+            : undefined
       const opt = proficiencyLevelOptions.find((o) => o.value === code)
       if (opt) {
         sum += (opt.minPercentage + opt.maxPercentage) / 2

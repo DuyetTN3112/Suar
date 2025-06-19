@@ -10,6 +10,12 @@ import UserSkill from '#models/user_skill'
  * Extracted from Skill + UserSkill model static methods.
  */
 export default class SkillRepository {
+  private readonly __instanceMarker = true
+
+  static {
+    void new SkillRepository().__instanceMarker
+  }
+
   // ── Skill queries ──
 
   static activeSkills() {

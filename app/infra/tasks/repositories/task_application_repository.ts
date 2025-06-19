@@ -8,6 +8,12 @@ import TaskApplication from '#models/task_application'
  * Data access for task applications (marketplace).
  */
 export default class TaskApplicationRepository {
+  private readonly _instanceMarker = true
+
+  static {
+    void new TaskApplicationRepository()._instanceMarker
+  }
+
   static async paginateByTask(
     taskId: DatabaseId,
     options: {
@@ -18,7 +24,7 @@ export default class TaskApplicationRepository {
     trx?: TransactionClientContract
   ) {
     const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
-    query
+    const scopedQuery = query
       .where('task_id', taskId)
       .preload('applicant', (userQuery) => {
         void userQuery.preload('skills', (skillsQuery) => {
@@ -28,10 +34,10 @@ export default class TaskApplicationRepository {
       .orderBy('applied_at', 'desc')
 
     if (options.status && options.status !== 'all') {
-      void query.where('application_status', options.status)
+      void scopedQuery.where('application_status', options.status)
     }
 
-    return query.paginate(options.page, options.perPage)
+    return scopedQuery.paginate(options.page, options.perPage)
   }
 
   static async paginateByApplicant(
@@ -44,7 +50,7 @@ export default class TaskApplicationRepository {
     trx?: TransactionClientContract
   ) {
     const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
-    query
+    const scopedQuery = query
       .where('applicant_id', applicantId)
       .preload('task', (taskQuery) => {
         void taskQuery.preload('organization', (orgQuery) => {
@@ -54,9 +60,9 @@ export default class TaskApplicationRepository {
       .orderBy('applied_at', 'desc')
 
     if (options.status && options.status !== 'all') {
-      void query.where('application_status', options.status)
+      void scopedQuery.where('application_status', options.status)
     }
 
-    return query.paginate(options.page, options.perPage)
+    return scopedQuery.paginate(options.page, options.perPage)
   }
 }

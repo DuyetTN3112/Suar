@@ -6,14 +6,14 @@
  * Maps ORM entities to domain entities using TaskInfraMapper.
  */
 
-import type { ITaskRepository } from '#domain/tasks/repositories/task_repository_interface'
+import type { TaskRepository } from '#domain/tasks/repositories/task_repository_interface'
 import type { TaskEntity } from '#domain/tasks/entities/task_entity'
 import { TaskInfraMapper } from '../mapper/task_infra_mapper.js'
 import Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 
-export class TaskRepositoryImpl implements ITaskRepository {
+export class TaskRepositoryImpl implements TaskRepository {
   async findById(id: DatabaseId): Promise<TaskEntity | null> {
     const model = await Task.find(id)
     return model ? TaskInfraMapper.toDomain(model) : null

@@ -1,5 +1,6 @@
 import TaskStatus from '#models/task_status'
 import type { DatabaseId } from '#types/database'
+import { DateTime } from 'luxon'
 
 /**
  * OrganizationWorkflowRepository (Infrastructure Layer)
@@ -52,7 +53,9 @@ export default class OrganizationWorkflowRepository {
       .max('sort_order as max_order')
       .first()
 
-    const maxOrder = Number(maxOrderResult?.$extras?.max_order || 0)
+    const extras = maxOrderResult?.$extras as { max_order?: unknown }
+    const maxOrder =
+      typeof extras.max_order === 'number' ? extras.max_order : Number(extras.max_order ?? 0)
 
     const status = await TaskStatus.create({
       organization_id: organizationId,
@@ -75,7 +78,7 @@ export default class OrganizationWorkflowRepository {
     const status = await TaskStatus.findOrFail(id)
 
     // Soft delete
-    status.deleted_at = new Date() as any
+    status.deleted_at = DateTime.now()
     await status.save()
   }
 }
