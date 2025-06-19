@@ -2,6 +2,18 @@ import mongoose from 'mongoose'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 
+interface AuditLogDocument {
+  user_id?: string
+  action: string
+  entity_type: string
+  entity_id?: string
+  old_values?: Record<string, unknown>
+  new_values?: Record<string, unknown>
+  ip_address?: string
+  user_agent?: string
+  created_at?: Date
+}
+
 /**
  * MongoDB Schema: audit_logs
  *
@@ -16,7 +28,7 @@ import type { DatabaseId } from '#types/database'
  * Uses ObjectId for _id (already time-sortable like UUIDv7).
  * entity_id stored as string to support both legacy INT and UUID formats.
  */
-const auditLogSchema = new mongoose.Schema(
+const auditLogSchema = new mongoose.Schema<AuditLogDocument>(
   {
     user_id: { type: String, index: true }, // UUID or INT as string
     action: { type: String, required: true },
@@ -47,7 +59,7 @@ auditLogSchema.index({ created_at: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60
 /**
  * Raw Mongoose Model — used by MongoAuditLogRepository for direct queries.
  */
-export const MongoAuditLogModel = mongoose.model('AuditLog', auditLogSchema)
+export const MongoAuditLogModel = mongoose.model<AuditLogDocument>('AuditLog', auditLogSchema)
 
 type AuditLogCreateData = {
   user_id?: DatabaseId | null
@@ -60,7 +72,16 @@ type AuditLogCreateData = {
   user_agent?: string | null
 }
 
-type AuditLogFilterData = Record<string, unknown>
+type AuditLogFilterData = {
+  user_id?: string
+  action?: string
+  entity_type?: string
+  entity_id?: string
+  created_at?: {
+    $gte?: Date
+    $lte?: Date
+  }
+}
 
 /**
  * AuditLog — Safe wrapper around Mongoose model.
@@ -85,9 +106,12 @@ class AuditLog {
   static async create(data: AuditLogCreateData): Promise<unknown> {
     try {
       return await MongoAuditLogModel.create({
-        ...data,
+        action: data.action,
+        entity_type: data.entity_type,
         user_id: data.user_id ?? undefined,
         entity_id: data.entity_id ?? undefined,
+        old_values: data.old_values ?? undefined,
+        new_values: data.new_values ?? undefined,
         ip_address: data.ip_address ?? undefined,
         user_agent: data.user_agent ?? undefined,
       })
@@ -113,7 +137,15 @@ class AuditLog {
    */
   static async find(filter: AuditLogFilterData): Promise<unknown[]> {
     try {
-      return await MongoAuditLogModel.find(filter).lean().exec()
+      const query = MongoAuditLogModel.find()
+
+      if (filter.user_id !== undefined) query.where('user_id', filter.user_id)
+      if (filter.action !== undefined) query.where('action', filter.action)
+      if (filter.entity_type !== undefined) query.where('entity_type', filter.entity_type)
+      if (filter.entity_id !== undefined) query.where('entity_id', filter.entity_id)
+      if (filter.created_at !== undefined) query.where('created_at', filter.created_at)
+
+      return await query.lean().exec()
     } catch (error) {
       loggerService.warn('[AuditLog] Failed to query audit logs (MongoDB unavailable)', {
         error: error instanceof Error ? error.message : String(error),

@@ -90,7 +90,7 @@ export default class SocialLoginCommand {
     }
 
     // Step 2: Find user by email
-    let user = await User.findBy('email', socialEmail)
+    const user = await User.findBy('email', socialEmail)
     AuthLogger.dbTransaction('find-user-by-email', true, { email: socialEmail, found: !!user })
 
     if (user) {
@@ -144,7 +144,7 @@ export default class SocialLoginCommand {
     // Step 3: Create new user
     AuthLogger.dbTransaction('create-new-user-start', true, { provider, email: socialEmail })
 
-    await db.transaction(async (trx) => {
+    const createdUser = await db.transaction(async (trx) => {
       const defaultSystemRole = SystemRoleName.REGISTERED_USER
       AuthLogger.dbTransaction('found-defaults', true, { systemRole: defaultSystemRole })
 
@@ -181,43 +181,39 @@ export default class SocialLoginCommand {
         }
         userData.auth_method = provider
 
-        user = await User.create(userData, { client: trx })
-        AuthLogger.userCreated(user.id, provider, user.email || '')
+        const newUser = await User.create(userData, { client: trx })
+        AuthLogger.userCreated(newUser.id, provider, newUser.email || '')
+
+        // Create OAuth provider record
+        try {
+          await UserOAuthProvider.create(
+            {
+              user_id: newUser.id,
+              provider,
+              provider_id: socialId,
+              email: socialEmail,
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
+            { client: trx }
+          )
+          AuthLogger.dbTransaction('create-oauth-provider', true, { userId: newUser.id, provider })
+        } catch (error: unknown) {
+          AuthLogger.oauthError(provider, error, 'create-oauth-provider')
+          const dbError = error as { code?: string }
+          if (dbError.code !== '42P01') {
+            throw error
+          }
+        }
+
+        AuthLogger.dbTransaction('create-user-complete', true, { userId: newUser.id })
+        return newUser
       } catch (error: unknown) {
         AuthLogger.oauthError(provider, error, 'create-user-record')
         throw error
       }
-
-      // Create OAuth provider record
-      try {
-        await UserOAuthProvider.create(
-          {
-            user_id: user.id,
-            provider,
-            provider_id: socialId,
-            email: socialEmail,
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          },
-          { client: trx }
-        )
-        AuthLogger.dbTransaction('create-oauth-provider', true, { userId: user.id, provider })
-      } catch (error: unknown) {
-        AuthLogger.oauthError(provider, error, 'create-oauth-provider')
-        const dbError = error as { code?: string }
-        if (dbError.code !== '42P01') {
-          throw error
-        }
-      }
-
-      AuthLogger.dbTransaction('create-user-complete', true, { userId: user.id })
     })
 
-    if (!user) {
-      throw new Error('User creation failed')
-    }
-
-    const createdUser: User = user
     AuthLogger.userLogin(createdUser.id, createdUser.email || '', provider)
 
     // Emit user:login event for new user
