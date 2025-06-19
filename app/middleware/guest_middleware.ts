@@ -28,7 +28,7 @@ export default class GuestMiddleware {
     for (const guard of options.guards || [ctx.auth.defaultGuard]) {
       if (await ctx.auth.use(guard).check()) {
         if (ctx.request.header('x-inertia')) {
-          await ctx.inertia.location(this.redirectTo)
+          ctx.inertia.location(this.redirectTo)
           return
         }
         ctx.response.redirect(this.redirectTo)

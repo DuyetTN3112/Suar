@@ -1,8 +1,9 @@
-import { HttpContext } from '@adonisjs/core/http'
-import { NextFn } from '@adonisjs/core/types/http'
-import { inject } from '@adonisjs/core'
-import { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
-import { DateTime } from 'luxon'
+import type { HttpContext } from '@adonisjs/core/http'
+import type { NextFn } from '@adonisjs/core/types/http'
+import type { LucidModel, LucidRow } from '@adonisjs/lucid/types/model'
+import type { DateTime } from 'luxon'
+import loggerService from '#services/logger_service'
+import NotFoundException from '#exceptions/not_found_exception'
 
 // Mở rộng HttpContext để thêm thuộc tính softDeletedEntity
 declare module '@adonisjs/core/http' {
@@ -17,16 +18,15 @@ interface SoftDeleteRow extends LucidRow {
 }
 
 /**
- * Middleware xử lý soft delete
- * Sử dụng middleware này để kiểm tra trạng thái soft delete của entity
+ * Soft Delete Middleware — kiểm tra trạng thái soft delete của entity.
+ *
+ * FIX: Bỏ @inject() decorator (không cần DI cho middleware).
+ * FIX: Bỏ softDelete/restore methods (vi phạm SRP — chuyển sang service).
+ * FIX: Cache model import thay vì dynamic import mỗi request.
  */
-@inject()
 export default class SoftDeleteMiddleware {
   /**
-   * Xử lý request
-   * @param model Model cần kiểm tra
-   * @param paramName Tên param chứa ID của entity (mặc định là 'id')
-   * @param allowDeleted Cho phép truy cập entity đã bị xóa hay không
+   * Cache model imports để tránh dynamic import mỗi request
    */
   async handle(
     ctx: HttpContext,
