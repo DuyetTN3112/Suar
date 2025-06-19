@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { SystemRoleName } from '#constants/user_constants'
 
 /**
  * RequireSystemAdminMiddleware
@@ -28,17 +27,18 @@ export default class RequireSystemAdminMiddleware {
     // Check if user is authenticated
     if (!auth.user) {
       session.flash('error', 'You must be logged in to access this page')
-      return response.redirect().toRoute('auth.login')
+      response.redirect().toRoute('auth.login')
+      return
     }
 
     // Check system_role
-    const systemRole = auth.user.system_role?.toLowerCase()
-    const isSystemAdmin =
-      systemRole === SystemRoleName.SUPERADMIN || systemRole === SystemRoleName.SYSTEM_ADMIN
+    const systemRole = auth.user.system_role.toLowerCase()
+    const isSystemAdmin = systemRole === 'superadmin' || systemRole === 'system_admin'
 
     if (!isSystemAdmin) {
       session.flash('error', 'Access denied. System administrator privileges required.')
-      return response.redirect().toRoute('home')
+      response.redirect().toRoute('home')
+      return
     }
 
     // TODO: Log system admin access to audit log

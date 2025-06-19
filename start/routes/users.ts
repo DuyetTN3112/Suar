@@ -1,4 +1,5 @@
 import router from '@adonisjs/core/services/router'
+import type { HttpContext } from '@adonisjs/core/http'
 import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
 
@@ -80,7 +81,7 @@ router
 
     // @deprecated - Settings moved to settings controller
     router
-      .put('/profile/settings', async ({ response, session }: any) => {
+      .put('/profile/settings', ({ response, session }: HttpContext) => {
         session.flash('info', 'This feature has been moved to the settings page')
         response.redirect().toRoute('settings.index')
       })

@@ -13,6 +13,15 @@ import OrganizationUser from './organization_user.js'
 import UserOAuthProvider from './user_oauth_provider.js'
 import UserSkill from './user_skill.js'
 
+function parseJsonColumn<T>(value: string | T | null): T | null {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const parsed: unknown = JSON.parse(value)
+  return parsed as T
+}
+
 export default class User extends BaseModel {
   static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
 
@@ -78,8 +87,7 @@ export default class User extends BaseModel {
    */
   @column({
     prepare: (value: UserProfileSettings | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | UserProfileSettings | null) =>
-      typeof value === 'string' ? JSON.parse(value) : value,
+    consume: (value: string | UserProfileSettings | null) => parseJsonColumn(value),
   })
   declare profile_settings: UserProfileSettings | null
 
@@ -88,8 +96,7 @@ export default class User extends BaseModel {
    */
   @column({
     prepare: (value: UserTrustData | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | UserTrustData | null) =>
-      typeof value === 'string' ? JSON.parse(value) : value,
+    consume: (value: string | UserTrustData | null) => parseJsonColumn(value),
   })
   declare trust_data: UserTrustData | null
 
@@ -98,8 +105,7 @@ export default class User extends BaseModel {
    */
   @column({
     prepare: (value: UserCredibilityData | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | UserCredibilityData | null) =>
-      typeof value === 'string' ? JSON.parse(value) : value,
+    consume: (value: string | UserCredibilityData | null) => parseJsonColumn(value),
   })
   declare credibility_data: UserCredibilityData | null
 

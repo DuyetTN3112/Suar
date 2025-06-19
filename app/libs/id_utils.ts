@@ -70,7 +70,7 @@ export function isValidId(value: unknown): value is DatabaseId {
  * @returns string representation
  */
 export function toStringId(id: DatabaseId): string {
-  return String(id)
+  return id
 }
 
 /**
@@ -81,7 +81,7 @@ export function toStringId(id: DatabaseId): string {
  * @returns true if equal
  */
 export function isSameId(a: DatabaseId, b: DatabaseId): boolean {
-  return String(a) === String(b)
+  return a === b
 }
 
 /**

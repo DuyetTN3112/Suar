@@ -154,7 +154,7 @@ export function respondWithError(
   ctx: HttpContext,
   error: unknown,
   options: ErrorResponseOptions = {}
-): void | Promise<unknown> {
+): Promise<unknown> | undefined {
   const { response, session, inertia } = ctx
   const message = getErrorMessage(error, options.fallbackMessage ?? 'Đã xảy ra lỗi')
 
@@ -189,6 +189,8 @@ export function respondWithError(
       response.redirect().toRoute(options.redirectRoute)
     }
   }
+
+  return undefined
 }
 
 /**

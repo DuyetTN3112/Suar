@@ -41,7 +41,7 @@ export async function isSystemSuperadmin(
     return PermissionService.isSystemSuperadmin(userId, trx)
   }
 
-  const cacheKey = `perm:system:superadmin:${String(userId)}`
+  const cacheKey = `perm:system:superadmin:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.SYSTEM_ROLE, () =>
     PermissionService.isSystemSuperadmin(userId)
   )
@@ -55,7 +55,7 @@ export async function isSystemAdmin(
     return PermissionService.isSystemAdmin(userId, trx)
   }
 
-  const cacheKey = `perm:system:admin:${String(userId)}`
+  const cacheKey = `perm:system:admin:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.SYSTEM_ROLE, () =>
     PermissionService.isSystemAdmin(userId)
   )
@@ -66,7 +66,7 @@ export async function getSystemRoleInfo(userId: DatabaseId, trx?: TransactionCli
     return PermissionService.getSystemRoleInfo(userId, trx)
   }
 
-  const cacheKey = `perm:system:roleinfo:${String(userId)}`
+  const cacheKey = `perm:system:roleinfo:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.SYSTEM_ROLE, () =>
     PermissionService.getSystemRoleInfo(userId)
   )
@@ -84,7 +84,7 @@ export async function getOrgMembership(
     return PermissionService.getOrgMembership(userId, orgId, trx)
   }
 
-  const cacheKey = `perm:org:${String(orgId)}:member:${String(userId)}`
+  const cacheKey = `perm:org:${orgId}:member:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.ORG_MEMBERSHIP, () =>
     PermissionService.getOrgMembership(userId, orgId)
   )
@@ -99,7 +99,7 @@ export async function isOrgOwner(
     return PermissionService.isOrgOwner(userId, orgId, trx)
   }
 
-  const cacheKey = `perm:org:${String(orgId)}:owner:${String(userId)}`
+  const cacheKey = `perm:org:${orgId}:owner:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.ORG_MEMBERSHIP, () =>
     PermissionService.isOrgOwner(userId, orgId)
   )
@@ -114,7 +114,7 @@ export async function isOrgAdminOrOwner(
     return PermissionService.isOrgAdminOrOwner(userId, orgId, trx)
   }
 
-  const cacheKey = `perm:org:${String(orgId)}:adminowner:${String(userId)}`
+  const cacheKey = `perm:org:${orgId}:adminowner:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.ORG_MEMBERSHIP, () =>
     PermissionService.isOrgAdminOrOwner(userId, orgId)
   )
@@ -129,7 +129,7 @@ export async function getUserOrgRoleLevel(
     return PermissionService.getUserOrgRoleLevel(userId, orgId, trx)
   }
 
-  const cacheKey = `perm:org:${String(orgId)}:rolelevel:${String(userId)}`
+  const cacheKey = `perm:org:${orgId}:rolelevel:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.ORG_MEMBERSHIP, () =>
     PermissionService.getUserOrgRoleLevel(userId, orgId)
   )
@@ -145,7 +145,7 @@ export async function checkOrgPermission(
     return PermissionService.checkOrgPermission(userId, orgId, permission, trx)
   }
 
-  const cacheKey = `perm:org:${String(orgId)}:perm:${permission}:${String(userId)}`
+  const cacheKey = `perm:org:${orgId}:perm:${permission}:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.ORG_MEMBERSHIP, () =>
     PermissionService.checkOrgPermission(userId, orgId, permission)
   )
@@ -163,7 +163,7 @@ export async function getProjectMembership(
     return PermissionService.getProjectMembership(userId, projectId, trx)
   }
 
-  const cacheKey = `perm:project:${String(projectId)}:member:${String(userId)}`
+  const cacheKey = `perm:project:${projectId}:member:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.PROJECT_MEMBERSHIP, () =>
     PermissionService.getProjectMembership(userId, projectId)
   )
@@ -178,7 +178,7 @@ export async function isProjectOwner(
     return PermissionService.isProjectOwner(userId, projectId, trx)
   }
 
-  const cacheKey = `perm:project:${String(projectId)}:owner:${String(userId)}`
+  const cacheKey = `perm:project:${projectId}:owner:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.PROJECT_MEMBERSHIP, () =>
     PermissionService.isProjectOwner(userId, projectId)
   )
@@ -194,7 +194,7 @@ export async function checkProjectPermission(
     return PermissionService.checkProjectPermission(userId, projectId, permission, trx)
   }
 
-  const cacheKey = `perm:project:${String(projectId)}:perm:${permission}:${String(userId)}`
+  const cacheKey = `perm:project:${projectId}:perm:${permission}:${userId}`
   return cacheService.remember(cacheKey, CACHE_TTL.PROJECT_MEMBERSHIP, () =>
     PermissionService.checkProjectPermission(userId, projectId, permission)
   )
@@ -212,19 +212,19 @@ export const canManageProject = PermissionService.canManageProject
  * Invalidate tất cả permission cache của 1 user
  */
 export async function invalidateUserPermissions(userId: DatabaseId): Promise<void> {
-  await cacheService.deleteByPattern(`perm:*:${String(userId)}*`)
+  await cacheService.deleteByPattern(`perm:*:${userId}*`)
 }
 
 /**
  * Invalidate tất cả permission cache liên quan đến 1 organization
  */
 export async function invalidateOrgPermissions(orgId: DatabaseId): Promise<void> {
-  await cacheService.deleteByPattern(`perm:org:${String(orgId)}:*`)
+  await cacheService.deleteByPattern(`perm:org:${orgId}:*`)
 }
 
 /**
  * Invalidate tất cả permission cache liên quan đến 1 project
  */
 export async function invalidateProjectPermissions(projectId: DatabaseId): Promise<void> {
-  await cacheService.deleteByPattern(`perm:project:${String(projectId)}:*`)
+  await cacheService.deleteByPattern(`perm:project:${projectId}:*`)
 }

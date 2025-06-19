@@ -46,7 +46,7 @@ export default class AuthMiddleware {
       })
 
       if (ctx.request.header('x-inertia')) {
-        await ctx.inertia.location(this.redirectTo)
+        ctx.inertia.location(this.redirectTo)
         return
       }
 

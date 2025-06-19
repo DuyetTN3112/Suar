@@ -53,11 +53,11 @@ export default class OrganizationUser extends BaseModel {
   // ===== Instance Helpers =====
 
   isApproved(): boolean {
-    return this.status === 'approved'
+    return this.status === OrganizationUserStatus.APPROVED
   }
 
   isPending(): boolean {
-    return this.status === 'pending'
+    return this.status === OrganizationUserStatus.PENDING
   }
 }
 

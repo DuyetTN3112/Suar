@@ -1,6 +1,14 @@
 import vine from '@vinejs/vine'
 import db from '@adonisjs/lucid/services/db'
 
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const existsValue = (value: unknown): boolean => {
+  return value !== null && value !== undefined
+}
+
 /**
  * Custom VineJS Rules for Referential Integrity
  *
@@ -68,11 +76,11 @@ export function existsRule(
       const query = queryDb.from(table).where(column, value)
 
       if (options.softDelete) {
-        query.whereNull('deleted_at')
+        void query.whereNull('deleted_at')
       }
 
-      const row = await query.select(column).first()
-      return !!row
+      const row = (await query.select(column).first()) as unknown
+      return existsValue(row)
     })
 }
 
@@ -95,11 +103,11 @@ export async function existsInTable(
   const query = db.from(table).where(column, id)
 
   if (options.softDelete) {
-    query.whereNull('deleted_at')
+    void query.whereNull('deleted_at')
   }
 
-  const row = await query.select(column).first()
-  return !!row
+  const row = (await query.select(column).first()) as unknown
+  return existsValue(row)
 }
 
 /**
@@ -124,21 +132,27 @@ export async function notOrphan(
 ): Promise<boolean> {
   const parentColumn = options.parentColumn ?? 'id'
 
-  const child = await db.from(childTable).where('id', childId).select(foreignKeyColumn).first()
+  const childRaw = (await db
+    .from(childTable)
+    .where('id', childId)
+    .select(foreignKeyColumn)
+    .first()) as unknown
 
-  if (!child) return false // Child doesn't exist
+  if (!isRecord(childRaw)) return false // Child doesn't exist
 
-  const parentId = child[foreignKeyColumn]
-  if (!parentId) return false // FK is null
+  const parentId = childRaw[foreignKeyColumn]
+  if (typeof parentId !== 'string' && typeof parentId !== 'number') {
+    return false // FK missing or invalid
+  }
 
   const parentQuery = db.from(parentTable).where(parentColumn, parentId)
 
   if (options.softDelete) {
-    parentQuery.whereNull('deleted_at')
+    void parentQuery.whereNull('deleted_at')
   }
 
-  const parent = await parentQuery.select(parentColumn).first()
-  return !!parent
+  const parent = (await parentQuery.select(parentColumn).first()) as unknown
+  return existsValue(parent)
 }
 
 // ============================================================
@@ -151,13 +165,13 @@ export const organizationIdRule = () =>
     .string()
     .uuid()
     .exists(async (queryDb, value) => {
-      const row = await queryDb
+      const row = (await queryDb
         .from('organizations')
         .where('id', value)
         .whereNull('deleted_at')
         .select('id')
-        .first()
-      return !!row
+        .first()) as unknown
+      return existsValue(row)
     })
 
 /** Validates userId exists in users (not soft-deleted) */
@@ -166,13 +180,13 @@ export const userIdRule = () =>
     .string()
     .uuid()
     .exists(async (queryDb, value) => {
-      const row = await queryDb
+      const row = (await queryDb
         .from('users')
         .where('id', value)
         .whereNull('deleted_at')
         .select('id')
-        .first()
-      return !!row
+        .first()) as unknown
+      return existsValue(row)
     })
 
 /** Validates projectId exists in projects (not soft-deleted) */
@@ -181,13 +195,13 @@ export const projectIdRule = () =>
     .string()
     .uuid()
     .exists(async (queryDb, value) => {
-      const row = await queryDb
+      const row = (await queryDb
         .from('projects')
         .where('id', value)
         .whereNull('deleted_at')
         .select('id')
-        .first()
-      return !!row
+        .first()) as unknown
+      return existsValue(row)
     })
 
 /** Validates taskId exists in tasks (not soft-deleted) */
@@ -196,11 +210,11 @@ export const taskIdRule = () =>
     .string()
     .uuid()
     .exists(async (queryDb, value) => {
-      const row = await queryDb
+      const row = (await queryDb
         .from('tasks')
         .where('id', value)
         .whereNull('deleted_at')
         .select('id')
-        .first()
-      return !!row
+        .first()) as unknown
+      return existsValue(row)
     })

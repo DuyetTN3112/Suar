@@ -31,24 +31,24 @@ export const apiThrottle = limiter.define('api', (ctx: HttpContext) => {
 
 /**
  * Limiter cho login - SMART STRATEGY
- * 
+ *
  * Development: Unlimited (để test thoải mái)
  * Production: 30 requests/minute per IP (cho phép nhiều users cùng corporate network)
- * 
+ *
  * OAuth flow: redirect + callback = 2 requests
  * Vậy 30 req/min = ~15 login attempts/minute per IP
- * 
+ *
  * Corporate network với 100 users: Mỗi user có ~15 attempts trong 100 phút (1.67 giờ)
  * → Đủ để không block nhưng vẫn chống brute-force
  */
 export const loginThrottle = limiter.define('login', (ctx: HttpContext) => {
   const isDevelopment = env.get('NODE_ENV') === 'development'
-  
+
   if (isDevelopment) {
     // Development: No limit
     return limiter.allowRequests(999999).every('1 minute').usingKey(`login:${ctx.request.ip()}`)
   }
-  
+
   // Production: 30 requests/minute per IP
   return limiter.allowRequests(30).every('1 minute').usingKey(`login:${ctx.request.ip()}`)
 })

@@ -34,7 +34,7 @@ export default class CacheMiddleware {
     const userId = ctx.auth.user?.id ?? 'anonymous'
     const orgId = String(ctx.session.get('current_organization_id') ?? 'none')
     const prefix = options.prefix ?? 'http_cache'
-    const cacheKey = `${prefix}:u${String(userId)}:o${orgId}:${request.url()}`
+    const cacheKey = `${prefix}:u${userId}:o${orgId}:${request.url()}`
 
     try {
       // Bước 1: Kiểm tra cache trước

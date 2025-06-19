@@ -24,7 +24,9 @@ router.get('/', async ({ auth, response, session }) => {
     }
 
     // 2. Regular users - check organization context
-    const orgId = session.get('current_organization_id') ?? auth.user?.current_organization_id
+    const sessionOrgId = session.get('current_organization_id') as unknown
+    const orgId =
+      typeof sessionOrgId === 'string' ? sessionOrgId : auth.user?.current_organization_id
     if (orgId) {
       response.redirect('/tasks')
       return

@@ -41,7 +41,10 @@ export default class ValidationException extends Exception {
    */
   static fields(errors: Record<string, string>): ValidationException {
     const messages = Object.values(errors)
-    const message = messages.length === 1 ? messages[0]! : `${messages.length} lỗi validation`
+    const message =
+      messages.length === 1
+        ? (messages[0] ?? 'Validation failed')
+        : `${messages.length} lỗi validation`
     return new ValidationException(message, errors)
   }
 }

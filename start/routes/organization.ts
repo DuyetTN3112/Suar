@@ -86,9 +86,7 @@ router
     // ─── Join Requests & Invitations ───
     router
       .group(() => {
-        router
-          .get('/requests', [OrgListJoinRequestsController, 'handle'])
-          .as('org.requests.index')
+        router.get('/requests', [OrgListJoinRequestsController, 'handle']).as('org.requests.index')
         router
           .put('/requests/:id/approve', [OrgApproveJoinRequestController, 'handle'])
           .as('org.requests.approve')

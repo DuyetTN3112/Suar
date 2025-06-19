@@ -2,7 +2,6 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 import type { PageProps } from '@adonisjs/inertia/types'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
-import { SystemRoleName } from '#constants'
 
 type SimpleOrganization = {
   id: string
@@ -25,6 +24,10 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
   async share(ctx: HttpContext): Promise<PageProps> {
     const { session, auth } = ctx as Partial<HttpContext>
 
+    const toOptionalString = (value: unknown): string | undefined => {
+      return typeof value === 'string' ? value : undefined
+    }
+
     let authUser: AuthUser | null = null
 
     try {
@@ -35,23 +38,20 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             await user.load('organizations')
           }
 
-          const systemRoleName = user.system_role ?? ''
-          const isAdmin =
-            systemRoleName === SystemRoleName.SUPERADMIN ||
-            systemRoleName === SystemRoleName.SYSTEM_ADMIN
+          const systemRoleName = user.system_role
+          const isAdmin = systemRoleName === 'superadmin' || systemRoleName === 'system_admin'
 
           const currentOrganizationId: string | null =
             (session?.get('current_organization_id') as string | undefined) ??
             user.current_organization_id ??
             null
 
-          const organizations: SimpleOrganization[] =
-            user.organizations?.map((org) => ({
-              id: org.id,
-              name: org.name,
-              logo: org.logo || null,
-              plan: org.plan || null,
-            })) ?? []
+          const organizations: SimpleOrganization[] = user.organizations.map((org) => ({
+            id: org.id,
+            name: org.name,
+            logo: org.logo || null,
+            plan: org.plan || null,
+          }))
 
           authUser = {
             id: user.id,
@@ -74,24 +74,26 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
       await session.commit()
     }
 
+    const validationErrors = ctx.inertia.always(this.getValidationErrors(ctx))
+    const flashError = toOptionalString(session?.flashMessages.get('error') as unknown)
+    const flashSuccess = toOptionalString(session?.flashMessages.get('success') as unknown)
+
     return {
       csrfToken: ctx.request.csrfToken,
       showOrganizationRequiredModal: showModal,
-      errors: ctx.inertia.always(this.getValidationErrors(ctx)),
+      errors: validationErrors,
       flash: ctx.inertia.always({
-        error: session?.flashMessages.get('error'),
-        success: session?.flashMessages.get('success'),
+        error: flashError,
+        success: flashSuccess,
       }),
       auth: { user: authUser },
     }
   }
 
-  async handle(ctx: HttpContext, next: NextFn) {
+  async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     await this.init(ctx)
 
-    const output = await next()
+    await next()
     this.dispose(ctx)
-
-    return output
   }
 }

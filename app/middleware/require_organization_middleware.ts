@@ -33,7 +33,10 @@ export default class RequireOrganizationMiddleware {
     }
 
     // OrganizationResolver đã chạy trước — chỉ cần check kết quả
-    const currentOrgId = session.get('current_organization_id') ?? auth.user.current_organization_id
+    const currentOrgIdFromSession: unknown = session.get('current_organization_id')
+    const currentOrgId =
+      (typeof currentOrgIdFromSession === 'string' ? currentOrgIdFromSession : null) ??
+      auth.user.current_organization_id
 
     if (currentOrgId) {
       // Có org → tiếp tục

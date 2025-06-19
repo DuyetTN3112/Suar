@@ -278,7 +278,7 @@ export interface TaskApplicationRow {
   application_source: 'public_listing' | 'invitation' | 'referral'
   message: string | null
   expected_rate: string | null // decimal(15,2)
-  portfolio_links: unknown | null // JSONB
+  portfolio_links: string[] | null // JSONB
   applied_at: Date
   reviewed_by: string | null
   reviewed_at: Date | null

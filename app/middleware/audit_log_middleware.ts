@@ -51,7 +51,7 @@ export default class AuditLogMiddleware {
       // Audit failure KHÔNG block response
       loggerService.error('Audit log emit failed', {
         error: error instanceof Error ? error.message : String(error),
-        userId: ctx.auth.user?.id,
+        userId: ctx.auth.user.id,
         url: ctx.request.url(),
       })
     }

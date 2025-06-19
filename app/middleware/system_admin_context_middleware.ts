@@ -1,6 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import { SystemRoleName } from '#constants/user_constants'
 
 /**
  * SystemAdminContextMiddleware
@@ -25,19 +24,26 @@ export default class SystemAdminContextMiddleware {
    * Handle the request
    */
   async handle({ auth, session, view }: HttpContext, next: NextFn): Promise<void> {
+    if (!auth.user) {
+      await next()
+      return
+    }
+
     // Check if user can access system admin
-    const systemRole = auth.user?.system_role?.toLowerCase()
-    const canSwitchToAdmin =
-      systemRole === SystemRoleName.SUPERADMIN || systemRole === SystemRoleName.SYSTEM_ADMIN
+    const systemRole = auth.user.system_role.toLowerCase()
+    const canSwitchToAdmin = systemRole === 'superadmin' || systemRole === 'system_admin'
 
     // Check if admin mode is enabled in session
-    const isAdminMode = session.get('is_admin_mode', false) && canSwitchToAdmin
+    const isAdminModeRaw: unknown = session.get('is_admin_mode', false)
+    const isAdminMode = Boolean(isAdminModeRaw) && canSwitchToAdmin
 
     // Share context to views
+    const contextType: 'system_admin' | 'user' = isAdminMode ? 'system_admin' : 'user'
+
     view.share({
       isAdminMode,
       canSwitchToAdmin,
-      contextType: isAdminMode ? 'system_admin' : 'user',
+      contextType,
     })
 
     await next()
