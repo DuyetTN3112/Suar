@@ -12,10 +12,10 @@ export default class UserActivityLog extends BaseModel {
   static override table = 'user_activity_logs'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare action_type: string // review_given, review_received, login, etc.
@@ -30,7 +30,7 @@ export default class UserActivityLog extends BaseModel {
   declare related_entity_type: string | null // task, review_session, etc.
 
   @column()
-  declare related_entity_id: number | null
+  declare related_entity_id: string | null
 
   @column()
   declare ip_address: string | null

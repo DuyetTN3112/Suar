@@ -2,22 +2,19 @@ import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
-import TaskStatus from './task_status.js'
-import TaskLabel from './task_label.js'
-import TaskPriority from './task_priority.js'
 import TaskVersion from './task_version.js'
 import Organization from './organization.js'
 import Project from './project.js'
-import TaskDifficultyLevel from './task_difficulty_level.js'
 import TaskApplication from './task_application.js'
 import TaskAssignment from './task_assignment.js'
 import TaskRequiredSkill from './task_required_skill.js'
+import TaskStatusModel from './task_status.js'
 
 export default class Task extends BaseModel {
   static override table = 'tasks'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare title: string
@@ -25,26 +22,50 @@ export default class Task extends BaseModel {
   @column()
   declare description: string
 
+  /**
+   * v3.0: Inline status VARCHAR — replaces status_id UUID → task_status table
+   * CHECK: 'todo', 'in_progress', 'done', 'cancelled', 'in_review'
+   * Phase 4 note: Use task_status_id FK during migration rollout.
+   */
   @column()
-  declare status_id: number
+  declare status: string
+
+  /**
+   * v4.0: FK to task_statuses table (per-org configurable statuses).
+   * Nullable during migration — old tasks may not have this set yet.
+   */
+  @column()
+  declare task_status_id: string | null
+
+  /**
+   * v3.0: Inline label VARCHAR — replaces label_id UUID → task_labels table
+   * CHECK: 'bug', 'feature', 'enhancement', 'documentation'
+   */
+  @column()
+  declare label: string
+
+  /**
+   * v3.0: Inline priority VARCHAR — replaces priority_id UUID → task_priorities table
+   * CHECK: 'low', 'medium', 'high', 'urgent'
+   */
+  @column()
+  declare priority: string
+
+  /**
+   * v3.0: Inline difficulty VARCHAR — replaces difficulty_level_id UUID → task_difficulty_levels table
+   * CHECK: 'easy', 'medium', 'hard', 'expert'
+   */
+  @column()
+  declare difficulty: string | null
 
   @column()
-  declare label_id: number
+  declare assigned_to: string | null
 
   @column()
-  declare priority_id: number
+  declare creator_id: string
 
   @column()
-  declare difficulty_level_id: number | null
-
-  @column()
-  declare assigned_to: number | null
-
-  @column()
-  declare creator_id: number
-
-  @column()
-  declare updated_by: number | null
+  declare updated_by: string | null
 
   @column.dateTime()
   declare due_date: DateTime | null
@@ -59,7 +80,7 @@ export default class Task extends BaseModel {
   declare updated_at: DateTime
 
   @column()
-  declare parent_task_id: number | null
+  declare parent_task_id: string | null
 
   @column()
   declare estimated_time: number
@@ -68,20 +89,75 @@ export default class Task extends BaseModel {
   declare actual_time: number
 
   @column()
-  declare organization_id: number
+  declare organization_id: string // v3.0: NOT NULL
 
   @column()
-  declare project_id: number | null
+  // project_id là bắt buộc theo product truth và SQL reference hiện tại.
+  declare project_id: string | null
 
   // Marketplace columns
   @column()
-  declare is_public_listing: boolean
+  declare task_visibility: string
 
-  @column({
-    prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
-    consume: (value: string | null) => (value ? (JSON.parse(value) as string[]) : null),
-  })
-  declare required_skills: string[] | null
+  @column.dateTime()
+  declare application_deadline: DateTime | null
+
+  // v5 candidate: rich metadata for verification/profile aggregation
+  @column()
+  declare task_type: string
+
+  @column()
+  declare acceptance_criteria: string
+
+  @column()
+  declare verification_method: string
+
+  @column()
+  declare expected_deliverables: Array<Record<string, unknown>>
+
+  @column()
+  declare context_background: string | null
+
+  @column()
+  declare impact_scope: string | null
+
+  @column()
+  declare tech_stack: string[]
+
+  @column()
+  declare environment: string | null
+
+  @column()
+  declare collaboration_type: string | null
+
+  @column()
+  declare complexity_notes: string | null
+
+  @column()
+  declare measurable_outcomes: Array<Record<string, unknown>>
+
+  @column()
+  declare learning_objectives: string[]
+
+  @column()
+  declare domain_tags: string[]
+
+  @column()
+  declare role_in_task: string | null
+
+  @column()
+  declare autonomy_level: string | null
+
+  @column()
+  declare problem_category: string | null
+
+  @column()
+  declare business_domain: string | null
+
+  @column()
+  declare estimated_users_affected: number | null
+
+  // v3.0: required_skills JSONB REMOVED — single source: task_required_skills table
 
   @column()
   declare estimated_budget: number | null
@@ -89,20 +165,10 @@ export default class Task extends BaseModel {
   @column()
   declare external_applications_count: number
 
-  @belongsTo(() => TaskStatus, {
-    foreignKey: 'status_id',
-  })
-  declare status: BelongsTo<typeof TaskStatus>
+  @column()
+  declare sort_order: number
 
-  @belongsTo(() => TaskLabel, {
-    foreignKey: 'label_id',
-  })
-  declare label: BelongsTo<typeof TaskLabel>
-
-  @belongsTo(() => TaskPriority, {
-    foreignKey: 'priority_id',
-  })
-  declare priority: BelongsTo<typeof TaskPriority>
+  // ===== Relationships =====
 
   @belongsTo(() => User, {
     foreignKey: 'assigned_to',
@@ -139,11 +205,11 @@ export default class Task extends BaseModel {
   })
   declare childTasks: HasMany<typeof Task>
 
-  @hasMany(() => TaskVersion)
+  @hasMany(() => TaskVersion, {
+    foreignKey: 'task_id',
+    localKey: 'id',
+  })
   declare versions: HasMany<typeof TaskVersion>
-
-  @belongsTo(() => TaskDifficultyLevel, { foreignKey: 'difficulty_level_id' })
-  declare difficulty_level: BelongsTo<typeof TaskDifficultyLevel>
 
   @hasMany(() => TaskApplication, { foreignKey: 'task_id' })
   declare applications: HasMany<typeof TaskApplication>
@@ -154,17 +220,6 @@ export default class Task extends BaseModel {
   @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
   declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
 
-  /**
-   * Tùy chỉnh cách serialization của các trường DateTime
-   */
-  override serialize() {
-    return {
-      ...this.serializeAttributes(),
-      ...this.serializeRelations(),
-      created_at: this.created_at.toISO(),
-      updated_at: this.updated_at.toISO(),
-      due_date: this.due_date ? this.due_date.toISO() : null,
-      deleted_at: this.deleted_at ? this.deleted_at.toISO() : null,
-    }
-  }
+  @belongsTo(() => TaskStatusModel, { foreignKey: 'task_status_id' })
+  declare taskStatus: BelongsTo<typeof TaskStatusModel>
 }

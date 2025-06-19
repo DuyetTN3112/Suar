@@ -1,10 +1,20 @@
 /**
- * Database Row Types - Match exactly with suar.sql schema
+ * Database Row Types — Match exactly with suar_postgresql_v3.sql schema
  * Generated from database structure for type safety
+ *
+ * v3.0: All IDs are UUIDv7 (string). No more `number | string` union.
+ *       Removed 10 lookup tables — roles/levels/categories all inline as VARCHAR.
+ *       23 tables total.
  */
 
+/**
+ * Universal ID type — v3.0: All IDs are UUIDv7 strings.
+ * Kept as type alias for backward compatibility with existing code.
+ */
+export type DatabaseId = string
+
 // ============================================
-// USER & AUTHENTICATION
+// BẢNG 1/23: skills
 // ============================================
 
 export interface UserRow {

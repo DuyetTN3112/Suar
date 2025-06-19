@@ -1,13 +1,13 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
-import SkillCategory from './skill_category.js'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import UserSkill from './user_skill.js'
 
 /**
  * Skill Model
  *
- * Individual skills belonging to categories:
+ * Individual skills with inline category_code and display_type (v3).
+ * No more FK to skill_categories table.
  * - Technical: React, TypeScript, Node.js, etc.
  * - Soft Skills: Communication, Teamwork, etc.
  * - Delivery Metrics: Code Quality, Documentation, etc.
@@ -16,10 +16,15 @@ export default class Skill extends BaseModel {
   static override table = 'skills'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
+  // v3: inline category_code replaces category_id FK
   @column()
-  declare category_id: number
+  declare category_code: string
+
+  // v3: inline display_type replaces join to skill_categories
+  @column()
+  declare display_type: string
 
   @column()
   declare skill_code: string
@@ -46,25 +51,10 @@ export default class Skill extends BaseModel {
   declare updated_at: DateTime
 
   // ===== Relationships =====
-  @belongsTo(() => SkillCategory, {
-    foreignKey: 'category_id',
-  })
-  declare category: BelongsTo<typeof SkillCategory>
-
   @hasMany(() => UserSkill, {
     foreignKey: 'skill_id',
   })
   declare user_skills: HasMany<typeof UserSkill>
 
-  // ===== Scopes =====
-  static activeSkills() {
-    return this.query().where('is_active', true).orderBy('sort_order', 'asc')
-  }
-
-  static byCategory(categoryId: number) {
-    return this.query()
-      .where('category_id', categoryId)
-      .where('is_active', true)
-      .orderBy('sort_order', 'asc')
-  }
+  // All query methods/scopes have been moved to app/repositories/skill_repository.ts.
 }
