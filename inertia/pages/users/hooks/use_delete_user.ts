@@ -1,56 +1,76 @@
-import React from 'react'
-import { router } from '@inertiajs/react'
-import { toast } from 'sonner'
+import { router } from '@inertiajs/svelte'
+import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
-export const useDeleteUser = (authUserId: number) => {
-  const [deleteModalOpen, setDeleteModalOpen] = React.useState(false)
-  const [userToDelete, setUserToDelete] = React.useState<User | null>(null)
-  const [isDeleting, setIsDeleting] = React.useState(false)
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) {
+      return message
+    }
+  }
+  return fallback
+}
+
+export const useDeleteUser = (authUserId: string) => {
+  let deleteModalOpen = $state(false)
+  let userToDelete = $state<User | null>(null)
+  let isDeleting = $state(false)
 
   // Mở dialog xác nhận xóa người dùng
   const openDeleteConfirmModal = (user: User) => {
-    setUserToDelete(user)
-    setDeleteModalOpen(true)
+    userToDelete = user
+    deleteModalOpen = true
+  }
+
+  const setDeleteModalOpen = (value: boolean) => {
+    deleteModalOpen = value
   }
 
   // Xử lý xóa người dùng khỏi tổ chức
   const handleDeleteUser = () => {
-    if (!userToDelete) return
-    setIsDeleting(true)
+    const currentUserToDelete = userToDelete
+    if (!currentUserToDelete) return
+    isDeleting = true
     // Sử dụng Inertia router để gửi request DELETE
-    router.delete(`/organizations/users/${userToDelete.id}/remove`, {
+    router.delete(`/organizations/users/${currentUserToDelete.id}/remove`, {
       onBefore: () => {
         // Ngăn xóa tài khoản đang đăng nhập
-        if (userToDelete.id === authUserId) {
-          toast.error('Không thể xóa tài khoản của chính bạn')
-          setDeleteModalOpen(false)
-          setIsDeleting(false)
+        if (currentUserToDelete.id === authUserId) {
+          notificationStore.error('Không thể xóa tài khoản của chính bạn')
+          deleteModalOpen = false
+          isDeleting = false
           return false
         }
         return true
       },
       onSuccess: () => {
-        toast.success('Đã xóa người dùng khỏi tổ chức thành công')
-        setDeleteModalOpen(false)
-        setIsDeleting(false)
+        notificationStore.success('Đã xóa người dùng khỏi tổ chức thành công')
+        deleteModalOpen = false
+        isDeleting = false
         // Tải lại trang để cập nhật danh sách
         window.location.reload()
       },
       onError: (errors: unknown) => {
         console.error('Lỗi khi xóa người dùng:', errors)
-        toast.error(errors.message || 'Không thể xóa người dùng khỏi tổ chức')
-        setDeleteModalOpen(false)
-        setIsDeleting(false)
+        notificationStore.error(getErrorMessage(errors, 'Không thể xóa người dùng khỏi tổ chức'))
+        deleteModalOpen = false
+        isDeleting = false
       },
     })
   }
 
   return {
-    deleteModalOpen,
+    get deleteModalOpen() {
+      return deleteModalOpen
+    },
     setDeleteModalOpen,
-    userToDelete,
-    isDeleting,
+    get userToDelete() {
+      return userToDelete
+    },
+    get isDeleting() {
+      return isDeleting
+    },
     openDeleteConfirmModal,
     handleDeleteUser,
   }

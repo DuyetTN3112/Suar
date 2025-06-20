@@ -230,12 +230,149 @@
 }
 
 @layer components {
+  .neo-panel {
+    @apply rounded-[10px] border-2 border-border bg-card text-card-foreground shadow-neo;
+  }
+
+  .neo-panel-muted {
+    @apply rounded-lg border-2 border-border bg-background text-foreground shadow-neo-sm dark:bg-muted/40;
+  }
+
+  .neo-surface-soft {
+    @apply rounded-[14px] border-2 border-border bg-card/95 text-card-foreground shadow-neo-sm;
+  }
+
+  .neo-shell-main {
+    @apply bg-background;
+    background-image: linear-gradient(
+      180deg,
+      hsl(var(--background)) 0%,
+      hsl(var(--muted) / 0.45) 100%
+    );
+  }
+
+  .neo-kicker {
+    @apply text-[11px] font-bold uppercase tracking-[0.24em] text-muted-foreground;
+  }
+
+  .neo-divider {
+    @apply border-border;
+    border-top-width: 2px;
+    border-top-style: solid;
+  }
+
+  .neo-hero-orange {
+    background-color: var(--neo-orange);
+    color: #fff;
+    border: 2px solid hsl(var(--border));
+    box-shadow: var(--neo-shadow);
+  }
+
+  .neo-hero-blue {
+    background-color: var(--neo-blue);
+    color: #fff;
+    border: 2px solid hsl(var(--border));
+    box-shadow: var(--neo-shadow);
+  }
+
+  .neo-hero-ink {
+    background-color: hsl(var(--foreground));
+    color: hsl(var(--background));
+    border: 2px solid hsl(var(--border));
+    box-shadow: var(--neo-shadow);
+  }
+
+  .neo-pill-orange {
+    background-color: var(--neo-orange);
+    color: #fff;
+    border: 2px solid hsl(var(--border));
+  }
+
+  .neo-pill-blue {
+    background-color: var(--neo-blue);
+    color: #fff;
+    border: 2px solid hsl(var(--border));
+  }
+
+  .neo-pill-magenta {
+    background-color: var(--neo-purple);
+    color: #fff;
+    border: 2px solid hsl(var(--border));
+  }
+
+  .neo-pill-ink {
+    background-color: hsl(var(--foreground));
+    color: hsl(var(--background));
+    border: 2px solid hsl(var(--border));
+  }
+
+  .neo-pill-soft {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    border: 2px solid hsl(var(--border));
+  }
+
+  .neo-dot-orange {
+    background-color: var(--neo-orange);
+  }
+  .neo-dot-blue {
+    background-color: var(--neo-blue);
+  }
+  .neo-dot-magenta {
+    background-color: var(--neo-purple);
+  }
+  .neo-dot-ink {
+    background-color: hsl(var(--foreground));
+  }
+
+  .neo-text-orange {
+    color: var(--neo-orange);
+  }
+  .neo-text-blue {
+    color: var(--neo-blue);
+  }
+  .neo-text-magenta {
+    color: var(--neo-purple);
+  }
+  .neo-text-ink {
+    color: hsl(var(--foreground));
+  }
+
   .desktop-link {
     @apply text-muted-foreground hover:text-foreground transition-colors;
   }
 
   .desktop-link.active {
     @apply text-foreground;
+  }
+
+  .neo-data-table {
+    @apply w-full border-collapse;
+  }
+
+  .neo-data-table thead tr {
+    @apply border-b-2 border-border;
+  }
+
+  .neo-data-table tbody tr {
+    @apply border-b border-border/60 transition-colors;
+  }
+
+  .neo-data-table tbody tr:last-child {
+    border-bottom-width: 0;
+  }
+
+  .neo-data-table th {
+    @apply pb-3 text-left text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground;
+    font-family: var(--font-heading);
+  }
+
+  .neo-data-table td {
+    @apply py-3 align-middle text-sm;
+  }
+
+  .neo-empty-state {
+    @apply rounded-[14px] border-2 border-dashed border-border bg-muted/35 px-4 py-8 text-center text-sm text-muted-foreground;
   }
 
   .mobile-link {
@@ -247,11 +384,120 @@
   }
 
   .settings-link {
-    @apply m-[1px] p-2 rounded font-semibold text-primary;
+    @apply m-[1px] p-2 rounded font-bold text-foreground;
   }
 
   .settings-link.active {
-    @apply bg-white shadow-sm m-0 border;
+    @apply bg-accent shadow-neo-sm m-0 border-2 border-border;
+  }
+
+  /* Neo-Brutalism color chips — use on badges, tags, cards */
+  .neo-chip-pink {
+    background-color: var(--neo-pink);
+    color: #1a1a2e;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-blue {
+    background-color: var(--neo-blue);
+    color: #1a1a2e;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-green {
+    background-color: var(--neo-green);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-orange {
+    background-color: var(--neo-orange);
+    color: #1a1a2e;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-purple {
+    background-color: var(--neo-purple);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-lime {
+    background-color: var(--neo-lime);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-cyan {
+    background-color: var(--neo-cyan);
+    color: #1a1a2e;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-rose {
+    background-color: var(--neo-rose);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-indigo {
+    background-color: var(--neo-indigo);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-amber {
+    background-color: var(--neo-amber);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-emerald {
+    background-color: var(--neo-emerald);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-fuchsia {
+    background-color: var(--neo-fuchsia);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-coral {
+    background-color: var(--neo-coral);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-sky {
+    background-color: var(--neo-sky);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+  .neo-chip-sunflower {
+    background-color: var(--neo-sunflower);
+    color: #fff;
+    border: 2px solid #1a1a2e;
+  }
+
+  /* Neo card color variants */
+  .neo-card-pink {
+    background-color: var(--neo-pink);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
+  }
+  .neo-card-blue {
+    background-color: var(--neo-blue);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
+  }
+  .neo-card-green {
+    background-color: var(--neo-green);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
+  }
+  .neo-card-purple {
+    background-color: var(--neo-purple);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
+  }
+  .neo-card-amber {
+    background-color: var(--neo-amber);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
+  }
+  .neo-card-cyan {
+    background-color: var(--neo-cyan);
+    box-shadow: var(--neo-shadow);
+    border: 2px solid hsl(var(--border));
   }
   /* Lớp bảo vệ chống tấn công Zalgo và các tin nhắn độc hại */
   .user-content {
@@ -294,7 +540,7 @@
 
   /* Hiển thị overlay cho tin nhắn Zalgo khi chưa mở rộng */
   .zalgo-message:not(.expanded)::after {
-    content: "";
+    content: '';
     position: absolute;
     bottom: 0;
     left: 0;
@@ -346,17 +592,19 @@
   }
 }
 
-/* Kiểu tin nhắn đến và tin nhắn đi */
+/* Neo-Brutalism message styles */
 .message-incoming {
-  border-radius: 1rem 1rem 1rem 0;
+  border-radius: 0.75rem 0.75rem 0.75rem 0;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--neo-shadow-sm);
 }
 
 .message-outgoing {
-  border-radius: 1rem 1rem 0 1rem;
+  border-radius: 0.75rem 0.75rem 0 0.75rem;
   position: relative;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  border: 2px solid hsl(var(--border));
+  box-shadow: var(--neo-shadow-sm);
   animation: fadeIn 0.3s ease-out;
 }
 

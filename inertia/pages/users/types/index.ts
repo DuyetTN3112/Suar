@@ -1,26 +1,12 @@
 export type User = {
-  id: number
+  id: string
   username: string
   email: string
-  role: {
-    id: number
-    name: string
-  }
-  organization_role?: {
-    id: number
-    name: string
-  }
-  status: {
-    id: number
-    name: string
-  }
+  system_role: string
+  status: string
   organization_users?: {
-    organization_id: number
-    role_id: number
-    role?: {
-      id: number
-      name: string
-    }
+    organization_id: string
+    org_role: string
   }[]
   created_at?: string
 }
@@ -37,12 +23,12 @@ export type UsersProps = {
   }
   filters: {
     search?: string
-    role_id?: number
-    status_id?: number
+    system_role?: string
+    status?: string
   }
   metadata: {
-    roles: { id: number; name: string }[]
-    statuses: { id: number; name: string }[]
+    roles: { value: string; label: string }[]
+    statuses: { value: string; label: string }[]
   }
 }
 
@@ -58,7 +44,7 @@ export type PendingApprovalProps = {
   }
   filters: {
     search?: string
-    status_id?: number
+    status?: string
   }
   metadata?: unknown
 }
