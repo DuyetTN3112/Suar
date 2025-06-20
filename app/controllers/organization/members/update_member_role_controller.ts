@@ -1,4 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { ExecutionContext } from '#types/execution_context'
+import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import CreateNotification from '#actions/common/create_notification'
+import { OrganizationRole } from '#constants/organization_constants'
 
 /**
  * UpdateMemberRoleController
@@ -8,9 +13,30 @@ import type { HttpContext } from '@adonisjs/core/http'
  * PUT /org/members/:id/role
  */
 export default class UpdateMemberRoleController {
-  handle({ response, session }: HttpContext) {
-    // TODO Phase 1.4: Implement action/query logic
-    session.flash('success', 'Action completed')
-    response.redirect().back()
+  async handle(ctx: HttpContext) {
+    const { request, response, session, params } = ctx
+    const execCtx = ExecutionContext.fromHttp(ctx)
+    const organizationId = execCtx.organizationId
+
+    if (!organizationId) {
+      throw new Error('Organization context required')
+    }
+
+    const targetUserId = params.id as string
+    const newRoleId =
+      (request.input('roleId') as string | undefined) ??
+      (request.input('org_role') as string | undefined) ??
+      OrganizationRole.MEMBER
+
+    const dto = new UpdateMemberRoleDTO(organizationId, targetUserId, newRoleId)
+    await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).execute(dto)
+
+    if (request.accepts(['html', 'json']) === 'json') {
+      response.json({ success: true, message: 'Cập nhật vai trò thành công' })
+      return
+    }
+
+    session.flash('success', 'Cập nhật vai trò thành công')
+    response.redirect().toRoute('org.members.index')
   }
 }

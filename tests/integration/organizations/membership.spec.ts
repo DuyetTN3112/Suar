@@ -4,10 +4,47 @@ import {
   UserFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
+  TaskFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
 import { OrganizationRole } from '#constants/organization_constants'
+import { AuditAction } from '#constants/audit_constants'
+import CreateNotification from '#actions/common/create_notification'
+import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
+import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import { ExecutionContext } from '#types/execution_context'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import Task from '#models/task'
+import ForbiddenException from '#exceptions/forbidden_exception'
+
+type AuditLogEntry = {
+  action: string
+  old_values?: Record<string, unknown>
+  new_values?: Record<string, unknown>
+}
+
+async function getUserNotifications(userId: string) {
+  return new GetUserNotifications(ExecutionContext.system(userId)).handle({
+    page: 1,
+    limit: 20,
+  })
+}
+
+async function getOrganizationAuditLogs(
+  action: string,
+  organizationId: string
+): Promise<AuditLogEntry[]> {
+  return (await AuditLog.find({
+    action,
+    entity_type: 'organization',
+    entity_id: organizationId,
+  })) as AuditLogEntry[]
+}
 
 test.group('Integration | Organization Membership', (group) => {
   group.setup(async () => {
@@ -16,184 +53,174 @@ test.group('Integration | Organization Membership', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('add member successfully', async ({ assert }) => {
-    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
-    const newMember = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: newMember.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    const membership = await OrganizationUserRepository.findMembership(org.id, newMember.id)
-    assert.isNotNull(membership)
-    assert.equal(membership!.org_role, 'org_member')
-  })
-
-  test('duplicate member throws', async ({ assert }) => {
-    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    const existing = await OrganizationUserRepository.isMember(member.id, org.id)
-    assert.isTrue(existing)
-  })
-
-  test('remove member successfully', async ({ assert }) => {
-    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    await OrganizationUserRepository.deleteMember(org.id, member.id)
-
-    const membership = await OrganizationUserRepository.findMembership(org.id, member.id)
-    assert.isNull(membership)
-  })
-
-  test('update role successfully', async ({ assert }) => {
-    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    await OrganizationUserRepository.updateRole(org.id, member.id, 'org_admin')
-
-    const membership = await OrganizationUserRepository.findMembership(org.id, member.id)
-    assert.equal(membership!.org_role, 'org_admin')
-  })
-
-  test('invite creates pending membership', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const invitee = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: invitee.id,
-      org_role: 'org_member',
-      status: 'pending',
-    })
-
-    const membership = await OrganizationUserRepository.findMembership(org.id, invitee.id)
-    assert.isNotNull(membership)
-    assert.equal(membership!.status, 'pending')
-  })
-
-  test('member count correct after add/remove', async ({ assert }) => {
-    const { org, owner: _owner } = await OrganizationFactory.createWithOwner()
-
-    const member1 = await UserFactory.create()
-    const member2 = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member1.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member2.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    let count = await OrganizationUserRepository.countMembers(org.id)
-    assert.equal(Number(count), 3) // owner + 2 members
-
-    await OrganizationUserRepository.deleteMember(org.id, member2.id)
-    count = await OrganizationUserRepository.countMembers(org.id)
-    assert.equal(Number(count), 2)
-  })
-
-  test('role hierarchy: owner > admin > member', async ({ assert }) => {
-    const roles = Object.values(OrganizationRole)
-    assert.include(roles, 'org_owner')
-    assert.include(roles, 'org_admin')
-    assert.include(roles, 'org_member')
-  })
-
-  test('admin can add members', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const admin = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: admin.id,
-      org_role: 'org_admin',
-      status: 'approved',
-    })
-
-    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(admin.id, org.id)
-    assert.isTrue(isAdmin)
-  })
-
-  test('isApprovedMember returns true for active member', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const member = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: member.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-
-    const isApproved = await OrganizationUserRepository.isApprovedMember(member.id, org.id)
-    assert.isTrue(isApproved)
-  })
-
-  test('isApprovedMember returns false for pending member', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const pending = await UserFactory.create()
-
-    await OrganizationUserFactory.create({
-      organization_id: org.id,
-      user_id: pending.id,
-      org_role: 'org_member',
-      status: 'pending',
-    })
-
-    const isApproved = await OrganizationUserRepository.isApprovedMember(pending.id, org.id)
-    assert.isFalse(isApproved)
-  })
-
-  test('isOrgAdminOrOwner returns true for owner', async ({ assert }) => {
+  test('owner promotes a member to admin and the change is observable through side effects', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(owner.id, org.id)
-    assert.isTrue(isAdmin)
-  })
-
-  test('isOrgAdminOrOwner returns false for regular member', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
     const member = await UserFactory.create()
 
     await OrganizationUserFactory.create({
       organization_id: org.id,
       user_id: member.id,
-      org_role: 'org_member',
+      org_role: OrganizationRole.MEMBER,
       status: 'approved',
     })
 
-    const isAdmin = await OrganizationUserRepository.isAdminOrOwner(member.id, org.id)
-    assert.isFalse(isAdmin)
+    const command = new UpdateMemberRoleCommand(
+      ExecutionContext.system(owner.id),
+      new CreateNotification()
+    )
+    const dto = new UpdateMemberRoleDTO(org.id, member.id, OrganizationRole.ADMIN)
+
+    await command.execute(dto)
+
+    const membership = await OrganizationUserRepository.findMembership(org.id, member.id)
+    assert.isNotNull(membership)
+    if (!membership) {
+      assert.fail('Expected promoted member to keep a membership row')
+    }
+    assert.equal(membership.org_role, OrganizationRole.ADMIN)
+    assert.isTrue(await OrganizationUserRepository.isAdminOrOwner(member.id, org.id))
+
+    const notifications = await getUserNotifications(member.id)
+    const roleChanged = notifications.notifications.find(
+      (notification) => notification.type === 'role_changed'
+    )
+    assert.isDefined(roleChanged)
+    if (!roleChanged) {
+      assert.fail('Expected a role_changed notification for the promoted member')
+    }
+    assert.equal(roleChanged.related_entity_id, org.id)
+    assert.include(roleChanged.message, 'Quản trị viên')
+
+    const auditLogs = await getOrganizationAuditLogs(AuditAction.UPDATE_MEMBER_ROLE, org.id)
+    assert.lengthOf(auditLogs, 1)
+    const [auditLog] = auditLogs
+    if (!auditLog) {
+      assert.fail('Expected one audit log for the role change')
+    }
+    assert.equal(auditLog.old_values?.org_role, OrganizationRole.MEMBER)
+    assert.equal(auditLog.new_values?.org_role, OrganizationRole.ADMIN)
+    assert.equal(auditLog.new_values?.user_id, member.id)
+  })
+
+  test('pending admins cannot change another member role', async ({ assert }) => {
+    const { org } = await OrganizationFactory.createWithOwner()
+    const pendingAdmin = await UserFactory.create()
+    const targetMember = await UserFactory.create()
+
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: pendingAdmin.id,
+      org_role: OrganizationRole.ADMIN,
+      status: 'pending',
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: targetMember.id,
+      org_role: OrganizationRole.MEMBER,
+      status: 'approved',
+    })
+
+    const command = new UpdateMemberRoleCommand(
+      ExecutionContext.system(pendingAdmin.id),
+      new CreateNotification()
+    )
+    const dto = new UpdateMemberRoleDTO(org.id, targetMember.id, OrganizationRole.ADMIN)
+
+    await assert.rejects(() => command.execute(dto), ForbiddenException)
+
+    const membership = await OrganizationUserRepository.findMembership(org.id, targetMember.id)
+    assert.isNotNull(membership)
+    if (!membership) {
+      assert.fail('Expected target member to remain in the organization')
+    }
+    assert.equal(membership.org_role, OrganizationRole.MEMBER)
+    assert.isFalse(await OrganizationUserRepository.isAdminOrOwner(targetMember.id, org.id))
+
+    const notifications = await getUserNotifications(targetMember.id)
+    assert.lengthOf(notifications.notifications, 0)
+
+    const auditLogs = await getOrganizationAuditLogs(AuditAction.UPDATE_MEMBER_ROLE, org.id)
+    assert.lengthOf(auditLogs, 0)
+  })
+
+  test('owner removal unassigns the member tasks, decreases member count, and emits audit data', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const memberToRemove = await UserFactory.create()
+    const remainingMember = await UserFactory.create()
+
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: memberToRemove.id,
+      org_role: OrganizationRole.MEMBER,
+      status: 'approved',
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: remainingMember.id,
+      org_role: OrganizationRole.MEMBER,
+      status: 'approved',
+    })
+
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+
+    const removedTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      project_id: project.id,
+      assigned_to: memberToRemove.id,
+    })
+    const preservedTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      project_id: project.id,
+      assigned_to: remainingMember.id,
+    })
+
+    const beforeCount = await OrganizationUserRepository.countMembers(org.id)
+    assert.equal(beforeCount, 3)
+
+    const command = new RemoveMemberCommand(
+      ExecutionContext.system(owner.id),
+      new CreateNotification()
+    )
+    const dto = new RemoveMemberDTO(org.id, memberToRemove.id, ' No longer staffed ')
+
+    await command.execute(dto)
+
+    const afterCount = await OrganizationUserRepository.countMembers(org.id)
+    assert.equal(afterCount, 2)
+    assert.isNull(await OrganizationUserRepository.findMembership(org.id, memberToRemove.id))
+
+    const updatedRemovedTask = await Task.findOrFail(removedTask.id)
+    const updatedPreservedTask = await Task.findOrFail(preservedTask.id)
+    assert.isNull(updatedRemovedTask.assigned_to)
+    assert.equal(updatedPreservedTask.assigned_to, remainingMember.id)
+
+    const notifications = await getUserNotifications(memberToRemove.id)
+    const removalNotification = notifications.notifications.find(
+      (notification) => notification.type === 'member_removed'
+    )
+    assert.isDefined(removalNotification)
+    if (!removalNotification) {
+      assert.fail('Expected the removed member to receive a removal notification')
+    }
+    assert.include(removalNotification.message, 'No longer staffed')
+
+    const auditLogs = await getOrganizationAuditLogs('remove_member', org.id)
+    assert.lengthOf(auditLogs, 1)
+    const [auditLog] = auditLogs
+    if (!auditLog) {
+      assert.fail('Expected one audit log for member removal')
+    }
+    assert.equal(auditLog.new_values?.removed_user_id, memberToRemove.id)
+    assert.equal(auditLog.new_values?.reason, 'No longer staffed')
   })
 })

@@ -26,14 +26,13 @@ interface MetadataResult {
  * Pattern: Static dropdown data (learned from Tasks module)
  * Features:
  * - Roles list (for member assignment)
- * - Plans list (for organization settings)
+ * - Legacy plan field is intentionally not exposed as product metadata
  * - Redis caching (10 min TTL - very static data)
  * - No permission check (public metadata)
  *
  * Use cases:
  * - Dropdown data for forms
  * - Role selection when inviting users
- * - Plan selection when creating/updating org
  *
  * @example
  * const query = new GetOrganizationMetadataQuery(ctx)
@@ -76,61 +75,11 @@ export default class GetOrganizationMetadataQuery {
   }
 
   /**
-   * Load all plans (hardcoded since plans are usually static)
+   * organizations.plan hiện chưa được dùng như product package cho organization.
+   * Giữ field `plans` rỗng để tránh làm UI hiểu sai.
    */
   private loadPlans(): PlanRecord[] {
-    // This could be from database if you have a plans table
-    // For now, returning hardcoded common plans
-    return [
-      {
-        name: 'free',
-        display_name: 'Miễn phí',
-        description: 'Phù hợp cho cá nhân và nhóm nhỏ',
-        features: ['Tối đa 5 thành viên', 'Tối đa 10 dự án', 'Lưu trữ 1GB', 'Hỗ trợ cơ bản'],
-      },
-      {
-        name: 'starter',
-        display_name: 'Starter',
-        description: 'Phù hợp cho startup và doanh nghiệp nhỏ',
-        features: [
-          'Tối đa 20 thành viên',
-          'Dự án không giới hạn',
-          'Lưu trữ 10GB',
-          'Hỗ trợ ưu tiên',
-          'Báo cáo nâng cao',
-        ],
-      },
-      {
-        name: 'business',
-        display_name: 'Business',
-        description: 'Phù hợp cho doanh nghiệp vừa và lớn',
-        features: [
-          'Tối đa 100 thành viên',
-          'Dự án không giới hạn',
-          'Lưu trữ 100GB',
-          'Hỗ trợ 24/7',
-          'Báo cáo nâng cao',
-          'Tích hợp API',
-          'SSO',
-        ],
-      },
-      {
-        name: 'enterprise',
-        display_name: 'Enterprise',
-        description: 'Phù hợp cho tập đoàn và doanh nghiệp lớn',
-        features: [
-          'Thành viên không giới hạn',
-          'Dự án không giới hạn',
-          'Lưu trữ không giới hạn',
-          'Hỗ trợ 24/7 với dedicated manager',
-          'Báo cáo tùy chỉnh',
-          'Tích hợp API không giới hạn',
-          'SSO & SAML',
-          'Audit logs',
-          'On-premise deployment',
-        ],
-      },
-    ]
+    return []
   }
 
   /**

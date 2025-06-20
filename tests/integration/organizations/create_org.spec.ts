@@ -1,13 +1,25 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
+import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import Organization from '#models/organization'
 import OrganizationUser from '#models/organization_user'
 import AuditLog from '#models/mongo/audit_log'
+import TaskStatusModel from '#models/task_status'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
 import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
 import CreateNotification from '#actions/common/create_notification'
+import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import User from '#models/user'
 import { ExecutionContext } from '#types/execution_context'
+import { DEFAULT_TASK_STATUSES } from '#constants/task_constants'
+
+async function createOrganizationAs(userId: string, name: string) {
+  const command = new CreateOrganizationCommand(
+    ExecutionContext.system(userId),
+    new CreateNotification()
+  )
+  return command.execute(new CreateOrganizationDTO(name))
+}
 
 test.group('Integration | Create Organization', (group) => {
   group.setup(async () => {
@@ -16,109 +28,80 @@ test.group('Integration | Create Organization', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('creates org successfully', async ({ assert }) => {
+  test('creation seeds owner context, default workflow, audit log, and welcome notification', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
 
-    const dto = new CreateOrganizationDTO('Test Organization')
-    const org = await command.execute(dto)
-
-    assert.isNotNull(org)
-    assert.equal(org.name, 'Test Organization')
-    assert.equal(org.owner_id, user.id)
-  })
-
-  test('auto-creates owner membership', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
-
-    const dto = new CreateOrganizationDTO('Owner Membership Org')
-    const org = await command.execute(dto)
-
+    const organization = await createOrganizationAs(user.id, 'Platform Guild')
     const membership = await OrganizationUser.query()
-      .where('organization_id', org.id)
+      .where('organization_id', organization.id)
       .where('user_id', user.id)
       .first()
+    const refreshedUser = await User.findOrFail(user.id)
+    const statuses = await TaskStatusModel.query()
+      .where('organization_id', organization.id)
+      .orderBy('sort_order', 'asc')
+    const notifications = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+      page: 1,
+      limit: 10,
+    })
+    const logs = await AuditLog.query()
+      .where('entity_type', 'organization')
+      .where('entity_id', organization.id)
 
+    assert.equal(organization.owner_id, user.id)
+    assert.equal(organization.plan, 'free')
+    assert.isTrue(organization.slug.length > 0)
     assert.isNotNull(membership)
-    assert.equal(membership!.org_role, 'org_owner')
-    assert.equal(membership!.status, 'approved')
+    assert.equal(membership?.org_role, 'org_owner')
+    assert.equal(membership?.status, 'approved')
+    assert.equal(refreshedUser.current_organization_id, organization.id)
+    assert.equal(statuses.length, DEFAULT_TASK_STATUSES.length)
+    assert.isTrue(statuses.some((status) => status.slug === 'todo' && status.is_default))
+    assert.isTrue(statuses.some((status) => status.slug === 'done'))
+    assert.isAbove(logs.length, 0)
+    assert.equal(notifications.unread_count, 1)
+    assert.isTrue(
+      notifications.notifications.some(
+        (notification) =>
+          notification.type === 'organization_created' &&
+          notification.related_entity_id === organization.id
+      )
+    )
   })
 
-  test('slug auto-generated from name', async ({ assert }) => {
+  test('duplicate names still resolve to unique slugs for separate organizations', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
 
-    const dto = new CreateOrganizationDTO('My Awesome Team')
-    const org = await command.execute(dto)
+    const first = await createOrganizationAs(user.id, 'Delivery Team')
+    const second = await createOrganizationAs(user.id, 'Delivery Team')
 
-    assert.isNotNull(org.slug)
-    assert.isTrue(org.slug.length > 0)
+    assert.notEqual(first.slug, second.slug)
   })
 
-  test('user current_org_id set after creation', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
+  test('inactive creators are rejected before organization side effects are written', async ({
+    assert,
+  }) => {
+    const inactiveUser = await UserFactory.create({ status: 'inactive' })
+    const command = new CreateOrganizationCommand(
+      ExecutionContext.system(inactiveUser.id),
+      new CreateNotification()
+    )
 
-    const dto = new CreateOrganizationDTO('Set Org Test')
-    const org = await command.execute(dto)
+    await assert.rejects(() => command.execute(new CreateOrganizationDTO('Blocked Org')))
 
-    const { default: User } = await import('#models/user')
-    const updatedUser = await User.findOrFail(user.id)
-    assert.equal(updatedUser.current_organization_id, org.id)
-  })
+    const organizations = await Organization.query().where('owner_id', inactiveUser.id)
+    const notifications = await new GetUserNotifications(
+      ExecutionContext.system(inactiveUser.id)
+    ).handle({
+      page: 1,
+      limit: 10,
+    })
 
-  test('duplicate slug handled', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
-
-    const dto1 = new CreateOrganizationDTO('Unique Org Name')
-    const org1 = await command.execute(dto1)
-
-    const dto2 = new CreateOrganizationDTO('Unique Org Name')
-    const org2 = await command.execute(dto2)
-
-    assert.notEqual(org1.slug, org2.slug)
-  })
-
-  test('custom_roles defaults to empty', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const result = await Organization.findOrFail(org.id)
-    assert.isTrue(result.custom_roles === null || Array.isArray(result.custom_roles))
-  })
-
-  test('audit log created on org creation', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
-
-    const dto = new CreateOrganizationDTO('Audited Org')
-    const org = await command.execute(dto)
-
-    try {
-      const logs = await AuditLog.query()
-        .where('entity_type', 'organization')
-        .where('entity_id', org.id)
-      assert.isAbove(logs.length, 0)
-    } catch {
-      // MongoDB not connected in test environment — skip audit assertion
-      assert.isTrue(true)
-    }
-  })
-
-  test('plan defaults to free', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const ctx = ExecutionContext.system(user.id)
-    const command = new CreateOrganizationCommand(ctx, new CreateNotification())
-
-    const dto = new CreateOrganizationDTO('Free Plan Org')
-    const org = await command.execute(dto)
-
-    assert.equal(org.plan, 'free')
+    assert.lengthOf(organizations, 0)
+    assert.equal(notifications.meta.total, 0)
   })
 })

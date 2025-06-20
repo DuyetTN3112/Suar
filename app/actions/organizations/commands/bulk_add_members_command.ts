@@ -1,6 +1,4 @@
 import { type ExecutionContext } from '#types/execution_context'
-import OrganizationUser from '#models/organization_user'
-import User from '#models/user'
 import { OrganizationRole } from '#constants/organization_constants'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
 import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
@@ -8,6 +6,8 @@ import CreateNotification from '#actions/common/create_notification'
 import loggerService from '#services/logger_service'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import type { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 interface BulkAddResult {
   user_id: string
@@ -41,8 +41,7 @@ export default class BulkAddMembersCommand {
 
     for (const userId of dto.userIds) {
       try {
-        // Check user exists
-        const targetUser = await User.find(userId)
+        const targetUser = await UserRepository.findById(userId)
         if (!targetUser) {
           results.push({
             user_id: userId,
@@ -53,10 +52,10 @@ export default class BulkAddMembersCommand {
         }
 
         // Check not already a member
-        const existingMember = await OrganizationUser.query()
-          .where('user_id', userId)
-          .where('organization_id', dto.organizationId)
-          .first()
+        const existingMember = await OrganizationUserRepository.findMembership(
+          dto.organizationId,
+          userId
+        )
 
         if (existingMember) {
           results.push({
@@ -92,10 +91,7 @@ export default class BulkAddMembersCommand {
   }
 
   private async checkPermission(userId: string, organizationId: string): Promise<void> {
-    const orgUser = await OrganizationUser.query()
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .first()
+    const orgUser = await OrganizationUserRepository.findMembership(organizationId, userId)
 
     if (orgUser?.org_role !== OrganizationRole.OWNER) {
       throw new ForbiddenException('Bạn không có quyền thêm người dùng vào tổ chức')

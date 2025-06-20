@@ -1,9 +1,10 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import Organization from '#models/organization'
+import type Organization from '#models/organization'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import AuditLog from '#models/mongo/audit_log'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
@@ -69,7 +70,7 @@ export default class CreateOrganizationCommand {
       const slug = await this.getUniqueSlug(baseSlug, trx)
 
       // 4. Create organization
-      const organization = await Organization.create(
+      const organization = await OrganizationRepository.create(
         {
           name: dto.name,
           slug: slug,
@@ -95,11 +96,7 @@ export default class CreateOrganizationCommand {
       )
 
       // 5b. Set user's current_organization_id
-      const userModule = await import('#models/user')
-      const User = userModule.default
-      await User.query({ client: trx })
-        .where('id', userId)
-        .update({ current_organization_id: organization.id })
+      await UserRepository.updateCurrentOrganization(userId, organization.id, trx)
 
       // 5c. Seed default task statuses + workflow transitions (Phase 4)
       const taskStatusModule = await import('#actions/tasks/commands/seed_default_task_statuses')
@@ -107,14 +104,12 @@ export default class CreateOrganizationCommand {
       await seedDefaultTaskStatuses(organization.id, trx)
 
       // 6. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.CREATE,
         entity_type: EntityType.ORGANIZATION,
         entity_id: organization.id,
         new_values: organization.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -150,8 +145,6 @@ export default class CreateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const userRepositoryModule = await import('#infra/users/repositories/user_repository')
-    const UserRepository = userRepositoryModule.default
     const isActive = await UserRepository.isActive(userId, trx)
     if (!isActive) {
       throw new NotFoundException('Creator không tồn tại hoặc không active')

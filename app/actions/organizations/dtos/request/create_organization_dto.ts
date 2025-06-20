@@ -116,7 +116,7 @@ export class CreateOrganizationDTO {
         throw new ValidationException('Organization plan must be a string')
       }
 
-      const validPlans = ['free', 'basic', 'premium', 'enterprise']
+      const validPlans = ['free', 'starter', 'professional', 'enterprise']
       if (!validPlans.includes(this.plan.toLowerCase())) {
         throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
       }
@@ -200,8 +200,8 @@ export class CreateOrganizationDTO {
     const plan = this.plan?.toLowerCase() || 'free'
     const planNames: Record<string, string> = {
       free: 'Miễn phí',
-      basic: 'Cơ bản',
-      premium: 'Cao cấp',
+      starter: 'Khởi đầu',
+      professional: 'Chuyên nghiệp',
       enterprise: 'Doanh nghiệp',
     }
     return planNames[plan] || 'Miễn phí'

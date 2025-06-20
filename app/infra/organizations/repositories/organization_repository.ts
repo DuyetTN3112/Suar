@@ -55,6 +55,42 @@ export default class OrganizationRepository {
     return org
   }
 
+  static async findActiveForUpdate(orgId: DatabaseId, trx: TransactionClientContract) {
+    return Organization.query({ client: trx })
+      .where('id', orgId)
+      .whereNull('deleted_at')
+      .forUpdate()
+      .firstOrFail()
+  }
+
+  static async create(
+    data: Partial<Organization>,
+    trx?: TransactionClientContract
+  ): Promise<Organization> {
+    return Organization.create(data, trx ? { client: trx } : undefined)
+  }
+
+  static async save(
+    organization: Organization,
+    trx?: TransactionClientContract
+  ): Promise<Organization> {
+    if (trx) {
+      organization.useTransaction(trx)
+    }
+    await organization.save()
+    return organization
+  }
+
+  static async hardDelete(
+    organization: Organization,
+    trx?: TransactionClientContract
+  ): Promise<void> {
+    if (trx) {
+      organization.useTransaction(trx)
+    }
+    await organization.delete()
+  }
+
   static async existsActive(orgId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
     try {
       await this.findActiveOrFail(orgId, trx)
@@ -149,6 +185,23 @@ export default class OrganizationRepository {
     if (orgIds.length === 0) return []
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
     return query.whereIn('id', orgIds).whereNull('deleted_at').select(columns)
+  }
+
+  static async hasAnyActivePartnerByIds(
+    orgIds: DatabaseId[],
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    if (orgIds.length === 0) {
+      return false
+    }
+
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    const organization = await query
+      .whereIn('id', orgIds)
+      .where('partner_is_active', true)
+      .first()
+
+    return !!organization
   }
 
   static async paginateByUser(

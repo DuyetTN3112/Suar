@@ -2,10 +2,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -40,7 +40,7 @@ export default class RemoveMemberCommand {
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
       const [actorOrgRole, targetMembership] = await Promise.all([
-        OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx, false),
+        OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx),
         OrganizationUserRepository.findMembership(dto.organizationId, dto.userId, trx),
       ])
 
@@ -65,7 +65,7 @@ export default class RemoveMemberCommand {
       // Remove member from organization
       await OrganizationUserRepository.deleteMember(dto.organizationId, dto.userId, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: 'remove_member',
         entity_type: EntityType.ORGANIZATION,
@@ -76,8 +76,6 @@ export default class RemoveMemberCommand {
           removed_user_role: targetMembership.org_role,
           reason: dto.getNormalizedReason(),
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

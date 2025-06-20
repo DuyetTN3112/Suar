@@ -1,8 +1,8 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import Organization from '#models/organization'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -10,7 +10,6 @@ import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
@@ -41,7 +40,7 @@ export default class UpdateOrganizationCommand {
    * 6. Create audit log
    * 7. Commit transaction
    */
-  async execute(dto: UpdateOrganizationDTO): Promise<Organization> {
+  async execute(dto: UpdateOrganizationDTO): Promise<import('#models/organization').default> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')
@@ -50,10 +49,7 @@ export default class UpdateOrganizationCommand {
 
     try {
       // 1. Find organization
-      const organization = await Organization.find(dto.organizationId)
-      if (!organization) {
-        throw new BusinessLogicException(`Organization with ID ${dto.organizationId} not found`)
-      }
+      const organization = await OrganizationRepository.findActiveOrFail(dto.organizationId, trx)
 
       // 2. Check permissions (Owner or Admin)
       await this.checkPermissions(organization.id, userId, trx)
@@ -64,18 +60,16 @@ export default class UpdateOrganizationCommand {
       // 4. Update organization with provided fields
       const updates = dto.toObject()
       organization.merge(updates)
-      await organization.useTransaction(trx).save()
+      await OrganizationRepository.save(organization, trx)
 
       // 5. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE,
         entity_type: EntityType.ORGANIZATION,
         entity_id: organization.id,
         old_values: oldValues,
         new_values: organization.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -109,8 +103,7 @@ export default class UpdateOrganizationCommand {
     const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
       userId,
       organizationId,
-      trx,
-      false
+      trx
     )
     if (!hasPermission) {
       throw new ForbiddenException('You do not have permission to update this organization')
