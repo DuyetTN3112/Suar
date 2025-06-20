@@ -69,21 +69,23 @@ export default class GetPendingRequestsQuery {
       await OrganizationUserRepository.findPendingMembersWithDetails(organizationId)
 
     // 4. Format response
-    const result: RequestResult[] = pendingMembers.map((member) => ({
-      id: member.user_id,
-      user_id: member.user_id,
-      organization_id: member.organization_id,
-      organization_name: member.organization.name,
-      message: '',
-      status: member.status,
-      created_at: member.created_at.toJSDate(),
-      updated_at: member.updated_at.toJSDate(),
-      user: {
+    const result: RequestResult[] = pendingMembers
+      .filter((member) => member.invited_by === null)
+      .map((member) => ({
         id: member.user_id,
-        username: member.user.username,
-        email: member.user.email,
-      },
-    }))
+        user_id: member.user_id,
+        organization_id: member.organization_id,
+        organization_name: member.organization.name,
+        message: '',
+        status: member.status,
+        created_at: member.created_at.toJSDate(),
+        updated_at: member.updated_at.toJSDate(),
+        user: {
+          id: member.user_id,
+          username: member.user.username,
+          email: member.user.email,
+        },
+      }))
 
     // 5. Cache result (1 minute - very volatile data)
     await this.saveToCache(cacheKey, result, 60)
@@ -95,7 +97,7 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUserRepository.isAdminOrOwner(userId, organizationId, undefined, false)
+    return OrganizationUserRepository.isAdminOrOwner(userId, organizationId)
   }
 
   /**

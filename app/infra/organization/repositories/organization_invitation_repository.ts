@@ -1,7 +1,5 @@
-import OrganizationInvitation from '#models/organization_invitation'
-import User from '#models/user'
 import type { DatabaseId } from '#types/database'
-import { DateTime } from 'luxon'
+import db from '@adonisjs/lucid/services/db'
 
 /**
  * OrganizationInvitationRepository
@@ -32,6 +30,73 @@ export interface ListInvitationsResult {
   total: number
 }
 
+interface InvitationCountRow {
+  total: number | string
+}
+
+interface InvitationRow {
+  user_id: string
+  email: string | null
+  org_role: string
+  status: string
+  created_at: Date | string
+  inviter_id: string | null
+  inviter_username: string | null
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const toStringValue = (value: unknown): string => {
+  return typeof value === 'string' ? value : ''
+}
+
+const toDateValue = (value: unknown): Date => {
+  if (value instanceof Date) {
+    return value
+  }
+  if (typeof value === 'string') {
+    return new Date(value)
+  }
+  return new Date(0)
+}
+
+const isInvitationCountRow = (value: unknown): value is InvitationCountRow => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  return typeof value.total === 'number' || typeof value.total === 'string'
+}
+
+const isInvitationRow = (value: unknown): value is InvitationRow => {
+  if (!isRecord(value)) {
+    return false
+  }
+
+  return (
+    typeof value.user_id === 'string' &&
+    (typeof value.email === 'string' || value.email === null) &&
+    typeof value.org_role === 'string' &&
+    typeof value.status === 'string' &&
+    (value.created_at instanceof Date || typeof value.created_at === 'string') &&
+    (typeof value.inviter_id === 'string' || value.inviter_id === null) &&
+    (typeof value.inviter_username === 'string' || value.inviter_username === null)
+  )
+}
+
 export default class OrganizationInvitationRepository {
   /**
    * List invitations for an organization with filters and pagination
@@ -42,79 +107,80 @@ export default class OrganizationInvitationRepository {
     page: number,
     perPage: number
   ): Promise<ListInvitationsResult> {
-    const query = OrganizationInvitation.query().where('organization_id', organizationId)
+    const query = db
+      .from('organization_users as ou')
+      .innerJoin('users as invitee', 'invitee.id', 'ou.user_id')
+      .leftJoin('users as inviter', 'inviter.id', 'ou.invited_by')
+      .where('ou.organization_id', organizationId)
+      .whereNotNull('ou.invited_by')
+      .select(
+        'ou.user_id',
+        'invitee.email',
+        'ou.org_role',
+        'ou.status',
+        'ou.created_at',
+        'inviter.id as inviter_id',
+        'inviter.username as inviter_username'
+      )
 
-    // Apply filters
-    if (filters.search) {
-      void query.where('email', 'ilike', `%${filters.search}%`)
+    const search = filters.search?.trim()
+    if (search) {
+      void query.where((builder) => {
+        void builder
+          .whereILike('invitee.email', `%${search}%`)
+          .orWhereILike('invitee.username', `%${search}%`)
+      })
     }
 
     if (filters.status) {
-      void query.where('status', filters.status)
+      const mappedStatus =
+        filters.status === 'accepted'
+          ? 'approved'
+          : filters.status === 'declined'
+            ? 'rejected'
+            : filters.status
+      void query.where('ou.status', mappedStatus)
     }
 
-    // Order by created_at DESC
-    void query.orderBy('created_at', 'desc')
+    const countQuery = query.clone().clearSelect().clearOrder().count('* as total')
+    const countResultRaw: unknown = await countQuery.first()
+    const countResult = isInvitationCountRow(countResultRaw) ? countResultRaw : null
+    const total = countResult ? toNumberValue(countResult.total) : 0
 
-    // Execute with pagination
-    const result = await query.paginate(page, perPage)
+    const rowsRaw: unknown = await query
+      .orderBy('ou.created_at', 'desc')
+      .limit(perPage)
+      .offset((page - 1) * perPage)
+    const rows = Array.isArray(rowsRaw) ? rowsRaw.filter(isInvitationRow) : []
 
-    // Get inviter details
-    const inviterIds = [...new Set(result.all().map((inv) => inv.invited_by))]
-    const inviters = await User.query().whereIn('id', inviterIds)
-    const inviterMap = new Map(inviters.map((u) => [u.id, u]))
-
-    const invitations = result.all().map((invitation) => {
-      const inviter = inviterMap.get(invitation.invited_by)
+    const invitations = rows.map((invitation) => {
+      const createdAt = toDateValue(invitation.created_at)
+      const expiresAt = new Date(createdAt)
+      expiresAt.setDate(expiresAt.getDate() + 7)
+      const status =
+        invitation.status === 'approved'
+          ? 'accepted'
+          : invitation.status === 'rejected'
+            ? 'declined'
+            : 'pending'
 
       return {
-        id: invitation.id,
-        email: invitation.email,
-        org_role: invitation.org_role,
+        id: toStringValue(invitation.user_id),
+        email: toStringValue(invitation.email),
+        org_role: toStringValue(invitation.org_role),
         invited_by: {
-          id: invitation.invited_by,
-          username: inviter ? inviter.username : 'Unknown',
+          id: toStringValue(invitation.inviter_id),
+          username: invitation.inviter_username ?? 'Unknown',
         },
-        status: invitation.status as 'pending' | 'accepted' | 'declined' | 'expired',
-        invited_at: invitation.created_at.toISO() || new Date().toISOString(),
-        expires_at: invitation.expires_at?.toISO() ?? new Date().toISOString(),
+        status,
+        invited_at: createdAt.toISOString(),
+        expires_at: expiresAt.toISOString(),
       }
     })
 
     return {
       invitations,
-      total: result.total,
+      total,
     }
-  }
-
-  /**
-   * Create new invitation
-   */
-  async createInvitation(data: {
-    organizationId: string
-    email: string
-    orgRole: string
-    invitedById: string
-  }) {
-    const expiresAt = new Date()
-    expiresAt.setDate(expiresAt.getDate() + 7) // 7 days expiry
-
-    return await OrganizationInvitation.create({
-      organization_id: data.organizationId,
-      email: data.email,
-      org_role: data.orgRole,
-      invited_by: data.invitedById,
-      status: 'pending',
-      token: '',
-      expires_at: DateTime.fromJSDate(expiresAt),
-    })
-  }
-
-  /**
-   * Cancel invitation
-   */
-  async cancelInvitation(invitationId: string) {
-    const invitation = await OrganizationInvitation.findOrFail(invitationId)
-    await invitation.delete()
   }
 }

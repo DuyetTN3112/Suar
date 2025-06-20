@@ -1,14 +1,15 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import OrganizationInvitation from '#models/organization_invitation'
 import OrganizationJoinRequest from '#models/organization_join_request'
+import OrganizationUser from '#models/organization_user'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * OrgAccessRepository
  *
  * Data access for organization invitations and join requests.
- * Extracted from OrganizationInvitation + OrganizationJoinRequest model static methods.
+ * Invitation source-of-truth now lives on organization_users with invited_by + pending status.
  */
 export default class OrgAccessRepository {
   private readonly _instanceMarker = true
@@ -24,14 +25,17 @@ export default class OrgAccessRepository {
     email: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    const query = trx
-      ? OrganizationInvitation.query({ client: trx })
-      : OrganizationInvitation.query()
+    const invitee = await UserRepository.findByEmail(email, trx)
+    if (!invitee) {
+      return false
+    }
+
+    const query = trx ? OrganizationUser.query({ client: trx }) : OrganizationUser.query()
     const invitation = await query
       .where('organization_id', organizationId)
-      .where('email', email)
+      .where('user_id', invitee.id)
+      .whereNotNull('invited_by')
       .where('status', OrganizationUserStatus.PENDING)
-      .where('expires_at', '>', new Date())
       .first()
     return !!invitation
   }
@@ -41,24 +45,27 @@ export default class OrgAccessRepository {
       organization_id: DatabaseId
       email: string
       org_role?: string
-      token?: string
       invited_by: DatabaseId
-      expires_at?: Date
     },
     trx?: TransactionClientContract
-  ): Promise<OrganizationInvitation> {
+  ): Promise<OrganizationUser> {
+    const invitee = await UserRepository.findByEmail(data.email, trx)
+    if (!invitee) {
+      const { default: NotFoundException } = await import('#exceptions/not_found_exception')
+      throw new NotFoundException('Không tìm thấy người dùng với email này')
+    }
+
     const createData = {
       organization_id: data.organization_id,
-      email: data.email,
+      user_id: invitee.id,
       org_role: data.org_role ?? OrganizationRole.MEMBER,
-      token: data.token ?? '',
       invited_by: data.invited_by,
       status: OrganizationUserStatus.PENDING,
     }
     if (trx) {
-      return OrganizationInvitation.create(createData, { client: trx })
+      return OrganizationUser.create(createData, { client: trx })
     }
-    return OrganizationInvitation.create(createData)
+    return OrganizationUser.create(createData)
   }
 
   // ── Join Request queries ──

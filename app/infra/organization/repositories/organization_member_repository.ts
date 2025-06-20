@@ -182,6 +182,7 @@ export default class OrganizationMemberRepository {
       .count('* as total')
       .where('organization_id', organizationId)
       .where('status', 'pending')
+      .whereNotNull('invited_by')
       .first()
 
     const byRole = (Array.isArray(byRoleRaw) ? byRoleRaw : []) as unknown[]

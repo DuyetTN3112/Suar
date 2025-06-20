@@ -1,9 +1,10 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/mongo/audit_log'
-import Organization from '#models/organization'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import OrgAccessRepository from '#infra/organizations/repositories/org_access_repository'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -20,8 +21,7 @@ import emitter from '@adonisjs/core/services/emitter'
  * Pattern: Invitation record creation (without email)
  * Business rules:
  * - Only Owner (role_id = 1) or Admin (role_id = 2) can send invites
- * - Generate unique token for invitation
- * - Token expires in 7 days
+ * - Invitation source-of-truth is organization_users with invited_by + pending status
  *
  * @example
  * const command = new InviteUserCommand(ctx)
@@ -35,9 +35,9 @@ export default class InviteUserCommand {
    *
    * Steps:
    * 1. Check permissions
-   * 2. Check for duplicate invitations
+   * 2. Resolve invitee and check for duplicate invitations
    * 3. Begin transaction
-   * 4. Create invitation record
+   * 4. Create pending membership invitation
    * 5. Create audit log
    * 6. Commit transaction
    */
@@ -52,29 +52,37 @@ export default class InviteUserCommand {
       // 1. Check permissions (Owner or Admin)
       await this.checkPermissions(dto.organizationId, userId, trx)
 
-      // 2. Check for duplicate active invitations
-      await this.checkDuplicateInvitation(dto, trx)
+      // 2. Resolve invitee and check duplicate membership/invitation state
+      const invitee = await UserRepository.findByEmail(dto.getNormalizedEmail(), trx)
+      if (!invitee) {
+        throw new NotFoundException('Không tìm thấy người dùng với email này')
+      }
+      await this.checkDuplicateInvitation(
+        dto.organizationId,
+        invitee.id,
+        dto.getNormalizedEmail(),
+        trx
+      )
 
       // 3. Get organization details
-      const organization = await Organization.find(dto.organizationId)
+      const organization = await OrganizationRepository.findById(dto.organizationId, trx)
       if (!organization) {
         throw NotFoundException.resource('Tổ chức', dto.organizationId)
       }
 
-      // 4. Create invitation record via Model
-      const invitationData = dto.toObject()
+      // 4. Create invitation record via organization_users
       const invitation = await OrgAccessRepository.createInvitation(
         {
-          ...invitationData,
           organization_id: dto.organizationId,
           email: dto.getNormalizedEmail(),
           invited_by: userId,
+          org_role: dto.roleId,
         },
         trx
       )
 
       // 5. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.INVITE,
         entity_type: EntityType.ORGANIZATION,
@@ -82,10 +90,10 @@ export default class InviteUserCommand {
         new_values: {
           email: dto.getNormalizedEmail(),
           role: dto.getRoleName(),
-          invitation_id: invitation.id,
+          invited_user_id: invitee.id,
+          invited_membership_user_id: invitation.user_id,
+          status: invitation.status,
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -118,8 +126,7 @@ export default class InviteUserCommand {
     const hasPermission = await OrganizationUserRepository.isAdminOrOwner(
       userId,
       organizationId,
-      trx,
-      false
+      trx
     )
     if (!hasPermission) {
       throw new ForbiddenException('Bạn không có quyền gửi lời mời cho tổ chức này')
@@ -130,16 +137,39 @@ export default class InviteUserCommand {
    * Helper: Check for duplicate active invitations
    */
   private async checkDuplicateInvitation(
-    dto: InviteUserDTO,
+    organizationId: DatabaseId,
+    inviteeUserId: DatabaseId,
+    email: string,
     trx: TransactionClientContract
   ): Promise<void> {
-    const hasPending = await OrgAccessRepository.hasPendingInvitation(
-      dto.organizationId,
-      dto.getNormalizedEmail(),
+    const membership = await OrganizationUserRepository.findMembership(
+      organizationId,
+      inviteeUserId,
       trx
     )
-    if (hasPending) {
-      throw ConflictException.alreadyExists('Lời mời cho email này đã tồn tại và đang chờ xử lý')
+
+    if (!membership) {
+      return
     }
+
+    if (membership.status === 'approved') {
+      throw ConflictException.alreadyExists('Người dùng này đã là thành viên của tổ chức')
+    }
+
+    if (membership.status === 'pending' && membership.invited_by) {
+      throw ConflictException.alreadyExists(
+        `Lời mời cho email ${email} đã tồn tại và đang chờ xử lý`
+      )
+    }
+
+    if (membership.status === 'pending') {
+      throw ConflictException.alreadyExists(
+        'Người dùng này đã có yêu cầu tham gia tổ chức đang chờ xử lý'
+      )
+    }
+
+    throw ConflictException.alreadyExists(
+      'Người dùng này đã từng bị từ chối hoặc đã tồn tại trong tổ chức'
+    )
   }
 }

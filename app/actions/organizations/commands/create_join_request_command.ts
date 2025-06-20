@@ -1,7 +1,7 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import AuditLog from '#models/mongo/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import type { DatabaseId } from '#types/database'
@@ -79,7 +79,7 @@ export default class CreateJoinRequestCommand {
       }
 
       // 3. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.JOIN,
         entity_type: EntityType.ORGANIZATION,
@@ -89,8 +89,6 @@ export default class CreateJoinRequestCommand {
           organization_id: organizationId,
           status: OrganizationUserStatus.PENDING,
         },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

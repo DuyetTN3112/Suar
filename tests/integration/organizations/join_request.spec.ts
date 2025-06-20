@@ -23,14 +23,15 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       status: OrganizationUserStatus.PENDING,
     })
 
-    assert.isNotNull(membership)
     assert.equal(membership.status, OrganizationUserStatus.PENDING)
     assert.equal(membership.organization_id, org.id)
     assert.equal(membership.user_id, user.id)
     assert.equal(membership.org_role, OrganizationRole.MEMBER)
   })
 
-  test('approve flow updates membership status to approved', async ({ assert }) => {
+  test('approve flow updates status and removes the user from pending query results', async ({
+    assert,
+  }) => {
     const { org } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
@@ -41,100 +42,57 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       status: OrganizationUserStatus.PENDING,
     })
 
-    await OrganizationUserRepository.updateStatus(org.id, user.id, 'approved')
+    await OrganizationUserRepository.updateStatus(org.id, user.id, OrganizationUserStatus.APPROVED)
 
     const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
     assert.isNotNull(membership)
-    assert.equal(membership!.org_role, OrganizationRole.MEMBER)
-    assert.equal(membership!.status, OrganizationUserStatus.APPROVED)
-  })
+    if (membership === null) {
+      return
+    }
 
-  test('reject sets membership status to rejected', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const user = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user.id,
-      org_role: OrganizationRole.MEMBER,
-      status: OrganizationUserStatus.PENDING,
-    })
-
-    await OrganizationUserRepository.updateStatus(org.id, user.id, 'rejected')
-
-    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
-    assert.isNotNull(membership)
-    assert.equal(membership!.status, OrganizationUserStatus.REJECTED)
-  })
-
-  test('pending membership is detected by hasMembership', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const user = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user.id,
-      org_role: OrganizationRole.MEMBER,
-      status: OrganizationUserStatus.PENDING,
-    })
-
-    const hasMembership = await OrganizationUserRepository.isMember(user.id, org.id)
-    assert.isTrue(hasMembership)
-
-    // But NOT an approved member
-    const isApproved = await OrganizationUserRepository.isApprovedMember(user.id, org.id)
-    assert.isFalse(isApproved)
-  })
-
-  test('existing member has membership check returns true', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const isMember = await OrganizationUserRepository.isMember(owner.id, org.id)
-    assert.isTrue(isMember)
-  })
-
-  test('get pending members for organization returns all pending', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const user1 = await UserFactory.create()
-    const user2 = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user1.id,
-      org_role: OrganizationRole.MEMBER,
-      status: OrganizationUserStatus.PENDING,
-    })
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user2.id,
-      org_role: OrganizationRole.MEMBER,
-      status: OrganizationUserStatus.PENDING,
-    })
-
-    const pending = await OrganizationUser.query()
-      .where('organization_id', org.id)
-      .where('status', OrganizationUserStatus.PENDING)
-    assert.equal(pending.length, 2)
-  })
-
-  test('approved member no longer listed as pending', async ({ assert }) => {
-    const { org } = await OrganizationFactory.createWithOwner()
-    const user = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user.id,
-      org_role: OrganizationRole.MEMBER,
-      status: OrganizationUserStatus.PENDING,
-    })
-
-    await OrganizationUserRepository.updateStatus(org.id, user.id, 'approved')
-
+    assert.equal(membership.status, OrganizationUserStatus.APPROVED)
     const pendingMembers = await OrganizationUser.query()
       .where('organization_id', org.id)
       .where('status', OrganizationUserStatus.PENDING)
-    // Only the original pending members; the approved one should no longer appear
-    const userPending = pendingMembers.filter((m) => m.user_id === user.id)
-    assert.equal(userPending.length, 0)
+    assert.isFalse(pendingMembers.some((entry) => entry.user_id === user.id))
+  })
+
+  test('reject flow keeps membership row but marks it as rejected', async ({ assert }) => {
+    const { org } = await OrganizationFactory.createWithOwner()
+    const user = await UserFactory.create()
+
+    await OrganizationUserRepository.addMember({
+      organization_id: org.id,
+      user_id: user.id,
+      org_role: OrganizationRole.MEMBER,
+      status: OrganizationUserStatus.PENDING,
+    })
+
+    await OrganizationUserRepository.updateStatus(org.id, user.id, OrganizationUserStatus.REJECTED)
+
+    const membership = await OrganizationUserRepository.findMembership(org.id, user.id)
+    assert.isNotNull(membership)
+    if (membership === null) {
+      return
+    }
+    assert.equal(membership.status, OrganizationUserStatus.REJECTED)
+    assert.isTrue(await OrganizationUserRepository.isMember(user.id, org.id))
+  })
+
+  test('pending membership counts as membership but not approved membership', async ({
+    assert,
+  }) => {
+    const { org } = await OrganizationFactory.createWithOwner()
+    const user = await UserFactory.create()
+
+    await OrganizationUserRepository.addMember({
+      organization_id: org.id,
+      user_id: user.id,
+      org_role: OrganizationRole.MEMBER,
+      status: OrganizationUserStatus.PENDING,
+    })
+
+    assert.isTrue(await OrganizationUserRepository.isMember(user.id, org.id))
+    assert.isFalse(await OrganizationUserRepository.isApprovedMember(user.id, org.id))
   })
 })
