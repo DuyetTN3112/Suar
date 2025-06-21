@@ -1,7 +1,9 @@
-import { TaskStatus, TaskLabel, TaskPriority } from '#constants'
+import { TaskLabel, TaskPriority } from '#constants'
 import UserRepository from '#infra/users/repositories/user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
+import GetTaskProjectsQuery from './get_task_projects_query.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
@@ -34,8 +36,9 @@ export default class GetTaskMetadataQuery {
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
     availableSkills: Array<{ id: DatabaseId; name: string }>
+    projects: Array<{ id: DatabaseId; name: string }>
   }> {
     // Get organization_id
     const orgId = (organizationId || this.execCtx.organizationId) as DatabaseId | undefined
@@ -51,15 +54,16 @@ export default class GetTaskMetadataQuery {
       return cached
     }
 
-    const statuses = this.loadStatuses()
+    const statuses = await this.loadStatuses(orgId)
     const labels = this.loadLabels()
     const priorities = this.loadPriorities()
 
     // Load async metadata in parallel
-    const [users, parentTasks, availableSkills] = await Promise.all([
+    const [users, parentTasks, availableSkills, projects] = await Promise.all([
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
       this.loadAvailableSkills(),
+      new GetTaskProjectsQuery().execute(orgId),
     ])
 
     const result = {
@@ -69,6 +73,7 @@ export default class GetTaskMetadataQuery {
       users,
       parentTasks,
       availableSkills,
+      projects,
     }
 
     // Cache result
@@ -80,8 +85,11 @@ export default class GetTaskMetadataQuery {
   /**
    * Load all task statuses — v3: static enum values
    */
-  private loadStatuses(): Array<{ value: string; label: string }> {
-    return Object.values(TaskStatus).map((v) => ({ value: v, label: v }))
+  private async loadStatuses(
+    organizationId: DatabaseId
+  ): Promise<Array<{ value: string; label: string }>> {
+    const statuses = await TaskStatusRepository.findByOrganization(organizationId)
+    return statuses.map((status) => ({ value: status.id, label: status.name }))
   }
 
   /**
@@ -118,13 +126,13 @@ export default class GetTaskMetadataQuery {
    */
   private async loadParentTasks(
     organizationId: DatabaseId
-  ): Promise<Array<{ id: DatabaseId; title: string; status: string }>> {
+  ): Promise<Array<{ id: DatabaseId; title: string; task_status_id: string | null }>> {
     const tasks = await TaskRepository.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
       id: task.id,
       title: task.title,
-      status: task.status,
+      task_status_id: task.task_status_id,
     }))
   }
 
@@ -147,8 +155,9 @@ export default class GetTaskMetadataQuery {
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
     users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
     availableSkills: Array<{ id: DatabaseId; name: string }>
+    projects: Array<{ id: DatabaseId; name: string }>
   } | null> {
     try {
       const cached = await redis.get(key)
@@ -158,8 +167,9 @@ export default class GetTaskMetadataQuery {
           labels: Array<{ value: string; label: string }>
           priorities: Array<{ value: string; label: string }>
           users: Array<{ id: DatabaseId; username: string; email: string }>
-          parentTasks: Array<{ id: DatabaseId; title: string; status: string }>
+          parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
           availableSkills: Array<{ id: DatabaseId; name: string }>
+          projects: Array<{ id: DatabaseId; name: string }>
         }
         return parsed
       }

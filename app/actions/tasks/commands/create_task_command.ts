@@ -1,14 +1,13 @@
-import Task from '#models/task'
-import User from '#models/user'
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskRequiredSkillRepository from '#infra/tasks/repositories/task_required_skill_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
-import TaskRequiredSkill from '#models/task_required_skill'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
@@ -18,7 +17,6 @@ import { DateTime } from 'luxon'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import { TaskStatus } from '#constants/task_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
@@ -58,7 +56,7 @@ export default class CreateTaskCommand {
    * 5. Validate status/label/priority exists
    * 6. Validate due_date not past
    */
-  async execute(dto: CreateTaskDTO): Promise<Task> {
+  async execute(dto: CreateTaskDTO): Promise<import('#models/task').default> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -66,10 +64,10 @@ export default class CreateTaskCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Check creator active (Fat Model method)
+      // 1. Validate actor state through repositories
       await UserRepository.findActiveOrFail(userId, trx)
 
-      // 2. Check org exists (Fat Model method)
+      // 2. Validate organization context through repositories
       await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
       // 3. Check permission: admin/owner OR project_manager OR superadmin (pure rule)
@@ -78,7 +76,7 @@ export default class CreateTaskCommand {
         ? false
         : await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
       let isProjectManager = false
-      if (!isSuperadmin && !isOrgAdmin && dto.project_id) {
+      if (!isSuperadmin && !isOrgAdmin) {
         isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(
           userId,
           dto.project_id,
@@ -89,27 +87,37 @@ export default class CreateTaskCommand {
         canCreateTask({
           isOrgAdminOrOwner: isOrgAdmin,
           isProjectManagerOrOwner: isProjectManager,
-          hasProjectId: dto.project_id !== undefined,
+          hasProjectId: true,
           isSuperadmin,
         })
       )
 
-      // 4. Validate project thuộc org (Fat Model method)
-      if (dto.project_id) {
-        await ProjectRepository.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)
+      // 4. Validate project ownership boundary through repositories
+      await ProjectRepository.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)
+
+      if (dto.parent_task_id) {
+        const parentTask = await TaskRepository.findActiveTaskIdentity(dto.parent_task_id, trx)
+
+        if (!parentTask) {
+          throw new BusinessLogicException('Task cha không tồn tại')
+        }
+
+        if (parentTask.organization_id !== dto.organization_id) {
+          throw new BusinessLogicException('Task cha phải thuộc cùng tổ chức với task con')
+        }
       }
 
       // 5. Validate creation fields via pure rule
       enforcePolicy(
         validateTaskCreationFields({
-          status: dto.status,
+          status: null,
           label: dto.label ?? null,
           priority: dto.priority ?? null,
           isDueDateInPast: dto.due_date ? dto.due_date < DateTime.now() : false,
         })
       )
 
-      // 9. Validate assignee (Fat Model methods)
+      // 9. Validate assignee boundary through repositories
       if (dto.assigned_to) {
         const isMember = await OrganizationUserRepository.isApprovedMember(
           dto.assigned_to,
@@ -124,28 +132,53 @@ export default class CreateTaskCommand {
         }
       }
 
-      // 9b. Resolve task_status_id: use org's default status (v4)
-      let taskStatusId: string | null = null
-      const defaultStatus = await TaskStatusRepository.findDefault(dto.organization_id, trx)
-      if (defaultStatus) {
-        taskStatusId = defaultStatus.id
+      const selectedStatus = await TaskStatusRepository.findByIdAndOrgActive(
+        dto.task_status_id,
+        dto.organization_id,
+        trx
+      )
+
+      if (!selectedStatus) {
+        throw new BusinessLogicException('Task status không tồn tại trong tổ chức hiện tại')
       }
 
+      const resolvedDueDate = dto.due_date ?? DateTime.now().plus({ days: 7 })
+
       // 10. Create task
-      const newTask = await Task.create(
+      const newTask = await TaskRepository.create(
         {
           title: dto.title,
           description: dto.description || '',
-          status: dto.status || (defaultStatus?.slug ?? TaskStatus.TODO),
-          task_status_id: taskStatusId,
+          status: selectedStatus.category,
+          task_status_id: selectedStatus.id,
+          task_type: dto.task_type,
+          acceptance_criteria: dto.acceptance_criteria,
+          verification_method: dto.verification_method,
+          expected_deliverables: dto.expected_deliverables,
+          context_background: dto.context_background ?? null,
+          impact_scope: dto.impact_scope ?? null,
+          tech_stack: dto.tech_stack,
+          environment: dto.environment ?? null,
+          collaboration_type: dto.collaboration_type ?? null,
+          complexity_notes: dto.complexity_notes ?? null,
+          measurable_outcomes: dto.measurable_outcomes,
+          learning_objectives: dto.learning_objectives,
+          domain_tags: dto.domain_tags,
+          role_in_task: dto.role_in_task ?? null,
+          autonomy_level: dto.autonomy_level ?? null,
+          problem_category: dto.problem_category ?? null,
+          business_domain: dto.business_domain ?? null,
+          estimated_users_affected: dto.estimated_users_affected ?? null,
           label: dto.label || undefined,
           priority: dto.priority || undefined,
           assigned_to: dto.assigned_to ?? null,
-          due_date: dto.due_date,
+          due_date: resolvedDueDate,
           parent_task_id: dto.parent_task_id ?? null,
           estimated_time: dto.estimated_time,
           actual_time: dto.actual_time,
-          project_id: dto.project_id ?? null,
+          project_id: dto.project_id,
+          // Source of truth ownership lives on project.organization_id.
+          // organization_id stays as a denormalized cache after the project/org validation above.
           organization_id: dto.organization_id,
           creator_id: userId,
         },
@@ -166,7 +199,7 @@ export default class CreateTaskCommand {
         throw new BusinessLogicException('Có kỹ năng yêu cầu không tồn tại hoặc đã bị vô hiệu hóa')
       }
 
-      await TaskRequiredSkill.createMany(
+      await TaskRequiredSkillRepository.createMany(
         dto.required_skills.map((skill) => ({
           task_id: newTask.id,
           skill_id: skill.id,
@@ -177,14 +210,12 @@ export default class CreateTaskCommand {
       )
 
       // 5. Create audit log
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.CREATE,
         entity_type: EntityType.TASK,
         entity_id: newTask.id,
         new_values: newTask.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -194,32 +225,20 @@ export default class CreateTaskCommand {
         task: newTask,
         creatorId: userId,
         organizationId: dto.organization_id,
-        projectId: dto.project_id ?? null,
+        projectId: dto.project_id,
       })
 
       // Invalidate task list and organization task caches
       await CacheService.deleteByPattern(`organization:tasks:*`)
       await CacheService.deleteByPattern(`tasks:public:*`)
-      if (dto.project_id) {
-        await CacheService.deleteByPattern(`task:user:*`)
-      }
+      await CacheService.deleteByPattern(`task:user:*`)
 
       // 6. Send notification if task is assigned (outside transaction)
       if (dto.isAssigned() && dto.assigned_to !== undefined) {
         await this.sendAssignmentNotification(newTask, userId, dto.assigned_to)
       }
 
-      // Load relations for return (batch load để tránh N+1)
-      await newTask.load((loader) => {
-        loader
-          .load('assignee')
-          .load('creator')
-          .load('organization')
-          .load('project')
-          .load('parentTask')
-      })
-
-      return newTask
+      return await TaskRepository.findByIdWithDetailRelations(newTask.id)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -230,7 +249,7 @@ export default class CreateTaskCommand {
    * Send notification cho người được giao task
    */
   private async sendAssignmentNotification(
-    task: Task,
+    task: import('#models/task').default,
     creatorId: DatabaseId,
     assigneeId: DatabaseId
   ): Promise<void> {
@@ -240,7 +259,10 @@ export default class CreateTaskCommand {
         return
       }
 
-      const [assignee, creator] = await Promise.all([User.find(assigneeId), User.find(creatorId)])
+      const [assignee, creator] = await Promise.all([
+        UserRepository.findById(assigneeId),
+        UserRepository.findById(creatorId),
+      ])
       if (!assignee) {
         logger.warn(`[CreateTaskCommand] Assignee user not found: ${assigneeId}`)
         return

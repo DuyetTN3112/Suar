@@ -42,7 +42,7 @@ export interface UserRow {
   status: 'active' | 'inactive' | 'suspended'
   system_role: 'superadmin' | 'system_admin' | 'registered_user'
   current_organization_id: string | null
-  auth_method: 'email' | 'google' | 'github'
+  auth_method: 'google' | 'github'
   // Merged from user_details (v2.0)
   avatar_url: string | null
   bio: string | null
@@ -91,6 +91,15 @@ export interface UserTrustData {
   raw_score: number
   total_verified_reviews: number
   last_calculated_at: string | null
+  scoring_version?: string
+  performance_score?: number
+  performance_breakdown?: {
+    quality_score: number
+    delivery_score: number
+    difficulty_bonus: number
+    consistency_score: number
+    calculated_at: string | null
+  }
 }
 
 export interface UserCredibilityData {

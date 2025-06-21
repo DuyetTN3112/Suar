@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 import type { DatabaseId } from '#types/database'
-import { TaskStatus, TaskLabel, TaskPriority } from '#constants/task_constants'
+import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
 interface RequiredSkillInput {
@@ -14,7 +14,7 @@ interface RequiredSkillInput {
  * Validates:
  * - title: 3-255 ký tự, bắt buộc
  * - description: Không bắt buộc
- * - status: Trạng thái task (v3: inline VARCHAR), bắt buộc
+ * - task_status_id: UUID trạng thái task theo workflow của tổ chức, bắt buộc
  * - label: Nhãn (v3: inline VARCHAR), không bắt buộc
  * - priority: Mức độ ưu tiên (v3: inline VARCHAR), không bắt buộc
  * - assigned_to: ID của người được giao, không bắt buộc
@@ -22,13 +22,13 @@ interface RequiredSkillInput {
  * - parent_task_id: ID của task cha (subtask), không bắt buộc
  * - estimated_time: Thời gian ước tính (giờ), mặc định 0
  * - actual_time: Thời gian thực tế (giờ), mặc định 0
- * - project_id: ID của dự án, không bắt buộc
+ * - project_id: ID của dự án, bắt buộc
  * - organization_id: ID của tổ chức, bắt buộc
  */
 export default class CreateTaskDTO {
   public readonly title: string
   public readonly description?: string
-  public readonly status: string
+  public readonly task_status_id: string
   public readonly label?: string
   public readonly priority?: string
   public readonly assigned_to?: DatabaseId
@@ -36,14 +36,32 @@ export default class CreateTaskDTO {
   public readonly parent_task_id?: DatabaseId
   public readonly estimated_time: number
   public readonly actual_time: number
-  public readonly project_id?: DatabaseId
+  public readonly project_id: DatabaseId
   public readonly organization_id: DatabaseId
   public readonly required_skills: RequiredSkillInput[]
+  public readonly task_type: string
+  public readonly acceptance_criteria: string
+  public readonly verification_method: string
+  public readonly expected_deliverables: Array<Record<string, unknown>>
+  public readonly context_background?: string
+  public readonly impact_scope?: string
+  public readonly tech_stack: string[]
+  public readonly environment?: string
+  public readonly collaboration_type?: string
+  public readonly complexity_notes?: string
+  public readonly measurable_outcomes: Array<Record<string, unknown>>
+  public readonly learning_objectives: string[]
+  public readonly domain_tags: string[]
+  public readonly role_in_task?: string
+  public readonly autonomy_level?: string
+  public readonly problem_category?: string
+  public readonly business_domain?: string
+  public readonly estimated_users_affected?: number
 
   constructor(data: {
     title: string
     description?: string
-    status: string
+    task_status_id: string
     label?: string
     priority?: string
     assigned_to?: DatabaseId
@@ -51,9 +69,27 @@ export default class CreateTaskDTO {
     parent_task_id?: DatabaseId
     estimated_time?: number
     actual_time?: number
-    project_id?: DatabaseId
+    project_id: DatabaseId
     organization_id: DatabaseId
     required_skills?: RequiredSkillInput[]
+    task_type?: string
+    acceptance_criteria?: string
+    verification_method?: string
+    expected_deliverables?: Array<Record<string, unknown>>
+    context_background?: string
+    impact_scope?: string
+    tech_stack?: string[]
+    environment?: string
+    collaboration_type?: string
+    complexity_notes?: string
+    measurable_outcomes?: Array<Record<string, unknown>>
+    learning_objectives?: string[]
+    domain_tags?: string[]
+    role_in_task?: string
+    autonomy_level?: string
+    problem_category?: string
+    business_domain?: string
+    estimated_users_affected?: number
   }) {
     // Validate title
     if (!data.title || data.title.trim().length === 0) {
@@ -73,13 +109,8 @@ export default class CreateTaskDTO {
       throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
     }
 
-    // Validate status (v3: inline VARCHAR)
-    if (!data.status) {
-      throw new ValidationException('Trạng thái task là bắt buộc')
-    }
-    const validStatuses = Object.values(TaskStatus) as string[]
-    if (!validStatuses.includes(data.status)) {
-      throw new ValidationException('Trạng thái task không hợp lệ')
+    if (!data.task_status_id || data.task_status_id.trim().length === 0) {
+      throw new ValidationException('task_status_id là bắt buộc')
     }
 
     // Validate label if provided (v3: inline VARCHAR)
@@ -98,6 +129,67 @@ export default class CreateTaskDTO {
       }
     }
 
+    // Validate v5 metadata
+    const validTaskTypes = new Set([
+      'feature_development',
+      'bug_fix',
+      'refactoring',
+      'architecture_design',
+      'code_review',
+      'system_integration',
+      'ui_ux_design',
+      'prototype',
+      'api_design',
+      'qa_testing',
+      'test_automation',
+      'performance_testing',
+      'devops_deployment',
+      'infrastructure',
+      'monitoring_setup',
+      'data_analysis',
+      'data_pipeline',
+      'reporting',
+      'technical_writing',
+      'documentation',
+      'knowledge_transfer',
+      'research_spike',
+      'poc',
+      'product_management',
+      'mentoring',
+    ])
+    const taskType = (data.task_type ?? 'feature_development').trim()
+    if (!validTaskTypes.has(taskType)) {
+      throw new ValidationException('Loại task không hợp lệ')
+    }
+
+    const acceptanceCriteria = data.acceptance_criteria?.trim() ?? ''
+    if (acceptanceCriteria.length === 0) {
+      throw new ValidationException('Acceptance criteria là bắt buộc')
+    }
+
+    const validVerificationMethods = new Set([
+      'code_review',
+      'automated_test',
+      'manual_qa',
+      'demo_presentation',
+      'manager_approval',
+      'peer_review',
+      'user_acceptance_test',
+      'a_b_test',
+      'load_test',
+      'security_audit',
+      'documentation_review',
+      'multi_step',
+    ])
+    const verificationMethod = (data.verification_method ?? 'code_review').trim()
+    if (!validVerificationMethods.has(verificationMethod)) {
+      throw new ValidationException('Phương thức xác minh không hợp lệ')
+    }
+
+    if (data.estimated_users_affected !== undefined && data.estimated_users_affected < 0) {
+      throw new ValidationException('estimated_users_affected không được âm')
+    }
+
     if (data.assigned_to !== undefined && !data.assigned_to) {
       throw new ValidationException('ID người được giao không hợp lệ')
     }
@@ -106,8 +198,8 @@ export default class CreateTaskDTO {
       throw new ValidationException('ID task cha không hợp lệ')
     }
 
-    if (data.project_id !== undefined && !data.project_id) {
-      throw new ValidationException('ID dự án không hợp lệ')
+    if (!data.project_id || data.project_id.trim().length === 0) {
+      throw new ValidationException('ID dự án là bắt buộc')
     }
 
     const requiredSkills = data.required_skills ?? []
@@ -179,7 +271,7 @@ export default class CreateTaskDTO {
     // Assign validated values
     this.title = data.title.trim()
     this.description = data.description?.trim()
-    this.status = data.status
+    this.task_status_id = data.task_status_id.trim()
     this.label = data.label
     this.priority = data.priority
     this.assigned_to = data.assigned_to
@@ -187,8 +279,26 @@ export default class CreateTaskDTO {
     this.parent_task_id = data.parent_task_id
     this.estimated_time = data.estimated_time ?? 0
     this.actual_time = data.actual_time ?? 0
-    this.project_id = data.project_id
+    this.project_id = data.project_id.trim()
     this.organization_id = data.organization_id
+    this.task_type = taskType
+    this.acceptance_criteria = acceptanceCriteria
+    this.verification_method = verificationMethod
+    this.expected_deliverables = data.expected_deliverables ?? []
+    this.context_background = data.context_background?.trim()
+    this.impact_scope = data.impact_scope?.trim()
+    this.tech_stack = data.tech_stack ?? []
+    this.environment = data.environment?.trim()
+    this.collaboration_type = data.collaboration_type?.trim()
+    this.complexity_notes = data.complexity_notes?.trim()
+    this.measurable_outcomes = data.measurable_outcomes ?? []
+    this.learning_objectives = data.learning_objectives ?? []
+    this.domain_tags = data.domain_tags ?? []
+    this.role_in_task = data.role_in_task?.trim()
+    this.autonomy_level = data.autonomy_level?.trim()
+    this.problem_category = data.problem_category?.trim()
+    this.business_domain = data.business_domain?.trim()
+    this.estimated_users_affected = data.estimated_users_affected
     this.required_skills = requiredSkills.map((skill) => ({
       id: skill.id,
       level: skill.level.trim().toLowerCase(),
@@ -220,7 +330,7 @@ export default class CreateTaskDTO {
    * Kiểm tra xem task có thuộc dự án không
    */
   public belongsToProject(): boolean {
-    return this.project_id !== undefined && !!this.project_id
+    return true
   }
 
   /**
@@ -263,7 +373,7 @@ export default class CreateTaskDTO {
     return {
       title: this.title,
       description: this.description || null,
-      status: this.status,
+      task_status_id: this.task_status_id,
       label: this.label || null,
       priority: this.priority || null,
       assigned_to: this.assigned_to || null,
@@ -271,8 +381,26 @@ export default class CreateTaskDTO {
       parent_task_id: this.parent_task_id || null,
       estimated_time: this.estimated_time,
       actual_time: this.actual_time,
-      project_id: this.project_id || null,
+      project_id: this.project_id,
       organization_id: this.organization_id,
+      task_type: this.task_type,
+      acceptance_criteria: this.acceptance_criteria,
+      verification_method: this.verification_method,
+      expected_deliverables: this.expected_deliverables,
+      context_background: this.context_background || null,
+      impact_scope: this.impact_scope || null,
+      tech_stack: this.tech_stack,
+      environment: this.environment || null,
+      collaboration_type: this.collaboration_type || null,
+      complexity_notes: this.complexity_notes || null,
+      measurable_outcomes: this.measurable_outcomes,
+      learning_objectives: this.learning_objectives,
+      domain_tags: this.domain_tags,
+      role_in_task: this.role_in_task || null,
+      autonomy_level: this.autonomy_level || null,
+      problem_category: this.problem_category || null,
+      business_domain: this.business_domain || null,
+      estimated_users_affected: this.estimated_users_affected ?? null,
       required_skills: this.required_skills,
     }
   }
@@ -291,9 +419,7 @@ export default class CreateTaskDTO {
       message += ` (subtask của #${this.parent_task_id})`
     }
 
-    if (this.belongsToProject() && this.project_id !== undefined) {
-      message += ` (thuộc dự án #${this.project_id})`
-    }
+    message += ` (thuộc dự án #${this.project_id})`
 
     return message
   }
