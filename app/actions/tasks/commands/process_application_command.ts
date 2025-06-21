@@ -1,13 +1,15 @@
 import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
-import TaskApplication from '#models/task_application'
-import TaskAssignment from '#models/task_assignment'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
+import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
+import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * ProcessApplicationCommand
@@ -23,27 +25,33 @@ import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
  */
 export default class ProcessApplicationCommand extends BaseCommand<
   ProcessApplicationDTO,
-  TaskApplication
+  import('#models/task_application').default
 > {
-  async handle(dto: ProcessApplicationDTO): Promise<TaskApplication> {
+  async handle(dto: ProcessApplicationDTO): Promise<import('#models/task_application').default> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Get application with task
-      const application = await TaskApplication.query({ client: trx })
-        .where('id', dto.application_id)
-        .where('application_status', ApplicationStatus.PENDING)
-        .preload('task')
-        .preload('applicant')
-        .firstOrFail()
+      const application = await TaskApplicationRepository.findPendingByIdWithTaskAndApplicant(
+        dto.application_id,
+        trx
+      )
+
+      if (!application) {
+        throw new NotFoundException('Application không tồn tại hoặc không còn chờ xử lý')
+      }
 
       const task = application.task
 
       // Verify user has permission (task creator)
+      const existingActiveAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
+
       enforcePolicy(
         canProcessApplication({
           actorId: userId,
           taskCreatorId: task.creator_id,
+          action: dto.action,
+          isTaskAlreadyAssigned: task.assigned_to !== null || existingActiveAssignment !== null,
         })
       )
 
@@ -55,10 +63,10 @@ export default class ProcessApplicationCommand extends BaseCommand<
         application.reviewed_by = userId
         application.reviewed_at = DateTime.now()
 
-        await application.useTransaction(trx).save()
+        await TaskApplicationRepository.save(application, trx)
 
         // Create assignment
-        await TaskAssignment.create(
+        await TaskAssignmentRepository.create(
           {
             task_id: task.id,
             assignee_id: application.applicant_id,
@@ -73,19 +81,16 @@ export default class ProcessApplicationCommand extends BaseCommand<
 
         // Update task assigned_to
         task.assigned_to = application.applicant_id
-        await task.useTransaction(trx).save()
+        await TaskRepository.save(task, trx)
 
         // Reject other pending applications
-        await TaskApplication.query({ client: trx })
-          .where('task_id', task.id)
-          .where('application_status', ApplicationStatus.PENDING)
-          .whereNot('id', application.id)
-          .update({
-            application_status: ApplicationStatus.REJECTED,
-            reviewed_by: userId,
-            reviewed_at: new Date(),
-            rejection_reason: 'Another applicant was selected',
-          })
+        await TaskApplicationRepository.rejectOtherPendingByTask(
+          task.id,
+          application.id,
+          userId,
+          'Another applicant was selected',
+          trx
+        )
       } else {
         // Reject application
         application.application_status = ApplicationStatus.REJECTED
@@ -93,7 +98,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
         application.reviewed_at = DateTime.now()
         application.rejection_reason = dto.rejection_reason
 
-        await application.useTransaction(trx).save()
+        await TaskApplicationRepository.save(application, trx)
       }
 
       // Log audit

@@ -28,6 +28,8 @@ export function canApplyForTask(ctx: {
   actorId: DatabaseId
   taskCreatorId: DatabaseId
   taskVisibility: string
+  isTaskAlreadyAssigned: boolean
+  isApplicationDeadlinePassed: boolean
   hasExistingApplication: boolean
 }): PolicyResult {
   if (isSameId(ctx.actorId, ctx.taskCreatorId)) {
@@ -36,6 +38,14 @@ export function canApplyForTask(ctx: {
 
   if (!PUBLIC_TASK_VISIBILITIES.has(ctx.taskVisibility)) {
     return PR.deny('Task này không mở cho ứng tuyển bên ngoài', 'BUSINESS_RULE')
+  }
+
+  if (ctx.isTaskAlreadyAssigned) {
+    return PR.deny('Task này đã được giao, không thể ứng tuyển thêm', 'BUSINESS_RULE')
+  }
+
+  if (ctx.isApplicationDeadlinePassed) {
+    return PR.deny('Đã quá hạn nộp đơn ứng tuyển cho task này', 'BUSINESS_RULE')
   }
 
   if (ctx.hasExistingApplication) {
@@ -175,9 +185,15 @@ export function validateTaskCreationFields(ctx: {
 export function canProcessApplication(ctx: {
   actorId: DatabaseId
   taskCreatorId: DatabaseId
+  action: 'approve' | 'reject'
+  isTaskAlreadyAssigned: boolean
 }): PolicyResult {
   if (!isSameId(ctx.actorId, ctx.taskCreatorId)) {
     return PR.deny('Bạn không có quyền xử lý đơn ứng tuyển cho task này')
+  }
+
+  if (ctx.action === 'approve' && ctx.isTaskAlreadyAssigned) {
+    return PR.deny('Task này đã được giao, không thể duyệt thêm đơn ứng tuyển', 'BUSINESS_RULE')
   }
 
   return PR.allow()
