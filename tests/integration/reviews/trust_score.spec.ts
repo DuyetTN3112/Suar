@@ -2,16 +2,18 @@ import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
-  UserSkillFactory,
+  OrganizationFactory,
+  TaskFactory,
+  TaskAssignmentFactory,
+  ReviewSessionFactory,
   SkillFactory,
+  SkillReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
+import CalculateTrustScoreCommand from '#actions/reviews/commands/calculate_trust_score_command'
 import User from '#models/user'
-import {
-  calculateRawScore,
-  determineTier,
-  calculateWeightedTrustScore,
-} from '#domain/reviews/review_formulas'
+import { ExecutionContext } from '#types/execution_context'
+import { ReviewSessionStatus } from '#constants/review_constants'
 
 test.group('Integration | Trust Score', (group) => {
   group.setup(async () => {
@@ -20,58 +22,61 @@ test.group('Integration | Trust Score', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('raw score is average of avg_percentages', async ({ assert }) => {
-    const result = calculateRawScore([50, 60, 70])
-    assert.equal(result, 60)
-  })
-
-  test('partner tier weight is 1.0', async ({ assert }) => {
-    const { tierWeight, tierCode } = determineTier(true, true)
-    assert.equal(tierWeight, 1.0)
-    assert.equal(tierCode, 'partner')
-  })
-
-  test('organization tier weight is 0.8', async ({ assert }) => {
-    const { tierWeight, tierCode } = determineTier(true, false)
-    assert.equal(tierWeight, 0.8)
-    assert.equal(tierCode, 'organization')
-  })
-
-  test('community tier weight is 0.5', async ({ assert }) => {
-    const { tierWeight, tierCode } = determineTier(false, false)
-    assert.equal(tierWeight, 0.5)
-    assert.equal(tierCode, 'community')
-  })
-
-  test('trust_data JSONB update on user', async ({ assert }) => {
-    const user = await UserFactory.create()
+  test('calculate trust score command persists trust_data from completed review input', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const reviewee = await UserFactory.create()
+    const reviewer = await UserFactory.create({
+      credibility_data: {
+        credibility_score: 80,
+        total_reviews_given: 0,
+        accurate_reviews: 0,
+        disputed_reviews: 0,
+        last_calculated_at: null,
+      },
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: reviewee.id,
+    })
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: reviewee.id,
+      assigned_by: owner.id,
+      assignment_status: 'completed',
+    })
+    const session = await ReviewSessionFactory.create({
+      task_assignment_id: assignment.id,
+      reviewee_id: reviewee.id,
+      status: ReviewSessionStatus.COMPLETED,
+      manager_review_completed: true,
+      peer_reviews_count: 1,
+      required_peer_reviews: 1,
+    })
     const skill = await SkillFactory.create()
-    await UserSkillFactory.create({
-      user_id: user.id,
+    await SkillReviewFactory.create({
+      review_session_id: session.id,
+      reviewer_id: reviewer.id,
+      reviewer_type: 'peer',
       skill_id: skill.id,
-      avg_percentage: 60,
+      assigned_level_code: 'senior',
     })
 
-    const rawScore = calculateRawScore([60])
-    const { tierCode, tierWeight } = determineTier(false, false)
-    const calculatedScore = calculateWeightedTrustScore(rawScore, tierWeight)
+    const command = new CalculateTrustScoreCommand(ExecutionContext.system(reviewee.id))
+    const result = await command.handle({ userId: reviewee.id })
 
-    await user
-      .merge({
-        trust_data: {
-          current_tier_code: tierCode,
-          calculated_score: calculatedScore,
-          raw_score: rawScore,
-          total_verified_reviews: 1,
-          last_calculated_at: new Date().toISOString(),
-        },
-      })
-      .save()
-
-    const updated = await User.findOrFail(user.id)
+    const updated = await User.findOrFail(reviewee.id)
     assert.isNotNull(updated.trust_data)
+    assert.equal(result.userId, reviewee.id)
+    assert.equal(result.tierCode, 'community')
+    assert.equal(result.totalVerifiedReviews, 1)
+    assert.isAtLeast(result.rawScore, 0)
+    assert.isAtMost(result.rawScore, 100)
     assert.equal(updated.trust_data?.current_tier_code, 'community')
-    assert.equal(updated.trust_data?.raw_score, 60)
-    assert.equal(updated.trust_data?.calculated_score, calculatedScore)
+    assert.equal(updated.trust_data?.total_verified_reviews, 1)
+    assert.equal(updated.trust_data?.scoring_version, 'trust_v2')
+    assert.equal(updated.trust_data?.calculated_score, result.calculatedScore)
   })
 })

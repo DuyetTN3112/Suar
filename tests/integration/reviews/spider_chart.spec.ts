@@ -1,123 +1,119 @@
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import RecalculateRevieweeSkillScoresCommand from '#actions/reviews/commands/recalculate_reviewee_skill_scores_command'
+import { ReviewSessionStatus } from '#constants/review_constants'
+import { ProficiencyLevel } from '#constants/user_constants'
+import UserSkill from '#models/user_skill'
 import {
-  UserFactory,
+  cleanupTestData,
+  OrganizationFactory,
+  ReviewSessionFactory,
   SkillFactory,
   SkillReviewFactory,
-  ReviewSessionFactory,
   TaskAssignmentFactory,
-  OrganizationFactory,
   TaskFactory,
+  UserFactory,
   UserSkillFactory,
-  cleanupTestData,
 } from '#tests/helpers/factories'
-import UserSkill from '#models/user_skill'
-import SkillReview from '#models/skill_review'
-import { ProficiencyLevel, getLevelCodeFromPercentage } from '#constants/user_constants'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { ExecutionContext } from '#types/execution_context'
 
-test.group('Integration | Spider Chart', (group) => {
+test.group('Integration | Review Skill Recalculation', (group) => {
   group.setup(async () => {
     await setupApp()
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('calculate avg_percentage for spider chart skill', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill = await SkillFactory.create({ display_type: 'spider_chart' })
+  async function createReviewSignal(
+    input: {
+      sessionStatus?: string
+      assignedLevel?: string
+    } = {}
+  ) {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const reviewee = await UserFactory.create()
+    const reviewer = await UserFactory.create()
+    const skill = await SkillFactory.create({ display_type: 'spider_chart' })
     const task = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
     const assignment = await TaskAssignmentFactory.create({
       task_id: task.id,
-      assignee_id: user.id,
+      assignee_id: reviewee.id,
       assigned_by: owner.id,
       assignment_status: 'completed',
     })
     const session = await ReviewSessionFactory.create({
       task_assignment_id: assignment.id,
-      reviewee_id: user.id,
-      status: 'completed',
+      reviewee_id: reviewee.id,
+      status: input.sessionStatus ?? ReviewSessionStatus.COMPLETED,
+      manager_review_completed: true,
+      peer_reviews_count: 0,
+      required_peer_reviews: 0,
     })
-
-    // Create skill reviews with different levels
-    // senior (50-62.5%), lead (62.5-75%)
-    const reviewer1 = await UserFactory.create()
-    const reviewer2 = await UserFactory.create()
 
     await SkillReviewFactory.create({
       review_session_id: session.id,
-      reviewer_id: reviewer1.id,
+      reviewer_id: reviewer.id,
+      reviewer_type: 'manager',
       skill_id: skill.id,
-      assigned_level_code: ProficiencyLevel.SENIOR,
-    })
-    await SkillReviewFactory.create({
-      review_session_id: session.id,
-      reviewer_id: reviewer2.id,
-      skill_id: skill.id,
-      assigned_level_code: ProficiencyLevel.LEAD,
+      assigned_level_code: input.assignedLevel ?? ProficiencyLevel.SENIOR,
     })
 
-    const reviews = await SkillReview.query().where('skill_id', skill.id)
-    assert.equal(reviews.length, 2)
+    return { reviewee, skill }
+  }
+
+  test('completed review signals are materialized into reviewed user_skill aggregates', async ({
+    assert,
+  }) => {
+    const { reviewee, skill } = await createReviewSignal()
+    const command = new RecalculateRevieweeSkillScoresCommand(ExecutionContext.system(reviewee.id))
+
+    const result = await command.handle({ userId: reviewee.id })
+    const userSkill = await UserSkill.query()
+      .where('user_id', reviewee.id)
+      .where('skill_id', skill.id)
+      .firstOrFail()
+
+    assert.equal(result.skillsUpdated, 1)
+    assert.equal(userSkill.level_code, ProficiencyLevel.SENIOR)
+    assert.equal(userSkill.total_reviews, 1)
+    assert.equal(userSkill.avg_percentage, 57.1)
+    assert.equal(userSkill.avg_score, 57.1)
+    assert.equal(userSkill.source, 'reviewed')
+    assert.isNotNull(userSkill.last_calculated_at)
+    assert.isNotNull(userSkill.last_reviewed_at)
   })
 
-  test('level code mapping from percentage', async ({ assert }) => {
-    assert.equal(getLevelCodeFromPercentage(0), ProficiencyLevel.BEGINNER)
-    assert.equal(getLevelCodeFromPercentage(10), ProficiencyLevel.BEGINNER)
-    assert.equal(getLevelCodeFromPercentage(50), ProficiencyLevel.SENIOR)
-    assert.equal(getLevelCodeFromPercentage(75), ProficiencyLevel.PRINCIPAL)
-    assert.equal(getLevelCodeFromPercentage(100), ProficiencyLevel.MASTER)
-  })
+  test('recalculation updates an existing user_skill row and ignores incomplete sessions', async ({
+    assert,
+  }) => {
+    const completed = await createReviewSignal({ assignedLevel: ProficiencyLevel.LEAD })
+    await createReviewSignal({
+      sessionStatus: ReviewSessionStatus.PENDING,
+      assignedLevel: ProficiencyLevel.MASTER,
+    })
 
-  test('upsert into user_skills', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill = await SkillFactory.create({ display_type: 'spider_chart' })
-
-    // Create initial user_skill
     await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      level_code: ProficiencyLevel.JUNIOR,
-      avg_percentage: 30,
+      user_id: completed.reviewee.id,
+      skill_id: completed.skill.id,
+      level_code: ProficiencyLevel.BEGINNER,
+      total_reviews: 0,
+      avg_percentage: 10,
+      avg_score: 10,
     })
 
-    // Update it
-    const existing = await UserSkill.query()
-      .where('user_id', user.id)
-      .where('skill_id', skill.id)
-      .firstOrFail()
+    const command = new RecalculateRevieweeSkillScoresCommand(
+      ExecutionContext.system(completed.reviewee.id)
+    )
 
-    await existing
-      .merge({
-        level_code: ProficiencyLevel.SENIOR,
-        avg_percentage: 55,
-      })
-      .save()
+    const result = await command.handle({ userId: completed.reviewee.id })
+    const rows = await UserSkill.query()
+      .where('user_id', completed.reviewee.id)
+      .where('skill_id', completed.skill.id)
 
-    const updated = await UserSkill.query()
-      .where('user_id', user.id)
-      .where('skill_id', skill.id)
-      .firstOrFail()
-
-    assert.equal(updated.level_code, ProficiencyLevel.SENIOR)
-    assert.equal(updated.avg_percentage, 55)
-  })
-
-  test('handles no reviews gracefully', async ({ assert }) => {
-    await UserFactory.create()
-    const skill = await SkillFactory.create({ display_type: 'spider_chart' })
-
-    const reviews = await SkillReview.query().where('skill_id', skill.id)
-    assert.equal(reviews.length, 0)
-  })
-
-  test('multiple reviews averaging produces correct result', async ({ assert }) => {
-    // Test pure calculation
-    const percentages = [50, 60, 70]
-    const avg = percentages.reduce((a, b) => a + b, 0) / percentages.length
-    assert.closeTo(avg, 60, 0.01)
-
-    const levelCode = getLevelCodeFromPercentage(avg)
-    assert.equal(levelCode, ProficiencyLevel.SENIOR)
+    assert.equal(result.skillsUpdated, 1)
+    assert.lengthOf(rows, 1)
+    assert.equal(rows[0]?.level_code, ProficiencyLevel.LEAD)
+    assert.equal(rows[0]?.total_reviews, 1)
+    assert.equal(rows[0]?.avg_percentage, 71.4)
   })
 })

@@ -88,4 +88,85 @@ export default class ReviewSessionRepository {
       .orderBy('updated_at', 'desc')
       .paginate(page, perPage)
   }
+
+  static async findById(
+    sessionId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<ReviewSession | null> {
+    return this.baseQuery(trx).where('id', sessionId).first()
+  }
+
+  static async findByIdWithAllowedStatuses(
+    sessionId: DatabaseId,
+    statuses: string[],
+    trx?: TransactionClientContract
+  ): Promise<ReviewSession | null> {
+    return this.baseQuery(trx).where('id', sessionId).whereIn('status', statuses).first()
+  }
+
+  static async findByTaskAssignment(
+    taskAssignmentId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<ReviewSession | null> {
+    return this.baseQuery(trx).where('task_assignment_id', taskAssignmentId).first()
+  }
+
+  static async findCompletedForRevieweeForUpdate(
+    sessionId: DatabaseId,
+    revieweeId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<ReviewSession | null> {
+    return this.baseQuery(trx)
+      .where('id', sessionId)
+      .where('reviewee_id', revieweeId)
+      .where('status', ReviewSessionStatus.COMPLETED)
+      .forUpdate()
+      .first()
+  }
+
+  static async create(
+    data: Partial<ReviewSession>,
+    trx?: TransactionClientContract
+  ): Promise<ReviewSession> {
+    return ReviewSession.create(data, trx ? { client: trx } : undefined)
+  }
+
+  static async save(
+    session: ReviewSession,
+    trx?: TransactionClientContract
+  ): Promise<ReviewSession> {
+    if (trx) {
+      session.useTransaction(trx)
+    }
+    await session.save()
+    return session
+  }
+
+  static async hasAnyForTask(
+    taskId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    const session = await this.baseQuery(trx)
+      .whereHas('task_assignment', (assignmentQuery) => {
+        void assignmentQuery.where('task_id', taskId)
+      })
+      .first()
+
+    return !!session
+  }
+
+  static async hasAnyForTasksWithStatus(
+    taskStatusId: DatabaseId,
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    const session = await this.baseQuery(trx)
+      .whereHas('task_assignment', (assignmentQuery) => {
+        void assignmentQuery.whereHas('task', (taskQuery) => {
+          void taskQuery.where('task_status_id', taskStatusId).whereNull('deleted_at')
+        })
+      })
+      .first()
+
+    return !!session
+  }
 }

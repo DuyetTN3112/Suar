@@ -1,4 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
 import FlaggedReview from '#models/flagged_review'
 
 /**
@@ -48,5 +49,30 @@ export default class FlaggedReviewRepository {
     }
 
     return query.paginate(page, perPage)
+  }
+
+  static async findByIdForUpdate(
+    flaggedReviewId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<FlaggedReview | null> {
+    return this.baseQuery(trx).where('id', flaggedReviewId).forUpdate().first()
+  }
+
+  static async create(
+    data: Partial<FlaggedReview>,
+    trx?: TransactionClientContract
+  ): Promise<FlaggedReview> {
+    return FlaggedReview.create(data, trx ? { client: trx } : undefined)
+  }
+
+  static async save(
+    flaggedReview: FlaggedReview,
+    trx?: TransactionClientContract
+  ): Promise<FlaggedReview> {
+    if (trx) {
+      flaggedReview.useTransaction(trx)
+    }
+    await flaggedReview.save()
+    return flaggedReview
   }
 }

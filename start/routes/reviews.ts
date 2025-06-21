@@ -17,6 +17,14 @@ const ListFlaggedReviewsController = () =>
   import('#controllers/reviews/list_flagged_reviews_controller')
 const ResolveFlaggedReviewController = () =>
   import('#controllers/reviews/resolve_flagged_review_controller')
+const AddReviewEvidenceController = () =>
+  import('#controllers/reviews/add_review_evidence_controller')
+const UpsertTaskSelfAssessmentController = () =>
+  import('#controllers/reviews/upsert_task_self_assessment_controller')
+const GetReviewEvidencesController = () =>
+  import('#controllers/reviews/get_review_evidences_controller')
+const GetTaskSelfAssessmentController = () =>
+  import('#controllers/reviews/get_task_self_assessment_controller')
 
 router
   .group(() => {
@@ -25,6 +33,18 @@ router
     router.get('/reviews/:id', [ShowReviewController, 'handle']).as('reviews.show')
     router.post('/reviews/:id/submit', [SubmitReviewController, 'handle']).as('reviews.submit')
     router.post('/reviews/:id/confirm', [ConfirmReviewController, 'handle']).as('reviews.confirm')
+    router
+      .get('/reviews/:id/evidences', [GetReviewEvidencesController, 'handle'])
+      .as('reviews.evidences.list')
+    router
+      .post('/reviews/:id/evidences', [AddReviewEvidenceController, 'handle'])
+      .as('reviews.evidences.add')
+    router
+      .get('/reviews/:id/self-assessment', [GetTaskSelfAssessmentController, 'handle'])
+      .as('reviews.self_assessment.get')
+    router
+      .post('/reviews/:id/self-assessment', [UpsertTaskSelfAssessmentController, 'handle'])
+      .as('reviews.self_assessment.upsert')
 
     // Reverse review (reviewee rates reviewers)
     router

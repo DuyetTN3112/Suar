@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import UserSkill from '#models/user_skill'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import { getLevelCodeFromPercentage } from '#constants/user_constants'
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -126,18 +126,15 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
     _totalReviews: number,
     trx: TransactionClientContract
   ): Promise<void> {
-    const existing = await UserSkill.query({ client: trx })
-      .where('user_id', userId)
-      .where('skill_id', skillId)
-      .first()
+    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
 
     if (existing) {
       existing.avg_percentage = avgPercentage
       existing.level_code = levelCode
       existing.last_calculated_at = DateTime.now()
-      await existing.useTransaction(trx).save()
+      await UserSkillRepository.save(existing, trx)
     } else {
-      await UserSkill.create(
+      await UserSkillRepository.create(
         {
           user_id: userId,
           skill_id: skillId,
@@ -147,7 +144,7 @@ export default class CalculateSpiderChartCommand extends BaseCommand<
           total_reviews: 0,
           avg_score: null,
         },
-        { client: trx }
+        trx
       )
     }
   }

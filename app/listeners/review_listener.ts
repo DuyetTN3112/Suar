@@ -13,7 +13,7 @@ import type {
  *
  * Handles review lifecycle events:
  *   1. review:submitted — Invalidate spider chart cache, trigger recalculation
- *   2. review:confirmed — Update reviewer credibility score
+ *   2. review:confirmed — Recalculate reviewer credibility + reviewee scores/trust
  *   3. skill:score:updated — Invalidate spider chart cache
  */
 
@@ -57,30 +57,62 @@ emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
 // === Review Confirmed ===
 emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
   try {
-    // v3.0: reviewer_credibility model deleted — update users.credibility_data JSONB directly
-    const { default: User } = await import('#models/user')
+    const { default: UpdateReviewerCredibilityCommand } =
+      await import('#actions/reviews/commands/update_reviewer_credibility_command')
+    const { default: RecalculateRevieweeSkillScoresCommand } =
+      await import('#actions/reviews/commands/recalculate_reviewee_skill_scores_command')
+    const { default: CalculateTrustScoreCommand } =
+      await import('#actions/reviews/commands/calculate_trust_score_command')
+    const { default: CalculatePerformanceScoreCommand } =
+      await import('#actions/reviews/commands/calculate_performance_score_command')
+    const { default: RefreshUserProfileAggregatesCommand } =
+      await import('#actions/users/commands/refresh_user_profile_aggregates_command')
 
-    const user = await User.find(event.reviewerId)
-
-    if (user) {
-      const credData = user.credibility_data ?? {
-        credibility_score: 50,
-        total_reviews_given: 0,
-        accurate_reviews: 0,
-        disputed_reviews: 0,
-        last_calculated_at: null,
-      }
-
-      credData.accurate_reviews += 1
-      credData.last_calculated_at = new Date().toISOString()
-
-      user.credibility_data = credData
-      await user.save()
+    // 1) Recompute reviewer credibility from source data to avoid drift.
+    for (const reviewerId of event.reviewerIds) {
+      const command = new UpdateReviewerCredibilityCommand(
+        ExecutionContext.system(event.confirmedBy)
+      )
+      await command.handle({ user_id: reviewerId })
     }
 
-    loggerService.debug('Reviewer credibility updated', {
+    // 2) Recompute reviewee scores only on confirmation.
+    if (event.action === 'confirmed') {
+      const recalculateSkillScores = new RecalculateRevieweeSkillScoresCommand(
+        ExecutionContext.system(event.confirmedBy)
+      )
+      await recalculateSkillScores.handle({ userId: event.revieweeId })
+
+      const calculatePerformanceScore = new CalculatePerformanceScoreCommand(
+        ExecutionContext.system(event.confirmedBy)
+      )
+      await calculatePerformanceScore.handle({ userId: event.revieweeId })
+
+      const calculateTrustScore = new CalculateTrustScoreCommand(
+        ExecutionContext.system(event.confirmedBy)
+      )
+      await calculateTrustScore.handle({ userId: event.revieweeId })
+
+      const refreshAggregates = new RefreshUserProfileAggregatesCommand(
+        ExecutionContext.system(event.confirmedBy)
+      )
+      await refreshAggregates.handle({
+        userId: event.revieweeId,
+        fullRebuild: false,
+      })
+    }
+
+    // 3) Invalidate reviewee profile-related cache.
+    await cacheService.deleteByPattern(`*spider:user:${event.revieweeId}*`)
+    await cacheService.deleteByPattern(`*skill_scores:user:${event.revieweeId}*`)
+    await cacheService.deleteByPattern(`*user:profile:${event.revieweeId}*`)
+    await cacheService.deleteByPattern(`*profile:snapshot:current*${event.revieweeId}*`)
+
+    loggerService.debug('Review confirmed pipeline executed', {
       confirmationId: event.confirmationId,
-      reviewerId: event.reviewerId,
+      revieweeId: event.revieweeId,
+      reviewerCount: event.reviewerIds.length,
+      action: event.action,
     })
   } catch (error) {
     loggerService.error('ReviewListener: review confirmed failed', {

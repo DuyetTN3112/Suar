@@ -41,31 +41,40 @@ emitter.on('organization:member:removed', async (event: OrganizationMemberRemove
       }
     }
 
-    // 2. Remove from all conversations in this organization
-    // Find conversation IDs where the user is a participant AND conversation belongs to org
-    const conversationIds = await db
-      .from('conversation_participants as cp')
-      .join('conversations as c', 'cp.conversation_id', 'c.id')
-      .where('cp.user_id', event.userId)
-      .where('c.organization_id', event.organizationId)
-      .select('cp.conversation_id')
+    const conversationTables = await db
+      .from('information_schema.tables')
+      .where('table_schema', 'public')
+      .whereIn('table_name', ['conversations', 'conversation_participants'])
+      .select('table_name')
 
-    if (conversationIds.length > 0) {
-      const ids = conversationIds.map((c: { conversation_id: string }) => c.conversation_id)
-      const deletedParticipants = Number(
-        await db
-          .from('conversation_participants')
-          .where('user_id', event.userId)
-          .whereIn('conversation_id', ids)
-          .delete()
-      )
+    const hasConversationTables = conversationTables.length === 2
 
-      if (deletedParticipants > 0) {
-        loggerService.info('Removed user from org conversations', {
-          userId: event.userId,
-          organizationId: event.organizationId,
-          removedFromConversations: deletedParticipants,
-        })
+    // 2. Remove from all conversations in this organization when the messaging tables exist
+    if (hasConversationTables) {
+      const conversationIds = await db
+        .from('conversation_participants as cp')
+        .join('conversations as c', 'cp.conversation_id', 'c.id')
+        .where('cp.user_id', event.userId)
+        .where('c.organization_id', event.organizationId)
+        .select('cp.conversation_id')
+
+      if (conversationIds.length > 0) {
+        const ids = conversationIds.map((c: { conversation_id: string }) => c.conversation_id)
+        const deletedParticipants = Number(
+          await db
+            .from('conversation_participants')
+            .where('user_id', event.userId)
+            .whereIn('conversation_id', ids)
+            .delete()
+        )
+
+        if (deletedParticipants > 0) {
+          loggerService.info('Removed user from org conversations', {
+            userId: event.userId,
+            organizationId: event.organizationId,
+            removedFromConversations: deletedParticipants,
+          })
+        }
       }
     }
 

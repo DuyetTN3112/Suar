@@ -1,5 +1,5 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import FlaggedReview from '#models/flagged_review'
+import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#services/cache_service'
 import type { DatabaseId } from '#types/database'
@@ -20,16 +20,20 @@ export interface ResolveFlaggedReviewDTO {
  */
 export default class ResolveFlaggedReviewCommand extends BaseCommand<
   ResolveFlaggedReviewDTO,
-  FlaggedReview
+  import('#models/flagged_review').default
 > {
-  async handle(dto: ResolveFlaggedReviewDTO): Promise<FlaggedReview> {
+  async handle(dto: ResolveFlaggedReviewDTO): Promise<import('#models/flagged_review').default> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
-      const flaggedReview = await FlaggedReview.query({ client: trx })
-        .where('id', dto.flagged_review_id)
-        .forUpdate()
-        .firstOrFail()
+      const flaggedReview = await FlaggedReviewRepository.findByIdForUpdate(
+        dto.flagged_review_id,
+        trx
+      )
+
+      if (!flaggedReview) {
+        throw new BusinessLogicException('Flagged review không tồn tại')
+      }
 
       if (flaggedReview.status !== 'pending') {
         throw new BusinessLogicException('This flagged review has already been resolved')
@@ -48,7 +52,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         flaggedReview.notes = dto.notes
       }
 
-      await flaggedReview.useTransaction(trx).save()
+      await FlaggedReviewRepository.save(flaggedReview, trx)
 
       await this.logAudit('resolve_flagged_review', 'flagged_review', flaggedReview.id, null, {
         action: dto.action,
