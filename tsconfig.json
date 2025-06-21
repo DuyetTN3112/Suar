@@ -1,0 +1,94 @@
+{
+  "extends": "@adonisjs/tsconfig/tsconfig.app.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "./build",
+    "jsx": "react-jsx",
+
+    /* 🚨 STRICT MODE - Kiểm tra nghiêm ngặt */
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": false, // Tắt để tương thích với Lucid ORM decorators
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+
+    /* 🔍 Kiểm tra bổ sung - Code quality */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+
+    /* 🛡️ Safer indexing */
+    "noUncheckedIndexedAccess": true,
+    // "noPropertyAccessFromIndexSignature": true,
+    // "exactOptionalPropertyTypes": true,
+
+    "paths": {
+      "#*": [
+        "./app/*"
+      ],
+      "#controllers/*": [
+        "./app/controllers/*"
+      ],
+      "#exceptions/*": [
+        "./app/exceptions/*"
+      ],
+      "#models/*": [
+        "./app/models/*"
+      ],
+      "#mails/*": [
+        "./app/mails/*"
+      ],
+      "#services/*": [
+        "./app/services/*"
+      ],
+      "#listeners/*": [
+        "./app/listeners/*"
+      ],
+      "#events/*": [
+        "./app/events/*"
+      ],
+      "#middleware/*": [
+        "./app/middleware/*"
+      ],
+      "#validators/*": [
+        "./app/validators/*"
+      ],
+      "#providers/*": [
+        "./providers/*"
+      ],
+      "#policies/*": [
+        "./app/policies/*"
+      ],
+      "#abilities/*": [
+        "./app/abilities/*"
+      ],
+      "#database/*": [
+        "./database/*"
+      ],
+      "#start/*": [
+        "./start/*"
+      ],
+      "#config/*": [
+        "./config/*"
+      ],
+      "#actions/*": [
+        "./app/actions/*"
+      ],
+      "#helpers/*": [
+        "./app/helpers/*"
+      ],
+      "#utils/*": [
+        "./app/utils/*"
+      ]
+    }
+  },
+  "exclude": ["./inertia/**/*", "node_modules", "build"]
+}
