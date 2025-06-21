@@ -14,10 +14,7 @@ export default class UpdateTaskSortOrderController {
       throw new Error('Invalid task id')
     }
 
-    const payload = request.only(['sort_order', 'task_status_id', 'status']) as Record<
-      string,
-      unknown
-    >
+    const payload = request.only(['sort_order', 'task_status_id']) as Record<string, unknown>
 
     const sortOrderRaw = payload.sort_order
     const sortOrder =
@@ -28,17 +25,15 @@ export default class UpdateTaskSortOrderController {
           : Number.NaN
 
     const taskStatusIdRaw = payload.task_status_id
-    const statusRaw = payload.status
 
     const taskStatusId =
       typeof taskStatusIdRaw === 'string' && taskStatusIdRaw.length > 0
         ? taskStatusIdRaw
         : undefined
-    const status = typeof statusRaw === 'string' && statusRaw.length > 0 ? statusRaw : undefined
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const command = new UpdateTaskSortOrderCommand(execCtx)
-    const task = await command.execute(taskIdRaw, sortOrder, taskStatusId, status)
+    const task = await command.execute(taskIdRaw, sortOrder, taskStatusId)
 
     response.json({ success: true, data: task })
   }

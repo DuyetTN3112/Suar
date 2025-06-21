@@ -7,7 +7,7 @@ import { PAGINATION } from '#constants/common_constants'
  *
  * Validates:
  * - Pagination: page, limit
- * - Filters: status, priority, label, assigned_to, parent_task_id, project_id
+ * - Filters: task status id, priority, label, assigned_to, parent_task_id, project_id
  * - Search: title, description
  * - organization_id: bắt buộc
  *
@@ -19,12 +19,12 @@ import { PAGINATION } from '#constants/common_constants'
 export default class GetTasksListDTO {
   public readonly page: number
   public readonly limit: number
-  public readonly status?: DatabaseId
+  public readonly task_status_id?: DatabaseId
   public readonly priority?: DatabaseId
   public readonly label?: DatabaseId
   public readonly assigned_to?: DatabaseId
   public readonly parent_task_id?: DatabaseId | null
-  public readonly project_id?: DatabaseId | null
+  public readonly project_id?: DatabaseId
   public readonly search?: string
   public readonly organization_id: DatabaseId
   public readonly sort_by?: 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
@@ -33,12 +33,13 @@ export default class GetTasksListDTO {
   constructor(data: {
     page?: number
     limit?: number
+    task_status_id?: DatabaseId
     status?: DatabaseId
     priority?: DatabaseId
     label?: DatabaseId
     assigned_to?: DatabaseId
     parent_task_id?: DatabaseId | null
-    project_id?: DatabaseId | null
+    project_id?: DatabaseId
     search?: string
     organization_id: DatabaseId
     sort_by?: 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
@@ -65,8 +66,8 @@ export default class GetTasksListDTO {
       throw new ValidationException('Số lượng item không được vượt quá 100')
     }
 
-    // v3: status/priority/label are inline VARCHAR strings, not numeric IDs
-    // No numeric validation needed — they're validated against enum values elsewhere
+    // task status filter uses task_status_id (UUID-like string).
+    // We keep raw string validation at query/repository boundaries.
 
     // Validate search
     if (data.search !== undefined) {
@@ -86,7 +87,7 @@ export default class GetTasksListDTO {
 
     this.page = page
     this.limit = limit
-    this.status = data.status
+    this.task_status_id = data.task_status_id ?? data.status
     this.priority = data.priority
     this.label = data.label
     this.assigned_to = data.assigned_to
@@ -103,7 +104,7 @@ export default class GetTasksListDTO {
    */
   public hasFilters(): boolean {
     return !!(
-      this.status ||
+      this.task_status_id ||
       this.priority ||
       this.label ||
       this.assigned_to ||
@@ -117,7 +118,7 @@ export default class GetTasksListDTO {
    * Kiểm tra xem có filter theo status không
    */
   public hasStatusFilter(): boolean {
-    return this.status !== undefined
+    return this.task_status_id !== undefined
   }
 
   /**
@@ -177,13 +178,6 @@ export default class GetTasksListDTO {
   }
 
   /**
-   * Kiểm tra xem có lọc theo project không có không
-   */
-  public isWithoutProject(): boolean {
-    return this.project_id === null
-  }
-
-  /**
    * Calculate offset cho pagination
    */
   public getOffset(): number {
@@ -200,8 +194,8 @@ export default class GetTasksListDTO {
       `limit:${this.limit}`,
     ]
 
-    if (this.hasStatusFilter() && this.status !== undefined) {
-      filterParts.push(`status:${this.status}`)
+    if (this.hasStatusFilter() && this.task_status_id !== undefined) {
+      filterParts.push(`task_status_id:${this.task_status_id}`)
     }
 
     if (this.hasPriorityFilter() && this.priority !== undefined) {
@@ -221,7 +215,7 @@ export default class GetTasksListDTO {
     }
 
     if (this.hasProjectFilter() && this.project_id !== undefined) {
-      filterParts.push(`project:${this.project_id ?? 'none'}`)
+      filterParts.push(`project:${this.project_id}`)
     }
 
     if (this.hasSearch() && this.search) {
@@ -254,7 +248,7 @@ export default class GetTasksListDTO {
     return {
       page: this.page,
       limit: this.limit,
-      status: this.status,
+      task_status_id: this.task_status_id,
       priority: this.priority,
       label: this.label,
       assigned_to: this.assigned_to,
@@ -278,8 +272,8 @@ export default class GetTasksListDTO {
 
     const filters: string[] = []
 
-    if (this.hasStatusFilter() && this.status !== undefined) {
-      filters.push(`Status: ${this.status}`)
+    if (this.hasStatusFilter() && this.task_status_id !== undefined) {
+      filters.push(`Task status: ${this.task_status_id}`)
     }
 
     if (this.hasPriorityFilter() && this.priority !== undefined) {
@@ -306,12 +300,8 @@ export default class GetTasksListDTO {
       filters.push('Root tasks only')
     }
 
-    if (this.hasProjectFilter() && this.project_id !== null && this.project_id !== undefined) {
+    if (this.hasProjectFilter() && this.project_id !== undefined) {
       filters.push(`Project: ${this.project_id}`)
-    }
-
-    if (this.isWithoutProject()) {
-      filters.push('No project')
     }
 
     if (this.hasSearch() && this.search) {

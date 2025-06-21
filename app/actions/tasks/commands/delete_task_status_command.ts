@@ -1,8 +1,8 @@
 import { DateTime } from 'luxon'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import Task from '#models/task'
-import ReviewSession from '#models/review_session'
-import AuditLog from '#models/mongo/audit_log'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -46,24 +46,10 @@ export default class DeleteTaskStatusCommand {
       }
 
       // Count tasks using this status
-      const taskCount = await Task.query({ client: trx })
-        .where('task_status_id', dto.status_id)
-        .whereNull('deleted_at')
-        .count('* as total')
-        .first()
-
-      const count = Number(taskCount?.$extras.total ?? 0)
+      const count = await TaskRepository.countByTaskStatusId(dto.status_id, trx)
 
       if (status.category === 'done' && count > 0) {
-        const hasReviewedTask = await ReviewSession.query({ client: trx })
-          .whereHas('task_assignment', (assignmentQuery) => {
-            void assignmentQuery.whereHas('task', (taskQuery) => {
-              void taskQuery.where('task_status_id', dto.status_id).whereNull('deleted_at')
-            })
-          })
-          .first()
-
-        if (hasReviewedTask) {
+        if (await ReviewSessionRepository.hasAnyForTasksWithStatus(dto.status_id, trx)) {
           throw new BusinessLogicException(
             'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'
           )
@@ -80,16 +66,14 @@ export default class DeleteTaskStatusCommand {
 
       // ── PERSIST (soft delete) ──────────────────────────────────────────
       status.deleted_at = DateTime.now()
-      await status.save()
+      await TaskStatusRepository.save(status, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.DELETE,
         entity_type: EntityType.TASK_STATUS,
         entity_id: status.id,
         old_values: status.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

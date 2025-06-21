@@ -16,7 +16,7 @@ import type Task from '#models/task'
  * Features:
  * - Permission-based filtering (Admin, Org Admin, Member)
  * - Pagination với validation
- * - Filters: status, priority, label, assigned_to, parent_task, project, search
+ * - Filters: task_status_id, priority, label, assigned_to, parent_task, project, search
  * - Sorting: due_date, created_at, updated_at, title, priority
  * - Preload relations
  * - Redis caching (3 minutes)
@@ -68,7 +68,7 @@ export default class GetTasksListQuery {
     const paginator = await TaskRepository.paginateByOrganization(
       dto.organization_id,
       {
-        status: dto.hasStatusFilter() ? dto.status : undefined,
+        status: dto.hasStatusFilter() ? dto.task_status_id : undefined,
         priority: dto.hasPriorityFilter() ? dto.priority : undefined,
         label: dto.hasLabelFilter() ? dto.label : undefined,
         assigned_to: dto.hasAssigneeFilter() ? dto.assigned_to : undefined,
@@ -119,12 +119,7 @@ export default class GetTasksListQuery {
     const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
     if (isSuperAdmin) return { type: 'all' }
 
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(
-      organizationId,
-      userId,
-      undefined,
-      false
-    )
+    const orgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
 
     if (!orgRole) {
       return { type: 'none' }

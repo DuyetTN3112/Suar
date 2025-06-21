@@ -1,6 +1,6 @@
 import type TaskStatus from '#models/task_status'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -86,17 +86,15 @@ export default class UpdateTaskStatusDefinitionCommand {
       }
 
       status.merge(updateData)
-      await status.save()
+      await TaskStatusRepository.save(status, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE,
         entity_type: EntityType.TASK_STATUS,
         entity_id: status.id,
         old_values: oldValues,
         new_values: status.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

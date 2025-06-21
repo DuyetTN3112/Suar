@@ -147,4 +147,22 @@ export default class TaskStatusRepository {
       .whereNull('deleted_at')
       .update({ is_default: false })
   }
+
+  static async create(
+    data: Partial<TaskStatus>,
+    trx?: TransactionClientContract
+  ): Promise<TaskStatus> {
+    return TaskStatus.create(data, trx ? { client: trx } : undefined)
+  }
+
+  static async save(
+    status: TaskStatus,
+    trx?: TransactionClientContract
+  ): Promise<TaskStatus> {
+    if (trx) {
+      status.useTransaction(trx)
+    }
+    await status.save()
+    return status
+  }
 }

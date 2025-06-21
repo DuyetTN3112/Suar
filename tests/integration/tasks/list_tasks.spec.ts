@@ -2,13 +2,15 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
-  UserFactory,
   OrganizationFactory,
   OrganizationUserFactory,
   TaskFactory,
+  UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import Task from '#models/task'
+import GetTasksListQuery from '#actions/tasks/queries/get_tasks_list_query'
+import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
+import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | List Tasks', (group) => {
   group.setup(async () => {
@@ -17,145 +19,156 @@ test.group('Integration | List Tasks', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('org admin sees all tasks in their org', async ({ assert }) => {
+  test('approved org admins get filtered, paginated task lists scoped to their organization', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org: otherOrg, owner: otherOwner } = await OrganizationFactory.createWithOwner()
+
+    const firstLoginTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Fix login bug',
+      status: 'todo',
+      priority: 'high',
+    })
+    const secondLoginTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Fix login UI',
+      status: 'in_progress',
+      priority: 'urgent',
+    })
+    const docsTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Write docs',
+      status: 'done',
+      priority: 'low',
+    })
+    const deletedTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Deleted login follow-up',
+    })
+    await deletedTask.merge({ deleted_at: DateTime.now() }).save()
+    await TaskFactory.create({
+      organization_id: otherOrg.id,
+      creator_id: otherOwner.id,
+      title: 'Other org login issue',
+    })
+
+    const adminQuery = new GetTasksListQuery(ExecutionContext.system(owner.id))
+    const page = await adminQuery.execute(
+      new GetTasksListDTO({
+        organization_id: org.id,
+        page: 1,
+        limit: 1,
+        sort_by: 'created_at',
+        sort_order: 'desc',
+      })
+    )
+    const filtered = await adminQuery.execute(
+      new GetTasksListDTO({
+        organization_id: org.id,
+        search: 'login',
+        task_status_id: secondLoginTask.task_status_id,
+      })
+    )
+
+    assert.equal(page.meta.total, 3)
+    assert.equal(page.data[0]?.id, docsTask.id)
+    assert.equal(page.stats?.total, 3)
+    assert.equal(page.stats?.by_status.todo, 1)
+    assert.equal(page.stats?.by_status.in_progress, 1)
+    assert.equal(page.stats?.by_status.done, 1)
+    assert.equal(filtered.meta.total, 1)
+    assert.equal(filtered.data[0]?.id, secondLoginTask.id)
+    assert.notEqual(filtered.data[0]?.id, firstLoginTask.id)
+  })
+
+  test('approved members only see tasks they created or are assigned to', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const member = await UserFactory.create()
+    const coworker = await UserFactory.create()
     await OrganizationUserFactory.create({
       organization_id: org.id,
       user_id: member.id,
       org_role: 'org_member',
       status: 'approved',
     })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: coworker.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
 
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id, title: 'Owner Task' })
-    await TaskFactory.create({
+    const assignedTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: member.id,
+      title: 'Assigned to member',
+    })
+    const ownTask = await TaskFactory.create({
       organization_id: org.id,
       creator_id: member.id,
-      title: 'Member Task',
+      title: 'Created by member',
+    })
+    const hiddenTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: coworker.id,
+      title: 'Assigned elsewhere',
+    })
+    const unassignedOwnerTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Owner backlog',
     })
 
-    const tasks = await Task.query().where('organization_id', org.id).whereNull('deleted_at')
-    assert.equal(tasks.length, 2)
+    const result = await new GetTasksListQuery(ExecutionContext.system(member.id)).execute(
+      new GetTasksListDTO({
+        organization_id: org.id,
+        page: 1,
+        limit: 20,
+      })
+    )
+    const visibleIds = result.data.map((task) => task.id)
+
+    assert.include(visibleIds, assignedTask.id)
+    assert.include(visibleIds, ownTask.id)
+    assert.notInclude(visibleIds, hiddenTask.id)
+    assert.notInclude(visibleIds, unassignedOwnerTask.id)
   })
 
-  test('tasks from other orgs are not visible', async ({ assert }) => {
-    const { org: org1, owner: owner1 } = await OrganizationFactory.createWithOwner()
-    const { org: org2, owner: owner2 } = await OrganizationFactory.createWithOwner()
-
-    await TaskFactory.create({ organization_id: org1.id, creator_id: owner1.id })
-    await TaskFactory.create({ organization_id: org2.id, creator_id: owner2.id })
-
-    const orgTasks = await Task.query().where('organization_id', org1.id)
-    assert.equal(orgTasks.length, 1)
-  })
-
-  test('search filter by title works', async ({ assert }) => {
+  test('pending members do not receive task visibility until membership is approved', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-
+    const pendingUser = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: pendingUser.id,
+      org_role: 'org_member',
+      status: 'pending',
+    })
     await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
-      title: 'Fix login bug',
-    })
-    await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      title: 'Add feature',
+      title: 'Visible only after approval',
     })
 
-    const results = await Task.query()
-      .where('organization_id', org.id)
-      .whereILike('title', '%login%')
-    assert.equal(results.length, 1)
-    assert.equal(results[0]!.title, 'Fix login bug')
-  })
+    const result = await new GetTasksListQuery(ExecutionContext.system(pendingUser.id)).execute(
+      new GetTasksListDTO({
+        organization_id: org.id,
+        page: 1,
+        limit: 20,
+      })
+    )
 
-  test('status filter works', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id, status: 'todo' })
-    await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      status: 'in_progress',
-    })
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id, status: 'done' })
-
-    const todoTasks = await Task.query().where('organization_id', org.id).where('status', 'todo')
-    assert.equal(todoTasks.length, 1)
-  })
-
-  test('priority filter works', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id, priority: 'urgent' })
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id, priority: 'low' })
-
-    const urgentTasks = await Task.query()
-      .where('organization_id', org.id)
-      .where('priority', 'urgent')
-    assert.equal(urgentTasks.length, 1)
-  })
-
-  test('soft-deleted tasks are hidden', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const activeTask = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-    const deletedTask = await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-    await deletedTask.merge({ deleted_at: DateTime.now() }).save()
-
-    const tasks = await Task.query().where('organization_id', org.id).whereNull('deleted_at')
-    assert.equal(tasks.length, 1)
-    assert.equal(tasks[0]!.id, activeTask.id)
-  })
-
-  test('sort by created_at desc works', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    const task1 = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      title: 'First',
-    })
-    const task2 = await TaskFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      title: 'Second',
-    })
-
-    const tasks = await Task.query().where('organization_id', org.id).orderBy('created_at', 'desc')
-    assert.equal(tasks[0]!.id, task2.id)
-    assert.equal(tasks[1]!.id, task1.id)
-  })
-
-  test('pagination works correctly', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    for (let i = 0; i < 15; i++) {
-      await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-    }
-
-    const page1 = await Task.query().where('organization_id', org.id).paginate(1, 10)
-
-    assert.equal(page1.total, 15)
-    assert.equal(page1.perPage, 10)
-    assert.equal(page1.currentPage, 1)
-    assert.equal(page1.all().length, 10)
-
-    const page2 = await Task.query().where('organization_id', org.id).paginate(2, 10)
-
-    assert.equal(page2.all().length, 5)
-  })
-
-  test('superadmin sees all tasks', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-    await TaskFactory.create({ organization_id: org.id, creator_id: owner.id })
-
-    await UserFactory.createSuperadmin()
-
-    // Superadmin can query without org filter
-    const allTasks = await Task.query().whereNull('deleted_at')
-    assert.isAbove(allTasks.length, 0)
+    assert.lengthOf(result.data, 0)
+    assert.equal(result.meta.total, 0)
+    assert.equal(result.stats?.total, 0)
   })
 })

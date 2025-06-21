@@ -1,6 +1,6 @@
-import Task from '#models/task'
-import User from '#models/user'
-import AuditLog from '#models/mongo/audit_log'
+import type Task from '#models/task'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import db from '@adonisjs/lucid/services/db'
@@ -49,11 +49,7 @@ export default class AssignTaskCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const existingTask = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const existingTask = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
       const [systemRole, orgRole] = await Promise.all([
         UserRepository.getSystemRoleName(userId),
@@ -82,7 +78,7 @@ export default class AssignTaskCommand {
 
       // If assigning (not unassigning), validate assignee
       if (dto.isAssigning() && dto.assigned_to !== null) {
-        const assignee = await User.find(dto.assigned_to)
+        const assignee = await UserRepository.findById(dto.assigned_to)
         if (!assignee) {
           throw new NotFoundException('Người được giao không tồn tại')
         }
@@ -107,17 +103,15 @@ export default class AssignTaskCommand {
 
       existingTask.assigned_to = dto.assigned_to
       existingTask.updated_by = userId
-      await existingTask.useTransaction(trx).save()
+      await TaskRepository.save(existingTask, trx)
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
         entity_type: EntityType.TASK,
         entity_id: dto.task_id,
         old_values: oldValues,
         new_values: existingTask.toJSON(),
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()
@@ -145,12 +139,7 @@ export default class AssignTaskCommand {
         await this.sendAssignmentNotifications(existingTask, userId, dto)
       }
 
-      // Load relations
-      await existingTask.load((loader) => {
-        loader.load('assignee').load('creator').load('updater').load('organization')
-      })
-
-      return existingTask
+      return await TaskRepository.findByIdWithDetailRelations(existingTask.id)
     } catch (error) {
       await trx.rollback()
       throw error
@@ -166,14 +155,14 @@ export default class AssignTaskCommand {
     dto: AssignTaskDTO
   ): Promise<void> {
     try {
-      const assigner = await User.find(assignerId)
+      const assigner = await UserRepository.findById(assignerId)
       if (!assigner) return
 
       const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
 
       // Unassign: Notify old assignee
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
-        const oldAssignee = await User.find(oldAssignedTo)
+        const oldAssignee = await UserRepository.findById(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
@@ -191,7 +180,7 @@ export default class AssignTaskCommand {
 
       // Assign/Reassign: Notify new assignee
       if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
-        const newAssignee = await User.find(dto.assigned_to)
+        const newAssignee = await UserRepository.findById(dto.assigned_to)
         if (newAssignee) {
           await this.createNotification.handle({
             user_id: newAssignee.id,
@@ -208,7 +197,7 @@ export default class AssignTaskCommand {
 
         // If reassigning, also notify old assignee (if different from new and assigner)
         if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
-          const oldAssignee = await User.find(oldAssignedTo)
+          const oldAssignee = await UserRepository.findById(oldAssignedTo)
           if (oldAssignee) {
             await this.createNotification.handle({
               user_id: oldAssignee.id,

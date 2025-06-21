@@ -4,6 +4,8 @@ import {
   UserFactory,
   OrganizationFactory,
   OrganizationUserFactory,
+  ProjectFactory,
+  ProjectMemberFactory,
   TaskFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
@@ -12,6 +14,7 @@ import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_
 import CreateNotification from '#actions/common/create_notification'
 import Task from '#models/task'
 import TaskStatusModel from '#models/task_status'
+import AuditLog from '#models/mongo/audit_log'
 import { ExecutionContext } from '#types/execution_context'
 import { TaskStatus } from '#constants/task_constants'
 import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
@@ -24,7 +27,17 @@ test.group('Integration | Task Status', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  /** Helper: get task_status_id by slug for an organization */
+  async function seedTaskWorkflow(organizationId: string): Promise<void> {
+    const trx = await db.transaction()
+    try {
+      await seedDefaultTaskStatuses(organizationId, trx)
+      await trx.commit()
+    } catch {
+      await trx.rollback()
+      throw new Error('Failed to seed task statuses')
+    }
+  }
+
   async function getStatusId(orgId: string, slug: string): Promise<string> {
     const status = await TaskStatusModel.query()
       .where('organization_id', orgId)
@@ -36,17 +49,7 @@ test.group('Integration | Task Status', (group) => {
 
   async function createTaskInOrg() {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-
-    // Seed default statuses + workflow transitions for this org
-    const trx = await db.transaction()
-    try {
-      await seedDefaultTaskStatuses(org.id, trx)
-      await trx.commit()
-    } catch {
-      await trx.rollback()
-      throw new Error('Failed to seed task statuses')
-    }
-
+    await seedTaskWorkflow(org.id)
     const todoStatusId = await getStatusId(org.id, 'todo')
     const task = await TaskFactory.create({
       organization_id: org.id,
@@ -58,119 +61,130 @@ test.group('Integration | Task Status', (group) => {
     return { org, owner, task }
   }
 
-  test('todo → in_progress transition succeeds', async ({ assert }) => {
-    const { org, owner, task } = await createTaskInOrg()
-    const ctx = ExecutionContext.system(owner.id)
+  async function executeStatusChange(actorId: string, taskId: string, statusId: string) {
+    const ctx = ExecutionContext.system(actorId)
     const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
+    return command.execute(
+      new UpdateTaskStatusDTO({
+        task_id: taskId,
+        task_status_id: statusId,
+      })
+    )
+  }
 
-    const inProgressId = await getStatusId(org.id, 'in_progress')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: inProgressId,
-    })
+  test('workflow status updates preserve representative transition contracts and legacy status categories', async ({
+    assert,
+  }) => {
+    const scenarios = [
+      {
+        prepare: async (orgId: string) => {
+          const targetStatusId = await getStatusId(orgId, 'in_progress')
+          return { targetStatusId, expectedStatus: TaskStatus.IN_PROGRESS }
+        },
+      },
+      {
+        prepare: async (orgId: string, task: Task) => {
+          const inProgressId = await getStatusId(orgId, 'in_progress')
+          await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inProgressId }).save()
+          const targetStatusId = await getStatusId(orgId, 'done_dev')
+          return { targetStatusId, expectedStatus: TaskStatus.IN_PROGRESS }
+        },
+      },
+      {
+        prepare: async (orgId: string, task: Task) => {
+          const inTestingId = await getStatusId(orgId, 'in_testing')
+          await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inTestingId }).save()
+          const targetStatusId = await getStatusId(orgId, 'done')
+          return { targetStatusId, expectedStatus: TaskStatus.DONE }
+        },
+      },
+      {
+        prepare: async (orgId: string, task: Task) => {
+          const inProgressId = await getStatusId(orgId, 'in_progress')
+          await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inProgressId }).save()
+          const targetStatusId = await getStatusId(orgId, 'cancelled')
+          return { targetStatusId, expectedStatus: TaskStatus.CANCELLED }
+        },
+      },
+    ]
 
-    await command.execute(dto)
+    for (const scenario of scenarios) {
+      const { org, owner, task } = await createTaskInOrg()
+      const { targetStatusId, expectedStatus } = await scenario.prepare(org.id, task)
 
-    const updated = await Task.findOrFail(task.id)
-    assert.equal(updated.status, TaskStatus.IN_PROGRESS)
+      await executeStatusChange(owner.id, task.id, targetStatusId)
+
+      const updated = await Task.findOrFail(task.id)
+      assert.equal(updated.task_status_id, targetStatusId)
+      assert.equal(updated.status, expectedStatus)
+    }
   })
 
-  test('in_progress → done_dev transition succeeds', async ({ assert }) => {
+  test('successful status changes record updater identity and audit trail', async ({ assert }) => {
     const { org, owner, task } = await createTaskInOrg()
     const inProgressId = await getStatusId(org.id, 'in_progress')
-    await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inProgressId }).save()
 
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
-    const doneDevId = await getStatusId(org.id, 'done_dev')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: doneDevId,
-    })
-
-    await command.execute(dto)
+    await executeStatusChange(owner.id, task.id, inProgressId)
 
     const updated = await Task.findOrFail(task.id)
-    // backward compat status uses category, not slug
-    assert.equal(updated.status, TaskStatus.IN_PROGRESS)
-    assert.equal(updated.task_status_id, doneDevId)
-  })
-
-  test('in_testing → done transition succeeds', async ({ assert }) => {
-    const { org, owner, task } = await createTaskInOrg()
-    const inTestingId = await getStatusId(org.id, 'in_testing')
-    await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inTestingId }).save()
-
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
-    const doneId = await getStatusId(org.id, 'done')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: doneId,
+    const logs = await AuditLog.find({
+      entity_type: 'task',
+      entity_id: task.id,
+      action: 'update_status',
     })
 
-    await command.execute(dto)
-
-    const updated = await Task.findOrFail(task.id)
-    assert.equal(updated.status, TaskStatus.DONE)
-  })
-
-  test('any status → cancelled transition succeeds', async ({ assert }) => {
-    const { org, owner, task } = await createTaskInOrg()
-    const inProgressId = await getStatusId(org.id, 'in_progress')
-    await task.merge({ status: TaskStatus.IN_PROGRESS, task_status_id: inProgressId }).save()
-
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
-    const cancelledId = await getStatusId(org.id, 'cancelled')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: cancelledId,
-    })
-
-    await command.execute(dto)
-
-    const updated = await Task.findOrFail(task.id)
-    assert.equal(updated.status, TaskStatus.CANCELLED)
-  })
-
-  test('updated_by is set on status change', async ({ assert }) => {
-    const { org, owner, task } = await createTaskInOrg()
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
-    const inProgressId = await getStatusId(org.id, 'in_progress')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: inProgressId,
-    })
-
-    await command.execute(dto)
-
-    const updated = await Task.findOrFail(task.id)
     assert.equal(updated.updated_by, owner.id)
+    assert.isAbove(logs.length, 0)
   })
 
-  test('only permitted user can change status', async ({ assert }) => {
+  test('only permitted users can change status', async ({ assert }) => {
     const { org, task } = await createTaskInOrg()
     const outsider = await UserFactory.create()
-
-    const ctx = ExecutionContext.system(outsider.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
     const inProgressId = await getStatusId(org.id, 'in_progress')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: inProgressId,
-    })
 
-    await assert.rejects(() => command.execute(dto))
+    await assert.rejects(() => executeStatusChange(outsider.id, task.id, inProgressId))
   })
 
-  test('org admin can change status of any task in org', async ({ assert }) => {
+  test('project managers can change status for tasks inside their project', async ({ assert }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const manager = await UserFactory.create()
+    await seedTaskWorkflow(org.id)
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: manager.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: manager.id,
+      project_role: 'project_manager',
+    })
+
+    const todoStatusId = await getStatusId(org.id, 'todo')
+    const inProgressId = await getStatusId(org.id, 'in_progress')
+    const task = await TaskFactory.create({
+      creator_id: owner.id,
+      project_id: project.id,
+      assigned_to: owner.id,
+      status: TaskStatus.TODO,
+      task_status_id: todoStatusId,
+    })
+
+    await executeStatusChange(manager.id, task.id, inProgressId)
+
+    const updated = await Task.findOrFail(task.id)
+    assert.equal(updated.status, TaskStatus.IN_PROGRESS)
+    assert.equal(updated.updated_by, manager.id)
+  })
+
+  test('org admins can change status of any task in their organization', async ({ assert }) => {
     const { org, task } = await createTaskInOrg()
     const admin = await UserFactory.create()
     await OrganizationUserFactory.create({
@@ -179,46 +193,11 @@ test.group('Integration | Task Status', (group) => {
       org_role: 'org_admin',
       status: 'approved',
     })
-
-    const ctx = ExecutionContext.system(admin.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
     const inProgressId = await getStatusId(org.id, 'in_progress')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: inProgressId,
-    })
 
-    await command.execute(dto)
+    await executeStatusChange(admin.id, task.id, inProgressId)
 
     const updated = await Task.findOrFail(task.id)
     assert.equal(updated.status, TaskStatus.IN_PROGRESS)
-  })
-
-  test('audit log created on status change', async ({ assert }) => {
-    const { org, owner, task } = await createTaskInOrg()
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new UpdateTaskStatusCommand(ctx, new CreateNotification())
-
-    const inProgressId = await getStatusId(org.id, 'in_progress')
-    const dto = new UpdateTaskStatusDTO({
-      task_id: task.id,
-      task_status_id: inProgressId,
-    })
-
-    await command.execute(dto)
-
-    try {
-      const { default: AuditLog } = await import('#models/mongo/audit_log')
-      const logs = await AuditLog.find({
-        entity_type: 'task',
-        entity_id: String(task.id),
-        action: 'update_status',
-      })
-      assert.isAbove(logs.length, 0)
-    } catch {
-      // MongoDB not connected in test environment — skip audit assertion
-      assert.isTrue(true)
-    }
   })
 })

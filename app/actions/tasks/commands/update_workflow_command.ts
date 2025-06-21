@@ -1,7 +1,7 @@
-import TaskWorkflowTransition from '#models/task_workflow_transition'
+import type TaskWorkflowTransition from '#models/task_workflow_transition'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import AuditLog from '#models/mongo/audit_log'
+import CreateAuditLog from '#actions/common/create_audit_log'
 import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
@@ -62,27 +62,25 @@ export default class UpdateWorkflowCommand {
       // Insert new transitions
       const newTransitions: TaskWorkflowTransition[] = []
       for (const t of dto.transitions) {
-        const transition = await TaskWorkflowTransition.create(
+        const transition = await TaskWorkflowTransitionRepository.create(
           {
             organization_id: dto.organization_id,
             from_status_id: t.from_status_id,
             to_status_id: t.to_status_id,
             conditions: t.conditions,
           },
-          { client: trx }
+          trx
         )
         newTransitions.push(transition)
       }
 
-      await AuditLog.create({
+      await new CreateAuditLog(this.execCtx).handle({
         user_id: userId,
         action: AuditAction.UPDATE,
         entity_type: EntityType.WORKFLOW,
         entity_id: dto.organization_id,
         old_values: { transitions: oldTransitions.map((t) => t.toJSON()) },
         new_values: { transitions: newTransitions.map((t) => t.toJSON()) },
-        ip_address: this.execCtx.ip,
-        user_agent: this.execCtx.userAgent,
       })
 
       await trx.commit()

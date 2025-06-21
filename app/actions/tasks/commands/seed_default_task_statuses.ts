@@ -1,5 +1,5 @@
-import TaskStatus from '#models/task_status'
-import TaskWorkflowTransition from '#models/task_workflow_transition'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#constants/task_constants'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
@@ -18,7 +18,7 @@ export async function seedDefaultTaskStatuses(
   const slugToId = new Map<string, string>()
 
   for (const def of DEFAULT_TASK_STATUSES) {
-    const status = await TaskStatus.create(
+    const status = await TaskStatusRepository.create(
       {
         organization_id: organizationId,
         name: def.name,
@@ -29,7 +29,7 @@ export async function seedDefaultTaskStatuses(
         is_default: def.is_default,
         is_system: def.is_system,
       },
-      { client: trx }
+      trx
     )
     slugToId.set(def.slug, status.id)
   }
@@ -40,14 +40,14 @@ export async function seedDefaultTaskStatuses(
     const toId = slugToId.get(def.to_slug)
 
     if (fromId && toId) {
-      await TaskWorkflowTransition.create(
+      await TaskWorkflowTransitionRepository.create(
         {
           organization_id: organizationId,
           from_status_id: fromId,
           to_status_id: toId,
           conditions: def.conditions,
         },
-        { client: trx }
+        trx
       )
     }
   }
