@@ -1,0 +1,27 @@
+{
+  "organization": {
+    "name": "Name",
+    "description": "Description",
+    "website": "Website",
+    "logo": "Logo",
+    "members": "Members",
+    "owner": "Owner",
+    "created_at": "Created at",
+    "new_organization": "New Organization",
+    "edit_organization": "Edit Organization",
+    "organization_list": "Organizations",
+    "organization_details": "Organization Details",
+    "no_organizations": "No organizations found",
+    "add_organization": "Add Organization",
+    "invite_members": "Invite Members",
+    "roles": "Roles",
+    "role_owner": "Owner",
+    "role_admin": "Admin",
+    "role_member": "Member",
+    "delete_confirmation": "Are you sure you want to delete this organization?",
+    "switch_organization": "Switch Organization",
+    "current_organization": "Current Organization",
+    "debug_tool": "Organization Debug Tool",
+    "debug_tool_description": "This tool helps inspect and fix issues related to the current organization."
+  }
+} 
