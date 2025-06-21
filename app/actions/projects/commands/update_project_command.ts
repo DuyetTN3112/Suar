@@ -1,13 +1,13 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
-import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
 import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
@@ -20,16 +20,19 @@ import ForbiddenException from '#exceptions/forbidden_exception'
  * - Manager can update: description, start_date, end_date, status
  * - Logs all field changes to audit trail
  *
- * @extends {BaseCommand<UpdateProjectDTO, Project>}
+ * @extends {BaseCommand<UpdateProjectDTO, import('#models/project').default>}
  */
-export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, Project> {
+export default class UpdateProjectCommand extends BaseCommand<
+  UpdateProjectDTO,
+  import('#models/project').default
+> {
   /**
    * Execute the command
    *
    * @param dto - Validated UpdateProjectDTO
    * @returns Updated project
    */
-  async handle(dto: UpdateProjectDTO): Promise<Project> {
+  async handle(dto: UpdateProjectDTO): Promise<import('#models/project').default> {
     const userId = this.getCurrentUserId()
 
     // Check if there are any updates
@@ -39,14 +42,10 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
 
     return await this.executeInTransaction(async (trx) => {
       // 1. Load project with lock (prevents concurrent updates)
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await User.findOrFail(userId)
+      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
       const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
@@ -77,7 +76,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
       // 4. Update project fields
       const updateData = dto.toObject()
       project.merge(updateData)
-      await project.useTransaction(trx).save()
+      await ProjectRepository.save(project, trx)
 
       // 5. Get new values
       const newValues = this.getTrackedFields(project)
@@ -102,7 +101,7 @@ export default class UpdateProjectCommand extends BaseCommand<UpdateProjectDTO, 
   /**
    * Get tracked field values for audit
    */
-  private getTrackedFields(project: Project): Record<string, unknown> {
+  private getTrackedFields(project: import('#models/project').default): Record<string, unknown> {
     return {
       name: project.name,
       description: project.description,

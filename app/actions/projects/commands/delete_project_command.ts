@@ -1,14 +1,14 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
-import Project from '#models/project'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import { DateTime } from 'luxon'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteProject } from '#domain/projects/project_permission_policy'
-import User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
 import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
@@ -33,11 +33,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
     const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
       // Optional scope guard for adapters that require current organization context.
       if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
@@ -45,7 +41,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       }
 
       // 2. Check permissions and incomplete tasks via pure rule
-      const user = await User.findOrFail(userId)
+      const user = await UserRepository.findNotDeletedOrFail(userId, trx)
       const orgMembership = await OrganizationUserRepository.findMembership(
         project.organization_id,
         userId,
@@ -69,10 +65,10 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
       // 5. Perform delete (soft or permanent)
       if (dto.isPermanentDelete()) {
-        await project.useTransaction(trx).delete()
+        await ProjectRepository.hardDelete(project, trx)
       } else {
         project.deleted_at = DateTime.now()
-        await project.useTransaction(trx).save()
+        await ProjectRepository.save(project, trx)
       }
 
       // 6. Log audit trail

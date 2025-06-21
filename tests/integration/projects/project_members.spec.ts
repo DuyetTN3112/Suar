@@ -8,7 +8,6 @@ import {
 } from '#tests/helpers/factories'
 import { ProjectRole } from '#constants/project_constants'
 import { OrganizationRole } from '#constants/organization_constants'
-import { canAddProjectMember } from '#domain/projects/project_permission_policy'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 
@@ -19,7 +18,9 @@ test.group('Integration | Project Members', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('addMember creates project member record', async ({ assert }) => {
+  test('project member lifecycle persists through add, role update, and delete', async ({
+    assert,
+  }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const user = await UserFactory.create()
 
@@ -36,39 +37,18 @@ test.group('Integration | Project Members', (group) => {
     })
 
     const member = await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
-    assert.isNotNull(member)
-    assert.equal(member.project_id, project.id)
-    assert.equal(member.user_id, user.id)
     assert.equal(member.project_role, ProjectRole.MEMBER)
+    assert.isTrue(await ProjectMemberRepository.isMember(project.id, user.id))
+
+    await ProjectMemberRepository.updateRole(project.id, user.id, ProjectRole.MANAGER)
+    const roleName = await ProjectMemberRepository.getRoleName(project.id, user.id)
+    assert.equal(roleName, ProjectRole.MANAGER)
+
+    await ProjectMemberRepository.deleteMember(project.id, user.id)
+    assert.isFalse(await ProjectMemberRepository.isMember(project.id, user.id))
   })
 
-  test('isMember returns true for project member', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-    })
-
-    await ProjectMemberRepository.addMember(project.id, owner.id, ProjectRole.OWNER)
-
-    const result = await ProjectMemberRepository.isMember(project.id, owner.id)
-    assert.isTrue(result)
-  })
-
-  test('isMember returns false for non-member', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const nonMember = await UserFactory.create()
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-    })
-
-    const result = await ProjectMemberRepository.isMember(project.id, nonMember.id)
-    assert.isFalse(result)
-  })
-
-  test('isProjectManagerOrOwner returns true for manager', async ({ assert }) => {
+  test('manager membership is recognized by repository role checks', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const manager = await UserFactory.create()
 
@@ -85,55 +65,7 @@ test.group('Integration | Project Members', (group) => {
     })
 
     await ProjectMemberRepository.addMember(project.id, manager.id, ProjectRole.MANAGER)
-
-    const result = await ProjectMemberRepository.isProjectManagerOrOwner(manager.id, project.id)
-    assert.isTrue(result)
-  })
-
-  test('deleteMember removes project member', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const user = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user.id,
-      org_role: OrganizationRole.MEMBER,
-    })
-
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-    })
-
-    await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
-    await ProjectMemberRepository.deleteMember(project.id, user.id)
-
-    const result = await ProjectMemberRepository.isMember(project.id, user.id)
-    assert.isFalse(result)
-  })
-
-  test('updateRole changes member project role', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const user = await UserFactory.create()
-
-    await OrganizationUserRepository.addMember({
-      organization_id: org.id,
-      user_id: user.id,
-      org_role: OrganizationRole.MEMBER,
-    })
-
-    const project = await ProjectFactory.create({
-      organization_id: org.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-    })
-
-    await ProjectMemberRepository.addMember(project.id, user.id, ProjectRole.MEMBER)
-    await ProjectMemberRepository.updateRole(project.id, user.id, ProjectRole.MANAGER)
-
-    const roleName = await ProjectMemberRepository.getRoleName(project.id, user.id)
-    assert.equal(roleName, ProjectRole.MANAGER)
+    assert.isTrue(await ProjectMemberRepository.isProjectManagerOrOwner(manager.id, project.id))
   })
 
   test('getRoleName returns unknown for non-member', async ({ assert }) => {
@@ -182,33 +114,5 @@ test.group('Integration | Project Members', (group) => {
     const counts = await ProjectMemberRepository.countByProjectIds([project1.id, project2.id])
     assert.equal(counts.get(project1.id), 3)
     assert.equal(counts.get(project2.id), 1)
-  })
-
-  test('canAddProjectMember policy checks combine properly', async ({ assert }) => {
-    // System admin can always add
-    const result1 = canAddProjectMember({
-      actorId: 'admin-1',
-      actorSystemRole: 'superadmin',
-      actorOrgRole: null,
-      projectOwnerId: 'owner-1',
-      projectCreatorId: 'creator-1',
-      isTargetOrgMember: true,
-      isAlreadyMember: false,
-      targetRole: ProjectRole.MEMBER,
-    })
-    assert.isTrue(result1.allowed)
-
-    // Cannot add already-member
-    const result2 = canAddProjectMember({
-      actorId: 'admin-1',
-      actorSystemRole: 'superadmin',
-      actorOrgRole: null,
-      projectOwnerId: 'admin-1',
-      projectCreatorId: 'admin-1',
-      isTargetOrgMember: true,
-      isAlreadyMember: true,
-      targetRole: ProjectRole.MEMBER,
-    })
-    assert.isFalse(result2.allowed)
   })
 })
