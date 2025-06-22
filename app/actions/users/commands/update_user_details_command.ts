@@ -1,6 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
-import User from '#models/user'
+import type User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'
 
@@ -26,8 +27,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
     }
 
     return await this.executeInTransaction(async (trx) => {
-      // Load user within transaction
-      const userRecord = await User.query({ client: trx }).where('id', userId).firstOrFail()
+      const userRecord = await UserRepository.findNotDeletedOrFail(userId, trx)
 
       const oldValues = {
         avatar_url: userRecord.avatar_url,
@@ -50,7 +50,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         is_freelancer:
           dto.is_freelancer !== undefined ? dto.is_freelancer : userRecord.is_freelancer,
       })
-      await userRecord.useTransaction(trx).save()
+      await UserRepository.save(userRecord, trx)
 
       // Log audit
       await this.logAudit('update', 'user', userId, oldValues, {

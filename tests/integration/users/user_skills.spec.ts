@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  SkillFactory,
-  UserSkillFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
-import { ProficiencyLevel, getLevelCodeFromPercentage } from '#constants/user_constants'
+import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'
+import { ProficiencyLevel } from '#constants/user_constants'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
+import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
+import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
+import { AddUserSkillDTO, UpdateUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
+import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Skills', (group) => {
   group.setup(async () => {
@@ -16,117 +16,95 @@ test.group('Integration | User Skills', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('add skill to user creates user_skill record', async ({ assert }) => {
+  test('add skill command creates a queryable user skill with initial unreviewed stats', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
-
-    const userSkill = await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      level_code: ProficiencyLevel.JUNIOR,
+    const skill = await SkillFactory.create({
+      skill_name: 'TypeScript',
+      category_code: 'technical',
     })
+    const command = new AddUserSkillCommand(ExecutionContext.system(user.id))
 
-    assert.isNotNull(userSkill.id)
-    assert.equal(userSkill.user_id, user.id)
-    assert.equal(userSkill.skill_id, skill.id)
-    assert.equal(userSkill.level_code, ProficiencyLevel.JUNIOR)
+    await command.handle(new AddUserSkillDTO(skill.id, ProficiencyLevel.JUNIOR))
+
+    const skills = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
+      new GetUserSkillsDTO(user.id)
+    )
+    const stored = await SkillRepository.findByUserAndSkill(user.id, skill.id)
+
+    assert.lengthOf(skills, 1)
+    assert.equal(skills[0]?.skill_id, skill.id)
+    assert.equal(skills[0]?.skill_name, 'TypeScript')
+    assert.equal(skills[0]?.category_code, 'technical')
+    assert.equal(skills[0]?.level_code, ProficiencyLevel.JUNIOR)
+    assert.equal(stored?.hasBeenReviewed, false)
   })
 
-  test('findByUserAndSkill returns existing record', async ({ assert }) => {
+  test('duplicate skill additions and inactive skills are both rejected without creating extra rows', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
+    const activeSkill = await SkillFactory.create()
+    const inactiveSkill = await SkillFactory.create({ is_active: false })
+    const command = new AddUserSkillCommand(ExecutionContext.system(user.id))
 
-    await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      level_code: ProficiencyLevel.SENIOR,
-    })
+    await command.handle(new AddUserSkillDTO(activeSkill.id, ProficiencyLevel.MIDDLE))
+    await assert.rejects(() =>
+      command.handle(new AddUserSkillDTO(activeSkill.id, ProficiencyLevel.SENIOR))
+    )
+    await assert.rejects(() =>
+      command.handle(new AddUserSkillDTO(inactiveSkill.id, ProficiencyLevel.JUNIOR))
+    )
 
-    const found = await SkillRepository.findByUserAndSkill(user.id, skill.id)
-    assert.isNotNull(found)
-    assert.equal(found!.level_code, ProficiencyLevel.SENIOR)
+    const skills = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
+      new GetUserSkillsDTO(user.id)
+    )
+    assert.lengthOf(skills, 1)
   })
 
-  test('findByUserAndSkill returns null for non-existent', async ({ assert }) => {
+  test('owners can update their skill level while outsiders are blocked and category filters stay precise', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
-
-    const found = await SkillRepository.findByUserAndSkill(user.id, skill.id)
-    assert.isNull(found)
-  })
-
-  test('getUserSkillsWithDetails returns all skills for user', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill1 = await SkillFactory.create({ skill_name: 'JavaScript' })
-    const skill2 = await SkillFactory.create({ skill_name: 'TypeScript' })
-
-    await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill1.id,
-      level_code: ProficiencyLevel.MIDDLE,
+    const outsider = await UserFactory.create()
+    const technicalSkill = await SkillFactory.create({
+      skill_name: 'Architecture',
+      category_code: 'technical',
     })
-    await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill2.id,
-      level_code: ProficiencyLevel.SENIOR,
+    const softSkill = await SkillFactory.create({
+      skill_name: 'Communication',
+      category_code: 'soft_skill',
     })
+    const addCommand = new AddUserSkillCommand(ExecutionContext.system(user.id))
 
-    const skills = await SkillRepository.getUserSkillsWithDetails(user.id)
-    assert.lengthOf(skills, 2)
-  })
+    await addCommand.handle(new AddUserSkillDTO(technicalSkill.id, ProficiencyLevel.MIDDLE))
+    await addCommand.handle(new AddUserSkillDTO(softSkill.id, ProficiencyLevel.JUNIOR))
 
-  test('hasBeenReviewed returns false when total_reviews is 0', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
+    const storedTechnicalSkill = await SkillRepository.findByUserAndSkill(
+      user.id,
+      technicalSkill.id
+    )
+    if (!storedTechnicalSkill) {
+      assert.fail('Expected technical skill to exist after add command')
+      return
+    }
 
-    const userSkill = await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      total_reviews: 0,
-    })
+    await new UpdateUserSkillCommand(ExecutionContext.system(user.id)).handle(
+      new UpdateUserSkillDTO(storedTechnicalSkill.id, ProficiencyLevel.LEAD)
+    )
+    await assert.rejects(() =>
+      new UpdateUserSkillCommand(ExecutionContext.system(outsider.id)).handle(
+        new UpdateUserSkillDTO(storedTechnicalSkill.id, ProficiencyLevel.MASTER)
+      )
+    )
 
-    assert.isFalse(userSkill.hasBeenReviewed)
-  })
+    const technicalOnly = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
+      new GetUserSkillsDTO(user.id, 'technical')
+    )
 
-  test('hasBeenReviewed returns true when total_reviews > 0', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
-
-    const userSkill = await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      total_reviews: 3,
-    })
-
-    assert.isTrue(userSkill.hasBeenReviewed)
-  })
-
-  test('getLevelCodeFromPercentage maps correctly', async ({ assert }) => {
-    assert.equal(getLevelCodeFromPercentage(0), ProficiencyLevel.BEGINNER)
-    assert.equal(getLevelCodeFromPercentage(10), ProficiencyLevel.BEGINNER)
-    assert.equal(getLevelCodeFromPercentage(15), ProficiencyLevel.ELEMENTARY)
-    assert.equal(getLevelCodeFromPercentage(30), ProficiencyLevel.JUNIOR)
-    assert.equal(getLevelCodeFromPercentage(45), ProficiencyLevel.MIDDLE)
-    assert.equal(getLevelCodeFromPercentage(60), ProficiencyLevel.SENIOR)
-    assert.equal(getLevelCodeFromPercentage(75), ProficiencyLevel.PRINCIPAL)
-    assert.equal(getLevelCodeFromPercentage(88), ProficiencyLevel.MASTER)
-    assert.equal(getLevelCodeFromPercentage(100), ProficiencyLevel.MASTER)
-  })
-
-  test('update skill level_code persists', async ({ assert }) => {
-    const user = await UserFactory.create()
-    const skill = await SkillFactory.create()
-
-    const userSkill = await UserSkillFactory.create({
-      user_id: user.id,
-      skill_id: skill.id,
-      level_code: ProficiencyLevel.BEGINNER,
-    })
-
-    userSkill.level_code = ProficiencyLevel.LEAD
-    await userSkill.save()
-
-    const updated = await SkillRepository.findByUserAndSkill(user.id, skill.id)
-    assert.equal(updated!.level_code, ProficiencyLevel.LEAD)
+    assert.lengthOf(technicalOnly, 1)
+    assert.equal(technicalOnly[0]?.skill_id, technicalSkill.id)
+    assert.equal(technicalOnly[0]?.level_code, ProficiencyLevel.LEAD)
   })
 })

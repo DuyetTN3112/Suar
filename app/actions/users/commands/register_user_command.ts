@@ -1,10 +1,11 @@
 import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
-import User from '#models/user'
+import type User from '#models/user'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { SystemRoleName } from '#constants/user_constants'
 import emitter from '@adonisjs/core/services/emitter'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * RegisterUserCommand
@@ -54,14 +55,14 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
     dto: RegisterUserDTO,
     trx: TransactionClientContract
   ): Promise<User> {
-    return await User.create(
+    return await UserRepository.create(
       {
         username: dto.username,
         email: dto.email,
         system_role: dto.roleId || SystemRoleName.REGISTERED_USER,
         status: dto.statusId,
       },
-      { client: trx }
+      trx
     )
   }
 }

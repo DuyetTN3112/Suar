@@ -9,8 +9,8 @@
  *   - XÓA systemRoleOptions → 0 usages
  *   - XÓA oauthProviderOptions → 0 usages
  *   - XÓA getProficiencyLevelLabel → 0 usages
- *   - THÊM AuthMethod → DB v3 có auth_method CHECK ('email','google','github')
- *   - GIỮ OAuthProvider nhưng NOTE: DB v3 auth_method CHECK chỉ có email/google/github
+ *   - THÊM AuthMethod → DB v3 có auth_method CHECK ('google','github')
+ *   - GIỮ OAuthProvider vì auth_method hiện tại map trực tiếp với OAuth login đang dùng
  *
  * @module UserConstants
  */
@@ -38,10 +38,9 @@ export enum SystemRoleName {
 
 /**
  * Auth Method — v3.0 inline CHECK trên users.auth_method
- * CHECK ('email', 'google', 'github')
+ * CHECK ('google', 'github')
  */
 export enum AuthMethod {
-  EMAIL = 'email',
   GOOGLE = 'google',
   GITHUB = 'github',
 }
@@ -49,8 +48,7 @@ export enum AuthMethod {
 /**
  * OAuth Providers
  * Các provider OAuth được hỗ trợ
- * NOTE: DB v3 auth_method CHECK chỉ có 'email','google','github'.
- *       facebook & linkedin giữ cho tương lai nhưng chưa có trong DB.
+ * NOTE: DB v3 auth_method CHECK chỉ có 'google','github'.
  */
 export enum OAuthProvider {
   GOOGLE = 'google',
