@@ -11,7 +11,6 @@
   import Input from '@/components/ui/input.svelte'
   import { Building, Search, Users, ChevronLeft, ChevronRight } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
   interface Organization {
@@ -32,8 +31,18 @@
     currentOrganizationId: string | null
   }
 
+  interface SwitchOrganizationResponse {
+    success?: boolean
+    message?: string
+    redirect?: string
+  }
+
+  interface JoinOrganizationResponse {
+    success?: boolean
+    message?: string
+  }
+
   const { organizations, currentOrganizationId }: Props = $props()
-  const { t } = useTranslation()
 
   let searchTerm = $state('')
   let currentPage = $state(1)
@@ -54,14 +63,6 @@
     )
   )
 
-  function planBadgeVariant(plan: string | null): 'default' | 'secondary' | 'outline' {
-    switch (plan?.toLowerCase()) {
-      case 'enterprise': return 'default'
-      case 'pro': return 'secondary'
-      default: return 'outline'
-    }
-  }
-
   async function handleSwitchOrganization(id: string) {
     try {
       const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
@@ -80,23 +81,30 @@
         },
         body: JSON.stringify({
           organization_id: id,
-          current_path: window.location.pathname,
         }),
         credentials: 'same-origin',
       })
 
       const contentType = response.headers.get('content-type')
       if (contentType && contentType.includes('application/json')) {
-        const data = await response.json()
+        const data = (await response.json()) as SwitchOrganizationResponse
         if (data.success) {
           notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-          router.reload()
+          router.visit(data.redirect || '/tasks', {
+            preserveState: false,
+            preserveScroll: false,
+            replace: true,
+          })
         } else {
           notificationStore.error(data.message || 'Có lỗi xảy ra')
         }
       } else {
         notificationStore.success('Đã chuyển đổi tổ chức thành công')
-        router.reload()
+        router.visit('/tasks', {
+          preserveState: false,
+          preserveScroll: false,
+          replace: true,
+        })
       }
     } catch (error) {
       console.error('Lỗi khi chuyển đổi tổ chức:', error)
@@ -123,7 +131,7 @@
         credentials: 'same-origin',
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as JoinOrganizationResponse
       if (data.success) {
         notificationStore.success(data.message || 'Đã gửi yêu cầu tham gia thành công')
         router.reload()
@@ -183,9 +191,6 @@
             </CardHeader>
             <CardContent class="p-3 pt-0 pb-1">
               <div class="flex items-center gap-2 flex-wrap">
-                {#if org.plan}
-                  <Badge variant={planBadgeVariant(org.plan)} class="text-xs">{org.plan}</Badge>
-                {/if}
                 {#if org.employee_count != null}
                   <span class="text-xs text-muted-foreground flex items-center gap-1">
                     <Users class="h-3 w-3" />

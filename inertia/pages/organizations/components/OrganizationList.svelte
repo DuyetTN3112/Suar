@@ -11,7 +11,6 @@
     owner_id: string
     website: string | null
     logo: string | null
-    plan: string | null
     slug: string
     created_at: string
     updated_at: string

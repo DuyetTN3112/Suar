@@ -8,7 +8,12 @@
   import Button from '@/components/ui/button.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { Mail, Clock, UserPlus, Search, CheckCircle, XCircle } from 'lucide-svelte'
+  import Label from '@/components/ui/label.svelte'
+  import Select from '@/components/ui/select.svelte'
+  import SelectContent from '@/components/ui/select_content.svelte'
+  import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import { Mail, Clock, UserPlus, Search } from 'lucide-svelte'
 
   interface Props {
     invitations: {
@@ -35,17 +40,27 @@
     }
   }
 
-  let { invitations, pagination, filters }: Props = $props()
+  const { invitations, pagination, filters }: Props = $props()
   let searchValue = $state(filters.search || '')
-  let showInviteModal = $state(false)
+  let inviteFormOpen = $state(false)
+  let isSubmitting = $state(false)
+  let errorMessage = $state('')
+  let inviteForm = $state({
+    email: '',
+    org_role: 'org_member',
+  })
 
   function handleSearch() {
-    inertia.get('/org/invitations', {
-      search: searchValue,
-      page: 1,
-    }, {
-      preserveState: true,
-    })
+    inertia.get(
+      '/org/invitations/invitations',
+      {
+        search: searchValue,
+        page: 1,
+      },
+      {
+        preserveState: true,
+      }
+    )
   }
 
   function getStatusBadge(status: string) {
@@ -65,87 +80,183 @@
       day: 'numeric',
     })
   }
+
+  function getCsrfToken(): string {
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  }
+
+  async function handleInviteMember() {
+    if (!inviteForm.email.trim()) {
+      errorMessage = 'Email là bắt buộc.'
+      return
+    }
+
+    isSubmitting = true
+    errorMessage = ''
+
+    try {
+      const response = await fetch('/org/members/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': getCsrfToken(),
+        },
+        body: JSON.stringify(inviteForm),
+        credentials: 'same-origin',
+      })
+
+      const payload = (await response.json()) as {
+        success?: boolean
+        message?: string
+      }
+
+      if (!response.ok || !payload.success) {
+        errorMessage = payload.message || 'Không thể gửi lời mời.'
+        isSubmitting = false
+        return
+      }
+
+      inviteFormOpen = false
+      inviteForm = {
+        email: '',
+        org_role: 'org_member',
+      }
+      inertia.reload({ preserveScroll: true })
+    } catch (error) {
+      console.error('Lỗi khi gửi lời mời:', error)
+      errorMessage = 'Không thể gửi lời mời.'
+      isSubmitting = false
+    }
+  }
+
+  function roleLabel(role: string): string {
+    switch (role) {
+      case 'org_owner':
+        return 'Owner'
+      case 'org_admin':
+        return 'Admin'
+      default:
+        return 'Member'
+    }
+  }
 </script>
 
-<OrganizationLayout>
+<OrganizationLayout title="Lời mời tổ chức">
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Invitations</h1>
-        <p class="text-muted-foreground">Manage member invitations</p>
+        <h1 class="text-3xl font-bold tracking-tight">Lời mời thành viên</h1>
+        <p class="text-muted-foreground">Theo dõi các lời mời đã gửi và tạo lời mời mới cho team của tổ chức.</p>
       </div>
-      <Button onclick={() => showInviteModal = true}>
+      <Button onclick={() => { inviteFormOpen = !inviteFormOpen }}>
         <UserPlus class="mr-2 h-4 w-4" />
-        Invite Member
+        {inviteFormOpen ? 'Đóng form' : 'Mời thành viên'}
       </Button>
     </div>
 
-    <!-- Filters -->
+    {#if inviteFormOpen}
+      <Card>
+        <CardHeader>
+          <CardTitle>Gửi lời mời mới</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid gap-4 md:grid-cols-2">
+            <div class="space-y-2">
+              <Label for="invite_email">Email</Label>
+              <Input
+                id="invite_email"
+                type="email"
+                value={inviteForm.email}
+                oninput={(event: Event) => {
+                  inviteForm.email = (event.currentTarget as HTMLInputElement).value
+                }}
+                placeholder="member@example.com"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <Label for="invite_role">Vai trò</Label>
+              <Select
+                value={inviteForm.org_role}
+                onValueChange={(value: string) => {
+                  inviteForm.org_role = value
+                }}
+              >
+                <SelectTrigger id="invite_role">
+                  <span>{roleLabel(inviteForm.org_role)}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="org_member">Member</SelectItem>
+                  <SelectItem value="org_admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {#if errorMessage}
+            <p class="text-sm text-red-600">{errorMessage}</p>
+          {/if}
+
+          <div class="flex justify-end gap-2">
+            <Button variant="outline" onclick={() => { inviteFormOpen = false }}>
+              Hủy
+            </Button>
+            <Button onclick={() => { void handleInviteMember() }} disabled={isSubmitting}>
+              {isSubmitting ? 'Đang gửi...' : 'Gửi lời mời'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    {/if}
+
     <Card>
       <CardContent class="pt-6">
         <div class="flex gap-4">
-          <div class="flex-1 relative">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div class="relative flex-1">
+            <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by email..."
+              placeholder="Tìm theo email..."
               class="pl-10"
               bind:value={searchValue}
-              onkeydown={(e) => e.key === 'Enter' && handleSearch()}
+              onkeydown={(event: KeyboardEvent) => event.key === 'Enter' && handleSearch()}
             />
           </div>
-          <Button onclick={handleSearch}>Search</Button>
+          <Button onclick={handleSearch}>Tìm kiếm</Button>
         </div>
       </CardContent>
     </Card>
 
-    <!-- Invitations List -->
     <div class="grid gap-4">
       {#each invitations as invitation}
         <Card>
           <CardContent class="pt-6">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between gap-4">
               <div class="flex items-center gap-4">
-                <div class="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
                   <Mail class="h-5 w-5 text-primary" />
                 </div>
                 <div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex flex-wrap items-center gap-2">
                     <span class="font-medium">{invitation.email}</span>
                     <Badge variant={getStatusBadge(invitation.status)}>
                       {invitation.status}
                     </Badge>
-                    <Badge variant="outline">{invitation.org_role}</Badge>
+                    <Badge variant="outline">{roleLabel(invitation.org_role)}</Badge>
                   </div>
-                  <div class="text-sm text-muted-foreground mt-1">
-                    Invited by {invitation.invited_by.username} • {formatDate(invitation.invited_at)}
+                  <div class="mt-1 text-sm text-muted-foreground">
+                    Gửi bởi {invitation.invited_by.username} • {formatDate(invitation.invited_at)}
                   </div>
                   {#if invitation.status === 'pending'}
-                    <div class="text-xs text-muted-foreground mt-1">
-                      <Clock class="inline h-3 w-3 mr-1" />
-                      Expires {formatDate(invitation.expires_at)}
+                    <div class="mt-1 text-xs text-muted-foreground">
+                      <Clock class="mr-1 inline h-3 w-3" />
+                      Hết hạn vào {formatDate(invitation.expires_at)}
                     </div>
                   {/if}
                 </div>
               </div>
-              {#if invitation.status === 'pending'}
-                <div class="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onclick={() => inertia.post(`/org/invitations/${invitation.id}/resend`)}
-                  >
-                    Resend
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onclick={() => inertia.delete(`/org/invitations/${invitation.id}`)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              {/if}
             </div>
           </CardContent>
         </Card>
@@ -155,15 +266,23 @@
     {#if invitations.length === 0}
       <Card>
         <CardContent class="py-12 text-center">
-          <Mail class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 class="text-lg font-semibold mb-2">No invitations</h3>
-          <p class="text-muted-foreground mb-4">
-            No pending invitations. Invite team members to get started.
+          <Mail class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h3 class="mb-2 text-lg font-semibold">Chưa có lời mời nào</h3>
+          <p class="mb-4 text-muted-foreground">
+            Hãy gửi lời mời đầu tiên để mở rộng team của tổ chức.
           </p>
-          <Button onclick={() => showInviteModal = true}>
+          <Button onclick={() => { inviteFormOpen = true }}>
             <UserPlus class="mr-2 h-4 w-4" />
-            Invite Member
+            Mời thành viên
           </Button>
+        </CardContent>
+      </Card>
+    {/if}
+
+    {#if pagination.lastPage > 1}
+      <Card>
+        <CardContent class="py-4 text-sm text-muted-foreground">
+          Hiển thị trang {pagination.currentPage} / {pagination.lastPage} với tổng {pagination.total} lời mời.
         </CardContent>
       </Card>
     {/if}

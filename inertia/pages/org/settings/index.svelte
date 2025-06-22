@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia, useForm } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -22,19 +22,45 @@
     }
   }
 
-  let { organization }: Props = $props()
+  const { organization }: Props = $props()
 
-  const form = useForm({
-    name: organization.name,
-    description: organization.description || '',
-    website: organization.website || '',
-    email: organization.email || '',
+  let formData = $state({
+    name: '',
+    description: '',
+    website: '',
+    email: '',
+  })
+  let errors = $state<Record<string, string>>({})
+  let processing = $state(false)
+
+  $effect(() => {
+    formData = {
+      name: organization.name,
+      description: organization.description || '',
+      website: organization.website || '',
+      email: organization.email || '',
+    }
   })
 
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault()
-    form.put(`/org/settings`, {
+    processing = true
+    errors = {}
+
+    router.put(`/org/settings`, formData, {
       preserveScroll: true,
+      onSuccess: () => {
+        processing = false
+      },
+      onError: (errorBag) => {
+        processing = false
+        errors = Object.fromEntries(
+          Object.entries(errorBag).map(([key, value]) => [
+            key,
+            typeof value === 'string' ? value : 'Giá trị không hợp lệ',
+          ])
+        )
+      },
     })
   }
 </script>
@@ -42,8 +68,8 @@
 <OrganizationLayout>
   <div class="space-y-6 max-w-3xl">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">Organization Settings</h1>
-      <p class="text-muted-foreground">Manage your organization information</p>
+      <h1 class="text-3xl font-bold tracking-tight">Thông tin tổ chức</h1>
+      <p class="text-muted-foreground">Quản lý nhận diện và thông tin liên hệ nội bộ của tổ chức hiện tại.</p>
     </div>
 
     <form onsubmit={handleSubmit}>
@@ -51,34 +77,36 @@
         <CardHeader>
           <div class="flex items-center gap-2">
             <Settings class="h-5 w-5" />
-            <CardTitle>Basic Information</CardTitle>
+            <CardTitle>Thông tin cơ bản</CardTitle>
           </div>
-          <CardDescription>Update your organization details</CardDescription>
+          <CardDescription>
+            Màn này chỉ quản lý thông tin tổ chức. Subscription sản phẩm hiện là của tài khoản người dùng, không phải package public của organization.
+          </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label for="name">Organization Name</Label>
+            <Label for="name">Tên tổ chức</Label>
             <Input
               id="name"
               type="text"
-              bind:value={$form.name}
+              bind:value={formData.name}
               required
             />
-            {#if $form.errors.name}
-              <p class="text-sm text-destructive">{$form.errors.name}</p>
+            {#if errors.name}
+              <p class="text-sm text-destructive">{errors.name}</p>
             {/if}
           </div>
 
           <div class="space-y-2">
-            <Label for="description">Description</Label>
+            <Label for="description">Mô tả</Label>
             <Textarea
               id="description"
-              bind:value={$form.description}
+              bind:value={formData.description}
               rows={4}
-              placeholder="Tell us about your organization..."
+              placeholder="Mô tả ngắn về lĩnh vực, cách làm việc hoặc mục tiêu của tổ chức..."
             />
-            {#if $form.errors.description}
-              <p class="text-sm text-destructive">{$form.errors.description}</p>
+            {#if errors.description}
+              <p class="text-sm text-destructive">{errors.description}</p>
             {/if}
           </div>
 
@@ -88,35 +116,35 @@
               <Input
                 id="website"
                 type="url"
-                bind:value={$form.website}
+                bind:value={formData.website}
                 placeholder="https://example.com"
               />
-              {#if $form.errors.website}
-                <p class="text-sm text-destructive">{$form.errors.website}</p>
+              {#if errors.website}
+                <p class="text-sm text-destructive">{errors.website}</p>
               {/if}
             </div>
 
             <div class="space-y-2">
-              <Label for="email">Contact Email</Label>
+              <Label for="email">Email liên hệ</Label>
               <Input
                 id="email"
                 type="email"
-                bind:value={$form.email}
+                bind:value={formData.email}
                 placeholder="contact@example.com"
               />
-              {#if $form.errors.email}
-                <p class="text-sm text-destructive">{$form.errors.email}</p>
+              {#if errors.email}
+                <p class="text-sm text-destructive">{errors.email}</p>
               {/if}
             </div>
           </div>
 
           <div class="flex justify-end gap-2 pt-4">
-            <Button type="button" variant="outline" onclick={() => window.history.back()}>
-              Cancel
+            <Button type="button" variant="outline" onclick={() => { window.history.back(); }}>
+              Quay lại
             </Button>
-            <Button type="submit" disabled={$form.processing}>
+            <Button type="submit" disabled={processing}>
               <Save class="mr-2 h-4 w-4" />
-              {$form.processing ? 'Saving...' : 'Save Changes'}
+              {processing ? 'Đang lưu...' : 'Lưu thay đổi'}
             </Button>
           </div>
         </CardContent>

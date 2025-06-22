@@ -15,6 +15,9 @@
   }
 
   interface PageProps {
+    auth?: {
+      user?: AuthUser
+    }
     user?: {
       auth?: {
         user?: AuthUser
@@ -24,7 +27,7 @@
   }
 
   const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived(props.user?.auth?.user || null)
+  const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
 
   const userInfo = $derived.by(() => {
     if (authUser) {
@@ -53,7 +56,7 @@
       </div>
       <div class="flex flex-col">
         <span class="text-sm font-semibold text-blue-900">Organization</span>
-        <span class="text-xs text-blue-600">Admin Panel</span>
+        <span class="text-xs text-blue-600">Quản trị tổ chức</span>
       </div>
     </div>
   </SidebarHeader>

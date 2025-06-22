@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from '@inertiajs/svelte'
+  import { Link, router } from '@inertiajs/svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -17,7 +17,6 @@
     owner_id: string
     website: string | null
     logo: string | null
-    plan: string | null
     slug: string
     created_at: string
     updated_at: string
@@ -38,6 +37,15 @@
     showJoinButton = false,
     showSwitchButton = false
   }: Props = $props()
+
+  function handleSwitch() {
+    router.visit(`/organizations/switch/${organization.id}`)
+  }
+
+  function handleJoin() {
+    router.visit(`/organizations/${organization.id}/join`)
+  }
+
 </script>
 
 <Card class="overflow-hidden transition-all duration-200 {isCurrentOrganization ? 'ring-2 ring-primary' : ''}">
@@ -70,30 +78,19 @@
         {organization.website}
       </div>
     {/if}
-    {#if organization.plan}
-      <div class="mt-1">
-        <Badge variant="secondary">{organization.plan}</Badge>
-      </div>
-    {/if}
   </CardContent>
   <CardFooter class="flex justify-between pt-2">
-    <Button variant="outline">
-      <Link href="/organizations/{organization.id}">
-        Xem chi tiết
-      </Link>
-    </Button>
+    <Link href={`/organizations/${organization.id}`}>
+      <Button variant="outline">Xem chi tiết</Button>
+    </Link>
     {#if showSwitchButton && !isCurrentOrganization}
-      <Button variant="secondary">
-        <Link href="/organizations/switch/{organization.id}">
-          Chọn <ArrowRight class="ml-2 h-4 w-4" />
-        </Link>
+      <Button variant="secondary" onclick={handleSwitch}>
+        Chọn <ArrowRight class="ml-2 h-4 w-4" />
       </Button>
     {/if}
     {#if showJoinButton}
-      <Button variant="secondary">
-        <Link href="/organizations/{organization.id}/join">
-          Tham gia
-        </Link>
+      <Button variant="secondary" onclick={handleJoin}>
+        Tham gia
       </Button>
     {/if}
   </CardFooter>

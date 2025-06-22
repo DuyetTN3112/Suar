@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { Link } from '@inertiajs/svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -144,11 +144,9 @@
                 <div class="flex justify-between items-center">
                   <CardTitle>Danh sách thành viên</CardTitle>
                   {#if isAdmin}
-                    <Button size="sm">
-                      <Link href="/users/create">
-                        Thêm thành viên
-                      </Link>
-                    </Button>
+                    <Link href="/org/invitations/invitations">
+                      <Button size="sm">Mời thành viên</Button>
+                    </Link>
                   {/if}
                 </div>
               </CardHeader>
@@ -180,28 +178,9 @@
                           <TableCell>{member.role_name}</TableCell>
                           {#if isSuperAdmin}
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                class="h-8 w-8 p-0"
-                              >
-                                <Link href={`/organizations/users/${member.id}/edit-permissions`}>
-                                  <span class="sr-only">Chỉnh sửa quyền</span>
-                                  <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    class="h-4 w-4"
-                                  >
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                  </svg>
-                                </Link>
-                              </Button>
+                              <Link href="/users/{member.id}">
+                                <Button variant="ghost" size="sm">Xem user</Button>
+                              </Link>
                             </TableCell>
                           {/if}
                         </TableRow>
@@ -218,12 +197,20 @@
               <CardHeader>
                 <CardTitle>Dự án</CardTitle>
                 <CardDescription>
-                  Danh sách các dự án của tổ chức
+                  Quản lý dự án đã được tách sang namespace mới để đồng nhất với kiến trúc user/admin/org.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div class="text-center py-6 text-muted-foreground">
-                  Tính năng đang được phát triển
+                <div class="flex flex-col items-center gap-3 py-6 text-center text-muted-foreground">
+                  <p>Mở màn dự án mới trong namespace chuẩn để thao tác tiếp.</p>
+                  <div class="flex flex-wrap justify-center gap-2">
+                    <Link href="/org/projects">
+                      <Button variant="outline">Quản trị dự án tổ chức</Button>
+                    </Link>
+                    <Link href="/projects">
+                      <Button variant="outline">Danh sách dự án tổng quát</Button>
+                    </Link>
+                  </div>
                 </div>
               </CardContent>
             </Card>

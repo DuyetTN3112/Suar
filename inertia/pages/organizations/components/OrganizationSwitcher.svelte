@@ -7,24 +7,40 @@
 
   const { organizationId }: Props = $props()
 
+  interface SwitchOrganizationResponse {
+    success?: boolean
+    message?: string
+    redirect?: string
+  }
+
   async function switchOrganization() {
     try {
-      const currentPath = window.location.pathname
       const orgId = String(organizationId)
+      const csrfToken =
+        document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
-      router.post('/switch-organization', {
-        organization_id: orgId,
-        current_path: currentPath
-      }, {
-        preserveState: false,
-        onSuccess: () => {
-          setTimeout(() => {
-            window.location.href = currentPath
-          }, 100)
+      const response = await fetch('/switch-organization', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrfToken,
         },
-        onError: (errors) => {
-          console.error('Lỗi khi gửi request chuyển đổi tổ chức:', errors)
-        }
+        credentials: 'same-origin',
+        body: JSON.stringify({ organization_id: orgId }),
+      })
+
+      const payload = (await response.json()) as SwitchOrganizationResponse
+      if (!response.ok || !payload.success) {
+        console.error('Lỗi khi gửi request chuyển đổi tổ chức:', payload.message)
+        return
+      }
+
+      router.visit(payload.redirect || '/tasks', {
+        preserveState: false,
+        preserveScroll: false,
+        replace: true,
       })
     } catch (error) {
       console.error('Lỗi khi gửi request chuyển đổi tổ chức:', error)
@@ -32,6 +48,6 @@
   }
 </script>
 
-<button onclick={switchOrganization}>
+<button onclick={() => { void switchOrganization(); }}>
   Switch Organization
 </button>

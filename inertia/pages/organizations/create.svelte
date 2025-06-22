@@ -9,10 +9,6 @@
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
   import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { Building } from 'lucide-svelte'
@@ -24,7 +20,6 @@
     slug: '',
     description: '',
     website: '',
-    plan: 'free',
   })
 
   let slugManuallyEdited = $state(false)
@@ -90,11 +85,6 @@
     router.visit('/organizations')
   }
 
-  const plans = [
-    { value: 'free', label: 'Free' },
-    { value: 'pro', label: 'Pro' },
-    { value: 'enterprise', label: 'Enterprise' },
-  ]
 </script>
 
 <svelte:head>
@@ -166,44 +156,20 @@
             {/if}
           </div>
 
-          <!-- Website + Plan -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="grid gap-2">
-              <Label for="website" class="font-bold">Website</Label>
-              <Input
-                id="website"
-                name="website"
-                type="url"
-                value={formData.website}
-                onchange={handleChange}
-                placeholder="https://example.com"
-              />
-              {#if errors.website}
-                <p class="text-xs font-bold text-destructive">{errors.website}</p>
-              {/if}
-            </div>
-
-            <div class="grid gap-2">
-              <Label for="plan" class="font-bold">Gói dịch vụ</Label>
-              <Select
-                value={formData.plan}
-                onValueChange={(v) => v && (formData.plan = v)}
-              >
-                <SelectTrigger id="plan">
-                  <span>{plans.find(p => p.value === formData.plan)?.label || 'Chọn gói'}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {#each plans as plan (plan.value)}
-                    <SelectItem value={plan.value} label={plan.label}>
-                      {plan.label}
-                    </SelectItem>
-                  {/each}
-                </SelectContent>
-              </Select>
-              {#if errors.plan}
-                <p class="text-xs font-bold text-destructive">{errors.plan}</p>
-              {/if}
-            </div>
+          <!-- Website -->
+          <div class="grid gap-2">
+            <Label for="website" class="font-bold">Website</Label>
+            <Input
+              id="website"
+              name="website"
+              type="url"
+              value={formData.website}
+              onchange={handleChange}
+              placeholder="https://example.com"
+            />
+            {#if errors.website}
+              <p class="text-xs font-bold text-destructive">{errors.website}</p>
+            {/if}
           </div>
         </div>
       </CardContent>
