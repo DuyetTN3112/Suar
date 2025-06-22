@@ -4,6 +4,8 @@ import AdminUserRepository from '#infra/admin/repositories/admin_user_repository
 import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 import AdminProjectRepository from '#infra/admin/repositories/admin_project_repository'
 import AdminTaskRepository from '#infra/admin/repositories/admin_task_repository'
+import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
 
 /**
  * GetDashboardStatsQuery (System Admin)
@@ -39,6 +41,16 @@ export interface GetDashboardStatsResult {
     in_progress: number
     completed: number
   }
+  subscriptions: {
+    total: number
+    active: number
+    expiring_soon: number
+    pro: number
+    promax: number
+  }
+  moderation: {
+    pending_flagged_reviews: number
+  }
 }
 
 export default class GetDashboardStatsQuery extends BaseQuery<
@@ -50,19 +62,24 @@ export default class GetDashboardStatsQuery extends BaseQuery<
     private userRepo = new AdminUserRepository(),
     private orgRepo = new AdminOrganizationRepository(),
     private projectRepo = new AdminProjectRepository(),
-    private taskRepo = new AdminTaskRepository()
+    private taskRepo = new AdminTaskRepository(),
+    private subscriptionRepo = new AdminSubscriptionRepository(),
+    private flaggedReviewRepo = new AdminFlaggedReviewRepository()
   ) {
     super(execCtx)
   }
 
   async handle(_dto?: Record<string, never>): Promise<GetDashboardStatsResult> {
     // Fetch stats from repositories (Infrastructure layer)
-    const [userStats, orgStats, projectStats, taskStats] = await Promise.all([
-      this.userRepo.getUserStats(),
-      this.orgRepo.getOrganizationStats(),
-      this.projectRepo.getProjectStats(),
-      this.taskRepo.getTaskStats(),
-    ])
+    const [userStats, orgStats, projectStats, taskStats, subscriptionStats, pendingFlaggedReviews] =
+      await Promise.all([
+        this.userRepo.getUserStats(),
+        this.orgRepo.getOrganizationStats(),
+        this.projectRepo.getProjectStats(),
+        this.taskRepo.getTaskStats(),
+        this.subscriptionRepo.getSubscriptionStats(),
+        this.flaggedReviewRepo.countPending(),
+      ])
 
     return {
       users: {
@@ -85,6 +102,16 @@ export default class GetDashboardStatsQuery extends BaseQuery<
         total: taskStats.total,
         in_progress: taskStats.inProgress,
         completed: taskStats.completed,
+      },
+      subscriptions: {
+        total: subscriptionStats.total,
+        active: subscriptionStats.active,
+        expiring_soon: subscriptionStats.expiringSoon,
+        pro: subscriptionStats.byPlan.pro ?? 0,
+        promax: subscriptionStats.byPlan.enterprise ?? 0,
+      },
+      moderation: {
+        pending_flagged_reviews: pendingFlaggedReviews,
       },
     }
   }

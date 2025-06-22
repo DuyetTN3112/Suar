@@ -1,6 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
 import AdminAuditLogRepository from '#infra/admin/repositories/admin_audit_log_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 export interface ListAuditLogsDTO {
   page?: number
@@ -8,6 +9,9 @@ export interface ListAuditLogsDTO {
   search?: string
   action?: string
   resourceType?: string
+  userId?: string
+  from?: Date
+  to?: Date
 }
 
 export interface ListAuditLogsResult {
@@ -56,27 +60,39 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
       search: dto.search,
       action: dto.action,
       resourceType: dto.resourceType,
+      userId: dto.userId,
+      from: dto.from,
+      to: dto.to,
     })
 
-    const lastPage = Math.ceil(result.total / perPage)
+    const userIds = [...new Set(result.data.map((log) => log.user_id).filter((value) => !!value))]
+    const users =
+      userIds.length > 0
+        ? await UserRepository.findByIds(userIds as string[], ['id', 'username'])
+        : []
+    const userMap = new Map(users.map((user) => [user.id, user]))
+
+    const lastPage = Math.max(1, Math.ceil(result.total / perPage))
 
     return {
-      data: result.all().map((log) => ({
+      data: result.data.map((log) => ({
         id: log.id,
-        user: {
-          id: log.user.id,
-          username: log.user.username,
-        },
+        user: log.user_id
+          ? (() => {
+              const user = userMap.get(log.user_id)
+              return user ? { id: user.id, username: user.username } : null
+            })()
+          : null,
         action: log.action,
         resource_type: log.entity_type,
-        resource_id: log.entity_id ?? null,
+        resource_id: log.entity_id,
         details: {
           old_values: log.old_values,
           new_values: log.new_values,
         },
-        ip_address: log.ip_address || '',
-        user_agent: log.user_agent || '',
-        created_at: log.created_at.toISO() ?? new Date().toISOString(),
+        ip_address: log.ip_address ?? '',
+        user_agent: log.user_agent ?? '',
+        created_at: log.created_at.toISOString(),
       })),
       meta: {
         total: result.total,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -7,7 +7,6 @@
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
   import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import Input from '@/components/ui/input.svelte'
   import {
     Building2,
@@ -28,7 +27,7 @@
         username: string
         email: string
       }
-      plan: 'free' | 'pro' | 'pro_max'
+      plan: string | null
       created_at: string
       updated_at: string
       _count: {
@@ -48,37 +47,30 @@
     }
   }
 
-  let { organizations, pagination, filters }: Props = $props()
+  const props: Props = $props()
+  const organizations = $derived(props.organizations)
+  const pagination = $derived(props.pagination)
+  const filters = $derived(props.filters)
 
-  let searchValue = $state(filters.search || '')
+  let searchValue = $state('')
+
+  $effect(() => {
+    searchValue = filters.search || ''
+  })
 
   function handleSearch() {
-    inertia.get('/admin/organizations', {
-      search: searchValue,
-      plan: filters.plan,
-      page: 1,
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-    })
-  }
-
-  function getPlanBadge(plan: string) {
-    const variants = {
-      free: 'secondary',
-      pro: 'default',
-      pro_max: 'destructive',
-    }
-    return variants[plan as keyof typeof variants] || 'secondary'
-  }
-
-  function getPlanLabel(plan: string) {
-    const labels = {
-      free: 'Free',
-      pro: 'Pro',
-      pro_max: 'Pro Max',
-    }
-    return labels[plan as keyof typeof labels] || plan
+    router.get(
+      '/admin/organizations',
+      {
+        search: searchValue,
+        plan: filters.plan,
+        page: 1,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
   }
 
   function formatDate(dateString: string) {
@@ -94,8 +86,8 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Organizations</h1>
-        <p class="text-muted-foreground">Manage all organizations in the system</p>
+        <h1 class="text-3xl font-bold tracking-tight">Tổ chức</h1>
+        <p class="text-muted-foreground">Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống.</p>
       </div>
     </div>
 
@@ -107,15 +99,15 @@
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by organization name..."
+              placeholder="Tìm theo tên tổ chức..."
               class="pl-10"
               bind:value={searchValue}
-              onkeydown={(e) => {
+              onkeydown={(e: KeyboardEvent) => {
                 if (e.key === 'Enter') handleSearch()
               }}
             />
           </div>
-          <Button onclick={handleSearch}>Search</Button>
+          <Button onclick={handleSearch}>Tìm kiếm</Button>
         </div>
       </CardContent>
     </Card>
@@ -132,11 +124,6 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <CardTitle class="text-lg truncate">{org.name}</CardTitle>
-                  <div class="flex items-center gap-2 mt-1">
-                    <Badge variant={getPlanBadge(org.plan)}>
-                      {getPlanLabel(org.plan)}
-                    </Badge>
-                  </div>
                 </div>
               </div>
             </div>
@@ -160,19 +147,19 @@
                 <div class="flex items-center gap-2 text-sm">
                   <Users class="h-4 w-4 text-blue-500" />
                   <span class="font-medium">{org._count.members}</span>
-                  <span class="text-muted-foreground">members</span>
+                  <span class="text-muted-foreground">thành viên</span>
                 </div>
                 <div class="flex items-center gap-2 text-sm">
                   <FolderKanban class="h-4 w-4 text-green-500" />
                   <span class="font-medium">{org._count.projects}</span>
-                  <span class="text-muted-foreground">projects</span>
+                  <span class="text-muted-foreground">dự án</span>
                 </div>
               </div>
 
               <!-- Created Date -->
               <div class="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
                 <Calendar class="h-3 w-3" />
-                <span>Created {formatDate(org.created_at)}</span>
+                <span>Tạo ngày {formatDate(org.created_at)}</span>
               </div>
 
               <!-- Actions -->
@@ -181,9 +168,11 @@
                   variant="outline"
                   size="sm"
                   class="flex-1"
-                  onclick={() => inertia.visit(`/admin/organizations/${org.id}`)}
+                  onclick={() => {
+                    router.visit(`/admin/organizations/${org.id}`)
+                  }}
                 >
-                  View Details
+                  Xem chi tiết
                 </Button>
               </div>
             </div>
@@ -197,9 +186,9 @@
       <Card>
         <CardContent class="py-12 text-center">
           <Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 class="text-lg font-semibold mb-2">No organizations found</h3>
+          <h3 class="text-lg font-semibold mb-2">Không tìm thấy tổ chức</h3>
           <p class="text-muted-foreground">
-            {filters.search ? 'Try adjusting your search criteria' : 'No organizations in the system yet'}
+            {filters.search ? 'Thử đổi từ khóa tìm kiếm.' : 'Hệ thống chưa có tổ chức nào.'}
           </p>
         </CardContent>
       </Card>
@@ -211,26 +200,30 @@
         <CardContent class="py-4">
           <div class="flex items-center justify-between">
             <div class="text-sm text-muted-foreground">
-              Showing <span class="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>
-              to <span class="font-medium">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span>
-              of <span class="font-medium">{pagination.total}</span> organizations
+              Hiển thị <span class="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>
+              đến <span class="font-medium">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span>
+              trên tổng <span class="font-medium">{pagination.total}</span> tổ chức
             </div>
             <div class="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === 1}
-                onclick={() => inertia.visit(`/admin/organizations?page=${pagination.currentPage - 1}`)}
+                onclick={() => {
+                  router.visit(`/admin/organizations?page=${pagination.currentPage - 1}`)
+                }}
               >
-                Previous
+                Trước
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === pagination.lastPage}
-                onclick={() => inertia.visit(`/admin/organizations?page=${pagination.currentPage + 1}`)}
+                onclick={() => {
+                  router.visit(`/admin/organizations?page=${pagination.currentPage + 1}`)
+                }}
               >
-                Next
+                Sau
               </Button>
             </div>
           </div>

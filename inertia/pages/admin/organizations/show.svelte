@@ -32,26 +32,26 @@
     organization: Organization
   }
 
-  let { organization }: Props = $props()
+  const { organization }: Props = $props()
 </script>
 
-<AdminLayout title="Organization Details - System Admin">
+<AdminLayout title="Chi tiết tổ chức">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold">{organization.name}</h1>
-        <p class="text-slate-600 mt-1">Organization details and settings</p>
+        <p class="text-slate-600 mt-1">Thông tin tổng quan của tổ chức ở góc nhìn system admin.</p>
       </div>
       <Link href="/admin/organizations">
-        <Button variant="outline">Back to Organizations</Button>
+        <Button variant="outline">Quay lại danh sách</Button>
       </Link>
     </div>
 
     <div class="grid gap-6 md:grid-cols-2">
       <Card>
         <CardHeader>
-          <CardTitle>Organization Information</CardTitle>
-          <CardDescription>Basic organization details</CardDescription>
+          <CardTitle>Thông tin tổ chức</CardTitle>
+          <CardDescription>Thông tin nền tảng và dữ liệu schema liên quan</CardDescription>
         </CardHeader>
         <CardContent>
           <dl class="space-y-4">
@@ -60,7 +60,7 @@
               <dd class="mt-1 text-sm text-slate-900 font-mono">{organization.id}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Name</dt>
+              <dt class="text-sm font-medium text-slate-600">Tên</dt>
               <dd class="mt-1 text-sm text-slate-900">{organization.name}</dd>
             </div>
             <div>
@@ -68,19 +68,18 @@
               <dd class="mt-1 text-sm text-slate-900 font-mono">{organization.slug}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Description</dt>
-              <dd class="mt-1 text-sm text-slate-900">{organization.description || 'No description'}</dd>
+              <dt class="text-sm font-medium text-slate-600">Mô tả</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.description || 'Chưa có mô tả'}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Plan</dt>
+              <dt class="text-sm font-medium text-slate-600">Field legacy trong schema</dt>
               <dd class="mt-1">
-                <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium
-                  {organization.plan === 'enterprise' ? 'bg-purple-100 text-purple-700' :
-                   organization.plan === 'professional' ? 'bg-blue-100 text-blue-700' :
-                   organization.plan === 'starter' ? 'bg-green-100 text-green-700' :
-                   'bg-slate-100 text-slate-700'}">
-                  {organization.plan || 'free'}
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium bg-slate-100 text-slate-700">
+                  {organization.plan || 'null'}
                 </span>
+                <p class="mt-2 text-xs text-slate-500">
+                  `organizations.plan` vẫn còn trong schema, nhưng hiện không nên hiểu là gói public cho organization.
+                </p>
               </dd>
             </div>
             {#if organization.partner_type}
@@ -99,41 +98,41 @@
 
       <Card>
         <CardHeader>
-          <CardTitle>Owner & Statistics</CardTitle>
-          <CardDescription>Organization owner and usage stats</CardDescription>
+          <CardTitle>Owner và thống kê</CardTitle>
+          <CardDescription>Người sở hữu hiện tại và mức sử dụng cơ bản</CardDescription>
         </CardHeader>
         <CardContent>
           <dl class="space-y-4">
             <div>
               <dt class="text-sm font-medium text-slate-600">Owner</dt>
               <dd class="mt-1">
-                <Link href="/admin/users/{organization.owner.id}" class="text-blue-600 hover:underline">
+                <Link href={`/admin/users/${organization.owner.id}`} class="text-blue-600 hover:underline">
                   {organization.owner.username}
                 </Link>
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Owner Email</dt>
-              <dd class="mt-1 text-sm text-slate-900">{organization.owner.email || 'Not provided'}</dd>
+              <dt class="text-sm font-medium text-slate-600">Email owner</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.owner.email || 'Chưa cung cấp'}</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Members</dt>
-              <dd class="mt-1 text-sm text-slate-900">{organization.stats.usersCount} member(s)</dd>
+              <dt class="text-sm font-medium text-slate-600">Thành viên</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.stats.usersCount} người</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Projects</dt>
-              <dd class="mt-1 text-sm text-slate-900">{organization.stats.projectsCount} project(s)</dd>
+              <dt class="text-sm font-medium text-slate-600">Dự án</dt>
+              <dd class="mt-1 text-sm text-slate-900">{organization.stats.projectsCount} dự án</dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Created At</dt>
+              <dt class="text-sm font-medium text-slate-600">Tạo lúc</dt>
               <dd class="mt-1 text-sm text-slate-900">
-                {new Date(organization.created_at).toLocaleString()}
+                {new Date(organization.created_at).toLocaleString('vi-VN')}
               </dd>
             </div>
             <div>
-              <dt class="text-sm font-medium text-slate-600">Last Updated</dt>
+              <dt class="text-sm font-medium text-slate-600">Cập nhật gần nhất</dt>
               <dd class="mt-1 text-sm text-slate-900">
-                {new Date(organization.updated_at).toLocaleString()}
+                {new Date(organization.updated_at).toLocaleString('vi-VN')}
               </dd>
             </div>
           </dl>
@@ -143,17 +142,14 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>Actions</CardTitle>
-        <CardDescription>Manage this organization</CardDescription>
+        <CardTitle>Ghi chú vận hành</CardTitle>
+        <CardDescription>Các action hệ thống mở rộng chưa nằm trong batch frontend hiện tại</CardDescription>
       </CardHeader>
       <CardContent>
-        <div class="flex flex-wrap gap-2">
-          <Button variant="outline" disabled>Edit Organization</Button>
-          <Button variant="outline" disabled>Change Plan</Button>
-          <Button variant="outline" disabled>View Members</Button>
-          <Button variant="destructive" disabled>Suspend Organization</Button>
+        <div class="space-y-2 text-sm text-slate-600">
+          <p>Frontend hiện ưu tiên phần quan sát và kiểm tra dữ liệu thay vì dựng giả các nút action chưa có flow hoàn chỉnh.</p>
+          <p>Nếu cần quản trị sâu hơn, system admin nên điều hướng sang user list, audit logs hoặc review moderation.</p>
         </div>
-        <p class="text-xs text-slate-500 mt-2">Actions will be implemented in Phase 3</p>
       </CardContent>
     </Card>
   </div>

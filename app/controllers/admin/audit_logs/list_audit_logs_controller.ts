@@ -28,10 +28,22 @@ export default class ListAuditLogsController {
       return typeof value === 'string' && value.trim().length > 0 ? value : undefined
     }
 
+    const toOptionalDate = (value: unknown): Date | undefined => {
+      if (typeof value !== 'string' || value.trim().length === 0) {
+        return undefined
+      }
+
+      const parsed = new Date(value)
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed
+    }
+
     const page = toPageNumber(request.input('page', 1) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
     const action = toOptionalString(request.input('action', null) as unknown)
     const resourceType = toOptionalString(request.input('resource_type', null) as unknown)
+    const userId = toOptionalString(request.input('user_id', null) as unknown)
+    const from = toOptionalDate(request.input('from', null) as unknown)
+    const to = toOptionalDate(request.input('to', null) as unknown)
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListAuditLogsQuery(execCtx)
@@ -42,6 +54,9 @@ export default class ListAuditLogsController {
       search,
       action,
       resourceType,
+      userId,
+      from,
+      to,
     })
 
     return inertia.render('admin/audit_logs/index', {
@@ -51,6 +66,9 @@ export default class ListAuditLogsController {
         search: search ?? '',
         action: action ?? null,
         resource_type: resourceType ?? null,
+        user_id: userId ?? null,
+        from: from?.toISOString() ?? null,
+        to: to?.toISOString() ?? null,
       },
     })
   }

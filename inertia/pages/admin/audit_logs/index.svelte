@@ -45,7 +45,7 @@
     }
   }
 
-  let { auditLogs, pagination, filters }: Props = $props()
+  const { auditLogs, pagination, filters }: Props = $props()
 
   let searchValue = $state(filters.search || '')
 
@@ -87,7 +87,7 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">Audit Logs</h1>
-        <p class="text-muted-foreground">System activity and security audit trail</p>
+        <p class="text-muted-foreground">Dòng sự kiện quan trọng để truy vết hoạt động và hành vi hệ thống.</p>
       </div>
     </div>
 
@@ -99,7 +99,7 @@
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search by username, action, or resource..."
+              placeholder="Tìm theo username, action hoặc resource..."
               class="pl-10"
               bind:value={searchValue}
               onkeydown={(e) => {
@@ -107,7 +107,7 @@
               }}
             />
           </div>
-          <Button onclick={handleSearch}>Search</Button>
+          <Button onclick={handleSearch}>Tìm kiếm</Button>
         </div>
       </CardContent>
     </Card>
@@ -115,7 +115,7 @@
     <!-- Audit Logs Table -->
     <Card>
       <CardHeader>
-        <CardTitle>Recent Activity</CardTitle>
+        <CardTitle>Hoạt động gần đây</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="space-y-4">
@@ -137,7 +137,7 @@
                       <Badge variant={getActionBadge(log.action)}>
                         {formatAction(log.action)}
                       </Badge>
-                      <span class="text-sm text-muted-foreground">on</span>
+                      <span class="text-sm text-muted-foreground">trên</span>
                       <Badge variant="outline">{log.resource_type}</Badge>
                       {#if log.resource_id}
                         <span class="text-xs text-muted-foreground font-mono">
@@ -171,9 +171,9 @@
         {#if auditLogs.length === 0}
           <div class="py-12 text-center">
             <Shield class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 class="text-lg font-semibold mb-2">No audit logs found</h3>
+            <h3 class="text-lg font-semibold mb-2">Không có audit log nào</h3>
             <p class="text-muted-foreground">
-              {filters.search ? 'Try adjusting your search criteria' : 'No activity recorded yet'}
+              {filters.search ? 'Thử đổi điều kiện tìm kiếm.' : 'Chưa có hoạt động nào được ghi nhận.'}
             </p>
           </div>
         {/if}
@@ -186,9 +186,9 @@
         <CardContent class="py-4">
           <div class="flex items-center justify-between">
             <div class="text-sm text-muted-foreground">
-              Showing <span class="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>
-              to <span class="font-medium">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span>
-              of <span class="font-medium">{pagination.total}</span> logs
+              Hiển thị <span class="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>
+              đến <span class="font-medium">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span>
+              trên tổng <span class="font-medium">{pagination.total}</span> log
             </div>
             <div class="flex gap-2">
               <Button
@@ -197,7 +197,7 @@
                 disabled={pagination.currentPage === 1}
                 onclick={() => inertia.visit(`/admin/audit-logs?page=${pagination.currentPage - 1}`)}
               >
-                Previous
+                Trước
               </Button>
               <Button
                 variant="outline"
@@ -205,7 +205,7 @@
                 disabled={pagination.currentPage === pagination.lastPage}
                 onclick={() => inertia.visit(`/admin/audit-logs?page=${pagination.currentPage + 1}`)}
               >
-                Next
+                Sau
               </Button>
             </div>
           </div>
