@@ -1,11 +1,6 @@
 <script lang="ts">
   import type { Task } from '../../types.svelte'
   import Label from '@/components/ui/label.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import SelectValue from '@/components/ui/select_value.svelte'
 
   interface Props {
     formData: Partial<Task>
@@ -15,46 +10,34 @@
     task: Task
   }
 
-  const { formData, handleSelectChange, isEditing, statuses, task }: Props = $props()
+  const {
+    formData,
+    handleSelectChange: _handleSelectChange,
+    isEditing,
+    statuses,
+    task,
+  }: Props = $props()
 
-  const currentStatus = $derived(statuses.find(s => s.value === (formData.status || task.status)))
+  const activeStatusId = $derived(formData.task_status_id || task.task_status_id || '')
+  const currentStatus = $derived(statuses.find((status) => status.value === activeStatusId))
 </script>
 
 <div class="grid gap-2">
-  <Label for="status">Trạng thái</Label>
+  <Label for="task_status_id">Trạng thái</Label>
+  <div class="p-2 border rounded-md flex items-center">
+    {#if currentStatus}
+      <span
+        class="inline-block w-3 h-3 rounded-full mr-2"
+        style="background-color: {currentStatus.color}"
+      ></span>
+      {currentStatus.label}
+    {:else}
+      {task.status || 'Không xác định'}
+    {/if}
+  </div>
   {#if isEditing}
-    <Select
-      value={formData.status || ''}
-      onValueChange={(value) => { handleSelectChange('status', value); }}
-    >
-      <SelectTrigger>
-        <SelectValue placeholder="Chọn trạng thái" />
-      </SelectTrigger>
-      <SelectContent>
-        {#each statuses as status (status.value)}
-          <SelectItem value={status.value}>
-            <div class="flex items-center">
-              <span
-                class="inline-block w-3 h-3 rounded-full mr-2"
-                style="background-color: {status.color}"
-              ></span>
-              {status.label}
-            </div>
-          </SelectItem>
-        {/each}
-      </SelectContent>
-    </Select>
-  {:else}
-    <div class="p-2 border rounded-md flex items-center">
-      {#if currentStatus}
-        <span
-          class="inline-block w-3 h-3 rounded-full mr-2"
-          style="background-color: {currentStatus.color}"
-        ></span>
-        {currentStatus.label}
-      {:else}
-        {task.status || 'Không xác định'}
-      {/if}
-    </div>
+    <p class="text-xs text-muted-foreground">
+      Trạng thái đi theo workflow của tổ chức. Hãy đổi trạng thái ở board hoặc panel chi tiết.
+    </p>
   {/if}
 </div>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page, router } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -26,6 +26,7 @@
   import type { ProjectsIndexProps } from './types'
   import { formatDate } from '@/lib/utils'
   import { useTranslation } from '@/stores/translation.svelte'
+  import { notificationStore } from '@/stores/notification_store.svelte'
   import ProjectDetailModal from './components/project_detail_modal.svelte'
 
   const { t } = useTranslation()
@@ -35,22 +36,13 @@
   }
 
   const { projects, auth, showOrganizationRequiredModal = false }: Props = $props()
-  const pageData = $derived($page)
-  const authUser = $derived(
-    (pageData.props as { auth?: { user?: ProjectsIndexProps['auth']['user'] }; user?: { auth?: { user?: ProjectsIndexProps['auth']['user'] } } }).auth?.user ||
-      (pageData.props as { user?: { auth?: { user?: ProjectsIndexProps['auth']['user'] } } }).user?.auth?.user ||
-      auth?.user ||
-      null
-  )
+  const authUser = $derived(auth.user)
 
   // Guard against undefined
-  const safeProjects = $derived(projects || [])
-  const hasCurrentOrganization = $derived(
-    authUser?.current_organization_id !== null &&
-    authUser?.current_organization_id !== undefined
-  )
-  const organizations = $derived(authUser?.organizations || [])
-  const selectedOrganizationId = $derived(authUser?.current_organization_id || '')
+  const safeProjects = $derived(projects)
+  const hasCurrentOrganization = $derived(Boolean(authUser.current_organization_id))
+  const organizations = $derived(authUser.organizations ?? [])
+  const selectedOrganizationId = $derived(authUser.current_organization_id ?? '')
 
   let showOrganizationModal = $state(false)
 
@@ -95,19 +87,46 @@
     router.get('/organizations')
   }
 
-  function handleSwitchOrganization(organizationId: string) {
+  interface SwitchOrganizationResponse {
+    success?: boolean
+    message?: string
+    redirect?: string
+  }
+
+  async function handleSwitchOrganization(organizationId: string) {
     if (!organizationId || organizationId === selectedOrganizationId) return
 
-    router.post(
-      '/switch-organization',
-      { organization_id: organizationId },
-      {
-        preserveScroll: true,
-        onSuccess: () => {
-          router.visit('/projects', { replace: true })
+    try {
+      const csrfToken =
+        document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+
+      const response = await fetch('/switch-organization', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrfToken,
         },
+        credentials: 'same-origin',
+        body: JSON.stringify({ organization_id: organizationId }),
+      })
+
+      const payload = (await response.json()) as SwitchOrganizationResponse
+      if (!response.ok || !payload.success) {
+        notificationStore.error(payload.message || 'Không thể chuyển tổ chức')
+        return
       }
-    )
+
+      notificationStore.success(payload.message || 'Đã chuyển tổ chức')
+      router.visit(payload.redirect || '/tasks', {
+        preserveState: false,
+        preserveScroll: false,
+        replace: true,
+      })
+    } catch {
+      notificationStore.error('Không thể chuyển tổ chức')
+    }
   }
 
   const pageTitle = $derived(t('project.project_list', {}, 'Quản lý dự án'))
@@ -123,7 +142,11 @@
       <div class="w-full sm:w-[320px]">
         <Select
           value={selectedOrganizationId}
-          onValueChange={(value) => value && handleSwitchOrganization(value)}
+          onValueChange={(value: string) => {
+            if (value) {
+              void handleSwitchOrganization(value)
+            }
+          }}
         >
           <SelectTrigger>
             <span>
@@ -234,7 +257,7 @@
   <ProjectDetailModal
     bind:open={detailModalOpen}
     projectId={selectedProjectId}
-    onOpenChange={(open) => {
+    onOpenChange={(open: boolean) => {
       detailModalOpen = open
       if (!open) {
         selectedProjectId = undefined

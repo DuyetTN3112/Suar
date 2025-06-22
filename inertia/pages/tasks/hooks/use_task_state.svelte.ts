@@ -23,7 +23,7 @@ export function createTaskStateStore({ initialFilters, metadata }: TasksStatePro
     router.put(
       `/tasks/${task.id}/status`,
       {
-        status: newStatus,
+        task_status_id: newStatus,
       },
       {
         preserveState: true,

@@ -65,10 +65,10 @@
       <div class="flex flex-wrap gap-1">
         {#each metadata.statuses as status}
           <button
-            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border {store.filters.statuses.includes(status.value as TaskStatus)
+            class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border {store.filters.statuses.includes(status.value)
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent'}"
-            onclick={() => { toggleFilter('statuses', status.value as TaskStatus); }}
+            onclick={() => { toggleFilter('statuses', status.value); }}
           >
             {status.label}
           </button>

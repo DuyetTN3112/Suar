@@ -34,7 +34,7 @@
     projectContext?: { selectedProject: { id: string; name: string } | null }
   }
 
-  let {
+  const {
     tasks,
     filters,
     metadata,
@@ -82,6 +82,10 @@
   })
 
   function handleCreateClick(status?: string) {
+    if (projectOptions.length === 0) {
+      notificationStore.error('Chưa có project', 'Bạn cần tạo project trước khi tạo task.')
+      return
+    }
     selectedCreateStatus = status || ''
     createModalOpen = true
   }
@@ -145,7 +149,7 @@
   }
 
   function getStatusDefinition(status: string) {
-    return statusDefinitions.find((item) => item.slug === status)
+    return statusDefinitions.find((item) => item.id === status || item.slug === status)
   }
 
   function canDeleteStatus(status: string): boolean {
@@ -285,6 +289,8 @@
     statuses={metadata.statuses}
     priorities={metadata.priorities}
     labels={metadata.labels}
+    projects={projectOptions}
+    initialProjectId={projectContext?.selectedProject?.id || projectOptions[0]?.id || ''}
     users={metadata.users}
     parentTasks={metadata.parentTasks || []}
     availableSkills={metadata.availableSkills || []}

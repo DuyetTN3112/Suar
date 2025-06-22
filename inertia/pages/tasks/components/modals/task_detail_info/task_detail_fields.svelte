@@ -49,16 +49,18 @@
   const dueDate = $derived(formData.due_date ? new Date(formData.due_date) : undefined)
 
   // Lấy giá trị string từ các trường
-  const statusValue = $derived(formData.status || task.status || '')
-  const priorityValue = $derived(formData.priority || task.priority || '')
-  const labelValue = $derived(formData.label || task.label || '')
+  const activeStatusId = $derived(formData.task_status_id || task.task_status_id || '')
+  const priorityValue = $derived(formData.priority ?? task.priority)
+  const labelValue = $derived(formData.label ?? task.label)
   const assignedToId = $derived(formData.assigned_to)
 
   // Tìm các đối tượng hiện tại để hiển thị
-  const currentStatus = $derived(statuses.find(s => s.value === statusValue))
-  const currentPriority = $derived(priorities.find(p => p.value === priorityValue))
-  const currentLabel = $derived(labels.find(l => l.value === labelValue))
-  const currentAssignee = $derived(users.find(u => u.id === assignedToId) || task.assignee)
+  const currentStatus = $derived(statuses.find((status) => status.value === activeStatusId))
+  const currentPriority = $derived(priorities.find((priority) => priority.value === priorityValue))
+  const currentLabel = $derived(labels.find((label) => label.value === labelValue))
+  const currentAssignee = $derived(
+    (assignedToId ? users.find((user) => user.id === assignedToId) : undefined) || task.assignee
+  )
 
   // Format ngày hạn để hiển thị khi không ở chế độ chỉnh sửa
   function formatDate(dateString?: string | null) {
@@ -66,16 +68,15 @@
     try {
       const date = new Date(dateString)
       return date.toLocaleDateString('vi-VN')
-    } catch (error) {
+    } catch (_error) {
       return t('task.due_date_unknown', {}, 'Không xác định')
     }
   }
 
   // Xử lý giá trị mặc định cho các trường Select
-  const statusSelectValue = $derived(formData.status || task.status || '')
-  const prioritySelectValue = $derived(formData.priority || task.priority || '')
-  const labelSelectValue = $derived(formData.label || task.label || '')
-  const assignedToValue = $derived(String(formData.assigned_to || ''))
+  const prioritySelectValue = $derived(formData.priority ?? task.priority)
+  const labelSelectValue = $derived(formData.label ?? task.label)
+  const assignedToValue = $derived(formData.assigned_to ?? '')
 
   let datePickerOpen = $state(false)
 </script>
@@ -127,42 +128,20 @@
     <div class="space-y-4">
       <!-- Status -->
       <div class="space-y-2">
-        <Label for="status">{t('task.status', {}, 'Trạng thái')}</Label>
-        {#if isEditing}
-          <Select
-            value={statusSelectValue}
-            onValueChange={(value) => { handleSelectChange('status', value) }}
-          >
-            <SelectTrigger class={errors.status ? 'border-red-500' : ''}>
-              <span>{currentStatus?.label || t('task.select_status', {}, 'Chọn trạng thái')}</span>
-            </SelectTrigger>
-            <SelectContent>
-              {#each statuses as status (status.value)}
-                <SelectItem value={status.value}>
-                  <div class="flex items-center gap-2">
-                    <div
-                      class="h-3 w-3 rounded-full"
-                      style:background-color={status.color || '#888'}
-                    ></div>
-                    {status.label}
-                  </div>
-                </SelectItem>
-              {/each}
-            </SelectContent>
-          </Select>
-          {#if errors.status}
-            <p class="text-xs text-red-500">{errors.status}</p>
+        <Label for="task_status_id">{t('task.status', {}, 'Trạng thái')}</Label>
+        <div class="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
+          {#if currentStatus}
+            <div
+              class="h-3 w-3 rounded-full"
+              style:background-color={currentStatus.color || '#888'}
+            ></div>
           {/if}
-        {:else}
-          <div class="flex items-center gap-2 border px-3 py-2 rounded-md bg-muted/20">
-            {#if currentStatus}
-              <div
-                class="h-3 w-3 rounded-full"
-                style:background-color={currentStatus.color || '#888'}
-              ></div>
-            {/if}
-            <span>{currentStatus?.label || t('task.no_status', {}, 'Không có trạng thái')}</span>
-          </div>
+          <span>{currentStatus?.label || t('task.no_status', {}, 'Không có trạng thái')}</span>
+        </div>
+        {#if isEditing}
+          <p class="text-xs text-muted-foreground">
+            Trạng thái được điều khiển bằng workflow. Hãy đổi ở board hoặc panel chi tiết.
+          </p>
         {/if}
       </div>
 
@@ -172,7 +151,7 @@
         {#if isEditing}
           <Select
             value={prioritySelectValue}
-            onValueChange={(value) => { handleSelectChange('priority', value) }}
+            onValueChange={(value: string) => { handleSelectChange('priority', value) }}
           >
             <SelectTrigger>
               <span>{currentPriority?.label || t('task.select_priority', {}, 'Chọn độ ưu tiên')}</span>
@@ -213,7 +192,7 @@
         {#if isEditing}
           <Select
             value={labelSelectValue}
-            onValueChange={(value) => { handleSelectChange('label', value) }}
+            onValueChange={(value: string) => { handleSelectChange('label', value) }}
           >
             <SelectTrigger>
               <span>{currentLabel?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
@@ -251,14 +230,14 @@
         {#if isEditing}
           <Select
             value={assignedToValue}
-            onValueChange={(value) => { handleSelectChange('assigned_to', value) }}
+            onValueChange={(value: string) => { handleSelectChange('assigned_to', value) }}
           >
             <SelectTrigger>
               <span>{currentAssignee ? (currentAssignee.username || currentAssignee.email) : t('task.select_assignee', {}, 'Chọn người thực hiện')}</span>
             </SelectTrigger>
             <SelectContent>
               {#each users as user (user.id)}
-                <SelectItem value={String(user.id)}>
+                <SelectItem value={user.id}>
                   {user.username || user.email}
                 </SelectItem>
               {/each}
@@ -295,7 +274,7 @@
           <PopoverContent class="w-auto p-0">
             <Calendar
               selected={dueDate}
-              onSelect={(selectedDate) => {
+              onSelect={(selectedDate: Date | undefined) => {
                 handleDateChange(selectedDate)
                 datePickerOpen = false
               }}
