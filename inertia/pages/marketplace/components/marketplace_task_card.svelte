@@ -30,7 +30,7 @@
   const { task, onApply }: Props = $props()
 
   const orgName = $derived(task.organization?.name ?? 'Tổ chức không xác định')
-  const projectName = $derived((task.project?.name as string | undefined) ?? 'Không thuộc dự án')
+  const projectName = $derived((task.project?.name) ?? 'Không thuộc dự án')
 
   const projectOwnerName = $derived(
     (task.project?.owner?.username as string | undefined) ??
@@ -48,7 +48,7 @@
   const assigneeName = $derived('Chưa giao')
 
   const parentTaskName = $derived(
-    (task.parentTask?.title as string | undefined) ??
+    (task.parentTask?.title) ??
       (task.parent_task_id ? `TASK-${task.parent_task_id}` : 'Không có')
   )
 

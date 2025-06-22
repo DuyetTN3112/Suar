@@ -1,7 +1,8 @@
-import LucidNotificationRepository from '#infra/shared/repositories/lucid_notification_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
+import NotFoundException from '#exceptions/not_found_exception'
 
 export default class DeleteNotification {
   constructor(protected execCtx: ExecutionContext) {}
@@ -11,10 +12,14 @@ export default class DeleteNotification {
     if (!userId) {
       throw new UnauthorizedException()
     }
-    // Tìm thông báo thuộc user → delegate to Model
-    const notification = await LucidNotificationRepository.findByUserOrFail(id, userId)
-    // Xóa thông báo
-    await notification.delete()
+
+    const repo = await RepositoryFactory.getNotificationRepository()
+    const deleted = await repo.delete(id, userId)
+
+    if (!deleted) {
+      throw NotFoundException.resource('Notification', id)
+    }
+
     return { success: true }
   }
   // Xóa tất cả thông báo đã đọc → delegate to Model
@@ -23,7 +28,8 @@ export default class DeleteNotification {
     if (!userId) {
       throw new UnauthorizedException()
     }
-    await LucidNotificationRepository.deleteAllReadByUser(userId)
+    const repo = await RepositoryFactory.getNotificationRepository()
+    await repo.deleteAllRead(userId)
     return { success: true }
   }
 }

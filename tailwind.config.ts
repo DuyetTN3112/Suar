@@ -75,13 +75,13 @@ const config: Config = {
         neo: 'var(--neo-border-width)',
       },
       boxShadow: {
-        neo: 'var(--neo-shadow)',
+        'neo': 'var(--neo-shadow)',
         'neo-sm': 'var(--neo-shadow-sm)',
         'neo-lg': 'var(--neo-shadow-lg)',
         'neo-none': '0 0 0 0 #000',
       },
       translate: {
-        neo: 'var(--neo-translate)',
+        'neo': 'var(--neo-translate)',
         'neo-sm': 'var(--neo-translate-sm)',
       },
       keyframes: {

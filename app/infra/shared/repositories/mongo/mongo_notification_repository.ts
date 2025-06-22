@@ -16,11 +16,13 @@ interface NotificationLeanDoc {
   title: string
   message: string
   is_read: boolean
+  read_at?: Date | null
   type: string
   related_entity_type?: string
   related_entity_id?: string
   metadata?: Record<string, unknown>
   created_at?: Date
+  updated_at?: Date
 }
 
 /**
@@ -87,15 +89,44 @@ export default class MongoNotificationRepository implements NotificationReposito
     }
   }
 
-  async markAsRead(notificationId: DatabaseId): Promise<void> {
-    await MongoNotification.updateOne({ _id: notificationId }, { $set: { is_read: true } }).exec()
+  async markAsRead(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean> {
+    const filter = {
+      _id: notificationId,
+      ...(userId !== undefined ? { user_id: userId } : {}),
+    } as unknown as Parameters<(typeof MongoNotification)['updateOne']>[0]
+
+    const result = await MongoNotification.updateOne(filter, {
+      $set: { is_read: true, read_at: new Date() },
+    }).exec()
+
+    return result.modifiedCount > 0 || result.matchedCount > 0
   }
 
   async markAllAsRead(userId: DatabaseId): Promise<void> {
     const filter = { user_id: userId, is_read: false } as unknown as Parameters<
       (typeof MongoNotification)['updateMany']
     >[0]
-    await MongoNotification.updateMany(filter, { $set: { is_read: true } }).exec()
+    await MongoNotification.updateMany(filter, {
+      $set: { is_read: true, read_at: new Date() },
+    }).exec()
+  }
+
+  async delete(notificationId: DatabaseId, userId?: DatabaseId): Promise<boolean> {
+    const filter = {
+      _id: notificationId,
+      ...(userId !== undefined ? { user_id: userId } : {}),
+    } as unknown as Parameters<(typeof MongoNotification)['deleteOne']>[0]
+
+    const result = await MongoNotification.deleteOne(filter).exec()
+    return result.deletedCount > 0
+  }
+
+  async deleteAllRead(userId: DatabaseId): Promise<void> {
+    const filter = {
+      user_id: userId,
+      is_read: true,
+    } as unknown as Parameters<(typeof MongoNotification)['deleteMany']>[0]
+    await MongoNotification.deleteMany(filter).exec()
   }
 
   async getUnreadCount(userId: DatabaseId): Promise<number> {
@@ -118,6 +149,8 @@ export default class MongoNotificationRepository implements NotificationReposito
       related_entity_id: doc.related_entity_id ?? null,
       metadata: doc.metadata ?? null,
       created_at: doc.created_at ?? new Date(),
+      updated_at: doc.updated_at ?? null,
+      read_at: doc.read_at ?? null,
     }
   }
 }

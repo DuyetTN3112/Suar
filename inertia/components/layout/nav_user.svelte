@@ -1,11 +1,14 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { Link, page, router } from '@inertiajs/svelte'
   import {
     BadgeCheck,
     Bell,
     ChevronsUpDown,
     CreditCard,
+    LogOut,
     Sparkles,
+    Shield,
+    ShieldOff,
   } from 'lucide-svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
@@ -20,7 +23,6 @@
   import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
   import SidebarMenuButton from '@/components/ui/sidebar/sidebar_menu_button.svelte'
   import ConfirmDialog from '@/components/confirm_dialog.svelte'
-  import { LogOut } from 'lucide-svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { getContext } from 'svelte'
 
@@ -31,12 +33,40 @@
     }
   }
 
+  type SharedAuthUser = {
+    isAdmin?: boolean
+  }
+
+  type InterfaceContext = {
+    canSwitchToAdmin?: boolean
+    isAdminMode?: boolean
+  }
+
+  type PageProps = {
+    auth?: {
+      user?: SharedAuthUser
+    }
+    user?: {
+      auth?: {
+        user?: SharedAuthUser
+      }
+    }
+    context?: InterfaceContext
+    [key: string]: unknown
+  }
+
   const { user }: Props = $props()
+  const props = $derived($page.props as unknown as PageProps)
+  const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
+  const interfaceContext = $derived(props.context ?? {})
+  const canSwitchToAdmin = $derived(interfaceContext.canSwitchToAdmin ?? authUser?.isAdmin ?? false)
+  const isAdminMode = $derived(Boolean(interfaceContext.isAdminMode))
 
   const sidebar = getContext<{ isMobile: boolean }>('sidebar')
   const { t } = useTranslation()
   let logoutDialogOpen = $state(false)
   let isLoggingOut = $state(false)
+  let isTogglingAdminMode = $state(false)
 
   function getInitials(name: string): string {
     return name
@@ -65,6 +95,25 @@
         window.location.replace('/login')
       },
     })
+  }
+
+  function toggleAdminMode() {
+    if (!canSwitchToAdmin || isTogglingAdminMode) return
+
+    isTogglingAdminMode = true
+    router.post(
+      '/admin/toggle',
+      { enabled: !isAdminMode },
+      {
+        preserveScroll: true,
+        onError: (errors) => {
+          console.error('[NavUser] Toggle admin mode error:', errors)
+        },
+        onFinish: () => {
+          isTogglingAdminMode = false
+        },
+      }
+    )
   }
 </script>
 
@@ -108,10 +157,31 @@
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <Sparkles />
-            {t('user.upgrade_to_pro', {}, 'Nâng cấp lên Pro')}
+            {t('user.upgrade_to_pro', {}, 'Nâng cấp gói tài khoản')}
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
+        {#if canSwitchToAdmin}
+          <DropdownMenuGroup>
+            <DropdownMenuItem>
+              <button
+                type="button"
+                class="flex w-full items-center text-left"
+                onclick={toggleAdminMode}
+                disabled={isTogglingAdminMode}
+              >
+                {#if isAdminMode}
+                  <ShieldOff class="mr-2 h-4 w-4" />
+                  {t('admin.exit_mode', {}, 'Thoát Admin Mode')}
+                {:else}
+                  <Shield class="mr-2 h-4 w-4" />
+                  {t('admin.enter_mode', {}, 'Vào Admin Mode')}
+                {/if}
+              </button>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+          <DropdownMenuSeparator />
+        {/if}
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <Link href="/settings/account">
@@ -120,9 +190,9 @@
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Link href="/settings">
+            <Link href="/settings/account">
               <CreditCard />
-              {t('user.billing', {}, 'Thanh toán')}
+              {t('user.billing', {}, 'Gói tài khoản')}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>

@@ -31,27 +31,6 @@ function getIconByName(name?: string): ComponentType | undefined {
   return (LucideIcons as unknown as Record<string, ComponentType>)[name]
 }
 
-export const defaultOrganizations = [
-  {
-    id: '1',
-    name: 'Suar',
-    logo: 'Building',
-    plan: 'Pro',
-  },
-  {
-    id: '2',
-    name: 'Cá nhân',
-    logo: 'User',
-    plan: 'Miễn phí',
-  },
-  {
-    id: '3',
-    name: 'Nhóm kinh doanh',
-    logo: 'Users',
-    plan: 'Doanh nghiệp',
-  },
-]
-
 const navigationData = [
   {
     title: 'Tổng quan',
@@ -92,8 +71,8 @@ const navigationData = [
     ],
   },
   {
-    title: 'Ứng tuyển',
-    titleKey: 'navigation.applications',
+    title: 'Đánh Giá',
+    titleKey: 'navigation.reviews_and_applications',
     items: [
       {
         title: 'Review',
@@ -147,11 +126,11 @@ export const mainNavigation: NavGroup[] = navigationData.map((group) => ({
 // System Admin Navigation
 const adminNavigationData = [
   {
-    title: 'Dashboard',
+    title: 'Tổng Quan',
     titleKey: 'admin.dashboard',
     items: [
       {
-        title: 'Overview',
+        title: 'Dashboard',
         titleKey: 'admin.overview',
         url: '/admin',
         iconName: 'LayoutDashboard',
@@ -159,43 +138,31 @@ const adminNavigationData = [
     ],
   },
   {
-    title: 'User Management',
+    title: 'Người Dùng',
     titleKey: 'admin.user_management',
     items: [
       {
-        title: 'All Users',
+        title: 'Tất cả người dùng',
         titleKey: 'admin.users',
         url: '/admin/users',
         iconName: 'Users',
       },
-      {
-        title: 'System Roles',
-        titleKey: 'admin.system_roles',
-        url: '/admin/users/roles',
-        iconName: 'Shield',
-      },
     ],
   },
   {
-    title: 'Organizations',
+    title: 'Tổ Chức',
     titleKey: 'admin.organizations',
     items: [
       {
-        title: 'All Organizations',
+        title: 'Tất cả tổ chức',
         titleKey: 'admin.all_organizations',
         url: '/admin/organizations',
         iconName: 'Building2',
       },
-      {
-        title: 'Plans & Billing',
-        titleKey: 'admin.plans',
-        url: '/admin/organizations/plans',
-        iconName: 'CreditCard',
-      },
     ],
   },
   {
-    title: 'System',
+    title: 'Hệ Thống',
     titleKey: 'admin.system',
     items: [
       {
@@ -205,10 +172,16 @@ const adminNavigationData = [
         iconName: 'FileText',
       },
       {
-        title: 'Flagged Reviews',
+        title: 'Review bị gắn cờ',
         titleKey: 'admin.reviews',
         url: '/admin/reviews',
         iconName: 'Flag',
+      },
+      {
+        title: 'Gói dịch vụ',
+        titleKey: 'admin.packages',
+        url: '/admin/packages',
+        iconName: 'Package2',
       },
     ],
   },
@@ -226,11 +199,11 @@ export const adminNavigation: NavGroup[] = adminNavigationData.map((group) => ({
 // Organization Admin Navigation
 const organizationNavigationData = [
   {
-    title: 'Dashboard',
+    title: 'Tổng Quan',
     titleKey: 'org.dashboard',
     items: [
       {
-        title: 'Overview',
+        title: 'Dashboard',
         titleKey: 'org.overview',
         url: '/org',
         iconName: 'LayoutDashboard',
@@ -238,35 +211,35 @@ const organizationNavigationData = [
     ],
   },
   {
-    title: 'Team',
+    title: 'Tổ Chức',
     titleKey: 'org.team',
     items: [
       {
-        title: 'Members',
+        title: 'Thành viên',
         titleKey: 'org.members',
         url: '/org/members',
         iconName: 'Users',
       },
       {
-        title: 'Invitations',
+        title: 'Lời mời',
         titleKey: 'org.invitations',
-        url: '/org/invitations',
+        url: '/org/invitations/invitations',
         iconName: 'Mail',
       },
       {
-        title: 'Roles & Permissions',
-        titleKey: 'org.roles',
-        url: '/org/members/roles',
-        iconName: 'Shield',
+        title: 'Yêu cầu tham gia',
+        titleKey: 'org.requests',
+        url: '/org/invitations/requests',
+        iconName: 'UserRoundPlus',
       },
     ],
   },
   {
-    title: 'Projects',
+    title: 'Công Việc',
     titleKey: 'org.projects',
     items: [
       {
-        title: 'All Projects',
+        title: 'Dự án',
         titleKey: 'org.all_projects',
         url: '/org/projects',
         iconName: 'Briefcase',
@@ -274,26 +247,20 @@ const organizationNavigationData = [
       {
         title: 'Workflow',
         titleKey: 'org.workflow',
-        url: '/org/workflow',
+        url: '/org/workflow/statuses',
         iconName: 'GitBranch',
       },
     ],
   },
   {
-    title: 'Settings',
+    title: 'Cài Đặt',
     titleKey: 'org.settings',
     items: [
       {
-        title: 'Organization',
+        title: 'Thông tin tổ chức',
         titleKey: 'org.organization_settings',
         url: '/org/settings',
         iconName: 'Settings',
-      },
-      {
-        title: 'Billing',
-        titleKey: 'org.billing',
-        url: '/org/billing',
-        iconName: 'CreditCard',
       },
     ],
   },

@@ -10,7 +10,6 @@
   interface Team {
     name: string
     logo: ComponentType
-    plan: string
   }
 
   interface BaseNavItem {

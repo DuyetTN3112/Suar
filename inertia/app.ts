@@ -28,10 +28,13 @@ if (csrfToken) {
 axios.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    if (error.code === 'ERR_CANCELED' || error.message === 'canceled') {
+      return Promise.reject(error)
+    }
     if (error.message === 'Network Error') {
       console.error('Lỗi kết nối mạng. Vui lòng kiểm tra kết nối internet của bạn.')
     }
-    return Promise.reject(new Error(error.message || 'Unknown error'))
+    return Promise.reject(error)
   }
 )
 
@@ -48,9 +51,9 @@ void createInertiaApp({
     const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte', {
       eager: true,
     })
-    const page = pages[`./pages/${name}.svelte`]
+    const page = pages[`./pages/${name}.svelte`] as InertiaPageModule | undefined
 
-    if (!page) {
+    if (page === undefined) {
       throw new Error(`Page not found: ${name}. Make sure you have created ./pages/${name}.svelte`)
     }
 
@@ -60,10 +63,6 @@ void createInertiaApp({
   setup({ el, App, props }) {
     // Svelte 5 uses mount() for client-side rendering
     // Use hydrate() if server-side rendering is enabled
-    if (!el) {
-      throw new Error('Target element not found')
-    }
-
     if (el.dataset.serverRendered === 'true') {
       hydrate(App, { target: el, props })
     } else {

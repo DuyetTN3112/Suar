@@ -17,6 +17,7 @@
     id?: string
     username?: string
     email?: string
+    avatar_url?: string | null
   }
 
   interface PageProps {
@@ -32,7 +33,7 @@
   // Tạo tên hiển thị từ thông tin người dùng
   const displayName = $derived(user ? (user.username || user.email || 'User') : '')
   const userEmail = $derived(user?.email || '')
-  const avatarUrl = $derived(user ? `/avatars/${user.username || 'unknown'}.jpg` : '')
+  const avatarUrl = $derived(user?.avatar_url || '')
   const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : '!')
 
   // Di chuyển console.error vào effect
@@ -54,7 +55,9 @@
     <DropdownMenuTrigger>
       <Button variant="ghost" class="relative h-8 w-8 rounded-full">
         <Avatar class="h-8 w-8">
-          <AvatarImage src={avatarUrl} alt={displayName} />
+          {#if avatarUrl}
+            <AvatarImage src={avatarUrl} alt={displayName} />
+          {/if}
           <AvatarFallback>{initials}</AvatarFallback>
         </Avatar>
       </Button>
@@ -71,7 +74,7 @@
       <DropdownMenuSeparator />
       <DropdownMenuGroup>
         <DropdownMenuItem>
-          <Link href="/settings">
+          <Link href="/profile">
             Hồ sơ
             <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
           </Link>

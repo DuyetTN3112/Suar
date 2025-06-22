@@ -19,9 +19,13 @@
       logo?: string
       plan?: string
     }>
+    current_organization_role?: string | null
   }
 
   interface PageProps {
+    auth?: {
+      user?: AuthUser
+    }
     user?: {
       auth?: {
         user?: AuthUser
@@ -31,7 +35,29 @@
   }
 
   const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived(props.user?.auth?.user || null)
+  const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
+  const currentOrganizationRole = $derived(authUser?.current_organization_role ?? null)
+  const sidebarNavigation = $derived.by(() => {
+    if (
+      currentOrganizationRole === 'org_owner' ||
+      currentOrganizationRole === 'org_admin'
+    ) {
+      return [
+        ...mainNavigation,
+        {
+          title: 'Quản Trị Tổ Chức',
+          items: [
+            { title: 'Dashboard Org', url: '/org' },
+            { title: 'Thành viên', url: '/org/members' },
+            { title: 'Dự án Org', url: '/org/projects' },
+            { title: 'Workflow', url: '/org/workflow/statuses' },
+          ],
+        },
+      ]
+    }
+
+    return mainNavigation
+  })
 
   const userInfo = $derived.by(() => {
     if (authUser) {
@@ -55,7 +81,7 @@
     <TeamSwitcher />
   </SidebarHeader>
   <SidebarContent class="px-2">
-    {#each mainNavigation as navGroup}
+    {#each sidebarNavigation as navGroup}
       <NavGroup {...navGroup} />
     {/each}
   </SidebarContent>
