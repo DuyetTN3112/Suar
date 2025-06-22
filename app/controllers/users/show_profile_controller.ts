@@ -12,6 +12,9 @@ import GetUserDeliveryMetricsQuery, {
 import GetFeaturedReviewsQuery, {
   GetFeaturedReviewsDTO,
 } from '#actions/users/queries/get_featured_reviews_query'
+import GetCurrentProfileSnapshotQuery, {
+  GetCurrentProfileSnapshotDTO,
+} from '#actions/users/queries/get_current_profile_snapshot_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
@@ -27,13 +30,19 @@ export default class ShowProfileController {
 
     const execCtx = ExecutionContext.fromHttp(ctx)
 
-    const [{ user, completeness }, spiderChartData, deliveryMetrics, featuredReviews] =
-      await Promise.all([
-        new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
-        new GetSpiderChartDataQuery(execCtx).handle(new GetSpiderChartDataDTO(userId)),
-        new GetUserDeliveryMetricsQuery(execCtx).handle(new GetUserDeliveryMetricsDTO(userId)),
-        new GetFeaturedReviewsQuery(execCtx).handle(new GetFeaturedReviewsDTO(userId, 2)),
-      ])
+    const [
+      { user, completeness },
+      spiderChartData,
+      deliveryMetrics,
+      featuredReviews,
+      currentSnapshot,
+    ] = await Promise.all([
+      new GetUserProfileQuery(execCtx).handle(new GetUserProfileDTO(userId)),
+      new GetSpiderChartDataQuery(execCtx).handle(new GetSpiderChartDataDTO(userId)),
+      new GetUserDeliveryMetricsQuery(execCtx).handle(new GetUserDeliveryMetricsDTO(userId)),
+      new GetFeaturedReviewsQuery(execCtx).handle(new GetFeaturedReviewsDTO(userId, 2)),
+      new GetCurrentProfileSnapshotQuery(execCtx).handle(new GetCurrentProfileSnapshotDTO(userId)),
+    ])
 
     // user may be a Lucid model (fresh) or plain object (from cache)
     const serializedUser = typeof user.serialize === 'function' ? user.serialize() : user
@@ -44,6 +53,7 @@ export default class ShowProfileController {
       spiderChartData,
       deliveryMetrics,
       featuredReviews,
+      currentSnapshot: currentSnapshot.snapshot,
     })
   }
 }

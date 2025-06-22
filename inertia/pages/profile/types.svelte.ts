@@ -25,6 +25,25 @@ export interface SpiderChartData {
   delivery: SpiderChartPoint[]
 }
 
+export interface ProfileSnapshotSummary {
+  id: string
+  user_id: string
+  version: number
+  snapshot_name: string | null
+  is_current: boolean
+  is_public: boolean
+  shareable_slug: string | null
+  shareable_token: string | null
+  summary: Record<string, unknown> | null
+  skills_verified: unknown[] | null
+  work_highlights: unknown[] | null
+  performance_metrics: Record<string, unknown> | null
+  trust_metrics: Record<string, unknown> | null
+  scoring_version: string
+  created_at: string
+  updated_at: string
+}
+
 // ---- Serialized user profile ----
 
 export interface SerializedUserProfile {
@@ -111,6 +130,7 @@ export interface ProfileShowProps {
   user: SerializedUserProfile
   completeness: number
   spiderChartData: SpiderChartData
+  currentSnapshot?: ProfileSnapshotSummary | null
 }
 
 /** GET /profile/edit */

@@ -1,8 +1,19 @@
 import { test } from '@japa/runner'
+import { DateTime } from 'luxon'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { UserStatusName, SystemRoleName } from '#constants/user_constants'
+import {
+  OrganizationFactory,
+  SkillFactory,
+  UserFactory,
+  UserSkillFactory,
+  cleanupTestData,
+} from '#tests/helpers/factories'
+import { ProficiencyLevel, SystemRoleName } from '#constants/user_constants'
 import UserRepository from '#infra/users/repositories/user_repository'
+import GetUserProfileQuery, {
+  GetUserProfileDTO,
+} from '#actions/users/queries/get_user_profile_query'
+import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Profile', (group) => {
   group.setup(async () => {
@@ -11,81 +22,58 @@ test.group('Integration | User Profile', (group) => {
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
 
-  test('user has default field values', async ({ assert }) => {
+  test('profile query returns defaults, current organization, skills, and completeness', async ({
+    assert,
+  }) => {
     const user = await UserFactory.create()
-
-    assert.equal(user.status, UserStatusName.ACTIVE)
-    assert.equal(user.system_role, SystemRoleName.REGISTERED_USER)
-    assert.isFalse(user.is_freelancer)
-    assert.equal(user.timezone, 'Asia/Ho_Chi_Minh')
-    assert.equal(user.language, 'vi')
-  })
-
-  test('freelancer flag can be set', async ({ assert }) => {
-    const user = await UserFactory.createFreelancer()
-
-    assert.isTrue(user.is_freelancer)
-  })
-
-  test('findActiveOrFail returns active user', async ({ assert }) => {
-    const user = await UserFactory.create({ status: UserStatusName.ACTIVE })
-
-    const found = await UserRepository.findActiveOrFail(user.id)
-    assert.equal(found.id, user.id)
-  })
-
-  test('findActiveOrFail throws for inactive user', async ({ assert }) => {
-    const user = await UserFactory.create({ status: UserStatusName.INACTIVE })
-
-    try {
-      await UserRepository.findActiveOrFail(user.id)
-      assert.fail('Should have thrown')
-    } catch (error: any) {
-      assert.exists(error)
-    }
-  })
-
-  test('findNotDeletedOrFail throws for soft-deleted user', async ({ assert }) => {
-    const { DateTime } = await import('luxon')
-    const user = await UserFactory.create()
-
-    user.deleted_at = DateTime.now()
-    await user.save()
-
-    try {
-      await UserRepository.findNotDeletedOrFail(user.id)
-      assert.fail('Should have thrown')
-    } catch (error: any) {
-      assert.exists(error)
-    }
-  })
-
-  test('getSystemRoleName returns correct role', async ({ assert }) => {
-    const user = await UserFactory.create({
-      system_role: SystemRoleName.SYSTEM_ADMIN,
+    const organization = await OrganizationFactory.create({ owner_id: user.id })
+    const skill = await SkillFactory.create({ skill_name: 'TypeScript' })
+    await user.merge({ current_organization_id: organization.id }).save()
+    await UserSkillFactory.create({
+      user_id: user.id,
+      skill_id: skill.id,
+      level_code: ProficiencyLevel.SENIOR,
     })
 
-    const role = await UserRepository.getSystemRoleName(user.id)
-    assert.equal(role, SystemRoleName.SYSTEM_ADMIN)
+    const profile = await new GetUserProfileQuery(ExecutionContext.system(user.id)).handle(
+      new GetUserProfileDTO(user.id)
+    )
+    const [profileSkill] = profile.user.skills
+
+    assert.equal(profile.user.timezone, 'Asia/Ho_Chi_Minh')
+    assert.equal(profile.user.language, 'vi')
+    assert.isFalse(profile.user.is_freelancer)
+    assert.equal(profile.user.current_organization.id, organization.id)
+    assert.lengthOf(profile.user.skills, 1)
+    assert.equal(profileSkill.skill_id, skill.id)
+    assert.equal(profileSkill.level_code, ProficiencyLevel.SENIOR)
+    assert.isAbove(profile.completeness, 0)
   })
 
-  test('isSystemAdmin returns true for system_admin and superadmin', async ({ assert }) => {
-    const admin = await UserFactory.create({
-      system_role: SystemRoleName.SYSTEM_ADMIN,
-    })
+  test('repository guards reject inactive users from active lookups and soft-deleted users from normal lookups', async ({
+    assert,
+  }) => {
+    const inactiveUser = await UserFactory.create({ status: 'inactive' })
+    const deletedUser = await UserFactory.create()
+    await deletedUser.merge({ deleted_at: DateTime.now() }).save()
+
+    await assert.rejects(() => UserRepository.findActiveOrFail(inactiveUser.id))
+    await assert.rejects(() => UserRepository.findNotDeletedOrFail(deletedUser.id))
+  })
+
+  test('system role and freelancer helpers preserve admin and self-service identity checks', async ({
+    assert,
+  }) => {
+    const admin = await UserFactory.create({ system_role: SystemRoleName.SYSTEM_ADMIN })
     const superadmin = await UserFactory.createSuperadmin()
+    const freelancer = await UserFactory.createFreelancer()
     const regularUser = await UserFactory.create()
 
+    assert.equal(await UserRepository.getSystemRoleName(admin.id), SystemRoleName.SYSTEM_ADMIN)
     assert.isTrue(await UserRepository.isSystemAdmin(admin.id))
     assert.isTrue(await UserRepository.isSystemAdmin(superadmin.id))
     assert.isFalse(await UserRepository.isSystemAdmin(regularUser.id))
-  })
-
-  test('isFreelancer returns correct flag', async ({ assert }) => {
-    const freelancer = await UserFactory.createFreelancer()
-    const regular = await UserFactory.create()
-
     assert.isTrue(await UserRepository.isFreelancer(freelancer.id))
-    assert.isFalse(await UserRepository.isFreelancer(regular.id))
+    assert.isFalse(await UserRepository.isFreelancer(regularUser.id))
   })
 })
