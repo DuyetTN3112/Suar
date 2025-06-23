@@ -1,4 +1,4 @@
-import AuditLog from '#models/mongo/audit_log'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -18,9 +18,8 @@ export default class CreateAuditLog {
     try {
       const ipAddress = this.execCtx.ip
       const userAgent = this.execCtx.userAgent
-
-      // Use Lucid model instead of stored procedure (same as audit_logging.ts pattern)
-      await AuditLog.create({
+      const repo = await RepositoryFactory.getAuditLogRepository()
+      await repo.create({
         user_id: data.user_id,
         action: data.action,
         entity_type: data.entity_type,
