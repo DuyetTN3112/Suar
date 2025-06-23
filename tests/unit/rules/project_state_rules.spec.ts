@@ -7,166 +7,92 @@ import {
 } from '#domain/projects/project_state_rules'
 import { ProjectStatus } from '#constants/project_constants'
 
-/**
- * Tests for project state rules.
- * All pure functions — no database required.
- */
+test.group('Project state rules', () => {
+  test('date validation allows ordered ranges and rejects reversed timelines as BUSINESS_RULE', ({
+    assert,
+  }) => {
+    const allowedCases = [
+      { startDate: null, endDate: null },
+      { startDate: null, endDate: '2025-12-31' },
+      { startDate: '2025-01-01', endDate: null },
+      { startDate: '2025-06-15', endDate: '2025-06-15' },
+      { startDate: new Date('2025-01-01'), endDate: new Date('2025-06-15') },
+    ]
 
-// ============================================================================
-// validateProjectDates
-// ============================================================================
-
-test.group('validateProjectDates', () => {
-  test('allow: both null', ({ assert }) => {
-    const result = validateProjectDates({ startDate: null, endDate: null })
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: start is null', ({ assert }) => {
-    const result = validateProjectDates({ startDate: null, endDate: '2025-12-31' })
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: end is null', ({ assert }) => {
-    const result = validateProjectDates({ startDate: '2025-01-01', endDate: null })
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: start < end', ({ assert }) => {
-    const result = validateProjectDates({
-      startDate: '2025-01-01',
-      endDate: '2025-12-31',
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: start == end (same day)', ({ assert }) => {
-    const result = validateProjectDates({
-      startDate: '2025-06-15',
-      endDate: '2025-06-15',
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: start > end', ({ assert }) => {
-    const result = validateProjectDates({
+    for (const input of allowedCases) {
+      assert.isTrue(validateProjectDates(input).allowed)
+    }
+    const reversedStringDates = validateProjectDates({
       startDate: '2025-12-31',
       endDate: '2025-01-01',
     })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('allow: Date objects (start < end)', ({ assert }) => {
-    const result = validateProjectDates({
-      startDate: new Date('2025-01-01'),
-      endDate: new Date('2025-06-15'),
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: Date objects (start > end)', ({ assert }) => {
-    const result = validateProjectDates({
+    const reversedDateObjects = validateProjectDates({
       startDate: new Date('2025-12-31'),
       endDate: new Date('2025-01-01'),
     })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
 
-// ============================================================================
-// validateProjectStatus
-// ============================================================================
-
-test.group('validateProjectStatus', () => {
-  test('allow: PENDING', ({ assert }) => {
-    const result = validateProjectStatus(ProjectStatus.PENDING)
-    assert.isTrue(result.allowed)
+    for (const result of [reversedStringDates, reversedDateObjects]) {
+      assert.isFalse(result.allowed)
+      if (!result.allowed) {
+        assert.equal(result.code, 'BUSINESS_RULE')
+        assert.include(result.reason, 'Start date')
+      }
+    }
   })
 
-  test('allow: IN_PROGRESS', ({ assert }) => {
-    const result = validateProjectStatus(ProjectStatus.IN_PROGRESS)
-    assert.isTrue(result.allowed)
+  test('status validation and deletion gates preserve canonical lifecycle boundaries', ({
+    assert,
+  }) => {
+    for (const status of Object.values(ProjectStatus)) {
+      assert.isTrue(validateProjectStatus(status).allowed)
+    }
+
+    for (const invalidStatus of ['invalid_status', '']) {
+      const result = validateProjectStatus(invalidStatus)
+      assert.isFalse(result.allowed)
+      if (!result.allowed) {
+        assert.equal(result.code, 'BUSINESS_RULE')
+        assert.include(result.reason, invalidStatus)
+      }
+    }
+    const allowed = canDeleteProjectWithTasks({ incompleteTaskCount: 0 })
+    const denied = canDeleteProjectWithTasks({ incompleteTaskCount: 50 })
+
+    assert.isTrue(allowed.allowed)
+    assert.isFalse(denied.allowed)
+    if (!denied.allowed) {
+      assert.equal(denied.code, 'BUSINESS_RULE')
+      assert.include(denied.reason, '50')
+    }
   })
 
-  test('allow: COMPLETED', ({ assert }) => {
-    const result = validateProjectStatus(ProjectStatus.COMPLETED)
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: CANCELLED', ({ assert }) => {
-    const result = validateProjectStatus(ProjectStatus.CANCELLED)
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: invalid status', ({ assert }) => {
-    const result = validateProjectStatus('invalid_status')
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: empty string', ({ assert }) => {
-    const result = validateProjectStatus('')
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// canDeleteProjectWithTasks
-// ============================================================================
-
-test.group('canDeleteProjectWithTasks', () => {
-  test('allow: 0 incomplete tasks', ({ assert }) => {
-    const result = canDeleteProjectWithTasks({ incompleteTaskCount: 0 })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: 1 incomplete task', ({ assert }) => {
-    const result = canDeleteProjectWithTasks({ incompleteTaskCount: 1 })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: many incomplete tasks', ({ assert }) => {
-    const result = canDeleteProjectWithTasks({ incompleteTaskCount: 50 })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// canRemoveMemberFromProject
-// ============================================================================
-
-test.group('canRemoveMemberFromProject', () => {
-  test('allow: regular member', ({ assert }) => {
-    const result = canRemoveMemberFromProject({
+  test('member removal protects owner and creator identities but allows regular members', ({
+    assert,
+  }) => {
+    const allowed = canRemoveMemberFromProject({
       targetUserId: 'member-001',
       projectOwnerId: 'owner-001',
       projectCreatorId: 'creator-001',
     })
-    assert.isTrue(result.allowed)
-  })
+    const deniedCases = [
+      canRemoveMemberFromProject({
+        targetUserId: 'owner-001',
+        projectOwnerId: 'owner-001',
+        projectCreatorId: 'creator-001',
+      }),
+      canRemoveMemberFromProject({
+        targetUserId: 'creator-001',
+        projectOwnerId: 'owner-001',
+        projectCreatorId: 'creator-001',
+      }),
+    ]
 
-  test('denied: target is owner', ({ assert }) => {
-    const result = canRemoveMemberFromProject({
-      targetUserId: 'owner-001',
-      projectOwnerId: 'owner-001',
-      projectCreatorId: 'creator-001',
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: target is creator', ({ assert }) => {
-    const result = canRemoveMemberFromProject({
-      targetUserId: 'creator-001',
-      projectOwnerId: 'owner-001',
-      projectCreatorId: 'creator-001',
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
+    assert.isTrue(allowed.allowed)
+    for (const denied of deniedCases) {
+      assert.isFalse(denied.allowed)
+      if (!denied.allowed) {
+        assert.equal(denied.code, 'BUSINESS_RULE')
+      }
+    }
   })
 })

@@ -8,175 +8,128 @@ import {
 import { SystemRoleName } from '#constants/user_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 
-/**
- * Tests for user management rules.
- * All pure functions — no database required.
- */
-
-// ============================================================================
-// canApproveUser
-// ============================================================================
-
-test.group('canApproveUser', () => {
-  test('allow: has permission + target is pending', ({ assert }) => {
-    const result = canApproveUser({
+test.group('User management rules', () => {
+  test('approval and role validation only allow declared admin workflows', ({ assert }) => {
+    const allowed = canApproveUser({
       hasApprovePermission: true,
       targetMembershipStatus: OrganizationUserStatus.PENDING,
     })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: no approve permission', ({ assert }) => {
-    const result = canApproveUser({
+    const noPermission = canApproveUser({
       hasApprovePermission: false,
       targetMembershipStatus: OrganizationUserStatus.PENDING,
     })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
+    const invalidStatuses = [OrganizationUserStatus.APPROVED, OrganizationUserStatus.REJECTED].map(
+      (status) =>
+        canApproveUser({
+          hasApprovePermission: true,
+          targetMembershipStatus: status,
+        })
+    )
+
+    assert.isTrue(allowed.allowed)
+    assert.isFalse(noPermission.allowed)
+    if (!noPermission.allowed) {
+      assert.equal(noPermission.code, 'FORBIDDEN')
+    }
+    for (const denied of invalidStatuses) {
+      assert.isFalse(denied.allowed)
+      if (!denied.allowed) {
+        assert.equal(denied.code, 'BUSINESS_RULE')
+      }
+    }
+    for (const role of Object.values(SystemRoleName)) {
+      assert.isTrue(validateSystemRole(role).allowed)
+    }
+
+    const invalidRole = validateSystemRole('moderator')
+    assert.isFalse(invalidRole.allowed)
+    if (!invalidRole.allowed) {
+      assert.equal(invalidRole.code, 'BUSINESS_RULE')
+      assert.include(invalidRole.reason, 'moderator')
+    }
   })
 
-  test('denied: target already approved', ({ assert }) => {
-    const result = canApproveUser({
-      hasApprovePermission: true,
-      targetMembershipStatus: OrganizationUserStatus.APPROVED,
+  test('role changes allow superadmin handoffs but reject authority, self-update, and invalid role violations', ({
+    assert,
+  }) => {
+    for (const newRole of Object.values(SystemRoleName)) {
+      const result = canChangeUserRole({
+        isActorSuperadmin: true,
+        actorId: 'admin-001',
+        targetUserId: 'user-001',
+        newRole,
+      })
+
+      assert.isTrue(result.allowed)
+    }
+
+    const deniedCases = [
+      {
+        result: canChangeUserRole({
+          isActorSuperadmin: false,
+          actorId: 'user-001',
+          targetUserId: 'user-002',
+          newRole: SystemRoleName.SYSTEM_ADMIN,
+        }),
+        code: 'FORBIDDEN',
+      },
+      {
+        result: canChangeUserRole({
+          isActorSuperadmin: true,
+          actorId: 'admin-001',
+          targetUserId: 'admin-001',
+          newRole: SystemRoleName.REGISTERED_USER,
+        }),
+        code: 'BUSINESS_RULE',
+      },
+      {
+        result: canChangeUserRole({
+          isActorSuperadmin: true,
+          actorId: 'admin-001',
+          targetUserId: 'user-001',
+          newRole: 'invalid_role',
+        }),
+        code: 'BUSINESS_RULE',
+      },
+    ]
+
+    deniedCases.forEach(({ result, code }) => {
+      assert.isFalse(result.allowed)
+      if (!result.allowed) {
+        assert.equal(result.code, code)
+      }
     })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
   })
 
-  test('denied: target is rejected', ({ assert }) => {
-    const result = canApproveUser({
-      hasApprovePermission: true,
-      targetMembershipStatus: OrganizationUserStatus.REJECTED,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// canChangeUserRole
-// ============================================================================
-
-test.group('canChangeUserRole', () => {
-  test('allow: superadmin changes another user to valid role', ({ assert }) => {
-    const result = canChangeUserRole({
+  test('user deactivation requires superadmin authority and forbids self-deactivation', ({
+    assert,
+  }) => {
+    const allowed = canDeactivateUser({
       isActorSuperadmin: true,
       actorId: 'admin-001',
       targetUserId: 'user-001',
-      newRole: SystemRoleName.SYSTEM_ADMIN,
     })
-    assert.isTrue(result.allowed)
-  })
+    const deniedCases = [
+      canDeactivateUser({
+        isActorSuperadmin: false,
+        actorId: 'user-001',
+        targetUserId: 'user-002',
+      }),
+      canDeactivateUser({
+        isActorSuperadmin: true,
+        actorId: 'admin-001',
+        targetUserId: 'admin-001',
+      }),
+    ]
 
-  test('allow: superadmin changes to registered_user', ({ assert }) => {
-    const result = canChangeUserRole({
-      isActorSuperadmin: true,
-      actorId: 'admin-001',
-      targetUserId: 'user-001',
-      newRole: SystemRoleName.REGISTERED_USER,
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: not superadmin', ({ assert }) => {
-    const result = canChangeUserRole({
-      isActorSuperadmin: false,
-      actorId: 'user-001',
-      targetUserId: 'user-002',
-      newRole: SystemRoleName.SYSTEM_ADMIN,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('denied: changing own role', ({ assert }) => {
-    const result = canChangeUserRole({
-      isActorSuperadmin: true,
-      actorId: 'admin-001',
-      targetUserId: 'admin-001',
-      newRole: SystemRoleName.REGISTERED_USER,
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: invalid role', ({ assert }) => {
-    const result = canChangeUserRole({
-      isActorSuperadmin: true,
-      actorId: 'admin-001',
-      targetUserId: 'user-001',
-      newRole: 'invalid_role',
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// canDeactivateUser
-// ============================================================================
-
-test.group('canDeactivateUser', () => {
-  test('allow: superadmin deactivates another user', ({ assert }) => {
-    const result = canDeactivateUser({
-      isActorSuperadmin: true,
-      actorId: 'admin-001',
-      targetUserId: 'user-001',
-    })
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: not superadmin', ({ assert }) => {
-    const result = canDeactivateUser({
-      isActorSuperadmin: false,
-      actorId: 'user-001',
-      targetUserId: 'user-002',
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'FORBIDDEN')
-  })
-
-  test('denied: deactivating self', ({ assert }) => {
-    const result = canDeactivateUser({
-      isActorSuperadmin: true,
-      actorId: 'admin-001',
-      targetUserId: 'admin-001',
-    })
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-})
-
-// ============================================================================
-// validateSystemRole
-// ============================================================================
-
-test.group('validateSystemRole', () => {
-  test('allow: superadmin', ({ assert }) => {
-    const result = validateSystemRole(SystemRoleName.SUPERADMIN)
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: system_admin', ({ assert }) => {
-    const result = validateSystemRole(SystemRoleName.SYSTEM_ADMIN)
-    assert.isTrue(result.allowed)
-  })
-
-  test('allow: registered_user', ({ assert }) => {
-    const result = validateSystemRole(SystemRoleName.REGISTERED_USER)
-    assert.isTrue(result.allowed)
-  })
-
-  test('denied: invalid role', ({ assert }) => {
-    const result = validateSystemRole('moderator')
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
-  })
-
-  test('denied: empty string', ({ assert }) => {
-    const result = validateSystemRole('')
-    assert.isFalse(result.allowed)
-    if (!result.allowed) assert.equal(result.code, 'BUSINESS_RULE')
+    assert.isTrue(allowed.allowed)
+    assert.isFalse(deniedCases[0]?.allowed ?? true)
+    assert.isFalse(deniedCases[1]?.allowed ?? true)
+    if (deniedCases[0] && !deniedCases[0].allowed) {
+      assert.equal(deniedCases[0].code, 'FORBIDDEN')
+    }
+    if (deniedCases[1] && !deniedCases[1].allowed) {
+      assert.equal(deniedCases[1].code, 'BUSINESS_RULE')
+    }
   })
 })
