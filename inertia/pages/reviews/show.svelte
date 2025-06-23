@@ -16,13 +16,14 @@
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import Separator from '@/components/ui/separator.svelte'
   import ReviewStatusBadge from './components/review_status_badge.svelte'
-  import ReviewerInfo from './components/reviewer_info.svelte'
   import SkillRatingForm from './components/skill_rating_form.svelte'
   import ReviewSummary from './components/review_summary.svelte'
   import ConfirmationPanel from './components/confirmation_panel.svelte'
   import ReverseReviewForm from './components/reverse_review_form.svelte'
+  import ReviewEvidencePanel from './components/review_evidence_panel.svelte'
+  import SelfAssessmentPanel from './components/self_assessment_panel.svelte'
   import { ClipboardCheck, User, Calendar, CheckCircle2 } from 'lucide-svelte'
-  import type { ShowReviewProps, SerializedUser } from './types.svelte'
+  import type { ShowReviewProps, ReviewerType } from './types.svelte'
 
   interface Props {
     session: ShowReviewProps['session']
@@ -42,6 +43,13 @@
   )
 
   const reviewee = $derived(session.reviewee)
+  const currentUserId = $derived(($page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id)
+  const isReviewee = $derived(currentUserId === session.reviewee_id)
+  let selectedReviewerType = $state<ReviewerType>('peer')
+
+  $effect(() => {
+    selectedReviewerType = session.manager_review_completed ? 'peer' : 'manager'
+  })
 
   const createdDate = $derived(
     new Date(session.created_at).toLocaleDateString('vi-VN', {
@@ -83,10 +91,11 @@
     (session.skill_reviews ?? [])
       .reduce<Array<{ id: string; username: string; type: 'peer' | 'manager' }>>(
         (acc, sr) => {
-          if (sr.reviewer && !acc.some((t) => t.id === sr.reviewer!.id && t.type === sr.reviewer_type)) {
+          const reviewer = sr.reviewer
+          if (reviewer && !acc.some((target) => target.id === reviewer.id && target.type === sr.reviewer_type)) {
             acc.push({
-              id: sr.reviewer.id,
-              username: sr.reviewer.username,
+              id: reviewer.id,
+              username: reviewer.username,
               type: sr.reviewer_type as 'peer' | 'manager',
             })
           }
@@ -101,6 +110,16 @@
 
   // Flash messages from session
   const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
+  const hasManagerSummary = $derived(
+    session.overall_quality_score != null ||
+      session.delivery_timeliness != null ||
+      session.requirement_adherence != null ||
+      session.communication_quality != null ||
+      session.code_quality_score != null ||
+      session.proactiveness_score != null ||
+      session.strengths_observed != null ||
+      session.areas_for_improvement != null
+  )
 </script>
 
 <svelte:head>
@@ -169,6 +188,10 @@
           <TabsTrigger value="rate">Đánh giá kỹ năng</TabsTrigger>
         {/if}
         <TabsTrigger value="results">Kết quả</TabsTrigger>
+        <TabsTrigger value="evidence">Evidence</TabsTrigger>
+        {#if isReviewee}
+          <TabsTrigger value="self">Tự đánh giá</TabsTrigger>
+        {/if}
         {#if canConfirm}
           <TabsTrigger value="confirm">Xác nhận</TabsTrigger>
         {/if}
@@ -183,13 +206,34 @@
           <Card>
             <CardHeader>
               <CardTitle class="text-base">Đánh giá kỹ năng</CardTitle>
+              <div class="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span>Chọn loại reviewer trước khi gửi.</span>
+                <button
+                  type="button"
+                  class="rounded-full border px-3 py-1 font-medium {selectedReviewerType === 'manager' ? 'border-primary bg-primary/10 text-primary' : ''}"
+                  onclick={() => {
+                    selectedReviewerType = 'manager'
+                  }}
+                >
+                  Manager review
+                </button>
+                <button
+                  type="button"
+                  class="rounded-full border px-3 py-1 font-medium {selectedReviewerType === 'peer' ? 'border-primary bg-primary/10 text-primary' : ''}"
+                  onclick={() => {
+                    selectedReviewerType = 'peer'
+                  }}
+                >
+                  Peer review
+                </button>
+              </div>
             </CardHeader>
             <CardContent>
               <SkillRatingForm
                 sessionId={session.id}
                 skills={activeSkills}
                 {proficiencyLevels}
-                reviewerType="peer"
+                reviewerType={selectedReviewerType}
               />
             </CardContent>
           </Card>
@@ -198,6 +242,57 @@
 
       <!-- Tab: Results -->
       <TabsContent value="results">
+        {#if hasManagerSummary}
+          <Card class="mb-4">
+            <CardHeader>
+              <CardTitle class="text-base">Tổng quan từ quản lý</CardTitle>
+            </CardHeader>
+            <CardContent class="space-y-4">
+              <div class="grid gap-3 md:grid-cols-3">
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Overall quality</p>
+                  <p class="mt-1 text-2xl font-semibold">{session.overall_quality_score ?? '—'}</p>
+                </div>
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Requirement adherence</p>
+                  <p class="mt-1 text-2xl font-semibold">{session.requirement_adherence ?? '—'}</p>
+                </div>
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Communication</p>
+                  <p class="mt-1 text-2xl font-semibold">{session.communication_quality ?? '—'}</p>
+                </div>
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Code quality</p>
+                  <p class="mt-1 text-2xl font-semibold">{session.code_quality_score ?? '—'}</p>
+                </div>
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Proactiveness</p>
+                  <p class="mt-1 text-2xl font-semibold">{session.proactiveness_score ?? '—'}</p>
+                </div>
+                <div class="rounded-lg border p-3">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Delivery timeliness</p>
+                  <p class="mt-1 text-sm font-semibold">{session.delivery_timeliness ?? '—'}</p>
+                </div>
+              </div>
+
+              <div class="grid gap-4 md:grid-cols-2">
+                <div class="rounded-lg border p-4">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Strengths observed</p>
+                  <p class="mt-2 text-sm">{session.strengths_observed || '—'}</p>
+                </div>
+                <div class="rounded-lg border p-4">
+                  <p class="text-xs uppercase tracking-wide text-muted-foreground">Areas for improvement</p>
+                  <p class="mt-2 text-sm">{session.areas_for_improvement || '—'}</p>
+                </div>
+              </div>
+
+              <p class="text-xs text-muted-foreground">
+                Would work with again: {session.would_work_with_again == null ? '—' : session.would_work_with_again ? 'Yes' : 'No'}
+              </p>
+            </CardContent>
+          </Card>
+        {/if}
+
         <Card>
           <CardHeader>
             <CardTitle class="text-base">Kết quả đánh giá</CardTitle>
@@ -241,6 +336,30 @@
           </Card>
         {/if}
       </TabsContent>
+
+      <TabsContent value="evidence">
+        <Card>
+          <CardHeader>
+            <CardTitle class="text-base">Evidence</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ReviewEvidencePanel sessionId={session.id} />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {#if isReviewee}
+        <TabsContent value="self">
+          <Card>
+            <CardHeader>
+              <CardTitle class="text-base">Tự đánh giá</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SelfAssessmentPanel sessionId={session.id} canEdit={isReviewee} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      {/if}
 
       <!-- Tab: Confirmation -->
       {#if canConfirm}

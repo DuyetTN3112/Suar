@@ -43,7 +43,7 @@ export interface SerializedUser {
 export interface SerializedTask {
   id: string
   title: string
-  project_id?: string | null
+  project_id: string
   [key: string]: unknown
 }
 
@@ -95,6 +95,15 @@ export interface SerializedReviewSession {
   peer_reviews_count: number
   required_peer_reviews: number
   confirmations: ReviewConfirmationEntry[] | null
+  overall_quality_score?: number | null
+  delivery_timeliness?: string | null
+  requirement_adherence?: number | null
+  communication_quality?: number | null
+  code_quality_score?: number | null
+  proactiveness_score?: number | null
+  would_work_with_again?: boolean | null
+  strengths_observed?: string | null
+  areas_for_improvement?: string | null
   created_at: string
   completed_at: string | null
   updated_at: string
@@ -150,11 +159,49 @@ export interface SkillRatingInput {
 export interface SubmitReviewForm {
   reviewer_type: ReviewerType
   skill_ratings: SkillRatingInput[]
+  overall_quality_score?: number | null
+  delivery_timeliness?: string | null
+  requirement_adherence?: number | null
+  communication_quality?: number | null
+  code_quality_score?: number | null
+  proactiveness_score?: number | null
+  would_work_with_again?: boolean | null
+  strengths_observed?: string
+  areas_for_improvement?: string
 }
 
 export interface ConfirmReviewForm {
   action: ReviewConfirmationAction
   dispute_reason?: string
+}
+
+export interface ReviewEvidenceItem {
+  id: string
+  review_session_id: string
+  evidence_type: string
+  url: string | null
+  title: string | null
+  description: string | null
+  uploaded_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskSelfAssessment {
+  id: string
+  task_assignment_id: string
+  user_id: string
+  overall_satisfaction: number | null
+  difficulty_felt: string | null
+  confidence_level: number | null
+  what_went_well: string | null
+  what_would_do_different: string | null
+  blockers_encountered: string[]
+  skills_felt_lacking: string[]
+  skills_felt_strong: string[]
+  submitted_at: string
+  created_at: string
+  updated_at: string
 }
 
 // ---- Status display helpers ----
