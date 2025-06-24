@@ -1,0 +1,13 @@
+import type TaskWorkflowTransition from '#models/task_workflow_transition'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import type { DatabaseId } from '#types/database'
+
+/**
+ * Query: List all workflow transitions for an organization.
+ * Returns transitions with preloaded from/to status names.
+ */
+export default class ListWorkflowQuery {
+  async execute(organizationId: DatabaseId): Promise<TaskWorkflowTransition[]> {
+    return TaskWorkflowTransitionRepository.findByOrganization(organizationId)
+  }
+}
