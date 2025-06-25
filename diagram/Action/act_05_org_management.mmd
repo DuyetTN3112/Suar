@@ -1,110 +1,26 @@
-%% ─────────────────────────────────────────────────────────────
-%% act_05a: Organization Creation & Membership
-%% ─────────────────────────────────────────────────────────────
-%% Roles: org_owner, org_admin, org_member (3 fixed, no custom)
-%% Invitation: InviteUserCommand creates token (7d expiry)
-%%   ⚠️ Accept/decline command NOT yet implemented
-%% Join Request: Fully implemented (create → process: approve/reject)
-%% ─────────────────────────────────────────────────────────────
+%% act_05_org_management.mmd
+%% Scope: Overview of organization membership flows only.
+%% Principle: Overview diagram stays high-level; each detailed task has its own file.
+%% Detail files:
+%%   - act_05c_org_create.mmd
+%%   - act_05d_org_invite_member.mmd
+%%   - act_05e_org_join_request.mmd
+%%   - act_05g_org_remove_member.mmd
 
 flowchart TD
-    Start([Start]) --> CreateOrg["CreateOrganizationCommand:
-    POST /organizations
-    name, slug, description"]
+    Start([Start]) --> Module["Organization membership module"]
 
-    CreateOrg --> SetOwner["Auto-create organization_user:
-    user = creator
-    org_role = 'org_owner'
-    status = 'approved'"]
+    Module --> Create["Create organization"]
+    Module --> Invite["Invite member"]
+    Module --> Join["Approve / reject join request"]
+    Module --> Direct["Direct add member"]
 
-    SetOwner --> OrgReady["Organization ready"]
+    Create --> End([End])
+    Invite --> End
+    Join --> End
+    Direct --> End
 
-    OrgReady --> MemberAction{"How to add
-    members?"}
-
-    %% ═══════════════════════════════════════════════════════════
-    %% PATH A: Admin/Owner invites via email
-    %% ═══════════════════════════════════════════════════════════
-    MemberAction -->|"Invite
-    (owner/admin only)"| InviteUser["InviteUserCommand:
-    POST /organizations/:id/invite
-    Creates OrganizationInvitation
-    with token + expires_at (7 days)"]
-
-    InviteUser --> NotifyInvitee["Send invite notification
-    (with token link)"]
-
-    NotifyInvitee --> InviteeResponse{"⚠️ Accept/Decline
-    command NOT implemented
-    (backend gap)"}
-
-    InviteeResponse -.->|"Future: Accept"| ActivateMember["Create organization_user
-    status = 'approved'
-    org_role = 'org_member'"]
-    InviteeResponse -.->|"Future: Decline"| RemoveInvite["Mark invitation
-    as declined"]
-    InviteeResponse -->|"Expires after 7 days"| InviteExpired["Invitation expired
-    (filtered by expires_at)"]
-
-    ActivateMember --> ManageOrg
-
-    %% ═══════════════════════════════════════════════════════════
-    %% PATH B: User self-service join request
-    %% ═══════════════════════════════════════════════════════════
-    MemberAction -->|"User requests
-    to join"| CheckEligibility{"CheckJoinEligibilityQuery:
-    Already member
-    or pending?"}
-    CheckEligibility -->|Yes| RejectDuplicate["❌ Error: duplicate"]
-    RejectDuplicate --> End2([End])
-
-    CheckEligibility -->|No| CreateJoinReq["CreateJoinRequestCommand:
-    POST /organizations/:id/join
-    Creates organization_users row
-    status = 'pending'"]
-
-    CreateJoinReq --> NotifyAdmin["Notify org
-    owner/admin"]
-    NotifyAdmin --> AdminDecision{"ProcessJoinRequestCommand:
-    Approve or Reject?
-    (owner/admin only)"}
-
-    AdminDecision -->|Approve| ApproveJoin["Update organization_users
-    status = 'approved'
-    org_role = 'org_member'"]
-    AdminDecision -->|Reject| RejectJoin["Update organization_users
-    status = 'rejected'
-    (can re-apply later)"]
-
-    ApproveJoin --> ManageOrg
-    RejectJoin --> End3([End])
-
-    %% ═══════════════════════════════════════════════════════════
-    %% PATH C: Direct add (admin/owner)
-    %% ═══════════════════════════════════════════════════════════
-    MemberAction -->|"Direct add
-    (owner/admin)"| DirectAdd["AddMemberCommand:
-    Creates organization_user
-    status = 'approved'
-    (bypasses invitation)"]
-    DirectAdd --> ManageOrg
-
-    ManageOrg["Organization members
-    managed"]
-    ManageOrg --> End1([End])
-
-    %% ─── Styles ───
     classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
     classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
-    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
-    classDef invite fill:#F3E5F5,stroke:#6A1B9A,color:#333
-    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
-    classDef gap fill:#FFF9C4,stroke:#F57F17,color:#333
-    class Start,End1,End2,End3 startEnd
-    class CreateOrg,SetOwner,OrgReady,ManageOrg,ActivateMember,ApproveJoin,DirectAdd process
-    class MemberAction,CheckEligibility,AdminDecision decision
-    class InviteUser,NotifyInvitee,CreateJoinReq,NotifyAdmin,RemoveInvite invite
-    class RejectDuplicate,RejectJoin error
-    class InviteeResponse,InviteExpired gap
-
-
+    class Start,End startEnd
+    class Module,Create,Invite,Join,Direct process

@@ -5,6 +5,7 @@
 %% ✅ Updated 2026-03: Domain is 100% pure (no framework deps)
 %% ✅ PermissionService & Validators moved to correct layers (not Domain)
 %% ⚠️ Legacy repos (app/repositories/) still in use — migration in progress
+%% ✅ Firebase phone auth removed khỏi codebase (2026-03)
 
 graph TD
     subgraph domain["📦 Domain Layer (100% Pure — 0 framework deps)"]
@@ -72,7 +73,6 @@ graph TD
         VINE["VineJS\n(Validation)"]
         MONGOOSE["Mongoose\n(MongoDB ODM)"]
         ALLY["@adonisjs/ally\n(OAuth: Google, GitHub)"]
-        FIREBASE["Firebase Client SDK\n(Phone Auth — planned)"]
     end
 
     %% Domain → Infrastructure (interface → implementation)
@@ -101,7 +101,7 @@ graph TD
     classDef legacyStyle fill:#FFEBEE,stroke:#D32F2F,stroke-width:2px,color:#B71C1C,stroke-dasharray: 5 5
     classDef modelStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
     classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
-    class LUCID,VINE,MONGOOSE,ALLY,FIREBASE extStyle
+    class LUCID,VINE,MONGOOSE,ALLY extStyle
     class ENTITIES,REPO_IFACE,DOMAIN_MAPPER,RULES,DOMAIN_TYPES domStyle
     class PERM_SVC,VALIDATORS appSvcStyle
     class ORM_REFS,REPO_IMPL,INFRA_MAPPER,REPOS infraStyle

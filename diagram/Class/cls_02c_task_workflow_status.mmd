@@ -1,0 +1,47 @@
+%% Class Diagram: Task Workflow Status Detail
+%% Scope: Custom task statuses and workflow transitions only.
+
+classDiagram
+    class Task {
+        +UUID id
+        +UUID organization_id
+        +UUID task_status_id
+        +String status : legacy
+    }
+
+    class TaskStatusModel {
+        +UUID id
+        +UUID organization_id
+        +String name
+        +String slug
+        +String category
+        +String color
+        +Integer sort_order
+        +Boolean is_default
+        +Boolean is_system
+        --
+        +findByOrganization(orgId)
+        +findDefault(orgId)
+        +findBySlug(orgId, slug)
+    }
+
+    class TaskWorkflowTransition {
+        +UUID id
+        +UUID organization_id
+        +UUID from_status_id
+        +UUID to_status_id
+        +JSONB conditions
+        --
+        +findByOrganization(orgId)
+        +findFromStatus(orgId, fromId)
+    }
+
+    Task "*" --> "1" TaskStatusModel : current status
+    TaskStatusModel "1" --> "*" TaskWorkflowTransition : from_status
+    TaskStatusModel "1" --> "*" TaskWorkflowTransition : to_status
+
+    note for TaskStatusModel "Organization-specific workflow definition.
+    category normalizes business meaning: todo / in_progress / done / cancelled."
+    note for TaskWorkflowTransition "Used to control allowed status movement.
+    conditions lives in JSONB for org-level customization."
+

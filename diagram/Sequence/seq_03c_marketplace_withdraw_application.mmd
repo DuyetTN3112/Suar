@@ -1,0 +1,24 @@
+%% seq_03c_marketplace_withdraw_application.mmd
+%% Scope: Withdraw a submitted application only.
+
+sequenceDiagram
+    autonumber
+    actor FL as Freelancer
+    participant B as Browser
+    participant C as WithdrawApplicationController
+    participant Cmd as WithdrawApplicationCommand
+    participant Repo as TaskRepository
+    participant DB as PostgreSQL
+
+    FL->>B: Click withdraw
+    B->>C: POST /applications/:id/withdraw
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: load application
+    Repo->>DB: SELECT task_application
+    DB-->>Repo: Result
+    Cmd->>Repo: update application withdrawn
+    Repo->>DB: UPDATE task_applications
+    Cmd->>Repo: decrement external_applications_count
+    Repo->>DB: UPDATE tasks
+    C-->>B: Redirect
+    B-->>FL: Application withdrawn

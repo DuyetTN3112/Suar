@@ -1,0 +1,105 @@
+%% Class Diagram: Review Session and Skill Review Detail
+%% Scope: Session lifecycle, skill reviews, entities, mappers, and response DTOs only.
+
+classDiagram
+    class ReviewSession {
+        +UUID id
+        +UUID task_assignment_id
+        +UUID reviewee_id
+        +String status
+        +Boolean manager_review_completed
+        +Integer peer_reviews_count
+        +Integer required_peer_reviews
+        +JSONB confirmations
+        +DateTime deadline
+        +DateTime completed_at
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class SkillReview {
+        +UUID id
+        +UUID review_session_id
+        +UUID reviewer_id
+        +String reviewer_type
+        +UUID skill_id
+        +String assigned_level_code
+        +Text comment
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    class ReviewSessionEntity {
+        <<Domain Entity>>
+        +String id
+        +String taskAssignmentId
+        +String revieweeId
+        +ReviewSessionStatus status
+        +Boolean managerReviewCompleted
+        +Number peerReviewsCount
+        +Number requiredPeerReviews
+        +ReviewConfirmationEntry[] confirmations
+        +Date deadline
+        --
+        +isCompleted() Boolean
+        +isPending() Boolean
+        +isOverdue() Boolean
+        +canAddPeerReview() Boolean
+        +peerReviewProgress() String
+    }
+
+    class SkillReviewEntity {
+        <<Domain Entity>>
+        +String id
+        +String reviewSessionId
+        +String reviewerId
+        +SkillReviewerType reviewerType
+        +String skillId
+        +String assignedLevelCode
+        +String comment
+        --
+        +isManagerReview() Boolean
+        +isPeerReview() Boolean
+    }
+
+    class ReviewDomainMapper {
+        <<Domain Mapper>>
+        +toSessionEntity(props) ReviewSessionEntity
+        +toSkillReviewEntity(props) SkillReviewEntity
+    }
+
+    class ReviewInfraMapper {
+        <<Infra Mapper>>
+        +toSessionDomain(model: ReviewSession) ReviewSessionEntity
+        +toSkillReviewDomain(model: SkillReview) SkillReviewEntity
+    }
+
+    class ReviewApplicationMapper {
+        <<Application Mapper>>
+        +toSessionResponse(entity) ReviewSessionResponseDTO
+        +toSkillReviewResponse(entity) SkillReviewResponseDTO
+        +toSummaryResponse(session, skillReviews) ReviewSummaryResponseDTO
+    }
+
+    class ReviewSessionResponseDTO
+    class SkillReviewResponseDTO
+    class ReviewSummaryResponseDTO
+
+    ReviewSession "1" --> "*" SkillReview : contains
+    ReviewDomainMapper ..> ReviewSessionEntity : creates
+    ReviewDomainMapper ..> SkillReviewEntity : creates
+    ReviewInfraMapper ..> ReviewSession : reads ORM
+    ReviewInfraMapper ..> SkillReview : reads ORM
+    ReviewInfraMapper ..> ReviewSessionEntity : produces
+    ReviewInfraMapper ..> SkillReviewEntity : produces
+    ReviewApplicationMapper ..> ReviewSessionEntity : reads
+    ReviewApplicationMapper ..> SkillReviewEntity : reads
+    ReviewApplicationMapper ..> ReviewSessionResponseDTO : produces
+    ReviewApplicationMapper ..> SkillReviewResponseDTO : produces
+    ReviewApplicationMapper ..> ReviewSummaryResponseDTO : produces
+
+    note for ReviewSession "Manager and peer reviews run in parallel.
+    confirm/dispute is a later step."
+    note for ReviewSessionEntity "Pure domain entity.
+    No framework imports."
+

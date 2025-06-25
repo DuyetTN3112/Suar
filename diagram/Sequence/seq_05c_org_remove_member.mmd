@@ -1,0 +1,42 @@
+%% seq_05c_org_remove_member.mmd
+%% Scope: Remove member only.
+%% Backend refs:
+%%   - DELETE /organizations/:id/members/:userId
+%%   - DELETE /org/members/:id
+%%   - RemoveMemberCommand
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as RemoveMemberCommand
+    participant OrgRepo as OrganizationUserRepository
+    participant ProjRepo as ProjectRepository
+    participant TaskRepo as TaskRepository
+    participant DB as PostgreSQL
+    participant Audit as Mongo AuditLog
+
+    Admin->>B: Confirm member removal
+    B->>C: DELETE member
+    C->>Cmd: execute(dto)
+    Cmd->>OrgRepo: get actor role + target membership
+    OrgRepo->>DB: SELECT organization_users
+    DB-->>OrgRepo: Membership rows
+    Cmd->>Cmd: Enforce org permission policy
+
+    alt Policy denies removal
+        Cmd-->>C: Forbidden error
+        C-->>B: Show error
+    else Removal allowed
+        Cmd->>ProjRepo: findIdsByOrganization(orgId)
+        ProjRepo->>DB: SELECT project ids
+        DB-->>ProjRepo: Project ids
+        Cmd->>TaskRepo: unassignByUserInProjects(projectIds, userId)
+        TaskRepo->>DB: UPDATE tasks assignments
+        Cmd->>OrgRepo: deleteMember(orgId, userId)
+        OrgRepo->>DB: DELETE organization_users
+        Cmd->>Audit: create member-removed audit log
+        Cmd-->>C: Success
+        C-->>B: Redirect with success flash
+    end

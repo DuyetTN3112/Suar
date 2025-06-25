@@ -1,0 +1,41 @@
+%% seq_04b_review_confirm_pipeline.mmd
+%% Scope: Confirm/dispute review and scoring pipeline only.
+%% Backend refs:
+%%   - POST /reviews/:id/confirm
+%%   - ConfirmReviewCommand
+%%   - review:confirmed listener
+
+sequenceDiagram
+    autonumber
+    actor Reviewee as Reviewee
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as ConfirmReviewCommand
+    participant Repo as ReviewRepository
+    participant DB as PostgreSQL
+    participant Listener as review_listener
+
+    Reviewee->>B: Open completed review
+    Reviewee->>B: Confirm or dispute
+    B->>C: POST /reviews/:id/confirm
+    C->>Cmd: handle(dto)
+    Cmd->>Repo: load review session
+    Repo->>DB: SELECT review session
+    DB-->>Repo: Session row
+
+    alt action = disputed
+        Cmd->>Repo: save disputed state
+        Repo->>DB: UPDATE review_sessions
+        Cmd-->>C: Dispute stored
+        C-->>B: Redirect with dispute flash
+    else action = confirmed
+        Cmd->>Repo: save confirmed state
+        Repo->>DB: UPDATE review_sessions
+        Cmd-->>Listener: emit review:confirmed
+        Listener->>Listener: Recalculate reviewer credibility
+        Listener->>Listener: Recalculate reviewee skill scores
+        Listener->>Listener: Recalculate performance score
+        Listener->>Listener: Recalculate trust score
+        Listener->>Listener: Refresh profile aggregates + invalidate caches
+        C-->>B: Redirect with success flash
+    end

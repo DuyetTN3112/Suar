@@ -1,0 +1,64 @@
+%% Class Diagram: User & Auth Core
+%% Scope: User, OAuth, remember-me, user repository mapping.
+
+classDiagram
+    class User {
+        +id
+        +username
+        +email
+        +status
+        +system_role
+        +current_organization_id
+        +auth_method
+        +is_freelancer
+        +ranking_priority
+        +is_verified_badge
+    }
+
+    class UserOAuthProvider {
+        +id
+        +user_id
+        +provider
+        +provider_id
+    }
+
+    class RememberMeToken {
+        +id
+        +tokenable_id
+        +hash
+        +expires_at
+    }
+
+    class UserEntity {
+        <<Domain Entity>>
+        +id
+        +username
+        +email
+        +status
+        +systemRole
+        +authMethod
+        +isFreelancer
+        +canChangeRoleOf()
+        +canDeactivate()
+    }
+
+    class IUserRepository {
+        <<interface>>
+        +findById()
+        +findWithOrganizations()
+        +isActive()
+        +isSystemAdmin()
+    }
+
+    class UserRepositoryImpl {
+        <<Infra Repository>>
+        +findById()
+        +findWithOrganizations()
+        +isActive()
+        +isSystemAdmin()
+    }
+
+    User "1" --> "many" UserOAuthProvider : has OAuth providers
+    User "1" --> "many" RememberMeToken : has remember tokens
+    User --> UserEntity : mapped to domain
+    IUserRepository <|.. UserRepositoryImpl : implements
