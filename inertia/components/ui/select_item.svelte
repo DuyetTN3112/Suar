@@ -21,7 +21,7 @@
     value,
     label,
     disabled = false,
-    children,
+    children: childrenSnippet,
     ...restProps
   }: Props = $props()
 </script>
@@ -43,8 +43,8 @@
         <Check class="size-4" />
       {/if}
     </span>
-    {#if children}
-      {@render children()}
+    {#if childrenSnippet}
+      {@render childrenSnippet()}
     {:else if label}
       {label}
     {:else}

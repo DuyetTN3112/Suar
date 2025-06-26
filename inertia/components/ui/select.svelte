@@ -30,9 +30,9 @@
     children?: Snippet
   }
 
-  let {
-    value = $bindable(''),
-    open = $bindable(false),
+  const {
+    value,
+    open,
     onValueChange,
     onOpenChange,
     children,
@@ -42,8 +42,8 @@
 
 <SelectPrimitive.Root
   type="single"
-  bind:value
-  bind:open
+  {value}
+  {open}
   {onValueChange}
   {onOpenChange}
   {...restProps}

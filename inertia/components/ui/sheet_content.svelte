@@ -1,22 +1,25 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Dialog as SheetPrimitive } from 'bits-ui'
+  import { Dialog as SheetPrimitive, type DialogContentProps } from 'bits-ui'
   import { X } from 'lucide-svelte'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof SheetPrimitive.Content> & {
-    class?: string
-    children?: Snippet
+  type Props = DialogContentProps & {
     side?: 'top' | 'right' | 'bottom' | 'left'
   }
 
-  const {
-    class: className,
-    children,
-    side = 'right',
-    ...restProps
-  }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const children = $derived(props.children)
+  const side = $derived(props.side ?? 'right')
+  const restProps = $derived.by(() => {
+    const {
+      class: _className,
+      children: _children,
+      side: _side,
+      ...rest
+    } = props
+    return rest
+  })
 </script>
 
 <SheetPrimitive.Portal>

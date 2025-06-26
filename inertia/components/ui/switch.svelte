@@ -20,16 +20,16 @@
     onCheckedChange?: (checked: boolean) => void
   }
 
-  let {
+  const {
     class: className,
-    checked = $bindable(false),
+    checked,
     onCheckedChange,
     ...restProps
   }: Props = $props()
 </script>
 
 <SwitchPrimitive.Root
-  bind:checked
+  {checked}
   {onCheckedChange}
   data-slot="switch"
   class={cn(

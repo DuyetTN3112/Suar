@@ -19,13 +19,13 @@
   import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import type { ComponentType, Snippet } from 'svelte'
+  import type { Component } from 'svelte'
 
   interface BaseNavItem {
     title: string
     titleKey?: string
     badge?: string
-    icon?: ComponentType
+    icon?: Component
   }
 
   type NavLink = BaseNavItem & {
@@ -83,14 +83,24 @@
   }
 
   function checkIsActive(href: string, item: NavItem, mainNav = false): boolean {
-    return (
-      href === item.url || // /endpoint?search=param
-      href.split('?')[0] === item.url || // endpoint
-      !!(item as NavCollapsible)?.items?.filter((i) => i.url === href).length || // if child nav is active
-      (mainNav &&
-        href.split('/')[1] !== '' &&
-        href.split('/')[1] === item?.url?.split('/')[1])
-    )
+    const normalizedHref = href.split('?')[0]
+
+    if (isNavLink(item)) {
+      if (href === item.url || normalizedHref === item.url) {
+        return true
+      }
+
+      if (!mainNav) {
+        return false
+      }
+
+      const hrefSegment = href.split('/')[1]
+      const itemSegment = item.url.split('/')[1]
+
+      return hrefSegment !== '' && hrefSegment === itemSegment
+    }
+
+    return item.items.some((child) => child.url === normalizedHref)
   }
 
   function isNavLink(item: NavItem): item is NavLink {
@@ -101,15 +111,6 @@
     return 'items' in item && Array.isArray(item.items) && item.items.length > 0
   }
 </script>
-
-{#snippet NavBadge(badgeContent: string)}
-  <Badge
-    variant="secondary"
-    class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
-  >
-    {badgeContent}
-  </Badge>
-{/snippet}
 
 <SidebarGroup>
   <SidebarGroupLabel>{translatedTitle}</SidebarGroupLabel>
@@ -127,7 +128,9 @@
               href={item.url}
               onclick={(e: MouseEvent) => {
                 e.preventDefault()
-                handleNavigation(item.url, () => { sidebar?.setOpenMobile?.(false) })
+                handleNavigation(item.url, () => {
+                  sidebar.setOpenMobile(false)
+                })
               }}
               class="flex items-center gap-2 w-full"
             >
@@ -137,13 +140,18 @@
               {/if}
               <span>{itemTranslatedTitle}</span>
               {#if item.badge}
-                {@render NavBadge(item.badge)}
+                <Badge
+                  variant="secondary"
+                  class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
+                >
+                  {item.badge}
+                </Badge>
               {/if}
             </Link>
           </SidebarMenuButton>
         </SidebarMenuItem>
       {:else if isNavCollapsible(item)}
-        {#if sidebar?.state === 'collapsed'}
+        {#if sidebar.state === 'collapsed'}
           <!-- SidebarMenuCollapsedDropdown -->
           {@const itemTranslatedTitle = item.titleKey ? t(item.titleKey, {}, item.title) : item.title}
           <DropdownMenu>
@@ -158,7 +166,12 @@
                 {/if}
                 <span>{itemTranslatedTitle}</span>
                 {#if item.badge}
-                  {@render NavBadge(item.badge)}
+                  <Badge
+                    variant="secondary"
+                    class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
+                  >
+                    {item.badge}
+                  </Badge>
                 {/if}
               </SidebarMenuButton>
             </DropdownMenuTrigger>
@@ -175,7 +188,9 @@
                     href={subItem.url}
                     onclick={(e: MouseEvent) => {
                       e.preventDefault()
-                      handleNavigation(subItem.url, () => { sidebar?.setOpenMobile?.(false) })
+                      handleNavigation(subItem.url, () => {
+                        sidebar.setOpenMobile(false)
+                      })
                     }}
                     class="flex items-center gap-2 w-full"
                   >
@@ -185,7 +200,12 @@
                     {/if}
                     <span>{subTranslatedTitle}</span>
                     {#if subItem.badge}
-                      {@render NavBadge(subItem.badge)}
+                      <Badge
+                        variant="secondary"
+                        class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
+                      >
+                        {subItem.badge}
+                      </Badge>
                     {/if}
                   </Link>
                 </DropdownMenuItem>
@@ -208,7 +228,12 @@
                   {/if}
                   <span>{itemTranslatedTitle}</span>
                   {#if item.badge}
-                    {@render NavBadge(item.badge)}
+                    <Badge
+                      variant="secondary"
+                      class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
+                    >
+                      {item.badge}
+                    </Badge>
                   {/if}
                   <ChevronRight class="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
@@ -225,7 +250,9 @@
                           href={subItem.url}
                           onclick={(e: MouseEvent) => {
                             e.preventDefault()
-                            handleNavigation(subItem.url, () => { sidebar?.setOpenMobile?.(false) })
+                            handleNavigation(subItem.url, () => {
+                              sidebar.setOpenMobile(false)
+                            })
                           }}
                           class="flex items-center gap-2 w-full"
                         >
@@ -235,7 +262,12 @@
                           {/if}
                           <span>{subTranslatedTitle}</span>
                           {#if subItem.badge}
-                            {@render NavBadge(subItem.badge)}
+                            <Badge
+                              variant="secondary"
+                              class="ml-auto h-5 min-w-5 justify-center rounded-full bg-sidebar-accent text-sidebar-accent-foreground"
+                            >
+                              {subItem.badge}
+                            </Badge>
                           {/if}
                         </Link>
                       </SidebarMenuSubButton>

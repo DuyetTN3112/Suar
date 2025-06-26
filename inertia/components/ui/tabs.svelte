@@ -25,9 +25,9 @@
     children?: Snippet
   }
 
-  let {
+  const {
     class: className,
-    value = $bindable(''),
+    value,
     onValueChange,
     children,
     ...restProps
@@ -35,7 +35,7 @@
 </script>
 
 <TabsPrimitive.Root
-  bind:value
+  {value}
   {onValueChange}
   data-slot="tabs"
   class={cn('flex flex-col gap-2', className)}

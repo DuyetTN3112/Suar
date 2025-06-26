@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Tooltip as TooltipPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Tooltip as TooltipPrimitive, type TooltipTriggerProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof TooltipPrimitive.Trigger> & {
-    children?: Snippet
-  }
+  type Props = TooltipTriggerProps
 
-  const { children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <TooltipPrimitive.Trigger {...restProps}>

@@ -1,13 +1,15 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Command as CommandPrimitive } from 'bits-ui'
-  import type { ComponentProps } from 'bits-ui'
+  import { Command as CommandPrimitive, type CommandSeparatorProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof CommandPrimitive.Separator> & {
-    class?: string
-  }
+  type Props = CommandSeparatorProps
 
-  const { class: className, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const restProps = $derived.by(() => {
+    const { class: _className, ...rest } = props
+    return rest
+  })
 </script>
 
 <CommandPrimitive.Separator

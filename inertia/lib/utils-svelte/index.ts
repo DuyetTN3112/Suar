@@ -41,10 +41,10 @@ export const flyAndScale = (
     return percentage * (maxB - minB) + minB
   }
 
-  const styleToString = (style: Record<string, number | string | undefined>) => {
-    return Object.keys(style).reduce((str, key) => {
-      if (style[key] === undefined) return str
-      return str + `${key}:${style[key]};`
+  const styleToString = (styleObject: Record<string, number | string | undefined>) => {
+    return Object.keys(styleObject).reduce((str, key) => {
+      if (styleObject[key] === undefined) return str
+      return str + `${key}:${styleObject[key]};`
     }, '')
   }
 
@@ -52,12 +52,12 @@ export const flyAndScale = (
     duration,
     delay: 0,
     css: (t: number) => {
-      const y_val = scaleConversion(t, [0, 1], [y, 0])
-      const x_val = scaleConversion(t, [0, 1], [x, 0])
+      const yValue = scaleConversion(t, [0, 1], [y, 0])
+      const xValue = scaleConversion(t, [0, 1], [x, 0])
       const scale = scaleConversion(t, [0, 1], [start, 1])
 
       return styleToString({
-        transform: `${transform} translate3d(${x_val}px, ${y_val}px, 0) scale(${scale})`,
+        transform: `${transform} translate3d(${xValue}px, ${yValue}px, 0) scale(${scale})`,
         opacity: t,
       })
     },

@@ -16,15 +16,16 @@
 </script>
 
 <script lang="ts">
-  import { Dialog as SheetPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Dialog as SheetPrimitive, type DialogRootProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof SheetPrimitive.Root> & {
-    children?: Snippet
-  }
+  type Props = DialogRootProps
 
-  const { children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <SheetPrimitive.Root {...restProps}>

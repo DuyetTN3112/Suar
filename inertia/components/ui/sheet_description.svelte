@@ -1,15 +1,16 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Dialog as SheetPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Dialog as SheetPrimitive, type DialogDescriptionProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof SheetPrimitive.Description> & {
-    class?: string
-    children?: Snippet
-  }
+  type Props = DialogDescriptionProps
 
-  const { class: className, children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { class: _className, children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <SheetPrimitive.Description

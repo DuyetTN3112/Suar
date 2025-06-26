@@ -1,20 +1,22 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Tooltip as TooltipPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Tooltip as TooltipPrimitive, type TooltipContentProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof TooltipPrimitive.Content> & {
-    class?: string
-    children?: Snippet
-  }
+  type Props = TooltipContentProps
 
-  const {
-    class: className,
-    sideOffset = 0,
-    children,
-    ...restProps
-  }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const sideOffset = $derived(props.sideOffset ?? 0)
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const {
+      class: _className,
+      sideOffset: _sideOffset,
+      children: _children,
+      ...rest
+    } = props
+    return rest
+  })
 </script>
 
 <TooltipPrimitive.Portal>

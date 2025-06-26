@@ -24,26 +24,13 @@
 
 <script lang="ts">
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-
-  type Props = {
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-    children?: Snippet
-  }
-
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    children,
-    ...restProps
-  }: Props = $props()
+  export let open = false
+  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
 </script>
 
 <DropdownMenuPrimitive.Root
   bind:open
   {onOpenChange}
-  {...restProps}
 >
-  {@render children?.()}
+  <slot></slot>
 </DropdownMenuPrimitive.Root>

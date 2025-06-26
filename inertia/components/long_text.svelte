@@ -8,9 +8,6 @@
   import TooltipContent from '@/components/ui/tooltip_content.svelte'
   import type { Snippet } from 'svelte'
 
-  // Check if we're in browser (not SSR)
-  const browser = typeof window !== 'undefined'
-
   type Props = {
     children: Snippet
     class?: string
@@ -23,7 +20,7 @@
     contentClass = ''
   }: Props = $props()
 
-  let ref: HTMLDivElement
+  let ref = $state<HTMLDivElement | null>(null)
   let isOverflown = $state(false)
 
   function checkOverflow(textContainer: HTMLDivElement | null): boolean {
@@ -37,7 +34,7 @@
   }
 
   $effect(() => {
-    if (browser && ref) {
+    if (ref !== null) {
       isOverflown = checkOverflow(ref)
     }
   })

@@ -17,7 +17,7 @@
     navGroups: mainNavigation,
   }
 
-  const { theme, setTheme } = useTheme()
+  const { setTheme } = useTheme()
   const search = useSearch()
 
   $effect(() => {
@@ -36,26 +36,36 @@
     search.close()
     command()
   }
+
+  function handleDialogOpenChange(open: boolean) {
+    if (open) {
+      search.open()
+      return
+    }
+
+    search.close()
+  }
 </script>
 
-<CommandDialog open={search.isOpen} onOpenChange={(open) => { open ? search.open() : search.close(); }}>
+<CommandDialog open={search.isOpen} onOpenChange={handleDialogOpenChange}>
   <CommandInput
     placeholder="Nhập lệnh hoặc tìm kiếm..."
     value={search.query}
-    onValueChange={(value) => { search.setQuery(value); }}
+    onValueChange={search.setQuery}
   />
   <CommandList>
     <ScrollArea class="h-72 pr-1">
       <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
       {#each sidebarData.navGroups as group}
         <CommandGroup heading={group.title}>
-          {#each group.items as navItem, i}
+          {#each group.items as navItem}
             {#if navItem.url}
               <CommandItem
                 value={navItem.title}
                 onSelect={() => {
+                  const targetUrl = navItem.url
                   runCommand(() => {
-                    router.visit(navItem.url, {
+                    router.visit(targetUrl, {
                       preserveState: true,
                       preserveScroll: true
                     })
@@ -67,13 +77,14 @@
                 </div>
                 {navItem.title}
               </CommandItem>
-            {:else if navItem.items}
-              {#each navItem.items as subItem, j}
+            {:else if Array.isArray(navItem.items)}
+              {#each navItem.items as subItem}
                 <CommandItem
                   value={subItem.title}
                   onSelect={() => {
+                    const targetUrl = subItem.url
                     runCommand(() => {
-                      router.visit(subItem.url, {
+                      router.visit(targetUrl, {
                         preserveState: true,
                         preserveScroll: true
                       })

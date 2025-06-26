@@ -1,6 +1,3 @@
-// Check if we're in browser (not SSR)
-const browser = typeof window !== 'undefined'
-
 /**
  * Debounce function cho Svelte 5
  * Sử dụng với $effect để tạo debounced values

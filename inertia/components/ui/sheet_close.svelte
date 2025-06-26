@@ -1,13 +1,14 @@
 <script lang="ts">
-  import { Dialog as SheetPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Dialog as SheetPrimitive, type DialogCloseProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof SheetPrimitive.Close> & {
-    children?: Snippet
-  }
+  type Props = DialogCloseProps
 
-  const { children, ...restProps }: Props = $props()
+  const props: Props = $props()
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const { children: _children, ...rest } = props
+    return rest
+  })
 </script>
 
 <SheetPrimitive.Close {...restProps}>

@@ -9,39 +9,46 @@
   import { Globe } from 'lucide-svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
+  type TranslationNamespace = Record<string, unknown>
+
+  interface TranslationPayload {
+    messages?: {
+      user?: TranslationNamespace
+      common?: TranslationNamespace
+    }
+    user?: TranslationNamespace
+    common?: TranslationNamespace
+  }
+
   interface PageProps {
-    locale: string
-    supportedLocales: string[]
-    translations?: any
+    locale?: string
+    supportedLocales?: string[]
+    translations?: TranslationPayload
     [key: string]: unknown
   }
 
   const { t } = useTranslation()
 
-  const props = $derived($page.props as unknown as PageProps)
-  const locale = $derived(props.locale)
-  const supportedLocales = $derived(props.supportedLocales || [])
+  const props = $derived($page.props as PageProps)
+  const locale = $derived(props.locale ?? 'vi')
+  const supportedLocales = $derived(props.supportedLocales ?? [])
   const translations = $derived(props.translations)
 
   // Debug log chi tiết
   $effect(() => {
-    if (translations) {
-      const hasUser = Boolean(
-        (translations.messages && translations.messages.user) ||
-          translations.user
-      )
+    if (!translations) {
+      return
+    }
 
-      const hasCommon = Boolean(
-        (translations.messages && translations.messages.common) || translations.common
-      )
+    const hasUser = Boolean(translations.messages?.user || translations.user)
+    const hasCommon = Boolean(translations.messages?.common || translations.common)
 
-      if (!hasUser && import.meta.env.DEV) {
-        console.warn('[LanguageSwitcher] Missing user namespace in translations')
-      }
+    if (!hasUser && import.meta.env.DEV) {
+      console.warn('[LanguageSwitcher] Missing user namespace in translations')
+    }
 
-      if (!hasCommon && import.meta.env.DEV) {
-        console.warn('[LanguageSwitcher] Missing common namespace in translations')
-      }
+    if (!hasCommon && import.meta.env.DEV) {
+      console.warn('[LanguageSwitcher] Missing common namespace in translations')
     }
   })
 
@@ -73,7 +80,9 @@
     <DropdownMenuGroup>
       {#each supportedLocales as code}
         <DropdownMenuItem
-          onclick={() => { switchLanguage(code); }}
+          onclick={() => {
+            switchLanguage(code)
+          }}
           class={locale === code ? 'bg-accent' : ''}
         >
           {getLanguageName(code)}

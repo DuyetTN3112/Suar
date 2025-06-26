@@ -1,21 +1,24 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Popover as PopoverPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
-  import type { ComponentProps } from 'bits-ui'
+  import { Popover as PopoverPrimitive, type PopoverContentProps } from 'bits-ui'
 
-  type Props = ComponentProps<typeof PopoverPrimitive.Content> & {
-    class?: string
-    children?: Snippet
-  }
+  type Props = PopoverContentProps
 
-  const {
-    class: className,
-    align = 'center',
-    sideOffset = 4,
-    children,
-    ...restProps
-  }: Props = $props()
+  const props: Props = $props()
+  const className = $derived(props.class)
+  const align = $derived(props.align ?? 'center')
+  const sideOffset = $derived(props.sideOffset ?? 4)
+  const children = $derived(props.children)
+  const restProps = $derived.by(() => {
+    const {
+      class: _className,
+      align: _align,
+      sideOffset: _sideOffset,
+      children: _children,
+      ...rest
+    } = props
+    return rest
+  })
 </script>
 
 <PopoverPrimitive.Portal>

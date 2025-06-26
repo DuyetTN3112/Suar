@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import Button from './button.svelte'
   import { ChevronLeft, ChevronRight } from 'lucide-svelte'
   import { router } from '@inertiajs/svelte'
@@ -103,7 +102,7 @@
     <ChevronLeft class="h-3 w-3" />
   </Button>
 
-  {#each pages as page, i}
+  {#each pages as page}
     {#if page === null}
       <Button variant="outline" size="icon" disabled class="w-5 h-5 text-[10px]">
         ...
