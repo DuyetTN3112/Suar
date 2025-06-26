@@ -1,0 +1,38 @@
+import type { HttpContext } from '@adonisjs/core/http'
+import ApproveUserCommand from '#actions/users/commands/approve_user_command'
+import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { HttpStatus } from '#constants/error_constants'
+import { ExecutionContext } from '#types/execution_context'
+
+/**
+ * PUT /users/:id/approve → Approve a pending user in organization
+ */
+export default class ApproveUserController {
+  async handle(ctx: HttpContext) {
+    const approveUserCommand = new ApproveUserCommand(ExecutionContext.fromHttp(ctx))
+    const { params, response, auth } = ctx
+    const { user } = auth
+
+    if (!user) {
+      throw new UnauthorizedException()
+    }
+
+    const organizationId = user.current_organization_id
+    if (!organizationId) {
+      response.status(HttpStatus.BAD_REQUEST).json({
+        success: false,
+        message: 'Không tìm thấy thông tin tổ chức hiện tại',
+      })
+      return
+    }
+
+    const dto = new ApproveUserDTO(String(params.id), organizationId, user.id)
+    await approveUserCommand.handle(dto)
+
+    response.json({
+      success: true,
+      message: 'Người dùng đã được phê duyệt thành công',
+    })
+  }
+}
