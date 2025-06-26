@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -25,7 +25,8 @@
     }[]
   }
 
-  const { taskStatuses }: Props = $props()
+  const props: Props = $props()
+  const taskStatuses = $derived(props.taskStatuses)
 
   let createFormOpen = $state(false)
   let isSubmitting = $state(false)
@@ -84,7 +85,7 @@
         category: 'in_progress',
         color: '#6B7280',
       }
-      inertia.reload({ preserveScroll: true })
+      router.reload({ preserveScroll: true })
     } catch (error) {
       console.error('Lỗi khi tạo trạng thái:', error)
       errorMessage = 'Không thể tạo trạng thái mới.'
@@ -122,7 +123,7 @@
         return
       }
 
-      inertia.reload({ preserveScroll: true })
+      router.reload({ preserveScroll: true })
     } catch (error) {
       console.error('Lỗi khi xoá trạng thái:', error)
       errorMessage = 'Không thể xoá trạng thái.'

@@ -4,7 +4,7 @@
    */
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import { Award, Star, BarChart3, Clock } from 'lucide-svelte'
+  import { Award, Star, ChartColumn, Clock } from 'lucide-svelte'
   import type { SerializedUserProfile, UserSkillResult } from '../types.svelte'
 
   interface Props {
@@ -17,14 +17,14 @@
 
   const totalSkills = $derived(skills.length)
   const reviewedSkills = $derived(skills.filter((s) => s.total_reviews > 0).length)
-  const avgPercentage = $derived(() => {
+  const avgPercentage = $derived.by(() => {
     const reviewed = skills.filter((s) => s.avg_percentage !== null)
     if (reviewed.length === 0) return null
     const sum = reviewed.reduce((acc, s) => acc + (s.avg_percentage ?? 0), 0)
     return sum / reviewed.length
   })
 
-  const memberSince = $derived(() => {
+  const memberSince = $derived.by(() => {
     try {
       const d = new Date(user.created_at)
       if (isNaN(d.getTime())) return 'N/A'
@@ -34,7 +34,7 @@
     }
   })
 
-  const stats = $derived([
+  const stats = $derived.by(() => [
     {
       icon: Award,
       label: 'Kỹ năng',
@@ -44,21 +44,19 @@
     {
       icon: Star,
       label: 'Điểm trung bình',
-      value: avgPercentage() !== null ? `${avgPercentage()!.toFixed(1)}%` : 'N/A',
+      value: avgPercentage !== null ? `${avgPercentage.toFixed(1)}%` : 'N/A',
       sub: 'Dựa trên đánh giá',
     },
     {
-      icon: BarChart3,
+      icon: ChartColumn,
       label: 'Uy tín',
-      value: user.trust_score !== null && user.trust_score !== undefined
-        ? (user.trust_score).toFixed(1)
-        : 'N/A',
+      value: typeof user.trust_score === 'number' ? user.trust_score.toFixed(1) : 'N/A',
       sub: user.trust_tier_code ?? 'Chưa xác định',
     },
     {
       icon: Clock,
       label: 'Thành viên từ',
-      value: memberSince(),
+      value: memberSince,
       sub: '',
     },
   ])

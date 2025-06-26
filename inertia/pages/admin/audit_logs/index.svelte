@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -14,7 +14,7 @@
     Clock,
     Search,
     FileText,
-    AlertCircle
+    CircleAlert
   } from 'lucide-svelte'
 
   interface Props {
@@ -27,7 +27,7 @@
       action: string
       resource_type: string
       resource_id: string | null
-      details: any
+      details: Record<string, unknown> | null
       ip_address: string
       user_agent: string
       created_at: string
@@ -45,12 +45,19 @@
     }
   }
 
-  const { auditLogs, pagination, filters }: Props = $props()
+  const props: Props = $props()
+  const auditLogs = $derived(props.auditLogs)
+  const pagination = $derived(props.pagination)
+  const filters = $derived(props.filters)
 
-  let searchValue = $state(filters.search || '')
+  let searchValue = $state('')
+
+  $effect(() => {
+    searchValue = filters.search ?? ''
+  })
 
   function handleSearch() {
-    inertia.get('/admin/audit-logs', {
+    router.get('/admin/audit-logs', {
       search: searchValue,
       page: 1,
     }, {
@@ -102,7 +109,7 @@
               placeholder="Tìm theo username, action hoặc resource..."
               class="pl-10"
               bind:value={searchValue}
-              onkeydown={(e) => {
+              onkeydown={(e: KeyboardEvent) => {
                 if (e.key === 'Enter') handleSearch()
               }}
             />
@@ -127,7 +134,7 @@
                     {#if log.action.includes('login') || log.action.includes('access')}
                       <Shield class="h-5 w-5 text-blue-500" />
                     {:else if log.action.includes('delete') || log.action.includes('suspend')}
-                      <AlertCircle class="h-5 w-5 text-red-500" />
+                      <CircleAlert class="h-5 w-5 text-red-500" />
                     {:else}
                       <FileText class="h-5 w-5 text-green-500" />
                     {/if}
@@ -191,11 +198,11 @@
               trên tổng <span class="font-medium">{pagination.total}</span> log
             </div>
             <div class="flex gap-2">
-              <Button
+      <Button
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === 1}
-                onclick={() => inertia.visit(`/admin/audit-logs?page=${pagination.currentPage - 1}`)}
+                onclick={() => { router.visit(`/admin/audit-logs?page=${pagination.currentPage - 1}`) }}
               >
                 Trước
               </Button>
@@ -203,7 +210,7 @@
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === pagination.lastPage}
-                onclick={() => inertia.visit(`/admin/audit-logs?page=${pagination.currentPage + 1}`)}
+                onclick={() => { router.visit(`/admin/audit-logs?page=${pagination.currentPage + 1}`) }}
               >
                 Sau
               </Button>

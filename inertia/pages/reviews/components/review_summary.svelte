@@ -18,12 +18,16 @@
   }
 
   // Group by reviewer
-  const groupedByReviewer = $derived(() => {
+  const groupedByReviewer = $derived.by(() => {
     const map = new Map<string, SerializedSkillReview[]>()
     for (const sr of skillReviews) {
       const key = sr.reviewer_id
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(sr)
+      const bucket = map.get(key)
+      if (bucket) {
+        bucket.push(sr)
+      } else {
+        map.set(key, [sr])
+      }
     }
     return Array.from(map.entries()).map(([reviewerId, reviews]) => ({
       reviewerId,
@@ -40,7 +44,7 @@
   </div>
 {:else}
   <div class="space-y-6">
-    {#each groupedByReviewer() as group (group.reviewerId)}
+    {#each groupedByReviewer as group (group.reviewerId)}
       <div class="space-y-3">
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium">{group.reviewerName}</span>

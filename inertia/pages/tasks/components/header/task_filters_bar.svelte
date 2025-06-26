@@ -2,7 +2,7 @@
   import Input from '@/components/ui/input.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import type { TaskStore } from '@/stores/tasks.svelte'
-  import type { TaskStatus, TaskPriority, TaskLabel, TaskDifficulty } from '../../types.svelte'
+  import type { TaskPriority, TaskLabel } from '../../types.svelte'
   import { Search } from 'lucide-svelte'
 
   interface Props {
@@ -30,16 +30,25 @@
     }, 300)
   }
 
-  function toggleFilter<T>(
-    key: 'statuses' | 'priorities' | 'labels' | 'difficulties',
-    value: T
-  ) {
-    const current = store.filters[key] as T[]
-    if (current.includes(value)) {
-      store.setFilters({ [key]: current.filter((v) => v !== value) })
-    } else {
-      store.setFilters({ [key]: [...current, value] })
-    }
+  function toggleStatusFilter(value: string) {
+    const current = store.filters.statuses
+    store.setFilters({
+      statuses: current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    })
+  }
+
+  function togglePriorityFilter(value: TaskPriority) {
+    const current = store.filters.priorities
+    store.setFilters({
+      priorities: current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    })
+  }
+
+  function toggleLabelFilter(value: TaskLabel) {
+    const current = store.filters.labels
+    store.setFilters({
+      labels: current.includes(value) ? current.filter((item) => item !== value) : [...current, value],
+    })
   }
 </script>
 
@@ -68,7 +77,9 @@
             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border {store.filters.statuses.includes(status.value)
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent'}"
-            onclick={() => { toggleFilter('statuses', status.value); }}
+            onclick={() => {
+              toggleStatusFilter(status.value)
+            }}
           >
             {status.label}
           </button>
@@ -87,7 +98,9 @@
             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border {store.filters.priorities.includes(priority.value as TaskPriority)
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent'}"
-            onclick={() => { toggleFilter('priorities', priority.value as TaskPriority); }}
+            onclick={() => {
+              togglePriorityFilter(priority.value as TaskPriority)
+            }}
           >
             {priority.label}
           </button>
@@ -106,7 +119,9 @@
             class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors border {store.filters.labels.includes(label.value as TaskLabel)
               ? 'bg-primary text-primary-foreground border-primary'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent'}"
-            onclick={() => { toggleFilter('labels', label.value as TaskLabel); }}
+            onclick={() => {
+              toggleLabelFilter(label.value as TaskLabel)
+            }}
           >
             {label.label}
           </button>

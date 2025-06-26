@@ -3,6 +3,16 @@ import { router } from '@inertiajs/svelte'
 import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) {
+      return message
+    }
+  }
+  return fallback
+}
+
 export function createUserPermissions() {
   const editModalOpen = writable(false)
   const selectedUserId = writable<string | null>(null)
@@ -11,14 +21,13 @@ export function createUserPermissions() {
   const isSubmitting = writable(false)
 
   function openEditPermissionsModal(user: User) {
-    if (!user || !user.id) {
+    if (!user.id) {
       notificationStore.error('Không tìm thấy thông tin người dùng')
       return
     }
     selectedUserId.set(user.id)
     selectedUser.set(user)
-    // Use org_role from organization_users if available
-    const orgRole = user.organization_users?.[0]?.org_role || ''
+    const orgRole = user.organization_users?.[0]?.org_role ?? ''
     selectedOrgRole.set(orgRole)
     editModalOpen.set(true)
   }
@@ -49,10 +58,10 @@ export function createUserPermissions() {
           isSubmitting.set(false)
           router.reload({ only: ['users'] })
         },
-        onError: (errors: any) => {
+        onError: (errors: unknown) => {
           console.error('Lỗi khi cập nhật quyền:', errors)
           isSubmitting.set(false)
-          notificationStore.error(errors.message || 'Không thể cập nhật quyền người dùng')
+          notificationStore.error(getErrorMessage(errors, 'Không thể cập nhật quyền người dùng'))
         },
       }
     )

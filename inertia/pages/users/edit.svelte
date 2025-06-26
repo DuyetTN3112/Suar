@@ -24,14 +24,27 @@
     }
   }
 
-  const { user, metadata }: Props = $props()
+  const props: Props = $props()
+  const user = $derived(props.user)
+  const metadata = $derived(props.metadata)
   const { t } = useTranslation()
 
-  let formData = $state({
+  const initialFormData = $derived({
     username: user.username || '',
     email: user.email || '',
     system_role: user.system_role || '',
     status: user.status || '',
+  })
+
+  let formData = $state({
+    username: '',
+    email: '',
+    system_role: '',
+    status: '',
+  })
+
+  $effect(() => {
+    formData = { ...initialFormData }
   })
 
   let errors = $state<Record<string, string>>({})
@@ -47,6 +60,14 @@
 
   const handleSelectChange = (name: string, value: string) => {
     formData = { ...formData, [name]: value }
+  }
+
+  const handleSystemRoleChange = (value: string) => {
+    handleSelectChange('system_role', value)
+  }
+
+  const handleStatusChange = (value: string) => {
+    handleSelectChange('status', value)
   }
 
   const handleSubmit = () => {
@@ -70,7 +91,7 @@
       onSuccess: () => {
         submitting = false
       },
-      onError: (errorResponse) => {
+      onError: (errorResponse: Record<string, string>) => {
         submitting = false
         errors = errorResponse
       },
@@ -138,7 +159,7 @@
               <Label for="system_role" class="font-bold">{t('user.system_role', {}, 'Vai trò hệ thống')}</Label>
               <Select
                 value={formData.system_role}
-                onValueChange={(v) => v && handleSelectChange('system_role', v)}
+                onValueChange={handleSystemRoleChange}
               >
                 <SelectTrigger id="system_role">
                   <span>{metadata.roles.find(r => r.value === formData.system_role)?.label || t('user.select_role', {}, 'Chọn vai trò')}</span>
@@ -160,7 +181,7 @@
               <Label for="status" class="font-bold">{t('user.status', {}, 'Trạng thái')}</Label>
               <Select
                 value={formData.status}
-                onValueChange={(v) => v && handleSelectChange('status', v)}
+                onValueChange={handleStatusChange}
               >
                 <SelectTrigger id="status">
                   <span>{metadata.statuses.find(s => s.value === formData.status)?.label || t('user.select_status', {}, 'Chọn trạng thái')}</span>

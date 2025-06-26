@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { inertia } from '@inertiajs/svelte'
+  import { router } from '@inertiajs/svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -15,7 +15,7 @@
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import { FolderKanban, Users, CheckSquare, Plus, Search, ArrowUpRight } from 'lucide-svelte'
+  import { FolderKanban, Users, SquareCheckBig, Plus, Search, ArrowUpRight } from 'lucide-svelte'
 
   interface Props {
     projects: {
@@ -41,8 +41,11 @@
     }
   }
 
-  const { projects, pagination, filters }: Props = $props()
-  let searchValue = $state(filters.search || '')
+  const props: Props = $props()
+  const projects = $derived(props.projects)
+  const pagination = $derived(props.pagination)
+  const filters = $derived(props.filters)
+  let searchValue = $state('')
   let createFormOpen = $state(false)
   let isSubmitting = $state(false)
   let errorMessage = $state('')
@@ -52,8 +55,12 @@
     status: 'active',
   })
 
+  $effect(() => {
+    searchValue = filters.search ?? ''
+  })
+
   function handleSearch() {
-    inertia.get(
+    router.get(
       '/org/projects',
       {
         search: searchValue,
@@ -134,7 +141,7 @@
         description: '',
         status: 'active',
       }
-      inertia.reload({ preserveScroll: true })
+      router.reload({ preserveScroll: true })
     } catch (error) {
       console.error('Lỗi khi tạo dự án:', error)
       errorMessage = 'Không thể tạo dự án.'
@@ -235,7 +242,7 @@
               placeholder="Tìm theo tên hoặc mô tả dự án..."
               class="pl-10"
               bind:value={searchValue}
-              onkeydown={(event: KeyboardEvent) => event.key === 'Enter' && handleSearch()}
+              onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') handleSearch() }}
             />
           </div>
           <Button onclick={handleSearch}>Tìm kiếm</Button>
@@ -274,7 +281,7 @@
                 <span class="text-muted-foreground">thành viên</span>
               </div>
               <div class="flex items-center gap-2 text-sm">
-                <CheckSquare class="h-4 w-4 text-green-500" />
+                <SquareCheckBig class="h-4 w-4 text-green-500" />
                 <span class="font-medium">{project._count.tasks}</span>
                 <span class="text-muted-foreground">task</span>
               </div>
@@ -284,7 +291,7 @@
               variant="outline"
               class="w-full"
               onclick={() => {
-                inertia.visit(`/projects/${project.id}`)
+                router.visit(`/projects/${project.id}`)
               }}
             >
               <ArrowUpRight class="mr-2 h-4 w-4" />

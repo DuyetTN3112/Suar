@@ -3,6 +3,22 @@ import { router } from '@inertiajs/svelte'
 import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
+interface SystemUsersResponse {
+  success: boolean
+  message?: string
+  users?: {
+    data: User[]
+    meta?: {
+      current_page?: number
+      last_page?: number
+    }
+  }
+}
+
+interface RouterErrorBag {
+  message?: string
+}
+
 export function createAddUsers() {
   const addUserModalOpen = writable(false)
   const allSystemUsers = writable<User[]>([])
@@ -31,14 +47,14 @@ export function createAddUsers() {
         console.error(`HTTP error! status: ${response.status}, response:`, errorText)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-      const result = await response.json()
+      const result = (await response.json()) as SystemUsersResponse
       if (!result.success) {
         throw new Error(result.message || 'Không thể tải danh sách người dùng')
       }
       if (result.users) {
-        allSystemUsers.set(result.users.data || [])
-        currentPage.set(result.users.meta?.current_page || 1)
-        totalPages.set(result.users.meta?.last_page || 1)
+        allSystemUsers.set(result.users.data)
+        currentPage.set(result.users.meta?.current_page ?? 1)
+        totalPages.set(result.users.meta?.last_page ?? 1)
       } else {
         allSystemUsers.set([])
         currentPage.set(1)
@@ -97,7 +113,7 @@ export function createAddUsers() {
           selectedUserIds.set([])
           router.reload({ only: ['users'] })
         },
-        onError: (errors: any) => {
+        onError: (errors: RouterErrorBag) => {
           console.error('Lỗi khi thêm người dùng vào tổ chức:', errors)
           isAddingUsers.set(false)
           notificationStore.error(errors.message || 'Không thể thêm người dùng vào tổ chức')

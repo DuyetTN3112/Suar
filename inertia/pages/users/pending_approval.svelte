@@ -9,8 +9,17 @@
 
   const { users, filters }: PendingApprovalProps = $props()
 
-  let search = $state(filters.search || '')
-  const { approveAllUsers } = createPendingApproval(users)
+  const initialSearch = $derived(filters.search ?? '')
+  let search = $state('')
+  $effect(() => {
+    search = initialSearch
+  })
+
+  const { approveAllUsers } = createPendingApproval(() => users)
+
+  function handleSetSearch(value: string) {
+    search = value
+  }
 
   function handleSearch(e: Event) {
     e.preventDefault()
@@ -39,7 +48,7 @@
     <div class="mt-6">
       <UserSearchForm
         {search}
-        setSearch={(value) => { search = value }}
+        setSearch={handleSetSearch}
         {handleSearch}
       />
     </div>

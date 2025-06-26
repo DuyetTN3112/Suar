@@ -1,7 +1,7 @@
 <script lang="ts">
   import Button from '@/components/ui/button.svelte'
   import type { Task } from '../../../types.svelte'
-  import { Save, Trash2, CheckCircle, AlertCircle } from 'lucide-svelte'
+  import { Save, Trash2, CircleCheckBig, CircleAlert } from 'lucide-svelte'
 
   interface TaskActionResponse {
     data?: Task
@@ -127,7 +127,7 @@
         disabled={submitting}
         class="border-green-600 text-green-600 hover:bg-green-50"
       >
-        <CheckCircle class="h-4 w-4 mr-1" />
+        <CircleCheckBig class="h-4 w-4 mr-1" />
         Hoàn thành
       </Button>
     {/if}
@@ -139,7 +139,7 @@
         disabled={submitting}
         class="border-orange-500 text-orange-500 hover:bg-orange-50"
       >
-        <AlertCircle class="h-4 w-4 mr-1" />
+        <CircleAlert class="h-4 w-4 mr-1" />
         Mở lại nhiệm vụ
       </Button>
     {/if}

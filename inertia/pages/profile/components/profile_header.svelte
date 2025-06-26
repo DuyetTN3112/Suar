@@ -20,19 +20,20 @@
 
   const { user, showEditButton = false, class: className = '' }: Props = $props()
 
+  const initialsSource = $derived(user.username || user.email || '?')
   const initials = $derived(
-    (user.username ?? user.email ?? '?')
+    initialsSource
       .split(/[\s@]+/)
       .slice(0, 2)
-      .map((s) => s[0]?.toUpperCase() ?? '')
+      .map((s) => s.charAt(0).toUpperCase())
       .join('')
   )
 
-  const trustTier = $derived(
-    user.trust_tier_code
-      ? TRUST_TIER_CONFIG[user.trust_tier_code as TrustTierCode]
-      : null
-  )
+  const trustTier = $derived.by(() => {
+    const code = user.trust_tier_code as TrustTierCode | null | undefined
+    if (!code) return null
+    return TRUST_TIER_CONFIG[code]
+  })
 
   function goToEdit() {
     router.get('/profile/edit')

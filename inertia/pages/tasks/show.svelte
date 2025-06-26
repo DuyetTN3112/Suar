@@ -44,7 +44,7 @@
     auditLogs: Array<{
       id: string
       action: string
-      changes: Record<string, { old: any; new: any }>
+      changes: Record<string, { old: unknown; new: unknown }>
       created_at: string
       user?: { id: string; username: string }
     }>
@@ -107,10 +107,24 @@
     })
   }
 
-  function formatChangeValue(value: any): string {
+  function formatChangeValue(value: unknown): string {
     if (value === null || value === undefined) return '—'
     if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-    return String(value)
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'bigint'
+    ) {
+      return String(value)
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0 ? value.map((item) => formatChangeValue(item)).join(', ') : '[]'
+    }
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      return value.toString()
+    }
+
+    return JSON.stringify(value)
   }
 </script>
 
@@ -243,7 +257,7 @@
         {/if}
 
         <!-- Audit Log -->
-        {#if auditLogs && auditLogs.length > 0}
+        {#if auditLogs.length > 0}
           <Card>
             <CardHeader>
               <CardTitle class="flex items-center gap-2">
@@ -266,7 +280,7 @@
                           {formatDateTime(log.created_at)}
                         </span>
                       </div>
-                      {#if log.changes && Object.keys(log.changes).length > 0}
+                      {#if Object.keys(log.changes).length > 0}
                         <div class="mt-1 space-y-1">
                           {#each Object.entries(log.changes) as [field, change]}
                             <div class="text-xs text-muted-foreground">

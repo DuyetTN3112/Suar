@@ -3,6 +3,16 @@ import { router } from '@inertiajs/svelte'
 import { notificationStore } from '@/stores/notification_store.svelte'
 import type { User } from '../types'
 
+function getErrorMessage(error: unknown, fallback: string): string {
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = (error as { message?: unknown }).message
+    if (typeof message === 'string' && message.trim()) {
+      return message
+    }
+  }
+  return fallback
+}
+
 export function createDeleteUser(authUserId: string) {
   const deleteModalOpen = writable(false)
   const userToDelete = writable<User | null>(null)
@@ -33,9 +43,9 @@ export function createDeleteUser(authUserId: string) {
         isDeleting.set(false)
         router.reload()
       },
-      onError: (errors: any) => {
+      onError: (errors: unknown) => {
         console.error('Lỗi khi xóa người dùng:', errors)
-        notificationStore.error(errors.message || 'Không thể xóa người dùng khỏi tổ chức')
+        notificationStore.error(getErrorMessage(errors, 'Không thể xóa người dùng khỏi tổ chức'))
         deleteModalOpen.set(false)
         isDeleting.set(false)
       },

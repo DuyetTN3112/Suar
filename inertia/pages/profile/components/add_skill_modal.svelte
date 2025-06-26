@@ -25,13 +25,10 @@
     existingSkillIds?: string[]
   }
 
-  let {
-    open = $bindable(false),
-    onOpenChange,
-    availableSkills,
-    proficiencyLevels,
-    existingSkillIds = [],
-  }: Props = $props()
+  const props: Props = $props()
+  const availableSkills = $derived(props.availableSkills)
+  const proficiencyLevels = $derived(props.proficiencyLevels)
+  const existingSkillIds = $derived(props.existingSkillIds ?? [])
 
   let selectedSkillId = $state('')
   let selectedLevelCode = $state('')
@@ -57,7 +54,7 @@
           submitting = false
           selectedSkillId = ''
           selectedLevelCode = ''
-          onOpenChange(false)
+          props.onOpenChange(false)
         },
       }
     )
@@ -68,11 +65,11 @@
       selectedSkillId = ''
       selectedLevelCode = ''
     }
-    onOpenChange(value)
+    props.onOpenChange(value)
   }
 </script>
 
-<Dialog bind:open onOpenChange={handleOpenChange}>
+<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Thêm kỹ năng</DialogTitle>
@@ -84,7 +81,7 @@
         <Select
           type="single"
           value={selectedSkillId}
-          onValueChange={(v) => { if (v) selectedSkillId = v }}
+          onValueChange={(v: string) => { if (v) selectedSkillId = v }}
         >
           <SelectTrigger id="skill-select" class="w-full">
             <SelectValue placeholder="Chọn kỹ năng..." />
@@ -109,7 +106,7 @@
         <Select
           type="single"
           value={selectedLevelCode}
-          onValueChange={(v) => { if (v) selectedLevelCode = v }}
+          onValueChange={(v: string) => { if (v) selectedLevelCode = v }}
         >
           <SelectTrigger id="level-select" class="w-full">
             <SelectValue placeholder="Chọn mức độ..." />

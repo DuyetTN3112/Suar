@@ -34,27 +34,29 @@
     onChangePage: (page: number) => void
   }
 
-  let {
-    open = $bindable(),
-    onClose,
-    allSystemUsers,
-    selectedUserIds,
-    searchUserTerm,
-    setSearchUserTerm,
-    isLoadingSystemUsers,
-    isAddingUsers,
-    currentPage,
-    totalPages,
-    onSearch,
-    onToggleUserSelection,
-    onAddUsers,
-    onChangePage
-  }: Props = $props()
+  const props: Props = $props()
+  const allSystemUsers = $derived(props.allSystemUsers)
+  const selectedUserIds = $derived(props.selectedUserIds)
+  const searchUserTerm = $derived(props.searchUserTerm)
+  const isLoadingSystemUsers = $derived(props.isLoadingSystemUsers)
+  const isAddingUsers = $derived(props.isAddingUsers)
+  const currentPage = $derived(props.currentPage)
+  const totalPages = $derived(props.totalPages)
+
+  function handleSearchInput(event: Event) {
+    const target = event.currentTarget
+    if (!(target instanceof HTMLInputElement)) return
+    props.setSearchUserTerm(target.value)
+  }
+
+  function handlePageChange(page: number) {
+    props.onChangePage(page)
+  }
 
   const { t } = useTranslation()
 </script>
 
-<Dialog bind:open onOpenChange={onClose}>
+<Dialog bind:open={props.open} onOpenChange={props.onClose}>
   <DialogContent class="sm:max-w-200">
     <DialogHeader>
       <DialogTitle>{t('user.add_users_to_org', {}, "Thêm người dùng vào tổ chức")}</DialogTitle>
@@ -63,11 +65,12 @@
       </DialogDescription>
     </DialogHeader>
 
-    <div class="py-4">
-      <form onsubmit={onSearch} class="flex items-center gap-2 mb-4">
+      <div class="py-4">
+      <form onsubmit={props.onSearch} class="flex items-center gap-2 mb-4">
         <Input
           placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
-          bind:value={searchUserTerm}
+          value={searchUserTerm}
+          oninput={handleSearchInput}
           class="flex-1"
         />
         <Button type="submit" variant="outline">
@@ -105,7 +108,7 @@
                       <input
                         type="checkbox"
                         checked={selectedUserIds.includes(user.id)}
-                        onchange={() => { onToggleUserSelection(user.id) }}
+                        onchange={() => { props.onToggleUserSelection(user.id) }}
                         class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                       />
                     </TableCell>
@@ -127,7 +130,7 @@
             <Button
               variant="outline"
               size="sm"
-              onclick={() => { onChangePage(Math.max(1, currentPage - 1)) }}
+              onclick={() => { handlePageChange(Math.max(1, currentPage - 1)) }}
               disabled={currentPage === 1}
             >
               {t('common.previous', {}, "Trước")}
@@ -138,7 +141,7 @@
             <Button
               variant="outline"
               size="sm"
-              onclick={() => { onChangePage(Math.min(totalPages, currentPage + 1)) }}
+              onclick={() => { handlePageChange(Math.min(totalPages, currentPage + 1)) }}
               disabled={currentPage === totalPages}
             >
               {t('common.next', {}, "Sau")}
@@ -157,13 +160,13 @@
     <DialogFooter>
       <Button
         variant="outline"
-        onclick={onClose}
+        onclick={props.onClose}
         disabled={isAddingUsers}
       >
         {t('common.cancel', {}, "Hủy")}
       </Button>
       <Button
-        onclick={onAddUsers}
+        onclick={props.onAddUsers}
         disabled={selectedUserIds.length === 0 || isAddingUsers}
       >
         {isAddingUsers ? t('common.processing', {}, 'Đang xử lý...') : t('user.add_to_organization', {}, 'Thêm vào tổ chức')}

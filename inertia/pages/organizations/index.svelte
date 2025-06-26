@@ -8,7 +8,7 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { Building, Plus, Search, Info, Users, ChevronLeft, ChevronRight, Clock, AlertCircle } from 'lucide-svelte'
+  import { Building, Plus, Search, Info, Users, ChevronLeft, ChevronRight, Clock, CircleAlert } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
@@ -57,15 +57,21 @@
     redirect?: string
   }
 
-  const { organizations, currentOrganizationId, allOrganizations = [] }: Props = $props()
+  const props: Props = $props()
+  const organizations = $derived(props.organizations)
+  const allOrganizations = $derived(props.allOrganizations ?? [])
 
   let searchTerm = $state('')
   let allOrgsPage = $state(1)
   let userOrgsPage = $state(1)
   let selectedOrg = $state<Organization | null>(null)
   let showDetailDialog = $state(false)
-  let localCurrentOrgId = $state(currentOrganizationId)
+  let localCurrentOrgId = $state<string | null>(null)
   const orgMembershipStatus = $state<Partial<Record<string, { status: string | null }>>>({})
+
+  $effect(() => {
+    localCurrentOrgId = props.currentOrganizationId
+  })
 
   // Số lượng tổ chức hiển thị trên mỗi trang (2 dòng x 5 cột)
   const ITEMS_PER_PAGE = 10
@@ -195,7 +201,7 @@
   // Hàm kiểm tra trạng thái thành viên
   function checkMembershipStatus(orgId: string) {
     // Kiểm tra nếu đã là thành viên được duyệt
-    if (organizations.some(org => org.id === orgId)) {
+    if (organizations.some((org) => org.id === orgId)) {
       return { isMember: true, status: 'approved' }
     }
 
@@ -249,7 +255,7 @@
       return {
         variant: 'outline' as const,
         disabled: false,
-        icon: AlertCircle,
+        icon: CircleAlert,
         text: 'Gửi lại yêu cầu',
         className: 'bg-amber-50',
         onClick: () => handleJoinOrganization(org.id)

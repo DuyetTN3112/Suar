@@ -26,15 +26,13 @@
     onApproveAll: () => void
   }
 
-  let {
-    open = $bindable(),
-    onClose,
-    pendingUsers,
-    isLoadingPendingUsers,
-    isApprovingUser,
-    onApproveUser,
-    onApproveAll
-  }: Props = $props()
+  export let open = false
+  export let onClose: Props['onClose']
+  export let pendingUsers: Props['pendingUsers']
+  export let isLoadingPendingUsers: Props['isLoadingPendingUsers']
+  export let isApprovingUser: Props['isApprovingUser']
+  export let onApproveUser: Props['onApproveUser']
+  export let onApproveAll: Props['onApproveAll']
 
   const { t } = useTranslation()
 </script>

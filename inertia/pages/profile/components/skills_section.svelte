@@ -16,12 +16,16 @@
   const { skills, proficiencyLevels = [], editable = false, onEdit, onRemove }: Props = $props()
 
   // Group skills by category
-  const groupedSkills = $derived(() => {
+  const groupedSkills = $derived.by(() => {
     const map = new Map<string, UserSkillResult[]>()
     for (const skill of skills) {
       const key = skill.category_code
-      if (!map.has(key)) map.set(key, [])
-      map.get(key)!.push(skill)
+      const bucket = map.get(key)
+      if (bucket) {
+        bucket.push(skill)
+      } else {
+        map.set(key, [skill])
+      }
     }
     return Array.from(map.entries()).map(([category, items]) => ({
       category,
@@ -46,7 +50,7 @@
   </div>
 {:else}
   <div class="space-y-6">
-    {#each groupedSkills() as group (group.category)}
+    {#each groupedSkills as group (group.category)}
       <div>
         <h3 class="text-sm font-medium mb-3">{group.categoryLabel}</h3>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

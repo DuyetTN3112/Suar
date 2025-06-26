@@ -9,6 +9,12 @@
   }
 
   const { search, setSearch, handleSearch }: Props = $props()
+
+  function handleInput(event: Event) {
+    const target = event.currentTarget
+    if (!(target instanceof HTMLInputElement)) return
+    setSearch(target.value)
+  }
 </script>
 
 <form onsubmit={handleSearch} class="flex items-center gap-4">
@@ -16,7 +22,7 @@
     placeholder="Tìm kiếm người dùng..."
     class="max-w-sm"
     value={search}
-    oninput={(e) => { setSearch((e.target as HTMLInputElement).value); }}
+    oninput={handleInput}
   />
   <Button variant="outline" type="submit">Tìm kiếm</Button>
 </form>

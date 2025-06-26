@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { useForm, page } from '@inertiajs/svelte'
+  import { router, page } from '@inertiajs/svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -13,7 +13,25 @@
   import RadioGroupItem from '@/components/ui/radio_group_item.svelte'
   import SettingsSidebar from './components/settings_sidebar.svelte'
 
-  const user = $derived($page.props.auth?.user || {
+  interface DisplayUserData {
+    id: string
+    username: string
+    email: string
+    user_setting: {
+      layout: string
+      density: string
+      animations_enabled: boolean
+      custom_scrollbars: boolean
+    }
+  }
+
+  interface SettingsDisplayPageProps {
+    auth?: {
+      user?: DisplayUserData | null
+    }
+  }
+
+  const defaultUser: DisplayUserData = {
     id: '',
     username: '',
     email: '',
@@ -23,18 +41,57 @@
       animations_enabled: true,
       custom_scrollbars: true
     }
-  })
+  }
 
-  const form = useForm({
-    layout: user.user_setting?.layout || 'default',
-    density: user.user_setting?.density || 'default',
-    animations_enabled: user.user_setting?.animations_enabled ?? true,
-    custom_scrollbars: user.user_setting?.custom_scrollbars ?? true
+  const pageProps = $derived($page.props as SettingsDisplayPageProps)
+  const user = $derived(pageProps.auth?.user ?? defaultUser)
+
+  let formInitialized = $state(false)
+  let layout = $state('default')
+  let density = $state('default')
+  let animationsEnabled = $state(true)
+  let customScrollbars = $state(true)
+
+  $effect(() => {
+    if (formInitialized) {
+      return
+    }
+
+    layout = user.user_setting.layout
+    density = user.user_setting.density
+    animationsEnabled = user.user_setting.animations_enabled
+    customScrollbars = user.user_setting.custom_scrollbars
+    formInitialized = true
   })
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    form.post('/settings/display')
+    router.post(
+      '/settings/display',
+      {
+        layout,
+        density,
+        animations_enabled: animationsEnabled,
+        custom_scrollbars: customScrollbars
+      },
+      { preserveScroll: true }
+    )
+  }
+
+  function handleLayoutChange(value: string) {
+    layout = value
+  }
+
+  function handleDensityChange(value: string) {
+    density = value
+  }
+
+  function handleAnimationsChange(checked: boolean) {
+    animationsEnabled = checked
+  }
+
+  function handleCustomScrollbarsChange(checked: boolean) {
+    customScrollbars = checked
   }
 </script>
 
@@ -62,8 +119,8 @@
               <div class="space-y-2">
                 <Label>Bố cục</Label>
                 <RadioGroup
-                  value={form.data.layout}
-                  onValueChange={(value) => form.setData('layout', value)}
+                  value={layout}
+                  onValueChange={handleLayoutChange}
                   class="grid grid-cols-3 gap-4 pt-2"
                 >
                   <div>
@@ -113,8 +170,8 @@
               <div class="space-y-2">
                 <Label>Mật độ hiển thị</Label>
                 <RadioGroup
-                  value={form.data.density}
-                  onValueChange={(value) => form.setData('density', value)}
+                  value={density}
+                  onValueChange={handleDensityChange}
                   class="grid grid-cols-3 gap-4 pt-2"
                 >
                   <div>
@@ -165,8 +222,8 @@
                 <Label for="animations-enabled">Hiệu ứng chuyển động</Label>
                 <Switch
                   id="animations-enabled"
-                  checked={form.data.animations_enabled}
-                  onCheckedChange={(checked) => form.setData('animations_enabled', checked)}
+                  checked={animationsEnabled}
+                  onCheckedChange={handleAnimationsChange}
                 />
               </div>
 
@@ -174,8 +231,8 @@
                 <Label for="custom-scrollbars">Thanh cuộn tùy chỉnh</Label>
                 <Switch
                   id="custom-scrollbars"
-                  checked={form.data.custom_scrollbars}
-                  onCheckedChange={(checked) => form.setData('custom_scrollbars', checked)}
+                  checked={customScrollbars}
+                  onCheckedChange={handleCustomScrollbarsChange}
                 />
               </div>
 

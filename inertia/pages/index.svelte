@@ -9,7 +9,7 @@
   import Button from '@/components/ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import {
-    CheckSquare, Building, Users, FolderOpen, Plus, ArrowRight,
+    SquareCheckBig, Building, Users, FolderOpen, Plus, ArrowRight,
     TrendingUp, Clock, Star, Zap
   } from 'lucide-svelte'
 
@@ -64,7 +64,7 @@
       <div class="rounded-xl border-2 border-border p-5 shadow-neo-sm" style="background-color: var(--neo-cyan);">
         <div class="flex items-center gap-3">
           <div class="rounded-lg border-2 border-border bg-white/80 p-2">
-            <CheckSquare class="h-6 w-6 text-foreground" />
+            <SquareCheckBig class="h-6 w-6 text-foreground" />
           </div>
           <div>
             <p class="text-sm font-bold text-foreground/70">{t('dashboard.tasks', {}, 'Nhiệm vụ')}</p>

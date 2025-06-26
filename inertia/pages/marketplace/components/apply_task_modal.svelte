@@ -22,7 +22,12 @@
     onOpenChange?: (open: boolean) => void
   }
 
-  let { task, open = $bindable(false), onOpenChange }: Props = $props()
+  const props: Props = $props()
+
+  interface ApplyTaskResponse {
+    success?: boolean
+    message?: string
+  }
 
   let message = $state('')
   let expectedRate = $state('')
@@ -39,15 +44,14 @@
   }
 
   function handleOpenChange(value: boolean) {
-    open = value
-    onOpenChange?.(value)
+    props.onOpenChange?.(value)
     if (!value) {
       resetForm()
     }
   }
 
   async function handleSubmit() {
-    if (!task) return
+    if (!props.task) return
     submitting = true
     error = ''
 
@@ -57,7 +61,7 @@
       .filter(Boolean)
 
     try {
-      const response = await fetch(`/api/tasks/${task.id}/apply`, {
+      const response = await fetch(`/api/tasks/${props.task.id}/apply`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,7 +72,7 @@
         }),
       })
 
-      const data = await response.json()
+      const data = (await response.json()) as ApplyTaskResponse
 
       if (!response.ok || !data.success) {
         error = data.message ?? 'Không thể gửi đơn ứng tuyển'
@@ -86,16 +90,16 @@
   }
 </script>
 
-<Dialog bind:open onOpenChange={handleOpenChange}>
+<Dialog bind:open={props.open} onOpenChange={handleOpenChange}>
   <DialogContent class="sm:max-w-md">
     <DialogHeader>
       <DialogTitle>Ứng tuyển nhiệm vụ</DialogTitle>
       <DialogDescription>
-        {task?.title ?? ''}
+        {props.task?.title ?? ''}
       </DialogDescription>
     </DialogHeader>
 
-    <form onsubmit={(e) => { e.preventDefault(); handleSubmit() }} class="space-y-4">
+    <form onsubmit={(e) => { e.preventDefault(); void handleSubmit() }} class="space-y-4">
       <!-- Message -->
       <div class="space-y-2">
         <Label for="apply-message">Lời nhắn (tùy chọn)</Label>
@@ -135,7 +139,7 @@
       {/if}
 
       <DialogFooter>
-        <Button variant="outline" type="button" onclick={() => { handleOpenChange(false); }}>
+        <Button variant="outline" type="button" onclick={() => { handleOpenChange(false) }}>
           Hủy
         </Button>
         <Button type="submit" disabled={submitting}>

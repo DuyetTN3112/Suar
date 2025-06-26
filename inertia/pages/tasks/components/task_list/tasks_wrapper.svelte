@@ -73,7 +73,7 @@
   }
 
   // Guard clause - Ensure tasks.data is always an array
-  const safeTasksData = $derived(tasks?.data || [])
+  const safeTasksData = $derived(tasks.data)
 
   // Lấy danh sách tasks để hiển thị (chỉ cha hoặc cả cha và con)
   const tasksToShow = $derived(showTasksWithChildren(safeTasksData, filters.parent_task_id))
@@ -97,7 +97,9 @@
         expandedTasks={expansionStore.expandedTasks}
         isTaskSelected={selectionStore.isTaskSelected}
         isAllSelected={selectionStore.isAllSelected(tasksToShow)}
-        handleSelectAll={(checked) => { selectionStore.handleSelectAll(tasksToShow, checked) }}
+        handleSelectAll={(checked: boolean) => {
+          selectionStore.handleSelectAll(tasksToShow, checked)
+        }}
         handleSelectTask={selectionStore.handleSelectTask}
         toggleExpandTask={expansionStore.toggleExpandTask}
         isTaskExpanded={expansionStore.isTaskExpanded}

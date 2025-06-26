@@ -11,15 +11,19 @@
         name: string
       }
       created_at: string
-      old_values?: any
-      new_values?: any
+      old_values?: Record<string, string | number | boolean | null | undefined>
+      new_values?: Record<string, string | number | boolean | null | undefined>
     }>
     task: Task | null
   }
 
   const { auditLogs }: Props = $props()
 
-  function getActionDescription(action: string, oldValues?: any, newValues?: any): string {
+  function getActionDescription(
+    action: string,
+    oldValues?: Record<string, string | number | boolean | null | undefined>,
+    newValues?: Record<string, string | number | boolean | null | undefined>
+  ): string {
     switch (action) {
       case 'created':
         return 'Đã tạo nhiệm vụ'
@@ -28,16 +32,16 @@
       case 'deleted':
         return 'Đã xóa nhiệm vụ'
       case 'status_changed':
-        return `Đã thay đổi trạng thái từ "${oldValues?.status_name || 'N/A'}" thành "${newValues?.status_name || 'N/A'}"`
+        return `Đã thay đổi trạng thái từ "${oldValues?.status_name ?? 'N/A'}" thành "${newValues?.status_name ?? 'N/A'}"`
       case 'assigned':
-        return `Đã giao nhiệm vụ cho ${newValues?.assigned_to_name || 'N/A'}`
+        return `Đã giao nhiệm vụ cho ${newValues?.assigned_to_name ?? 'N/A'}`
       default:
         return 'Đã thực hiện thay đổi'
     }
   }
 </script>
 
-{#if !auditLogs || auditLogs.length === 0}
+{#if auditLogs.length === 0}
   <div class="p-4 text-center text-gray-500">
     Không có lịch sử thay đổi
   </div>

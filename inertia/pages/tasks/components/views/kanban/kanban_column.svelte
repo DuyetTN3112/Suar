@@ -25,6 +25,11 @@
     canDelete?: boolean
   }
 
+  interface KanbanTaskPayload {
+    taskId: string
+    fromStatus: string
+  }
+
   const {
     status,
     label,
@@ -98,9 +103,12 @@
     try {
       const taskPayload = e.dataTransfer.getData('application/x-kanban-task')
       if (!taskPayload) return
-      const data = JSON.parse(taskPayload)
-      const taskId = data.taskId as string
-      const fromStatus = data.fromStatus as string
+      const data: unknown = JSON.parse(taskPayload)
+      if (!isKanbanTaskPayload(data)) {
+        return
+      }
+
+      const { taskId, fromStatus } = data
 
       if (fromStatus === status) return // Same column, no status change
 
@@ -126,6 +134,15 @@
       editedLabel = label
       isEditingLabel = false
     }
+  }
+
+  function isKanbanTaskPayload(value: unknown): value is KanbanTaskPayload {
+    if (!value || typeof value !== 'object') {
+      return false
+    }
+
+    const payload = value as Record<string, unknown>
+    return typeof payload.taskId === 'string' && typeof payload.fromStatus === 'string'
   }
 </script>
 
@@ -201,7 +218,9 @@
           {displayProperties}
           {metadata}
           {onTaskClick}
-          ondragstart={(e) => { handleDragStart(e, task); }}
+          ondragstart={(e: DragEvent) => {
+            handleDragStart(e, task)
+          }}
         />
       {/each}
     {/if}

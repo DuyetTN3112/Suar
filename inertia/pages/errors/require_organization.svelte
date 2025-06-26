@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
   import { router } from '@inertiajs/svelte'
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
@@ -46,7 +45,7 @@
   async function fetchOrganizations() {
     try {
       loading = true
-      const response = await axios.get('/api/organizations')
+      const response = await axios.get<Organization[]>('/api/organizations')
       organizations = response.data
     } catch (err) {
       console.error('Lỗi khi tải danh sách tổ chức:', err)
@@ -66,7 +65,7 @@
   }
 
   $effect(() => {
-    fetchOrganizations()
+    void fetchOrganizations()
   })
 </script>
 

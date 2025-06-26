@@ -19,7 +19,7 @@ export const formatDate = (dateString: string): string => {
   try {
     const date = new Date(dateString)
     return format(date, 'dd/MM/yyyy HH:mm', { locale: vi })
-  } catch (error) {
+  } catch {
     return 'Không xác định'
   }
 }

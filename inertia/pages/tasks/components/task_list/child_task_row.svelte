@@ -22,8 +22,8 @@
 
   const { childTask, isTaskSelected, handleSelectTask, formatDate, currentUserInfo }: Props = $props()
 
-  const statusName = $derived((childTask.status || '').toLowerCase())
-  const priorityName = $derived((childTask.priority || '').toLowerCase())
+  const statusName = $derived(childTask.status.toLowerCase())
+  const priorityName = $derived(childTask.priority.toLowerCase())
   let showDetailModal = $state(false)
 
   const openTaskDetail = (e: MouseEvent) => {
@@ -85,9 +85,9 @@
 <TaskDetailModal
   bind:open={showDetailModal}
   task={childTask}
-  statuses={childTask.status ? [childTask.status] : []}
-  priorities={childTask.priority ? [childTask.priority] : []}
-  labels={childTask.label ? [childTask.label] : []}
+  statuses={[childTask.status]}
+  priorities={[childTask.priority]}
+  labels={[childTask.label]}
   users={[]}
   currentUser={currentUserInfo}
 />

@@ -24,15 +24,13 @@
     onSubmit: (e: Event) => void
   }
 
-  let {
-    open = $bindable(),
-    onClose,
-    selectedUser,
-    selectedRoleId,
-    setSelectedRoleId,
-    isSubmitting,
-    onSubmit
-  }: Props = $props()
+  export let open = false
+  export let onClose: Props['onClose']
+  export let selectedUser: Props['selectedUser']
+  export let selectedRoleId: Props['selectedRoleId']
+  export let setSelectedRoleId: Props['setSelectedRoleId']
+  export let isSubmitting: Props['isSubmitting']
+  export let onSubmit: Props['onSubmit']
 
   const { t } = useTranslation()
 </script>

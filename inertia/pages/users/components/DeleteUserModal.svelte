@@ -18,13 +18,11 @@
     onConfirm: () => void
   }
 
-  let {
-    open = $bindable(),
-    onClose,
-    user,
-    isDeleting,
-    onConfirm
-  }: Props = $props()
+  export let open = false
+  export let onClose: Props['onClose']
+  export let user: Props['user']
+  export let isDeleting: Props['isDeleting']
+  export let onConfirm: Props['onConfirm']
 
   const { t } = useTranslation()
 </script>

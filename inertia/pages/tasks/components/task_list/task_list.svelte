@@ -54,8 +54,8 @@
     if (!completedStatusId) return false
 
     return task.status === completedStatusId ||
-           (task.status?.toLowerCase().includes('done') ||
-            task.status?.toLowerCase().includes('hoàn thành'))
+           (task.status.toLowerCase().includes('done') ||
+            task.status.toLowerCase().includes('hoàn thành'))
   }
 
   function hasChildTasks(task: Task): boolean {

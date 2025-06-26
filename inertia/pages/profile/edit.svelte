@@ -10,31 +10,29 @@
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardFooter from '@/components/ui/card_footer.svelte'
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import Separator from '@/components/ui/separator.svelte'
   import ProfileHeader from './components/profile_header.svelte'
   import ProfileCompleteness from './components/profile_completeness.svelte'
   import SkillsSection from './components/skills_section.svelte'
   import AddSkillModal from './components/add_skill_modal.svelte'
   import EditSkillModal from './components/edit_skill_modal.svelte'
-  import { Plus, Trash2 } from 'lucide-svelte'
+  import { Plus } from 'lucide-svelte'
   import type { ProfileEditProps, UserSkillResult } from './types.svelte'
 
   interface Props {
     user: ProfileEditProps['user']
     completeness: ProfileEditProps['completeness']
     availableSkills: ProfileEditProps['availableSkills']
-    categories: ProfileEditProps['categories']
     proficiencyLevels: ProfileEditProps['proficiencyLevels']
     userSkills: ProfileEditProps['userSkills']
   }
 
-  const { user, completeness, availableSkills, categories, proficiencyLevels, userSkills }: Props = $props()
+  const { user, completeness, availableSkills, proficiencyLevels, userSkills }: Props = $props()
   const { t } = useTranslation()
+  void page
 
   const pageTitle = $derived(t('profile.edit', {}, 'Chỉnh sửa hồ sơ'))
 
@@ -42,11 +40,22 @@
   const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
 
   // Profile form state
-  let bio = $state(user.bio ?? '')
-  let phone = $state(user.phone ?? '')
-  let address = $state(user.address ?? '')
-  let timezone = $state(user.timezone ?? '')
+  let bio = $state('')
+  let phone = $state('')
+  let address = $state('')
+  let timezone = $state('')
   let savingProfile = $state(false)
+  let profileInitialized = $state(false)
+
+  $effect(() => {
+    if (profileInitialized) return
+
+    bio = user.bio ?? ''
+    phone = user.phone ?? ''
+    address = user.address ?? ''
+    timezone = user.timezone ?? ''
+    profileInitialized = true
+  })
 
   // Skill modals
   let addSkillOpen = $state(false)
@@ -187,7 +196,7 @@
   <!-- Modals -->
   <AddSkillModal
     bind:open={addSkillOpen}
-    onOpenChange={(v) => { addSkillOpen = v }}
+    onOpenChange={(v: boolean) => { addSkillOpen = v }}
     {availableSkills}
     {proficiencyLevels}
     {existingSkillIds}
@@ -195,7 +204,7 @@
 
   <EditSkillModal
     bind:open={editSkillOpen}
-    onOpenChange={(v) => { editSkillOpen = v }}
+    onOpenChange={(v: boolean) => { editSkillOpen = v }}
     skill={editingSkill}
     {proficiencyLevels}
   />

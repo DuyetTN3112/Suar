@@ -27,8 +27,7 @@
   }
 
   const { users, filters }: Props = $props()
-
-  const { isSubmitting, getUserDisplayName, approveUser } = createPendingApproval(users)
+  const { isSubmitting, getUserDisplayName, approveUser } = createPendingApproval(() => users)
 </script>
 
 <div class="rounded-md border">

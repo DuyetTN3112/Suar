@@ -18,26 +18,38 @@
   }
 
   const { formData, handleSelectChange, canEdit, users, task }: Props = $props()
+
+  function getUserInitials(user?: { username: string; email: string }): string {
+    if (!user) return '?'
+
+    return user.username.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase() || '?'
+  }
+
+  function getUserDisplayName(user?: { username: string; email: string }): string {
+    if (!user) return 'Không xác định'
+
+    return user.username || user.email || 'Không xác định'
+  }
 </script>
 
 <div class="grid gap-2">
   <Label for="assigned_to">Người được giao</Label>
   {#if canEdit}
     <Select
-      value={String(formData.assigned_to || '')}
-      onValueChange={(value) => { handleSelectChange('assigned_to', value); }}
+      value={formData.assigned_to ?? ''}
+      onValueChange={(value: string) => { handleSelectChange('assigned_to', value); }}
     >
       <SelectTrigger>
         <SelectValue placeholder="Chọn người được giao" />
       </SelectTrigger>
       <SelectContent>
         {#each users as user (user.id)}
-          <SelectItem value={String(user.id)}>
+          <SelectItem value={user.id}>
             <div class="flex items-center">
               <Avatar class="h-5 w-5">
-                <AvatarFallback>{user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || '?'}</AvatarFallback>
+                <AvatarFallback>{getUserInitials(user)}</AvatarFallback>
               </Avatar>
-              <span class="ml-2">{user.username || user.email}</span>
+              <span class="ml-2">{getUserDisplayName(user)}</span>
             </div>
           </SelectItem>
         {/each}
@@ -48,10 +60,10 @@
       {#if task.assignee}
         <Avatar class="h-7 w-7">
           <AvatarFallback>
-            {task.assignee.username?.[0]?.toUpperCase() || task.assignee.email?.[0]?.toUpperCase() || '?'}
+            {getUserInitials(task.assignee)}
           </AvatarFallback>
         </Avatar>
-        <span class="ml-2">{task.assignee.username || task.assignee.email}</span>
+        <span class="ml-2">{getUserDisplayName(task.assignee)}</span>
       {:else}
         Không xác định
       {/if}

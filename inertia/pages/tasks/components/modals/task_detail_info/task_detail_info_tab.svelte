@@ -40,32 +40,26 @@
     submitting,
     setSubmitting,
     onUpdate,
-    canMarkAsCompleted = false,
-    canDelete = false,
-    completedStatus
+    canMarkAsCompleted,
+    canDelete,
+    completedStatus,
   }: Props = $props()
 
   const { t } = useTranslation()
 
-  const {
-    handleChange,
-    handleSelectChange,
-    handleDateChange,
-    handleSubmit
-  } = useTaskDetailForm({
-    task,
-    formData,
-    setFormData,
-    isEditing,
-    errors,
-    setErrors,
-    submitting,
-    setSubmitting,
-    onUpdate
+  const { handleChange, handleSelectChange, handleDateChange, handleSubmit } = useTaskDetailForm({
+    getTask: () => task,
+    getFormData: () => formData,
+    setFormData: (updater) => { setFormData(updater); },
+    isEditing: () => isEditing,
+    getErrors: () => errors,
+    setErrors: (nextErrors) => { setErrors(nextErrors); },
+    setSubmitting: (value) => { setSubmitting(value); },
+    getOnUpdate: () => onUpdate,
   })
 
   // Tìm thông tin người tạo từ danh sách users
-  const creator = $derived(users.find(user => user.id === task.creator_id))
+  const creator = $derived(users.find((user) => user.id === task.creator_id))
 
   // Lấy tên đầy đủ của người tạo
   function getCreatorFullName() {
@@ -80,9 +74,9 @@
   // Lấy initials cho avatar
   function getCreatorInitials() {
     if (task.creator) {
-      return task.creator.username?.[0]?.toUpperCase() || task.creator.email?.[0]?.toUpperCase() || 'U'
+      return task.creator.username.charAt(0).toUpperCase() || task.creator.email.charAt(0).toUpperCase() || 'U'
     } else if (creator) {
-      return creator.username?.[0]?.toUpperCase() || creator.email?.[0]?.toUpperCase() || 'U'
+      return creator.username.charAt(0).toUpperCase() || creator.email.charAt(0).toUpperCase() || 'U'
     }
     return 'U'
   }

@@ -1,7 +1,7 @@
 <script lang="ts">
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { CheckCircle2 } from 'lucide-svelte'
+  import { CircleCheck } from 'lucide-svelte'
 
   interface Props {
     canDelete: boolean
@@ -41,7 +41,7 @@
   <div class="flex gap-2">
     {#if canMarkAsCompleted && !isEditing}
       <Button variant="secondary" onclick={onMarkAsCompleted}>
-        <CheckCircle2 class="mr-2 h-4 w-4" />
+        <CircleCheck class="mr-2 h-4 w-4" />
         Đánh dấu hoàn thành
       </Button>
     {/if}

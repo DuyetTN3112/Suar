@@ -32,7 +32,7 @@
     status: '',
     start_date: '',
     end_date: '',
-    manager_id: auth.user.id.toString()
+    manager_id: ''
   })
 
   let startDate = $state<Date | undefined>(undefined)
@@ -107,7 +107,7 @@
       return
     }
 
-    router.post('/projects', formData)
+    router.post('/projects', { ...formData, manager_id: auth.user.id })
   }
 </script>
 
@@ -160,14 +160,14 @@
             </Label>
             <Select
               value={formData.organization_id}
-              onValueChange={(value) => { handleSelectChange('organization_id', value); }}
+              onValueChange={(value: string) => { handleSelectChange('organization_id', value); }}
             >
               <SelectTrigger class={errors.organization_id ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Chọn tổ chức" />
               </SelectTrigger>
               <SelectContent>
                 {#each organizations as org (org.id)}
-                  <SelectItem value={org.id.toString()}>
+                  <SelectItem value={org.id}>
                     {org.name}
                   </SelectItem>
                 {/each}
@@ -184,7 +184,7 @@
             </Label>
             <Select
               value={formData.status}
-              onValueChange={(value) => { handleSelectChange('status', value); }}
+              onValueChange={(value: string) => { handleSelectChange('status', value); }}
             >
               <SelectTrigger class={errors.status ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Chọn trạng thái" />
@@ -197,7 +197,7 @@
                 {/each}
               </SelectContent>
             </Select>
-            {#if errors.status}}
+            {#if errors.status}
               <p class="text-sm text-red-500">{errors.status}</p>
             {/if}
           </div>

@@ -26,13 +26,9 @@
       if (r.status === 'disputed') return false
       if (r.status === 'pending' || r.status === 'in_progress') return true
 
-      if (r.status === 'completed') {
-        const confirmations = r.confirmations ?? []
-        const revieweeConfirmation = confirmations.find((entry) => entry.user_id === r.reviewee_id)
-        return revieweeConfirmation?.action !== 'confirmed'
-      }
-
-      return false
+      const confirmations = r.confirmations ?? []
+      const revieweeConfirmation = confirmations.find((entry) => entry.user_id === r.reviewee_id)
+      return revieweeConfirmation?.action !== 'confirmed'
     })
 
     const done = reviews.filter((r) => {

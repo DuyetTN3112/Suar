@@ -44,7 +44,7 @@
     description: task.description ?? '',
     priority: task.priority,
     label: task.label,
-    project_id: task.project_id ?? metadata.projects?.[0]?.id ?? '',
+    project_id: task.project_id,
     assigned_to: task.assigned_to ?? '',
     due_date: task.due_date ?? '',
     estimated_time: task.estimated_time != null ? String(task.estimated_time) : '',
