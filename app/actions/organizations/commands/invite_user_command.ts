@@ -6,6 +6,7 @@ import OrganizationRepository from '#infra/organizations/repositories/organizati
 import UserRepository from '#infra/users/repositories/user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
+import { OrganizationUserStatus } from '#constants/organization_constants'
 import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
@@ -152,17 +153,17 @@ export default class InviteUserCommand {
       return
     }
 
-    if (membership.status === 'approved') {
+    if (membership.status === OrganizationUserStatus.APPROVED) {
       throw ConflictException.alreadyExists('Người dùng này đã là thành viên của tổ chức')
     }
 
-    if (membership.status === 'pending' && membership.invited_by) {
+    if (membership.status === OrganizationUserStatus.PENDING && membership.invited_by) {
       throw ConflictException.alreadyExists(
         `Lời mời cho email ${email} đã tồn tại và đang chờ xử lý`
       )
     }
 
-    if (membership.status === 'pending') {
+    if (membership.status === OrganizationUserStatus.PENDING) {
       throw ConflictException.alreadyExists(
         'Người dùng này đã có yêu cầu tham gia tổ chức đang chờ xử lý'
       )

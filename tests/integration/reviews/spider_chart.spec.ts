@@ -26,7 +26,7 @@ test.group('Integration | Review Skill Recalculation', (group) => {
 
   async function createReviewSignal(
     input: {
-      sessionStatus?: string
+      sessionStatus?: ReviewSessionStatus
       assignedLevel?: string
     } = {}
   ) {

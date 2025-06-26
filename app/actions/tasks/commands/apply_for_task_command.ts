@@ -59,7 +59,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
           expected_rate: dto.expected_rate,
           portfolio_links: dto.portfolio_links,
         },
-        { client: trx }
+        trx
       )
 
       // Update task's application count

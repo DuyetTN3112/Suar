@@ -11,6 +11,27 @@ type AuditLogData = {
   new_values?: unknown
 }
 
+const isAuditRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+const normalizeAuditValues = (value: unknown): Record<string, unknown> | null => {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown
+      return isAuditRecord(parsed) ? parsed : null
+    } catch {
+      return null
+    }
+  }
+
+  return isAuditRecord(value) ? value : null
+}
+
 export default class CreateAuditLog {
   constructor(protected execCtx: ExecutionContext) {}
 
@@ -24,16 +45,8 @@ export default class CreateAuditLog {
         action: data.action,
         entity_type: data.entity_type,
         entity_id: data.entity_id,
-        old_values: data.old_values
-          ? typeof data.old_values === 'string'
-            ? (JSON.parse(data.old_values) as object)
-            : (data.old_values as object)
-          : null,
-        new_values: data.new_values
-          ? typeof data.new_values === 'string'
-            ? (JSON.parse(data.new_values) as object)
-            : (data.new_values as object)
-          : null,
+        old_values: normalizeAuditValues(data.old_values),
+        new_values: normalizeAuditValues(data.new_values),
         ip_address: ipAddress,
         user_agent: userAgent,
       })

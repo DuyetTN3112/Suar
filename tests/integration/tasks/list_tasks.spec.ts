@@ -72,7 +72,7 @@ test.group('Integration | List Tasks', (group) => {
       new GetTasksListDTO({
         organization_id: org.id,
         search: 'login',
-        task_status_id: secondLoginTask.task_status_id,
+        task_status_id: secondLoginTask.task_status_id ?? undefined,
       })
     )
 

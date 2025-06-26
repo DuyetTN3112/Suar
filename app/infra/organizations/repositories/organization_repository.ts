@@ -196,10 +196,7 @@ export default class OrganizationRepository {
     }
 
     const query = trx ? Organization.query({ client: trx }) : Organization.query()
-    const organization = await query
-      .whereIn('id', orgIds)
-      .where('partner_is_active', true)
-      .first()
+    const organization = await query.whereIn('id', orgIds).where('partner_is_active', true).first()
 
     return !!organization
   }

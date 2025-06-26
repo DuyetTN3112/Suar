@@ -159,7 +159,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
           trust_metrics: trustMetrics,
           scoring_version: user.trust_data?.scoring_version ?? 'v1',
         },
-        { client: trx }
+        trx
       )
 
       await this.logAudit('publish_profile_snapshot', 'user_profile_snapshot', snapshot.id, null, {

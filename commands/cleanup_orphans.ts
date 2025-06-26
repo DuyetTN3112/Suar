@@ -3,6 +3,32 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import emitter from '@adonisjs/core/services/emitter'
 
+type ParsedCommand = {
+  flags?: Record<string, unknown>
+}
+
+type CountRow = {
+  total?: number | string
+}
+
+type RawQueryResult<T> = {
+  rows?: T[]
+  rowCount?: number
+}
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+
+  return 0
+}
+
 /**
  * Cleanup Orphaned Records
  *
@@ -36,8 +62,9 @@ export default class CleanupOrphans extends BaseCommand {
 
   declare fix: boolean
 
-  override async prepare() {
-    this.fix = Boolean(this.parsed.flags?.fix)
+  override prepare() {
+    const parsed = this.parsed as ParsedCommand
+    this.fix = Boolean(parsed.flags?.fix)
   }
 
   /**
@@ -226,11 +253,11 @@ export default class CleanupOrphans extends BaseCommand {
       ? `SELECT 1 FROM ${check.parentTable} p WHERE p.${check.parentColumn} = c.${check.column} AND p.deleted_at IS NULL`
       : `SELECT 1 FROM ${check.parentTable} p WHERE p.${check.parentColumn} = c.${check.column}`
 
-    const result = await db.rawQuery(
+    const result: RawQueryResult<CountRow> = await db.rawQuery(
       `SELECT COUNT(*) as total FROM ${check.table} c WHERE NOT EXISTS (${parentCondition})`
     )
 
-    return Number(result.rows?.[0]?.total ?? 0)
+    return toNumberValue(result.rows?.[0]?.total)
   }
 
   /**
@@ -241,11 +268,11 @@ export default class CleanupOrphans extends BaseCommand {
       ? `SELECT 1 FROM ${check.parentTable} p WHERE p.${check.parentColumn} = c.${check.column} AND p.deleted_at IS NULL`
       : `SELECT 1 FROM ${check.parentTable} p WHERE p.${check.parentColumn} = c.${check.column}`
 
-    const result = await db.rawQuery(
+    const result: RawQueryResult<never> = await db.rawQuery(
       `DELETE FROM ${check.table} c WHERE NOT EXISTS (${parentCondition})`
     )
 
-    return Number(result.rowCount ?? 0)
+    return typeof result.rowCount === 'number' ? result.rowCount : 0
   }
 }
 

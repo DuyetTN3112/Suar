@@ -27,6 +27,7 @@ test.group('UUID v7 utils', () => {
       const previous = batch[index - 1]
       if (!current || !previous) {
         assert.fail('Generated UUID batch should not contain empty entries')
+        return
       }
       assert.isTrue(current >= previous)
     }

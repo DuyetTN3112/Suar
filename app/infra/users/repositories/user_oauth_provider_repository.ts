@@ -17,10 +17,7 @@ export default class UserOAuthProviderRepository {
     providerId: string,
     trx?: TransactionClientContract
   ): Promise<UserOAuthProvider | null> {
-    return this.baseQuery(trx)
-      .where('provider', provider)
-      .where('provider_id', providerId)
-      .first()
+    return this.baseQuery(trx).where('provider', provider).where('provider_id', providerId).first()
   }
 
   static async create(

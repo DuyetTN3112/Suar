@@ -49,7 +49,7 @@ export default class AddUserSkillCommand extends BaseCommand<
           total_reviews: 0,
           avg_score: null,
         },
-        { client: trx }
+        trx
       )
 
       // Log audit

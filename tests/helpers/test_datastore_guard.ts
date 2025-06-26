@@ -4,6 +4,10 @@ const isSafeTestName = (value: string | undefined): boolean => {
   return typeof value === 'string' && TEST_NAME_PATTERN.test(value)
 }
 
+const isUnsafeTestDatastoreAllowed = (): boolean => {
+  return process.env.ALLOW_UNSAFE_TEST_DATASTORES === 'true'
+}
+
 const getMongoDatabaseName = (mongoUrl: string | undefined): string | null => {
   if (!mongoUrl) {
     return null
@@ -29,6 +33,10 @@ export const applyTestDatastoreOverrides = (): void => {
 }
 
 export const assertSafeTestDatastores = async (): Promise<void> => {
+  if (isUnsafeTestDatastoreAllowed()) {
+    return
+  }
+
   const envModule = await import('#start/env')
   const env = envModule.default
 
@@ -53,6 +61,7 @@ export const assertSafeTestDatastores = async (): Promise<void> => {
         'Unsafe integration test datastore configuration detected.',
         ...issues,
         'Set PG_TEST_DATABASE and MONGODB_TEST_URL to dedicated test datastores before running integration tests.',
+        'Or set ALLOW_UNSAFE_TEST_DATASTORES=true to intentionally run against the current configured datastores.',
       ].join(' ')
     )
   }
