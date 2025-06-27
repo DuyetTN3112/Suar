@@ -17,8 +17,7 @@ export class UpdateOrganizationDTO {
     public readonly slug?: string,
     public readonly description?: string,
     public readonly logo?: string,
-    public readonly website?: string,
-    public readonly plan?: string
+    public readonly website?: string
   ) {
     this.validate()
   }
@@ -122,18 +121,6 @@ export class UpdateOrganizationDTO {
         throw new ValidationException('Organization website must be a valid URL')
       }
     }
-
-    // Plan validation (optional, must be valid plan type)
-    if (this.plan !== undefined) {
-      if (typeof this.plan !== 'string') {
-        throw new ValidationException('Organization plan must be a string')
-      }
-
-      const validPlans = ['free', 'starter', 'professional', 'enterprise']
-      if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
-      }
-    }
   }
 
   /**
@@ -158,8 +145,7 @@ export class UpdateOrganizationDTO {
       this.slug !== undefined ||
       this.description !== undefined ||
       this.logo !== undefined ||
-      this.website !== undefined ||
-      this.plan !== undefined
+      this.website !== undefined
     )
   }
 
@@ -196,10 +182,6 @@ export class UpdateOrganizationDTO {
       updates.website = this.website.trim() || null
     }
 
-    if (this.plan !== undefined) {
-      updates.plan = this.plan.toLowerCase()
-    }
-
     return updates
   }
 
@@ -215,7 +197,6 @@ export class UpdateOrganizationDTO {
     if (this.description !== undefined) fields.push('description')
     if (this.logo !== undefined) fields.push('logo')
     if (this.website !== undefined) fields.push('website')
-    if (this.plan !== undefined) fields.push('plan')
 
     return fields
   }

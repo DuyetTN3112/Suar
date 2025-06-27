@@ -5,7 +5,8 @@ import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canViewOrganizationMembers } from '#domain/organizations/org_permission_policy'
 
 interface MemberResult {
   user_id: string
@@ -59,10 +60,7 @@ export default class GetOrganizationMembersQuery {
     const organizationId = dto.organizationId
 
     // 1. Permission check: User must be member
-    const isMember = await this.checkMembership(userId, organizationId)
-    if (!isMember) {
-      throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên')
-    }
+    await this.checkMembership(userId, organizationId)
 
     // 2. Try cache first
     const cacheKey = this.buildCacheKey(dto)
@@ -100,8 +98,14 @@ export default class GetOrganizationMembersQuery {
   /**
    * Check if user is member of organization
    */
-  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUserRepository.isMember(userId, organizationId)
+  private async checkMembership(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      undefined,
+      true
+    )
+    enforcePolicy(canViewOrganizationMembers(actorOrgRole))
   }
 
   /**

@@ -1,4 +1,8 @@
 import ValidationException from '#exceptions/validation_exception'
+import {
+  normalizeOrganizationName,
+  resolveOrganizationBaseSlug,
+} from '#domain/organizations/organization_rules'
 
 /**
  * DTO for creating a new organization
@@ -15,8 +19,7 @@ export class CreateOrganizationDTO {
     public readonly slug?: string,
     public readonly description?: string,
     public readonly logo?: string,
-    public readonly website?: string,
-    public readonly plan?: string
+    public readonly website?: string
   ) {
     this.validate()
   }
@@ -109,18 +112,6 @@ export class CreateOrganizationDTO {
         throw new ValidationException('Organization website must be a valid URL')
       }
     }
-
-    // Plan validation (optional, must be valid plan type)
-    if (this.plan !== undefined) {
-      if (typeof this.plan !== 'string') {
-        throw new ValidationException('Organization plan must be a string')
-      }
-
-      const validPlans = ['free', 'starter', 'professional', 'enterprise']
-      if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new ValidationException(`Organization plan must be one of: ${validPlans.join(', ')}`)
-      }
-    }
   }
 
   /**
@@ -139,30 +130,13 @@ export class CreateOrganizationDTO {
    * Helper: Generate slug from name
    * Pattern: Auto-generate if not provided (learned from Projects module)
    */
-  private generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .trim()
-      .normalize('NFD') // Normalize Vietnamese characters
-      .replace(/[\u0300-\u036f]/g, '') // Remove diacritics
-      .replace(/đ/g, 'd') // Replace đ with d
-      .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphen
-      .replace(/^-+|-+$/g, '') // Remove leading/trailing hyphens
-      .replace(/--+/g, '-') // Replace multiple hyphens with single
-  }
-
-  /**
-   * Helper: Convert to database object
-   * Pattern: Prepare data for Lucid ORM (learned from all modules)
-   */
   toObject() {
     return {
-      name: this.name.trim(),
-      slug: this.slug?.trim() || this.generateSlug(this.name),
+      name: normalizeOrganizationName(this.name),
+      slug: resolveOrganizationBaseSlug({ name: this.name, slug: this.slug }),
       description: this.description?.trim() || null,
       logo: this.logo?.trim() || null,
       website: this.website?.trim() || null,
-      plan: this.plan?.toLowerCase() || 'free',
     }
   }
 
@@ -183,27 +157,13 @@ export class CreateOrganizationDTO {
    * Helper: Get normalized name for display
    */
   getNormalizedName(): string {
-    return this.name.trim()
+    return normalizeOrganizationName(this.name)
   }
 
   /**
    * Helper: Get final slug (generated if not provided)
    */
   getFinalSlug(): string {
-    return this.slug?.trim() || this.generateSlug(this.name)
-  }
-
-  /**
-   * Helper: Get display plan name
-   */
-  getDisplayPlan(): string {
-    const plan = this.plan?.toLowerCase() || 'free'
-    const planNames: Record<string, string> = {
-      free: 'Miễn phí',
-      starter: 'Khởi đầu',
-      professional: 'Chuyên nghiệp',
-      enterprise: 'Doanh nghiệp',
-    }
-    return planNames[plan] || 'Miễn phí'
+    return resolveOrganizationBaseSlug({ name: this.name, slug: this.slug })
   }
 }

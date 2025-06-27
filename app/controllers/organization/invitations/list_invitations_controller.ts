@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import ListInvitationsQuery from '#actions/organization/invitations/queries/list_invitations_query'
 
@@ -35,13 +36,18 @@ export default class ListInvitationsController {
     const status = toOptionalString(request.input('status') as unknown)
 
     // Execute query
-    const query = new ListInvitationsQuery(execCtx)
-    const result = await query.handle({
-      page,
-      search,
-      status,
-    })
+    const [result, assignableRoles] = await Promise.all([
+      new ListInvitationsQuery(execCtx).handle({
+        page,
+        search,
+        status,
+      }),
+      new GetAssignableOrganizationRolesQuery(execCtx).handle({}),
+    ])
 
-    return inertia.render('org/invitations/index', result)
+    return inertia.render('org/invitations/index', {
+      ...result,
+      roleOptions: assignableRoles.roleOptions,
+    })
   }
 }

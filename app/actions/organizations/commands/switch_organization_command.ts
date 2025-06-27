@@ -1,13 +1,19 @@
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  canAccessOrganizationAdminShell,
+  canSwitchOrganization,
+} from '#domain/organizations/org_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * Command: Switch Organization
@@ -35,7 +41,10 @@ export default class SwitchOrganizationCommand {
    * 4. Create audit log
    * 5. Commit transaction
    */
-  async execute(organizationId: DatabaseId): Promise<void> {
+  async execute(organizationId: DatabaseId): Promise<{
+    organization: { id: DatabaseId; name: string }
+    redirectPath: string
+  }> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')
@@ -43,14 +52,19 @@ export default class SwitchOrganizationCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Validate user is member of target organization → delegate to Model
-      const isMember = await OrganizationUserRepository.isMember(userId, organizationId, trx)
-      if (!isMember) {
-        throw new BusinessLogicException('You are not a member of this organization')
+      const [organization, actorOrgRole, userModel] = await Promise.all([
+        OrganizationRepository.findBasicInfo(organizationId, trx),
+        OrganizationUserRepository.getMemberRoleName(organizationId, userId, trx, true),
+        UserRepository.findNotDeletedOrFail(userId, trx),
+      ])
+
+      if (!organization) {
+        throw NotFoundException.resource('Tổ chức', organizationId)
       }
 
+      enforcePolicy(canSwitchOrganization(actorOrgRole))
+
       // 2. Get current organization for audit log
-      const userModel = await UserRepository.findNotDeletedOrFail(userId, trx)
       const currentOrganizationId = userModel.current_organization_id
 
       // 3. Update user's current organization
@@ -75,6 +89,14 @@ export default class SwitchOrganizationCommand {
         entityId: userId,
         patterns: [`user:${userId}:*`],
       })
+
+      return {
+        organization: {
+          id: organization.id,
+          name: organization.name,
+        },
+        redirectPath: canAccessOrganizationAdminShell(actorOrgRole) ? '/org' : '/tasks',
+      }
     } catch (error) {
       await trx.rollback()
       throw error

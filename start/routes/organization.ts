@@ -45,6 +45,14 @@ const OrgShowSettingsController = () =>
   import('#controllers/organization/settings/show_settings_controller')
 const OrgUpdateSettingsController = () =>
   import('#controllers/organization/settings/update_settings_controller')
+const OrgShowRolesController = () =>
+  import('#controllers/organization/access/show_roles_controller')
+const OrgShowPermissionsController = () =>
+  import('#controllers/organization/access/show_permissions_controller')
+const OrgShowDepartmentsController = () =>
+  import('#controllers/organization/access/show_departments_controller')
+const OrgUpdateRolesController = () =>
+  import('#controllers/organization/access/update_roles_controller')
 
 // Projects (Organization-level)
 const OrgListProjectsController = () =>
@@ -52,17 +60,14 @@ const OrgListProjectsController = () =>
 const OrgCreateProjectController = () =>
   import('#controllers/organization/projects/create_project_controller')
 
+// Tasks (Organization-level)
+const OrgListTasksController = () => import('#controllers/organization/tasks/list_tasks_controller')
+
 // Workflow Customization
 const OrgListTaskStatusesController = () =>
   import('#controllers/organization/workflow/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
   import('#controllers/organization/workflow/create_task_status_controller')
-
-// Billing (Owner only)
-const OrgShowBillingController = () =>
-  import('#controllers/organization/billing/show_billing_controller')
-const OrgUpdatePlanController = () =>
-  import('#controllers/organization/billing/update_plan_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
@@ -104,6 +109,11 @@ router
       })
       .prefix('/settings')
 
+    router.get('/roles', [OrgShowRolesController, 'handle']).as('org.roles.index')
+    router.put('/roles', [OrgUpdateRolesController, 'handle']).as('org.roles.update')
+    router.get('/permissions', [OrgShowPermissionsController, 'handle']).as('org.permissions.index')
+    router.get('/departments', [OrgShowDepartmentsController, 'handle']).as('org.departments.index')
+
     // ─── Projects (Organization-level) ───
     router
       .group(() => {
@@ -111,6 +121,13 @@ router
         router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.create')
       })
       .prefix('/projects')
+
+    // ─── Tasks (Organization-level) ───
+    router
+      .group(() => {
+        router.get('/', [OrgListTasksController, 'handle']).as('org.tasks.index')
+      })
+      .prefix('/tasks')
 
     // ─── Workflow Customization ───
     router
@@ -123,15 +140,6 @@ router
           .as('org.workflow.createStatus')
       })
       .prefix('/workflow')
-
-    // ─── Billing (Owner only) ───
-    router
-      .group(() => {
-        router.get('/', [OrgShowBillingController, 'handle']).as('org.billing.show')
-        router.put('/plan', [OrgUpdatePlanController, 'handle']).as('org.billing.updatePlan')
-      })
-      .prefix('/billing')
-      .use(middleware.requireOrgOwner()) // ← Stricter: Owner only
   })
   .prefix('/org')
   .use([

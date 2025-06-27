@@ -13,6 +13,24 @@ export const findMembership = async (
   return baseQuery(trx).where('organization_id', organizationId).where('user_id', userId).first()
 }
 
+export const findApprovedMembershipWithOrganization = async (
+  organizationId: DatabaseId,
+  userId: DatabaseId,
+  trx?: TransactionClientContract
+) => {
+  return baseQuery(trx)
+    .where('organization_id', organizationId)
+    .where('user_id', userId)
+    .where('status', OrganizationUserStatus.APPROVED)
+    .whereHas('organization', (orgQuery) => {
+      void orgQuery.whereNull('deleted_at')
+    })
+    .preload('organization', (orgQuery) => {
+      void orgQuery.whereNull('deleted_at')
+    })
+    .first()
+}
+
 export const listMembershipsByUser = async (
   userId: DatabaseId,
   trx?: TransactionClientContract
@@ -144,6 +162,20 @@ export const findMembershipsByUser = async (
   trx?: TransactionClientContract
 ): Promise<OrganizationUser[]> => {
   return baseQuery(trx).where('user_id', userId).select('organization_id', 'status')
+}
+
+export const findFirstApprovedMembershipWithOrganization = async (
+  userId: DatabaseId,
+  trx?: TransactionClientContract
+) => {
+  return baseQuery(trx)
+    .where('user_id', userId)
+    .where('status', OrganizationUserStatus.APPROVED)
+    .whereHas('organization', (orgQuery) => {
+      void orgQuery.whereNull('deleted_at')
+    })
+    .orderBy('created_at', 'asc')
+    .first()
 }
 
 export const findOwnerMembershipIds = async (

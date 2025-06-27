@@ -107,24 +107,6 @@ export default class OrganizationRepository {
   }
 
   /**
-   * Generate a unique slug by appending incrementing counter.
-   * Contains business logic (loop + exception throwing).
-   */
-  static async getUniqueSlug(baseSlug: string, trx?: TransactionClientContract): Promise<string> {
-    let slug = baseSlug
-
-    for (let counter = 1; counter <= 1000; counter++) {
-      const exists = await this.slugExists(slug, trx)
-      if (!exists) return slug
-      slug = `${baseSlug}-${String(counter)}`
-    }
-
-    const exceptionModule = await import('#exceptions/business_logic_exception')
-    const BusinessLogicException = exceptionModule.default
-    throw new BusinessLogicException('Không thể tạo slug unique')
-  }
-
-  /**
    * Count active projects in an organization.
    * Cross-model query (reads Project).
    */
@@ -174,7 +156,7 @@ export default class OrganizationRepository {
     return query
       .whereNull('deleted_at')
       .orderBy('id', 'asc')
-      .select('id', 'name', 'description', 'logo', 'website', 'plan')
+      .select('id', 'name', 'description', 'logo', 'website')
   }
 
   static async findActiveByIds(
@@ -207,7 +189,6 @@ export default class OrganizationRepository {
       page: number
       limit: number
       search?: string
-      plan?: string
       sortColumn?: string
       sortDirection?: 'asc' | 'desc'
     },
@@ -220,7 +201,6 @@ export default class OrganizationRepository {
       description: string | null
       logo: string | null
       website: string | null
-      plan: string
       owner_id: string
       created_at: Date
       updated_at: Date
@@ -246,10 +226,6 @@ export default class OrganizationRepository {
       })
     }
 
-    if (options.plan) {
-      void query.where('o.plan', options.plan)
-    }
-
     const countQuery = query.clone().clearSelect().count('* as total')
     const countResult = (await countQuery.first()) as {
       total?: number | string
@@ -268,7 +244,6 @@ export default class OrganizationRepository {
         'o.description',
         'o.logo',
         'o.website',
-        'o.plan',
         'o.owner_id',
         'o.created_at',
         'o.updated_at'
@@ -285,7 +260,6 @@ export default class OrganizationRepository {
           description: toNullableString(row.description),
           logo: toNullableString(row.logo),
           website: toNullableString(row.website),
-          plan: typeof row.plan === 'string' ? row.plan : 'free',
           owner_id: typeof row.owner_id === 'string' ? row.owner_id : '',
           created_at: toDateValue(row.created_at),
           updated_at: toDateValue(row.updated_at),

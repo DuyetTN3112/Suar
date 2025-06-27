@@ -15,7 +15,13 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  canCreateOrganization,
+  resolveOrganizationBaseSlug,
+  resolveUniqueOrganizationSlug,
+} from '#domain/organizations/organization_rules'
 
 /**
  * Command: Create Organization
@@ -59,14 +65,13 @@ export default class CreateOrganizationCommand {
     const trx = await db.transaction()
 
     try {
-      // 1. Check creator active (logic từ database procedure)
-      // Procedure: Check creator không tồn tại hoặc không active
-      await this.validateCreatorActive(userId, trx)
+      const creatorIsActive = await UserRepository.isActive(userId, trx)
+      enforcePolicy(canCreateOrganization({ actorIsActive: creatorIsActive }))
 
-      // 2. Generate slug if not provided (logic từ before_organization_insert trigger)
-      const baseSlug = dto.slug || this.generateSlug(dto.name)
+      // 2. Resolve base slug in domain, then uniqueness via infra callback
+      const baseSlug = resolveOrganizationBaseSlug({ name: dto.name, slug: dto.slug })
 
-      // 3. Get unique slug (loop như database procedure)
+      // 3. Get unique slug
       const slug = await this.getUniqueSlug(baseSlug, trx)
 
       // 4. Create organization
@@ -78,7 +83,7 @@ export default class CreateOrganizationCommand {
           logo: dto.logo || null,
           website: dto.website || null,
           owner_id: userId,
-          plan: dto.plan || 'free',
+          plan: null,
         },
         trx
       )
@@ -134,41 +139,16 @@ export default class CreateOrganizationCommand {
     }
   }
 
-  /**
-   * Validate creator is active
-   * Logic từ database procedure:
-   *   IF NOT EXISTS (SELECT 1 FROM users u JOIN user_status us ON u.status_id = us.id
-   *   WHERE u.id = p_creator_id AND u.deleted_at IS NULL AND us.name = 'active')
-   *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Creator không tồn tại hoặc không active'
-   */
-  private async validateCreatorActive(
-    userId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const isActive = await UserRepository.isActive(userId, trx)
-    if (!isActive) {
-      throw new NotFoundException('Creator không tồn tại hoặc không active')
-    }
-  }
-
-  /**
-   * Generate slug from name
-   * Logic từ before_organization_insert trigger:
-   *   SET NEW.slug = LOWER(REGEXP_REPLACE(NEW.name, '[^a-z0-9]+', '-'));
-   *   SET NEW.slug = REGEXP_REPLACE(NEW.slug, '^-|-$', '');
-   */
-  private generateSlug(name: string): string {
-    return name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with dash
-      .replace(/^-|-$/g, '') // Remove leading/trailing dashes
-  }
-
-  /**
-   * Get unique slug with auto-increment counter → delegate to Model
-   */
   private async getUniqueSlug(baseSlug: string, trx: TransactionClientContract): Promise<string> {
-    return OrganizationRepository.getUniqueSlug(baseSlug, trx)
+    const slug = await resolveUniqueOrganizationSlug(baseSlug, (candidate) =>
+      OrganizationRepository.slugExists(candidate, trx)
+    )
+
+    if (!slug) {
+      throw new BusinessLogicException('Không thể tạo slug unique')
+    }
+
+    return slug
   }
 
   /**

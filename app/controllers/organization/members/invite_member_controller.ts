@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
 import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
@@ -27,7 +28,12 @@ export default class InviteMemberController {
       (request.input('org_role') as string | undefined) ??
       OrganizationRole.MEMBER
 
-    const dto = new InviteUserDTO(organizationId, email, roleId)
+    const { roleIds: allowedRoleIds } = await new GetAssignableOrganizationRolesQuery(
+      execCtx
+    ).handle({
+      organizationId,
+    })
+    const dto = new InviteUserDTO(organizationId, email, roleId, allowedRoleIds)
     await new InviteUserCommand(execCtx).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {

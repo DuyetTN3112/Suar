@@ -1,6 +1,16 @@
 import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { formatRoleLabel } from '#libs/access_surface'
+
+export interface InviteUserRecord {
+  organization_id: DatabaseId
+  email: string
+  org_role: string
+  token: string
+  expires_at: Date
+  message: string | null
+}
 
 /**
  * DTO for inviting a user to an organization
@@ -12,12 +22,26 @@ import ValidationException from '#exceptions/validation_exception'
  * const dto = new InviteUserDTO('org-uuid', 'user@example.com', OrganizationRole.MEMBER, 'Welcome!')
  */
 export class InviteUserDTO {
+  public readonly organizationId: DatabaseId
+  public readonly email: string
+  public readonly roleId: string
+  public readonly allowedRoleIds: string[]
+  public readonly message?: string
+
   constructor(
-    public readonly organizationId: DatabaseId,
-    public readonly email: string,
-    public readonly roleId: string = OrganizationRole.MEMBER,
-    public readonly message?: string
+    organizationId: DatabaseId,
+    email: string,
+    roleId: string = OrganizationRole.MEMBER,
+    allowedRoleIdsOrMessage: string[] | string = [OrganizationRole.ADMIN, OrganizationRole.MEMBER],
+    message?: string
   ) {
+    this.organizationId = organizationId
+    this.email = email
+    this.roleId = roleId
+    this.allowedRoleIds = Array.isArray(allowedRoleIdsOrMessage)
+      ? allowedRoleIdsOrMessage
+      : [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
+    this.message = Array.isArray(allowedRoleIdsOrMessage) ? message : allowedRoleIdsOrMessage
     this.validate()
   }
 
@@ -49,8 +73,8 @@ export class InviteUserDTO {
       throw new ValidationException('Role is required')
     }
 
-    const validRoles = [OrganizationRole.ADMIN, OrganizationRole.MEMBER] // Cannot invite as Owner
-    if (!validRoles.includes(this.roleId as OrganizationRole)) {
+    const validRoles = this.allowedRoleIds
+    if (!validRoles.includes(this.roleId)) {
       throw new ValidationException(
         `Role must be one of: ${validRoles.join(', ')} (cannot invite as Owner)`
       )
@@ -88,11 +112,7 @@ export class InviteUserDTO {
    * Helper: Get role name from role ID
    */
   getRoleName(): string {
-    const roleNames: Record<string, string> = {
-      [OrganizationRole.ADMIN]: 'Admin',
-      [OrganizationRole.MEMBER]: 'Member',
-    }
-    return roleNames[this.roleId] || 'Unknown'
+    return formatRoleLabel(this.roleId)
   }
 
   /**
@@ -103,7 +123,7 @@ export class InviteUserDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.roleId] || 'Không xác định'
+    return roleNames[this.roleId] || formatRoleLabel(this.roleId)
   }
 
   /**
@@ -147,7 +167,7 @@ export class InviteUserDTO {
   /**
    * Helper: Convert to database object
    */
-  toObject() {
+  toObject(): InviteUserRecord {
     return {
       organization_id: this.organizationId,
       email: this.getNormalizedEmail(),

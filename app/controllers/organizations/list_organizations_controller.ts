@@ -22,8 +22,7 @@ export default class ListOrganizationsController {
     const dto = new GetOrganizationsListDTO(
       Number(request.input('page', 1)),
       Number(request.input('limit', 20)),
-      request.input('search') as string | undefined,
-      request.input('plan') as string | undefined
+      request.input('search') as string | undefined
     )
 
     // Execute queries

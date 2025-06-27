@@ -1,6 +1,11 @@
 import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import { formatRoleLabel } from '#libs/access_surface'
+
+export interface UpdateMemberRoleRecord {
+  org_role: string
+}
 
 /**
  * DTO for updating a member's role in an organization
@@ -19,7 +24,8 @@ export class UpdateMemberRoleDTO {
   constructor(
     public readonly organizationId: DatabaseId,
     public readonly userId: DatabaseId,
-    public readonly newRoleId: string
+    public readonly newRoleId: string,
+    public readonly allowedRoleIds: string[] = [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
   ) {
     this.validate()
   }
@@ -43,8 +49,8 @@ export class UpdateMemberRoleDTO {
       throw new ValidationException('New role is required')
     }
 
-    const validRoles = [OrganizationRole.ADMIN, OrganizationRole.MEMBER] // Owner not allowed
-    if (!validRoles.includes(this.newRoleId as OrganizationRole)) {
+    const validRoles = this.allowedRoleIds
+    if (!validRoles.includes(this.newRoleId)) {
       throw new ValidationException(
         `New role must be one of: ${validRoles.join(', ')} (cannot promote to Owner)`
       )
@@ -55,12 +61,7 @@ export class UpdateMemberRoleDTO {
    * Helper: Get role name
    */
   getRoleName(): string {
-    const roleNames: Record<string, string> = {
-      [OrganizationRole.OWNER]: 'Owner',
-      [OrganizationRole.ADMIN]: 'Admin',
-      [OrganizationRole.MEMBER]: 'Member',
-    }
-    return roleNames[this.newRoleId] || 'Unknown'
+    return formatRoleLabel(this.newRoleId)
   }
 
   /**
@@ -72,7 +73,7 @@ export class UpdateMemberRoleDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.newRoleId] || 'Không xác định'
+    return roleNames[this.newRoleId] || formatRoleLabel(this.newRoleId)
   }
 
   /**
@@ -132,7 +133,7 @@ export class UpdateMemberRoleDTO {
   /**
    * Helper: Convert to database object
    */
-  toObject() {
+  toObject(): UpdateMemberRoleRecord {
     return {
       org_role: this.newRoleId,
     }

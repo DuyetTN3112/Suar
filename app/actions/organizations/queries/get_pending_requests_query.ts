@@ -4,7 +4,8 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canViewPendingJoinRequests } from '#domain/organizations/org_permission_policy'
 
 interface RequestResult {
   id: DatabaseId
@@ -52,10 +53,7 @@ export default class GetPendingRequestsQuery {
     }
 
     // 1. Permission check: Must be owner or admin
-    const hasPermission = await this.checkPermission(userId, organizationId)
-    if (!hasPermission) {
-      throw new ForbiddenException('Bạn không có quyền xem danh sách yêu cầu tham gia')
-    }
+    await this.checkPermission(userId, organizationId)
 
     // 2. Try cache first
     const cacheKey = this.buildCacheKey(organizationId)
@@ -96,8 +94,9 @@ export default class GetPendingRequestsQuery {
   /**
    * Check if user has permission (owner or admin)
    */
-  private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<boolean> {
-    return OrganizationUserRepository.isAdminOrOwner(userId, organizationId)
+  private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
+    enforcePolicy(canViewPendingJoinRequests(actorOrgRole))
   }
 
   /**

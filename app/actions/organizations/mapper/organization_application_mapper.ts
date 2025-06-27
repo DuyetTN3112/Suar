@@ -32,7 +32,6 @@ export class OrganizationApplicationMapper {
     description: string | null
     logo: string | null
     website: string | null
-    plan: string
   } {
     const obj = dto.toObject()
     return {
@@ -41,7 +40,6 @@ export class OrganizationApplicationMapper {
       description: obj.description,
       logo: obj.logo,
       website: obj.website,
-      plan: obj.plan,
     }
   }
 
@@ -56,7 +54,6 @@ export class OrganizationApplicationMapper {
       entity.description,
       entity.logo,
       entity.website,
-      entity.plan,
       entity.ownerId,
       entity.customRoles,
       entity.partnerType,
@@ -77,7 +74,6 @@ export class OrganizationApplicationMapper {
       entity.slug,
       entity.description,
       entity.logo,
-      entity.plan,
       entity.ownerId,
       entity.partnerType,
       entity.partnerIsActive,

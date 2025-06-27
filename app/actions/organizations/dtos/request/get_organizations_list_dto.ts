@@ -6,17 +6,16 @@ import { PAGINATION } from '#constants/common_constants'
  * DTO for getting organizations list with filters and pagination
  *
  * Pattern: Pagination with filters (learned from Tasks/Projects modules)
- * Supports search, plan filter, pagination, and sorting
+ * Supports search, pagination, and sorting
  *
  * @example
- * const dto = new GetOrganizationsListDTO(1, 20, 'Acme', 'professional')
+ * const dto = new GetOrganizationsListDTO(1, 20, 'Acme')
  */
 export class GetOrganizationsListDTO {
   constructor(
     public readonly page: number = 1,
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly search?: string,
-    public readonly plan?: string,
     public readonly sortBy: string = 'created_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc'
   ) {
@@ -48,20 +47,8 @@ export class GetOrganizationsListDTO {
       }
     }
 
-    // Plan validation (optional, must be valid plan)
-    if (this.plan !== undefined) {
-      if (typeof this.plan !== 'string') {
-        throw new ValidationException('Plan filter must be a string')
-      }
-
-      const validPlans = ['free', 'starter', 'professional', 'enterprise']
-      if (!validPlans.includes(this.plan.toLowerCase())) {
-        throw new ValidationException(`Plan must be one of: ${validPlans.join(', ')}`)
-      }
-    }
-
     // Sort by validation
-    const validSortFields = ['created_at', 'name', 'plan', 'updated_at']
+    const validSortFields = ['created_at', 'name', 'updated_at']
     if (!validSortFields.includes(this.sortBy)) {
       throw new ValidationException(`Sort by must be one of: ${validSortFields.join(', ')}`)
     }
@@ -96,21 +83,6 @@ export class GetOrganizationsListDTO {
   }
 
   /**
-   * Helper: Check if plan filter is active
-   */
-  hasPlanFilter(): boolean {
-    return this.plan !== undefined && this.plan.trim().length > 0
-  }
-
-  /**
-   * Helper: Get normalized plan filter
-   */
-  getNormalizedPlan(): string | null {
-    if (!this.hasPlanFilter()) return null
-    return this.plan?.toLowerCase() ?? null
-  }
-
-  /**
    * Helper: Get cache key for Redis
    * Pattern: Cache key generation (learned from Projects module)
    */
@@ -125,10 +97,6 @@ export class GetOrganizationsListDTO {
 
     if (this.hasSearch()) {
       parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
-    }
-
-    if (this.hasPlanFilter()) {
-      parts.push(`plan:${this.getNormalizedPlan() ?? ''}`)
     }
 
     return parts.join(':')
