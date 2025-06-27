@@ -9,6 +9,12 @@ import type Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  calculateProjectDetailPermissions,
+  canViewProject,
+} from '#domain/projects/project_permission_policy'
+import type { ProjectPermissionContext } from '#domain/projects/project_types'
 
 /**
  * Member interface for query results
@@ -119,8 +125,12 @@ export default class GetProjectDetailQuery extends BaseQuery<
     // Load project with relations
     const project = await ProjectRepository.findDetailWithRelations(projectId)
 
-    // Check access permission
-    await this.validateAccess(userId, project, input.organizationId)
+    const permissionContext = await this.buildPermissionContext(
+      userId,
+      project,
+      input.organizationId
+    )
+    enforcePolicy(canViewProject(permissionContext))
 
     // Fetch all related data in parallel
     const [members, tasks, tasksSummary, recentActivity] = await Promise.all([
@@ -131,7 +141,10 @@ export default class GetProjectDetailQuery extends BaseQuery<
     ])
 
     // Calculate permissions
-    const permissions = this.calculatePermissions(userId, project, members)
+    const permissions = calculateProjectDetailPermissions({
+      ...permissionContext,
+      projectManagerId: project.manager_id,
+    })
 
     return {
       project: {
@@ -162,31 +175,33 @@ export default class GetProjectDetailQuery extends BaseQuery<
     }
   }
 
-  /**
-   * Validate user has access to this project
-   */
-  private async validateAccess(
+  private async buildPermissionContext(
     userId: DatabaseId,
     project: Project,
     currentOrganizationId?: DatabaseId
-  ): Promise<void> {
+  ): Promise<ProjectPermissionContext> {
     if (currentOrganizationId && project.organization_id !== currentOrganizationId) {
       throw new ForbiddenException('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
     }
 
     const orgId = currentOrganizationId ?? project.organization_id
-    const orgRole = await OrganizationUserRepository.getMemberRoleName(
-      orgId,
-      userId,
-      undefined,
-      true
-    )
-    if (!orgRole) {
-      throw new ForbiddenException('Bạn không có quyền truy cập dự án của tổ chức này')
-    }
+    const [actorSystemRole, actorOrgRole, actorProjectRole] = await Promise.all([
+      UserRepository.getSystemRoleName(userId),
+      OrganizationUserRepository.getMemberRoleName(orgId, userId, undefined, true),
+      ProjectMemberRepository.getRoleName(project.id, userId).then((role) =>
+        role === 'unknown' ? null : role
+      ),
+    ])
 
-    // Project-specific membership is not required for read access.
-    // Any approved member in current organization can view project details.
+    return {
+      actorId: userId,
+      actorSystemRole,
+      actorOrgRole,
+      actorProjectRole,
+      projectCreatorId: project.creator_id,
+      projectOwnerId: project.owner_id ?? ('' as DatabaseId),
+      projectOrganizationId: project.organization_id,
+    }
   }
 
   /**
@@ -280,38 +295,6 @@ export default class GetProjectDetailQuery extends BaseQuery<
         username: user?.username ?? null,
       }
     })
-  }
-
-  /**
-   * Calculate what permissions user has for this project
-   */
-  private calculatePermissions(
-    userId: DatabaseId,
-    project: Project,
-    members: ProjectMemberResult[]
-  ): {
-    isOwner: boolean
-    isManager: boolean
-    isCreator: boolean
-    isMember: boolean
-    canEdit: boolean
-    canDelete: boolean
-    canAddMembers: boolean
-  } {
-    const isOwner = project.owner_id === userId
-    const isManager = project.manager_id === userId
-    const isCreator = project.creator_id === userId
-    const isMember = members.some((m) => m.user_id === userId)
-
-    return {
-      isOwner,
-      isManager,
-      isCreator,
-      isMember,
-      canEdit: isOwner || isManager || isCreator,
-      canDelete: isOwner || isCreator,
-      canAddMembers: isOwner || isCreator || isManager,
-    }
   }
 
   /**

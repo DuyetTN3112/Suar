@@ -5,7 +5,8 @@ import { ErrorMessages } from '#constants/error_constants'
 import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
 import GetTasksPageQuery from '#actions/tasks/queries/get_tasks_page_query'
 import GetTaskProjectsQuery from '#actions/tasks/queries/get_task_projects_query'
-import GetTaskMetadataQuery from '#actions/tasks/queries/get_task_metadata_query'
+import CheckTaskCreatePermissionQuery from '#actions/tasks/queries/check_task_create_permission_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
  * GET /tasks
@@ -21,12 +22,15 @@ export default class ListTasksController {
 
     const projectOptions = await new GetTaskProjectsQuery().execute(organizationId)
     const execCtx = ExecutionContext.fromHttp(ctx)
+    const userId = execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
 
     const requestedProjectId = request.input('project_id') as string | undefined
-    const selectedProject =
-      (requestedProjectId
-        ? (projectOptions.find((project) => project.id === requestedProjectId) ?? projectOptions[0])
-        : projectOptions[0]) || null
+    const selectedProject = requestedProjectId
+      ? (projectOptions.find((project) => project.id === requestedProjectId) ?? null)
+      : null
 
     const dto = new GetTasksListDTO({
       page: request.input('page', 1) as number,
@@ -50,24 +54,15 @@ export default class ListTasksController {
       sort_order: request.input('sort_order', 'asc') as 'asc' | 'desc',
     })
 
-    const { tasksResult, metadata } = selectedProject
-      ? await new GetTasksPageQuery(execCtx).execute(dto, organizationId)
-      : {
-          tasksResult: {
-            data: [],
-            meta: {
-              total: 0,
-              per_page: dto.limit,
-              current_page: dto.page,
-              last_page: 1,
-              first_page: 1,
-              next_page_url: null,
-              previous_page_url: null,
-            },
-            stats: { total: 0, by_status: {} },
-          },
-          metadata: await new GetTaskMetadataQuery(execCtx).execute(organizationId),
-        }
+    const { tasksResult, metadata } = await new GetTasksPageQuery(execCtx).execute(
+      dto,
+      organizationId
+    )
+    const createTaskDecision = await CheckTaskCreatePermissionQuery.execute(
+      userId,
+      organizationId,
+      selectedProject?.id ?? null
+    )
 
     return await inertia.render('tasks/index', {
       tasks: {
@@ -79,6 +74,10 @@ export default class ListTasksController {
       projectOptions,
       projectContext: {
         selectedProject,
+      },
+      permissions: {
+        canCreateTask: createTaskDecision.allowed,
+        createTaskReason: createTaskDecision.allowed ? null : createTaskDecision.reason,
       },
       filters: {
         page: dto.page,

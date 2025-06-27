@@ -1,6 +1,5 @@
 import type Task from '#models/task'
 import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
@@ -9,7 +8,9 @@ import redis from '@adonisjs/redis/services/main'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Query để lấy chi tiết một task
@@ -61,11 +62,8 @@ export default class GetTaskDetailQuery {
     // Load task với basic relations (v3: status/label/priority are inline columns)
     const task = await TaskRepository.findByIdWithDetailRelations(dto.task_id)
 
-    // Fetch user role data ONCE (avoid duplicate queries for permission check + permissions calc)
-    const userRoleData = await this.fetchUserRoleData(userId, task.organization_id)
-
-    // Check permission
-    this.validateViewPermission(userId, task, userRoleData)
+    const permissionContext = await buildTaskPermissionContext(userId, task)
+    enforcePolicy(canViewTask(permissionContext))
 
     // Load optional relations (batch load)
     const optionalLoads: Array<'childTasks' | 'versions'> = []
@@ -81,7 +79,7 @@ export default class GetTaskDetailQuery {
     }
 
     // Calculate permissions (reuse fetched role data)
-    const permissions = this.calculatePermissionsSync(userId, task, userRoleData)
+    const permissions = calculateTaskPermissions(permissionContext)
 
     // Load audit logs if requested
     let auditLogs: unknown[] | undefined
@@ -102,102 +100,6 @@ export default class GetTaskDetailQuery {
     }
 
     return result
-  }
-
-  /**
-   * Fetch user role data once (system role + org membership) → delegate to Model
-   * Avoids duplicate queries in validateViewPermission + calculatePermissions
-   */
-  private async fetchUserRoleData(
-    userId: DatabaseId,
-    organizationId: DatabaseId | null
-  ): Promise<{
-    roleName: string | null
-    isSuperAdmin: boolean
-    orgUser: { org_role: string } | null
-  }> {
-    // Check system admin → delegate to Model
-    const isSuperAdmin = await UserRepository.isSystemAdmin(userId)
-    const roleName = isSuperAdmin ? 'admin' : null
-
-    // Query org membership → delegate to Model
-    let orgUser: { org_role: string } | null = null
-    if (organizationId) {
-      const orgRole = await OrganizationUserRepository.getMemberRoleName(
-        organizationId,
-        userId,
-        undefined,
-        false
-      )
-      if (orgRole) {
-        orgUser = { org_role: orgRole }
-      }
-    }
-
-    return { roleName, isSuperAdmin, orgUser }
-  }
-
-  /**
-   * Validate view permission (synchronous - uses pre-fetched role data)
-   */
-  private validateViewPermission(
-    userId: DatabaseId,
-    task: Task,
-    roleData: { isSuperAdmin: boolean; orgUser: { org_role: string } | null }
-  ): void {
-    // Admin/Superadmin can view all
-    if (roleData.isSuperAdmin) {
-      return
-    }
-
-    // Creator can view
-    if (task.creator_id === userId) {
-      return
-    }
-
-    // Assignee can view
-    if (task.assigned_to && task.assigned_to === userId) {
-      return
-    }
-
-    // Check organization role (Owner/Admin)
-    if (roleData.orgUser && ['org_owner', 'org_admin'].includes(roleData.orgUser.org_role)) {
-      return
-    }
-
-    throw new ForbiddenException('Bạn không có quyền xem task này')
-  }
-
-  /**
-   * Calculate permissions (synchronous - uses pre-fetched role data)
-   */
-  private calculatePermissionsSync(
-    userId: DatabaseId,
-    task: Task,
-    roleData: { isSuperAdmin: boolean; orgUser: { org_role: string } | null }
-  ): {
-    isCreator: boolean
-    isAssignee: boolean
-    canEdit: boolean
-    canDelete: boolean
-    canAssign: boolean
-  } {
-    const isCreator = task.creator_id === userId
-    const isAssignee = task.assigned_to && task.assigned_to === userId
-    const isOrgOwnerOrAdmin =
-      roleData.orgUser && ['org_owner', 'org_admin'].includes(roleData.orgUser.org_role)
-
-    const canEdit = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
-    const canDelete = Boolean(roleData.isSuperAdmin || isCreator || isOrgOwnerOrAdmin)
-    const canAssign = Boolean(roleData.isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrAdmin)
-
-    return {
-      isCreator,
-      isAssignee: !!isAssignee,
-      canEdit,
-      canDelete,
-      canAssign,
-    }
   }
 
   /**

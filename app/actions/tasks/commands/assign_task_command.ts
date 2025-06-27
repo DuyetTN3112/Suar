@@ -17,6 +17,7 @@ import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAssignTask } from '#domain/tasks/task_permission_policy'
 import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để giao task cho người dùng
@@ -51,30 +52,9 @@ export default class AssignTaskCommand {
       // ── FETCH ──────────────────────────────────────────────────────────
       const existingTask = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
 
-      const [systemRole, orgRole] = await Promise.all([
-        UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(
-          existingTask.organization_id,
-          userId,
-          undefined,
-          false
-        ),
-      ])
-
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      enforcePolicy(
-        canAssignTask({
-          actorId: userId,
-          actorSystemRole: systemRole,
-          actorOrgRole: orgRole,
-          actorProjectRole: null,
-          taskCreatorId: existingTask.creator_id,
-          taskAssignedTo: existingTask.assigned_to,
-          taskOrganizationId: existingTask.organization_id,
-          taskProjectId: existingTask.project_id,
-          isActiveAssignee: false,
-        })
-      )
+      const permissionContext = await buildTaskPermissionContext(userId, existingTask, trx)
+      enforcePolicy(canAssignTask(permissionContext))
 
       // If assigning (not unassigning), validate assignee
       if (dto.isAssigning() && dto.assigned_to !== null) {
@@ -84,8 +64,12 @@ export default class AssignTaskCommand {
         }
 
         const [isMember, isFreelancer] = await Promise.all([
-          OrganizationUserRepository.isMember(dto.assigned_to, existingTask.organization_id),
-          UserRepository.isFreelancer(dto.assigned_to),
+          OrganizationUserRepository.isApprovedMember(
+            dto.assigned_to,
+            existingTask.organization_id,
+            trx
+          ),
+          UserRepository.isFreelancer(dto.assigned_to, trx),
         ])
 
         enforcePolicy(

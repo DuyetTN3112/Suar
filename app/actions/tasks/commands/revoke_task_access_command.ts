@@ -1,9 +1,6 @@
 import type { ExecutionContext } from '#types/execution_context'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type CreateNotification from '#actions/common/create_notification'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { AuditAction, EntityType } from '#constants/audit_constants'
@@ -13,9 +10,10 @@ import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
+import { canRevokeTaskAccess } from '#domain/tasks/task_permission_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * DTO for revoking task access
@@ -66,14 +64,8 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         })
       )
 
-      // 3. Check permission → delegate to Model
-      const hasPermission = assignmentRecord.task.project_id
-        ? await this.checkRevokePermission(userId, assignmentRecord.task.project_id, trx)
-        : false
-
-      if (!hasPermission) {
-        throw new ForbiddenException('Bạn không có quyền revoke assignments trong project này')
-      }
+      const permissionContext = await buildTaskPermissionContext(userId, assignmentRecord.task, trx)
+      enforcePolicy(canRevokeTaskAccess(permissionContext))
 
       // 4. Update assignment status → delegate to Model
       await TaskAssignmentRepository.cancelAssignment(
@@ -123,26 +115,6 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
       reason: dto.reason,
     })
   }
-
-  private async checkRevokePermission(
-    userId: DatabaseId,
-    projectId: DatabaseId,
-    trx: TransactionClientContract
-  ): Promise<boolean> {
-    // Check if project manager or owner → delegate to Model
-    const isProjectManagerOrOwner = await ProjectMemberRepository.isProjectManagerOrOwner(
-      userId,
-      projectId,
-      trx
-    )
-    if (isProjectManagerOrOwner) return true
-
-    // Check if org admin or owner → delegate to Model
-    const project = await ProjectRepository.findActiveOrFail(projectId, trx)
-
-    return OrganizationUserRepository.isAdminOrOwner(userId, project.organization_id, trx)
-  }
-
   private async sendNotifications(
     taskId: DatabaseId,
     assigneeId: DatabaseId,

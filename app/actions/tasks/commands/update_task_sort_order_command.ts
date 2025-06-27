@@ -1,6 +1,5 @@
 import type Task from '#models/task'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import type { ExecutionContext } from '#types/execution_context'
@@ -13,6 +12,9 @@ import CacheService from '#services/cache_service'
 import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
 import { TaskStatusCategory } from '#constants/task_constants'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canReorderTask } from '#domain/tasks/task_permission_policy'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để cập nhật sort_order của task (drag & drop reorder)
@@ -41,15 +43,13 @@ export default class UpdateTaskSortOrderCommand {
     try {
       const task = await TaskRepository.findActiveForUpdate(taskId, trx)
 
-      // Permission check: user must be approved org member
-      const isOrgMember = await OrganizationUserRepository.isApprovedMember(
+      const accessContext = await buildTaskCollectionAccessContext(
         userId,
         task.organization_id,
+        'none',
         trx
       )
-      if (!isOrgMember) {
-        throw new UnauthorizedException('Bạn không có quyền sắp xếp task trong tổ chức này')
-      }
+      enforcePolicy(canReorderTask(accessContext))
 
       // Update sort order
       task.sort_order = newSortOrder

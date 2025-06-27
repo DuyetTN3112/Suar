@@ -35,6 +35,28 @@ export interface TaskPermissionContext {
   isActiveAssignee: boolean
 }
 
+export type TaskCollectionScopeFallback = 'none' | 'own_only'
+
+export interface TaskCollectionAccessContext {
+  actorId: DatabaseId
+  actorSystemRole: string | null
+  actorOrgRole: string | null
+  unaffiliatedScope: TaskCollectionScopeFallback
+}
+
+export interface TaskCreatePermissionContext {
+  actorSystemRole: string | null
+  actorOrgRole: string | null
+  actorProjectRole: string | null
+  projectId: DatabaseId | null
+}
+
+export type TaskCollectionReadScope =
+  | { type: 'all' }
+  | { type: 'none' }
+  | { type: 'own_only'; actorId: DatabaseId }
+  | { type: 'own_or_assigned'; actorId: DatabaseId }
+
 /**
  * Result type for field-level update permission check.
  * When an org admin/owner updates a task they don't own/aren't assigned to,

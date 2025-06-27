@@ -98,6 +98,7 @@ export class GetPublicTasksDTO {
   declare page: number
   declare per_page: number
   declare skill_ids: DatabaseId[] | null
+  declare keyword: string | null
   declare difficulty: string | null
   declare min_budget: number | null
   declare max_budget: number | null
@@ -108,10 +109,49 @@ export class GetPublicTasksDTO {
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
     this.skill_ids = data.skill_ids ?? null
+    this.keyword = this.normalizeKeyword(data.keyword)
     this.difficulty = data.difficulty ?? null
-    this.min_budget = data.min_budget ?? null
-    this.max_budget = data.max_budget ?? null
+    this.min_budget = this.normalizeNullableNumber(data.min_budget)
+    this.max_budget = this.normalizeNullableNumber(data.max_budget)
     this.sort_by = data.sort_by ?? 'created_at'
     this.sort_order = data.sort_order ?? 'desc'
+
+    this.validateBudgetRange()
+  }
+
+  private normalizeKeyword(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null
+    }
+
+    const trimmed = value.trim()
+    return trimmed.length > 0 ? trimmed : null
+  }
+
+  private normalizeNullableNumber(value: unknown): number | null {
+    if (value === null || value === undefined || value === '') {
+      return null
+    }
+
+    const numericValue = typeof value === 'number' ? value : Number(value)
+    if (!Number.isFinite(numericValue)) {
+      throw new ValidationException('Giá trị ngân sách không hợp lệ')
+    }
+
+    return numericValue
+  }
+
+  private validateBudgetRange(): void {
+    if (this.min_budget !== null && this.min_budget < 0) {
+      throw new ValidationException('Ngân sách tối thiểu không được nhỏ hơn 0')
+    }
+
+    if (this.max_budget !== null && this.max_budget < 0) {
+      throw new ValidationException('Ngân sách tối đa không được nhỏ hơn 0')
+    }
+
+    if (this.min_budget !== null && this.max_budget !== null && this.max_budget < this.min_budget) {
+      throw new ValidationException('Ngân sách tối đa không được nhỏ hơn ngân sách tối thiểu')
+    }
   }
 }

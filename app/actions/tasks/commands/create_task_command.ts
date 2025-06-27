@@ -1,7 +1,6 @@
 import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskRequiredSkillRepository from '#infra/tasks/repositories/task_required_skill_repository'
@@ -23,6 +22,7 @@ import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canCreateTask } from '#domain/tasks/task_permission_policy'
 import { validateTaskCreationFields } from '#domain/tasks/task_assignment_rules'
+import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để tạo task mới
@@ -70,27 +70,14 @@ export default class CreateTaskCommand {
       // 2. Validate organization context through repositories
       await OrganizationRepository.findActiveOrFail(dto.organization_id, trx)
 
-      // 3. Check permission: admin/owner OR project_manager OR superadmin (pure rule)
-      const isSuperadmin = await UserRepository.isSystemAdmin(userId, trx)
-      const isOrgAdmin = isSuperadmin
-        ? false
-        : await OrganizationUserRepository.isAdminOrOwner(userId, dto.organization_id, trx)
-      let isProjectManager = false
-      if (!isSuperadmin && !isOrgAdmin) {
-        isProjectManager = await ProjectMemberRepository.isProjectManagerOrOwner(
-          userId,
-          dto.project_id,
-          trx
-        )
-      }
-      enforcePolicy(
-        canCreateTask({
-          isOrgAdminOrOwner: isOrgAdmin,
-          isProjectManagerOrOwner: isProjectManager,
-          hasProjectId: true,
-          isSuperadmin,
-        })
+      // 3. Check permission through domain policy
+      const createPermissionContext = await buildTaskCreatePermissionContext(
+        userId,
+        dto.organization_id,
+        dto.project_id,
+        trx
       )
+      enforcePolicy(canCreateTask(createPermissionContext))
 
       // 4. Validate project ownership boundary through repositories
       await ProjectRepository.validateBelongsToOrg(dto.project_id, dto.organization_id, trx)

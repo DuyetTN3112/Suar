@@ -4,8 +4,6 @@ import TaskStatusRepository from '#infra/tasks/repositories/task_status_reposito
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
@@ -20,6 +18,7 @@ import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateTaskStatus } from '#domain/tasks/task_permission_policy'
 import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Command để cập nhật trạng thái task
@@ -73,33 +72,9 @@ export default class UpdateTaskStatusCommand {
         throw new BusinessLogicException('Task chưa có task_status_id hợp lệ để chuyển trạng thái')
       }
 
-      const [systemRole, orgRole, projectRole] = await Promise.all([
-        UserRepository.getSystemRoleName(userId),
-        OrganizationUserRepository.getMemberRoleName(
-          task.organization_id,
-          userId,
-          undefined,
-          false
-        ),
-        task.project_id
-          ? ProjectMemberRepository.getRoleName(task.project_id, userId, trx)
-          : Promise.resolve('unknown'),
-      ])
-
       // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      enforcePolicy(
-        canUpdateTaskStatus({
-          actorId: userId,
-          actorSystemRole: systemRole,
-          actorOrgRole: orgRole,
-          actorProjectRole: projectRole === 'unknown' ? null : projectRole,
-          taskCreatorId: task.creator_id,
-          taskAssignedTo: task.assigned_to,
-          taskOrganizationId: task.organization_id,
-          taskProjectId: task.project_id,
-          isActiveAssignee: false,
-        })
-      )
+      const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+      enforcePolicy(canUpdateTaskStatus(permissionContext))
 
       const oldStatus = task.status
       const oldTaskStatusId = task.task_status_id
