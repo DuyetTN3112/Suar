@@ -30,7 +30,6 @@ export default class ListOrganizationsController {
 
     const page = toPageNumber(request.input('page', 1) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
-    const plan = toOptionalString(request.input('plan', null) as unknown)
 
     const execCtx = ExecutionContext.fromHttp(ctx)
     const query = new ListOrganizationsQuery(execCtx)
@@ -39,7 +38,6 @@ export default class ListOrganizationsController {
       page,
       perPage: 24,
       search,
-      plan,
     })
 
     // Need to enhance data with owner and counts
@@ -47,7 +45,7 @@ export default class ListOrganizationsController {
     return inertia.render('admin/organizations/index', {
       organizations: result.data,
       pagination: result.meta,
-      filters: { search: search ?? '', plan: plan ?? null },
+      filters: { search: search ?? '' },
     })
   }
 }

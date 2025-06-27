@@ -24,7 +24,6 @@ const toNumberValue = (value: unknown): number => {
 
 export interface ListOrganizationsFilters {
   search?: string
-  plan?: string
   partnerType?: string
 }
 
@@ -35,12 +34,6 @@ export interface ListOrganizationsResult {
 
 export interface DashboardOrganizationStats {
   total: number
-  byPlan: {
-    free: number
-    starter: number
-    professional: number
-    enterprise: number
-  }
   newThisMonth: number
 }
 
@@ -66,10 +59,6 @@ export default class AdminOrganizationRepository {
       void query.where((q) => {
         void q.where('name', 'ilike', `%${search}%`).orWhere('slug', 'ilike', `%${search}%`)
       })
-    }
-
-    if (filters.plan) {
-      void query.where('plan', filters.plan)
     }
 
     if (filters.partnerType) {
@@ -99,12 +88,6 @@ export default class AdminOrganizationRepository {
       db.from('organizations').count('* as total').whereNull('deleted_at').first(),
       db
         .from('organizations')
-        .select('plan')
-        .count('* as count')
-        .whereNull('deleted_at')
-        .groupBy('plan'),
-      db
-        .from('organizations')
         .count('* as total')
         .where('created_at', '>=', firstDayOfMonth)
         .whereNull('deleted_at')
@@ -112,27 +95,10 @@ export default class AdminOrganizationRepository {
     ])) as unknown[]
 
     const total = statsResults[0]
-    const byPlanRaw = statsResults[1]
-    const newThisMonth = statsResults[2]
-    const byPlan = Array.isArray(byPlanRaw) ? byPlanRaw : []
-
-    // Build plan counts
-    const planCounts = { free: 0, starter: 0, professional: 0, enterprise: 0 }
-    for (const rowRaw of byPlan) {
-      if (!isRecord(rowRaw)) {
-        continue
-      }
-
-      const plan = rowRaw.plan
-      const count = rowRaw.count
-      if (typeof plan === 'string' && plan in planCounts) {
-        planCounts[plan as keyof typeof planCounts] = toNumberValue(count)
-      }
-    }
+    const newThisMonth = statsResults[1]
 
     return {
       total: isRecord(total) ? toNumberValue(total.total) : 0,
-      byPlan: planCounts,
       newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
     }
   }

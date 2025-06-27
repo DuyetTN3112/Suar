@@ -1,20 +1,10 @@
 import { BaseQuery } from '#actions/shared/base_query'
 import type { ExecutionContext } from '#types/execution_context'
 import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
-
-const toStoragePlan = (plan?: string): string | undefined => {
-  if (plan === 'promax') {
-    return 'enterprise'
-  }
-  return plan
-}
-
-const toDisplayPlan = (plan: string): string => {
-  if (plan === 'enterprise') {
-    return 'promax'
-  }
-  return plan
-}
+import {
+  toDisplaySubscriptionPlan,
+  toStorageSubscriptionPlan,
+} from '#domain/users/subscription_rules'
 
 export interface ListSubscriptionsDTO {
   page?: number
@@ -72,7 +62,7 @@ export default class ListSubscriptionsQuery extends BaseQuery<
     const [stats, result] = await Promise.all([
       this.repo.getSubscriptionStats(),
       this.repo.listSubscriptions(
-        { search: dto.search, plan: toStoragePlan(dto.plan), status: dto.status },
+        { search: dto.search, plan: toStorageSubscriptionPlan(dto.plan), status: dto.status },
         page,
         perPage
       ),
@@ -88,7 +78,7 @@ export default class ListSubscriptionsQuery extends BaseQuery<
       },
       subscriptions: result.subscriptions.map((subscription) => ({
         ...subscription,
-        plan: toDisplayPlan(subscription.plan),
+        plan: toDisplaySubscriptionPlan(subscription.plan),
       })),
       meta: {
         total: result.total,
