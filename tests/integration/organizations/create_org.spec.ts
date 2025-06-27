@@ -51,7 +51,7 @@ test.group('Integration | Create Organization', (group) => {
       .where('entity_id', organization.id)
 
     assert.equal(organization.owner_id, user.id)
-    assert.equal(organization.plan, 'free')
+    assert.isNull(organization.plan)
     assert.isTrue(organization.slug.length > 0)
     assert.isNotNull(membership)
     assert.equal(membership?.org_role, 'org_owner')

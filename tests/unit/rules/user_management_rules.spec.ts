@@ -1,8 +1,12 @@
 import { test } from '@japa/runner'
 import {
   canApproveUser,
+  canAccessAllowedSystemRoles,
+  canAccessSystemAdministration,
+  canAccessUserAdministrationQueue,
   canChangeUserRole,
   canDeactivateUser,
+  canToggleAdminMode,
   validateSystemRole,
 } from '#domain/users/user_management_rules'
 import { SystemRoleName } from '#constants/user_constants'
@@ -130,6 +134,53 @@ test.group('User management rules', () => {
     }
     if (deniedCases[1] && !deniedCases[1].allowed) {
       assert.equal(deniedCases[1].code, 'BUSINESS_RULE')
+    }
+  })
+
+  test('system admin access helpers centralize middleware-level authorization decisions', ({
+    assert,
+  }) => {
+    for (const role of [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN]) {
+      assert.isTrue(canAccessSystemAdministration(role).allowed)
+      assert.isTrue(canToggleAdminMode(role).allowed)
+      assert.isTrue(canAccessAllowedSystemRoles(role, [SystemRoleName.REGISTERED_USER]).allowed)
+      assert.isTrue(
+        canAccessUserAdministrationQueue({
+          actorSystemRole: role,
+          actorOrgRole: null,
+        }).allowed
+      )
+    }
+
+    assert.isTrue(
+      canAccessAllowedSystemRoles(SystemRoleName.REGISTERED_USER, [SystemRoleName.REGISTERED_USER])
+        .allowed
+    )
+    assert.isTrue(
+      canAccessUserAdministrationQueue({
+        actorSystemRole: null,
+        actorOrgRole: 'org_owner',
+      }).allowed
+    )
+
+    const deniedSystemAccess = canAccessSystemAdministration(SystemRoleName.REGISTERED_USER)
+    const deniedAllowedRole = canAccessAllowedSystemRoles(null, [SystemRoleName.SYSTEM_ADMIN])
+    const deniedQueueAccess = canAccessUserAdministrationQueue({
+      actorSystemRole: SystemRoleName.REGISTERED_USER,
+      actorOrgRole: 'org_admin',
+    })
+
+    assert.isFalse(deniedSystemAccess.allowed)
+    assert.isFalse(deniedAllowedRole.allowed)
+    assert.isFalse(deniedQueueAccess.allowed)
+    if (!deniedSystemAccess.allowed) {
+      assert.equal(deniedSystemAccess.code, 'FORBIDDEN')
+    }
+    if (!deniedAllowedRole.allowed) {
+      assert.equal(deniedAllowedRole.code, 'FORBIDDEN')
+    }
+    if (!deniedQueueAccess.allowed) {
+      assert.equal(deniedQueueAccess.code, 'FORBIDDEN')
     }
   })
 })

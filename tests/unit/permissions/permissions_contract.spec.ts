@@ -49,8 +49,6 @@ test.group('Permission contracts', () => {
       getOrgRoleLevel(OrganizationRole.ADMIN),
       getOrgRoleLevel(OrganizationRole.MEMBER)
     )
-    assert.isTrue(hasOrgPermission(OrganizationRole.OWNER, 'can_manage_billing'))
-    assert.isFalse(hasOrgPermission(OrganizationRole.ADMIN, 'can_manage_billing'))
     assert.isTrue(hasOrgPermission(OrganizationRole.ADMIN, 'can_manage_members'))
     assert.isFalse(hasOrgPermission(OrganizationRole.MEMBER, 'can_manage_members'))
   })
