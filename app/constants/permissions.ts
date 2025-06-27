@@ -54,7 +54,6 @@ export const ORG_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_delete_organization',
     'can_view_all_projects',
     'can_transfer_ownership',
-    'can_manage_billing',
     'can_manage_settings',
     'can_create_custom_roles',
     'can_invite_members',

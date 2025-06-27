@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { canAccessAllowedSystemRoles } from '#domain/users/user_management_rules'
 
 /**
  * AuthorizeRole Middleware — kiểm tra system role của user.
@@ -28,21 +29,8 @@ export default class AuthorizeRoleMiddleware {
       return
     }
 
-    // v3: system_role là inline string trên user — đọc trực tiếp
-    const systemRoleName = auth.user.system_role.toLowerCase()
-
-    // Superadmin luôn được phép
-    if (systemRoleName === 'superadmin') {
-      await next()
-      return
-    }
-
-    // So sánh inline role name
-    const isAllowed = allowedRoles.some((role) => {
-      return systemRoleName === role.toLowerCase()
-    })
-
-    if (isAllowed) {
+    const decision = canAccessAllowedSystemRoles(auth.user.system_role, allowedRoles)
+    if (decision.allowed) {
       await next()
       return
     }

@@ -1,12 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import OrganizationUser from '#models/organization_user'
 import type Organization from '#models/organization'
 import type User from '#models/user'
-import { OrganizationUserStatus } from '#constants/organization_constants'
 import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * OrganizationResolver Middleware
@@ -79,14 +79,15 @@ export default class OrganizationResolverMiddleware {
     }
 
     // === Validate access — 1 query duy nhất kiểm tra cả membership + org tồn tại ===
-    const validMembership = await OrganizationUser.query()
-      .where('organization_id', targetOrgId)
-      .where('user_id', user.id)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .preload('organization')
-      .first()
+    const validMembership = await OrganizationUserRepository.findApprovedMembershipWithOrganization(
+      targetOrgId,
+      user.id
+    )
 
     if (validMembership) {
+      ctx.currentOrganizationId = targetOrgId
+      ctx.currentOrganization = validMembership.organization
+
       // Membership hợp lệ + org tồn tại → sync nếu cần
       if (sessionOrgId !== dbOrgId || sessionOrgId !== targetOrgId) {
         await this.syncOrganization(ctx, user, targetOrgId)
@@ -108,6 +109,8 @@ export default class OrganizationResolverMiddleware {
       const fallbackMembership = await this.findFirstApprovedMembership(user.id)
       if (fallbackMembership) {
         await this.syncOrganization(ctx, user, fallbackMembership.organization_id)
+        ctx.currentOrganizationId = fallbackMembership.organization_id
+        ctx.currentOrganization = fallbackMembership.organization
       } else {
         this.handleNoOrganization(ctx)
       }
@@ -122,15 +125,12 @@ export default class OrganizationResolverMiddleware {
    */
   private async findFirstApprovedMembership(
     userId: DatabaseId
-  ): Promise<{ organization_id: DatabaseId } | null> {
-    return OrganizationUser.query()
-      .where('user_id', userId)
-      .where('status', OrganizationUserStatus.APPROVED)
-      .whereHas('organization', (orgQuery) => {
-        void orgQuery.whereNull('deleted_at')
-      })
-      .orderBy('created_at', 'asc')
-      .first()
+  ): Promise<
+    Awaited<
+      ReturnType<typeof OrganizationUserRepository.findFirstApprovedMembershipWithOrganization>
+    >
+  > {
+    return OrganizationUserRepository.findFirstApprovedMembershipWithOrganization(userId)
   }
 
   /**
@@ -143,8 +143,8 @@ export default class OrganizationResolverMiddleware {
     // Update DB chỉ khi cần (tránh unnecessary write)
     if (user.current_organization_id !== orgId) {
       try {
+        await UserRepository.updateCurrentOrganization(user.id, orgId)
         user.current_organization_id = orgId
-        await user.save()
       } catch (error) {
         loggerService.error('Failed to sync organization to DB', {
           userId: user.id,
@@ -162,8 +162,10 @@ export default class OrganizationResolverMiddleware {
     ctx.session.forget('current_organization_id')
 
     try {
+      await UserRepository.updateCurrentOrganization(user.id, null)
       user.current_organization_id = null
-      await user.save()
+      ctx.currentOrganizationId = undefined
+      ctx.currentOrganization = undefined
     } catch (error) {
       loggerService.error('Failed to clear organization from DB', {
         error: error instanceof Error ? error.message : String(error),

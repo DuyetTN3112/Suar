@@ -38,7 +38,6 @@ export const PageRoutes = {
   ORG_REQUESTS: '/org/invitations/requests',
   ORG_PROJECTS: '/org/projects',
   ORG_WORKFLOW: '/org/workflow/statuses',
-  ORG_BILLING: '/org/billing',
 
   // Organizations
   ORGANIZATIONS: '/organizations',

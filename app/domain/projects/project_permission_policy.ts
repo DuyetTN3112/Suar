@@ -329,3 +329,42 @@ export function calculateProjectPermissions(ctx: ProjectPermissionContext): {
     canTransferOwnership: canTransfer,
   }
 }
+
+/**
+ * Calculate the detail-page permissions for a project.
+ *
+ * This shape matches the current project detail UI contract.
+ */
+export function calculateProjectDetailPermissions(
+  ctx: ProjectPermissionContext & { projectManagerId: DatabaseId | null }
+): {
+  isOwner: boolean
+  isManager: boolean
+  isCreator: boolean
+  isMember: boolean
+  canEdit: boolean
+  canDelete: boolean
+  canAddMembers: boolean
+} {
+  const isOwner = isSameId(ctx.projectOwnerId, ctx.actorId)
+  const isManager = ctx.projectManagerId !== null && isSameId(ctx.projectManagerId, ctx.actorId)
+  const isCreator = isSameId(ctx.projectCreatorId, ctx.actorId)
+  const isMember = ctx.actorProjectRole !== null
+
+  return {
+    isOwner,
+    isManager,
+    isCreator,
+    isMember,
+    canEdit: canUpdateProject(ctx).allowed,
+    canDelete: canDeleteProject({
+      actorId: ctx.actorId,
+      actorSystemRole: ctx.actorSystemRole,
+      actorOrgRole: ctx.actorOrgRole,
+      projectOwnerId: ctx.projectOwnerId,
+      projectCreatorId: ctx.projectCreatorId,
+      incompleteTaskCount: 0,
+    }).allowed,
+    canAddMembers: canManageProjectMembers(ctx).allowed,
+  }
+}

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import OrganizationUser from '#models/organization_user'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
 
 /**
  * RequireOrgAdminMiddleware
@@ -45,23 +46,20 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
-    // Get user's role in current organization
-    const orgUser = await OrganizationUser.query()
-      .where('user_id', auth.user.id)
-      .where('organization_id', currentOrgId)
-      .where('status', 'approved')
-      .first()
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      currentOrgId,
+      auth.user.id,
+      undefined,
+      true
+    )
 
-    if (!orgUser) {
+    if (!actorOrgRole) {
       session.flash('error', 'You are not a member of this organization')
       response.redirect().toRoute('organizations.index')
       return
     }
 
-    // Check if user is org admin or owner
-    const isOrgAdmin = orgUser.org_role === 'org_owner' || orgUser.org_role === 'org_admin'
-
-    if (!isOrgAdmin) {
+    if (!canAccessOrganizationAdminShell(actorOrgRole)) {
       session.flash(
         'error',
         'Access denied. Organization administrator or owner privileges required.'

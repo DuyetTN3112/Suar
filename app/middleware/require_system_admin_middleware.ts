@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+import { canAccessSystemAdministration } from '#domain/users/user_management_rules'
 
 /**
  * RequireSystemAdminMiddleware
@@ -31,11 +32,8 @@ export default class RequireSystemAdminMiddleware {
       return
     }
 
-    // Check system_role
-    const systemRole = auth.user.system_role.toLowerCase()
-    const isSystemAdmin = systemRole === 'superadmin' || systemRole === 'system_admin'
-
-    if (!isSystemAdmin) {
+    const decision = canAccessSystemAdministration(auth.user.system_role)
+    if (!decision.allowed) {
       session.flash('error', 'Access denied. System administrator privileges required.')
       response.redirect().toRoute('home')
       return
