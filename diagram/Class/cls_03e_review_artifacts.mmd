@@ -1,0 +1,49 @@
+%% Class Diagram: Review Evidence & Self-Assessment
+%% Scope: Supporting review records created around a review session.
+
+classDiagram
+    class ReviewSession {
+        +UUID id
+        +UUID task_assignment_id
+        +UUID reviewee_id
+        +String status
+    }
+
+    class ReviewEvidence {
+        +UUID id
+        +UUID review_session_id
+        +String evidence_type
+        +String url
+        +String title
+        +String description
+        +UUID uploaded_by
+        +DateTime created_at
+    }
+
+    class TaskSelfAssessment {
+        +UUID id
+        +UUID task_assignment_id
+        +UUID user_id
+        +Integer overall_satisfaction
+        +String difficulty_felt
+        +Integer confidence_level
+        +String[] blockers_encountered
+        +String[] skills_felt_lacking
+        +String[] skills_felt_strong
+        +DateTime submitted_at
+    }
+
+    class TaskAssignment {
+        +UUID id
+        +UUID task_id
+        +UUID assignee_id
+    }
+
+    ReviewSession "1" --> "*" ReviewEvidence : evidence items
+    TaskAssignment "1" --> "0..1" TaskSelfAssessment : reflection
+    ReviewSession "1" --> "0..1" TaskSelfAssessment : tied via assignment
+
+    note for ReviewEvidence "Evidence can be attached by review participants
+    to support review decisions and later admin investigation."
+    note for TaskSelfAssessment "Self-assessment is submitted by the reviewee,
+    independent from reviewer scoring."

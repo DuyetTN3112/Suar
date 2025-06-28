@@ -1,0 +1,58 @@
+%% Class Diagram: Task Mapping & DTO Boundary
+%% Scope: Task mappers, repository contract, and application DTO groups.
+
+classDiagram
+    class Task
+    class TaskEntity
+
+    class TaskRepository {
+        <<interface>>
+        +findById()
+        +findByOrganization()
+        +findByProject()
+        +findByAssignee()
+        +findNotDeletedOrFail()
+    }
+
+    class TaskDomainMapper {
+        <<Domain Mapper>>
+        +toEntity()
+        +toProps()
+    }
+
+    class TaskInfraMapper {
+        <<Infra Mapper>>
+        +toDomain()
+        +toOrm()
+    }
+
+    class TaskApplicationMapper {
+        <<Application Mapper>>
+        +fromRequestDTO()
+        +toDetailResponse()
+        +toListItemResponse()
+        +toSummaryResponse()
+    }
+
+    class TaskRequestDTOs {
+        <<Request DTO Group>>
+        +CreateTaskDTO
+        +UpdateTaskDTO
+        +UpdateTaskStatusDTO
+        +AssignTaskDTO
+    }
+
+    class TaskResponseDTOs {
+        <<Response DTO Group>>
+        +TaskDetailResponse
+        +TaskListItemResponse
+        +TaskSummaryResponse
+    }
+
+    TaskDomainMapper ..> TaskEntity : creates
+    TaskInfraMapper ..> Task : reads ORM
+    TaskInfraMapper ..> TaskEntity : produces
+    TaskApplicationMapper ..> TaskRequestDTOs : consumes
+    TaskApplicationMapper ..> TaskEntity : reads
+    TaskApplicationMapper ..> TaskResponseDTOs : produces
+    TaskRepository ..> TaskEntity : returns

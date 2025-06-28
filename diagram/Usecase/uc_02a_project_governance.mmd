@@ -1,0 +1,36 @@
+%% uc_02a_project_governance.mmd — Project Governance & Workflow Setup
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    projectOwner["<<actor>> Project Owner"]
+    projectManager["<<actor>> Project Manager"]
+    orgAdmin["<<actor>> Org Admin"]
+
+    subgraph system["Project Governance"]
+        listProjects([List organization projects])
+        createProject([Create project])
+        viewProject([View project detail])
+        addMember([Add project member])
+        deleteProject([Delete project])
+        configureStatuses([Manage task statuses])
+        configureTransitions([Manage workflow transitions])
+    end
+
+    projectOwner --> listProjects
+    projectOwner --> createProject
+    projectOwner --> viewProject
+    projectOwner --> addMember
+    projectOwner --> deleteProject
+
+    projectManager --> viewProject
+    projectManager --> addMember
+
+    orgAdmin --> configureStatuses
+    orgAdmin --> configureTransitions
+
+    configureTransitions -.->|<<include>>| configureStatuses
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class projectOwner,projectManager,orgAdmin actor
+    class listProjects,createProject,viewProject,addMember,deleteProject,configureStatuses,configureTransitions usecase

@@ -1,0 +1,82 @@
+%% seq_09a_profile_views_skills.mmd
+%% Scope: Owner/public profile views + skill management
+%% Runtime refs:
+%%   - GET /profile -> ShowProfileController
+%%   - GET /users/:id/profile -> ViewUserProfileController
+%%   - POST /profile/skills -> AddProfileSkillController
+%%   - PUT /profile/skills/:id -> UpdateProfileSkillController
+%%   - DELETE /profile/skills/:id -> RemoveProfileSkillController
+%% Notes:
+%%   - spider chart data is returned as 3 buckets: technical, soft_skills, delivery
+%%   - review listeners invalidate profile/spider caches when review data changes
+
+sequenceDiagram
+    autonumber
+    actor O as Profile Owner
+    actor V as Viewer
+    participant UI as Browser (Svelte)
+    participant Show as ShowProfileController
+    participant View as ViewUserProfileController
+    participant SkillC as Skill Controllers
+    participant Q as Profile Queries
+    participant Cmd as Skill Commands
+    participant DB as PostgreSQL
+
+    O->>UI: Open /profile
+    UI->>Show: GET /profile
+    par Owner profile aggregate
+        Show->>Q: GetUserProfileQuery
+        Q->>DB: SELECT user + skills + profile data
+        DB-->>Q: User aggregate
+    and Spider charts
+        Show->>Q: GetSpiderChartDataQuery
+        Q->>DB: SELECT user_skills + skills(display_type/category)
+        DB-->>Q: technical / soft_skills / delivery
+    and Delivery metrics and highlights
+        Show->>Q: GetUserDeliveryMetricsQuery + GetFeaturedReviewsQuery
+        Q->>DB: SELECT performance + featured reviews
+        DB-->>Q: Metrics + reviews
+    and Current snapshot
+        Show->>Q: GetCurrentProfileSnapshotQuery
+        Q->>DB: SELECT latest current snapshot
+        DB-->>Q: Snapshot or null
+    end
+    Show-->>UI: Inertia profile/show props
+    UI-->>O: Render profile, 3 spider charts, reviews, snapshot controls
+
+    O->>UI: Add a new skill
+    UI->>SkillC: POST /profile/skills
+    SkillC->>Cmd: AddUserSkillCommand.execute(dto)
+    Cmd->>DB: Check duplicate (user_id + skill_id)
+    alt Skill already exists
+        Cmd-->>SkillC: 409 Conflict
+        SkillC-->>UI: Validation/business error
+    else New skill
+        Cmd->>DB: INSERT user_skills<br/>(level_code, source='imported')
+        SkillC-->>UI: Redirect back
+    end
+
+    O->>UI: Update or remove a skill
+    UI->>SkillC: PUT/DELETE /profile/skills/:id
+    SkillC->>Cmd: Load owned user_skill
+    Cmd->>DB: SELECT user_skill by id + user_id
+    alt Update level
+        Cmd->>DB: UPDATE user_skills
+    else Remove skill
+        Cmd->>DB: DELETE FROM user_skills
+    end
+    SkillC-->>UI: Redirect back
+
+    V->>UI: Open /users/:id/profile
+    UI->>View: GET /users/:id/profile
+    par Public profile aggregate
+        View->>Q: GetUserProfileQuery
+        Q->>DB: SELECT user + profile data
+        DB-->>Q: User aggregate
+    and Public charts and metrics
+        View->>Q: GetSpiderChartDataQuery + GetUserDeliveryMetricsQuery + GetFeaturedReviewsQuery
+        Q->>DB: SELECT charts + delivery + reviews
+        DB-->>Q: Public-facing profile data
+    end
+    View-->>UI: Inertia profile/view props
+    UI-->>V: Render public profile

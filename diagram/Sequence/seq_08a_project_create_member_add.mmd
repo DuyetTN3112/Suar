@@ -1,0 +1,42 @@
+%% seq_08a_project_create_member_add.mmd
+%% Scope: Create project and add project member.
+
+sequenceDiagram
+    autonumber
+    actor U as Org Member
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as Command
+    participant Rules as ProjectRules
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Note over U, Evt: CREATE PROJECT
+    U->>B: Fill project form
+    B->>C: POST /projects
+    C->>Cmd: CreateProjectCommand
+    Cmd->>Rules: Validate dates and project status
+    Cmd->>Repo: save(project)
+    Repo->>DB: INSERT projects
+    Cmd->>Repo: save owner membership
+    Repo->>DB: INSERT project_members
+    Cmd->>Evt: emit(project:created)
+    C-->>B: Redirect to project page
+
+    Note over U, Evt: ADD PROJECT MEMBER
+    U->>B: Add member to project
+    B->>C: POST /projects/members
+    C->>Cmd: AddProjectMemberCommand
+    Cmd->>Repo: Check organization membership
+    Repo->>DB: SELECT organization_users
+
+    alt Target user is not approved org member
+        Cmd-->>C: Reject request
+        C-->>B: Validation error
+    else Approved org member
+        Cmd->>Repo: save project member
+        Repo->>DB: INSERT project_members
+        Cmd->>Evt: emit(project:member_added)
+        C-->>B: Redirect back
+    end

@@ -1,0 +1,46 @@
+%% seq_02b_task_status_assignment.mmd
+%% Scope: Assignment and task status execution flow.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Member / Manager
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as Command
+    participant Entity as TaskEntity
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Note over U, Evt: ASSIGN TASK
+    U->>B: Update assignee
+    B->>C: PUT /tasks/:id
+    C->>Cmd: UpdateTaskCommand -> AssignTaskCommand
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Entity: assignTo(userId)
+    Cmd->>Repo: save(task)
+    Repo->>DB: UPDATE tasks.assigned_to
+    Cmd->>Evt: emit(task:assigned)
+    C-->>B: Return updated task
+
+    Note over U, Evt: CHANGE STATUS
+    U->>B: Change task status
+    B->>C: PUT /tasks/:id/status
+    C->>Cmd: UpdateTaskStatusCommand
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Entity: Validate transition and guards
+
+    alt todo -> in_progress without assignee
+        Cmd-->>C: Reject request
+        C-->>B: 422 validation error
+    else Valid transition
+        Cmd->>Repo: save(task)
+        Repo->>DB: UPDATE tasks.status
+        Cmd->>Evt: emit(task:status:changed)
+        Note over Evt: done-category transition also triggers review-session setup
+        C-->>B: Return updated task
+    end
