@@ -15,6 +15,7 @@
   import SidebarMenuButton from '@/components/ui/sidebar/sidebar_menu_button.svelte'
   import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
   import { getIconComponent } from '@/components/icons_svelte'
+  import { formatRoleLabel } from '@/lib/access_ui'
   import { getContext } from 'svelte'
 
   // Định nghĩa interface cho team/organization
@@ -22,7 +23,6 @@
     id?: string
     name: string
     logo?: string
-    plan?: string | null
     org_role?: string | null
     status?: string | null
   }
@@ -73,7 +73,6 @@
         id: org.id,
         name: org.name,
         logo: org.logo || 'Building',
-        plan: org.plan || null,
         org_role: org.org_role || null,
         status: org.status || null,
       }))
@@ -178,16 +177,7 @@
   }
 
   function formatOrganizationRole(role?: string | null): string {
-    switch (role) {
-      case 'org_owner':
-        return 'Owner'
-      case 'org_admin':
-        return 'Admin'
-      case 'org_member':
-        return 'Member'
-      default:
-        return 'Member'
-    }
+    return formatRoleLabel(role)
   }
 </script>
 
@@ -227,9 +217,6 @@
                 <span class="truncate font-semibold">{selectedTeam.name}</span>
                 <span class="truncate text-xs">
                   {formatOrganizationRole(selectedTeam.org_role)}
-                  {#if selectedTeam.plan}
-                    · {selectedTeam.plan.toUpperCase()}
-                  {/if}
                   {#if currentProject}
                     · {currentProject.name}
                   {/if}

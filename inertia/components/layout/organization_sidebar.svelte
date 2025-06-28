@@ -6,6 +6,7 @@
   import SidebarHeader from '@/components/ui/sidebar/sidebar_header.svelte'
   import NavGroup from '@/components/layout/nav_group.svelte'
   import NavUser from '@/components/layout/nav_user.svelte'
+  import TeamSwitcher from '@/components/layout/team_switcher.svelte'
   import { organizationNavigation } from '@/components/navigation.svelte'
 
   interface AuthUser {
@@ -43,22 +44,18 @@
 </script>
 
 <Sidebar
-  class="h-screen shrink-0 overflow-hidden border-r border-blue-200 bg-blue-50"
+  class="h-screen shrink-0 overflow-hidden border-r-2 border-sidebar-border bg-sidebar"
   collapsible="offcanvas"
   variant="sidebar"
 >
-  <SidebarHeader class="px-2 py-4 border-b border-blue-200">
-    <div class="flex items-center gap-2 px-3">
-      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white">
-        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
+  <SidebarHeader class="border-b-2 border-sidebar-border px-3 py-3">
+    <a href="/" class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg border-2 border-black bg-primary text-primary-foreground font-black shadow-neo-sm">S</div>
+      <div class="leading-tight">
+        <p class="text-sm font-black tracking-wide text-sidebar-foreground">SUAR</p>
+        <p class="text-[10px] text-muted-foreground">Organization workspace</p>
       </div>
-      <div class="flex flex-col">
-        <span class="text-sm font-semibold text-blue-900">Organization</span>
-        <span class="text-xs text-blue-600">Quản trị tổ chức</span>
-      </div>
-    </div>
+    </a>
   </SidebarHeader>
 
   <SidebarContent class="px-2">
@@ -67,7 +64,8 @@
     {/each}
   </SidebarContent>
 
-  <SidebarFooter class="px-2 py-2 border-t border-blue-200">
+  <SidebarFooter class="border-t-2 border-sidebar-border px-2 py-2 space-y-2">
+    <TeamSwitcher />
     {#if userInfo}
       <NavUser user={userInfo} />
     {/if}

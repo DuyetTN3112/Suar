@@ -67,11 +67,8 @@
   }
 </script>
 
-<header class="border-b-2 border-border bg-background px-4 py-3">
-  <div class="flex items-center justify-between">
-    <div>
-      <Link href="/" class="text-lg font-semibold">{displayName || t('user.account', {}, 'Tài khoản')}</Link>
-    </div>
+<header class="border-b-2 border-border bg-background px-4 py-2">
+  <div class="flex items-center justify-end">
 
     <div class="flex items-center gap-2">
       <ThemeSwitch />
@@ -83,14 +80,14 @@
 
       <DropdownMenu>
         <DropdownMenuTrigger>
-          <Button variant="ghost" size="sm" class="gap-2">
-            <Avatar class="h-8 w-8">
+          <Button variant="ghost" size="sm" class="h-8 gap-2 px-2">
+            <Avatar class="h-7 w-7">
               {#if avatarUrl}
                 <AvatarImage src={avatarUrl} alt={displayName} />
               {/if}
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <span class="font-normal hidden md:inline-block">
+            <span class="hidden font-normal md:inline-block text-sm">
               {displayName || t('user.account', {}, 'Tài khoản')}
             </span>
           </Button>
