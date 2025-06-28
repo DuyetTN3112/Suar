@@ -1,6 +1,5 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -44,6 +43,7 @@
     }
     packages: Array<{
       id: string
+      storagePlan: string
       name: string
       priceLabel: string
       features: string[]
@@ -63,11 +63,17 @@
   }
 </script>
 
-<AdminLayout title="Quản lý gói">
   <div class="space-y-6">
-    <div>
-      <h1 class="text-3xl font-bold tracking-tight">Gói dịch vụ</h1>
-      <p class="mt-1 text-slate-600">Theo dõi adoption của gói Pro/ProMax và chỉnh trạng thái subscription trực tiếp.</p>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="neo-kicker">Admin / Packages</p>
+        <h1 class="text-4xl font-bold tracking-tight">Gói dịch vụ</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Theo dõi adoption của gói Pro/ProMax và chỉnh trạng thái subscription trực tiếp.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
+        <a href="/admin/audit-logs" class="neo-surface-soft px-3 py-2 text-sm font-bold">Audit log</a>
+      </div>
     </div>
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -81,19 +87,19 @@
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium">Đang active</CardTitle>
         </CardHeader>
-        <CardContent><div class="text-2xl font-bold text-green-600">{stats.active}</div></CardContent>
+        <CardContent><div class="text-2xl font-bold neo-text-blue">{stats.active}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium">Sắp hết hạn 14 ngày</CardTitle>
         </CardHeader>
-        <CardContent><div class="text-2xl font-bold text-amber-600">{stats.expiringSoon}</div></CardContent>
+        <CardContent><div class="text-2xl font-bold neo-text-orange">{stats.expiringSoon}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium">Đã hủy</CardTitle>
         </CardHeader>
-        <CardContent><div class="text-2xl font-bold text-slate-600">{stats.cancelled}</div></CardContent>
+        <CardContent><div class="text-2xl font-bold text-muted-foreground">{stats.cancelled}</div></CardContent>
       </Card>
     </div>
 
@@ -103,13 +109,13 @@
           <CardHeader>
             <CardTitle class="flex items-center justify-between">
               <span>{pkg.name}</span>
-              <Badge variant="outline">{stats.byPlan[pkg.id] || 0} user</Badge>
+              <Badge variant="outline">{stats.byPlan[pkg.storagePlan] || 0} user</Badge>
             </CardTitle>
             <CardDescription>{pkg.priceLabel}</CardDescription>
           </CardHeader>
           <CardContent class="space-y-2">
             {#each pkg.features as feature}
-              <p class="text-sm text-slate-700">• {feature}</p>
+              <p class="text-sm text-muted-foreground">• {feature}</p>
             {/each}
           </CardContent>
         </Card>
@@ -125,35 +131,35 @@
       </CardHeader>
       <CardContent>
         <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="border-b">
-              <tr class="text-left text-sm text-slate-600">
-                <th class="pb-3 font-medium">User</th>
-                <th class="pb-3 font-medium">Gói</th>
-                <th class="pb-3 font-medium">Trạng thái</th>
-                <th class="pb-3 font-medium">Gia hạn</th>
-                <th class="pb-3 font-medium">Hành động</th>
+          <table class="neo-data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Gói</th>
+                <th>Trạng thái</th>
+                <th>Gia hạn</th>
+                <th>Hành động</th>
               </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody>
               {#each subscriptions as subscription}
                 <tr class="text-sm">
-                  <td class="py-3">
+                  <td>
                     <div class="font-medium">{subscription.username}</div>
-                    <div class="text-xs text-slate-500">{subscription.email || 'Không có email'}</div>
+                    <div class="text-xs text-muted-foreground">{subscription.email || 'Không có email'}</div>
                   </td>
-                  <td class="py-3">
+                  <td>
                     <Badge variant="outline">{subscription.plan}</Badge>
                   </td>
-                  <td class="py-3">
+                  <td>
                     <Badge variant={subscription.status === 'active' ? 'secondary' : 'outline'}>
                       {subscription.status}
                     </Badge>
                   </td>
-                  <td class="py-3 text-slate-600">
+                  <td class="text-muted-foreground">
                     {subscription.expires_at ? new Date(subscription.expires_at).toLocaleDateString('vi-VN') : 'Không giới hạn'}
                   </td>
-                  <td class="py-3">
+                  <td>
                     <div class="flex flex-wrap gap-2">
                       <Button size="sm" variant="outline" onclick={() => { updateSubscription(subscription.id, { plan: 'pro' }); }}>
                         Pro
@@ -176,11 +182,11 @@
         </div>
 
         {#if subscriptions.length === 0}
-          <p class="py-8 text-center text-sm text-slate-500">Chưa có subscription nào.</p>
+          <p class="py-8 text-center text-sm text-muted-foreground">Chưa có subscription nào.</p>
         {/if}
 
         {#if meta.lastPage > 1}
-          <div class="mt-4 flex items-center justify-between text-sm text-slate-600">
+          <div class="mt-4 flex items-center justify-between text-sm text-muted-foreground">
             <span>Trang {meta.currentPage}/{meta.lastPage}</span>
             <div class="flex gap-2">
               <Button
@@ -209,4 +215,3 @@
       </CardContent>
     </Card>
   </div>
-</AdminLayout>

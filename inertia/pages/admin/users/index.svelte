@@ -1,6 +1,5 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -78,20 +77,44 @@
         return status
     }
   }
+
+  function roleClass(role: string): string {
+    switch (role) {
+      case 'superadmin':
+        return 'neo-pill-magenta'
+      case 'system_admin':
+        return 'neo-pill-orange'
+      default:
+        return 'neo-pill-soft'
+    }
+  }
+
+  function statusClass(status: string): string {
+    switch (status) {
+      case 'active':
+        return 'neo-pill-blue'
+      case 'suspended':
+        return 'neo-pill-ink'
+      case 'pending':
+        return 'neo-pill-orange'
+      default:
+        return 'neo-pill-soft'
+    }
+  }
 </script>
 
-<AdminLayout title="Người dùng hệ thống">
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold">Người dùng hệ thống</h1>
-        <p class="mt-1 text-slate-600">
+        <p class="neo-kicker">Admin / Users</p>
+        <h1 class="text-4xl font-bold tracking-tight">Người dùng hệ thống</h1>
+        <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
           Bề mặt này dành cho system admin. Quản trị thành viên trong từng tổ chức đã được tách sang namespace <code>/org</code>.
         </p>
       </div>
     </div>
 
-    <Card>
+    <Card class="neo-panel">
       <CardHeader>
         <CardTitle>Tất cả tài khoản ({meta.total.toLocaleString()})</CardTitle>
         <CardDescription>
@@ -109,40 +132,34 @@
         </form>
 
         <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="border-b">
-              <tr class="text-left text-sm text-slate-600">
-                <th class="pb-3 font-medium">Username</th>
-                <th class="pb-3 font-medium">Email</th>
-                <th class="pb-3 font-medium">Vai trò hệ thống</th>
-                <th class="pb-3 font-medium">Trạng thái</th>
-                <th class="pb-3 font-medium">Ngày tham gia</th>
-                <th class="pb-3 font-medium">Thao tác</th>
+          <table class="neo-data-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Vai trò hệ thống</th>
+                <th>Trạng thái</th>
+                <th>Ngày tham gia</th>
+                <th>Thao tác</th>
               </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody>
               {#each users as user}
                 <tr class="text-sm">
-                  <td class="py-3 font-medium">{user.username}</td>
-                  <td class="py-3 text-slate-600">{user.email || '-'}</td>
-                  <td class="py-3">
-                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium
-                      {user.system_role === 'superadmin' ? 'bg-red-100 text-red-700' :
-                       user.system_role === 'system_admin' ? 'bg-orange-100 text-orange-700' :
-                       'bg-slate-100 text-slate-700'}">
+                  <td class="font-medium">{user.username}</td>
+                  <td class="text-muted-foreground">{user.email || '-'}</td>
+                  <td>
+                    <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {roleClass(user.system_role)}">
                       {roleLabel(user.system_role)}
                     </span>
                   </td>
-                  <td class="py-3">
-                    <span class="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium
-                      {user.status === 'active' ? 'bg-green-100 text-green-700' :
-                       user.status === 'suspended' ? 'bg-red-100 text-red-700' :
-                       'bg-slate-100 text-slate-700'}">
+                  <td>
+                    <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {statusClass(user.status)}">
                       {statusLabel(user.status)}
                     </span>
                   </td>
-                  <td class="py-3 text-slate-600">{new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
-                  <td class="py-3">
+                  <td class="text-muted-foreground">{new Date(user.created_at).toLocaleDateString('vi-VN')}</td>
+                  <td>
                     <Link href="/admin/users/{user.id}">
                       <Button variant="ghost" size="sm">Xem chi tiết</Button>
                     </Link>
@@ -154,14 +171,14 @@
         </div>
 
         {#if users.length === 0}
-          <div class="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-slate-500">
+          <div class="neo-empty-state">
             Không có tài khoản nào khớp bộ lọc hiện tại.
           </div>
         {/if}
 
         {#if meta.lastPage > 1}
           <div class="mt-4 flex items-center justify-between">
-            <p class="text-sm text-slate-600">
+            <p class="text-sm text-muted-foreground">
               Trang {meta.currentPage} / {meta.lastPage}
             </p>
             <div class="flex gap-2">
@@ -181,4 +198,3 @@
       </CardContent>
     </Card>
   </div>
-</AdminLayout>

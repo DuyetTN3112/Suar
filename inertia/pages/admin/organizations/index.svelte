@@ -1,6 +1,5 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AdminLayout from '@/layouts/admin_layout.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
@@ -27,7 +26,6 @@
         username: string
         email: string
       }
-      plan: string | null
       created_at: string
       updated_at: string
       _count: {
@@ -43,7 +41,6 @@
     }
     filters: {
       search?: string
-      plan?: string
     }
   }
 
@@ -63,7 +60,6 @@
       '/admin/organizations',
       {
         search: searchValue,
-        plan: filters.plan,
         page: 1,
       },
       {
@@ -82,12 +78,12 @@
   }
 </script>
 
-<AdminLayout>
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Tổ chức</h1>
-        <p class="text-muted-foreground">Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống.</p>
+        <p class="neo-kicker">Admin / Organizations</p>
+        <h1 class="text-4xl font-bold tracking-tight">Tổ chức</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống.</p>
       </div>
     </div>
 
@@ -115,7 +111,7 @@
     <!-- Organizations Grid -->
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {#each organizations as org}
-        <Card class="hover:shadow-lg transition-shadow">
+        <Card class="neo-panel transition-transform hover:-translate-y-0.5">
           <CardHeader>
             <div class="flex items-start justify-between">
               <div class="flex items-center gap-3 flex-1 min-w-0">
@@ -137,27 +133,27 @@
             <div class="space-y-3">
               <!-- Owner -->
               <div class="flex items-center gap-2 text-sm">
-                <Crown class="h-4 w-4 text-amber-500" />
+                <Crown class="h-4 w-4 neo-text-orange" />
                 <span class="text-muted-foreground">Owner:</span>
                 <span class="font-medium">{org.owner.username}</span>
               </div>
 
               <!-- Stats -->
-              <div class="grid grid-cols-2 gap-3 pt-2 border-t">
+              <div class="neo-divider grid grid-cols-2 gap-3 pt-3">
                 <div class="flex items-center gap-2 text-sm">
-                  <Users class="h-4 w-4 text-blue-500" />
+                  <Users class="h-4 w-4 neo-text-blue" />
                   <span class="font-medium">{org._count.members}</span>
                   <span class="text-muted-foreground">thành viên</span>
                 </div>
                 <div class="flex items-center gap-2 text-sm">
-                  <FolderKanban class="h-4 w-4 text-green-500" />
+                  <FolderKanban class="h-4 w-4 neo-text-magenta" />
                   <span class="font-medium">{org._count.projects}</span>
                   <span class="text-muted-foreground">dự án</span>
                 </div>
               </div>
 
               <!-- Created Date -->
-              <div class="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t">
+              <div class="neo-divider flex items-center gap-2 pt-3 text-xs text-muted-foreground">
                 <Calendar class="h-3 w-3" />
                 <span>Tạo ngày {formatDate(org.created_at)}</span>
               </div>
@@ -231,4 +227,3 @@
       </Card>
     {/if}
   </div>
-</AdminLayout>
