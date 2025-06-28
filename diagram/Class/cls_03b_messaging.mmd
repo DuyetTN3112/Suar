@@ -1,266 +1,43 @@
+%% Class Diagram: Messaging Schema Slice
+%% Scope: Legacy messaging tables only.
+%% Note:
+%%   - Current codebase keeps validators and cleanup hooks around conversations,
+%%     but no complete messaging application/domain module is present.
 
-%% Class Diagram: Messaging Domain
-%% Source: app/models/conversation.ts, conversation_participant.ts, message.ts
-%%         + Clean Architecture DDD layers:
-%%         app/domain/conversations/
-%%         app/infra/conversations/
-%%         app/actions/conversations/
-%% Scope: Columns match @column decorators exactly.
-%%         ⚡ = leaked static method (should → Repository layer).
-%%         ⚠️ Transmit transport=null — realtime NOT working.
-%%         🏛️ = Clean Architecture + DDD layer classes.
 classDiagram
-
-    %% ══════════════════════════════════════════════
-    %% ORM Models (Infrastructure — Lucid BaseModel)
-    %% ══════════════════════════════════════════════
-
     class Conversation {
-        +UUID id PK
+        <<legacy schema>>
+        +UUID id
         +String title
-        +UUID organization_id FK (nullable)
-        +UUID task_id FK (nullable, dead code)
-        +UUID last_message_id FK
+        +UUID organization_id
+        +UUID task_id
+        +UUID last_message_id
         +DateTime last_message_at
         +DateTime deleted_at
-        +DateTime created_at
-        +DateTime updated_at
-        --
-        +$findWithParticipantOrFail(convId, userId, trx?)⚡
-        +$findWithParticipant(convId, userId, trx?)⚡
-        +$paginateByUser(userId, opts, trx?)⚡
-        +$findIdsByOrganization(orgId, trx?)⚡
-        +$findDirectBetween(userId1, userId2)⚡
-        +$findGroupWithParticipants(participantIds)⚡
     }
 
     class ConversationParticipant {
-        +UUID id PK
-        +UUID conversation_id FK
-        +UUID user_id FK
-        --
-        +$createBatch(convId, userIds, trx?)⚡
-        +$isParticipant(convId, userId, trx?)⚡
-        +$countByConversation(convId, trx?)⚡
-        +$getParticipantIds(convId, trx?)⚡
-        +$removeByUserInConversations(userId, convIds, trx?)⚡
+        <<legacy schema>>
+        +UUID id
+        +UUID conversation_id
+        +UUID user_id
     }
 
     class Message {
-        +UUID id PK
-        +UUID conversation_id FK
-        +UUID sender_id FK
+        <<legacy schema>>
+        +UUID id
+        +UUID conversation_id
+        +UUID sender_id
         +Text message
-        +String send_status : sending | sent | failed
+        +String send_status
         +Boolean is_recalled
-        +DateTime recalled_at
-        +String recall_scope : self | all (nullable)
+        +String recall_scope
         +DateTime read_at
-        +DateTime created_at
-        +DateTime updated_at
-        --
-        +@computed isEffectivelyRecalled() Boolean
-        +@computed isRecalledForEveryone() Boolean
-        +@computed summary() Object
-        +toJSON() override
-        +$markAllAsReadInConversation(convId, userId, trx?)⚡
-        +$markSpecificAsRead(convId, msgIds, userId, trx?)⚡
-        +$countUnreadInConversation(convId, userId, trx?)⚡
-        +$countUnreadBatch(convIds, userId, trx?)⚡
-        +$getLastMessageInConversation(convId, userId, trx?)⚡
-        +$getLastMessagesBatch(convIds, userId, trx?)⚡
-        +$paginateByConversation(convId, userId, opts, trx?)⚡
-        +$getParticipantsBatch(convIds, trx?)⚡
     }
 
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Domain Entities (app/domain/conversations/entities/)
-    %% Pure TypeScript, NO framework dependencies
-    %% ══════════════════════════════════════════════
+    Conversation "1" --> "*" ConversationParticipant : participants
+    Conversation "1" --> "*" Message : messages
 
-    class ConversationEntity {
-        <<Domain Entity>>
-        +String id
-        +String title
-        +String organizationId
-        +String taskId
-        +String lastMessageId
-        +Date lastMessageAt
-        +Date deletedAt
-        +Date createdAt
-        +Date updatedAt
-        --
-        +get isDeleted() Boolean
-        +get isGroupConversation() Boolean
-        +get hasOrganization() Boolean
-    }
-
-    class MessageEntity {
-        <<Domain Entity>>
-        +String id
-        +String conversationId
-        +String senderId
-        +String message
-        +MessageSendStatus sendStatus
-        +Boolean isRecalled
-        +Date recalledAt
-        +MessageRecallScope recallScope
-        +Date readAt
-        +Date createdAt
-        +Date updatedAt
-        --
-        +get isRecalledMessage() Boolean
-        +get isSent() Boolean
-        +get isFailed() Boolean
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Domain Mapper (app/domain/conversations/mapper/)
-    %% Pure TypeScript — props ↔ Domain Entity
-    %% ══════════════════════════════════════════════
-
-    class ConversationDomainMapper {
-        <<Domain Mapper>>
-        +$toEntity(props) ConversationEntity
-        +$toProps(entity) ConversationEntityProps
-        +$messageToEntity(props) MessageEntity
-        +$messageToProps(entity) MessageEntityProps
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Repository Interface (app/domain/conversations/repositories/)
-    %% Contract — implemented by infra layer
-    %% ══════════════════════════════════════════════
-
-    class IConversationRepository {
-        <<interface>>
-        +findById(id) Promise~ConversationEntity|null~
-        +findByOrganization(orgId) Promise~ConversationEntity[]~
-        +findByParticipant(userId) Promise~ConversationEntity[]~
-        +findNotDeletedOrFail(id) Promise~ConversationEntity~
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Infrastructure Mapper (app/infra/conversations/mapper/)
-    %% ORM Model ↔ Domain Entity
-    %% ══════════════════════════════════════════════
-
-    class ConversationInfraMapper {
-        <<Infra Mapper>>
-        +$toDomain(model: Conversation) ConversationEntity
-        +$toOrm(entity: Partial~ConversationEntityProps~) Record
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Repository Implementation (app/infra/conversations/repositories/)
-    %% Implements interface using Lucid ORM
-    %% ══════════════════════════════════════════════
-
-    class ConversationRepositoryImpl {
-        <<Infra Repository>>
-        +findById(id) Promise~ConversationEntity|null~
-        +findByOrganization(orgId) Promise~ConversationEntity[]~
-        +findByParticipant(userId) Promise~ConversationEntity[]~
-        +findNotDeletedOrFail(id) Promise~ConversationEntity~
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Application Mapper (app/actions/conversations/mapper/)
-    %% Request DTO → Domain Entity, Domain Entity → Response DTO
-    %% ══════════════════════════════════════════════
-
-    class ConversationApplicationMapper {
-        <<Application Mapper>>
-        +$fromCreateDTO(dto) Partial~ConversationEntityProps~
-        +$toDetailResponse(entity) ConversationDetailResponseDTO
-        +$toListItemResponse(entity) ConversationListItemResponseDTO
-        +$toMessageResponse(entity) MessageResponseDTO
-    }
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Response DTOs (app/actions/conversations/dtos/response/)
-    %% ══════════════════════════════════════════════
-
-    class ConversationDetailResponseDTO {
-        <<Response DTO>>
-        +String id
-        +String title
-        +String organizationId
-        +String lastMessageId
-        +String lastMessageAt
-        +String createdAt
-        +String updatedAt
-    }
-    class ConversationListItemResponseDTO {
-        <<Response DTO>>
-        +String id
-        +String title
-        +String organizationId
-        +String lastMessageAt
-        +String createdAt
-    }
-    class MessageResponseDTO {
-        <<Response DTO>>
-        +String id
-        +String conversationId
-        +String senderId
-        +String message
-        +String sendStatus
-        +Boolean isRecalled
-        +String recallScope
-        +String readAt
-    }
-
-    %% ══════════════════════════════════════════════
-    %% ORM Model Relationships (existing)
-    %% ══════════════════════════════════════════════
-
-    %% Messaging relationships
-    Conversation "1" --> "*" ConversationParticipant : has
-    Conversation "1" --> "*" Message : contains
-
-    %% Messaging cross-references
-    Conversation ..> Organization : scoped to (nullable)
-
-    %% ══════════════════════════════════════════════
-    %% 🏛️ Clean Architecture Relationships
-    %% ══════════════════════════════════════════════
-
-    %% Domain Mapper ↔ Domain Entity
-    ConversationDomainMapper ..> ConversationEntity : creates / exports
-    ConversationDomainMapper ..> MessageEntity : creates / exports
-
-    %% Repository Interface ← Implementation (implements)
-    IConversationRepository <|.. ConversationRepositoryImpl
-
-    %% Infra Mapper: ORM Model → Domain Entity
-    ConversationInfraMapper ..> Conversation : reads ORM
-    ConversationInfraMapper ..> ConversationEntity : produces
-
-    %% Repository Impl uses Infra Mapper
-    ConversationRepositoryImpl ..> ConversationInfraMapper : uses
-
-    %% Application Mapper: Domain Entity ↔ Response DTO
-    ConversationApplicationMapper ..> ConversationEntity : reads
-    ConversationApplicationMapper ..> MessageEntity : reads
-    ConversationApplicationMapper ..> ConversationDetailResponseDTO : produces
-    ConversationApplicationMapper ..> ConversationListItemResponseDTO : produces
-    ConversationApplicationMapper ..> MessageResponseDTO : produces
-
-    note for ConversationParticipant "Only 3 columns: id, conversation_id, user_id.
-    NO last_read_at, NO timestamps.
-    Read tracking via Message.read_at instead."
-    note for Message "Messages created as 'sent' directly.
-    No 'sending' state server-side.
-    'failed' status unreachable.
-    Transmit NOT wired (transport=null)."
-    note for Conversation "task_id is dead code — exists in schema
-    but never used by any controller/command."
-    note for ConversationEntity "🏛️ Pure domain entity (app/domain/conversations/entities/).
-    State queries: isDeleted, isGroupConversation, hasOrganization.
-    Framework-independent — NO AdonisJS imports."
-    note for MessageEntity "🏛️ Pure domain entity (app/domain/conversations/entities/).
-    State queries: isRecalledMessage, isSent, isFailed."
-    note for IConversationRepository "🏛️ Domain contract (app/domain/conversations/repositories/).
-    Implemented by ConversationRepositoryImpl in infra layer."
-
+    note for Conversation "This slice documents the persistence shape only.
+    It intentionally omits fictional domain/application classes."
+    note for Message "Recall and read tracking are stored per message."

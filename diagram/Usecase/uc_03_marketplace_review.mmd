@@ -1,76 +1,33 @@
-%% uc_03_marketplace_review.mmd — Marketplace & Performance Review
-%% Actors: Freelancer, PM/Owner, System (scheduler)
-%% Key fixes: 1-click apply, no guest, smart matching, review timeout
+%% uc_03_marketplace_review.mmd — Marketplace & Review Overview
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_03a_marketplace_application.mmd
+%%   - uc_03b_review_lifecycle.mmd
 
-@startuml
-left to right direction
-skinparam packageStyle rectangle
+flowchart LR
+    freelancer["<<actor>> Freelancer"]
+    taskOwner["<<actor>> Task Owner / Manager"]
+    reviewee["<<actor>> Reviewee"]
+    systemAdmin["<<actor>> System Admin"]
+    scheduler["<<actor>> Scheduler"]
 
-actor "Freelancer\n(authenticated)" as FL
-actor "PM / Owner" as PM
-actor "System\n(scheduler)" as SYS
+    subgraph system["Marketplace & Review"]
+        browse([Browse marketplace tasks])
+        apply([Submit and manage applications])
+        process([Review and process applications])
+        reviewCycle([Complete review session])
+        moderation([Resolve flagged reviews])
+        timeout([Force-close overdue review sessions])
+    end
 
-rectangle "Marketplace — Browse" {
-    usecase "Browse Public Tasks" as UC_BROWSE
-    usecase "View Task Details" as UC_DETAIL
-    usecase "View Matched Tasks\n(auto-ranked by skills)" as UC_MATCH
-}
+    freelancer --> browse
+    freelancer --> apply
+    taskOwner --> process
+    reviewee --> reviewCycle
+    systemAdmin --> moderation
+    scheduler --> timeout
 
-rectangle "Marketplace — Apply" {
-    usecase "Apply for Task\n(1-click, auto-attach profile)" as UC_APPLY
-    usecase "Withdraw Application" as UC_WITHDRAW
-    usecase "View My Applications" as UC_MY_APPS
-}
-
-rectangle "Marketplace — Manage" {
-    usecase "List Task Applications" as UC_LIST_APPS
-    usecase "View Ranked Candidates\n(smart matching score)" as UC_RANK
-    usecase "Process Application\n(approve / reject)" as UC_PROCESS
-    usecase "Bookmark Freelancer" as UC_BOOKMARK
-}
-
-rectangle "360° Performance Review" {
-    usecase "Create Review Session" as UC_CREATE_REV
-    usecase "Submit Skill Review\n(with evidence)" as UC_SUBMIT_REV
-    usecase "Submit Reverse Review\n(reviewee → reviewer)" as UC_REVERSE
-    usecase "Confirm Review" as UC_CONFIRM
-    usecase "View Spider Chart\n(skill radar)" as UC_SPIDER
-    usecase "View My Reviews" as UC_MY_REV
-}
-
-rectangle "Review — Moderation" {
-    usecase "Flag Review" as UC_FLAG
-    usecase "List Flagged Reviews" as UC_LIST_FLAG
-    usecase "Resolve Flagged Review\n(dismiss / confirm)" as UC_RESOLVE
-}
-
-rectangle "Review — System" {
-    usecase "Force Close Expired\nReview Sessions" as UC_EXPIRE
-}
-
-FL --> UC_BROWSE
-FL --> UC_DETAIL
-FL --> UC_MATCH
-FL --> UC_APPLY
-FL --> UC_WITHDRAW
-FL --> UC_MY_APPS
-FL --> UC_SUBMIT_REV
-FL --> UC_REVERSE
-FL --> UC_CONFIRM
-FL --> UC_SPIDER
-FL --> UC_MY_REV
-FL --> UC_FLAG
-
-PM --> UC_LIST_APPS
-PM --> UC_RANK
-PM --> UC_PROCESS
-PM --> UC_BOOKMARK
-PM --> UC_CREATE_REV
-PM --> UC_SUBMIT_REV
-PM --> UC_LIST_FLAG
-PM --> UC_RESOLVE
-
-SYS --> UC_EXPIRE
-
-note "Precondition: ALL actors must be\nauthenticated (middleware.auth).\nNo guest/public access.\n\nApply = 1-click, profile auto-attached.\nNo message, expected_rate, or portfolio_links.\n\nReview timeout: 14 days default.\nExpired sessions closed by scheduler.\nReviewer & reviewee review in parallel." as N1
-@enduml
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class freelancer,taskOwner,reviewee,systemAdmin,scheduler actor
+    class browse,apply,process,reviewCycle,moderation,timeout usecase

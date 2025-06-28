@@ -1,18 +1,19 @@
 
-%% ERD: Review & Messaging Domain
-%% Source: app/models/conversation.ts, conversation_participant.ts, message.ts,
-%%         review_session.ts, skill_review.ts, reverse_review.ts,
-%%         flagged_review.ts
-%% Scope: Columns match @column decorators exactly.
-%%         conversation_participants has ONLY id + conversation_id + user_id.
-%%         reverse_reviews has created_at ONLY (no updated_at).
+%% ERD: Review Domain + Legacy Messaging Tables
+%% Review source: app/models/review_session.ts, skill_review.ts, reverse_review.ts,
+%%                flagged_review.ts, review_evidence.ts, task_self_assessment.ts
+%% Messaging source: legacy schema references + cleanup_listener.ts
+%% Convention: table/column only. No relationship edges or FK markers.
+%% Runtime notes:
+%%   - review flow hiện có evidence + self-assessment + reverse review + anomaly flags
+%%   - conversation/message app surface không còn hiện diện đầy đủ trong routes/controllers hiện tại
 erDiagram
     conversations {
         UUID id PK
         VARCHAR title
-        UUID organization_id FK "nullable"
-        UUID task_id FK "nullable - DEAD CODE"
-        UUID last_message_id FK
+        UUID organization_id "nullable"
+        UUID task_id "nullable - legacy"
+        UUID last_message_id
         TIMESTAMPTZ last_message_at
         TIMESTAMPTZ deleted_at
         TIMESTAMPTZ created_at
@@ -21,14 +22,14 @@ erDiagram
 
     conversation_participants {
         UUID id PK
-        UUID conversation_id FK
-        UUID user_id FK
+        UUID conversation_id
+        UUID user_id
     }
 
     messages {
         UUID id PK
-        UUID conversation_id FK
-        UUID sender_id FK
+        UUID conversation_id
+        UUID sender_id
         TEXT message
         VARCHAR send_status "sending/sent/failed"
         BOOLEAN is_recalled
@@ -41,13 +42,22 @@ erDiagram
 
     review_sessions {
         UUID id PK
-        UUID task_assignment_id FK
-        UUID reviewee_id FK
+        UUID task_assignment_id
+        UUID reviewee_id
         VARCHAR status "pending/in_progress/completed/disputed"
         BOOLEAN manager_review_completed
         INT peer_reviews_count
         INT required_peer_reviews
         JSONB confirmations
+        NUMERIC overall_quality_score
+        VARCHAR delivery_timeliness
+        NUMERIC requirement_adherence
+        NUMERIC communication_quality
+        NUMERIC code_quality_score
+        NUMERIC proactiveness_score
+        BOOLEAN would_work_with_again
+        TEXT strengths_observed
+        TEXT areas_for_improvement
         TIMESTAMPTZ deadline
         TIMESTAMPTZ completed_at
         TIMESTAMPTZ created_at
@@ -56,10 +66,10 @@ erDiagram
 
     skill_reviews {
         UUID id PK
-        UUID review_session_id FK
-        UUID reviewer_id FK
+        UUID review_session_id
+        UUID reviewer_id
         VARCHAR reviewer_type "manager/peer"
-        UUID skill_id FK
+        UUID skill_id
         VARCHAR assigned_level_code "beginner~master"
         TEXT comment
         TIMESTAMPTZ created_at
@@ -68,10 +78,10 @@ erDiagram
 
     reverse_reviews {
         UUID id PK
-        UUID review_session_id FK
-        UUID reviewer_id FK
+        UUID review_session_id
+        UUID reviewer_id
         VARCHAR target_type "peer/manager/project/organization"
-        UUID target_id FK
+        UUID target_id
         SMALLINT rating "1~5"
         TEXT comment
         BOOLEAN is_anonymous
@@ -80,20 +90,43 @@ erDiagram
 
     flagged_reviews {
         UUID id PK
-        UUID skill_review_id FK
+        UUID skill_review_id
         VARCHAR flag_type "sudden_spike/mutual_high/bulk_same_level/frequency_anomaly/new_account_high/ip_collusion"
         VARCHAR severity "low/medium/high/critical"
         VARCHAR status "pending/reviewed/dismissed/confirmed"
         TIMESTAMPTZ detected_at
-        UUID reviewed_by FK
+        UUID reviewed_by
         TIMESTAMPTZ reviewed_at
         TEXT notes
         TIMESTAMPTZ created_at
         TIMESTAMPTZ updated_at
     }
 
-    conversations ||--o{ conversation_participants : "has participants"
-    conversations ||--o{ messages : "contains"
-    review_sessions ||--o{ skill_reviews : "has skill ratings"
-    review_sessions ||--o{ reverse_reviews : "has reverse feedback"
-    skill_reviews ||--o{ flagged_reviews : "may be flagged"
+    review_evidences {
+        UUID id PK
+        UUID review_session_id
+        VARCHAR evidence_type
+        VARCHAR url
+        VARCHAR title
+        TEXT description
+        UUID uploaded_by
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_self_assessments {
+        UUID id PK
+        UUID task_assignment_id
+        UUID user_id
+        NUMERIC overall_satisfaction
+        VARCHAR difficulty_felt
+        NUMERIC confidence_level
+        TEXT what_went_well
+        TEXT what_would_do_different
+        JSONB blockers_encountered
+        JSONB skills_felt_lacking
+        JSONB skills_felt_strong
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }

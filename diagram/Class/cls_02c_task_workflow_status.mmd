@@ -9,20 +9,19 @@ classDiagram
         +String status : legacy
     }
 
-    class TaskStatusModel {
+    class TaskStatus {
         +UUID id
         +UUID organization_id
         +String name
         +String slug
         +String category
         +String color
+        +String icon
+        +String description
         +Integer sort_order
         +Boolean is_default
         +Boolean is_system
-        --
-        +findByOrganization(orgId)
-        +findDefault(orgId)
-        +findBySlug(orgId, slug)
+        +DateTime deleted_at
     }
 
     class TaskWorkflowTransition {
@@ -31,17 +30,14 @@ classDiagram
         +UUID from_status_id
         +UUID to_status_id
         +JSONB conditions
-        --
-        +findByOrganization(orgId)
-        +findFromStatus(orgId, fromId)
+        +DateTime created_at
     }
 
-    Task "*" --> "1" TaskStatusModel : current status
-    TaskStatusModel "1" --> "*" TaskWorkflowTransition : from_status
-    TaskStatusModel "1" --> "*" TaskWorkflowTransition : to_status
+    Task "*" --> "1" TaskStatus : current status
+    TaskStatus "1" --> "*" TaskWorkflowTransition : from_status
+    TaskStatus "1" --> "*" TaskWorkflowTransition : to_status
 
-    note for TaskStatusModel "Organization-specific workflow definition.
+    note for TaskStatus "Organization-specific workflow definition.
     category normalizes business meaning: todo / in_progress / done / cancelled."
     note for TaskWorkflowTransition "Used to control allowed status movement.
     conditions lives in JSONB for org-level customization."
-

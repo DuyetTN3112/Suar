@@ -1,80 +1,38 @@
-%% uc_02_task_project.mmd — Project & Task Management
-%% Actors: Project Owner, Project Manager, Project Member, Project Viewer
-%% Task Status v4: configurable per-org workflow
+%% uc_02_task_project.mmd — Project & Task Overview
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_02a_project_governance.mmd
+%%   - uc_02b_task_lifecycle.mmd
 
-@startuml
-left to right direction
-skinparam packageStyle rectangle
+flowchart LR
+    projectOwner["<<actor>> Project Owner"]
+    projectManager["<<actor>> Project Manager"]
+    projectMember["<<actor>> Project Member"]
+    projectViewer["<<actor>> Project Viewer"]
+    orgAdmin["<<actor>> Org Admin"]
 
-actor "Project Owner" as PO
-actor "Project Manager" as PM
-actor "Project Member" as PMem
-actor "Project Viewer" as PV
+    subgraph system["Project & Task Workspace"]
+        projectGov([Manage project scope and roster])
+        taskAuthor([Author and maintain task details])
+        taskFlow([Execute task workflow])
+        taskViews([View boards, timeline, and audit history])
+        workflowSetup([Configure task statuses and transitions])
+    end
 
-rectangle "Project Management" {
-    usecase "Create Project" as UC_CREATE_P
-    usecase "View Project" as UC_VIEW_P
-    usecase "Delete Project" as UC_DEL_P
-    usecase "Add Project Member" as UC_ADD_MEM
-    usecase "Transfer Project Ownership" as UC_TRANSFER_P
-}
+    projectOwner --> projectGov
+    projectManager --> taskAuthor
+    projectManager --> taskFlow
+    projectMember --> taskFlow
+    projectMember --> taskViews
+    projectViewer --> taskViews
+    orgAdmin --> workflowSetup
+    projectOwner --> workflowSetup
 
-rectangle "Task CRUD" {
-    usecase "Create Task" as UC_CREATE_T
-    usecase "View Task" as UC_VIEW_T
-    usecase "Edit Task" as UC_EDIT_T
-    usecase "Delete Task" as UC_DEL_T
-    usecase "Assign Task" as UC_ASSIGN
-}
+    projectOwner -.->|generalization| projectManager
+    projectManager -.->|generalization| projectMember
+    projectMember -.->|generalization| projectViewer
 
-rectangle "Task Workflow" {
-    usecase "Change Task Status\n(per-org workflow)" as UC_STATUS
-    usecase "Batch Update Status" as UC_BATCH
-    usecase "Reject Task\n(return with reason)" as UC_REJECT
-    usecase "Update Task Sort Order" as UC_SORT
-    usecase "Update Task Time" as UC_TIME
-}
-
-rectangle "Task Views" {
-    usecase "View Kanban Board\n(grouped by status)" as UC_KANBAN
-    usecase "View Timeline" as UC_TIMELINE
-    usecase "View Task Audit Logs" as UC_AUDIT
-}
-
-rectangle "Workflow Configuration\n(Phase 4)" {
-    usecase "Manage Task Statuses\n(create / update / delete)" as UC_CFG_STATUS
-    usecase "Manage Workflow Transitions" as UC_CFG_TRANS
-}
-
-PO --> UC_CREATE_P
-PO --> UC_DEL_P
-PO --> UC_ADD_MEM
-PO --> UC_TRANSFER_P
-PO --> UC_CFG_STATUS
-PO --> UC_CFG_TRANS
-
-PM --> UC_CREATE_T
-PM --> UC_EDIT_T
-PM --> UC_DEL_T
-PM --> UC_ASSIGN
-PM --> UC_STATUS
-PM --> UC_BATCH
-PM --> UC_REJECT
-PM --> UC_SORT
-PM --> UC_CFG_STATUS
-PM --> UC_CFG_TRANS
-
-PMem --> UC_VIEW_T
-PMem --> UC_STATUS
-PMem --> UC_TIME
-PMem --> UC_KANBAN
-PMem --> UC_TIMELINE
-
-PV --> UC_VIEW_P
-PV --> UC_VIEW_T
-PV --> UC_KANBAN
-PV --> UC_TIMELINE
-PV --> UC_AUDIT
-
-note "Task Status v4:\nConfigurable per-org workflow.\nDefault: 7 statuses across 4 categories\n(todo / in_progress / done / cancelled).\nTransitions validated by DB rules.\nEvery task belongs to exactly one project." as N1
-@enduml
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class projectOwner,projectManager,projectMember,projectViewer,orgAdmin actor
+    class projectGov,taskAuthor,taskFlow,taskViews,workflowSetup usecase

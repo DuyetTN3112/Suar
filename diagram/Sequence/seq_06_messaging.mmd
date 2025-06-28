@@ -1,150 +1,30 @@
 %% seq_06_messaging.mmd
-%% Scope: Conversation creation, messaging, mark-as-read, recall
-%% Backend refs:
-%%   - POST /conversations → StoreConversationController → CreateConversationCommand
-%%   - POST /conversations/:id/messages → SendMessageController → SendMessageCommand
-%%   - POST /conversations/:id/mark-as-read → MarkConversationReadController → MarkAsReadCommand
-%%   - POST /api/conversations/:id/messages/:messageId/recall → RecallMessageController → RecallMessageCommand
-%%   - conversation_state_rules.ts (detectConversationType, checkDuplicate, validateParticipants)
-%%   - ⚠️ Transmit transport=null (no WebSocket/realtime delivery)
-%%   - ⚠️ send_status default='sent' (no 'sending' server-side state)
+%% Scope: Implemented messaging-related runtime flow only.
+%% Note:
+%%   - End-user conversation/message routes are not wired in the current app.
+%%   - This diagram documents the confirmed interaction that still touches
+%%     legacy messaging tables: cleanup on organization-member removal.
 
 sequenceDiagram
     autonumber
-    actor U1 as User A (Creator)
-    participant B as Browser (Svelte)
-    participant C as Controller
-    participant Cmd as Command
-    participant Rules as ConversationRules
-    (Pure Functions)
-    participant Entity as Domain Entity
-    participant Repo as Repository
+    actor Admin as Org Admin
+    participant C as RemoveMemberController
+    participant Cmd as RemoveMemberCommand
+    participant Evt as Event Bus
+    participant L as CleanupListener
     participant DB as PostgreSQL
-    actor U2 as User B
 
-    Note over U1, U2: === CREATE CONVERSATION ===
-    Note over C: StoreConversationController
+    Admin->>C: Remove member from organization
+    C->>Cmd: execute(dto)
+    Cmd->>DB: Update organization membership
+    Cmd->>Evt: emit(organization:user_removed)
 
-    U1->>B: Create new conversation
-    B->>C: POST /conversations
-    C->>Cmd: CreateConversationCommand.execute(dto)
-    Note over Cmd: App Mapper: Request DTO → Domain params
+    Evt->>L: Dispatch cleanup event
+    L->>DB: Check if conversations tables exist
 
-    Cmd->>Rules: detectConversationType(count, hasTitle)
-    Rules-->>Cmd: { isDirect, isGroup }
-
-    Cmd->>Rules: validateParticipantsOrgMembership(ctx)
-
-    alt isDirect (2 participants)
-        Cmd->>Rules: checkDirectConversationDuplicate(ctx)
-    else isGroup (3+ participants)
-        Cmd->>Rules: checkGroupConversationDuplicate(ctx)
+    alt Legacy messaging tables exist
+        L->>DB: DELETE conversation_participants<br/>for removed user in org conversations
+        L-->>Evt: Cleanup completed
+    else Tables absent
+        L-->>Evt: Skip messaging cleanup
     end
-
-    Cmd->>Cmd: Determine scope:
-    has freelancer? → org_id = NULL
-
-    Cmd->>Entity: Conversation.create(orgId, title)
-    Note over Entity: Domain validation
-    Cmd->>Repo: save(conversationEntity)
-    Note over Repo: Infra Mapper: Domain Entity → ORM Model
-    Repo->>DB: INSERT INTO conversations
-    (organization_id, title)
-    loop For each participant
-        Cmd->>Entity: ConversationParticipant.create(convId, userId)
-        Cmd->>Repo: saveParticipant(participantEntity)
-        Repo->>DB: INSERT INTO conversation_participants
-        (conversation_id, user_id)
-    end
-    Note over Cmd: App Mapper: Domain Entity → Response DTO
-    Cmd-->>C: Conversation object
-    C-->>B: Redirect to conversation
-
-    Note over U1, U2: === SEND MESSAGE ===
-    Note over C: SendMessageController
-
-    U1->>B: Type and send message
-    B->>C: POST /conversations/:id/messages
-    C->>C: messageSanitizer middleware
-    C->>Cmd: SendMessageCommand.execute(dto)
-    Note over Cmd: App Mapper: Request DTO → Domain params
-
-    Cmd->>Rules: canSendMessage(ctx)
-    (isParticipant + isOrgMember)
-
-    alt Not authorized
-        Cmd-->>C: ForbiddenException
-    else Authorized
-        Cmd->>Entity: Message.create(conversationId,<br/>senderId, content)
-        Note over Entity: Domain validation
-        Note over Entity: send_status='sent' (default)
-        Note over Entity: ⚠️ No 'sending' state server-side
-        Cmd->>Repo: save(messageEntity)
-        Note over Repo: Infra Mapper: Domain Entity → ORM Model
-        Repo->>DB: INSERT INTO messages
-        (conversation_id, sender_id, message)
-        DB-->>Repo: Created
-        Repo-->>Cmd: Persisted entity
-        Cmd->>Cmd: emit('message:sent')
-        Note over Cmd: Listener updates:
-        Note over Cmd: conversation.last_message_at
-        Note over Cmd: App Mapper: Domain Entity → Response DTO
-        Cmd-->>C: Message object
-        C-->>B: Response
-    end
-
-    Note over U1, U2: === MARK AS READ ===
-    Note over C: MarkConversationReadController
-
-    U2->>B: Open conversation
-    B->>C: POST /conversations/:id/mark-as-read
-    C->>Cmd: MarkAsReadCommand.execute(dto)
-    Cmd->>Repo: findParticipant(conversationId, userId)
-    Repo->>DB: SELECT conversation_participant
-    DB-->>Repo: Result
-    Repo-->>Cmd: Participant entity
-    Cmd->>Entity: participant.markAsRead()
-    Cmd->>Repo: save(participantEntity)
-    Repo->>DB: UPDATE conversation_participants
-    SET last_read_at = NOW()
-    WHERE conversation_id = ? AND user_id = ?
-    Cmd-->>C: OK
-    C-->>B: 200 OK
-
-    Note over U1, U2: === RECALL MESSAGE ===
-    Note over C: RecallMessageController
-
-    U1->>B: Recall own message
-    B->>C: POST /api/conversations/:id/messages/:messageId/recall
-    C->>Cmd: RecallMessageCommand.execute(dto)
-
-    Cmd->>Repo: findMessageById(messageId)
-    Repo->>DB: SELECT message
-    DB-->>Repo: Result
-    Repo-->>Cmd: Message entity
-
-    Cmd->>Entity: message.canRecall(senderId)
-    Note over Entity: isSender + notAlreadyRecalled
-    Note over Entity: + validateRecallScope
-
-    alt recall_scope = 'all'
-        Cmd->>Entity: message.recall('all')
-        Cmd->>Repo: save(messageEntity)
-        Repo->>DB: UPDATE messages
-        SET is_recalled=TRUE,
-        recall_scope='all',
-        recalled_at=NOW()
-        Note over Entity: Content replaced for ALL
-    else recall_scope = 'self'
-        Cmd->>Entity: message.recall('self')
-        Cmd->>Repo: save(messageEntity)
-        Repo->>DB: UPDATE messages
-        SET is_recalled=TRUE,
-        recall_scope='self',
-        recalled_at=NOW()
-        Note over Entity: Hidden only for sender
-    end
-
-    Cmd-->>C: OK
-    C-->>B: 200 OK
-

@@ -1,152 +1,45 @@
-%% DFD 02 — Task Management Detail (Level 2)
-%% Cross-referenced with actual backend code 2024
-%% ❌ Fixed: P41 does NOT create version (version only on UpdateTaskCommand)
-%% ❌ Fixed: P43 AssignTaskCommand only sets task.assigned_to (does NOT create TaskAssignment record)
-%% ❌ Fixed: P43 does NOT change status to in_progress (assignment ≠ status change)
-%% ❌ Removed: P44 as separate process (visibility is just an UpdateTask field)
-%% ❌ Fixed: P45 does NOT create version on status change (version only on field update)
-%% ❌ Fixed: P45 trigger is status=done (not in_review) → creates ReviewSession
-%% ⚠️ Note: TaskAssignment records are ONLY created by ProcessApplicationCommand (marketplace)
-%% ⚠️ Note: todo→in_progress requires assigned_to ≠ null
-%% ✅ Architecture: Clean Architecture + DDD
-%%    Sub-processes (Actions) access data stores via Repository Interfaces
-%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
+%% DFD 02 — Task Management Overview
+%% Detail files:
+%%   - dfd_02a_task_authoring.mmd
+%%   - dfd_02b_task_execution.mmd
+
 flowchart TD
-    %% External Entities
-    PM([👤 Project Manager])
-    Mem([👥 Team Member])
-    FL([👷 Freelancer])
-    P5([Process 5.0
-    Marketplace])
-    P6([Process 6.0
-    Review 360°])
+    PM([Project Manager])
+    MEM([Project Member])
+    MKT([Marketplace])
+    REV([Review])
 
-    %% Sub-processes of 4.0 Task Management
-    P41[["4.1
-    Create Task"]]
-    P42[["4.2
-    Update Task
-    & Versioning"]]
-    P43[["4.3
-    Assign Task
-    ⚠️ sets assigned_to only"]]
-    P45[["4.5
-    Change Task
-    Status"]]
-    P46[["4.6
-    View & Filter
-    Tasks (Kanban)"]]
+    P1[[Author Task]]
+    P2[[Execute Task Workflow]]
+    P3[[View Task Board and Detail]]
 
-    %% Data Stores
-    D4a[(D4a: tasks)]
-    D4b[(D4b: task_versions)]
-    D4c[(D4c: task_assignments
-    ⚠️ only from marketplace)]
-    D4d[(D4d: task_required_skills)]
-    D3[(D3: projects
-    project_members)]
-    D8[(D8: skills)]
+    D1[(tasks)]
+    D2[(task_versions)]
+    D3[(task_assignments)]
+    D4[(task_required_skills)]
 
-    %% ═══════════════════════════════════════════
-    %% Infrastructure Layer — Repositories
-    %% Action → Repository Interface → Repo Impl (Lucid ORM) → DB
-    %% ═══════════════════════════════════════════
-    subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
-        direction TB
-        R_TASK[["TaskRepository
-        + TaskMapper"]]
-        R_PROJ[["ProjectRepository
-        + ProjectMapper"]]
-        R_SKILL[["SkillRepository
-        + SkillMapper"]]
-    end
+    PM --> P1
+    PM --> P2
+    MEM --> P2
+    PM --> P3
+    MEM --> P3
 
-    %% Repository → Data Store connections (Lucid ORM)
-    R_TASK <-->|"Lucid ORM"| D4a
-    R_TASK <-->|"Lucid ORM"| D4b
-    R_TASK <-->|"Lucid ORM"| D4c
-    R_TASK <-->|"Lucid ORM"| D4d
-    R_PROJ <-->|"Lucid ORM"| D3
-    R_SKILL <-->|"Lucid ORM"| D8
+    P1 --> D1
+    P1 --> D2
+    P1 --> D4
+    P2 --> D1
+    P2 --> D3
+    P2 --> REV
+    P2 --> MKT
+    P3 --> D1
+    P3 --> D2
+    P3 --> D3
 
-    %% 4.1 Create Task (NO version created)
-    PM -->|"title, description,
-    priority, due_date,
-    task_visibility"| P41
-    P41 -->|"Task created
-    confirmation"| PM
-    P41 -->|"INSERT task
-    (status=todo, visibility=internal)"| R_TASK
-    P41 -->|"INSERT required_skills
-    (if provided)"| R_TASK
-    P41 -->|"Check project role"| R_PROJ
-
-    %% 4.2 Update Task (version created HERE only)
-    PM -->|"Edit title, description,
-    priority, due_date,
-    task_visibility, skills"| P42
-    Mem -->|"Edit task fields
-    (if assignee)"| P42
-    P42 -->|"Updated task"| PM
-    P42 -->|"UPDATE task fields"| R_TASK
-    P42 -->|"INSERT version N+1
-    (full snapshot via
-    TaskVersion.createSnapshot)"| R_TASK
-    P42 -->|"Read current task"| R_TASK
-    P42 -->|"SYNC required_skills
-    (delete + re-insert)"| R_TASK
-    P42 -->|"Lookup available skills"| R_SKILL
-    P42 -->|"Task visible
-    on marketplace
-    (if visibility changed)"| P5
-
-    %% 4.3 Assign Task (sets assigned_to ONLY — no TaskAssignment record)
-    PM -->|"Select assignee
-    (member or freelancer)"| P43
-    P43 -->|"Assignment result"| PM
-    P43 -->|"UPDATE assigned_to
-    (⚠️ no TaskAssignment
-    record created)"| R_TASK
-    P43 -->|"Check membership
-    / freelancer status"| R_PROJ
-    P5 -->|"Approved freelancer
-    → ProcessApplicationCommand
-    creates TaskAssignment"| P43
-
-    %% 4.5 Change Status (NO version created)
-    PM -->|"Change status:
-    todo → in_progress →
-    done / cancelled
-    ⚠️ no in_review state"| P45
-    Mem -->|"Change status
-    (if assignee)"| P45
-    P45 -->|"Status updated"| PM
-    P45 -->|"UPDATE task status"| R_TASK
-    P45 -->|"status = done
-    → trigger review"| P6
-
-    %% 4.6 View & Filter
-    PM -->|"Filter: status, priority,
-    assignee, search"| P46
-    Mem -->|"View tasks"| P46
-    P46 -->|"Kanban board,
-    task list, detail"| PM
-    P46 -->|"My tasks"| Mem
-    P46 -->|"SELECT tasks
-    + filters"| R_TASK
-    P46 -->|"JOIN assignments"| R_TASK
-    P46 -->|"Version history"| R_TASK
-
-    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
-    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
-    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
-    classDef extProcess fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
-    classDef repo fill:#FDE2E2,stroke:#DC2626,color:#333,stroke-width:2px
-    class PM,Mem,FL entity
-    class P41,P42,P43,P45,P46 process
-    class D4a,D4b,D4c,D4d,D3,D8 datastore
-    class P5,P6 extProcess
-    class R_TASK,R_PROJ,R_SKILL repo
-    style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
-
-
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef external fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    class PM,MEM entity
+    class P1,P2,P3 process
+    class D1,D2,D3,D4 datastore
+    class MKT,REV external

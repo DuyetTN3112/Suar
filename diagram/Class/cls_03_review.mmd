@@ -3,25 +3,28 @@
 %% Detail files:
 %%   - cls_03a_review_session_skill_review.mmd
 %%   - cls_03c_review_moderation_feedback.mmd
+%%   - cls_03d_review_mapping_dto.mmd
+%%   - cls_03e_review_artifacts.mmd
 
 classDiagram
     class ReviewSession
     class SkillReview
     class ReverseReview
     class FlaggedReview
+    class ReviewEvidence
+    class TaskSelfAssessment
 
     class ReviewSessionEntity
     class SkillReviewEntity
-    class IReviewRepository
-    class ReviewRepositoryImpl
-    class ReviewApplicationMapper
+    class ReviewRepository
 
     ReviewSession --> SkillReview : contains
     ReviewSession --> ReverseReview : receives feedback
+    ReviewSession --> ReviewEvidence : stores evidence
     SkillReview --> FlaggedReview : may be flagged
+    ReviewSession --> TaskSelfAssessment : reviewee reflection
 
     ReviewSession --> ReviewSessionEntity : mapped to domain
     SkillReview --> SkillReviewEntity : mapped to domain
-    IReviewRepository <|.. ReviewRepositoryImpl : implements
-    ReviewApplicationMapper ..> ReviewSessionEntity : maps responses
-
+    ReviewRepository ..> ReviewSessionEntity : loads
+    ReviewRepository ..> SkillReviewEntity : loads
