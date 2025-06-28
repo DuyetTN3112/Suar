@@ -3,21 +3,17 @@
 -->
 
 <script lang="ts">
-  import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import { DropdownMenu as DropdownMenuPrimitive, type DropdownMenuTriggerProps } from 'bits-ui'
 
-  type Props = {
+  type Props = DropdownMenuTriggerProps & {
     class?: string
-    children?: Snippet
   }
 
-  const { class: className, children, ...restProps }: Props = $props()
+  const { class: className, ...restProps }: Props = $props()
 </script>
 
 <DropdownMenuPrimitive.Trigger
   data-slot="dropdown-menu-trigger"
   class={className}
   {...restProps}
->
-  {@render children?.()}
-</DropdownMenuPrimitive.Trigger>
+/>

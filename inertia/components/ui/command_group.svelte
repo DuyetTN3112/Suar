@@ -1,16 +1,15 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Command as CommandPrimitive, type CommandGroupProps } from 'bits-ui'
+  import { Command as CommandPrimitive } from 'bits-ui'
+  import type { Snippet } from 'svelte'
 
-  type Props = CommandGroupProps
+  type Props = {
+    class?: string
+    children?: Snippet
+    [key: string]: unknown
+  }
 
-  const props: Props = $props()
-  const className = $derived(props.class)
-  const children = $derived(props.children)
-  const restProps = $derived.by(() => {
-    const { class: _className, children: _children, ...rest } = props
-    return rest
-  })
+  const { class: className, children, ...restProps }: Props = $props()
 </script>
 
 <CommandPrimitive.Group

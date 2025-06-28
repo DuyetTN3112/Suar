@@ -20,6 +20,7 @@
   import type { Snippet } from 'svelte'
 
   type Props = {
+    type?: 'single'
     value?: string
     open?: boolean
     disabled?: boolean
@@ -28,16 +29,11 @@
     onValueChange?: (value: string) => void
     onOpenChange?: (open: boolean) => void
     children?: Snippet
+    [key: string]: unknown
   }
 
-  const {
-    value,
-    open,
-    onValueChange,
-    onOpenChange,
-    children,
-    ...restProps
-  }: Props = $props()
+  // eslint-disable-next-line prefer-const
+  let { value = $bindable(), open = $bindable(false), onValueChange, onOpenChange, children, ...restProps }: Props = $props()
 </script>
 
 <SelectPrimitive.Root

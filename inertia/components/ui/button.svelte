@@ -11,7 +11,8 @@
   import { buttonVariants } from './button_variants'
   import type { ButtonVariants } from './button_variants'
 
-  type Props = HTMLButtonAttributes & ButtonVariants & {
+  type Props = HTMLButtonAttributes &
+    ButtonVariants & {
     class?: string
   }
 

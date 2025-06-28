@@ -1,10 +1,10 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
   import Separator from '../separator.svelte'
-  import type { HTMLAttributes } from 'svelte/elements'
 
-  type Props = HTMLAttributes<HTMLDivElement> & {
+  type Props = {
     class?: string
+    [key: string]: unknown
   }
 
   const { class: className, ...restProps }: Props = $props()

@@ -15,12 +15,7 @@
     currentTheme = value
   })
 
-  // Update meta theme-color when theme changes
   $effect(() => {
-    const themeColor = currentTheme === 'dark' ? '#020817' : '#fff'
-    const metaThemeColor = document.querySelector("meta[name='theme-color']")
-    if (metaThemeColor) metaThemeColor.setAttribute('content', themeColor)
-
     return () => {
       unsubscribe()
     }

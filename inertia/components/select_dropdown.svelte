@@ -1,7 +1,6 @@
 <script lang="ts">
   import { Loader } from 'lucide-svelte'
   import { cn } from '$lib/utils-svelte'
-  import FormControl from '@/components/ui/form_control.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
@@ -52,11 +51,9 @@
   value={isControlled ? defaultValue : value}
   onValueChange={handleValueChange}
 >
-  <FormControl>
-    <SelectTrigger {disabled} class={cn(className)}>
-      <SelectValue {placeholder} />
-    </SelectTrigger>
-  </FormControl>
+  <SelectTrigger {disabled} class={cn(className)}>
+    <SelectValue {placeholder} />
+  </SelectTrigger>
   <SelectContent>
     {#if isPending}
       <SelectItem disabled value="loading" class="h-14">

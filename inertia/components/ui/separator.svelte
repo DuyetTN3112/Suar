@@ -13,6 +13,7 @@
     class?: string
     orientation?: 'horizontal' | 'vertical'
     decorative?: boolean
+    [key: string]: unknown
   }
 
   const {

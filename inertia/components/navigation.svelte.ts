@@ -1,11 +1,14 @@
-import type { Component } from 'svelte'
-import { lucideIconMap, type LucideIconName } from '@/components/lucide_icon_map'
+import {
+  lucideIconMap,
+  type LucideIconComponent,
+  type LucideIconName,
+} from '@/components/lucide_icon_map'
 
 interface BaseNavItem {
   title: string
   titleKey?: string
   badge?: string
-  icon?: Component
+  icon?: LucideIconComponent
 }
 
 type NavLink = BaseNavItem & {
@@ -26,7 +29,7 @@ interface NavGroup {
   items: NavItem[]
 }
 
-function getIconByName(name?: string): Component | undefined {
+function getIconByName(name?: string): LucideIconComponent | undefined {
   if (!name || !(name in lucideIconMap)) return undefined
   return lucideIconMap[name as LucideIconName]
 }
@@ -99,16 +102,32 @@ const navigationData = [
         iconName: 'UserCircle',
       },
       {
-        title: 'Tài khoản',
-        titleKey: 'navigation.account',
-        url: '/settings/account',
-        iconName: 'User',
-      },
-      {
-        title: 'Giao diện',
-        titleKey: 'navigation.appearance',
-        url: '/settings/appearance',
-        iconName: 'Palette',
+        title: 'Thiết lập',
+        iconName: 'Settings2',
+        items: [
+          {
+            title: 'Hồ sơ cá nhân',
+            url: '/settings/profile',
+          },
+          {
+            title: 'Tài khoản',
+            titleKey: 'navigation.account',
+            url: '/settings/account',
+          },
+          {
+            title: 'Giao diện',
+            titleKey: 'navigation.appearance',
+            url: '/settings/appearance',
+          },
+          {
+            title: 'Thông báo',
+            url: '/settings/notifications',
+          },
+          {
+            title: 'Hiển thị',
+            url: '/settings/display',
+          },
+        ],
       },
     ],
   },
@@ -130,10 +149,25 @@ const adminNavigationData = [
     titleKey: 'admin.dashboard',
     items: [
       {
-        title: 'Dashboard',
+        title: 'Dashboard tổng',
         titleKey: 'admin.overview',
         url: '/admin',
         iconName: 'LayoutDashboard',
+      },
+      {
+        title: 'Dashboard người dùng',
+        url: '/admin/dashboards/users',
+        iconName: 'Users',
+      },
+      {
+        title: 'Dashboard vận hành',
+        url: '/admin/dashboards/operations',
+        iconName: 'Activity',
+      },
+      {
+        title: 'Dashboard gói đăng ký',
+        url: '/admin/dashboards/subscriptions',
+        iconName: 'ChartNoAxesColumnIncreasing',
       },
     ],
   },
@@ -166,6 +200,11 @@ const adminNavigationData = [
     titleKey: 'admin.system',
     items: [
       {
+        title: 'Vai trò và quyền',
+        url: '/admin/permissions',
+        iconName: 'ShieldCheck',
+      },
+      {
         title: 'Audit Logs',
         titleKey: 'admin.audit_logs',
         url: '/admin/audit-logs',
@@ -182,6 +221,11 @@ const adminNavigationData = [
         titleKey: 'admin.packages',
         url: '/admin/packages',
         iconName: 'Package2',
+      },
+      {
+        title: 'QR gói cá nhân',
+        url: '/admin/qr-codes',
+        iconName: 'QrCode',
       },
     ],
   },
@@ -215,6 +259,21 @@ const organizationNavigationData = [
     titleKey: 'org.team',
     items: [
       {
+        title: 'Phòng ban',
+        url: '/org/departments',
+        iconName: 'Building2',
+      },
+      {
+        title: 'Vai trò',
+        url: '/org/roles',
+        iconName: 'Shield',
+      },
+      {
+        title: 'Quyền hạn',
+        url: '/org/permissions',
+        iconName: 'ShieldCheck',
+      },
+      {
         title: 'Thành viên',
         titleKey: 'org.members',
         url: '/org/members',
@@ -238,6 +297,11 @@ const organizationNavigationData = [
     title: 'Công Việc',
     titleKey: 'org.projects',
     items: [
+      {
+        title: 'Danh sách task',
+        url: '/org/tasks',
+        iconName: 'SquareCheckBig',
+      },
       {
         title: 'Dự án',
         titleKey: 'org.all_projects',

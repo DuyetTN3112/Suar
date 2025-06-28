@@ -47,10 +47,10 @@
   }
 </script>
 
-<CommandDialog open={search.isOpen} onOpenChange={handleDialogOpenChange}>
+<CommandDialog open={$search.isOpen} onOpenChange={handleDialogOpenChange}>
   <CommandInput
     placeholder="Nhập lệnh hoặc tìm kiếm..."
-    value={search.query}
+    value={$search.query}
     onValueChange={search.setQuery}
   />
   <CommandList>

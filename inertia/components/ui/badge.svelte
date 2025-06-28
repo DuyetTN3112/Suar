@@ -33,7 +33,8 @@
   import { cn } from '$lib/utils-svelte'
   import type { HTMLAttributes } from 'svelte/elements'
 
-  type Props = HTMLAttributes<HTMLSpanElement> & BadgeVariants & {
+  type Props = HTMLAttributes<HTMLSpanElement> & Omit<BadgeVariants, 'variant'> & {
+    variant?: string
     class?: string
   }
 
@@ -43,11 +44,20 @@
     children,
     ...restProps
   }: Props = $props()
+
+  const safeVariant = $derived(
+    variant === 'secondary' ||
+      variant === 'destructive' ||
+      variant === 'outline' ||
+      variant === 'default'
+      ? variant
+      : 'default'
+  )
 </script>
 
 <span
   data-slot="badge"
-  class={cn(badgeVariants({ variant }), className)}
+  class={cn(badgeVariants({ variant: safeVariant }), className)}
   {...restProps}
 >
   {@render children?.()}

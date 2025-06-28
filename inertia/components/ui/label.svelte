@@ -7,10 +7,9 @@
 
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
-  import { Label as LabelPrimitive } from 'bits-ui'
-  import type { HTMLLabelAttributes } from 'svelte/elements'
+  import { Label as LabelPrimitive, type LabelRootProps } from 'bits-ui'
 
-  type Props = HTMLLabelAttributes & {
+  type Props = LabelRootProps & {
     class?: string
   }
 

@@ -1,11 +1,11 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
   import type { Snippet } from 'svelte'
-  import type { HTMLAttributes } from 'svelte/elements'
 
-  type Props = HTMLAttributes<HTMLTableCaptionElement> & {
+  type Props = {
     class?: string
     children?: Snippet
+    [key: string]: unknown
   }
 
   const { class: className, children, ...restProps }: Props = $props()
