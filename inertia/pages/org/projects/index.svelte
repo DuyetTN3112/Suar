@@ -17,6 +17,8 @@
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import { FolderKanban, Users, SquareCheckBig, Plus, Search, ArrowUpRight } from 'lucide-svelte'
 
+  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
+
   interface Props {
     projects: {
       id: string
@@ -76,13 +78,13 @@
     return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
   }
 
-  function getStatusBadge(status: string) {
+  function getStatusBadge(status: string): BadgeVariant {
     const variants = {
       active: 'default',
       archived: 'secondary',
       on_hold: 'outline',
-    }
-    return variants[status as keyof typeof variants] || 'secondary'
+    } as const
+    return variants[status as keyof typeof variants]
   }
 
   function statusLabel(status: string): string {
@@ -141,7 +143,7 @@
         description: '',
         status: 'active',
       }
-      router.reload({ preserveScroll: true })
+      router.reload()
     } catch (error) {
       console.error('Lỗi khi tạo dự án:', error)
       errorMessage = 'Không thể tạo dự án.'
@@ -154,8 +156,9 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Dự án</h1>
-        <p class="text-muted-foreground">Quản lý danh sách dự án nội bộ của tổ chức và mở nhanh sang màn project chi tiết.</p>
+        <p class="neo-kicker">Organization / Projects</p>
+        <h1 class="text-4xl font-bold tracking-tight">Dự án</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Quản lý danh sách dự án nội bộ của tổ chức và mở nhanh sang màn project chi tiết.</p>
       </div>
       <Button onclick={() => { createFormOpen = !createFormOpen }}>
         <Plus class="mr-2 h-4 w-4" />
@@ -217,7 +220,7 @@
           </div>
 
           {#if errorMessage}
-            <p class="text-sm text-red-600">{errorMessage}</p>
+            <p class="text-sm neo-text-orange">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">
@@ -276,12 +279,12 @@
           <CardContent class="space-y-4">
             <div class="grid grid-cols-2 gap-3">
               <div class="flex items-center gap-2 text-sm">
-                <Users class="h-4 w-4 text-blue-500" />
+                <Users class="h-4 w-4 neo-text-blue" />
                 <span class="font-medium">{project._count.members}</span>
                 <span class="text-muted-foreground">thành viên</span>
               </div>
               <div class="flex items-center gap-2 text-sm">
-                <SquareCheckBig class="h-4 w-4 text-green-500" />
+                <SquareCheckBig class="h-4 w-4 neo-text-magenta" />
                 <span class="font-medium">{project._count.tasks}</span>
                 <span class="text-muted-foreground">task</span>
               </div>

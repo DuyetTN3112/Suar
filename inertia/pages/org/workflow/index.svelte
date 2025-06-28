@@ -85,7 +85,7 @@
         category: 'in_progress',
         color: '#6B7280',
       }
-      router.reload({ preserveScroll: true })
+      router.reload()
     } catch (error) {
       console.error('Lỗi khi tạo trạng thái:', error)
       errorMessage = 'Không thể tạo trạng thái mới.'
@@ -123,7 +123,7 @@
         return
       }
 
-      router.reload({ preserveScroll: true })
+      router.reload()
     } catch (error) {
       console.error('Lỗi khi xoá trạng thái:', error)
       errorMessage = 'Không thể xoá trạng thái.'
@@ -149,8 +149,9 @@
   <div class="space-y-6 max-w-4xl">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Workflow task</h1>
-        <p class="text-muted-foreground">Quản lý các cột trạng thái mà board task của tổ chức đang sử dụng.</p>
+        <p class="neo-kicker">Organization / Workflow</p>
+        <h1 class="text-4xl font-bold tracking-tight">Workflow task</h1>
+        <p class="mt-2 text-sm text-muted-foreground">Quản lý các cột trạng thái mà board task của tổ chức đang sử dụng.</p>
       </div>
       <Button onclick={() => { createFormOpen = !createFormOpen }}>
         <Plus class="mr-2 h-4 w-4" />
@@ -214,7 +215,7 @@
           </div>
 
           {#if errorMessage}
-            <p class="text-sm text-red-600">{errorMessage}</p>
+            <p class="text-sm neo-text-orange">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">
@@ -256,7 +257,7 @@
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="font-medium">{status.name}</span>
                   {#if status.is_default}
-                    <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                    <span class="neo-pill-soft rounded-full px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide">
                       Hệ thống
                     </span>
                   {/if}

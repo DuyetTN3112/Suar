@@ -68,8 +68,9 @@
 <OrganizationLayout>
   <div class="space-y-6">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">Yêu cầu tham gia</h1>
-      <p class="text-muted-foreground">Duyệt hoặc từ chối các yêu cầu gia nhập tổ chức đang chờ xử lý.</p>
+      <p class="neo-kicker">Organization / Join Requests</p>
+      <h1 class="text-4xl font-bold tracking-tight">Yêu cầu tham gia</h1>
+      <p class="mt-2 text-sm text-muted-foreground">Duyệt hoặc từ chối các yêu cầu gia nhập tổ chức đang chờ xử lý.</p>
     </div>
 
     <Card>
@@ -102,7 +103,7 @@
         {:else}
           <div class="space-y-4">
             {#each requests as request}
-              <div class="border rounded-lg p-4 flex items-center justify-between gap-4">
+              <div class="neo-surface-soft flex items-center justify-between gap-4 p-4">
                 <div>
                   <div class="font-medium">{request.username}</div>
                   <div class="text-sm text-muted-foreground">{request.email || 'Không có email'}</div>
