@@ -18,10 +18,10 @@
 
   const color = $derived(
     completeness >= 80
-      ? 'text-green-500'
+      ? 'text-blue-500'
       : completeness >= 50
-        ? 'text-yellow-500'
-        : 'text-red-500'
+        ? 'text-orange-500'
+        : 'text-rose-500'
   )
 </script>
 

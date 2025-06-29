@@ -100,7 +100,7 @@
   <div class="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
     <!-- Flash messages -->
     {#if flash?.success}
-      <div class="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-950 dark:text-green-200">
+      <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
         {flash.success}
       </div>
     {/if}

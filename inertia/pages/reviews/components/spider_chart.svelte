@@ -1,8 +1,8 @@
 <script lang="ts">
   /**
    * SpiderChart — SVG radar chart for skill visualization.
-   * Renders two overlapping polygons: soft_skills (blue) and delivery (orange).
-   * Responsive, with hover tooltips showing skill name + percentage.
+   * Uses the shared brand palette:
+   * technical = magenta, soft_skill = blue, delivery = orange.
    */
 
   interface SpiderChartPoint {
@@ -145,6 +145,8 @@
 
   const softSkillsPolygon = $derived(getDataPolygon(softSkills))
   const deliveryPolygon = $derived(getDataPolygon(delivery))
+  const softSkillsColors = $derived(getSeriesColors(softSkills))
+  const deliveryColors = $derived(getSeriesColors(delivery))
 
   // Data dots for hover
   const dataDots = $derived(
@@ -157,8 +159,33 @@
       })
   )
 
+  function getSeriesColors(points: SpiderChartPoint[]) {
+    const categoryCode = points[0]?.category_code
+
+    if (categoryCode === 'technical') {
+      return {
+        fill: 'rgba(192, 38, 211, 0.18)',
+        stroke: 'rgb(192, 38, 211)',
+      }
+    }
+
+    if (categoryCode === 'delivery') {
+      return {
+        fill: 'rgba(244, 93, 45, 0.18)',
+        stroke: 'rgb(244, 93, 45)',
+      }
+    }
+
+    return {
+      fill: 'rgba(37, 99, 235, 0.18)',
+      stroke: 'rgb(37, 99, 235)',
+    }
+  }
+
   function getPointColor(categoryCode: string): string {
-    return categoryCode === 'delivery' ? 'rgb(249, 115, 22)' : 'rgb(59, 130, 246)'
+    if (categoryCode === 'technical') return 'rgb(192, 38, 211)'
+    if (categoryCode === 'delivery') return 'rgb(244, 93, 45)'
+    return 'rgb(37, 99, 235)'
   }
 
   function formatPercentage(value: unknown): string {
@@ -207,22 +234,22 @@
         />
       {/each}
 
-      <!-- Soft skills polygon (blue) -->
+      <!-- Soft skills polygon -->
       {#if softSkills.length > 0}
         <polygon
           points={softSkillsPolygon}
-          fill="rgba(59, 130, 246, 0.15)"
-          stroke="rgb(59, 130, 246)"
+          fill={softSkillsColors.fill}
+          stroke={softSkillsColors.stroke}
           stroke-width="2"
         />
       {/if}
 
-      <!-- Delivery polygon (orange) -->
+      <!-- Delivery polygon -->
       {#if delivery.length > 0}
         <polygon
           points={deliveryPolygon}
-          fill="rgba(249, 115, 22, 0.15)"
-          stroke="rgb(249, 115, 22)"
+          fill={deliveryColors.fill}
+          stroke={deliveryColors.stroke}
           stroke-width="2"
         />
       {/if}
@@ -298,13 +325,19 @@
     <div class="flex items-center gap-4 justify-center mt-2 text-xs text-muted-foreground">
       {#if softSkills.length > 0}
         <div class="flex items-center gap-1.5">
-          <span class="inline-block w-3 h-3 rounded-sm bg-blue-500"></span>
+          <span
+            class="inline-block h-3 w-3 rounded-sm"
+            style="background-color: {softSkillsColors.stroke}"
+          ></span>
           {softSkillsLabel}
         </div>
       {/if}
       {#if delivery.length > 0}
         <div class="flex items-center gap-1.5">
-          <span class="inline-block w-3 h-3 rounded-sm bg-orange-500"></span>
+          <span
+            class="inline-block h-3 w-3 rounded-sm"
+            style="background-color: {deliveryColors.stroke}"
+          ></span>
           {deliveryLabel}
         </div>
       {/if}
