@@ -28,9 +28,9 @@
     isAddingUsers: boolean
     currentPage: number
     totalPages: number
-    onSearch: (e: Event) => void
+    onSearch: (e: Event, searchTerm: string) => void
     onToggleUserSelection: (userId: string) => void
-    onAddUsers: () => void
+    onAddUsers: (userIds: string[]) => void
     onChangePage: (page: number) => void
   }
 
@@ -66,7 +66,7 @@
     </DialogHeader>
 
       <div class="py-4">
-      <form onsubmit={props.onSearch} class="flex items-center gap-2 mb-4">
+      <form onsubmit={(event) => { props.onSearch(event, searchUserTerm) }} class="flex items-center gap-2 mb-4">
         <Input
           placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
           value={searchUserTerm}
@@ -166,7 +166,7 @@
         {t('common.cancel', {}, "Hủy")}
       </Button>
       <Button
-        onclick={props.onAddUsers}
+        onclick={() => { props.onAddUsers(selectedUserIds) }}
         disabled={selectedUserIds.length === 0 || isAddingUsers}
       >
         {isAddingUsers ? t('common.processing', {}, 'Đang xử lý...') : t('user.add_to_organization', {}, 'Thêm vào tổ chức')}

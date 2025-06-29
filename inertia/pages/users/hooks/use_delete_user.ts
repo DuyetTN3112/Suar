@@ -29,13 +29,14 @@ export const useDeleteUser = (authUserId: string) => {
 
   // Xử lý xóa người dùng khỏi tổ chức
   const handleDeleteUser = () => {
-    if (!userToDelete) return
+    const currentUserToDelete = userToDelete
+    if (!currentUserToDelete) return
     isDeleting = true
     // Sử dụng Inertia router để gửi request DELETE
-    router.delete(`/organizations/users/${userToDelete.id}/remove`, {
+    router.delete(`/organizations/users/${currentUserToDelete.id}/remove`, {
       onBefore: () => {
         // Ngăn xóa tài khoản đang đăng nhập
-        if (userToDelete.id === authUserId) {
+        if (currentUserToDelete.id === authUserId) {
           notificationStore.error('Không thể xóa tài khoản của chính bạn')
           deleteModalOpen = false
           isDeleting = false

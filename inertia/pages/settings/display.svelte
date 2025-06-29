@@ -11,7 +11,6 @@
   import Switch from '@/components/ui/switch.svelte'
   import RadioGroup from '@/components/ui/radio_group.svelte'
   import RadioGroupItem from '@/components/ui/radio_group_item.svelte'
-  import SettingsSidebar from './components/settings_sidebar.svelte'
 
   interface DisplayUserData {
     id: string
@@ -101,13 +100,16 @@
 
 <AppLayout title="Hiển thị">
   <div class="container py-8">
-    <div class="grid grid-cols-12 gap-6">
-      <div class="col-span-3">
-        <SettingsSidebar currentPath="/settings/display" />
+    <div class="mx-auto max-w-5xl space-y-6">
+      <div class="space-y-2">
+        <p class="neo-kicker">Settings / Display</p>
+        <h1 class="text-4xl font-bold tracking-tight">Hiển thị</h1>
+        <p class="max-w-3xl text-sm text-muted-foreground">
+          Điều chỉnh density và chuyển động của dashboard ngay trong shell chính, không render thêm sidebar con.
+        </p>
       </div>
 
-      <div class="col-span-9">
-        <Card>
+      <Card class="neo-panel">
           <CardHeader>
             <CardTitle>Hiển thị</CardTitle>
             <CardDescription>
@@ -244,7 +246,6 @@
             </form>
           </CardContent>
         </Card>
-      </div>
     </div>
   </div>
 </AppLayout>

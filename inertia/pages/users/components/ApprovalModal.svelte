@@ -21,7 +21,7 @@
     onClose: () => void
     pendingUsers: User[]
     isLoadingPendingUsers: boolean
-    isApprovingUser: Record<number, boolean>
+    isApprovingUser: Record<string, boolean>
     onApproveUser: (user: User) => void
     onApproveAll: () => void
   }

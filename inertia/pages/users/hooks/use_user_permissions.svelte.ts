@@ -72,8 +72,18 @@ export function createUserPermissions() {
     selectedUserId,
     selectedUser,
     selectedOrgRole,
+    selectedRoleId: selectedOrgRole,
+    setSelectedRoleId: (value: string) => {
+      selectedOrgRole.set(value)
+    },
     isSubmitting,
     openEditPermissionsModal,
     handleUpdatePermissions,
+    handleCloseModal: () => {
+      editModalOpen.set(false)
+      selectedUserId.set(null)
+      selectedUser.set(null)
+      selectedOrgRole.set('')
+    },
   }
 }

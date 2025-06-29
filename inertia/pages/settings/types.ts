@@ -39,7 +39,7 @@ export type NotificationsFormData = {
 }
 
 export type FormProps = {
-  onSubmit: (e: React.FormEvent) => void
+  onSubmit: (e: SubmitEvent) => void
   processing: boolean
 }
 

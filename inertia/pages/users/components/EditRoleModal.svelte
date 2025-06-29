@@ -33,6 +33,19 @@
   export let onSubmit: Props['onSubmit']
 
   const { t } = useTranslation()
+
+  function getRoleLabel(role: string) {
+    switch (role) {
+      case 'org_owner':
+        return t('organization.role_owner', {}, 'Owner')
+      case 'org_admin':
+        return t('organization.role_admin', {}, 'Admin')
+      case 'org_member':
+        return t('organization.role_member', {}, 'Member')
+      default:
+        return t('user.select_role', {}, 'Chọn vai trò')
+    }
+  }
 </script>
 
 <Dialog bind:open onOpenChange={onClose}>
@@ -53,12 +66,12 @@
           </label>
           <Select value={selectedRoleId} onValueChange={setSelectedRoleId} required>
             <SelectTrigger>
-              <span>{selectedRoleId === '1' ? t('organization.role_owner', {}, "Superadmin") : selectedRoleId === '2' ? t('organization.role_admin', {}, "Admin") : selectedRoleId === '3' ? t('organization.role_member', {}, "User") : t('user.select_role', {}, "Chọn vai trò")}</span>
+              <span>{getRoleLabel(selectedRoleId)}</span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">{t('organization.role_owner', {}, "Superadmin")}</SelectItem>
-              <SelectItem value="2">{t('organization.role_admin', {}, "Admin")}</SelectItem>
-              <SelectItem value="3">{t('organization.role_member', {}, "User")}</SelectItem>
+              <SelectItem value="org_owner">{t('organization.role_owner', {}, "Owner")}</SelectItem>
+              <SelectItem value="org_admin">{t('organization.role_admin', {}, "Admin")}</SelectItem>
+              <SelectItem value="org_member">{t('organization.role_member', {}, "Member")}</SelectItem>
             </SelectContent>
           </Select>
           <p class="text-sm text-gray-500 mt-1">

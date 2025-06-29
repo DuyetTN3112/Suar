@@ -18,7 +18,6 @@
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
-  import SettingsSidebar from './components/settings_sidebar.svelte'
   import { Upload } from 'lucide-svelte'
 
   interface ProfileUserUrl {
@@ -149,13 +148,16 @@
 
 <AppLayout title="Hồ sơ cá nhân">
   <div class="container py-8">
-    <div class="grid grid-cols-12 gap-6">
-      <div class="col-span-3">
-        <SettingsSidebar currentPath="/settings/profile" />
+    <div class="mx-auto max-w-5xl space-y-6">
+      <div class="space-y-2">
+        <p class="neo-kicker">Settings / Profile</p>
+        <h1 class="text-4xl font-bold tracking-tight">Hồ sơ cá nhân</h1>
+        <p class="max-w-3xl text-sm text-muted-foreground">
+          Cập nhật avatar, bio và các liên kết công khai mà không cần một sidebar phụ nằm trong content area.
+        </p>
       </div>
 
-      <div class="col-span-9">
-        <Card>
+      <Card class="neo-panel">
           <CardHeader>
             <CardTitle>Thông tin cá nhân</CardTitle>
             <CardDescription>
@@ -282,7 +284,6 @@
             </form>
           </CardContent>
         </Card>
-      </div>
     </div>
   </div>
 </AppLayout>
