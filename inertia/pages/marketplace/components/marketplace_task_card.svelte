@@ -98,7 +98,7 @@
       : null
   )
 
-  const startDateDisplay = $derived(() => {
+  const startDateDisplay = $derived.by(() => {
     const startDate = (task as { start_date?: string | null }).start_date ?? task.created_at
     if (!startDate) return null
     return new Date(startDate).toLocaleString('vi-VN', {
@@ -125,11 +125,19 @@
   const skills = $derived(
     task.required_skills_rel
       ?.map((r) => {
-        const skillData = r.skill as { skill_name?: string; skill_code?: string; name?: string } | undefined
+        const skillData = r.skill as {
+          skill_name?: string
+          skillName?: string
+          skill_code?: string
+          skillCode?: string
+          name?: string
+        } | undefined
         const skillName =
           skillData?.skill_name?.trim() ||
+          skillData?.skillName?.trim() ||
           skillData?.name?.trim() ||
           skillData?.skill_code?.trim() ||
+          skillData?.skillCode?.trim() ||
           (r.skill_id ? `Skill #${r.skill_id}` : 'Kỹ năng chưa đặt tên')
 
         const levelRaw = (r.required_level_code ?? '').trim().toLowerCase()
@@ -248,7 +256,7 @@
     <!-- Application deadline -->
     {#if deadlineDisplay}
       <div class="flex items-center gap-2">
-        <Calendar class="h-3.5 w-3.5 shrink-0 text-orange-500" />
+        <Calendar class="h-3.5 w-3.5 shrink-0 text-primary" />
         <span>Hạn ứng tuyển: {deadlineDisplay}</span>
       </div>
     {/if}
@@ -259,7 +267,7 @@
         <Tag class="h-3.5 w-3.5 shrink-0 mt-0.5" />
         <div class="flex flex-wrap gap-1.5">
           {#each skills.slice(0, 3) as skill}
-            <Badge class="text-xs px-2 py-0.5 border border-emerald-300 bg-emerald-100 text-emerald-900">
+            <Badge class="text-xs px-2 py-0.5 border border-blue-300 bg-blue-100 text-blue-900">
               {skill.label}{skill.isMandatory ? ' - bắt buộc' : ''}
             </Badge>
           {/each}
@@ -275,7 +283,7 @@
     <!-- Apply status / button -->
     <div class="pt-2 mt-auto">
       {#if hasApplied}
-        <div class="flex items-center gap-1.5 text-green-600 text-xs font-medium">
+        <div class="flex items-center gap-1.5 text-blue-600 text-xs font-medium">
           <CircleCheckBig class="h-3.5 w-3.5" />
           Đã ứng tuyển
         </div>

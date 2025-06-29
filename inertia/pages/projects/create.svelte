@@ -206,26 +206,28 @@
             <div class="space-y-2">
               <Label for="start_date">Ngày bắt đầu</Label>
               <Popover>
-                <PopoverTrigger asChild let:builder>
-                  <Button
-                    variant="outline"
-                    class={cn(
-                      "w-full justify-start text-left font-normal",
-                      !startDate && "text-muted-foreground"
-                    )}
-                    builders={[builder]}
-                  >
-                    <CalendarIcon class="mr-2 h-4 w-4" />
-                    {#if startDate}
-                      {format(startDate, 'PPP', { locale: vi })}
-                    {:else}
-                      <span>Chọn ngày</span>
-                    {/if}
-                  </Button>
+                <PopoverTrigger>
+                  {#snippet child({ props })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      class={cn(
+                        "w-full justify-start text-left font-normal",
+                        !startDate && "text-muted-foreground"
+                      )}
+                      {...props}
+                    >
+                      <CalendarIcon class="mr-2 h-4 w-4" />
+                      {#if startDate}
+                        {format(startDate, 'PPP', { locale: vi })}
+                      {:else}
+                        <span>Chọn ngày</span>
+                      {/if}
+                    </Button>
+                  {/snippet}
                 </PopoverTrigger>
                 <PopoverContent class="w-auto p-0">
                   <Calendar
-                    mode="single"
                     selected={startDate}
                     onSelect={handleStartDateChange}
                   />
@@ -236,26 +238,28 @@
             <div class="space-y-2">
               <Label for="end_date">Ngày kết thúc</Label>
               <Popover>
-                <PopoverTrigger asChild let:builder>
-                  <Button
-                    variant="outline"
-                    class={cn(
-                      "w-full justify-start text-left font-normal",
-                      !endDate && "text-muted-foreground"
-                    )}
-                    builders={[builder]}
-                  >
-                    <CalendarIcon class="mr-2 h-4 w-4" />
-                    {#if endDate}
-                      {format(endDate, 'PPP', { locale: vi })}
-                    {:else}
-                      <span>Chọn ngày</span>
-                    {/if}
-                  </Button>
+                <PopoverTrigger>
+                  {#snippet child({ props })}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      class={cn(
+                        "w-full justify-start text-left font-normal",
+                        !endDate && "text-muted-foreground"
+                      )}
+                      {...props}
+                    >
+                      <CalendarIcon class="mr-2 h-4 w-4" />
+                      {#if endDate}
+                        {format(endDate, 'PPP', { locale: vi })}
+                      {:else}
+                        <span>Chọn ngày</span>
+                      {/if}
+                    </Button>
+                  {/snippet}
                 </PopoverTrigger>
                 <PopoverContent class="w-auto p-0">
                   <Calendar
-                    mode="single"
                     selected={endDate}
                     onSelect={handleEndDateChange}
                   />

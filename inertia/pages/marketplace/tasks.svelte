@@ -34,9 +34,12 @@
   // Build extra params for pagination (preserve current filters)
   const paginationParams = $derived(() => {
     const params: Record<string, unknown> = {}
+    if (filters.keyword?.trim()) params.keyword = filters.keyword.trim()
     if (filters.difficulty) params.difficulty = filters.difficulty
-    if (filters.min_budget) params.min_budget = filters.min_budget
-    if (filters.max_budget) params.max_budget = filters.max_budget
+    if (filters.min_budget !== null && filters.min_budget !== undefined)
+      params.min_budget = filters.min_budget
+    if (filters.max_budget !== null && filters.max_budget !== undefined)
+      params.max_budget = filters.max_budget
     if (filters.sort_by !== 'created_at') params.sort_by = filters.sort_by
     if (filters.sort_order !== 'desc') params.sort_order = filters.sort_order
     return params
@@ -87,5 +90,8 @@
 <!-- Apply Modal -->
 <ApplyTaskModal
   task={selectedTask}
-  bind:open={applyModalOpen}
+  open={applyModalOpen}
+  onOpenChange={(value: boolean) => {
+    applyModalOpen = value
+  }}
 />

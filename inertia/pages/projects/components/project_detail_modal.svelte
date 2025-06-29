@@ -47,7 +47,8 @@
     onDeleted?: () => void
   }
 
-  const props: Props = $props()
+  // eslint-disable-next-line prefer-const
+  let { open = $bindable(), onOpenChange, projectId, onDeleted }: Props = $props()
 
   const { t } = useTranslation()
 
@@ -75,7 +76,7 @@
   }
 
   $effect(() => {
-    if (props.open && props.projectId && !projectDetail) {
+    if (open && projectId && !projectDetail) {
       void loadProjectDetail()
     }
   })
@@ -83,7 +84,7 @@
   async function loadProjectDetail() {
     loading = true
     error = null
-    const currentProjectId = props.projectId
+    const currentProjectId = projectId
     try {
       if (!currentProjectId) {
         throw new Error('Project ID is required')
@@ -112,15 +113,15 @@
   }
 
   async function handleDelete() {
-    if (!props.projectId) return
+    if (!projectId) return
     if (!confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) return
 
     deleting = true
     try {
-      await axios.delete(`/api/projects/${props.projectId}`)
+      await axios.delete(`/api/projects/${projectId}`)
       notificationStore.success(t('project.deleted', {}, 'Dự án đã được xóa'))
-      props.onDeleted?.()
-      props.onOpenChange(false)
+      onDeleted?.()
+      onOpenChange(false)
       resetState()
     } catch (err: unknown) {
       const apiError = err as { response?: { data?: { message?: unknown } } }
@@ -133,10 +134,10 @@
   }
 
   async function handleSaveEdit() {
-    if (!props.projectId || !projectDetail) return
+    if (!projectId || !projectDetail) return
     saving = true
     try {
-      await axios.put(`/api/projects/${props.projectId}`, {
+      await axios.put(`/api/projects/${projectId}`, {
         name: editForm.name,
         description: editForm.description,
       })
@@ -168,12 +169,12 @@
   }
 
   function handleClose() {
-    props.onOpenChange(false)
+    onOpenChange(false)
     resetState()
   }
 </script>
 
-<Dialog bind:open={props.open} onOpenChange={props.onOpenChange}>
+<Dialog bind:open onOpenChange={onOpenChange}>
   <DialogContent class="sm:max-w-2xl">
     <DialogHeader>
       <DialogTitle>

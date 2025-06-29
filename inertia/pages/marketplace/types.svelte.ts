@@ -75,6 +75,7 @@ export interface PaginationMeta {
 
 export interface MarketplaceFilters {
   skill_ids?: string[] | null
+  keyword?: string | null
   difficulty?: string | null
   min_budget?: number | null
   max_budget?: number | null
@@ -95,8 +96,8 @@ export const DIFFICULTY_CONFIG: Record<
   TaskDifficulty,
   { label: string; labelVi: string; color: string }
 > = {
-  easy: { label: 'Easy', labelVi: 'Dễ', color: 'bg-green-100 text-green-800' },
-  medium: { label: 'Medium', labelVi: 'Trung bình', color: 'bg-yellow-100 text-yellow-800' },
+  easy: { label: 'Easy', labelVi: 'Dễ', color: 'bg-blue-100 text-blue-800' },
+  medium: { label: 'Medium', labelVi: 'Trung bình', color: 'bg-fuchsia-100 text-fuchsia-800' },
   hard: { label: 'Hard', labelVi: 'Khó', color: 'bg-orange-100 text-orange-800' },
   expert: { label: 'Expert', labelVi: 'Chuyên gia', color: 'bg-red-100 text-red-800' },
 }
