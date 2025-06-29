@@ -15,7 +15,11 @@ export const controllers = {
     },
     packages: {
       ListPackages: () => import('#controllers/admin/packages/list_packages_controller'),
+      ShowQrCodes: () => import('#controllers/admin/packages/show_qr_codes_controller'),
       UpdatePackage: () => import('#controllers/admin/packages/update_package_controller'),
+    },
+    permissions: {
+      ShowPermissions: () => import('#controllers/admin/permissions/show_permissions_controller'),
     },
     reviews: {
       ListFlaggedReviews: () => import('#controllers/admin/reviews/list_flagged_reviews_controller'),
@@ -58,9 +62,11 @@ export const controllers = {
     MarkNotificationRead: () => import('#controllers/notifications/mark_notification_read_controller'),
   },
   organization: {
-    billing: {
-      ShowBilling: () => import('#controllers/organization/billing/show_billing_controller'),
-      UpdatePlan: () => import('#controllers/organization/billing/update_plan_controller'),
+    access: {
+      ShowDepartments: () => import('#controllers/organization/access/show_departments_controller'),
+      ShowPermissions: () => import('#controllers/organization/access/show_permissions_controller'),
+      ShowRoles: () => import('#controllers/organization/access/show_roles_controller'),
+      UpdateRoles: () => import('#controllers/organization/access/update_roles_controller'),
     },
     Dashboard: () => import('#controllers/organization/dashboard_controller'),
     invitations: {
@@ -81,6 +87,9 @@ export const controllers = {
     settings: {
       ShowSettings: () => import('#controllers/organization/settings/show_settings_controller'),
       UpdateSettings: () => import('#controllers/organization/settings/update_settings_controller'),
+    },
+    tasks: {
+      ListTasks: () => import('#controllers/organization/tasks/list_tasks_controller'),
     },
     workflow: {
       CreateTaskStatus: () => import('#controllers/organization/workflow/create_task_status_controller'),
