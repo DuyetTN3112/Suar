@@ -8,7 +8,12 @@
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{ value: string; label: string }>
+      statuses: Array<{
+        value: string
+        label: string
+        slug?: string
+        category?: string
+      }>
       labels: Array<{ value: string; label: string }>
       priorities: Array<{ value: string; label: string }>
       users: Array<{ id: string; username: string; email: string }>

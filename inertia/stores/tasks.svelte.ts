@@ -58,7 +58,7 @@ const PRIORITY_ORDER: Record<string, number> = {
 
 export function createTaskStore() {
   // ─── Core State ─────────────────────────────────────────────
-  let tasksMap = $state<Partial<Record<string, Task>>>({})
+  let tasksMap = $state<Record<string, Task>>({})
   let activeLayout = $state<TaskLayout>('list')
   let isLoading = $state(false)
 
@@ -226,7 +226,7 @@ export function createTaskStore() {
 
   /** Initialize store from server data */
   function initFromServerData(tasks: Task[]) {
-    const map: Partial<Record<string, Task>> = {}
+    const map: Record<string, Task> = {}
     for (const task of tasks) {
       map[task.id] = task
     }
@@ -245,9 +245,13 @@ export function createTaskStore() {
     tasksMap = rest
   }
 
+  function getTaskById(id: string): Task | undefined {
+    return Object.prototype.hasOwnProperty.call(tasksMap, id) ? tasksMap[id] : undefined
+  }
+
   /** Move task to new status (optimistic update for Kanban drag) */
   async function moveTaskStatus(taskId: string, newStatusId: TaskStatus, newSortOrder?: number) {
-    const task = tasksMap[taskId]
+    const task = getTaskById(taskId)
     if (!task) return
 
     // Optimistic update
@@ -298,7 +302,7 @@ export function createTaskStore() {
 
   /** Reorder task within same column */
   async function reorderTask(taskId: string, newSortOrder: number) {
-    const task = tasksMap[taskId]
+    const task = getTaskById(taskId)
     if (!task) return
 
     const prevSortOrder = task.sort_order
@@ -328,13 +332,14 @@ export function createTaskStore() {
     > = {}
     const updated = { ...tasksMap }
     for (const id of taskIds) {
-      if (updated[id]) {
-        prevStates[id] = {
-          status: updated[id].status,
-          task_status_id: updated[id].task_status_id,
-        }
-        updated[id] = { ...updated[id], task_status_id: newStatusId }
+      if (!Object.prototype.hasOwnProperty.call(updated, id)) continue
+
+      const currentTask = updated[id]
+      prevStates[id] = {
+        status: currentTask.status,
+        task_status_id: currentTask.task_status_id,
       }
+      updated[id] = { ...currentTask, task_status_id: newStatusId }
     }
     tasksMap = updated
 
@@ -347,12 +352,13 @@ export function createTaskStore() {
       // Rollback
       const rollback = { ...tasksMap }
       for (const [id, previous] of Object.entries(prevStates)) {
-        if (rollback[id]) {
-          rollback[id] = {
-            ...rollback[id],
-            status: previous.status,
-            task_status_id: previous.task_status_id,
-          }
+        if (!Object.prototype.hasOwnProperty.call(rollback, id)) continue
+
+        const currentTask = rollback[id]
+        rollback[id] = {
+          ...currentTask,
+          status: previous.status,
+          task_status_id: previous.task_status_id,
         }
       }
       tasksMap = rollback

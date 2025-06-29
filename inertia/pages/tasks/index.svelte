@@ -1,5 +1,6 @@
 <script lang="ts">
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import axios from 'axios'
   import type { Task, TasksProps } from './types.svelte'
   import { createTaskStore } from '@/stores/tasks.svelte'
@@ -26,23 +27,34 @@
   import { TriangleAlert } from 'lucide-svelte'
 
   interface Props {
+    shellMode?: TasksProps['shellMode']
+    baseRoute?: TasksProps['baseRoute']
     tasks: TasksProps['tasks']
     filters: TasksProps['filters']
     metadata: TasksProps['metadata']
     auth: TasksProps['auth']
+    permissions?: TasksProps['permissions']
     projectOptions?: Array<{ id: string; name: string }>
     projectContext?: { selectedProject: { id: string; name: string } | null }
   }
 
   const {
+    shellMode = 'app',
+    baseRoute = '/tasks',
     tasks,
     filters,
     metadata,
-    auth: _auth,
+    auth,
+    permissions,
     projectOptions = [],
     projectContext,
   }: Props = $props()
   const { t } = useTranslation()
+  const currentOrganizationRole = $derived(auth?.user?.current_organization_role ?? null)
+  const canManageWorkflow = $derived(
+    currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin'
+  )
+  const Layout = $derived(shellMode === 'organization' ? OrganizationLayout : AppLayout)
 
   // Initialize new task store with server data
   const store = createTaskStore()
@@ -66,6 +78,10 @@
   let importModalOpen = $state(false)
   let detailModalOpen = $state(false)
   let selectedTask = $state<Task | null>(null)
+  const createTaskPermission = $derived({
+    allowed: permissions?.canCreateTask ?? false,
+    reason: permissions?.createTaskReason ?? null,
+  })
 
   $effect(() => {
     if (statusDefinitionsLoaded || typeof window === 'undefined') return
@@ -82,6 +98,15 @@
   })
 
   function handleCreateClick(status?: string) {
+    if (!createTaskPermission.allowed) {
+      notificationStore.error(
+        'Bạn không đủ quyền tạo nhiệm vụ',
+        createTaskPermission.reason ||
+          'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
+      )
+      return
+    }
+
     if (projectOptions.length === 0) {
       notificationStore.error('Chưa có project', 'Bạn cần tạo project trước khi tạo task.')
       return
@@ -153,6 +178,8 @@
   }
 
   function canDeleteStatus(status: string): boolean {
+    if (!canManageWorkflow) return false
+
     const def = getStatusDefinition(status)
     if (!def) return false
     return !def.is_system
@@ -206,17 +233,21 @@
   }
 
   function handleProjectScopeChange(projectId: string) {
-    router.get(
-      '/tasks',
-      {
-        ...filters,
-        project_id: projectId,
-        page: 1,
-      },
-      {
-        preserveScroll: true,
-      }
-    )
+    const normalizedProjectId = projectId === '__all__' ? undefined : projectId
+    const nextFilters: Record<string, string | number | null | undefined> = {
+      ...filters,
+      page: 1,
+    }
+
+    if (normalizedProjectId) {
+      nextFilters.project_id = normalizedProjectId
+    } else {
+      delete nextFilters.project_id
+    }
+
+    router.get(baseRoute, nextFilters, {
+      preserveScroll: true,
+    })
   }
 
   function handleTaskCreated(task: Task) {
@@ -225,31 +256,36 @@
 
   const hasDeleteTargetTasks = $derived((statusDeleteTarget?.taskCount ?? 0) > 0)
 
-  const pageTitle = $derived(t('task.task_list', {}, 'Quản lý nhiệm vụ'))
+  const pageTitle = $derived(
+    shellMode === 'organization'
+      ? 'Task tổ chức'
+      : t('task.task_list', {}, 'Quản lý nhiệm vụ')
+  )
 </script>
 
 <svelte:head>
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-4">
     <div class="rounded-lg border bg-card p-3">
       <div class="w-full sm:w-[320px]">
         <Select
-          value={filters.project_id || projectContext?.selectedProject?.id || ''}
+          value={filters.project_id || projectContext?.selectedProject?.id || '__all__'}
           onValueChange={(value: string) => {
-            if (value) {
-              handleProjectScopeChange(value)
-            }
+            handleProjectScopeChange(value)
           }}
         >
           <SelectTrigger>
             <span>
-              {projectContext?.selectedProject?.name || 'Chọn project'}
+              {projectContext?.selectedProject?.name || 'Tất cả project'}
             </span>
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="__all__" label="Tất cả project">
+              Tất cả project
+            </SelectItem>
             {#each projectOptions as project (project.id)}
               <SelectItem value={project.id} label={project.name}>
                 {project.name}
@@ -266,6 +302,16 @@
       {/if}
     </div>
 
+    {#if !createTaskPermission.allowed}
+      <div class="rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100">
+        <p class="font-semibold">Bạn chưa thể tạo nhiệm vụ ở màn này.</p>
+        <p class="mt-1">
+          {createTaskPermission.reason ||
+            'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'}
+        </p>
+      </div>
+    {/if}
+
     <!-- Header with Filters, Display Properties -->
     <TaskHeader {store} {metadata} />
 
@@ -277,6 +323,8 @@
       onCreateTask={handleCreateClick}
       onCreateStatus={handleCreateStatusClick}
       onDeleteStatus={handleDeleteStatusClick}
+      canCreateTask={createTaskPermission.allowed}
+      canManageStatuses={canManageWorkflow}
       {canDeleteStatus}
     />
   </div>
@@ -297,7 +345,7 @@
   />
 
   <ImportTasksModal
-    bind:open={importModalOpen}
+    open={importModalOpen}
     onOpenChange={(open: boolean) => { importModalOpen = open }}
   />
 
@@ -338,7 +386,7 @@
             Bạn sắp xoá trạng thái <span class="font-semibold">{statusDeleteTarget.label}</span>.
           </p>
 
-          <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+          <div class="rounded-md border border-orange-200 bg-orange-50 px-3 py-2 text-orange-900 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100">
             <div class="flex items-start gap-2">
               <TriangleAlert class="mt-0.5 h-4 w-4 shrink-0" />
               <div>
@@ -432,4 +480,4 @@
       </DialogFooter>
     </DialogContent>
   </Dialog>
-</AppLayout>
+</Layout>

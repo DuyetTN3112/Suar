@@ -8,7 +8,13 @@
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{ value: string; label: string; color?: string }>
+      statuses: Array<{
+        value: string
+        label: string
+        color?: string
+        slug?: string
+        category?: string
+      }>
       labels: Array<{ value: string; label: string; color?: string }>
       priorities: Array<{ value: string; label: string; color?: string }>
       users: Array<{ id: string; username: string; email: string }>
@@ -18,9 +24,21 @@
     onCreateStatus?: () => void
     onDeleteStatus?: (payload: { status: string; label: string; taskCount: number }) => void
     canDeleteStatus?: (status: string) => boolean
+    canCreateTask?: boolean
+    canManageStatuses?: boolean
   }
 
-  const { store, metadata, onTaskClick, onCreateTask, onCreateStatus, onDeleteStatus, canDeleteStatus }: Props = $props()
+  const {
+    store,
+    metadata,
+    onTaskClick,
+    onCreateTask,
+    onCreateStatus,
+    onDeleteStatus,
+    canDeleteStatus,
+    canCreateTask = false,
+    canManageStatuses = false,
+  }: Props = $props()
   const { t } = useTranslation()
   const STATUS_ORDER_STORAGE_KEY = 'tasks:kanban:status-order'
 
@@ -162,6 +180,41 @@
   function handleDeleteStatus(status: string, label: string, taskCount: number) {
     onDeleteStatus?.({ status, label, taskCount })
   }
+
+  function getTasksForColumn(statusId: string): Task[] {
+    const directTasks = store.tasksByStatus[statusId] ?? []
+
+    const definition = metadata.statuses.find((status) => status.value === statusId)
+    if (!definition) {
+      return directTasks
+    }
+
+    const legacyTasks = store.sortedTasks.filter((task): task is Task => {
+      if (task.task_status_id) {
+        return false
+      }
+
+      if (!task.status) {
+        return false
+      }
+
+      return task.status === definition.slug || task.status === definition.category
+    })
+
+    if (legacyTasks.length === 0) {
+      return directTasks
+    }
+
+    const deduped = new Map<string, Task>()
+    for (const task of directTasks) {
+      deduped.set(task.id, task)
+    }
+    for (const task of legacyTasks) {
+      deduped.set(task.id, task)
+    }
+
+    return [...deduped.values()]
+  }
 </script>
 
 <div class="w-full overflow-x-auto pb-4">
@@ -184,7 +237,7 @@
           <KanbanColumn
             status={column.key}
             label={column.label}
-            tasks={store.tasksByStatus[column.key] ?? []}
+            tasks={getTasksForColumn(column.key)}
             displayProperties={store.displayProperties}
             {metadata}
             {onTaskClick}
@@ -192,6 +245,8 @@
             onCreateTask={handleCreateTask}
             onEditStatus={handleEditStatus}
             onDeleteStatus={handleDeleteStatus}
+            {canCreateTask}
+            canManageStatus={canManageStatuses}
             canDelete={canDeleteStatus?.(column.key) ?? false}
             onColumnDragStart={handleColumnDragStart}
             onColumnDragEnd={handleColumnDragEnd}
@@ -200,15 +255,17 @@
       {/each}
 
       <!-- Add Status Button -->
-      <button
-        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/10 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
-        onclick={handleCreateStatus}
-        type="button"
-        aria-label="Thêm trạng thái mới"
-        title="Thêm trạng thái mới"
-      >
-        <Plus class="h-5 w-5" />
-      </button>
+      {#if canManageStatuses}
+        <button
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/10 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+          onclick={handleCreateStatus}
+          type="button"
+          aria-label="Thêm trạng thái mới"
+          title="Thêm trạng thái mới"
+        >
+          <Plus class="h-5 w-5" />
+        </button>
+      {/if}
     </div>
   {/if}
 </div>

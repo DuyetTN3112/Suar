@@ -23,6 +23,8 @@
     onColumnDragStart?: (event: DragEvent, status: string) => void
     onColumnDragEnd?: () => void
     canDelete?: boolean
+    canCreateTask?: boolean
+    canManageStatus?: boolean
   }
 
   interface KanbanTaskPayload {
@@ -44,6 +46,8 @@
     onColumnDragStart,
     onColumnDragEnd,
     canDelete = false,
+    canCreateTask = false,
+    canManageStatus = false,
   }: Props = $props()
 
   let isDragOver = $state(false)
@@ -59,16 +63,16 @@
   const statusColors: Record<string, string> = {
     todo: 'border-t-slate-400',
     in_progress: 'border-t-blue-500',
-    in_review: 'border-t-amber-500',
-    done: 'border-t-green-500',
+    in_review: 'border-t-fuchsia-500',
+    done: 'border-t-orange-500',
     cancelled: 'border-t-red-400',
   }
 
   const statusBgColors: Record<string, string> = {
     todo: 'bg-slate-50 dark:bg-slate-900/30',
     in_progress: 'bg-blue-50 dark:bg-blue-900/20',
-    in_review: 'bg-amber-50 dark:bg-amber-900/20',
-    done: 'bg-green-50 dark:bg-green-900/20',
+    in_review: 'bg-fuchsia-50 dark:bg-fuchsia-900/20',
+    done: 'bg-orange-50 dark:bg-orange-900/20',
     cancelled: 'bg-red-50 dark:bg-red-900/20',
   }
 
@@ -157,17 +161,19 @@
   <!-- Column Header -->
   <div class="flex items-center justify-between px-3 py-2.5 {statusBgColors[status] ?? ''} group">
     <div class="flex items-center gap-2 flex-1">
-      <button
-        type="button"
-        class="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground cursor-grab active:cursor-grabbing"
-        draggable="true"
-        ondragstart={(event) => { onColumnDragStart?.(event, status) }}
-        ondragend={() => { onColumnDragEnd?.() }}
-        title="Kéo để đổi vị trí cột trạng thái"
-        aria-label="Kéo để đổi vị trí cột trạng thái"
-      >
-        <GripVertical class="h-3.5 w-3.5" />
-      </button>
+      {#if canManageStatus}
+        <button
+          type="button"
+          class="rounded p-1 text-muted-foreground/70 hover:bg-muted hover:text-foreground cursor-grab active:cursor-grabbing"
+          draggable="true"
+          ondragstart={(event) => { onColumnDragStart?.(event, status) }}
+          ondragend={() => { onColumnDragEnd?.() }}
+          title="Kéo để đổi vị trí cột trạng thái"
+          aria-label="Kéo để đổi vị trí cột trạng thái"
+        >
+          <GripVertical class="h-3.5 w-3.5" />
+        </button>
+      {/if}
 
       {#if isEditingLabel}
         <input
@@ -177,7 +183,7 @@
           onkeydown={handleLabelKeydown}
           class="text-sm font-semibold bg-transparent border-b border-primary focus:outline-none w-32"
         />
-      {:else}
+      {:else if canManageStatus}
         <button
           type="button"
           class="text-sm font-semibold text-left hover:text-primary transition-colors"
@@ -186,6 +192,8 @@
         >
           {label}
         </button>
+      {:else}
+        <p class="text-sm font-semibold text-left">{label}</p>
       {/if}
       <Badge variant="secondary" class="h-5 min-w-[20px] px-1.5 text-[10px]">
         {tasks.length}
@@ -226,13 +234,15 @@
     {/if}
 
     <!-- Add Task Button -->
-    <button
-      class="w-full rounded-md border-2 border-dashed border-muted-foreground/20 bg-muted/10 hover:bg-muted/30 hover:border-muted-foreground/40 transition-colors p-2 text-xs text-muted-foreground flex items-center justify-center gap-1.5 group"
-      onclick={() => { onCreateTask?.(status); }}
-      type="button"
-    >
-      <Plus class="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
-      <span>Tạo task mới</span>
-    </button>
+    {#if canCreateTask}
+      <button
+        class="w-full rounded-md border-2 border-dashed border-muted-foreground/20 bg-muted/10 hover:bg-muted/30 hover:border-muted-foreground/40 transition-colors p-2 text-xs text-muted-foreground flex items-center justify-center gap-1.5 group"
+        onclick={() => { onCreateTask?.(status); }}
+        type="button"
+      >
+        <Plus class="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+        <span>Tạo task mới</span>
+      </button>
+    {/if}
   </div>
 </div>

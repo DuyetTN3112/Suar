@@ -135,8 +135,8 @@
   const statusBarColors: Record<string, string> = {
     todo: 'bg-slate-400',
     in_progress: 'bg-blue-500',
-    in_review: 'bg-amber-500',
-    done: 'bg-green-500',
+    in_review: 'bg-fuchsia-500',
+    done: 'bg-orange-500',
     cancelled: 'bg-red-400',
   }
 

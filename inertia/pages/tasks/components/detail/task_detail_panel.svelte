@@ -52,16 +52,16 @@
   const statusConfig: Partial<Record<string, { icon: typeof Circle; color: string; bgColor: string }>> = {
     todo: { icon: Circle, color: 'text-slate-500', bgColor: 'bg-slate-100 dark:bg-slate-800' },
     in_progress: { icon: Clock, color: 'text-blue-500', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
-    in_review: { icon: Eye, color: 'text-amber-500', bgColor: 'bg-amber-100 dark:bg-amber-900/30' },
-    done: { icon: CircleCheck, color: 'text-green-500', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+    in_review: { icon: Eye, color: 'text-fuchsia-500', bgColor: 'bg-fuchsia-100 dark:bg-fuchsia-900/30' },
+    done: { icon: CircleCheck, color: 'text-orange-500', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
     cancelled: { icon: CircleX, color: 'text-red-500', bgColor: 'bg-red-100 dark:bg-red-900/30' },
   }
 
   const priorityConfig: Record<string, { color: string; bgColor: string }> = {
     urgent: { color: 'text-red-600', bgColor: 'bg-red-100 dark:bg-red-900/30' },
     high: { color: 'text-orange-600', bgColor: 'bg-orange-100 dark:bg-orange-900/30' },
-    medium: { color: 'text-yellow-600', bgColor: 'bg-yellow-100 dark:bg-yellow-900/30' },
-    low: { color: 'text-green-600', bgColor: 'bg-green-100 dark:bg-green-900/30' },
+    medium: { color: 'text-blue-600', bgColor: 'bg-blue-100 dark:bg-blue-900/30' },
+    low: { color: 'text-fuchsia-600', bgColor: 'bg-fuchsia-100 dark:bg-fuchsia-900/30' },
   }
 
   const priorityLabel = $derived(

@@ -182,7 +182,7 @@
 
       <CardContent>
         {#if (metadata.projects?.length ?? 0) === 0}
-          <div class="mb-4 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div class="mb-4 rounded-lg border border-orange-300 bg-orange-50 px-4 py-3 text-sm text-orange-900 dark:border-orange-800 dark:bg-orange-950/30 dark:text-orange-100">
             Tổ chức hiện tại chưa có project. Hãy tạo project trước khi tạo task.
           </div>
         {/if}
