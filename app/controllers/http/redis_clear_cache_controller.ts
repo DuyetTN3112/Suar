@@ -1,17 +1,16 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import CacheService from '#services/cache_service'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
+import ClearCacheKeyCommand from '#actions/common/commands/clear_cache_key_command'
 
 /**
  * DELETE /api/redis/cache/:key → Clear specific cache key
  */
 export default class RedisClearCacheController {
-  async handle({ params, response }: HttpContext) {
+  async handle(ctx: HttpContext) {
+    const { params, response } = ctx
     const key = params.key as string | undefined
-    if (!key) {
-      throw new BusinessLogicException('Key is required')
-    }
-    await CacheService.delete(key)
+    await new ClearCacheKeyCommand(ExecutionContext.fromHttp(ctx)).execute(key ?? '')
+
     response.json({
       success: true,
       message: 'Cache cleared successfully',
