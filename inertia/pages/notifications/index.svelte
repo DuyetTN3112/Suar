@@ -23,10 +23,14 @@
   } from 'lucide-svelte'
   import { formatDistanceToNow } from 'date-fns'
   import { vi } from 'date-fns/locale'
+  import {
+    FRONTEND_NOTIFICATION_TYPES,
+    type FrontendNotificationType,
+  } from '@/constants/notifications'
 
   interface NotificationItem {
     id: string
-    type: string
+    type: FrontendNotificationType
     title: string
     message: string
     data?: Record<string, unknown>
@@ -85,28 +89,28 @@
     return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
   }
 
-  function getIcon(type: string) {
+  function getIcon(type: FrontendNotificationType) {
     switch (type) {
-      case 'task':
-      case 'task_assigned':
-      case 'task_overdue':
+      case FRONTEND_NOTIFICATION_TYPES.TASK:
+      case FRONTEND_NOTIFICATION_TYPES.TASK_ASSIGNED:
+      case FRONTEND_NOTIFICATION_TYPES.TASK_OVERDUE:
         return Clock
-      case 'message':
-      case 'conversation':
+      case FRONTEND_NOTIFICATION_TYPES.MESSAGE:
+      case FRONTEND_NOTIFICATION_TYPES.CONVERSATION:
         return MessageSquare
-      case 'warning':
-      case 'alert':
+      case FRONTEND_NOTIFICATION_TYPES.WARNING:
+      case FRONTEND_NOTIFICATION_TYPES.ALERT:
         return TriangleAlert
-      case 'review':
-      case 'rating':
+      case FRONTEND_NOTIFICATION_TYPES.REVIEW:
+      case FRONTEND_NOTIFICATION_TYPES.RATING:
         return Star
-      case 'team':
-      case 'organization':
+      case FRONTEND_NOTIFICATION_TYPES.TEAM:
+      case FRONTEND_NOTIFICATION_TYPES.ORGANIZATION:
         return Users
-      case 'document':
-      case 'file':
+      case FRONTEND_NOTIFICATION_TYPES.DOCUMENT:
+      case FRONTEND_NOTIFICATION_TYPES.FILE:
         return FileText
-      case 'info':
+      case FRONTEND_NOTIFICATION_TYPES.INFO:
         return Info
       default:
         return Bell

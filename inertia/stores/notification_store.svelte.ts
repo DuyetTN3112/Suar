@@ -1,3 +1,8 @@
+import {
+  FRONTEND_DIALOG_NOTIFICATION_TYPES,
+  type FrontendDialogNotificationType,
+} from '@/constants/notifications'
+
 /**
  * Global notification popup store.
  * Replaces toast notifications with persistent dialog popups.
@@ -9,7 +14,7 @@
  *   notificationStore.info('Thông tin')
  */
 
-export type NotificationType = 'success' | 'error' | 'info'
+export type NotificationType = FrontendDialogNotificationType
 
 export interface NotificationItem {
   id: number
@@ -41,13 +46,13 @@ export const notificationStore = {
     return notifications[0] ?? null
   },
   success(title: string, message?: string) {
-    addNotification('success', title, message)
+    addNotification(FRONTEND_DIALOG_NOTIFICATION_TYPES.SUCCESS, title, message)
   },
   error(title: string, message?: string) {
-    addNotification('error', title, message)
+    addNotification(FRONTEND_DIALOG_NOTIFICATION_TYPES.ERROR, title, message)
   },
   info(title: string, message?: string) {
-    addNotification('info', title, message)
+    addNotification(FRONTEND_DIALOG_NOTIFICATION_TYPES.INFO, title, message)
   },
   dismiss,
   dismissAll,

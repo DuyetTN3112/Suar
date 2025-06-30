@@ -5,6 +5,10 @@ import type {
   TaskApplicationSubmittedEvent,
   TaskApplicationReviewedEvent,
 } from '#events/event_types'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Notification Listener — Sprint 7
@@ -23,8 +27,8 @@ emitter.on('task:application:submitted', async (event: TaskApplicationSubmittedE
       user_id: event.ownerId,
       title: 'Yêu cầu tham gia task mới',
       message: `Có người đã đăng ký tham gia task của bạn.`,
-      type: 'task_application',
-      related_entity_type: 'task_application',
+      type: BACKEND_NOTIFICATION_TYPES.TASK_APPLICATION,
+      related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK_APPLICATION,
       related_entity_id: event.applicationId,
     })
 
@@ -57,8 +61,8 @@ emitter.on('task:application:reviewed', async (event: TaskApplicationReviewedEve
       user_id: event.applicantId,
       title,
       message,
-      type: 'task_application_review',
-      related_entity_type: 'task_application',
+      type: BACKEND_NOTIFICATION_TYPES.TASK_APPLICATION_REVIEW,
+      related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK_APPLICATION,
       related_entity_id: event.applicationId,
     })
 

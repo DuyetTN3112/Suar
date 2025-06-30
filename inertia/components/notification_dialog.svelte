@@ -8,31 +8,32 @@
   import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
   import Button from '@/components/ui/button.svelte'
   import { CircleCheck, CircleAlert, Info } from 'lucide-svelte'
+  import { FRONTEND_DIALOG_NOTIFICATION_TYPES } from '@/constants/notifications'
 
   const current = $derived(notificationStore.current)
 
   function getIcon(type: NotificationItem['type']) {
     switch (type) {
-      case 'success': return CircleCheck
-      case 'error': return CircleAlert
-      case 'info': return Info
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.SUCCESS: return CircleCheck
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.ERROR: return CircleAlert
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.INFO: return Info
     }
   }
 
   function getColorClass(type: NotificationItem['type']) {
     switch (type) {
-      case 'success': return 'text-blue-600'
-      case 'error': return 'text-red-600'
-      case 'info': return 'text-blue-600'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.SUCCESS: return 'text-blue-600'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.ERROR: return 'text-red-600'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.INFO: return 'text-blue-600'
     }
   }
 
   function getTitle(item: NotificationItem) {
     if (item.message) return item.title
     switch (item.type) {
-      case 'success': return 'Thành công'
-      case 'error': return 'Lỗi'
-      case 'info': return 'Thông báo'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.SUCCESS: return 'Thành công'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.ERROR: return 'Lỗi'
+      case FRONTEND_DIALOG_NOTIFICATION_TYPES.INFO: return 'Thông báo'
     }
   }
 

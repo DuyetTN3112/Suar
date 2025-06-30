@@ -7,6 +7,7 @@ import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_
 import DeleteNotification from '#actions/notifications/delete_notification'
 import { ExecutionContext } from '#types/execution_context'
 import NotFoundException from '#exceptions/not_found_exception'
+import { BACKEND_NOTIFICATION_TYPES } from '#constants/notification_constants'
 
 function requireNotificationId(
   notification: { id: string } | null,
@@ -33,7 +34,7 @@ test.group('Integration | Notification Flow', (group) => {
       user_id: user.id,
       title: 'Task assigned',
       message: 'You have a new task to review',
-      type: 'task_assigned',
+      type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
       related_entity_type: 'task',
       related_entity_id: 'task-notification-id',
     })
@@ -50,7 +51,7 @@ test.group('Integration | Notification Flow', (group) => {
     assert.equal(result.meta.total, 1)
     assert.equal(result.notifications[0]?.id, createdId)
     assert.equal(result.notifications[0]?.title, 'Task assigned')
-    assert.equal(result.notifications[0]?.type, 'task_assigned')
+    assert.equal(result.notifications[0]?.type, BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED)
   })
 
   test('marks a notification as read for its owner and updates unread count', async ({
@@ -62,7 +63,7 @@ test.group('Integration | Notification Flow', (group) => {
       user_id: user.id,
       title: 'Join request approved',
       message: 'Your request was approved',
-      type: 'organization',
+      type: BACKEND_NOTIFICATION_TYPES.ORGANIZATION,
     })
 
     const createdId = requireNotificationId(created, assert)
@@ -91,7 +92,7 @@ test.group('Integration | Notification Flow', (group) => {
       user_id: owner.id,
       title: 'Review updated',
       message: 'A review session has changed',
-      type: 'review',
+      type: BACKEND_NOTIFICATION_TYPES.REVIEW,
     })
 
     const createdId = requireNotificationId(created, assert)
@@ -119,7 +120,7 @@ test.group('Integration | Notification Flow', (group) => {
       user_id: user.id,
       title: 'System notice',
       message: 'This will be deleted',
-      type: 'info',
+      type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
 
     const createdId = requireNotificationId(created, assert)
