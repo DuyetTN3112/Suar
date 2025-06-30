@@ -3,6 +3,7 @@ import { ExecutionContext } from '#types/execution_context'
 import BulkAddMembersCommand from '#actions/organizations/commands/bulk_add_members_command'
 import { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * POST /organizations/users/add
@@ -15,7 +16,7 @@ export default class AddUsersController {
     const user = auth.user
     const organizationId = user?.current_organization_id
     if (!organizationId) {
-      throw new BusinessLogicException('Không tìm thấy tổ chức')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const userIds = request.input('user_ids', []) as string[]

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListProjectsQuery from '#actions/organization/projects/queries/list_projects_query'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * ListProjectsController
@@ -30,7 +31,7 @@ export default class ListProjectsController {
     }
 
     // Parse query params
-    const page = toPageNumber(request.input('page', 1) as unknown)
+    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search') as unknown)
     const status = toOptionalString(request.input('status') as unknown)
 

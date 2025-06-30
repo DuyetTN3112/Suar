@@ -16,6 +16,10 @@ import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRemoveMember } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Remove Member from Organization
@@ -124,8 +128,8 @@ export default class RemoveMemberCommand {
         user_id: dto.userId,
         title: 'Đã rời khỏi tổ chức',
         message: `Bạn đã bị xóa khỏi tổ chức${dto.hasReason() ? `: ${dto.getNormalizedReason() ?? ''}` : ''}`,
-        type: 'member_removed',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.MEMBER_REMOVED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: dto.organizationId,
       })
     } catch (error) {

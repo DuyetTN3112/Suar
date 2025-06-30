@@ -4,6 +4,9 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
 import GetAllOrganizationsQuery from '#actions/organizations/queries/get_all_organizations_query'
 import { GetOrganizationsListDTO } from '#actions/organizations/dtos/request/get_organizations_list_dto'
+import { PAGINATION } from '#constants/common_constants'
+
+const ORGANIZATIONS_DEFAULT_LIMIT = 20
 
 /**
  * GET /organizations
@@ -20,8 +23,8 @@ export default class ListOrganizationsController {
 
     // Build DTO from request
     const dto = new GetOrganizationsListDTO(
-      Number(request.input('page', 1)),
-      Number(request.input('limit', 20)),
+      Number(request.input('page', PAGINATION.DEFAULT_PAGE)),
+      Number(request.input('limit', ORGANIZATIONS_DEFAULT_LIMIT)),
       request.input('search') as string | undefined
     )
 

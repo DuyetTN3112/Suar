@@ -3,6 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import ListOrganizationMembersQuery from '#actions/organization/members/queries/list_organization_members_query'
 
+const ORG_MEMBERS_PER_PAGE = 50
+
 interface MemberListQueryParams {
   page?: number | string
   search?: string
@@ -56,7 +58,7 @@ export default class ListMembersController {
       new ListOrganizationMembersQuery(execCtx).handle({
         organizationId: user.current_organization_id,
         page,
-        perPage: 50,
+        perPage: ORG_MEMBERS_PER_PAGE,
         search,
         orgRole,
         status,

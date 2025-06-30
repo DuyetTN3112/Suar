@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * Controller for switching between organizations
@@ -18,7 +19,7 @@ export default class SwitchOrganizationController {
     }
 
     if (!requestData.organization_id) {
-      throw new BusinessLogicException('Thiếu ID tổ chức')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const orgId = String(requestData.organization_id)
