@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ListOrganizationsQuery from '#actions/admin/organizations/queries/list_organizations_query'
 import { ExecutionContext } from '#types/execution_context'
+import { PAGINATION } from '#constants/common_constants'
+
+const ADMIN_ORGANIZATIONS_PER_PAGE = 24
 
 /**
  * ListOrganizationsController
@@ -28,7 +31,7 @@ export default class ListOrganizationsController {
       return typeof value === 'string' && value.trim().length > 0 ? value : undefined
     }
 
-    const page = toPageNumber(request.input('page', 1) as unknown)
+    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
 
     const execCtx = ExecutionContext.fromHttp(ctx)
@@ -36,7 +39,7 @@ export default class ListOrganizationsController {
 
     const result = await query.handle({
       page,
-      perPage: 24,
+      perPage: ADMIN_ORGANIZATIONS_PER_PAGE,
       search,
     })
 

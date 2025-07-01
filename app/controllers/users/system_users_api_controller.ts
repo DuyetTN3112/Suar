@@ -7,6 +7,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { ExecutionContext } from '#types/execution_context'
+import { ErrorMessages } from '#constants/error_constants'
+import { PAGINATION } from '#constants/common_constants'
+
+const SYSTEM_USERS_DEFAULT_LIMIT = 10
 
 /**
  * GET /api/system-users → Get system users (not in current organization)
@@ -24,7 +28,7 @@ export default class SystemUsersApiController {
 
     const organizationId = user.current_organization_id
     if (!organizationId) {
-      throw new BusinessLogicException('Organization not found')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
@@ -32,8 +36,8 @@ export default class SystemUsersApiController {
       throw new ForbiddenException()
     }
 
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+    const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
+    const limit = Number(request.input('limit', SYSTEM_USERS_DEFAULT_LIMIT))
 
     const dto = new GetUsersListDTO(
       new PaginationDTO(page, limit),

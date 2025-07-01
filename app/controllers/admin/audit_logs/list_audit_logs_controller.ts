@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ListAuditLogsQuery from '#actions/admin/audit_logs/queries/list_audit_logs_query'
 import { ExecutionContext } from '#types/execution_context'
+import { PAGINATION } from '#constants/common_constants'
+
+const ADMIN_AUDIT_LOGS_PER_PAGE = 50
 
 /**
  * ListAuditLogsController
@@ -37,7 +40,7 @@ export default class ListAuditLogsController {
       return Number.isNaN(parsed.getTime()) ? undefined : parsed
     }
 
-    const page = toPageNumber(request.input('page', 1) as unknown)
+    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
     const search = toOptionalString(request.input('search', '') as unknown)
     const action = toOptionalString(request.input('action', null) as unknown)
     const resourceType = toOptionalString(request.input('resource_type', null) as unknown)
@@ -50,7 +53,7 @@ export default class ListAuditLogsController {
 
     const result = await query.handle({
       page,
-      perPage: 50,
+      perPage: ADMIN_AUDIT_LOGS_PER_PAGE,
       search,
       action,
       resourceType,

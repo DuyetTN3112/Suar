@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ListSubscriptionsQuery from '#actions/admin/packages/queries/list_subscriptions_query'
 import { SUBSCRIPTION_PACKAGE_CATALOG } from '#constants/subscription_packages'
+import { PAGINATION } from '#constants/common_constants'
 
 export default class ListPackagesController {
   async handle(ctx: HttpContext) {
@@ -25,8 +26,8 @@ export default class ListPackagesController {
 
     const query = new ListSubscriptionsQuery(execCtx)
     const result = await query.handle({
-      page: toPageNumber(request.input('page', 1) as unknown),
-      perPage: 20,
+      page: toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown),
+      perPage: PAGINATION.DEFAULT_PER_PAGE,
       search: toOptionalString(request.input('search', '') as unknown),
       plan: toOptionalString(request.input('plan', '') as unknown),
       status: toOptionalString(request.input('status', '') as unknown),

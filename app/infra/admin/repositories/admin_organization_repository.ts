@@ -1,5 +1,6 @@
 import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
+import type { PartnerType } from '#constants/organization_constants'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -24,7 +25,7 @@ const toNumberValue = (value: unknown): number => {
 
 export interface ListOrganizationsFilters {
   search?: string
-  partnerType?: string
+  partnerType?: PartnerType
 }
 
 export interface ListOrganizationsResult {
