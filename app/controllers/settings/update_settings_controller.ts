@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import UpdateUserSettings from '#actions/settings/update_user_settings'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * PUT /settings → Update general settings
@@ -17,7 +18,7 @@ export default class UpdateSettingsController {
     }
 
     if (data.theme && !['light', 'dark', 'system'].includes(data.theme)) {
-      throw new BusinessLogicException('Invalid theme value')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     updateUserSettings.handle({

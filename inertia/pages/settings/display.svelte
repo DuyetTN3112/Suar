@@ -11,6 +11,7 @@
   import Switch from '@/components/ui/switch.svelte'
   import RadioGroup from '@/components/ui/radio_group.svelte'
   import RadioGroupItem from '@/components/ui/radio_group_item.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface DisplayUserData {
     id: string
@@ -66,7 +67,7 @@
   function handleSubmit(e: Event) {
     e.preventDefault()
     router.post(
-      '/settings/display',
+      FRONTEND_ROUTES.SETTINGS_DISPLAY,
       {
         layout,
         density,

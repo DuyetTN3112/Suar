@@ -1,21 +1,24 @@
 import { writable } from 'svelte/store'
+import {
+  THEME_STORAGE_KEY,
+  SYSTEM_THEME_QUERY,
+  THEME_MODES,
+  THEME_META_COLOR,
+  type ThemeMode,
+  type ResolvedTheme,
+} from '@/constants/theme'
 
 // Check if we're in browser (not SSR)
 const browser = typeof window !== 'undefined'
 
-export type Theme = 'light' | 'dark' | 'system'
-
-type ResolvedTheme = 'light' | 'dark'
-
-const THEME_STORAGE_KEY = 'theme'
-const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)'
+export type Theme = ThemeMode
 
 function readStoredTheme(): Theme {
   if (!browser) return 'light'
 
   const storedTheme = localStorage.getItem(THEME_STORAGE_KEY)
-  if (storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system') {
-    return storedTheme
+  if (storedTheme && THEME_MODES.includes(storedTheme as ThemeMode)) {
+    return storedTheme as Theme
   }
 
   return 'light'
@@ -36,7 +39,7 @@ function syncThemeColorMeta(resolvedTheme: ResolvedTheme) {
 
   const metaThemeColor = document.querySelector("meta[name='theme-color']")
   if (metaThemeColor) {
-    metaThemeColor.setAttribute('content', resolvedTheme === 'dark' ? '#171211' : '#ffffff')
+    metaThemeColor.setAttribute('content', THEME_META_COLOR[resolvedTheme])
   }
 }
 
