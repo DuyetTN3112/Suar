@@ -10,6 +10,7 @@
   import CardFooter from '@/components/ui/card_footer.svelte'
   import { Building, Plus, ArrowRight, Search, ChevronLeft, ChevronRight } from 'lucide-svelte'
   import axios from 'axios'
+  import { FRONTEND_PAGINATION } from '@/constants/pagination'
 
   interface Organization {
     id: string
@@ -24,7 +25,7 @@
   let error = $state('')
   let searchTerm = $state('')
   let currentPage = $state(1)
-  const organizationsPerPage = 6
+  const organizationsPerPage = FRONTEND_PAGINATION.REQUIRE_ORGANIZATION_ITEMS_PER_PAGE
 
   const filteredOrganizations = $derived(
     organizations.filter(

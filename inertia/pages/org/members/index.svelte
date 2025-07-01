@@ -13,6 +13,14 @@
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
   import { Link } from '@inertiajs/svelte'
+  import {
+    FRONTEND_ROUTES,
+    MEMBERSHIP_STATUSES,
+    MEMBERSHIP_STATUS_LABELS,
+    MEMBERSHIP_STATUS_PILL_CLASSES,
+    getOrgMemberRoleRoute,
+    type MembershipStatus,
+  } from '@/constants'
 
   interface Member {
     user_id: string
@@ -58,16 +66,7 @@
   }
 
   function statusLabel(status: string): string {
-    switch (status) {
-      case 'approved':
-        return 'Đã duyệt'
-      case 'pending':
-        return 'Chờ duyệt'
-      case 'rejected':
-        return 'Từ chối'
-      default:
-        return status
-    }
+    return MEMBERSHIP_STATUS_LABELS[status as MembershipStatus] || status
   }
 
   function roleClass(role: string): string {
@@ -87,16 +86,7 @@
   }
 
   function statusClass(status: string): string {
-    switch (status) {
-      case 'approved':
-        return 'neo-pill-blue'
-      case 'pending':
-        return 'neo-pill-orange'
-      case 'rejected':
-        return 'neo-pill-ink'
-      default:
-        return 'neo-pill-soft'
-    }
+    return MEMBERSHIP_STATUS_PILL_CLASSES[status as MembershipStatus] || 'neo-pill-soft'
   }
 
   function selectedRole(member: Member): string {
@@ -104,7 +94,7 @@
   }
 
   function canEditRole(member: Member): boolean {
-    return member.status === 'approved' && member.org_role !== 'org_owner'
+    return member.status === MEMBERSHIP_STATUSES.APPROVED && member.org_role !== 'org_owner'
   }
 
   async function saveRole(member: Member) {
@@ -124,7 +114,7 @@
     roleError = ''
 
     try {
-      const response = await fetch(`/org/members/${member.user_id}/role`, {
+      const response = await fetch(getOrgMemberRoleRoute(member.user_id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -172,19 +162,19 @@
         <p class="mt-2 max-w-3xl text-sm text-muted-foreground">Danh sách thành viên trong ngữ cảnh tổ chức hiện tại. Flow mời người và duyệt yêu cầu đã tách riêng sang các màn chuyên biệt.</p>
       </div>
       <div class="flex gap-2">
-        <Link href="/org/departments">
+        <Link href={FRONTEND_ROUTES.ORG_DEPARTMENTS}>
           <Button variant="outline">Phòng ban</Button>
         </Link>
-        <Link href="/org/roles">
+        <Link href={FRONTEND_ROUTES.ORG_ROLES}>
           <Button variant="outline">Vai trò</Button>
         </Link>
-        <Link href="/org/permissions">
+        <Link href={FRONTEND_ROUTES.ORG_PERMISSIONS}>
           <Button variant="outline">Quyền hạn</Button>
         </Link>
-        <Link href="/org/invitations/requests">
+        <Link href={FRONTEND_ROUTES.ORG_INVITATION_REQUESTS}>
           <Button variant="outline">Yêu cầu tham gia</Button>
         </Link>
-        <Link href="/org/invitations/invitations">
+        <Link href={FRONTEND_ROUTES.ORG_INVITATIONS}>
           <Button>Mời thành viên</Button>
         </Link>
       </div>

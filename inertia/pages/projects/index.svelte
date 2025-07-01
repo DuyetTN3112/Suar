@@ -28,6 +28,7 @@
   import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
   import ProjectDetailModal from './components/project_detail_modal.svelte'
+  import { FRONTEND_ROUTES, getProjectDetailRoute } from '@/constants'
 
   const { t } = useTranslation()
 
@@ -62,7 +63,7 @@
       showOrganizationModal = true
       return
     }
-    router.get('/projects/create')
+    router.get(FRONTEND_ROUTES.PROJECTS_CREATE)
   }
 
   function handleViewProject(id: string) {
@@ -72,7 +73,7 @@
 
   function handleDeleteProject(id: string) {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
-      router.delete(`/projects/${id}`)
+      router.delete(getProjectDetailRoute(id))
     }
   }
 
@@ -80,11 +81,11 @@
     detailModalOpen = false
     selectedProjectId = undefined
     // Refresh projects list
-    router.visit('/projects', { replace: true })
+    router.visit(FRONTEND_ROUTES.PROJECTS, { replace: true })
   }
 
   function handleGoToOrganizations() {
-    router.get('/organizations')
+    router.get(FRONTEND_ROUTES.ORGANIZATIONS)
   }
 
   interface SwitchOrganizationResponse {
@@ -100,7 +101,7 @@
       const csrfToken =
         document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
-      const response = await fetch('/switch-organization', {
+      const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -119,7 +120,7 @@
       }
 
       notificationStore.success(payload.message || 'Đã chuyển tổ chức')
-      router.visit(payload.redirect || '/tasks', {
+      router.visit(payload.redirect || FRONTEND_ROUTES.TASKS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,

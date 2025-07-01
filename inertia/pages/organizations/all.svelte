@@ -12,6 +12,8 @@
   import { Building, Search, Users, ChevronLeft, ChevronRight } from 'lucide-svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+  import { FRONTEND_PAGINATION } from '@/constants/pagination'
+  import { FRONTEND_ROUTES } from '@/constants/routes'
 
   interface Organization {
     id: string
@@ -45,7 +47,7 @@
 
   let searchTerm = $state('')
   let currentPage = $state(1)
-  const ITEMS_PER_PAGE = 12
+  const ITEMS_PER_PAGE = FRONTEND_PAGINATION.ALL_ORGANIZATIONS_ITEMS_PER_PAGE
 
   const filteredOrganizations = $derived(
     organizations.filter((org) =>
@@ -70,7 +72,7 @@
         return
       }
 
-      const response = await fetch('/switch-organization', {
+      const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,7 +91,7 @@
         const data = (await response.json()) as SwitchOrganizationResponse
         if (data.success) {
           notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-          router.visit(data.redirect || '/tasks', {
+          router.visit(data.redirect || FRONTEND_ROUTES.TASKS, {
             preserveState: false,
             preserveScroll: false,
             replace: true,
@@ -99,7 +101,7 @@
         }
       } else {
         notificationStore.success('Đã chuyển đổi tổ chức thành công')
-        router.visit('/tasks', {
+        router.visit(FRONTEND_ROUTES.TASKS, {
           preserveState: false,
           preserveScroll: false,
           replace: true,

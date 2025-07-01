@@ -17,6 +17,8 @@
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+  import { FRONTEND_PAGINATION } from '@/constants/pagination'
+  import { FRONTEND_ROUTES } from '@/constants/routes'
 
   interface Organization {
     id: string
@@ -73,7 +75,7 @@
   })
 
   // Số lượng tổ chức hiển thị trên mỗi trang (2 dòng x 5 cột)
-  const ITEMS_PER_PAGE = 10
+  const ITEMS_PER_PAGE = FRONTEND_PAGINATION.ORGANIZATIONS_ITEMS_PER_PAGE
 
   // Hàm xử lý tham gia tổ chức
   async function handleJoinOrganization(id: string) {
@@ -129,7 +131,7 @@
       const csrfToken =
         document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
-      const response = await fetch('/switch-organization', {
+      const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +154,7 @@
         showDetailDialog = false
       }
       notificationStore.success(data.message || 'Đã chuyển đổi tổ chức thành công')
-      router.visit(data.redirect || '/tasks', {
+      router.visit(data.redirect || FRONTEND_ROUTES.TASKS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,
