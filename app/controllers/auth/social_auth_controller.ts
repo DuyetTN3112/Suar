@@ -4,8 +4,11 @@ import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
 import SocialLoginCommand from '#actions/auth/commands/social_login_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { OAuthProvider } from '#constants/user_constants'
+import { AuthRoutes } from '#constants/route_constants'
+import { ErrorMessages } from '#constants/error_constants'
 
-type SupportedProvider = 'google' | 'github'
+type SupportedProvider = OAuthProvider
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -24,7 +27,7 @@ export default class SocialAuthController {
    * Check if provider is supported
    */
   private isSupportedProvider(provider: string): provider is SupportedProvider {
-    return ['google', 'github'].includes(provider)
+    return Object.values(OAuthProvider).includes(provider as OAuthProvider)
   }
 
   /**
@@ -42,7 +45,7 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'redirect')
-      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     AuthLogger.oauthRedirect(provider, {
@@ -69,7 +72,7 @@ export default class SocialAuthController {
     // Kiểm tra provider hợp lệ
     if (!this.isSupportedProvider(provider)) {
       AuthLogger.oauthError(provider, new Error('Provider not supported'), 'callback-validation')
-      throw new BusinessLogicException('Nhà cung cấp xác thực không được hỗ trợ')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const socialAuth = ally.use(provider)
@@ -77,25 +80,25 @@ export default class SocialAuthController {
     // Xử lý các trường hợp lỗi
     if (socialAuth.accessDenied()) {
       AuthLogger.oauthStateError(provider, 'access_denied')
-      response.redirect().withQs({ error: 'Truy cập bị từ chối' }).toPath('/login')
+      response.redirect().withQs({ error: 'Truy cập bị từ chối' }).toPath(AuthRoutes.LOGIN)
       return
     }
     if (socialAuth.stateMisMatch()) {
       AuthLogger.oauthStateError(provider, 'state_mismatch')
-      response.redirect().withQs({ error: 'Phiên xác thực không hợp lệ' }).toPath('/login')
+      response.redirect().withQs({ error: 'Phiên xác thực không hợp lệ' }).toPath(AuthRoutes.LOGIN)
       return
     }
     if (socialAuth.hasError()) {
       const errorMessage = socialAuth.getError()
       AuthLogger.oauthError(provider, errorMessage, 'callback-error')
-      response.redirect().withQs({ error: errorMessage }).toPath('/login')
+      response.redirect().withQs({ error: errorMessage }).toPath(AuthRoutes.LOGIN)
       return
     }
 
     // Lấy thông tin người dùng từ nhà cung cấp xác thực
     const socialUserRaw = (await socialAuth.user()) as unknown
     if (!isRecord(socialUserRaw)) {
-      throw new BusinessLogicException('Dữ liệu người dùng từ nhà cung cấp không hợp lệ')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const tokenRaw = isRecord(socialUserRaw.token) ? socialUserRaw.token : null
@@ -122,7 +125,7 @@ export default class SocialAuthController {
       response
         .redirect()
         .withQs({ error: 'Email không được cung cấp từ nhà cung cấp' })
-        .toPath('/login')
+        .toPath(AuthRoutes.LOGIN)
       return
     }
 
@@ -131,7 +134,7 @@ export default class SocialAuthController {
       response
         .redirect()
         .withQs({ error: 'Phiên xác thực không hợp lệ, vui lòng thử lại' })
-        .toPath('/login')
+        .toPath(AuthRoutes.LOGIN)
       return
     }
 
