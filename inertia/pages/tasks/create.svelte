@@ -9,6 +9,7 @@
   import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import CreateTaskForm from './components/modals/create_task_form.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   interface Props {
     metadata: {
@@ -131,7 +132,7 @@
 
     submitting = true
 
-    router.post('/tasks', buildPayload(), {
+    router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
       onSuccess: () => {
         submitting = false
       },
@@ -143,7 +144,7 @@
   }
 
   const handleCancel = () => {
-    router.visit('/tasks')
+    router.visit(FRONTEND_ROUTES.TASKS)
   }
 
   const setFormData = (updater: (prev: typeof formData) => typeof formData) => {

@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/svelte'
+import { FILTER_VALUES, FRONTEND_ROUTES } from '@/constants'
 
 export interface TaskFilters {
   task_status_id?: string
@@ -23,11 +24,13 @@ export interface TaskMetadata {
 
 export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: TaskMetadata) {
   let searchQuery = $state(initialFilters.search || '')
-  let selectedStatus = $state(initialFilters.task_status_id || initialFilters.status || 'all')
-  let selectedPriority = $state(initialFilters.priority || 'all')
-  let selectedAssignee = $state(initialFilters.assigned_to || 'all')
-  let selectedLabel = $state(initialFilters.label || 'all')
-  let activeTab = $state('all')
+  let selectedStatus = $state(
+    initialFilters.task_status_id || initialFilters.status || FILTER_VALUES.ALL
+  )
+  let selectedPriority = $state(initialFilters.priority || FILTER_VALUES.ALL)
+  let selectedAssignee = $state(initialFilters.assigned_to || FILTER_VALUES.ALL)
+  let selectedLabel = $state(initialFilters.label || FILTER_VALUES.ALL)
+  let activeTab = $state<string>(FILTER_VALUES.ALL)
   let searchTimeout: number | null = null
 
   // Tìm value của trạng thái completed và pending
@@ -52,7 +55,7 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
   // Hàm gửi request tìm kiếm
   function sendSearchRequest(query: string) {
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...initialFilters,
         search: query,
@@ -91,10 +94,10 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     selectedStatus = status
 
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...initialFilters,
-        task_status_id: status === 'all' ? '' : status,
+        task_status_id: status === FILTER_VALUES.ALL ? '' : status,
         status: '',
         page: 1,
       },
@@ -110,10 +113,10 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     selectedPriority = priority
 
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...initialFilters,
-        priority: priority === 'all' ? '' : priority,
+        priority: priority === FILTER_VALUES.ALL ? '' : priority,
         page: 1,
       },
       {
@@ -128,10 +131,10 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     selectedAssignee = assignee
 
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...initialFilters,
-        assigned_to: assignee === 'all' ? '' : assignee,
+        assigned_to: assignee === FILTER_VALUES.ALL ? '' : assignee,
         page: 1,
       },
       {
@@ -146,10 +149,10 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     selectedLabel = label
 
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...initialFilters,
-        label: label === 'all' ? '' : label,
+        label: label === FILTER_VALUES.ALL ? '' : label,
         page: 1,
       },
       {
@@ -188,7 +191,7 @@ export function createTaskFiltersStore(initialFilters: TaskFilters, metadata: Ta
     }
 
     router.get(
-      '/tasks',
+      FRONTEND_ROUTES.TASKS,
       {
         ...filters,
         page: 1,
