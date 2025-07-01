@@ -6,6 +6,9 @@ import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/request/get
 import { PaginationDTO } from '#actions/shared/index'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { UserStatusName } from '#constants/user_constants'
+import { PAGINATION } from '#constants/common_constants'
+
+const USERS_DEFAULT_LIMIT = 10
 
 /**
  * GET /users → Paginated list of users for current organization
@@ -14,8 +17,8 @@ export default class ListUsersController {
   async handle(ctx: HttpContext) {
     const { request, inertia, auth } = ctx
 
-    const page = Number(request.input('page', 1))
-    const limit = Number(request.input('limit', 10))
+    const page = Number(request.input('page', PAGINATION.DEFAULT_PAGE))
+    const limit = Number(request.input('limit', USERS_DEFAULT_LIMIT))
     const organizationId = auth.user?.current_organization_id
     if (!organizationId) {
       return inertia.render('users/index', {

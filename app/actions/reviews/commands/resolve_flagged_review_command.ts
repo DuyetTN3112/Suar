@@ -39,7 +39,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         throw new BusinessLogicException('This flagged review has already been resolved')
       }
 
-      const validActions: string[] = ['dismissed', 'confirmed']
+      const validActions: ResolveFlaggedReviewDTO['action'][] = ['dismissed', 'confirmed']
       if (!validActions.includes(dto.action)) {
         throw new BusinessLogicException('Action must be "dismissed" or "confirmed"')
       }

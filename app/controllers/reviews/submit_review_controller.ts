@@ -3,6 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ReviewerType } from '#constants/review_constants'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * POST /reviews/:id/submit → Submit skill reviews
@@ -12,8 +14,9 @@ export default class SubmitReviewController {
     const { request, response, params, session } = ctx
 
     const reviewerType = request.input('reviewer_type') as string
-    if (reviewerType !== 'manager' && reviewerType !== 'peer') {
-      throw new BusinessLogicException('reviewer_type must be "manager" or "peer"')
+    const reviewerTypes = Object.values(ReviewerType) as string[]
+    if (!reviewerTypes.includes(reviewerType)) {
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const skillRatings = request.input('skill_ratings') as Array<{
@@ -23,7 +26,7 @@ export default class SubmitReviewController {
 
     const dto = new SubmitSkillReviewDTO({
       review_session_id: params.id as string,
-      reviewer_type: reviewerType,
+      reviewer_type: reviewerType as ReviewerType,
       skill_ratings: skillRatings.map((rating) => ({
         skill_id: rating.skill_id,
         assigned_level_code: rating.level_code,

@@ -4,6 +4,7 @@ import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_a
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import { ErrorMessages } from '#constants/error_constants'
 
 /**
  * GET /api/users/pending-approval/count → JSON count of pending approval users
@@ -19,7 +20,7 @@ export default class PendingApprovalCountApiController {
 
     const organizationId = user.current_organization_id
     if (!organizationId) {
-      throw new BusinessLogicException('Organization not found')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const isSuperAdmin = await CheckSuperAdminPermissionQuery.execute(user.id, organizationId)
