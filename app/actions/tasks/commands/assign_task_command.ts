@@ -18,6 +18,10 @@ import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAssignTask } from '#domain/tasks/task_permission_policy'
 import { validateAssignee } from '#domain/tasks/task_assignment_rules'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command để giao task cho người dùng
@@ -155,8 +159,8 @@ export default class AssignTaskCommand {
               task.title,
               assigner.username || assigner.email || 'Unknown'
             ),
-            type: 'task_unassigned',
-            related_entity_type: 'task',
+            type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
             related_entity_id: task.id,
           })
         }
@@ -173,8 +177,8 @@ export default class AssignTaskCommand {
               task.title,
               assigner.username || assigner.email || 'Unknown'
             ),
-            type: 'task_assigned',
-            related_entity_type: 'task',
+            type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
             related_entity_id: task.id,
           })
         }
@@ -187,8 +191,8 @@ export default class AssignTaskCommand {
               user_id: oldAssignee.id,
               title: 'Cập nhật nhiệm vụ',
               message: `${assigner.username || assigner.email || 'Unknown'} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
-              type: 'task_reassigned',
-              related_entity_type: 'task',
+              type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
+              related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
               related_entity_id: task.id,
             })
           }

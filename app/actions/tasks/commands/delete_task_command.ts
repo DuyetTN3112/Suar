@@ -13,6 +13,10 @@ import loggerService from '#services/logger_service'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command để xóa task
@@ -100,10 +104,10 @@ export default class DeleteTaskCommand {
       if (taskData.assigned_to && taskData.assigned_to !== userId) {
         await this.createNotification.handle({
           user_id: taskData.assigned_to as string,
-          type: 'task_deleted',
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: 'task',
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
       }
@@ -111,10 +115,10 @@ export default class DeleteTaskCommand {
       if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
           user_id: taskData.creator_id as string,
-          type: 'task_deleted',
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: 'task',
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
       }

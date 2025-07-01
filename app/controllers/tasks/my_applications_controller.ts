@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetMyApplicationsQuery from '#actions/tasks/queries/get_my_applications_query'
 import { ApplicationStatus } from '#constants/task_constants'
+import { PAGINATION } from '#constants/common_constants'
 
 const isSerializable = (value: unknown): value is { serialize: () => unknown } => {
   return (
@@ -41,8 +42,14 @@ export default class MyApplicationsController {
     const query = new GetMyApplicationsQuery(ExecutionContext.fromHttp(ctx))
     const statusRaw = request.input('status', 'all') as unknown
     const statusFilter = validateStatus(typeof statusRaw === 'string' ? statusRaw : 'all')
-    const page = toPageNumber(request.input('page', 1) as unknown, 1)
-    const perPage = toPageNumber(request.input('per_page', 20) as unknown, 20)
+    const page = toPageNumber(
+      request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
+      PAGINATION.DEFAULT_PAGE
+    )
+    const perPage = toPageNumber(
+      request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as unknown,
+      PAGINATION.DEFAULT_PER_PAGE
+    )
 
     const result = await query.handle({
       status: statusFilter,
