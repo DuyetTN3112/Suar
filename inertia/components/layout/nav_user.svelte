@@ -25,6 +25,7 @@
   import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { getContext } from 'svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   type Props = {
     user: {
@@ -87,7 +88,7 @@
 
   function confirmLogout() {
     isLoggingOut = true
-    router.post('/logout', {}, {
+    router.post(FRONTEND_ROUTES.LOGOUT, {}, {
       onError: (errors) => {
         console.error('[NavUser] Logout error:', errors)
       },
@@ -185,19 +186,19 @@
         {/if}
         <DropdownMenuGroup>
           <DropdownMenuItem>
-            <Link href="/settings/account">
+            <Link href={FRONTEND_ROUTES.SETTINGS_ACCOUNT}>
               <BadgeCheck />
               {t('settings.account', {}, 'Tài khoản')}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Link href="/settings/account">
+            <Link href={FRONTEND_ROUTES.SETTINGS_ACCOUNT}>
               <CreditCard />
               {t('user.billing', {}, 'Gói tài khoản')}
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem>
-            <Link href="/settings/notifications">
+            <Link href={FRONTEND_ROUTES.SETTINGS_NOTIFICATIONS}>
               <Bell />
               {t('settings.notifications', {}, 'Thông báo')}
             </Link>

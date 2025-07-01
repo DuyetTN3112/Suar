@@ -17,6 +17,7 @@
   import { getIconComponent } from '@/components/icons_svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
   import { getContext } from 'svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
 
   // Định nghĩa interface cho team/organization
   interface Organization {
@@ -126,7 +127,7 @@
         const csrfToken =
           document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
 
-        const response = await fetch('/switch-organization', {
+        const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -154,7 +155,7 @@
         }
 
         isLoading = false
-        router.visit(payload.redirect || '/tasks', {
+        router.visit(payload.redirect || FRONTEND_ROUTES.TASKS, {
           preserveState: false,
           preserveScroll: false,
           replace: true,
@@ -172,7 +173,7 @@
 
   // Hàm chuyển đến trang tạo tổ chức mới
   function goToCreateOrganization() {
-    router.visit('/organizations/create')
+    router.visit(FRONTEND_ROUTES.ORGANIZATIONS_CREATE)
     open = false
   }
 
