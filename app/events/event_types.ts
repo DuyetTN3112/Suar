@@ -123,11 +123,17 @@ export interface TaskCreatedEvent {
   projectId: DatabaseId | null
 }
 
+export interface TaskFieldChange {
+  field: string
+  oldValue: unknown
+  newValue: unknown
+}
+
 export interface TaskUpdatedEvent {
   task: Task
   updatedBy: DatabaseId
-  changes: Record<string, unknown>
-  /** Snapshot trước khi update — cho task_versions */
+  changes: Record<string, unknown> | TaskFieldChange[]
+  /** Snapshot trước khi update — cho listeners/query side-effects can diff context */
   previousValues: Record<string, unknown>
 }
 
