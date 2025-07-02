@@ -3,6 +3,7 @@ import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
+import { mapProjectDetailApiBody } from './mapper/response/project_response_mapper.js'
 
 /**
  * GET /api/projects/:id → Fetch project detail as JSON (for modal)
@@ -18,14 +19,7 @@ export default class GetProjectDetailApiController {
 
     const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
-
-    try {
-      const result = await query.handle({ projectId, organizationId })
-      response.json(result)
-      return
-    } catch (error) {
-      // Let error middleware handle it
-      throw error
-    }
+    const result = await query.handle({ projectId, organizationId })
+    response.json(mapProjectDetailApiBody(result))
   }
 }

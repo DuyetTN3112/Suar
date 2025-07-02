@@ -40,7 +40,7 @@ export default class UpdateProjectCommand extends BaseCommand<
       throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // 1. Load project with lock (prevents concurrent updates)
       const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
@@ -84,18 +84,21 @@ export default class UpdateProjectCommand extends BaseCommand<
       // 6. Log audit trail for each changed field
       await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
 
-      // 7. Emit domain event
-      void emitter.emit('project:updated', {
+      return {
         project,
-        updatedBy: userId,
-        changes: updateData,
-      })
-
-      // 8. Invalidate project caches after commit
-      void CacheService.deleteByPattern(`organization:tasks:*`)
-
-      return project
+        projectUpdatedEvent: {
+          project,
+          updatedBy: userId,
+          changes: updateData,
+        },
+      }
     })
+
+    // Side-effects are post-commit to avoid firing on rollback.
+    void emitter.emit('project:updated', result.projectUpdatedEvent)
+    void CacheService.deleteByPattern(`organization:tasks:*`)
+
+    return result.project
   }
 
   /**
