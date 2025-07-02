@@ -28,7 +28,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
   import('#models/task_application').default
 > {
   async handle(dto: ProcessApplicationDTO): Promise<import('#models/task_application').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Get application with task
@@ -114,20 +114,24 @@ export default class ProcessApplicationCommand extends BaseCommand<
         }
       )
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${task.id}:*`)
-      await CacheService.deleteByPattern(`user:${application.applicant_id}:*`)
-
-      // Emit domain event
-      void emitter.emit('task:application:reviewed', {
-        applicationId: application.id,
-        taskId: task.id,
-        applicantId: application.applicant_id,
-        reviewedBy: userId,
-        status: application.application_status,
-      })
-
-      return application
+      return {
+        application,
+        taskCachePattern: `task:${task.id}:*`,
+        applicantCachePattern: `user:${application.applicant_id}:*`,
+        applicationReviewedEvent: {
+          applicationId: application.id,
+          taskId: task.id,
+          applicantId: application.applicant_id,
+          reviewedBy: userId,
+          status: application.application_status,
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.taskCachePattern)
+    await CacheService.deleteByPattern(result.applicantCachePattern)
+    void emitter.emit('task:application:reviewed', result.applicationReviewedEvent)
+
+    return result.application
   }
 }

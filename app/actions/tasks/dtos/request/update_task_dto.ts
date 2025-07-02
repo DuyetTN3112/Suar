@@ -3,23 +3,214 @@ import type { DatabaseId } from '#types/database'
 import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
+interface UpdateTaskDTOInput {
+  title?: string
+  description?: string
+  label?: string | null
+  priority?: string | null
+  assigned_to?: DatabaseId | null
+  due_date?: string | DateTime | null
+  parent_task_id?: DatabaseId | null
+  estimated_time?: number
+  actual_time?: number
+  project_id?: DatabaseId
+  updated_by?: DatabaseId
+}
+
+interface UpdateTaskNormalizedPayload {
+  title?: string
+  description?: string
+  label?: string | null
+  priority?: string | null
+  assigned_to?: DatabaseId | null
+  due_date?: DateTime | null
+  parent_task_id?: DatabaseId | null
+  estimated_time?: number
+  actual_time?: number
+  project_id?: DatabaseId
+  updated_by?: DatabaseId
+  providedFields: Set<string>
+}
+
+function normalizeOptionalTitle(title: string | undefined): string | undefined {
+  if (title === undefined) {
+    return undefined
+  }
+
+  const normalizedTitle = title.trim()
+  if (normalizedTitle.length === 0) {
+    throw new ValidationException('Tiêu đề task không được để trống')
+  }
+
+  if (normalizedTitle.length < 3) {
+    throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
+  }
+
+  if (normalizedTitle.length > 255) {
+    throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
+  }
+
+  return normalizedTitle
+}
+
+function normalizeOptionalDescription(description: string | undefined): string | undefined {
+  if (description === undefined) {
+    return undefined
+  }
+
+  if (description.length > 5000) {
+    throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
+  }
+
+  return description.trim()
+}
+
+function normalizeOptionalEnum(
+  value: string | null | undefined,
+  allowedValues: string[],
+  message: string
+): string | null | undefined {
+  if (value === undefined || value === null) {
+    return value
+  }
+
+  if (!allowedValues.includes(value)) {
+    throw new ValidationException(message)
+  }
+
+  return value
+}
+
+function validateOptionalIdValue(
+  value: DatabaseId | null | undefined,
+  message: string
+): DatabaseId | null | undefined {
+  if (value !== undefined && value !== null && !value) {
+    throw new ValidationException(message)
+  }
+
+  return value
+}
+
+function normalizeDueDate(
+  value: string | DateTime | null | undefined
+): DateTime | null | undefined {
+  if (value === undefined || value === null) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const parsedDueDate = DateTime.fromISO(value)
+    if (!parsedDueDate.isValid) {
+      throw new ValidationException('Ngày hết hạn không hợp lệ')
+    }
+    return parsedDueDate
+  }
+
+  return value
+}
+
+function validateNonNegativeNumber(value: number | undefined, message: string): number | undefined {
+  if (value !== undefined && value < 0) {
+    throw new ValidationException(message)
+  }
+
+  return value
+}
+
+function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNormalizedPayload {
+  const payload: UpdateTaskNormalizedPayload = {
+    providedFields: new Set(),
+  }
+
+  if (data.title !== undefined) {
+    payload.title = normalizeOptionalTitle(data.title)
+    payload.providedFields.add('title')
+  }
+
+  if (data.description !== undefined) {
+    payload.description = normalizeOptionalDescription(data.description)
+    payload.providedFields.add('description')
+  }
+
+  if (data.label !== undefined) {
+    payload.label = normalizeOptionalEnum(
+      data.label,
+      Object.values(TaskLabel) as string[],
+      'Nhãn không hợp lệ'
+    )
+    payload.providedFields.add('label')
+  }
+
+  if (data.priority !== undefined) {
+    payload.priority = normalizeOptionalEnum(
+      data.priority,
+      Object.values(TaskPriority) as string[],
+      'Mức độ ưu tiên không hợp lệ'
+    )
+    payload.providedFields.add('priority')
+  }
+
+  if (data.assigned_to !== undefined) {
+    payload.assigned_to = validateOptionalIdValue(
+      data.assigned_to,
+      'ID người được giao không hợp lệ'
+    )
+    payload.providedFields.add('assigned_to')
+  }
+
+  if (data.parent_task_id !== undefined) {
+    payload.parent_task_id = validateOptionalIdValue(
+      data.parent_task_id,
+      'ID task cha không hợp lệ'
+    )
+    payload.providedFields.add('parent_task_id')
+  }
+
+  if (data.project_id !== undefined) {
+    if (!data.project_id) {
+      throw new ValidationException('ID dự án không hợp lệ')
+    }
+
+    payload.project_id = data.project_id.trim()
+    payload.providedFields.add('project_id')
+  }
+
+  if (data.estimated_time !== undefined) {
+    payload.estimated_time = validateNonNegativeNumber(
+      data.estimated_time,
+      'Thời gian ước tính không được âm'
+    )
+    payload.providedFields.add('estimated_time')
+  }
+
+  if (data.actual_time !== undefined) {
+    payload.actual_time = validateNonNegativeNumber(
+      data.actual_time,
+      'Thời gian thực tế không được âm'
+    )
+    payload.providedFields.add('actual_time')
+  }
+
+  if (data.due_date !== undefined) {
+    payload.due_date = normalizeDueDate(data.due_date)
+    payload.providedFields.add('due_date')
+  }
+
+  if (data.updated_by !== undefined) {
+    if (!data.updated_by) {
+      throw new ValidationException('ID người cập nhật không hợp lệ')
+    }
+
+    payload.updated_by = data.updated_by
+    payload.providedFields.add('updated_by')
+  }
+
+  return payload
+}
+
 /**
  * DTO cho việc cập nhật task
- *
- * Cho phép cập nhật một phần (partial update) các trường:
- * - title, description
- * - label, priority (v3: inline VARCHAR)
- * - assigned_to (chuyển người)
- * - due_date
- * - parent_task_id (chuyển subtask)
- * - estimated_time, actual_time
- * - project_id (chuyển dự án, không cho phép gỡ khỏi project)
- * - updated_by (người cập nhật)
- *
- * Provides:
- * - Change tracking (getUpdatedFields)
- * - Validation cho từng field
- * - Helper methods để check các loại thay đổi
  */
 export default class UpdateTaskDTO {
   public readonly title?: string
@@ -34,230 +225,66 @@ export default class UpdateTaskDTO {
   public readonly project_id?: DatabaseId
   public readonly updated_by?: DatabaseId
 
-  private readonly providedFields: Set<string> = new Set()
+  private readonly providedFields: Set<string>
 
-  constructor(data: {
-    title?: string
-    description?: string
-    label?: string | null
-    priority?: string | null
-    assigned_to?: DatabaseId | null
-    due_date?: string | DateTime | null
-    parent_task_id?: DatabaseId | null
-    estimated_time?: number
-    actual_time?: number
-    project_id?: DatabaseId
-    updated_by?: DatabaseId
-  }) {
-    // Validate title if provided
-    if (data.title !== undefined) {
-      if (data.title.trim().length === 0) {
-        throw new ValidationException('Tiêu đề task không được để trống')
-      }
+  constructor(data: UpdateTaskDTOInput) {
+    const payload = buildUpdateTaskPayload(data)
 
-      if (data.title.trim().length < 3) {
-        throw new ValidationException('Tiêu đề task phải có ít nhất 3 ký tự')
-      }
-
-      if (data.title.length > 255) {
-        throw new ValidationException('Tiêu đề task không được vượt quá 255 ký tự')
-      }
-
-      this.title = data.title.trim()
-      this.providedFields.add('title')
-    }
-
-    // Validate description if provided
-    if (data.description !== undefined) {
-      if (data.description.length > 5000) {
-        throw new ValidationException('Mô tả task không được vượt quá 5000 ký tự')
-      }
-
-      this.description = data.description.trim()
-      this.providedFields.add('description')
-    }
-
-    // Validate label if provided (v3: inline VARCHAR)
-    if (data.label !== undefined) {
-      if (data.label !== null) {
-        const validLabels = Object.values(TaskLabel) as string[]
-        if (!validLabels.includes(data.label)) {
-          throw new ValidationException('Nhãn không hợp lệ')
-        }
-      }
-
-      this.label = data.label
-      this.providedFields.add('label')
-    }
-
-    // Validate priority if provided (v3: inline VARCHAR)
-    if (data.priority !== undefined) {
-      if (data.priority !== null) {
-        const validPriorities = Object.values(TaskPriority) as string[]
-        if (!validPriorities.includes(data.priority)) {
-          throw new ValidationException('Mức độ ưu tiên không hợp lệ')
-        }
-      }
-
-      this.priority = data.priority
-      this.providedFields.add('priority')
-    }
-
-    // Validate assigned_to if provided
-    if (data.assigned_to !== undefined) {
-      if (data.assigned_to !== null && !data.assigned_to) {
-        throw new ValidationException('ID người được giao không hợp lệ')
-      }
-
-      this.assigned_to = data.assigned_to
-      this.providedFields.add('assigned_to')
-    }
-
-    // Validate parent_task_id if provided
-    if (data.parent_task_id !== undefined) {
-      if (data.parent_task_id !== null && !data.parent_task_id) {
-        throw new ValidationException('ID task cha không hợp lệ')
-      }
-
-      this.parent_task_id = data.parent_task_id
-      this.providedFields.add('parent_task_id')
-    }
-
-    // Validate project_id if provided
-    if (data.project_id !== undefined) {
-      if (!data.project_id) {
-        throw new ValidationException('ID dự án không hợp lệ')
-      }
-
-      this.project_id = data.project_id.trim()
-      this.providedFields.add('project_id')
-    }
-
-    // Validate time fields if provided
-    if (data.estimated_time !== undefined) {
-      if (data.estimated_time < 0) {
-        throw new ValidationException('Thời gian ước tính không được âm')
-      }
-
-      this.estimated_time = data.estimated_time
-      this.providedFields.add('estimated_time')
-    }
-
-    if (data.actual_time !== undefined) {
-      if (data.actual_time < 0) {
-        throw new ValidationException('Thời gian thực tế không được âm')
-      }
-
-      this.actual_time = data.actual_time
-      this.providedFields.add('actual_time')
-    }
-
-    // Validate and parse due_date if provided
-    if (data.due_date !== undefined) {
-      let parsedDueDate: DateTime | null = null
-
-      if (data.due_date !== null) {
-        if (typeof data.due_date === 'string') {
-          parsedDueDate = DateTime.fromISO(data.due_date)
-          if (!parsedDueDate.isValid) {
-            throw new ValidationException('Ngày hết hạn không hợp lệ')
-          }
-        } else {
-          parsedDueDate = data.due_date
-        }
-      }
-
-      this.due_date = parsedDueDate
-      this.providedFields.add('due_date')
-    }
-
-    // Set updated_by if provided
-    if (data.updated_by !== undefined) {
-      if (!data.updated_by) {
-        throw new ValidationException('ID người cập nhật không hợp lệ')
-      }
-
-      this.updated_by = data.updated_by
-      this.providedFields.add('updated_by')
-    }
+    this.title = payload.title
+    this.description = payload.description
+    this.label = payload.label
+    this.priority = payload.priority
+    this.assigned_to = payload.assigned_to
+    this.due_date = payload.due_date
+    this.parent_task_id = payload.parent_task_id
+    this.estimated_time = payload.estimated_time
+    this.actual_time = payload.actual_time
+    this.project_id = payload.project_id
+    this.updated_by = payload.updated_by
+    this.providedFields = payload.providedFields
   }
 
-  /**
-   * Kiểm tra xem có field nào được cập nhật không
-   */
   public hasUpdates(): boolean {
-    // Exclude updated_by from the check
-    const fieldsToCheck = Array.from(this.providedFields).filter((f) => f !== 'updated_by')
+    const fieldsToCheck = Array.from(this.providedFields).filter((field) => field !== 'updated_by')
     return fieldsToCheck.length > 0
   }
 
-  /**
-   * Lấy danh sách các field đã được cập nhật
-   */
   public getUpdatedFields(): string[] {
-    return Array.from(this.providedFields).filter((f) => f !== 'updated_by')
+    return Array.from(this.providedFields).filter((field) => field !== 'updated_by')
   }
 
-  /**
-   * Kiểm tra xem có thay đổi assignee không
-   */
   public hasAssigneeChange(): boolean {
     return this.providedFields.has('assigned_to')
   }
 
-  /**
-   * Kiểm tra xem có thay đổi due_date không
-   */
   public hasDueDateChange(): boolean {
     return this.providedFields.has('due_date')
   }
 
-  /**
-   * Kiểm tra xem có thay đổi parent_task_id không
-   */
   public hasParentChange(): boolean {
     return this.providedFields.has('parent_task_id')
   }
 
-  /**
-   * Kiểm tra xem có thay đổi project_id không
-   */
   public hasProjectChange(): boolean {
     return this.providedFields.has('project_id')
   }
 
-  /**
-   * Kiểm tra xem có thay đổi time tracking không
-   */
   public hasTimeTrackingChange(): boolean {
     return this.providedFields.has('estimated_time') || this.providedFields.has('actual_time')
   }
 
-  /**
-   * Kiểm tra xem có unassign task không (set assigned_to = null)
-   */
   public isUnassigning(): boolean {
     return this.providedFields.has('assigned_to') && this.assigned_to === null
   }
 
-  /**
-   * Kiểm tra xem có remove due_date không
-   */
   public isRemovingDueDate(): boolean {
     return this.providedFields.has('due_date') && this.due_date === null
   }
 
-  /**
-   * Kiểm tra xem có remove parent (convert subtask thành task) không
-   */
   public isRemovingParent(): boolean {
     return this.providedFields.has('parent_task_id') && this.parent_task_id === null
   }
 
-  /**
-   * Convert DTO thành object để merge vào model
-   * Chỉ include các field được provide
-   */
   public toObject(): Record<string, unknown> {
     const updates: Record<string, unknown> = {}
 
@@ -308,9 +335,6 @@ export default class UpdateTaskDTO {
     return updates
   }
 
-  /**
-   * Lấy message audit log cho các thay đổi
-   */
   public getAuditMessage(): string {
     const changes = this.getUpdatedFields()
 
@@ -359,9 +383,6 @@ export default class UpdateTaskDTO {
     return `Cập nhật task: ${changeMessages.join(', ')}`
   }
 
-  /**
-   * So sánh với task hiện tại để lấy old/new values cho audit
-   */
   public getChangesForAudit(
     currentTask: Record<string, unknown>
   ): { field: string; oldValue: unknown; newValue: unknown }[] {
@@ -371,7 +392,6 @@ export default class UpdateTaskDTO {
       const oldValue = currentTask[field]
       const newValue = (this as Record<string, unknown>)[field]
 
-      // Only log if values are actually different
       if (JSON.stringify(oldValue) !== JSON.stringify(newValue)) {
         changes.push({
           field,

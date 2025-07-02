@@ -6,6 +6,11 @@ import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
 import { PAGINATION } from '#constants/common_constants'
 
+export interface GetTaskAuditLogsInput {
+  taskId: DatabaseId
+  limit?: number
+}
+
 /**
  * Query để lấy audit logs của task
  *
@@ -23,10 +28,7 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Execute query
    */
-  async execute(
-    taskId: DatabaseId,
-    limit: number = 20
-  ): Promise<
+  async execute(input: GetTaskAuditLogsInput): Promise<
     Array<{
       id: DatabaseId
       action: string
@@ -35,13 +37,15 @@ export default class GetTaskAuditLogsQuery {
       changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
     }>
   > {
+    const limit = input.limit ?? 20
+
     // Validate limit
     if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
-    const cacheKey = `task:audit:${taskId}:limit:${limit}`
+    const cacheKey = `task:audit:${input.taskId}:limit:${limit}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
@@ -51,7 +55,7 @@ export default class GetTaskAuditLogsQuery {
     const auditRepo = await RepositoryFactory.getAuditLogRepository()
     const { data: logs } = await auditRepo.findMany({
       entity_type: 'task',
-      entity_id: taskId,
+      entity_id: input.taskId,
       limit,
     })
 

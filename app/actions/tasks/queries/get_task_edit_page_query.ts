@@ -1,22 +1,19 @@
 import type { ExecutionContext } from '#types/execution_context'
 import type { DatabaseId } from '#types/database'
-import type Task from '#models/task'
 import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
 export interface TaskEditPageResult {
-  task: Task
-  taskData: {
-    task: Task
-    permissions: {
-      isCreator: boolean
-      isAssignee: boolean
-      canEdit: boolean
-      canDelete: boolean
-      canAssign: boolean
-    }
-    auditLogs?: unknown[]
+  task: TaskQueryRecord
+  permissions: {
+    isCreator: boolean
+    isAssignee: boolean
+    canEdit: boolean
+    canDelete: boolean
+    canAssign: boolean
   }
   metadata: {
     statuses: Array<{ value: string; label: string }>
@@ -45,9 +42,13 @@ export default class GetTaskEditPageQuery {
       new GetTaskMetadataQuery(this.execCtx).execute(organizationId),
     ])
 
+    if (!taskData.permissions.canEdit) {
+      throw new ForbiddenException('Bạn không có quyền chỉnh sửa nhiệm vụ này')
+    }
+
     return {
       task: taskData.task,
-      taskData,
+      permissions: taskData.permissions,
       metadata,
     }
   }

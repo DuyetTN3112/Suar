@@ -6,7 +6,6 @@ import ProjectRepository from '#infra/projects/repositories/project_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import TaskVersionRepository from '#infra/tasks/repositories/task_version_repository'
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
 import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
@@ -26,6 +25,28 @@ import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import CreateNotification from '#actions/common/create_notification'
+
+const VERSION_TRACKED_FIELDS = [
+  'title',
+  'description',
+  'status',
+  'label',
+  'priority',
+  'assigned_to',
+  'due_date',
+  'parent_task_id',
+  'estimated_time',
+  'actual_time',
+  'organization_id',
+] as const
+
+interface PersistedTaskUpdate {
+  task: Task
+  oldAssignedTo: DatabaseId | null
+  oldValues: Record<string, unknown>
+  changes: ReturnType<UpdateTaskDTO['getChangesForAudit']>
+}
 
 /**
  * Command để cập nhật task
@@ -42,7 +63,7 @@ import {
 export default class UpdateTaskCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: CreateNotification = new CreateNotification()
   ) {}
 
   /**
@@ -53,111 +74,169 @@ export default class UpdateTaskCommand {
    * - task_version_after_update: Tạo version history khi có thay đổi
    */
   async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<Task> {
+    const userId = this.requireUserId()
+    this.ensureHasUpdates(dto)
+    const updateResult = await this.persistTaskUpdateInTransaction(taskId, dto, userId)
+    await this.runPostCommitEffects(updateResult, userId, dto)
+    return await TaskRepository.findByIdWithWriteRelations(updateResult.task.id)
+  }
+
+  private requireUserId(): DatabaseId {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
 
-    // Check if DTO has any updates
+    return userId
+  }
+
+  private ensureHasUpdates(dto: UpdateTaskDTO): void {
     if (!dto.hasUpdates()) {
       throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
     }
+  }
 
-    // Start transaction
+  private async loadExistingTask(
+    taskId: DatabaseId,
+    dto: UpdateTaskDTO,
+    trx: TransactionClientContract
+  ): Promise<Task> {
+    const existingTask = await TaskRepository.findActiveForUpdate(taskId, trx)
+
+    if (existingTask.organization_id !== this.execCtx.organizationId) {
+      throw new ForbiddenException('Task không thuộc tổ chức hiện tại')
+    }
+
+    if (dto.project_id !== undefined) {
+      await ProjectRepository.validateBelongsToOrg(
+        dto.project_id,
+        existingTask.organization_id,
+        trx
+      )
+    }
+
+    return existingTask
+  }
+
+  private async ensureAssigneeBoundary(
+    task: Task,
+    dto: UpdateTaskDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    if (dto.assigned_to === undefined || dto.assigned_to === null) {
+      return
+    }
+
+    const isApproved = await OrganizationUserRepository.isApprovedMember(
+      dto.assigned_to,
+      task.organization_id,
+      trx
+    )
+    const isFreelancer = await UserRepository.isFreelancer(dto.assigned_to, trx)
+
+    enforcePolicy(
+      validateAssignee({
+        isOrgMember: isApproved,
+        isFreelancer,
+        taskVisibility: task.task_visibility,
+      })
+    )
+  }
+
+  private async ensureFieldPermissions(
+    userId: DatabaseId,
+    task: Task,
+    dto: UpdateTaskDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    const fieldsResult = canUpdateTaskFields(permissionContext, dto.getUpdatedFields())
+
+    if (!fieldsResult.allowed) {
+      throw new ForbiddenException(fieldsResult.reason)
+    }
+  }
+
+  private async persistTaskUpdate(
+    task: Task,
+    dto: UpdateTaskDTO,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<PersistedTaskUpdate> {
+    const oldValues = task.toJSON()
+    const oldAssignedTo = task.assigned_to
+
+    task.merge(dto.toObject())
+    await TaskRepository.save(task, trx)
+
+    const changes = dto.getChangesForAudit(oldValues)
+    await this.recordTaskUpdatedAudit(task.id, oldValues, task.toJSON(), userId)
+    await this.createTaskVersion(task, oldValues, userId, trx)
+
+    return {
+      task,
+      oldAssignedTo,
+      oldValues,
+      changes,
+    }
+  }
+
+  private async persistTaskUpdateInTransaction(
+    taskId: DatabaseId,
+    dto: UpdateTaskDTO,
+    userId: DatabaseId
+  ): Promise<PersistedTaskUpdate> {
     const trx = await db.transaction()
 
     try {
-      // ── FETCH ──────────────────────────────────────────────────────────
-      const existingTask = await TaskRepository.findActiveForUpdate(taskId, trx)
-
-      // Validate task thuộc organization hiện tại
-      if (existingTask.organization_id !== this.execCtx.organizationId) {
-        throw new ForbiddenException('Task không thuộc tổ chức hiện tại')
-      }
-
-      if (dto.project_id !== undefined) {
-        await ProjectRepository.validateBelongsToOrg(
-          dto.project_id,
-          existingTask.organization_id,
-          trx
-        )
-      }
-
-      // Validate assignee thuộc org (logic từ before_task_update trigger)
-      if (dto.assigned_to !== undefined && dto.assigned_to !== null) {
-        const [isApproved, isFreelancer] = await Promise.all([
-          OrganizationUserRepository.isApprovedMember(
-            dto.assigned_to,
-            existingTask.organization_id,
-            trx
-          ),
-          UserRepository.isFreelancer(dto.assigned_to, trx),
-        ])
-
-        enforcePolicy(
-          validateAssignee({
-            isOrgMember: isApproved,
-            isFreelancer,
-            taskVisibility: existingTask.task_visibility,
-          })
-        )
-      }
-
-      // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      const permissionContext = await buildTaskPermissionContext(userId, existingTask, trx)
-      const fieldsResult = canUpdateTaskFields(permissionContext, dto.getUpdatedFields())
-
-      if (!fieldsResult.allowed) {
-        throw new ForbiddenException(fieldsResult.reason)
-      }
-
-      // ── PERSIST ────────────────────────────────────────────────────────
-      const oldValues = existingTask.toJSON()
-      const oldAssignedTo = existingTask.assigned_to
-
-      existingTask.merge(dto.toObject())
-      await TaskRepository.save(existingTask, trx)
-
-      const changes = dto.getChangesForAudit(oldValues)
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.UPDATE,
-        entity_type: EntityType.TASK,
-        entity_id: taskId,
-        old_values: oldValues,
-        new_values: existingTask.toJSON(),
-      })
-
-      // Create task version (logic từ task_version_after_update trigger)
-      await this.createTaskVersion(existingTask, oldValues, userId, trx)
-
-      // Store old values for notifications (outside transaction)
-      existingTask.$extras.oldAssignedTo = oldAssignedTo
-      existingTask.$extras.changes = changes
-
+      const existingTask = await this.loadExistingTask(taskId, dto, trx)
+      await this.ensureAssigneeBoundary(existingTask, dto, trx)
+      await this.ensureFieldPermissions(userId, existingTask, dto, trx)
+      const updateResult = await this.persistTaskUpdate(existingTask, dto, userId, trx)
       await trx.commit()
-
-      // Emit domain event (replaces task_version_after_update trigger side-effects)
-      void emitter.emit('task:updated', {
-        task: existingTask,
-        updatedBy: userId,
-        changes: existingTask.$extras.changes as Record<string, unknown>,
-        previousValues: oldValues as Record<string, unknown>,
-      })
-
-      // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${taskId}:*`)
-      await CacheService.deleteByPattern(`organization:tasks:*`)
-      await CacheService.deleteByPattern(`task:user:*`)
-
-      // Send notifications (outside transaction)
-      await this.sendNotifications(existingTask, userId, dto)
-
-      return await TaskRepository.findByIdWithWriteRelations(existingTask.id)
+      return updateResult
     } catch (error) {
       await trx.rollback()
       throw error
     }
+  }
+
+  private async recordTaskUpdatedAudit(
+    taskId: DatabaseId,
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
+    userId: DatabaseId
+  ): Promise<void> {
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: userId,
+      action: AuditAction.UPDATE,
+      entity_type: EntityType.TASK,
+      entity_id: taskId,
+      old_values: oldValues,
+      new_values: newValues,
+    })
+  }
+
+  private async runPostCommitEffects(
+    updateResult: PersistedTaskUpdate,
+    userId: DatabaseId,
+    dto: UpdateTaskDTO
+  ): Promise<void> {
+    void emitter.emit('task:updated', {
+      task: updateResult.task,
+      updatedBy: userId,
+      changes: updateResult.changes,
+      previousValues: updateResult.oldValues,
+    })
+
+    await this.invalidateTaskCaches(updateResult.task.id)
+    await this.sendNotifications(updateResult.task, userId, dto, updateResult.oldAssignedTo)
+  }
+
+  private async invalidateTaskCaches(taskId: DatabaseId): Promise<void> {
+    await CacheService.deleteByPattern(`task:${taskId}:*`)
+    await CacheService.deleteByPattern('organization:tasks:*')
+    await CacheService.deleteByPattern('task:user:*')
   }
 
   /**
@@ -166,18 +245,14 @@ export default class UpdateTaskCommand {
   private async sendNotifications(
     task: Task,
     updaterId: DatabaseId,
-    dto: UpdateTaskDTO
+    dto: UpdateTaskDTO,
+    oldAssignedTo: DatabaseId | null
   ): Promise<void> {
     try {
-      const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
-
-      // Load updater info for notification messages
       const updater = await UserRepository.findById(updaterId)
       const updaterName = updater?.username ?? updater?.email ?? 'Unknown'
 
-      // Notify new assignee if assignment changed
       if (dto.hasAssigneeChange() && task.assigned_to && task.assigned_to !== oldAssignedTo) {
-        // Don't notify if assigning to self
         if (task.assigned_to !== updaterId) {
           const assignee = await UserRepository.findById(task.assigned_to)
           if (assignee) {
@@ -193,7 +268,6 @@ export default class UpdateTaskCommand {
         }
       }
 
-      // Notify old assignee if unassigned
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== updaterId) {
         const oldAssignee = await UserRepository.findById(oldAssignedTo)
         if (oldAssignee) {
@@ -208,7 +282,6 @@ export default class UpdateTaskCommand {
         }
       }
     } catch (error) {
-      // Don't fail update if notification fails
       this.logError('Failed to send update notifications', error)
     }
   }
@@ -232,24 +305,10 @@ export default class UpdateTaskCommand {
     changedBy: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    // Check if any tracked field changed
-    const trackedFields = [
-      'title',
-      'description',
-      'status',
-      'label',
-      'priority',
-      'assigned_to',
-      'due_date',
-      'parent_task_id',
-      'estimated_time',
-      'actual_time',
-      'organization_id',
-    ]
-
-    const hasChanges = trackedFields.some((field) => {
+    const newValues = task.toJSON() as Record<string, unknown>
+    const hasChanges = VERSION_TRACKED_FIELDS.some((field) => {
       const oldVal = oldValues[field]
-      const newVal = task[field as keyof Task]
+      const newVal = newValues[field]
       return oldVal !== newVal
     })
 

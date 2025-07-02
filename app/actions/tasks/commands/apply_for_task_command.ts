@@ -21,7 +21,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
   import('#models/task_application').default
 > {
   async handle(dto: ApplyForTaskDTO): Promise<import('#models/task_application').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // ── FETCH ──────────────────────────────────────────────────────────
@@ -73,19 +73,22 @@ export default class ApplyForTaskCommand extends BaseCommand<
         expected_rate: dto.expected_rate,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
-
-      // Emit domain event
-      void emitter.emit('task:application:submitted', {
-        applicationId: application.id,
-        taskId: dto.task_id,
-        applicantId: userId,
-        projectId: task.project_id ?? '',
-        ownerId: task.creator_id,
-      })
-
-      return application
+      return {
+        application,
+        cachePattern: `task:${dto.task_id}:*`,
+        applicationSubmittedEvent: {
+          applicationId: application.id,
+          taskId: dto.task_id,
+          applicantId: userId,
+          projectId: task.project_id ?? '',
+          ownerId: task.creator_id,
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    void emitter.emit('task:application:submitted', result.applicationSubmittedEvent)
+
+    return result.application
   }
 }

@@ -26,6 +26,34 @@ export async function buildTaskPermissionContext(
   task: TaskPermissionSource,
   trx?: TransactionClientContract
 ): Promise<TaskPermissionContext> {
+  if (trx) {
+    const actorSystemRole = await UserRepository.getSystemRoleName(userId, trx)
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      task.organization_id,
+      userId,
+      trx,
+      true
+    )
+    const actorProjectRole = task.project_id
+      ? normalizeProjectRole(
+          await ProjectMemberRepository.getRoleName(task.project_id, userId, trx)
+        )
+      : null
+    const activeAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
+
+    return {
+      actorId: userId,
+      actorSystemRole,
+      actorOrgRole,
+      actorProjectRole,
+      taskCreatorId: task.creator_id,
+      taskAssignedTo: task.assigned_to ?? null,
+      taskOrganizationId: task.organization_id,
+      taskProjectId: task.project_id ?? null,
+      isActiveAssignee: activeAssignment?.assignee_id === userId,
+    }
+  }
+
   const [actorSystemRole, actorOrgRole, actorProjectRole, activeAssignment] = await Promise.all([
     UserRepository.getSystemRoleName(userId, trx),
     OrganizationUserRepository.getMemberRoleName(task.organization_id, userId, trx, true),
@@ -54,6 +82,23 @@ export async function buildTaskCollectionAccessContext(
   unaffiliatedScope: TaskCollectionScopeFallback,
   trx?: TransactionClientContract
 ): Promise<TaskCollectionAccessContext> {
+  if (trx) {
+    const actorSystemRole = await UserRepository.getSystemRoleName(userId, trx)
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      trx,
+      true
+    )
+
+    return {
+      actorId: userId,
+      actorSystemRole,
+      actorOrgRole,
+      unaffiliatedScope,
+    }
+  }
+
   const [actorSystemRole, actorOrgRole] = await Promise.all([
     UserRepository.getSystemRoleName(userId, trx),
     OrganizationUserRepository.getMemberRoleName(organizationId, userId, trx, true),
@@ -73,6 +118,26 @@ export async function buildTaskCreatePermissionContext(
   projectId: DatabaseId | null,
   trx?: TransactionClientContract
 ): Promise<TaskCreatePermissionContext> {
+  if (trx) {
+    const actorSystemRole = await UserRepository.getSystemRoleName(userId, trx)
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      organizationId,
+      userId,
+      trx,
+      true
+    )
+    const actorProjectRole = projectId
+      ? normalizeProjectRole(await ProjectMemberRepository.getRoleName(projectId, userId, trx))
+      : null
+
+    return {
+      actorSystemRole,
+      actorOrgRole,
+      actorProjectRole,
+      projectId,
+    }
+  }
+
   const [actorSystemRole, actorOrgRole, actorProjectRole] = await Promise.all([
     UserRepository.getSystemRoleName(userId, trx),
     OrganizationUserRepository.getMemberRoleName(organizationId, userId, trx, true),

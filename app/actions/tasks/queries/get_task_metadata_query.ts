@@ -33,11 +33,13 @@ export default class GetTaskMetadataQuery {
    */
   async execute(organizationId?: DatabaseId): Promise<{
     statuses: Array<{
+      id: string
       value: string
       label: string
       slug: string
       category: string
       color?: string
+      is_system: boolean
     }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
@@ -91,18 +93,26 @@ export default class GetTaskMetadataQuery {
   /**
    * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(
-    organizationId: DatabaseId
-  ): Promise<
-    Array<{ value: string; label: string; slug: string; category: string; color?: string }>
+  private async loadStatuses(organizationId: DatabaseId): Promise<
+    Array<{
+      id: string
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+      is_system: boolean
+    }>
   > {
     const statuses = await TaskStatusRepository.findByOrganization(organizationId)
     return statuses.map((status) => ({
+      id: status.id,
       value: status.id,
       label: status.name,
       slug: status.slug,
       category: status.category,
       color: status.color,
+      is_system: status.is_system,
     }))
   }
 
@@ -166,11 +176,13 @@ export default class GetTaskMetadataQuery {
    */
   private async getFromCache(key: string): Promise<{
     statuses: Array<{
+      id: string
       value: string
       label: string
       slug: string
       category: string
       color?: string
+      is_system: boolean
     }>
     labels: Array<{ value: string; label: string }>
     priorities: Array<{ value: string; label: string }>
@@ -184,11 +196,13 @@ export default class GetTaskMetadataQuery {
       if (cached) {
         const parsed = JSON.parse(cached) as {
           statuses: Array<{
+            id: string
             value: string
             label: string
             slug: string
             category: string
             color?: string
+            is_system: boolean
           }>
           labels: Array<{ value: string; label: string }>
           priorities: Array<{ value: string; label: string }>
