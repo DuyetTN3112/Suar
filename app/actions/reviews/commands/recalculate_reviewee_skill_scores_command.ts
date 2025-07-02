@@ -2,6 +2,7 @@ import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DatabaseId } from '#types/database'
 import {
   calculateSkillConfidence,
@@ -10,15 +11,6 @@ import {
 } from '#domain/reviews/review_formulas'
 import emitter from '@adonisjs/core/services/emitter'
 
-interface ReviewRow {
-  skill_id: string
-  review_session_id: string
-  reviewer_type: 'manager' | 'peer'
-  assigned_level_code: string
-  reviewer_credibility_score: number
-  created_at: string | Date
-}
-
 export interface RecalculateRevieweeSkillScoresDTO {
   userId: DatabaseId
 }
@@ -26,6 +18,50 @@ export interface RecalculateRevieweeSkillScoresDTO {
 export interface RecalculateRevieweeSkillScoresResult {
   userId: DatabaseId
   skillsUpdated: number
+}
+
+interface ReviewSkillRow {
+  skill_id: string
+  review_session_id: string
+  reviewer_type: 'manager' | 'peer'
+  assigned_level_code: string
+  reviewer_credibility_score: number | string
+  created_at: string | Date
+}
+
+interface EvidenceCountRow {
+  skill_id: string
+  total: number | string
+}
+
+interface SkillScoreUpdatedEventPayload {
+  userId: DatabaseId
+  skillId: string
+  oldScore: number | null
+  newScore: number
+}
+
+interface LoadedSkillReviews {
+  reviews: ReviewSkillRow[]
+  evidenceBySkill: Map<string, number>
+}
+
+interface ComputedSkillScore {
+  weightedScore: number
+  levelCode: string
+  avgPercentage: number
+  confidence: number
+  mostRecentReviewAt: DateTime | null
+}
+
+interface RecalculateRevieweeSkillScoresTxResult {
+  userId: DatabaseId
+  skillsUpdated: number
+  events: SkillScoreUpdatedEventPayload[]
+}
+
+interface PersistedUserSkillResult {
+  oldScore: number | null
 }
 
 /**
@@ -67,120 +103,184 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   async handle(
     dto: RecalculateRevieweeSkillScoresDTO
   ): Promise<RecalculateRevieweeSkillScoresResult> {
-    return await this.executeInTransaction(async (trx) => {
-      const rows = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
-        dto.userId,
-        trx
-      )) as unknown as ReviewRow[]
+    const result = await this.executeInTransaction(
+      async (trx): Promise<RecalculateRevieweeSkillScoresTxResult> => {
+        const loaded = await this.loadSkillReviews(dto.userId, trx)
 
-      if (rows.length === 0) {
-        return { userId: dto.userId, skillsUpdated: 0 }
-      }
-
-      const evidenceRows = (await ReviewMetricsRepository.listEvidenceCountsBySkill(
-        dto.userId,
-        trx
-      )) as unknown as Array<{
-        skill_id: string
-        total: number | string
-      }>
-
-      const evidenceBySkill = new Map<string, number>()
-      for (const row of evidenceRows) {
-        evidenceBySkill.set(row.skill_id, Number(row.total))
-      }
-
-      const bySkill = new Map<string, ReviewRow[]>()
-      for (const row of rows) {
-        const list = bySkill.get(row.skill_id) ?? []
-        list.push(row)
-        bySkill.set(row.skill_id, list)
-      }
-
-      let skillsUpdated = 0
-
-      for (const [skillId, reviews] of bySkill.entries()) {
-        const weightedScore = calculateSkillWeightedScore(
-          reviews.map((review) => ({
-            levelCode: review.assigned_level_code,
-            reviewerType: review.reviewer_type,
-            reviewerCredibilityScore: this.toCredibilityScore(review.reviewer_credibility_score),
-            monthsAgo: this.toMonthsAgo(review.created_at),
-          }))
-        )
-
-        const levelCode = mapWeightedScoreToLevelCode(weightedScore)
-        const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 7) * 100))
-
-        const confidence = calculateSkillConfidence({
-          reviewCount: reviews.length,
-          hasManager: reviews.some((r) => r.reviewer_type === 'manager'),
-          hasPeer: reviews.some((r) => r.reviewer_type === 'peer'),
-          evidenceCount: evidenceBySkill.get(skillId) ?? 0,
-          reviewerCredibilityAverage:
-            reviews.reduce(
-              (sum, r) => sum + this.toCredibilityScore(r.reviewer_credibility_score),
-              0
-            ) / reviews.length,
-        })
-
-        const mostRecentReviewAt =
-          reviews
-            .map((r) => this.toDateTime(r.created_at))
-            .sort((a, b) => b.toMillis() - a.toMillis())[0] ?? null
-
-        const existing = await UserSkillRepository.findByUserAndSkill(dto.userId, skillId, trx)
-
-        const oldScore = existing?.avg_percentage ?? null
-
-        if (existing) {
-          existing.level_code = levelCode
-          existing.total_reviews = reviews.length
-          existing.avg_score = Math.round(avgPercentage * 10) / 10
-          existing.avg_percentage = Math.round(avgPercentage * 10) / 10
-          existing.last_calculated_at = DateTime.now()
-          existing.last_reviewed_at = mostRecentReviewAt
-          existing.source = 'reviewed'
-          await UserSkillRepository.save(existing, trx)
-        } else {
-          await UserSkillRepository.create(
-            {
-              user_id: dto.userId,
-              skill_id: skillId,
-              level_code: levelCode,
-              total_reviews: reviews.length,
-              avg_score: Math.round(avgPercentage * 10) / 10,
-              avg_percentage: Math.round(avgPercentage * 10) / 10,
-              last_calculated_at: DateTime.now(),
-              last_reviewed_at: mostRecentReviewAt,
-              source: 'reviewed',
-            },
-            trx
-          )
+        if (loaded.reviews.length === 0) {
+          return {
+            userId: dto.userId,
+            skillsUpdated: 0,
+            events: [],
+          }
         }
 
-        void emitter.emit('skill:score:updated', {
+        const groupedReviews = this.groupReviewsBySkill(loaded.reviews)
+        const events: SkillScoreUpdatedEventPayload[] = []
+        let skillsUpdated = 0
+
+        for (const [skillId, reviews] of groupedReviews.entries()) {
+          const computed = this.computeSkillScore(reviews, loaded.evidenceBySkill.get(skillId) ?? 0)
+          const persisted = await this.persistUserSkill(dto.userId, skillId, reviews, computed, trx)
+
+          events.push({
+            userId: dto.userId,
+            skillId,
+            oldScore: persisted.oldScore,
+            newScore: computed.avgPercentage,
+          })
+
+          await this.logSkillRecalculationAudit(dto.userId, skillId, reviews.length, computed)
+
+          skillsUpdated += 1
+        }
+
+        return {
           userId: dto.userId,
-          skillId,
-          oldScore,
-          newScore: Math.round(avgPercentage * 10) / 10,
-        })
+          skillsUpdated,
+          events,
+        }
+      }
+    )
 
-        await this.logAudit('recalculate_user_skill_score', 'user_skill', dto.userId, null, {
+    for (const eventPayload of result.events) {
+      void emitter.emit('skill:score:updated', eventPayload)
+    }
+
+    return {
+      userId: result.userId,
+      skillsUpdated: result.skillsUpdated,
+    }
+  }
+
+  private async loadSkillReviews(
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<LoadedSkillReviews> {
+    const reviews = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
+      userId,
+      trx
+    )) as unknown as ReviewSkillRow[]
+
+    if (reviews.length === 0) {
+      return { reviews, evidenceBySkill: new Map<string, number>() }
+    }
+
+    const evidenceRows = (await ReviewMetricsRepository.listEvidenceCountsBySkill(
+      userId,
+      trx
+    )) as unknown as EvidenceCountRow[]
+
+    const evidenceBySkill = new Map<string, number>()
+    for (const row of evidenceRows) {
+      evidenceBySkill.set(row.skill_id, Number(row.total))
+    }
+
+    return { reviews, evidenceBySkill }
+  }
+
+  private groupReviewsBySkill(reviews: ReviewSkillRow[]): Map<string, ReviewSkillRow[]> {
+    const grouped = new Map<string, ReviewSkillRow[]>()
+
+    for (const review of reviews) {
+      const list = grouped.get(review.skill_id) ?? []
+      list.push(review)
+      grouped.set(review.skill_id, list)
+    }
+
+    return grouped
+  }
+
+  private computeSkillScore(reviews: ReviewSkillRow[], evidenceCount: number): ComputedSkillScore {
+    const weightedScore = calculateSkillWeightedScore(
+      reviews.map((review) => ({
+        levelCode: review.assigned_level_code,
+        reviewerType: review.reviewer_type,
+        reviewerCredibilityScore: this.toCredibilityScore(review.reviewer_credibility_score),
+        monthsAgo: this.toMonthsAgo(review.created_at),
+      }))
+    )
+
+    const levelCode = mapWeightedScoreToLevelCode(weightedScore)
+    const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 7) * 100))
+    const confidence = calculateSkillConfidence({
+      reviewCount: reviews.length,
+      hasManager: reviews.some((review) => review.reviewer_type === 'manager'),
+      hasPeer: reviews.some((review) => review.reviewer_type === 'peer'),
+      evidenceCount,
+      reviewerCredibilityAverage:
+        reviews.reduce(
+          (sum, review) => sum + this.toCredibilityScore(review.reviewer_credibility_score),
+          0
+        ) / reviews.length,
+    })
+
+    const mostRecentReviewAt =
+      reviews
+        .map((review) => this.toDateTime(review.created_at))
+        .sort((a, b) => b.toMillis() - a.toMillis())[0] ?? null
+
+    return {
+      weightedScore,
+      levelCode,
+      avgPercentage: Math.round(avgPercentage * 10) / 10,
+      confidence,
+      mostRecentReviewAt,
+    }
+  }
+
+  private async persistUserSkill(
+    userId: DatabaseId,
+    skillId: string,
+    reviews: ReviewSkillRow[],
+    computed: ComputedSkillScore,
+    trx: TransactionClientContract
+  ): Promise<PersistedUserSkillResult> {
+    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
+    const oldScore = existing?.avg_percentage ?? null
+    const roundedAverage = computed.avgPercentage
+
+    if (existing) {
+      existing.level_code = computed.levelCode
+      existing.total_reviews = reviews.length
+      existing.avg_score = roundedAverage
+      existing.avg_percentage = roundedAverage
+      existing.last_calculated_at = DateTime.now()
+      existing.last_reviewed_at = computed.mostRecentReviewAt
+      existing.source = 'reviewed'
+      await UserSkillRepository.save(existing, trx)
+    } else {
+      await UserSkillRepository.create(
+        {
+          user_id: userId,
           skill_id: skillId,
-          weighted_score: Math.round(weightedScore * 100) / 100,
-          avg_percentage: Math.round(avgPercentage * 10) / 10,
-          confidence_score: confidence,
+          level_code: computed.levelCode,
           total_reviews: reviews.length,
-        })
+          avg_score: roundedAverage,
+          avg_percentage: roundedAverage,
+          last_calculated_at: DateTime.now(),
+          last_reviewed_at: computed.mostRecentReviewAt,
+          source: 'reviewed',
+        },
+        trx
+      )
+    }
 
-        skillsUpdated += 1
-      }
+    return { oldScore }
+  }
 
-      return {
-        userId: dto.userId,
-        skillsUpdated,
-      }
+  private async logSkillRecalculationAudit(
+    userId: DatabaseId,
+    skillId: string,
+    totalReviews: number,
+    computed: ComputedSkillScore
+  ): Promise<void> {
+    await this.logAudit('recalculate_user_skill_score', 'user_skill', userId, null, {
+      skill_id: skillId,
+      weighted_score: Math.round(computed.weightedScore * 100) / 100,
+      avg_percentage: computed.avgPercentage,
+      confidence_score: computed.confidence,
+      total_reviews: totalReviews,
     })
   }
 }

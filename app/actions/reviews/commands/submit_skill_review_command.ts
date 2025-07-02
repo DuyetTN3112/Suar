@@ -27,106 +27,170 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   SkillReview[]
 > {
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
+      const session = await this.loadReviewSession(dto.review_session_id, trx)
 
-      // Get review session
-      const session = await ReviewSessionRepository.findByIdWithAllowedStatuses(
-        dto.review_session_id,
-        [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS],
-        trx
-      )
-      if (!session) {
-        throw new NotFoundException(
-          'Review session không tồn tại hoặc không ở trạng thái có thể submit'
-        )
-      }
-
-      // Check if user already submitted review for this session
-      const existingReview = await SkillReviewRepository.findBySessionAndReviewer(
-        dto.review_session_id,
-        userId,
-        trx
-      )
-
-      if (existingReview) {
-        throw new ConflictException('You have already submitted a review for this session')
-      }
-
-      // Validate FK: skill_id and assigned_level_code for all ratings
+      await this.ensureReviewHasNotBeenSubmitted(dto.review_session_id, userId, trx)
       await this.validateForeignKeys(dto.skill_ratings, trx)
 
-      // Create skill reviews
       const skillReviews = await SkillReviewRepository.createMany(
-        dto.skill_ratings.map((rating) => ({
-          review_session_id: dto.review_session_id,
-          reviewer_id: userId,
-          reviewer_type: dto.reviewer_type,
-          skill_id: rating.skill_id,
-          assigned_level_code: rating.assigned_level_code,
-          comment: rating.comment || null,
-        })),
+        this.buildSkillReviewRows(dto, userId),
         trx
       )
 
-      // Update session counters
-      if (dto.reviewer_type === 'manager') {
-        session.manager_review_completed = true
-
-        // v5: manager can submit overall execution quality dimensions
-        session.overall_quality_score = dto.overall_quality_score
-        session.delivery_timeliness = dto.delivery_timeliness
-        session.requirement_adherence = dto.requirement_adherence
-        session.communication_quality = dto.communication_quality
-        session.code_quality_score = dto.code_quality_score
-        session.proactiveness_score = dto.proactiveness_score
-        session.would_work_with_again = dto.would_work_with_again
-        session.strengths_observed = dto.strengths_observed
-        session.areas_for_improvement = dto.areas_for_improvement
-      } else {
-        session.peer_reviews_count += 1
-      }
-
-      // Determine new session status via pure rule
-      const newStatus = determineSessionStatus(
-        session.manager_review_completed,
-        session.peer_reviews_count,
-        session.required_peer_reviews,
-        session.status
-      )
-      session.status = newStatus
-      if (newStatus === 'completed') {
-        session.completed_at = DateTime.now()
-      }
-
+      this.applySubmissionToSession(session, dto)
       await ReviewSessionRepository.save(session, trx)
 
-      // Log audit
       await this.logAudit('submit_review', 'review_session', session.id, null, {
         reviewer_id: userId,
         reviewer_type: dto.reviewer_type,
         skills_reviewed: dto.skill_ratings.length,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`user:${session.reviewee_id}:*`)
-      await CacheService.deleteByPattern(`review:session:${session.id}`)
+      return this.buildSubmissionResult(dto, userId, session, skillReviews)
+    })
 
-      // Emit domain event for spider chart recalculation
-      const scores: Record<string, number> = {}
-      for (const review of skillReviews) {
-        scores[review.skill_id] = 0 // Placeholder — actual score computed by spider chart
-      }
-      void emitter.emit('review:submitted', {
+    await CacheService.deleteByPattern(result.revieweeCachePattern)
+    await CacheService.deleteByPattern(result.reviewSessionCachePattern)
+    void emitter.emit('review:submitted', result.reviewSubmittedEvent)
+
+    return result.skillReviews
+  }
+
+  private async loadReviewSession(reviewSessionId: DatabaseId, trx: TransactionClientContract) {
+    const session = await ReviewSessionRepository.findByIdWithAllowedStatuses(
+      reviewSessionId,
+      [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS],
+      trx
+    )
+
+    if (!session) {
+      throw new NotFoundException(
+        'Review session không tồn tại hoặc không ở trạng thái có thể submit'
+      )
+    }
+
+    return session
+  }
+
+  private async ensureReviewHasNotBeenSubmitted(
+    reviewSessionId: DatabaseId,
+    reviewerId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const existingReview = await SkillReviewRepository.findBySessionAndReviewer(
+      reviewSessionId,
+      reviewerId,
+      trx
+    )
+
+    if (existingReview) {
+      throw new ConflictException('You have already submitted a review for this session')
+    }
+  }
+
+  private buildSkillReviewRows(
+    dto: SubmitSkillReviewDTO,
+    reviewerId: DatabaseId
+  ): Array<{
+    review_session_id: DatabaseId
+    reviewer_id: DatabaseId
+    reviewer_type: 'manager' | 'peer'
+    skill_id: DatabaseId
+    assigned_level_code: string
+    comment: string | null
+  }> {
+    return dto.skill_ratings.map((rating) => ({
+      review_session_id: dto.review_session_id,
+      reviewer_id: reviewerId,
+      reviewer_type: dto.reviewer_type,
+      skill_id: rating.skill_id,
+      assigned_level_code: rating.assigned_level_code,
+      comment: rating.comment || null,
+    }))
+  }
+
+  private applySubmissionToSession(
+    session: {
+      manager_review_completed: boolean
+      peer_reviews_count: number
+      required_peer_reviews: number
+      status: 'pending' | 'in_progress' | 'completed' | 'disputed'
+      overall_quality_score: number | null
+      delivery_timeliness: string | null
+      requirement_adherence: number | null
+      communication_quality: number | null
+      code_quality_score: number | null
+      proactiveness_score: number | null
+      would_work_with_again: boolean | null
+      strengths_observed: string | null
+      areas_for_improvement: string | null
+      completed_at: DateTime | null
+    },
+    dto: SubmitSkillReviewDTO
+  ): void {
+    if (dto.reviewer_type === 'manager') {
+      session.manager_review_completed = true
+      session.overall_quality_score = dto.overall_quality_score
+      session.delivery_timeliness = dto.delivery_timeliness
+      session.requirement_adherence = dto.requirement_adherence
+      session.communication_quality = dto.communication_quality
+      session.code_quality_score = dto.code_quality_score
+      session.proactiveness_score = dto.proactiveness_score
+      session.would_work_with_again = dto.would_work_with_again
+      session.strengths_observed = dto.strengths_observed
+      session.areas_for_improvement = dto.areas_for_improvement
+    } else {
+      session.peer_reviews_count += 1
+    }
+
+    const newStatus = determineSessionStatus(
+      session.manager_review_completed,
+      session.peer_reviews_count,
+      session.required_peer_reviews,
+      session.status
+    )
+    session.status = newStatus
+
+    if (newStatus === 'completed') {
+      session.completed_at = DateTime.now()
+    }
+  }
+
+  private buildSubmissionResult(
+    dto: SubmitSkillReviewDTO,
+    reviewerId: DatabaseId,
+    session: {
+      reviewee_id: DatabaseId
+      task_assignment_id: DatabaseId
+      id: DatabaseId
+    },
+    skillReviews: SkillReview[]
+  ): {
+    skillReviews: SkillReview[]
+    revieweeCachePattern: string
+    reviewSessionCachePattern: string
+    reviewSubmittedEvent: {
+      reviewSessionId: DatabaseId
+      reviewerId: DatabaseId
+      revieweeId: DatabaseId
+      taskId: DatabaseId
+      scores: Record<string, number>
+    }
+  } {
+    return {
+      skillReviews,
+      revieweeCachePattern: `user:${session.reviewee_id}:*`,
+      reviewSessionCachePattern: `review:session:${session.id}`,
+      reviewSubmittedEvent: {
         reviewSessionId: dto.review_session_id,
-        reviewerId: userId,
+        reviewerId,
         revieweeId: session.reviewee_id,
         taskId: session.task_assignment_id,
-        scores,
-      })
-
-      return skillReviews
-    })
+        scores: Object.fromEntries(skillReviews.map((review) => [review.skill_id, 0])),
+      },
+    }
   }
 
   /**

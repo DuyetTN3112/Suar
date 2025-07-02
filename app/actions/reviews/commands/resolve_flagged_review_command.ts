@@ -23,7 +23,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
   import('#models/flagged_review').default
 > {
   async handle(dto: ResolveFlaggedReviewDTO): Promise<import('#models/flagged_review').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       const flaggedReview = await FlaggedReviewRepository.findByIdForUpdate(
@@ -59,9 +59,13 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         notes: dto.notes,
       })
 
-      await CacheService.deleteByPattern('flagged:*')
-
-      return flaggedReview
+      return {
+        flaggedReview,
+        cachePattern: 'flagged:*',
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    return result.flaggedReview
   }
 }

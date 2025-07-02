@@ -17,7 +17,7 @@ export default class CreateReviewSessionCommand extends BaseCommand<
   import('#models/review_session').default
 > {
   async handle(dto: CreateReviewSessionDTO): Promise<import('#models/review_session').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
       const assignment = await TaskAssignmentRepository.findCompletedById(
         dto.task_assignment_id,
@@ -61,19 +61,23 @@ export default class CreateReviewSessionCommand extends BaseCommand<
         reviewee_id: dto.reviewee_id,
       })
 
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId: this.getCurrentUserId(),
-        action: 'create',
-        entityType: 'review_session',
-        entityId: session.id,
-        newValues: {
-          task_assignment_id: dto.task_assignment_id,
-          reviewee_id: dto.reviewee_id,
+      return {
+        session,
+        auditEvent: {
+          userId: this.getCurrentUserId(),
+          action: 'create',
+          entityType: 'review_session',
+          entityId: session.id,
+          newValues: {
+            task_assignment_id: dto.task_assignment_id,
+            reviewee_id: dto.reviewee_id,
+          },
         },
-      })
-
-      return session
+      }
     })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.session
   }
 }

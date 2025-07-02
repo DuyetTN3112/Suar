@@ -19,6 +19,14 @@ interface AnomalyDetection {
   notes: string
 }
 
+interface DetectionContext {
+  reviewSessionId: DatabaseId
+  reviewerId: DatabaseId
+  skillReviews: SkillReview[]
+  session: { reviewee_id: DatabaseId } | null
+  reviewee: { created_at: { toMillis(): number } } | null
+}
+
 /**
  * DetectAnomalyCommand
  *
@@ -39,22 +47,15 @@ export default class DetectAnomalyCommand extends BaseCommand<
     reviewSessionId: DatabaseId
     reviewerId: DatabaseId
   }): Promise<FlaggedReview[]> {
-    const flaggedReviews: FlaggedReview[] = []
+    let flaggedReviews: FlaggedReview[] = []
 
     try {
-      const anomalies = await this.detectAnomalies(input.reviewSessionId, input.reviewerId)
-
-      for (const anomaly of anomalies) {
-        const flagged = await FlaggedReviewRepository.create({
-          skill_review_id: anomaly.skillReviewId,
-          flag_type: anomaly.flagType,
-          severity: anomaly.severity,
-          status: 'pending',
-          notes: anomaly.notes,
-        })
-        flaggedReviews.push(flagged)
-      }
-
+      const detectionContext = await this.loadDetectionContext(
+        input.reviewSessionId,
+        input.reviewerId
+      )
+      const anomalies = await this.detectAnomalies(detectionContext)
+      flaggedReviews = await this.persistFlags(anomalies)
       if (flaggedReviews.length > 0) {
         loggerService.warn('Anomalies detected in review', {
           reviewSessionId: input.reviewSessionId,
@@ -73,30 +74,59 @@ export default class DetectAnomalyCommand extends BaseCommand<
     return flaggedReviews
   }
 
-  private async detectAnomalies(
+  private async loadDetectionContext(
     reviewSessionId: DatabaseId,
     reviewerId: DatabaseId
-  ): Promise<AnomalyDetection[]> {
-    const anomalies: AnomalyDetection[] = []
-
-    // Get the skill reviews just submitted
+  ): Promise<DetectionContext> {
     const skillReviews = await SkillReviewRepository.listBySessionAndReviewer(
       reviewSessionId,
       reviewerId
     )
 
-    if (skillReviews.length === 0) return anomalies
+    if (skillReviews.length === 0) {
+      return {
+        reviewSessionId,
+        reviewerId,
+        skillReviews,
+        session: null,
+        reviewee: null,
+      }
+    }
 
-    // Run all detection checks in parallel
+    const session = await ReviewSessionRepository.findById(reviewSessionId)
+    if (!session) {
+      return {
+        reviewSessionId,
+        reviewerId,
+        skillReviews,
+        session: null,
+        reviewee: null,
+      }
+    }
+
+    const reviewee = await UserRepository.findById(session.reviewee_id)
+
+    return {
+      reviewSessionId,
+      reviewerId,
+      skillReviews,
+      session,
+      reviewee,
+    }
+  }
+
+  private async detectAnomalies(context: DetectionContext): Promise<AnomalyDetection[]> {
+    if (context.skillReviews.length === 0 || !context.session) {
+      return []
+    }
+
     const [bulkSame, newAccountHigh, mutualHigh] = await Promise.all([
-      Promise.resolve(this.checkBulkSameLevel(skillReviews)),
-      this.checkNewAccountHigh(reviewSessionId, skillReviews),
-      this.checkMutualHigh(reviewSessionId, reviewerId),
+      Promise.resolve(this.checkBulkSameLevel(context.skillReviews)),
+      Promise.resolve(this.checkNewAccountHigh(context)),
+      this.checkMutualHigh(context),
     ])
 
-    anomalies.push(...bulkSame, ...newAccountHigh, ...mutualHigh)
-
-    return anomalies
+    return [...bulkSame, ...newAccountHigh, ...mutualHigh]
   }
 
   /**
@@ -138,16 +168,10 @@ export default class DetectAnomalyCommand extends BaseCommand<
   /**
    * Pattern 5: new_account_high — Account <30 days receives ≥senior level
    */
-  private async checkNewAccountHigh(
-    reviewSessionId: DatabaseId,
-    skillReviews: SkillReview[]
-  ): Promise<AnomalyDetection[]> {
+  private checkNewAccountHigh(context: DetectionContext): AnomalyDetection[] {
     const anomalies: AnomalyDetection[] = []
 
-    const session = await ReviewSessionRepository.findById(reviewSessionId)
-    if (!session) return anomalies
-
-    const reviewee = await UserRepository.findById(session.reviewee_id)
+    const reviewee = context.reviewee
     if (!reviewee) return anomalies
 
     const accountAgeDays = Math.floor(
@@ -156,7 +180,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
 
     if (accountAgeDays < 30) {
       const highLevels = ['senior', 'lead', 'principal', 'expert', 'master']
-      for (const review of skillReviews) {
+      for (const review of context.skillReviews) {
         if (highLevels.includes(review.assigned_level_code)) {
           anomalies.push({
             flagType: AnomalyFlagType.NEW_ACCOUNT_HIGH,
@@ -174,13 +198,10 @@ export default class DetectAnomalyCommand extends BaseCommand<
   /**
    * Pattern 2: mutual_high — Two users rate each other high >3 times
    */
-  private async checkMutualHigh(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId
-  ): Promise<AnomalyDetection[]> {
+  private async checkMutualHigh(context: DetectionContext): Promise<AnomalyDetection[]> {
     const anomalies: AnomalyDetection[] = []
 
-    const session = await ReviewSessionRepository.findById(reviewSessionId)
+    const session = context.session
     if (!session) return anomalies
 
     const revieweeId = session.reviewee_id
@@ -188,21 +209,12 @@ export default class DetectAnomalyCommand extends BaseCommand<
     // Count times the reviewee has also reviewed the reviewer with high scores
     const mutualCount = await SkillReviewRepository.countCompletedHighReviewsBetweenUsers(
       revieweeId,
-      reviewerId
+      context.reviewerId
     )
 
     if (mutualCount >= 3) {
-      const currentReviews = await SkillReviewRepository.listBySessionAndReviewer(
-        reviewSessionId,
-        reviewerId
-      )
-
-      if (currentReviews.length > 0) {
-        const firstReview = currentReviews[0]
-        if (!firstReview) {
-          return anomalies
-        }
-
+      const firstReview = context.skillReviews[0]
+      if (firstReview) {
         anomalies.push({
           flagType: AnomalyFlagType.MUTUAL_HIGH,
           severity: AnomalySeverity.HIGH,
@@ -213,5 +225,22 @@ export default class DetectAnomalyCommand extends BaseCommand<
     }
 
     return anomalies
+  }
+
+  private async persistFlags(anomalies: AnomalyDetection[]): Promise<FlaggedReview[]> {
+    const flaggedReviews: FlaggedReview[] = []
+
+    for (const anomaly of anomalies) {
+      const flagged = await FlaggedReviewRepository.create({
+        skill_review_id: anomaly.skillReviewId,
+        flag_type: anomaly.flagType,
+        severity: anomaly.severity,
+        status: 'pending',
+        notes: anomaly.notes,
+      })
+      flaggedReviews.push(flagged)
+    }
+
+    return flaggedReviews
   }
 }

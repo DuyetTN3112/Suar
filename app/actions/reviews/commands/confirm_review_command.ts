@@ -69,11 +69,9 @@ export default class ConfirmReviewCommand extends BaseCommand<
         dispute_reason: dto.dispute_reason,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
-
       return {
         confirmation: newConfirmation,
+        cachePattern: `review:session:${dto.review_session_id}`,
         reviewConfirmedEvent: {
           confirmationId: newConfirmation.user_id,
           reviewSessionId: dto.review_session_id,
@@ -85,6 +83,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
       }
     })
 
+    await CacheService.deleteByPattern(result.cachePattern)
     await emitter.emit('review:confirmed', result.reviewConfirmedEvent)
 
     return result.confirmation
