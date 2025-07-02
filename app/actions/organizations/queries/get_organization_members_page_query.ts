@@ -16,6 +16,15 @@ export interface OrganizationMembersPageResult {
   pendingRequests: unknown[]
 }
 
+export interface OrganizationMembersPageFilters {
+  page?: number
+  limit?: number
+  roleId?: string
+  search?: string
+  statusFilter?: 'active' | 'pending' | 'inactive'
+  include?: Array<'activity' | 'audit'>
+}
+
 /**
  * Query: Get Organization Members Page Data
  *
@@ -27,14 +36,25 @@ export default class GetOrganizationMembersPageQuery {
 
   async execute(
     organizationId: DatabaseId,
-    userId: DatabaseId
+    userId: DatabaseId,
+    filters?: OrganizationMembersPageFilters
   ): Promise<OrganizationMembersPageResult> {
     const currentUserId = userId
     if (!currentUserId) {
       throw new UnauthorizedException()
     }
 
-    const membersDTO = new GetOrganizationMembersDTO(organizationId, 1, 100, undefined, undefined)
+    const membersDTO = new GetOrganizationMembersDTO(
+      organizationId,
+      filters?.page ?? 1,
+      filters?.limit ?? 100,
+      filters?.roleId,
+      filters?.search,
+      'joined_at',
+      'desc',
+      filters?.statusFilter,
+      filters?.include
+    )
 
     const [membersResult, pendingRequests, metadata, organization, showData] = await Promise.all([
       new GetOrganizationMembersQuery(this.execCtx).execute(membersDTO),

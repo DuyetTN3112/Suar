@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
-import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
 import CreateNotification from '#actions/common/create_notification'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
+import { buildProcessJoinRequestDTO } from '#controllers/organizations/mapper/request/organization_request_mapper'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
 
 /**
  * ApproveJoinRequestController
@@ -18,23 +21,18 @@ export default class ApproveJoinRequestController {
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const targetUserId = params.id as string
-    const rawAction = request.input('action', 'approve') as string
-    const approve = rawAction !== 'reject'
-    const reason = request.input('reason') as string | undefined
-
-    const dto = new ProcessJoinRequestDTO(organizationId, targetUserId, approve, reason)
+    const { dto, successMessage } = buildProcessJoinRequestDTO(
+      request,
+      organizationId,
+      params.id as string
+    )
     await new ProcessJoinRequestCommand(execCtx, new CreateNotification()).execute(dto)
 
-    const successMessage = approve
-      ? 'Duyệt yêu cầu tham gia thành công'
-      : 'Từ chối yêu cầu tham gia thành công'
-
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: successMessage })
+      response.json(mapOrganizationSuccessApiBody(successMessage))
       return
     }
 

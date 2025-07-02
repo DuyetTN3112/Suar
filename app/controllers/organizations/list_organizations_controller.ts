@@ -3,10 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
 import GetAllOrganizationsQuery from '#actions/organizations/queries/get_all_organizations_query'
-import { GetOrganizationsListDTO } from '#actions/organizations/dtos/request/get_organizations_list_dto'
-import { PAGINATION } from '#constants/common_constants'
-
-const ORGANIZATIONS_DEFAULT_LIMIT = 20
+import { buildOrganizationsListDTO } from './mapper/request/organization_request_mapper.js'
+import { mapOrganizationsIndexPageProps } from './mapper/response/organization_response_mapper.js'
 
 /**
  * GET /organizations
@@ -22,11 +20,7 @@ export default class ListOrganizationsController {
     const user = auth.user
 
     // Build DTO from request
-    const dto = new GetOrganizationsListDTO(
-      Number(request.input('page', PAGINATION.DEFAULT_PAGE)),
-      Number(request.input('limit', ORGANIZATIONS_DEFAULT_LIMIT)),
-      request.input('search') as string | undefined
-    )
+    const dto = buildOrganizationsListDTO(request)
 
     // Execute queries
     const getOrganizationsList = new GetOrganizationsListQuery(ExecutionContext.fromHttp(ctx))
@@ -37,11 +31,14 @@ export default class ListOrganizationsController {
       getAllOrganizations.getEnhanced(),
     ])
 
-    return inertia.render('organizations/index', {
-      organizations: result.data,
-      pagination: result.pagination,
-      currentOrganizationId: user.current_organization_id,
-      allOrganizations: enhancedAllOrganizations,
-    })
+    return inertia.render(
+      'organizations/index',
+      mapOrganizationsIndexPageProps({
+        organizations: result.data,
+        pagination: result.pagination,
+        currentOrganizationId: user.current_organization_id,
+        allOrganizations: enhancedAllOrganizations,
+      })
+    )
   }
 }

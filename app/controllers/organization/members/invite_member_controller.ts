@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetAssignableOrganizationRolesQuery from '#actions/organization/access/queries/get_assignable_organization_roles_query'
 import { ExecutionContext } from '#types/execution_context'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import { OrganizationRole } from '#constants/organization_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
 
 /**
  * InviteMemberController
@@ -19,7 +20,7 @@ export default class InviteMemberController {
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
     const email = request.input('email') as string
@@ -27,17 +28,17 @@ export default class InviteMemberController {
       (request.input('roleId') as string | undefined) ??
       (request.input('org_role') as string | undefined) ??
       OrganizationRole.MEMBER
-
-    const { roleIds: allowedRoleIds } = await new GetAssignableOrganizationRolesQuery(
-      execCtx
-    ).handle({
-      organizationId,
-    })
-    const dto = new InviteUserDTO(organizationId, email, roleId, allowedRoleIds)
-    await new InviteUserCommand(execCtx).execute(dto)
+    await new InviteUserCommand(execCtx).executeFromRequest(
+      {
+        organizationId,
+        email,
+        roleId,
+      },
+      { resolveAssignableRoles: true }
+    )
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: 'Gửi lời mời thành công' })
+      response.json(mapOrganizationSuccessApiBody('Gửi lời mời thành công'))
       return
     }
 

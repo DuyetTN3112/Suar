@@ -3,7 +3,9 @@ import NotFoundException from '#exceptions/not_found_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { type ExecutionContext } from '#types/execution_context'
+import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
 import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
@@ -18,6 +20,11 @@ import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import {
+  buildUpdateMemberRoleDTO,
+  type BuildMemberRequestOptions,
+  type UpdateMemberRoleRequestInput,
+} from '../support/member_request_mappers.js'
 
 /**
  * Command: Update Member Role
@@ -40,102 +47,44 @@ export default class UpdateMemberRoleCommand {
     private createNotification: CreateNotification
   ) {}
 
+  async executeFromRequest(
+    input: UpdateMemberRoleRequestInput,
+    options: BuildMemberRequestOptions = {}
+  ): Promise<void> {
+    const dto = await buildUpdateMemberRoleDTO(this.execCtx, input, options)
+    await this.execute(dto)
+  }
+
   /**
    * Execute command: Update member's role
    *
    * Steps:
-   * 1. Check permissions
-   * 2. Get current membership
-   * 3. Validate role change is allowed
-   * 4. Begin transaction
-   * 5. Update role
-   * 6. Create audit log
-   * 7. Commit transaction
-   * 8. Send notification
+   * 1. Resolve actor
+   * 2. Fetch current membership data
+   * 3. Validate the role change
+   * 4. Persist the change inside a transaction
+   * 5. Commit
+   * 6. Run post-commit side effects
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
-    const userId = this.execCtx.userId
-    if (!userId) {
-      throw new UnauthorizedException()
-    }
+    const actorId = this.requireActorId()
+    const roleChange = await this.persistRoleChangeInTransaction(dto, actorId)
+    await this.runPostCommitSideEffects(dto, actorId, roleChange.oldRole)
+  }
+
+  private async persistRoleChangeInTransaction(
+    dto: UpdateMemberRoleDTO,
+    actorId: DatabaseId
+  ): Promise<{ oldRole: string }> {
     const trx = await db.transaction()
 
     try {
-      // 1. Get current user's role → delegate to Model
-
-      const currentUserRoleId = await OrganizationUserRepository.getMemberRoleName(
-        dto.organizationId,
-        userId,
-        trx
-      )
-      if (!currentUserRoleId) {
-        throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
-      }
-
-      // 2. Get target user's current role → delegate to Model
-
-      const targetRoleId = await OrganizationUserRepository.getMemberRoleName(
-        dto.organizationId,
-        dto.userId,
-        trx,
-        false
-      )
-      if (!targetRoleId) {
-        throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
-      }
-
-      // 3. Validate role change is allowed
-      enforcePolicy(
-        canChangeRole({
-          actorOrgRole: currentUserRoleId,
-          targetCurrentRole: targetRoleId,
-          targetNewRole: dto.newRoleId,
-          isSelfUpdate: dto.userId === userId,
-        })
-      )
-
-      // 4. Check if role is actually changing
-      if (targetRoleId === dto.newRoleId) {
-        throw ConflictException.alreadyExists('Người dùng đã có vai trò này')
-      }
-
-      // 5. Store old role for audit
-      const oldRole: string = targetRoleId
-
-      // 6. Update role → delegate to Model
-      await OrganizationUserRepository.updateRole(
-        dto.organizationId,
-        dto.userId,
-        dto.newRoleId,
-        trx
-      )
-
-      // 7. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.UPDATE_MEMBER_ROLE,
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organizationId,
-        old_values: { user_id: dto.userId, org_role: oldRole },
-        new_values: { user_id: dto.userId, org_role: dto.newRoleId },
-      })
-
+      const context = await this.fetchRoleChangeContext(dto, actorId, trx)
+      this.validateRoleChange(dto, actorId, context)
+      await this.persistRoleChange(dto, actorId, context.targetCurrentRole, trx)
       await trx.commit()
 
-      // Emit domain event
-      void emitter.emit('organization:member:role_changed', {
-        organizationId: dto.organizationId,
-        userId: dto.userId,
-        oldRole: oldRole,
-        newRole: dto.newRoleId,
-        changedBy: userId,
-      })
-
-      // Invalidate organization member caches
-      await CacheService.deleteByPattern(`organization:members:*`)
-
-      // 8. Send notification
-      await this.sendRoleChangedNotification(dto, oldRole)
+      return { oldRole: context.targetCurrentRole }
     } catch (error) {
       await trx.rollback()
       throw error
@@ -143,7 +92,113 @@ export default class UpdateMemberRoleCommand {
   }
 
   /**
-   * Helper: Send notification about role change
+   * Helper: Require an authenticated actor.
+   */
+  private requireActorId(): DatabaseId {
+    const actorId = this.execCtx.userId
+    if (!actorId) {
+      throw new UnauthorizedException()
+    }
+
+    return actorId
+  }
+
+  /**
+   * Helper: Fetch actor and target role state before mutating anything.
+   */
+  private async fetchRoleChangeContext(
+    dto: UpdateMemberRoleDTO,
+    actorId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<{ actorOrgRole: string; targetCurrentRole: string }> {
+    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      dto.organizationId,
+      actorId,
+      trx
+    )
+    const targetCurrentRole = await OrganizationUserRepository.getMemberRoleName(
+      dto.organizationId,
+      dto.userId,
+      trx,
+      false
+    )
+
+    if (!actorOrgRole) {
+      throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
+    }
+
+    if (!targetCurrentRole) {
+      throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
+    }
+
+    return { actorOrgRole, targetCurrentRole }
+  }
+
+  /**
+   * Helper: Validate the requested role change.
+   */
+  private validateRoleChange(
+    dto: UpdateMemberRoleDTO,
+    actorId: DatabaseId,
+    context: { actorOrgRole: string; targetCurrentRole: string }
+  ): void {
+    enforcePolicy(
+      canChangeRole({
+        actorOrgRole: context.actorOrgRole,
+        targetCurrentRole: context.targetCurrentRole,
+        targetNewRole: dto.newRoleId,
+        isSelfUpdate: dto.userId === actorId,
+      })
+    )
+
+    if (context.targetCurrentRole === dto.newRoleId) {
+      throw ConflictException.alreadyExists('Người dùng đã có vai trò này')
+    }
+  }
+
+  /**
+   * Helper: Persist the role change and audit record inside the transaction.
+   */
+  private async persistRoleChange(
+    dto: UpdateMemberRoleDTO,
+    actorId: DatabaseId,
+    oldRole: string,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await OrganizationUserRepository.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
+
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: actorId,
+      action: AuditAction.UPDATE_MEMBER_ROLE,
+      entity_type: EntityType.ORGANIZATION,
+      entity_id: dto.organizationId,
+      old_values: { user_id: dto.userId, org_role: oldRole },
+      new_values: { user_id: dto.userId, org_role: dto.newRoleId },
+    })
+  }
+
+  /**
+   * Helper: Run post-commit side effects after the transaction is safely committed.
+   */
+  private async runPostCommitSideEffects(
+    dto: UpdateMemberRoleDTO,
+    actorId: DatabaseId,
+    oldRole: string
+  ): Promise<void> {
+    void emitter.emit('organization:member:role_changed', {
+      organizationId: dto.organizationId,
+      userId: dto.userId,
+      oldRole,
+      newRole: dto.newRoleId,
+      changedBy: actorId,
+    })
+
+    await CacheService.deleteByPattern(`organization:members:*`)
+    await this.sendRoleChangedNotification(dto, oldRole)
+  }
+
+  /**
+   * Helper: Send notification about role change.
    */
   private async sendRoleChangedNotification(
     dto: UpdateMemberRoleDTO,

@@ -43,10 +43,16 @@ export default class RemoveMemberCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const [actorOrgRole, targetMembership] = await Promise.all([
-        OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx),
-        OrganizationUserRepository.findMembership(dto.organizationId, dto.userId, trx),
-      ])
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        userId,
+        trx
+      )
+      const targetMembership = await OrganizationUserRepository.findMembership(
+        dto.organizationId,
+        dto.userId,
+        trx
+      )
 
       if (!targetMembership) {
         throw new NotFoundException('Người dùng không phải thành viên của tổ chức này')

@@ -1,15 +1,17 @@
+import type Organization from '#models/organization'
 import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { DatabaseId } from '#types/database'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import CreateAuditLog from '#actions/common/create_audit_log'
-import { OrganizationRole } from '#constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import type CreateNotification from '#actions/common/create_notification'
 import { EntityType } from '#constants/audit_constants'
 import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
@@ -26,12 +28,25 @@ export interface TransferOrganizationOwnershipDTO {
   new_owner_id: DatabaseId
 }
 
+interface OwnershipTransferContext {
+  organization: Organization
+  oldOwnerId: DatabaseId
+  newOwnerRole: string | null
+  isNewOwnerApprovedMember: boolean
+}
+
+interface PersistedOwnershipTransfer {
+  organization: Organization
+  oldOwnerId: DatabaseId
+  newOwnerRole: string | null
+}
+
 /**
  * Command: Transfer Organization Ownership
  *
  * Migrate từ stored procedure: transfer_organization_ownership
  *
- * Pattern: FETCH → DECIDE → PERSIST
+ * Pattern: FETCH → DECIDE → PERSIST → POST-COMMIT
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
@@ -39,102 +54,165 @@ export default class TransferOrganizationOwnershipCommand {
     private createNotification: CreateNotification
   ) {}
 
-  async execute(
-    dto: TransferOrganizationOwnershipDTO
-  ): Promise<import('#models/organization').default> {
+  async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
+    const actorId = this.requireActorId()
+    const transfer = await this.persistOwnershipTransferInTransaction(dto, actorId)
+    await this.runPostCommitEffects(transfer, actorId, dto)
+    return transfer.organization
+  }
+
+  private requireActorId(): DatabaseId {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
+
+    return userId
+  }
+
+  private async loadOwnershipTransferContext(
+    dto: TransferOrganizationOwnershipDTO,
+    trx: TransactionClientContract
+  ): Promise<OwnershipTransferContext> {
+    const organization = await OrganizationRepository.findActiveForUpdate(dto.organization_id, trx)
+    const oldOwnerId = organization.owner_id
+
+    const isNewOwnerApprovedMember = await OrganizationUserRepository.isApprovedMember(
+      dto.new_owner_id,
+      dto.organization_id,
+      trx
+    )
+    const newOwnerRole = await OrganizationUserRepository.getMemberRoleName(
+      dto.organization_id,
+      dto.new_owner_id,
+      trx
+    )
+
+    return {
+      organization,
+      oldOwnerId,
+      newOwnerRole,
+      isNewOwnerApprovedMember,
+    }
+  }
+
+  private validateOwnershipTransfer(
+    actorId: DatabaseId,
+    dto: TransferOrganizationOwnershipDTO,
+    context: OwnershipTransferContext
+  ): void {
+    enforcePolicy(
+      canTransferOwnership({
+        actorId,
+        currentOwnerId: context.oldOwnerId,
+        newOwnerId: dto.new_owner_id,
+        newOwnerRole: context.newOwnerRole,
+        isNewOwnerApprovedMember: context.isNewOwnerApprovedMember,
+      })
+    )
+  }
+
+  private async persistOwnershipTransfer(
+    dto: TransferOrganizationOwnershipDTO,
+    actorId: DatabaseId,
+    context: OwnershipTransferContext,
+    trx: TransactionClientContract
+  ): Promise<PersistedOwnershipTransfer> {
+    context.organization.owner_id = dto.new_owner_id
+    await OrganizationRepository.save(context.organization, trx)
+
+    await OrganizationUserRepository.updateRole(
+      dto.organization_id,
+      context.oldOwnerId,
+      OrganizationRole.ADMIN,
+      trx
+    )
+
+    await OrganizationUserRepository.updateRole(
+      dto.organization_id,
+      dto.new_owner_id,
+      OrganizationRole.OWNER,
+      trx
+    )
+
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: actorId,
+      action: 'transfer_ownership',
+      entity_type: EntityType.ORGANIZATION,
+      entity_id: dto.organization_id,
+      old_values: { owner_id: context.oldOwnerId },
+      new_values: { owner_id: dto.new_owner_id },
+    })
+
+    return {
+      organization: context.organization,
+      oldOwnerId: context.oldOwnerId,
+      newOwnerRole: context.newOwnerRole,
+    }
+  }
+
+  private async persistOwnershipTransferInTransaction(
+    dto: TransferOrganizationOwnershipDTO,
+    actorId: DatabaseId
+  ): Promise<PersistedOwnershipTransfer> {
     const trx = await db.transaction()
 
     try {
-      // ── FETCH ──────────────────────────────────────────────────────────
-      const organization = await OrganizationRepository.findActiveForUpdate(
-        dto.organization_id,
-        trx
-      )
-
-      const [isNewOwnerApproved, newOwnerRoleName] = await Promise.all([
-        OrganizationUserRepository.isApprovedMember(dto.new_owner_id, dto.organization_id, trx),
-        OrganizationUserRepository.getMemberRoleName(dto.organization_id, dto.new_owner_id, trx),
-      ])
-
-      // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      enforcePolicy(
-        canTransferOwnership({
-          actorId: userId,
-          currentOwnerId: organization.owner_id,
-          newOwnerId: dto.new_owner_id,
-          newOwnerRole: newOwnerRoleName,
-          isNewOwnerApprovedMember: isNewOwnerApproved,
-        })
-      )
-
-      // ── PERSIST ────────────────────────────────────────────────────────
-      const oldOwnerId = organization.owner_id
-
-      organization.owner_id = dto.new_owner_id
-      await OrganizationRepository.save(organization, trx)
-
-      // Demote old owner to org_admin
-      await OrganizationUserRepository.updateRole(
-        dto.organization_id,
-        userId,
-        OrganizationRole.ADMIN,
-        trx
-      )
-
-      // Promote new owner to org_owner
-      await OrganizationUserRepository.updateRole(
-        dto.organization_id,
-        dto.new_owner_id,
-        OrganizationRole.OWNER,
-        trx
-      )
-
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: 'transfer_ownership',
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organization_id,
-        old_values: { owner_id: oldOwnerId },
-        new_values: { owner_id: dto.new_owner_id },
-      })
-
+      const context = await this.loadOwnershipTransferContext(dto, trx)
+      this.validateOwnershipTransfer(actorId, dto, context)
+      const transfer = await this.persistOwnershipTransfer(dto, actorId, context, trx)
       await trx.commit()
-
-      // Emit domain event
-      void emitter.emit('organization:updated', {
-        organization,
-        updatedBy: userId,
-        changes: { owner_id: dto.new_owner_id, old_owner_id: oldOwnerId },
-      })
-
-      // Invalidate organization caches
-      await CacheService.deleteByPattern(`organization:*`)
-      await CacheService.deleteByPattern(`organization:members:*`)
-
-      // Send notifications (outside transaction)
-      await this.sendNotifications(organization, userId, dto.new_owner_id)
-
-      return organization
+      return transfer
     } catch (error) {
       await trx.rollback()
       throw error
     }
   }
 
+  private async runPostCommitEffects(
+    transfer: PersistedOwnershipTransfer,
+    actorId: DatabaseId,
+    dto: TransferOrganizationOwnershipDTO
+  ): Promise<void> {
+    void emitter.emit('organization:updated', {
+      organization: transfer.organization,
+      updatedBy: actorId,
+      changes: { owner_id: dto.new_owner_id, old_owner_id: transfer.oldOwnerId },
+    })
+
+    void emitter.emit('organization:member:role_changed', {
+      organizationId: dto.organization_id,
+      userId: transfer.oldOwnerId,
+      oldRole: OrganizationRole.OWNER,
+      newRole: OrganizationRole.ADMIN,
+      changedBy: actorId,
+    })
+
+    void emitter.emit('organization:member:role_changed', {
+      organizationId: dto.organization_id,
+      userId: dto.new_owner_id,
+      oldRole: transfer.newOwnerRole ?? OrganizationRole.MEMBER,
+      newRole: OrganizationRole.OWNER,
+      changedBy: actorId,
+    })
+
+    await Promise.all([
+      CacheService.deleteByPattern('organization:*'),
+      CacheService.deleteByPattern('organization:members:*'),
+    ])
+
+    await this.sendNotifications(transfer.organization, transfer.oldOwnerId, dto.new_owner_id)
+  }
+
   /**
    * Send notifications to both old and new owners
    */
   private async sendNotifications(
-    organization: import('#models/organization').default,
+    organization: Organization,
     oldOwnerId: DatabaseId,
     newOwnerId: DatabaseId
   ): Promise<void> {
     try {
-      // Notify new owner
       await this.createNotification.handle({
         user_id: newOwnerId,
         title: 'Bạn đã trở thành owner',
@@ -144,7 +222,6 @@ export default class TransferOrganizationOwnershipCommand {
         related_entity_id: organization.id,
       })
 
-      // Notify old owner
       await this.createNotification.handle({
         user_id: oldOwnerId,
         title: 'Đã chuyển giao quyền sở hữu',

@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
 import CreateNotification from '#actions/common/create_notification'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ErrorMessages } from '#constants/error_constants'
+import { buildRemoveMemberDTO } from '#controllers/organizations/mapper/request/organization_request_mapper'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
 
 /**
  * RemoveMemberController
@@ -18,17 +21,15 @@ export default class RemoveMemberController {
     const organizationId = execCtx.organizationId
 
     if (!organizationId) {
-      throw new Error('Organization context required')
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const targetUserId = params.id as string
-    const reason = request.input('reason') as string | undefined
-    const dto = new RemoveMemberDTO(organizationId, targetUserId, reason)
+    const dto = buildRemoveMemberDTO(request, organizationId, params.id as string)
 
     await new RemoveMemberCommand(execCtx, new CreateNotification()).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: 'Xóa thành viên thành công' })
+      response.json(mapOrganizationSuccessApiBody('Xóa thành viên thành công'))
       return
     }
 

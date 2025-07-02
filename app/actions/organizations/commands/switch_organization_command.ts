@@ -52,11 +52,14 @@ export default class SwitchOrganizationCommand {
     const trx = await db.transaction()
 
     try {
-      const [organization, actorOrgRole, userModel] = await Promise.all([
-        OrganizationRepository.findBasicInfo(organizationId, trx),
-        OrganizationUserRepository.getMemberRoleName(organizationId, userId, trx, true),
-        UserRepository.findNotDeletedOrFail(userId, trx),
-      ])
+      const organization = await OrganizationRepository.findBasicInfo(organizationId, trx)
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+        organizationId,
+        userId,
+        trx,
+        true
+      )
+      const userModel = await UserRepository.findNotDeletedOrFail(userId, trx)
 
       if (!organization) {
         throw NotFoundException.resource('Tổ chức', organizationId)

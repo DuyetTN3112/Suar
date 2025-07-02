@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
-import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
 import CreateNotification from '#actions/common/create_notification'
-import { processJoinRequestValidator } from '#validators/organization'
+import { buildValidatedProcessJoinRequestInput } from './mapper/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mapper/response/organization_response_mapper.js'
 
 /**
  * POST /organizations/:id/members/process-request/:userId
@@ -15,23 +15,18 @@ export default class ProcessJoinRequestController {
   async handle(ctx: HttpContext) {
     const { params, request, response, session } = ctx
 
-    const { action } = await processJoinRequestValidator.validate(request.body())
-    const dto = new ProcessJoinRequestDTO(
+    const { dto, successMessage } = await buildValidatedProcessJoinRequestInput(
+      request,
       params.id as string,
-      params.userId as string,
-      action === 'approve',
-      undefined
+      params.userId as string
     )
     await new ProcessJoinRequestCommand(
       ExecutionContext.fromHttp(ctx),
       new CreateNotification()
     ).execute(dto)
 
-    const successMessage =
-      action === 'approve' ? 'Duyệt yêu cầu thành công' : 'Từ chối yêu cầu thành công'
-
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: successMessage })
+      response.json(mapOrganizationSuccessApiBody(successMessage))
       return
     }
 

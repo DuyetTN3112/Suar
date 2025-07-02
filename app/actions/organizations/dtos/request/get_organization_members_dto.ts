@@ -20,7 +20,9 @@ export class GetOrganizationMembersDTO {
     public readonly roleId?: string,
     public readonly search?: string,
     public readonly sortBy: string = 'joined_at',
-    public readonly sortOrder: 'asc' | 'desc' = 'desc'
+    public readonly sortOrder: 'asc' | 'desc' = 'desc',
+    public readonly statusFilter?: 'active' | 'pending' | 'inactive',
+    public readonly include?: Array<'activity' | 'audit'>
   ) {
     this.validate()
   }
@@ -72,6 +74,23 @@ export class GetOrganizationMembersDTO {
     // Sort order validation
     if (this.sortOrder !== 'asc') {
       // Sort order is always 'asc' or 'desc' due to type constraint
+    }
+
+    if (
+      this.statusFilter !== undefined &&
+      !['active', 'pending', 'inactive'].includes(this.statusFilter)
+    ) {
+      throw new ValidationException('statusFilter must be one of: active, pending, inactive')
+    }
+
+    if (this.include !== undefined) {
+      const validIncludes = ['activity', 'audit']
+      const invalidIncludes = this.include.filter((item) => !validIncludes.includes(item))
+      if (invalidIncludes.length > 0) {
+        throw new ValidationException(
+          `include contains invalid values: ${invalidIncludes.join(', ')}`
+        )
+      }
     }
   }
 
@@ -137,6 +156,14 @@ export class GetOrganizationMembersDTO {
 
     if (this.hasSearch()) {
       parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
+    }
+
+    if (this.statusFilter) {
+      parts.push(`status:${this.statusFilter}`)
+    }
+
+    if (this.include && this.include.length > 0) {
+      parts.push(`include:${this.include.join(',')}`)
     }
 
     return parts.join(':')
