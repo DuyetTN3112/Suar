@@ -46,7 +46,10 @@
   const { reviews, meta }: Props = $props()
 
   function resolveReview(id: string, action: 'confirm' | 'dismiss') {
-    router.put(`/admin/reviews/${id}/resolve`, { action }, { preserveScroll: true })
+    router.put(`/admin/reviews/${id}/resolve`, { action }, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 </script>
 

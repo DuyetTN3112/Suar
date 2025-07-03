@@ -51,6 +51,7 @@
         is_anonymous: isAnonymous,
       },
       {
+        preserveState: true,
         preserveScroll: true,
         onFinish: () => {
           submitting = false

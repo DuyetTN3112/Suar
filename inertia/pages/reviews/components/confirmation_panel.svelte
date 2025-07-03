@@ -34,6 +34,7 @@
         dispute_reason: action === 'disputed' ? disputeReason : undefined,
       },
       {
+        preserveState: true,
         preserveScroll: true,
         onFinish: () => { submitting = false },
       }

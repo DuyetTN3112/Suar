@@ -69,6 +69,7 @@
         notes: resolveNotes || null,
       },
       {
+        preserveState: true,
         preserveScroll: true,
         onFinish: () => {
           submitting = false
