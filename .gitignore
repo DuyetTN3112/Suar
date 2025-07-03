@@ -31,6 +31,7 @@ yarn-error.log
 pnpm-debug.log
 .pnpm-store/
 .npm/
+.cache/
 
 # Editors specific
 .fleet
@@ -60,3 +61,4 @@ logs/
 # Old lockfiles (using pnpm-lock.yaml)
 package-lock.json
 yarn.lock
+.gitnexus

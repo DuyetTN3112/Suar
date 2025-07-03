@@ -1,3 +1,4 @@
+import { indexEntities } from '@adonisjs/core'
 import { defineConfig } from '@adonisjs/core/app'
 
 export default defineConfig({
@@ -25,8 +26,13 @@ export default defineConfig({
     () => import('@adonisjs/i18n/i18n_provider'),
     () => import('@adonisjs/transmit/transmit_provider'),
     () => import('@adonisjs/lock/lock_provider'),
+    () => import('#providers/mongoose_provider'),
   ],
-  preloads: [() => import('#start/routes'), () => import('#start/kernel')],
+  preloads: [
+    () => import('#start/routes'),
+    () => import('#start/kernel'),
+    () => import('#start/events'),
+  ],
   metaFiles: [
     {
       pattern: 'resources/views/**/*.edge',
@@ -42,8 +48,8 @@ export default defineConfig({
     },
   ],
 
-  assetsBundler: false,
   hooks: {
-    onBuildStarting: [() => import('@adonisjs/vite/build_hook')],
+    init: [indexEntities()],
+    buildStarting: [() => import('@adonisjs/vite/build_hook')],
   },
 })
