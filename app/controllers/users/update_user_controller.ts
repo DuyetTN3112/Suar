@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
 import { ExecutionContext } from '#types/execution_context'
+import { buildUpdateUserProfileDTO } from './mapper/request/user_request_mapper.js'
 
 /**
  * PUT /users/:id → Update user profile
@@ -12,11 +12,7 @@ export default class UpdateUserController {
     const { params, request, response, session, i18n } = ctx
     const userId = String(params.id)
 
-    const dto = new UpdateUserProfileDTO(
-      userId,
-      request.input('username') as string | undefined,
-      request.input('email') as string | undefined
-    )
+    const dto = buildUpdateUserProfileDTO(request, userId)
 
     await updateUserProfileCommand.handle(dto)
 

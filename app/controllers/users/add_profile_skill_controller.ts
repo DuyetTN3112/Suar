@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
-import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import { buildAddUserSkillDTO } from './mapper/request/user_request_mapper.js'
 
 /**
  * POST /profile/skills → Add a skill to user's profile
@@ -10,10 +10,7 @@ export default class AddProfileSkillController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
 
-    const dto = new AddUserSkillDTO(
-      request.input('skill_id') as string,
-      request.input('level_code') as string
-    )
+    const dto = buildAddUserSkillDTO(request)
     const command = new AddUserSkillCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 

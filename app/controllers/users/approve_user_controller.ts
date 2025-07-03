@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import ApproveUserCommand from '#actions/users/commands/approve_user_command'
-import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { HttpStatus } from '#constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
+import { buildApproveUserDTO } from './mapper/request/user_request_mapper.js'
+import { mapSuccessMessageApiBody } from './mapper/response/user_response_mapper.js'
 
 /**
  * PUT /users/:id/approve → Approve a pending user in organization
@@ -27,12 +28,9 @@ export default class ApproveUserController {
       return
     }
 
-    const dto = new ApproveUserDTO(String(params.id), organizationId, user.id)
+    const dto = buildApproveUserDTO(String(params.id), organizationId, user.id)
     await approveUserCommand.handle(dto)
 
-    response.json({
-      success: true,
-      message: 'Người dùng đã được phê duyệt thành công',
-    })
+    response.json(mapSuccessMessageApiBody('Người dùng đã được phê duyệt thành công'))
   }
 }

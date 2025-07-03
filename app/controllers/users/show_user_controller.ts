@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
-import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
 import { ExecutionContext } from '#types/execution_context'
+import { buildGetUserDetailDTO } from './mapper/request/user_request_mapper.js'
+import { mapShowUserPageProps } from './mapper/response/user_response_mapper.js'
 
 /**
  * GET /users/:id → Show user detail
@@ -11,9 +12,9 @@ export default class ShowUserController {
     const getUserDetailQuery = new GetUserDetailQuery(ExecutionContext.fromHttp(ctx))
     const { params, inertia } = ctx
 
-    const dto = new GetUserDetailDTO(String(params.id))
+    const dto = buildGetUserDetailDTO(String(params.id))
     const user = await getUserDetailQuery.handle(dto)
 
-    return inertia.render('users/show', { user })
+    return inertia.render('users/show', mapShowUserPageProps(user))
   }
 }

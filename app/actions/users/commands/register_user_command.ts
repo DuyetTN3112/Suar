@@ -28,24 +28,28 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
    * Uses transaction to ensure data consistency
    */
   async handle(dto: RegisterUserDTO): Promise<User> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // Create user account
       const user = await this.createUserAccount(dto, trx)
 
       // Log audit trail
       await this.logAudit('create', 'user', user.id, undefined, user.toJSON())
 
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId: user.id,
-        action: 'create',
-        entityType: 'user',
-        entityId: user.id,
-        newValues: { username: dto.username, email: dto.email },
-      })
-
-      return user
+      return {
+        user,
+        auditEvent: {
+          userId: user.id,
+          action: 'create',
+          entityType: 'user',
+          entityId: user.id,
+          newValues: { username: dto.username, email: dto.email },
+        },
+      }
     })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.user
   }
 
   /**
