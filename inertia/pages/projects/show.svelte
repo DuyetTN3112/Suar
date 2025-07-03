@@ -43,7 +43,10 @@
 
   function handleDeleteProject() {
     if (confirm('Bạn có chắc chắn muốn xóa?')) {
-      router.delete(`/projects/${project.id}`)
+      router.delete(`/projects/${project.id}`, {
+        preserveState: true,
+        preserveScroll: true,
+      })
     }
   }
 
@@ -52,6 +55,9 @@
     router.post('/projects/members', {
       project_id: project.id,
       email: newMemberEmail
+    }, {
+      preserveState: true,
+      preserveScroll: true,
     })
     newMemberEmail = ''
     addMemberOpen = false

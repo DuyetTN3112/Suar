@@ -106,12 +106,13 @@ export function createAddUsers() {
       },
       {
         preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
           notificationStore.success('Đã thêm người dùng vào tổ chức thành công')
           addUserModalOpen.set(false)
           isAddingUsers.set(false)
           selectedUserIds.set([])
-          router.reload({ only: ['users'] })
+          router.reload({ only: ['users', 'flash'] })
         },
         onError: (errors: RouterErrorBag) => {
           console.error('Lỗi khi thêm người dùng vào tổ chức:', errors)

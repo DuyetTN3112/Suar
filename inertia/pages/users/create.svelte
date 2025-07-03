@@ -77,6 +77,8 @@
     submitting = true
 
     router.post('/users', formData, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         submitting = false
       },

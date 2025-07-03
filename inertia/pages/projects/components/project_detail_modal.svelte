@@ -89,6 +89,7 @@
       if (!currentProjectId) {
         throw new Error('Project ID is required')
       }
+      // APPROVED: GroupC - project-detail-modal-live-fetch
       const response = await axios.get(`/api/projects/${currentProjectId}`)
       const payload = response.data as ProjectDetailApiResponse
       projectDetail = {
@@ -118,6 +119,7 @@
 
     deleting = true
     try {
+      // APPROVED: GroupC - project-detail-modal-inline-delete
       await axios.delete(`/api/projects/${projectId}`)
       notificationStore.success(t('project.deleted', {}, 'Dự án đã được xóa'))
       onDeleted?.()
@@ -137,6 +139,7 @@
     if (!projectId || !projectDetail) return
     saving = true
     try {
+      // APPROVED: GroupC - project-detail-modal-inline-edit
       await axios.put(`/api/projects/${projectId}`, {
         name: editForm.name,
         description: editForm.description,

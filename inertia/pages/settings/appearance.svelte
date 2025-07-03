@@ -85,6 +85,8 @@
       theme,
       font: 'brand'
     }, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         setTheme(theme)
       }

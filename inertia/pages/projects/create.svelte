@@ -107,7 +107,10 @@
       return
     }
 
-    router.post('/projects', { ...formData, manager_id: auth.user.id })
+    router.post('/projects', { ...formData, manager_id: auth.user.id }, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 </script>
 

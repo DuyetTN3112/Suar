@@ -74,7 +74,10 @@
         animations_enabled: animationsEnabled,
         custom_scrollbars: customScrollbars
       },
-      { preserveScroll: true }
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
     )
   }
 

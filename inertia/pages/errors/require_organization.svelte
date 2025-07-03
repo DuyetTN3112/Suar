@@ -56,7 +56,10 @@
   }
 
   function handleJoinOrganization(id: string) {
-    router.post(`/organizations/${id}/join`)
+    router.post(`/organizations/${id}/join`, {}, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 
   function handleSearch(e: Event) {
