@@ -1,8 +1,12 @@
 import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
-import { LogoutUserDTO } from '#actions/auth/dtos/request/logout_user_dto'
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import { AuthRoutes } from '#constants/route_constants'
+import { buildLogoutUserDTO } from './mapper/request/auth_request_mapper.js'
+import {
+  getLogoutRedirectPath,
+  mapLoggedOutAuthShare,
+  shouldUseInertiaLocation,
+} from './mapper/response/auth_response_mapper.js'
 
 /**
  * LogoutController
@@ -24,15 +28,11 @@ export default class LogoutController {
 
     // 1. Build DTO
     if (!auth.user) {
-      response.redirect().toPath(AuthRoutes.LOGIN)
+      response.redirect().toPath(getLogoutRedirectPath())
       return
     }
 
-    const dto = new LogoutUserDTO({
-      userId: auth.user.id,
-      sessionId: session.sessionId,
-      ipAddress: request.ip(),
-    })
+    const dto = buildLogoutUserDTO(request, auth.user.id, session.sessionId)
 
     // 2. Execute command (audit log + event emission)
     const command = new LogoutUserCommand(ExecutionContext.fromHttp(ctx))
@@ -43,15 +43,15 @@ export default class LogoutController {
     session.forget('auth')
     session.forget('show_organization_required_modal')
     session.forget('intended_url')
-    inertia.share({ auth: { user: null } })
+    inertia.share(mapLoggedOutAuthShare())
 
     // 4. Redirect to login — always use inertia.location for full page redirect
     //    (session.flash won't work after session is cleared)
     const isInertia = request.header('X-Inertia')
-    if (isInertia) {
-      inertia.location(AuthRoutes.LOGIN)
+    if (shouldUseInertiaLocation(isInertia)) {
+      inertia.location(getLogoutRedirectPath())
       return
     }
-    response.redirect().toPath(AuthRoutes.LOGIN)
+    response.redirect().toPath(getLogoutRedirectPath())
   }
 }
