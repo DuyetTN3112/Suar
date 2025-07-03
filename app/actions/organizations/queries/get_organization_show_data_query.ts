@@ -38,16 +38,17 @@ export default class GetOrganizationShowDataQuery {
     }))
 
     // User's role in this organization
-    const userOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const userMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       undefined,
       false
     )
+    const userOrgRole = userMembership?.role
 
     return {
       members,
-      userRole: userOrgRole || '',
+      userRole: userOrgRole ?? '',
     }
   }
 }

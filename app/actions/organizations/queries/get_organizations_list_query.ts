@@ -1,11 +1,14 @@
-import type { ExecutionContext } from '#types/execution_context'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+
 import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
-import type { DatabaseId } from '#types/database'
+
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface OrganizationRecord {
   id: DatabaseId
@@ -111,7 +114,7 @@ export default class GetOrganizationsListQuery {
     // Fetch stats in parallel using model methods
     const [memberCountMap, projectCountMap] = await Promise.all([
       OrganizationUserRepository.countMembersByOrgIds(orgIds),
-      ProjectRepository.countByOrgIds(orgIds),
+      DefaultOrganizationDependencies.projectTask.countProjectsByOrganizationIds(orgIds),
     ])
 
     // Enrich organizations

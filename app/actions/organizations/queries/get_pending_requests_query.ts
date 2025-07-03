@@ -1,11 +1,12 @@
-import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { canViewPendingJoinRequests } from '#domain/organizations/org_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface RequestResult {
   id: DatabaseId
@@ -95,7 +96,11 @@ export default class GetPendingRequestsQuery {
    * Check if user has permission (owner or admin)
    */
   private async checkPermission(userId: DatabaseId, organizationId: DatabaseId): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
+      organizationId,
+      userId
+    )
+    const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canViewPendingJoinRequests(actorOrgRole))
   }
 

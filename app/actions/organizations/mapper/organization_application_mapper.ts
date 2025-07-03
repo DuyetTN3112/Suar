@@ -8,13 +8,14 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
 import {
   OrganizationDetailResponseDTO,
   OrganizationListItemResponseDTO,
   OrganizationSummaryResponseDTO,
 } from '../dtos/response/organization_response_dtos.js'
+
+import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 
 export class OrganizationApplicationMapper {
   private readonly __instanceMarker = true
@@ -47,44 +48,20 @@ export class OrganizationApplicationMapper {
    * Domain Entity → OrganizationDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: OrganizationEntity): OrganizationDetailResponseDTO {
-    return new OrganizationDetailResponseDTO(
-      entity.id,
-      entity.name,
-      entity.slug,
-      entity.description,
-      entity.logo,
-      entity.website,
-      entity.ownerId,
-      entity.customRoles,
-      entity.partnerType,
-      entity.partnerVerifiedAt,
-      entity.partnerIsActive,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return OrganizationDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → OrganizationListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: OrganizationEntity): OrganizationListItemResponseDTO {
-    return new OrganizationListItemResponseDTO(
-      entity.id,
-      entity.name,
-      entity.slug,
-      entity.description,
-      entity.logo,
-      entity.ownerId,
-      entity.partnerType,
-      entity.partnerIsActive,
-      entity.createdAt
-    )
+    return OrganizationListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → OrganizationSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: OrganizationEntity): OrganizationSummaryResponseDTO {
-    return new OrganizationSummaryResponseDTO(entity.id, entity.name, entity.slug, entity.logo)
+    return OrganizationSummaryResponseDTO.fromEntity(entity)
   }
 }

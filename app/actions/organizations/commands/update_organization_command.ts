@@ -1,17 +1,19 @@
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Update Organization
@@ -101,11 +103,12 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       trx
     )
+    const actorOrgRole = actorMembership?.role ?? null
 
     enforcePolicy(canUpdateOrganization(actorOrgRole))
   }

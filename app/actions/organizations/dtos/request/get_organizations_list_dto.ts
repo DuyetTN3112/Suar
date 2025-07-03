@@ -1,6 +1,6 @@
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
 import { PAGINATION } from '#constants/common_constants'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for getting organizations list with filters and pagination
@@ -13,10 +13,10 @@ import { PAGINATION } from '#constants/common_constants'
  */
 export class GetOrganizationsListDTO {
   constructor(
-    public readonly page: number = 1,
+    public readonly page = 1,
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly search?: string,
-    public readonly sortBy: string = 'created_at',
+    public readonly sortBy = 'created_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc'
   ) {
     this.validate()

@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for getting organization detail with optional includes
@@ -13,9 +13,9 @@ import ValidationException from '#exceptions/validation_exception'
 export class GetOrganizationDetailDTO {
   constructor(
     public readonly organizationId: DatabaseId,
-    public readonly includeOwner: boolean = true,
-    public readonly includeStats: boolean = true,
-    public readonly includeMembersPreview: boolean = false
+    public readonly includeOwner = true,
+    public readonly includeStats = true,
+    public readonly includeMembersPreview = false
   ) {
     this.validate()
   }

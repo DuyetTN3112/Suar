@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for removing a member from an organization

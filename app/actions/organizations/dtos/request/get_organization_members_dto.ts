@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { PAGINATION } from '#constants/common_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for getting organization members list with filters and pagination
@@ -15,14 +15,42 @@ import ValidationException from '#exceptions/validation_exception'
 export class GetOrganizationMembersDTO {
   constructor(
     public readonly organizationId: DatabaseId,
-    public readonly page: number = 1,
+    public readonly page = 1,
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly roleId?: string,
     public readonly search?: string,
-    public readonly sortBy: string = 'joined_at',
-    public readonly sortOrder: 'asc' | 'desc' = 'desc'
+    public readonly sortBy = 'joined_at',
+    public readonly sortOrder: 'asc' | 'desc' = 'desc',
+    public readonly statusFilter?: 'active' | 'pending' | 'inactive',
+    public readonly include?: ('activity' | 'audit')[]
   ) {
     this.validate()
+  }
+
+  static fromFilters(
+    organizationId: DatabaseId,
+    filters: {
+      page?: number
+      limit?: number
+      role_id?: string
+      search?: string
+      sort_by?: string
+      sort_order?: 'asc' | 'desc'
+      status_filter?: 'active' | 'pending' | 'inactive'
+      include?: ('activity' | 'audit')[]
+    }
+  ): GetOrganizationMembersDTO {
+    return new GetOrganizationMembersDTO(
+      organizationId,
+      filters.page,
+      filters.limit,
+      filters.role_id,
+      filters.search,
+      filters.sort_by,
+      filters.sort_order,
+      filters.status_filter,
+      filters.include
+    )
   }
 
   /**
@@ -72,6 +100,23 @@ export class GetOrganizationMembersDTO {
     // Sort order validation
     if (this.sortOrder !== 'asc') {
       // Sort order is always 'asc' or 'desc' due to type constraint
+    }
+
+    if (
+      this.statusFilter !== undefined &&
+      !['active', 'pending', 'inactive'].includes(this.statusFilter)
+    ) {
+      throw new ValidationException('statusFilter must be one of: active, pending, inactive')
+    }
+
+    if (this.include !== undefined) {
+      const validIncludes = ['activity', 'audit']
+      const invalidIncludes = this.include.filter((item) => !validIncludes.includes(item))
+      if (invalidIncludes.length > 0) {
+        throw new ValidationException(
+          `include contains invalid values: ${invalidIncludes.join(', ')}`
+        )
+      }
     }
   }
 
@@ -139,6 +184,14 @@ export class GetOrganizationMembersDTO {
       parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
     }
 
+    if (this.statusFilter) {
+      parts.push(`status:${this.statusFilter}`)
+    }
+
+    if (this.include && this.include.length > 0) {
+      parts.push(`include:${this.include.join(',')}`)
+    }
+
     return parts.join(':')
   }
 
@@ -155,7 +208,7 @@ export class GetOrganizationMembersDTO {
     }
 
     return {
-      column: columnMap[this.sortBy] || this.sortBy,
+      column: columnMap[this.sortBy] ?? this.sortBy,
       direction: this.sortOrder,
     }
   }
