@@ -4,6 +4,10 @@ type ParamValue = string | number | bigint | boolean
 
 export type ScannedRoutes = {
   ALL: {
+    'error.not_found': { paramsTuple?: []; params?: {} }
+    'error.server_error': { paramsTuple?: []; params?: {} }
+    'error.forbidden': { paramsTuple?: []; params?: {} }
+    'error.require_organization': { paramsTuple?: []; params?: {} }
     'admin.toggle': { paramsTuple?: []; params?: {} }
     'admin.dashboard': { paramsTuple?: []; params?: {} }
     'admin.dashboard.users': { paramsTuple?: []; params?: {} }
@@ -42,10 +46,6 @@ export type ScannedRoutes = {
     'org.tasks.index': { paramsTuple?: []; params?: {} }
     'org.workflow.statuses': { paramsTuple?: []; params?: {} }
     'org.workflow.createStatus': { paramsTuple?: []; params?: {} }
-    'error.not_found': { paramsTuple?: []; params?: {} }
-    'error.server_error': { paramsTuple?: []; params?: {} }
-    'error.forbidden': { paramsTuple?: []; params?: {} }
-    'error.require_organization': { paramsTuple?: []; params?: {} }
     'social_auth.redirect': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'social_auth.callback': { paramsTuple: [ParamValue]; params: {'provider': ParamValue} }
     'logout': { paramsTuple?: []; params?: {} }
@@ -82,8 +82,10 @@ export type ScannedRoutes = {
     'api.tasks.grouped': { paramsTuple?: []; params?: {} }
     'api.tasks.timeline': { paramsTuple?: []; params?: {} }
     'api.tasks.batch_status': { paramsTuple?: []; params?: {} }
+    'api.tasks.status_board': { paramsTuple?: []; params?: {} }
     'api.tasks.sort_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.create': { paramsTuple?: []; params?: {} }
+    'tasks.status_board': { paramsTuple?: []; params?: {} }
     'tasks.store': { paramsTuple?: []; params?: {} }
     'tasks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }

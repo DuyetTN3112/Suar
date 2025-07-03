@@ -34,9 +34,27 @@ export const controllers = {
       UpdateUserRole: () => import('#controllers/admin/users/update_user_role_controller'),
     },
   },
+  audit: {
+    mappers: {
+      AuditLogResponseMapper: () => import('#controllers/audit/mappers/audit_log_response_mapper'),
+    },
+  },
   auth: {
     Logout: () => import('#controllers/auth/logout_controller'),
+    mappers: {
+      request: {
+        AuthRequestMapper: () => import('#controllers/auth/mappers/request/auth_request_mapper'),
+        SocialAuthRequestMapper: () => import('#controllers/auth/mappers/request/social_auth_request_mapper'),
+      },
+      response: {
+        AuthResponseMapper: () => import('#controllers/auth/mappers/response/auth_response_mapper'),
+        SocialAuthResponseMapper: () => import('#controllers/auth/mappers/response/social_auth_response_mapper'),
+      },
+    },
     SocialAuth: () => import('#controllers/auth/social_auth_controller'),
+  },
+  authorization: {
+    RequireSystemUserAdminAccess: () => import('#controllers/authorization/require_system_user_admin_access'),
   },
   errors: {
     Error: () => import('#controllers/errors/error_controller'),
@@ -61,41 +79,6 @@ export const controllers = {
     ListNotifications: () => import('#controllers/notifications/list_notifications_controller'),
     MarkNotificationRead: () => import('#controllers/notifications/mark_notification_read_controller'),
   },
-  organization: {
-    access: {
-      ShowDepartments: () => import('#controllers/organization/access/show_departments_controller'),
-      ShowPermissions: () => import('#controllers/organization/access/show_permissions_controller'),
-      ShowRoles: () => import('#controllers/organization/access/show_roles_controller'),
-      UpdateRoles: () => import('#controllers/organization/access/update_roles_controller'),
-    },
-    Dashboard: () => import('#controllers/organization/dashboard_controller'),
-    invitations: {
-      ApproveJoinRequest: () => import('#controllers/organization/invitations/approve_join_request_controller'),
-      ListInvitations: () => import('#controllers/organization/invitations/list_invitations_controller'),
-      ListJoinRequests: () => import('#controllers/organization/invitations/list_join_requests_controller'),
-    },
-    members: {
-      InviteMember: () => import('#controllers/organization/members/invite_member_controller'),
-      ListMembers: () => import('#controllers/organization/members/list_members_controller'),
-      RemoveMember: () => import('#controllers/organization/members/remove_member_controller'),
-      UpdateMemberRole: () => import('#controllers/organization/members/update_member_role_controller'),
-    },
-    projects: {
-      CreateProject: () => import('#controllers/organization/projects/create_project_controller'),
-      ListProjects: () => import('#controllers/organization/projects/list_projects_controller'),
-    },
-    settings: {
-      ShowSettings: () => import('#controllers/organization/settings/show_settings_controller'),
-      UpdateSettings: () => import('#controllers/organization/settings/update_settings_controller'),
-    },
-    tasks: {
-      ListTasks: () => import('#controllers/organization/tasks/list_tasks_controller'),
-    },
-    workflow: {
-      CreateTaskStatus: () => import('#controllers/organization/workflow/create_task_status_controller'),
-      ListTaskStatuses: () => import('#controllers/organization/workflow/list_task_statuses_controller'),
-    },
-  },
   organizations: {
     AddDirectMember: () => import('#controllers/organizations/add_direct_member_controller'),
     AddMember: () => import('#controllers/organizations/add_member_controller'),
@@ -103,10 +86,111 @@ export const controllers = {
     AllOrganizations: () => import('#controllers/organizations/all_organizations_controller'),
     ApiListOrganizations: () => import('#controllers/organizations/api_list_organizations_controller'),
     CreateOrganization: () => import('#controllers/organizations/create_organization_controller'),
+    current: {
+      access: {
+        mappers: {
+          request: {
+            UpdateRolesRequestMapper: () => import('#controllers/organizations/current/access/mappers/request/update_roles_request_mapper'),
+          },
+          response: {
+            UpdateRolesResponseMapper: () => import('#controllers/organizations/current/access/mappers/response/update_roles_response_mapper'),
+          },
+        },
+        ShowDepartments: () => import('#controllers/organizations/current/access/show_departments_controller'),
+        ShowPermissions: () => import('#controllers/organizations/current/access/show_permissions_controller'),
+        ShowRoles: () => import('#controllers/organizations/current/access/show_roles_controller'),
+        UpdateRoles: () => import('#controllers/organizations/current/access/update_roles_controller'),
+      },
+      Dashboard: () => import('#controllers/organizations/current/dashboard_controller'),
+      invitations: {
+        ApproveJoinRequest: () => import('#controllers/organizations/current/invitations/approve_join_request_controller'),
+        ListInvitations: () => import('#controllers/organizations/current/invitations/list_invitations_controller'),
+        ListJoinRequests: () => import('#controllers/organizations/current/invitations/list_join_requests_controller'),
+        mappers: {
+          request: {
+            ListInvitationsRequestMapper: () => import('#controllers/organizations/current/invitations/mappers/request/list_invitations_request_mapper'),
+          },
+          response: {
+            ListInvitationsResponseMapper: () => import('#controllers/organizations/current/invitations/mappers/response/list_invitations_response_mapper'),
+          },
+        },
+      },
+      mappers: {
+        request: {
+          CurrentOrganizationMutationRequestMapper: () => import('#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'),
+        },
+        response: {
+          CurrentOrganizationMutationResponseMapper: () => import('#controllers/organizations/current/mappers/response/current_organization_mutation_response_mapper'),
+          Shared: () => import('#controllers/organizations/current/mappers/response/shared'),
+        },
+      },
+      members: {
+        InviteMember: () => import('#controllers/organizations/current/members/invite_member_controller'),
+        ListMembers: () => import('#controllers/organizations/current/members/list_members_controller'),
+        mappers: {
+          request: {
+            ListMembersRequestMapper: () => import('#controllers/organizations/current/members/mappers/request/list_members_request_mapper'),
+          },
+          response: {
+            ListMembersResponseMapper: () => import('#controllers/organizations/current/members/mappers/response/list_members_response_mapper'),
+          },
+        },
+        RemoveMember: () => import('#controllers/organizations/current/members/remove_member_controller'),
+        UpdateMemberRole: () => import('#controllers/organizations/current/members/update_member_role_controller'),
+      },
+      projects: {
+        CreateProject: () => import('#controllers/organizations/current/projects/create_project_controller'),
+        ListProjects: () => import('#controllers/organizations/current/projects/list_projects_controller'),
+        mappers: {
+          request: {
+            CurrentProjectRequestMapper: () => import('#controllers/organizations/current/projects/mappers/request/current_project_request_mapper'),
+          },
+          response: {
+            CurrentProjectResponseMapper: () => import('#controllers/organizations/current/projects/mappers/response/current_project_response_mapper'),
+          },
+        },
+      },
+      settings: {
+        ShowSettings: () => import('#controllers/organizations/current/settings/show_settings_controller'),
+        UpdateSettings: () => import('#controllers/organizations/current/settings/update_settings_controller'),
+      },
+      tasks: {
+        ListTasks: () => import('#controllers/organizations/current/tasks/list_tasks_controller'),
+        mappers: {
+          request: {
+            CurrentTaskRequestMapper: () => import('#controllers/organizations/current/tasks/mappers/request/current_task_request_mapper'),
+          },
+        },
+      },
+      workflow: {
+        CreateTaskStatus: () => import('#controllers/organizations/current/workflow/create_task_status_controller'),
+        ListTaskStatuses: () => import('#controllers/organizations/current/workflow/list_task_statuses_controller'),
+        mappers: {
+          request: {
+            CurrentTaskStatusRequestMapper: () => import('#controllers/organizations/current/workflow/mappers/request/current_task_status_request_mapper'),
+          },
+          response: {
+            CurrentTaskStatusResponseMapper: () => import('#controllers/organizations/current/workflow/mappers/response/current_task_status_response_mapper'),
+          },
+        },
+      },
+    },
     InviteMember: () => import('#controllers/organizations/invite_member_controller'),
     JoinOrganization: () => import('#controllers/organizations/join_organization_controller'),
     ListMembers: () => import('#controllers/organizations/list_members_controller'),
     ListOrganizations: () => import('#controllers/organizations/list_organizations_controller'),
+    mappers: {
+      request: {
+        JoinOrganizationRequestMapper: () => import('#controllers/organizations/mappers/request/join_organization_request_mapper'),
+        OrganizationRequestMapper: () => import('#controllers/organizations/mappers/request/organization_request_mapper'),
+      },
+      response: {
+        JoinOrganizationResponseMapper: () => import('#controllers/organizations/mappers/response/join_organization_response_mapper'),
+        OrganizationMutationApiMapper: () => import('#controllers/organizations/mappers/response/organization_mutation_api_mapper'),
+        OrganizationPagePropsMapper: () => import('#controllers/organizations/mappers/response/organization_page_props_mapper'),
+        OrganizationResponseMapper: () => import('#controllers/organizations/mappers/response/organization_response_mapper'),
+      },
+    },
     PendingRequests: () => import('#controllers/organizations/pending_requests_controller'),
     ProcessJoinRequest: () => import('#controllers/organizations/process_join_request_controller'),
     RemoveMember: () => import('#controllers/organizations/remove_member_controller'),
@@ -122,6 +206,16 @@ export const controllers = {
     DeleteProject: () => import('#controllers/projects/delete_project_controller'),
     GetProjectDetailApi: () => import('#controllers/projects/get_project_detail_api_controller'),
     ListProjects: () => import('#controllers/projects/list_projects_controller'),
+    mappers: {
+      request: {
+        ProjectRequestMapper: () => import('#controllers/projects/mappers/request/project_request_mapper'),
+        Shared: () => import('#controllers/projects/mappers/request/shared'),
+      },
+      response: {
+        ProjectResponseMapper: () => import('#controllers/projects/mappers/response/project_response_mapper'),
+        Shared: () => import('#controllers/projects/mappers/response/shared'),
+      },
+    },
     ShowProject: () => import('#controllers/projects/show_project_controller'),
     StoreProject: () => import('#controllers/projects/store_project_controller'),
     UpdateProjectApi: () => import('#controllers/projects/update_project_api_controller'),
@@ -134,6 +228,16 @@ export const controllers = {
     GetTaskSelfAssessment: () => import('#controllers/reviews/get_task_self_assessment_controller'),
     ListFlaggedReviews: () => import('#controllers/reviews/list_flagged_reviews_controller'),
     ListPendingReviews: () => import('#controllers/reviews/list_pending_reviews_controller'),
+    mappers: {
+      request: {
+        ReviewRequestMapper: () => import('#controllers/reviews/mappers/request/review_request_mapper'),
+        Shared: () => import('#controllers/reviews/mappers/request/shared'),
+      },
+      response: {
+        ReviewResponseMapper: () => import('#controllers/reviews/mappers/response/review_response_mapper'),
+        Shared: () => import('#controllers/reviews/mappers/response/shared'),
+      },
+    },
     MyReviews: () => import('#controllers/reviews/my_reviews_controller'),
     ResolveFlaggedReview: () => import('#controllers/reviews/resolve_flagged_review_controller'),
     ShowReview: () => import('#controllers/reviews/show_review_controller'),
@@ -143,6 +247,14 @@ export const controllers = {
     UserReviews: () => import('#controllers/reviews/user_reviews_controller'),
   },
   settings: {
+    mappers: {
+      request: {
+        SettingsRequestMapper: () => import('#controllers/settings/mappers/request/settings_request_mapper'),
+      },
+      response: {
+        SettingsResponseMapper: () => import('#controllers/settings/mappers/response/settings_response_mapper'),
+      },
+    },
     ShowSettings: () => import('#controllers/settings/show_settings_controller'),
     UpdateAccountSettings: () => import('#controllers/settings/update_account_settings_controller'),
     UpdateAppearanceSettings: () => import('#controllers/settings/update_appearance_settings_controller'),
@@ -170,9 +282,26 @@ export const controllers = {
     ListTasksGrouped: () => import('#controllers/tasks/list_tasks_grouped_controller'),
     ListTasksTimeline: () => import('#controllers/tasks/list_tasks_timeline_controller'),
     ListWorkflow: () => import('#controllers/tasks/list_workflow_controller'),
+    mappers: {
+      request: {
+        Shared: () => import('#controllers/tasks/mappers/request/shared'),
+        TaskApplicationRequestMapper: () => import('#controllers/tasks/mappers/request/task_application_request_mapper'),
+        TaskRequestMapper: () => import('#controllers/tasks/mappers/request/task_request_mapper'),
+        TaskStatusRequestMapper: () => import('#controllers/tasks/mappers/request/task_status_request_mapper'),
+      },
+      response: {
+        PublicTaskResponseMapper: () => import('#controllers/tasks/mappers/response/public_task_response_mapper'),
+        Shared: () => import('#controllers/tasks/mappers/response/shared'),
+        TaskApplicationResponseMapper: () => import('#controllers/tasks/mappers/response/task_application_response_mapper'),
+        TaskResponseMapper: () => import('#controllers/tasks/mappers/response/task_response_mapper'),
+        TaskStatusResponseMapper: () => import('#controllers/tasks/mappers/response/task_status_response_mapper'),
+      },
+    },
     MyApplications: () => import('#controllers/tasks/my_applications_controller'),
+    PatchTaskStatusBoardPoc: () => import('#controllers/tasks/patch_task_status_board_poc_controller'),
     ProcessApplication: () => import('#controllers/tasks/process_application_controller'),
     ShowTask: () => import('#controllers/tasks/show_task_controller'),
+    ShowTaskStatusBoard: () => import('#controllers/tasks/show_task_status_board_controller'),
     UpdateTaskSortOrder: () => import('#controllers/tasks/update_task_sort_order_controller'),
     UpdateTaskStatus: () => import('#controllers/tasks/update_task_status_controller'),
     UpdateTaskStatusDefinition: () => import('#controllers/tasks/update_task_status_definition_controller'),
@@ -191,6 +320,16 @@ export const controllers = {
     GetProfileSnapshotHistory: () => import('#controllers/users/get_profile_snapshot_history_controller'),
     GetPublicProfileSnapshot: () => import('#controllers/users/get_public_profile_snapshot_controller'),
     ListUsers: () => import('#controllers/users/list_users_controller'),
+    mappers: {
+      request: {
+        Shared: () => import('#controllers/users/mappers/request/shared'),
+        UserRequestMapper: () => import('#controllers/users/mappers/request/user_request_mapper'),
+      },
+      response: {
+        Shared: () => import('#controllers/users/mappers/response/shared'),
+        UserResponseMapper: () => import('#controllers/users/mappers/response/user_response_mapper'),
+      },
+    },
     PendingApprovalCountApi: () => import('#controllers/users/pending_approval_count_api_controller'),
     PendingApprovalUsersApi: () => import('#controllers/users/pending_approval_users_api_controller'),
     PendingApprovalUsers: () => import('#controllers/users/pending_approval_users_controller'),
