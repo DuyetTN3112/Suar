@@ -47,6 +47,7 @@
       `/profile/skills/${skill.id}`,
       { level_code: selectedLevelCode },
       {
+        preserveState: true,
         preserveScroll: true,
         onFinish: () => {
           submitting = false

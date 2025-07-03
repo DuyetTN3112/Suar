@@ -1,15 +1,19 @@
 <script lang="ts">
 
   import AppLayout from '@/layouts/app_layout.svelte'
-  import { router } from '@inertiajs/svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import Button from '@/components/ui/button.svelte'
-  import SpiderChart from '../reviews/components/spider_chart.svelte'
+  import ProfileFeaturedReviewsSection from './components/profile_featured_reviews_section.svelte'
+  import ProfileSkillsAndChartsSection from './components/profile_skills_and_charts_section.svelte'
   import {
-    getProfileGroupStyle,
-    getProfileLevelClass,
-    getProfileLevelLabel,
-  } from './profile_theme'
+    buildGroupedSkillsByCategory,
+    createGroupedSkillsFromSpiderData,
+    getUserInitials,
+    getUserNumberField,
+    getUserStringField,
+    normalizeProfileSkillRelation,
+  } from './profile_view_helpers'
+  import { navigateToProfileEdit, navigateToUserReviews } from './profile_navigation'
   import type { ProfileViewProps } from './types.svelte'
 
   interface DeliveryMetrics {
@@ -59,140 +63,15 @@
 
   const pageTitle = $derived(isOwnProfile ? t('profile.show', {}, 'Hồ sơ cá nhân') : `${user.username} - Hồ sơ`)
 
-  const userSkills = $derived(
-    (user.skills ?? []).map((s) => {
-      const relation = s as unknown as Record<string, unknown>
-      const skill = (s.skill ?? {}) as Record<string, unknown>
-      return {
-        id: s.id,
-        skill_id: s.skill_id,
-        skill_name:
-          (skill.skill_name as string | undefined) ??
-          (skill.skillName as string | undefined) ??
-          (relation.skill_name as string | undefined) ??
-          'Kỹ năng chưa đặt tên',
-        category_code:
-          (skill.category_code as string | undefined) ??
-          (skill.categoryCode as string | undefined) ??
-          (relation.category_code as string | undefined) ??
-          'other',
-        level_code:
-          (s as { level_code?: string | null }).level_code ??
-          (relation.level_code as string | undefined) ??
-          (relation.levelCode as string | undefined) ??
-          null,
-        avg_percentage: s.avg_percentage ?? (relation.avgPercentage as number | null | undefined) ?? null,
-        total_reviews:
-          (s as { total_reviews?: number }).total_reviews ??
-          (relation.totalReviews as number | undefined) ??
-          0,
-      }
-    })
-  )
+  const userSkills = $derived((user.skills ?? []).map((s) => normalizeProfileSkillRelation(s)))
 
-  const groupedSkills = $derived(() => {
-    const groups = new Map<string, Array<(typeof userSkills)[number]>>()
-    for (const skill of userSkills) {
-      const key = skill.category_code || 'other'
-      let bucket = groups.get(key)
-      if (!bucket) {
-        bucket = []
-        groups.set(key, bucket)
-      }
-      bucket.push(skill)
-    }
-
-    const order = ['technical', 'soft_skill', 'delivery']
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => {
-        const ai = order.indexOf(a)
-        const bi = order.indexOf(b)
-        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
-      })
-      .map(([code, items]) => {
-        const style = getProfileGroupStyle(code)
-        return {
-          code,
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-          items,
-        }
-      })
-  })
+  const groupedSkills = $derived(() => buildGroupedSkillsByCategory(userSkills))
 
   const fallbackGroupedSkills = $derived.by(() => {
     const fromSpider = [
-      (() => {
-        const style = getProfileGroupStyle('technical')
-        return {
-          code: 'technical',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.technical.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
-      (() => {
-        const style = getProfileGroupStyle('soft_skill')
-        return {
-          code: 'soft_skill',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.soft_skills.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
-      (() => {
-        const style = getProfileGroupStyle('delivery')
-        return {
-          code: 'delivery',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.delivery.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
+      createGroupedSkillsFromSpiderData('technical', spiderChartData.technical),
+      createGroupedSkillsFromSpiderData('soft_skill', spiderChartData.soft_skills),
+      createGroupedSkillsFromSpiderData('delivery', spiderChartData.delivery),
     ]
 
     return fromSpider.filter((group) => group.items.length > 0)
@@ -205,26 +84,33 @@
 
   const totalReviews = $derived(userSkills.reduce((sum, s) => sum + s.total_reviews, 0))
 
-  const initials = $derived(
-    user.username
-      .split(/[\s@]+/)
-      .slice(0, 2)
-      .map((s) => s[0].toUpperCase())
-      .join('')
+  const normalizedGroupedSkills = $derived(
+    effectiveGroupedSkills.map((group) => ({
+      code: group.code,
+      title: group.title,
+      bgClass: group.badgeClass,
+      items: group.items,
+    }))
   )
+
+  const initials = $derived(getUserInitials(user.username))
   const neoBrutalCard = 'neo-panel p-4'
   const neoMetricCard = 'neo-panel-muted px-3 py-2 text-center'
 
-  const profileLanguage = $derived((user as Record<string, unknown>).language as string | undefined)
-  const freelancerRating = $derived((user as Record<string, unknown>).freelancer_rating as number | null | undefined)
-  const doneTasks = $derived((user as Record<string, unknown>).freelancer_completed_tasks_count as number | undefined)
+  const profileLanguage = $derived(getUserStringField(user as Record<string, unknown>, 'language'))
+  const freelancerRating = $derived(
+    getUserNumberField(user as Record<string, unknown>, 'freelancer_rating')
+  )
+  const doneTasks = $derived(
+    getUserNumberField(user as Record<string, unknown>, 'freelancer_completed_tasks_count')
+  )
 
   function goToReviews() {
-    router.get(`/users/${user.id}/reviews`)
+    navigateToUserReviews(user.id)
   }
 
   function goToEditProfile() {
-    router.get('/profile/edit')
+    navigateToProfileEdit()
   }
 </script>
 
@@ -309,119 +195,15 @@
       </div>
     </section>
 
-    <section class="grid gap-3 xl:grid-cols-2">
-      <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Chi tiết kỹ năng</p>
+    <ProfileSkillsAndChartsSection
+      groupedSkills={normalizedGroupedSkills}
+      {spiderChartData}
+      {neoBrutalCard}
+    />
 
-        {#if effectiveGroupedSkills.length === 0}
-          <p class="text-sm font-semibold text-muted-foreground">Chưa có kỹ năng nào</p>
-        {:else}
-          <div class="space-y-4">
-            {#each effectiveGroupedSkills as group (group.code)}
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 border-b-2 border-border pb-1">
-                  <span class="h-2 w-2 rounded-full {group.dotClass}"></span>
-                  <span class="text-[11px] font-black uppercase tracking-wide {group.textClass}">{group.title}</span>
-                </div>
-
-                {#each group.items as skill (skill.id)}
-                  <div class="flex items-center justify-between gap-2 border-b border-dashed border-border/60 py-1 text-xs {skill.total_reviews === 0 ? 'opacity-60' : ''}">
-                    <span class="flex items-center gap-1 font-bold">
-                      {skill.skill_name}
-                      {#if skill.total_reviews === 0}
-                        <span class="rounded border border-border px-1 text-[9px]">tự khai</span>
-                      {/if}
-                    </span>
-                    <span class="rounded-full border-2 border-border px-2 py-0.5 text-[10px] font-black shadow-neo-sm {getProfileLevelClass(skill.level_code)}">{getProfileLevelLabel(skill.level_code)}</span>
-                  </div>
-                {/each}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-
-      <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Biểu đồ kỹ năng</p>
-
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-magenta"></span>Kỹ thuật</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-magenta">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.technical}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-
-          <div class="border-t-2 border-border pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-blue"></span>Kỹ năng mềm</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-blue">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.soft_skills}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-
-          <div class="border-t-2 border-border pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-orange"></span>Delivery</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-orange">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.delivery}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="neo-hero-blue rounded-[10px] p-4">
-      <div class="mb-2 flex items-center justify-between gap-2">
-        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white">Đánh giá nổi bật</p>
-        <span class="neo-pill-ink rounded-full px-2 py-0.5 text-[10px] font-black">{totalReviews} đánh giá</span>
-      </div>
-
-      {#if featuredReviews.length === 0}
-        <p class="border-t-2 border-white pt-2 text-sm font-semibold text-white">Chưa có đánh giá nổi bật để hiển thị.</p>
-      {:else}
-        <div class="grid gap-3 md:grid-cols-2">
-          {#each featuredReviews as item (item.skill_id)}
-            <article class="border-t-2 border-white pt-2">
-              <div class="mb-1 flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-border bg-background text-[10px] font-black text-foreground">
-                  {item.skill_name.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <p class="text-xs font-black text-white">{item.reviewer_name}</p>
-                  <p class="text-[10px] font-semibold text-white/75">{item.reviewer_role}</p>
-                </div>
-                <div class="ml-auto flex gap-1" aria-label={`${item.stars} stars`}>
-                  {#each Array.from({ length: 5 }) as _, i}
-                    <span class={i < item.stars ? 'text-orange-300' : 'text-white/30'}>★</span>
-                  {/each}
-                </div>
-              </div>
-              <p class="text-xs font-semibold text-white">{item.content}</p>
-              <p class="mt-1 text-[10px] font-semibold text-white/75">{item.task_name}</p>
-            </article>
-          {/each}
-        </div>
-      {/if}
-    </section>
+    <ProfileFeaturedReviewsSection
+      featuredReviews={featuredReviews}
+      reviewedSkillsCount={totalReviews}
+    />
   </div>
 </AppLayout>
