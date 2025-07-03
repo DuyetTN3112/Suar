@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UpdateTaskStatusDefinitionCommand from '#actions/tasks/commands/update_task_status_definition_command'
-import { UpdateTaskStatusDTO } from '#actions/tasks/dtos/request/task_status_dtos'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import { buildUpdateTaskStatusDefinitionDTO } from './mapper/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mapper/response/task_status_response_mapper.js'
 
 /**
  * PUT /api/task-statuses/:id
@@ -18,22 +19,11 @@ export default class UpdateTaskStatusDefinitionController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = new UpdateTaskStatusDTO({
-      status_id: params.id as string,
-      organization_id: organizationId,
-      name: request.input('name') as string | undefined,
-      slug: request.input('slug') as string | undefined,
-      category: request.input('category') as string | undefined,
-      color: request.input('color') as string | undefined,
-      icon: request.input('icon') as string | null | undefined,
-      description: request.input('description') as string | null | undefined,
-      sort_order: request.input('sort_order') as number | undefined,
-      is_default: request.input('is_default') as boolean | undefined,
-    })
+    const dto = buildUpdateTaskStatusDefinitionDTO(request, organizationId, params.id as string)
 
     const command = new UpdateTaskStatusDefinitionCommand(ExecutionContext.fromHttp(ctx))
     const status = await command.execute(dto)
 
-    response.json({ success: true, data: status })
+    response.json(mapTaskStatusMutationApiBody(status))
   }
 }

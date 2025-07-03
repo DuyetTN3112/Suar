@@ -2,12 +2,14 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { ErrorMessages, HttpStatus } from '#constants/error_constants'
-import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
 import UpdateTaskCommand from '#actions/tasks/commands/update_task_command'
 import GetTaskEditPageQuery from '#actions/tasks/queries/get_task_edit_page_query'
-import CreateNotification from '#actions/common/create_notification'
+import { buildUpdateTaskDTO } from './mapper/request/task_request_mapper.js'
+import {
+  mapTaskEditPageProps,
+  mapTaskUpdateApiBody,
+} from './mapper/response/task_response_mapper.js'
 
 /**
  * GET /tasks/:id/edit — show form
@@ -21,19 +23,14 @@ export default class EditTaskController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const { task, taskData, metadata } = await new GetTaskEditPageQuery(
+    const { task, permissions, metadata } = await new GetTaskEditPageQuery(
       ExecutionContext.fromHttp(ctx)
     ).execute(ctx.params.id as string, organizationId)
 
-    if (!taskData.permissions.canEdit) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa nhiệm vụ này')
-    }
-
-    return await ctx.inertia.render('tasks/edit', {
-      task,
-      metadata,
-      permissions: taskData.permissions,
-    })
+    return await ctx.inertia.render(
+      'tasks/edit',
+      mapTaskEditPageProps({ task, metadata, permissions })
+    )
   }
 
   async handle(ctx: HttpContext) {
@@ -43,30 +40,14 @@ export default class EditTaskController {
       throw new UnauthorizedException()
     }
 
-    const dto = new UpdateTaskDTO({
-      title: request.input('title') as string | undefined,
-      description: request.input('description') as string | undefined,
-      label: request.input('label') as string | undefined,
-      priority: request.input('priority') as string | undefined,
-      assigned_to: request.input('assigned_to') as string | undefined,
-      due_date: request.input('due_date') as string | undefined,
-      parent_task_id: request.input('parent_task_id') as string | undefined,
-      estimated_time: request.input('estimated_time') as number | undefined,
-      actual_time: request.input('actual_time') as number | undefined,
-      project_id: request.input('project_id') as string | undefined,
-      updated_by: auth.user.id,
-    })
-
-    const command = new UpdateTaskCommand(ExecutionContext.fromHttp(ctx), new CreateNotification())
+    const dto = await buildUpdateTaskDTO(request, auth.user.id)
+    const command = new UpdateTaskCommand(ExecutionContext.fromHttp(ctx))
     const task = await command.execute(params.id as string, dto)
 
     session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
 
     if (request.header('X-Inertia')) {
-      response.status(HttpStatus.OK).json({
-        success: true,
-        task,
-      })
+      response.status(HttpStatus.OK).json(mapTaskUpdateApiBody(task))
       return
     }
 
