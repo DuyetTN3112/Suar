@@ -47,6 +47,8 @@
     router.post(`/organizations/${organization.id}/members/process-request/${userId}`, {
       action,
     }, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         notificationStore.success(`Đã ${action === 'approve' ? 'duyệt' : 'từ chối'} yêu cầu thành công`)
       },

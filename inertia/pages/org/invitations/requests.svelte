@@ -52,7 +52,10 @@
     router.put(
       `/org/invitations/requests/${userId}/approve`,
       { action },
-      { preserveScroll: true }
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
     )
   }
 

@@ -48,6 +48,7 @@
     errors = {}
 
     router.put(`/org/settings`, formData, {
+      preserveState: true,
       preserveScroll: true,
       onSuccess: () => {
         processing = false

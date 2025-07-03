@@ -71,6 +71,8 @@
     submitting = true
 
     router.post('/organizations', formData, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         submitting = false
       },
