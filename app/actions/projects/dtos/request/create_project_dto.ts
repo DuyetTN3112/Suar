@@ -1,7 +1,8 @@
 import type { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
 import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for creating a new project
@@ -20,6 +21,8 @@ export interface CreateProjectDTOInterface {
   budget?: number
 }
 
+export type CreateProjectValidatedPayload = Omit<CreateProjectDTOInterface, 'organization_id'>
+
 export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly name: string
   public readonly description?: string
@@ -31,19 +34,33 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly visibility: ProjectVisibility
   public readonly budget: number
 
+  static fromInput(data: CreateProjectDTOInterface): CreateProjectDTO {
+    return new CreateProjectDTO(data)
+  }
+
+  static fromValidatedPayload(
+    payload: CreateProjectValidatedPayload,
+    organizationId: DatabaseId
+  ): CreateProjectDTO {
+    return new CreateProjectDTO({
+      ...payload,
+      organization_id: organizationId,
+    })
+  }
+
   constructor(data: CreateProjectDTOInterface) {
     // Validate and sanitize input
     this.validateInput(data)
 
     this.name = data.name.trim()
-    this.description = data.description?.trim() || undefined
+    this.description = data.description?.trim() ?? undefined
     this.organization_id = data.organization_id
-    this.status = data.status || ProjectStatus.PENDING
-    this.start_date = data.start_date || null
-    this.end_date = data.end_date || null
-    this.manager_id = data.manager_id || null
-    this.visibility = data.visibility || ProjectVisibility.TEAM
-    this.budget = data.budget || 0
+    this.status = data.status ?? ProjectStatus.PENDING
+    this.start_date = data.start_date ?? null
+    this.end_date = data.end_date ?? null
+    this.manager_id = data.manager_id ?? null
+    this.visibility = data.visibility ?? ProjectVisibility.TEAM
+    this.budget = data.budget ?? 0
   }
 
   /**
@@ -113,8 +130,8 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       description: this.description,
       organization_id: this.organization_id,
       status: this.status,
-      start_date: this.start_date?.toJSDate() || null,
-      end_date: this.end_date?.toJSDate() || null,
+      start_date: this.start_date?.toJSDate() ?? null,
+      end_date: this.end_date?.toJSDate() ?? null,
       manager_id: this.manager_id,
       visibility: this.visibility,
       budget: this.budget,

@@ -1,11 +1,12 @@
+import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
+
+import type { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { BaseCommand } from '#actions/shared/base_command'
+import ConflictException from '#exceptions/conflict_exception'
+import CacheService from '#infra/cache/cache_service'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import type { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import CacheService from '#services/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
-import ConflictException from '#exceptions/conflict_exception'
 import type { ReviewConfirmationEntry } from '#types/database'
 
 /**
@@ -69,11 +70,9 @@ export default class ConfirmReviewCommand extends BaseCommand<
         dispute_reason: dto.dispute_reason,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
-
       return {
         confirmation: newConfirmation,
+        cachePattern: `review:session:${dto.review_session_id}`,
         reviewConfirmedEvent: {
           confirmationId: newConfirmation.user_id,
           reviewSessionId: dto.review_session_id,
@@ -85,6 +84,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
       }
     })
 
+    await CacheService.deleteByPattern(result.cachePattern)
     await emitter.emit('review:confirmed', result.reviewConfirmedEvent)
 
     return result.confirmation

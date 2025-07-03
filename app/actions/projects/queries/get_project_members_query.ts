@@ -1,11 +1,13 @@
+import { getLastAuditActivityByUsers } from '#actions/audit/read_audit_logs'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseQuery } from '#actions/shared/base_query'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import { PAGINATION } from '#constants/common_constants'
+import { canViewProjectMembers } from '#domain/projects/project_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * DTO for GetProjectMembersQuery input
@@ -22,7 +24,7 @@ export interface GetProjectMembersDTO {
  * Query result interface
  */
 export interface GetProjectMembersResult {
-  data: Array<{
+  data: {
     user_id: DatabaseId
     username: string
     email: string
@@ -30,7 +32,7 @@ export interface GetProjectMembersResult {
     joined_at: Date
     task_count: number
     last_active_at: Date | null
-  }>
+  }[]
   pagination: {
     page: number
     limit: number
@@ -75,8 +77,8 @@ export default class GetProjectMembersQuery extends BaseQuery<
     await this.validateAccess(dto.project_id)
 
     // Default values
-    const page = dto.page || 1
-    const limit = dto.limit || PAGINATION.DEFAULT_PER_PAGE
+    const page = dto.page ?? 1
+    const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     // Get members → delegate to Model
     const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
@@ -113,9 +115,7 @@ export default class GetProjectMembersQuery extends BaseQuery<
     }
 
     const hasAccess = await ProjectMemberRepository.hasAccess(projectId, userId)
-    if (!hasAccess) {
-      throw new ForbiddenException('Bạn không có quyền xem danh sách thành viên của dự án này')
-    }
+    enforcePolicy(canViewProjectMembers({ hasProjectAccess: hasAccess }))
   }
 
   /**
@@ -131,10 +131,8 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     // Get task counts and last activity in parallel → delegate to Model
     const [taskCountMap, lastActivityMap] = await Promise.all([
-      TaskRepository.countByAssignees(projectId, userIds),
-      RepositoryFactory.getAuditLogRepository().then((repo) =>
-        repo.getLastActivityByUsers('project', projectId, userIds)
-      ),
+      DefaultProjectDependencies.task.countByAssignees(projectId, userIds),
+      getLastAuditActivityByUsers('project', projectId, userIds),
     ])
 
     // Enrich members

@@ -1,10 +1,12 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
-import ConflictException from '#exceptions/conflict_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import emitter from '@adonisjs/core/services/emitter'
+
+import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
+import { BaseCommand } from '#actions/shared/base_command'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * CreateReviewSessionCommand
@@ -17,9 +19,9 @@ export default class CreateReviewSessionCommand extends BaseCommand<
   import('#models/review_session').default
 > {
   async handle(dto: CreateReviewSessionDTO): Promise<import('#models/review_session').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
-      const assignment = await TaskAssignmentRepository.findCompletedById(
+      const assignment = await DefaultReviewDependencies.taskAssignment.findCompletedAssignment(
         dto.task_assignment_id,
         trx
       )
@@ -61,19 +63,23 @@ export default class CreateReviewSessionCommand extends BaseCommand<
         reviewee_id: dto.reviewee_id,
       })
 
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId: this.getCurrentUserId(),
-        action: 'create',
-        entityType: 'review_session',
-        entityId: session.id,
-        newValues: {
-          task_assignment_id: dto.task_assignment_id,
-          reviewee_id: dto.reviewee_id,
+      return {
+        session,
+        auditEvent: {
+          userId: this.getCurrentUserId(),
+          action: 'create',
+          entityType: 'review_session',
+          entityId: session.id,
+          newValues: {
+            task_assignment_id: dto.task_assignment_id,
+            reviewee_id: dto.reviewee_id,
+          },
         },
-      })
-
-      return session
+      }
     })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.session
   }
 }
