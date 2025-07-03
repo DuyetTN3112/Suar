@@ -1,7 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
+import { userPublicApi } from '#actions/users/public_api'
+import { AdminAuditLogReadOps } from '#infra/admin/repositories/read/admin_audit_log_queries'
 import type { ExecutionContext } from '#types/execution_context'
-import AdminAuditLogRepository from '#infra/admin/repositories/admin_audit_log_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 
 export interface ListAuditLogsDTO {
   page?: number
@@ -15,7 +15,7 @@ export interface ListAuditLogsDTO {
 }
 
 export interface ListAuditLogsResult {
-  data: Array<{
+  data: {
     id: string
     user: {
       id: string
@@ -28,7 +28,7 @@ export interface ListAuditLogsResult {
     ip_address: string
     user_agent: string
     created_at: string
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -45,14 +45,14 @@ export interface ListAuditLogsResult {
 export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, ListAuditLogsResult> {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminAuditLogRepository()
+    private repo = AdminAuditLogReadOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListAuditLogsDTO): Promise<ListAuditLogsResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     const result = await this.repo.listAuditLogs({
       page,
@@ -68,7 +68,7 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
     const userIds = [...new Set(result.data.map((log) => log.user_id).filter((value) => !!value))]
     const users =
       userIds.length > 0
-        ? await UserRepository.findByIds(userIds as string[], ['id', 'username'])
+        ? await userPublicApi.findByIds(userIds as string[], ['id', 'username'])
         : []
     const userMap = new Map(users.map((user) => [user.id, user]))
 

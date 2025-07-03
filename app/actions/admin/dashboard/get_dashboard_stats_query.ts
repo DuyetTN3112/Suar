@@ -1,11 +1,11 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminFlaggedReviewReadOps } from '#infra/admin/repositories/read/admin_flagged_review_queries'
+import { AdminOrganizationReadOps } from '#infra/admin/repositories/read/admin_organization_queries'
+import { AdminProjectReadOps } from '#infra/admin/repositories/read/admin_project_queries'
+import { AdminSubscriptionReadOps } from '#infra/admin/repositories/read/admin_subscription_queries'
+import { AdminTaskReadOps } from '#infra/admin/repositories/read/admin_task_queries'
+import { AdminUserReadOps } from '#infra/admin/repositories/read/admin_user_queries'
 import type { ExecutionContext } from '#types/execution_context'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
-import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
-import AdminProjectRepository from '#infra/admin/repositories/admin_project_repository'
-import AdminTaskRepository from '#infra/admin/repositories/admin_task_repository'
-import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
-import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
 
 /**
  * GetDashboardStatsQuery (System Admin)
@@ -53,12 +53,12 @@ export default class GetDashboardStatsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private userRepo = new AdminUserRepository(),
-    private orgRepo = new AdminOrganizationRepository(),
-    private projectRepo = new AdminProjectRepository(),
-    private taskRepo = new AdminTaskRepository(),
-    private subscriptionRepo = new AdminSubscriptionRepository(),
-    private flaggedReviewRepo = new AdminFlaggedReviewRepository()
+    private userRepo = AdminUserReadOps,
+    private orgRepo = AdminOrganizationReadOps,
+    private projectRepo = AdminProjectReadOps,
+    private taskRepo = AdminTaskReadOps,
+    private subscriptionRepo = AdminSubscriptionReadOps,
+    private flaggedReviewRepo = AdminFlaggedReviewReadOps
   ) {
     super(execCtx)
   }

@@ -1,23 +1,26 @@
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { EntityType } from '#constants/audit_constants'
-import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canAddMember } from '#domain/organizations/org_permission_policy'
+import db from '@adonisjs/lucid/services/db'
+
+import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import type CreateNotification from '#actions/common/create_notification'
+import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { canAddMember } from '#domain/organizations/org_permission_policy'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Add Member to Organization
@@ -61,17 +64,21 @@ export default class AddMemberCommand {
 
     try {
       // 1. Validate user exists
-      const userToAdd = await UserRepository.findById(dto.userId, trx)
+      const userToAdd = await DefaultOrganizationDependencies.user.findUserIdentity(
+        dto.userId,
+        trx
+      )
       if (!userToAdd) {
         throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
       }
 
       // 2. Check permissions, role validity, and duplicate membership
-      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      const actorMembership = await OrganizationUserRepository.getMembershipContext(
         dto.organizationId,
         userId,
         trx
       )
+      const actorOrgRole = actorMembership?.role ?? null
       const alreadyMember = await OrganizationUserRepository.isMember(
         dto.userId,
         dto.organizationId,

@@ -1,8 +1,8 @@
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
-import NotFoundException from '#exceptions/not_found_exception'
 
 export default class MarkNotificationAsRead {
   constructor(protected execCtx: ExecutionContext) {}

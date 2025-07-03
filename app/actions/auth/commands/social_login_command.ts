@@ -1,13 +1,13 @@
-import db from '@adonisjs/lucid/services/db'
-import * as AuthLogger from '#libs/auth_logger'
-import { SystemRoleName } from '#constants/user_constants'
 import emitter from '@adonisjs/core/services/emitter'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserOAuthProviderRepository from '#infra/users/repositories/user_oauth_provider_repository'
-import type User from '#models/user'
-import type UserOAuthProvider from '#models/user_oauth_provider'
+import db from '@adonisjs/lucid/services/db'
 
-type SupportedProvider = 'google' | 'github'
+import SocialLoginPersistenceService, {
+  type SocialLoginInput,
+  type SupportedProvider,
+} from '#infra/auth/social_login_persistence_service'
+import SingleFlightService from '#infra/cache/single_flight_service'
+import * as AuthLogger from '#infra/logger/auth_logger'
+import type User from '#models/user'
 
 interface SocialUserData {
   id: string
@@ -33,201 +33,17 @@ interface SocialLoginResult {
  * 3. Create new user + OAuth record → login
  */
 export default class SocialLoginCommand {
+  constructor(private readonly persistenceService = new SocialLoginPersistenceService()) {}
+
   async execute(
     provider: SupportedProvider,
     socialData: SocialUserData
   ): Promise<SocialLoginResult> {
-    const {
-      id: socialId,
-      email: socialEmail,
-      name: socialName,
-      nickName,
-      token: accessToken,
-      refreshToken,
-    } = socialData
+    const loginInput = this.buildLoginInput(provider, socialData)
 
-    // Step 1: Check existing OAuth provider record
-    let oauthProvider: UserOAuthProvider | null = null
-    try {
-      oauthProvider = await UserOAuthProviderRepository.findByProviderAndProviderId(
-        provider,
-        socialId
-      )
-      AuthLogger.oauthProviderLookup(provider, socialId, !!oauthProvider)
-    } catch (error: unknown) {
-      AuthLogger.oauthError(provider, error, 'provider-lookup')
-      // Table might not exist — continue with null
-      const dbError = error as { code?: string }
-      if (dbError.code !== '42P01') {
-        // Not a missing table error — continue anyway
-      }
-    }
-
-    if (oauthProvider) {
-      const user = await UserRepository.findById(oauthProvider.user_id)
-      if (user) {
-        // Update tokens
-        try {
-          oauthProvider.access_token = accessToken
-          oauthProvider.refresh_token = refreshToken
-          await UserOAuthProviderRepository.save(oauthProvider)
-          AuthLogger.dbTransaction('update-oauth-tokens', true, { userId: user.id })
-        } catch (error: unknown) {
-          AuthLogger.oauthError(provider, error, 'update-tokens')
-        }
-        AuthLogger.userLogin(user.id, user.email || '', provider)
-
-        // Emit user:login event
-        void emitter.emit('user:login', {
-          userId: user.id,
-          ip: '',
-          userAgent: '',
-          method: 'oauth',
-        })
-
-        // Determine redirect based on system_role
-        const redirectTo = this.determineRedirectPath(user)
-        return { user, isNewUser: false, redirectTo }
-      }
-    }
-
-    // Step 2: Find user by email
-    const user = await UserRepository.findByEmail(socialEmail)
-    AuthLogger.dbTransaction('find-user-by-email', true, { email: socialEmail, found: !!user })
-
-    if (user) {
-      // Link OAuth provider
-      try {
-        await UserOAuthProviderRepository.create({
-          user_id: user.id,
-          provider,
-          provider_id: socialId,
-          email: socialEmail,
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        AuthLogger.dbTransaction('link-oauth-provider', true, { userId: user.id, provider })
-      } catch (error: unknown) {
-        AuthLogger.oauthError(provider, error, 'link-oauth-provider')
-        const dbError = error as { code?: string }
-        if (dbError.code !== '42P01') {
-          // Not a missing table error
-        }
-      }
-
-      // Keep auth_method aligned with the provider used for this login.
-      try {
-        if (user.auth_method !== provider) {
-          user.auth_method = provider
-          await UserRepository.save(user)
-        }
-      } catch (error: unknown) {
-        const dbError = error as { code?: string }
-        if (dbError.code !== '42703') {
-          // Not a missing column error
-        }
-      }
-
-      AuthLogger.userLogin(user.id, user.email || '', provider)
-
-      // Emit user:login event
-      void emitter.emit('user:login', {
-        userId: user.id,
-        ip: '',
-        userAgent: '',
-        method: 'oauth',
-      })
-
-      // Determine redirect based on system_role
-      const redirectTo = this.determineRedirectPath(user)
-      return { user, isNewUser: false, redirectTo }
-    }
-
-    // Step 3: Create new user
-    AuthLogger.dbTransaction('create-new-user-start', true, { provider, email: socialEmail })
-
-    const createdUser = await db.transaction(async (trx) => {
-      const defaultSystemRole = SystemRoleName.REGISTERED_USER
-      AuthLogger.dbTransaction('found-defaults', true, { systemRole: defaultSystemRole })
-
-      // Parse name
-      let firstName = ''
-      let lastName = ''
-      const nameParts = socialName.split(' ')
-      if (nameParts.length > 0) {
-        lastName = nameParts.pop() ?? ''
-        firstName = nameParts.join(' ')
-      }
-      if (!firstName && !lastName && socialName) {
-        firstName = socialName
-      }
-
-      // Generate username
-      const username = nickName || socialEmail.split('@')[0] || `user_${Date.now()}`
-
-      try {
-        interface UserData {
-          email: string
-          username: string
-          status: string
-          system_role: string
-          current_organization_id: null
-          auth_method?: 'google' | 'github'
-        }
-        const userData: UserData = {
-          email: socialEmail,
-          username,
-          status: 'active',
-          system_role: defaultSystemRole,
-          current_organization_id: null,
-        }
-        userData.auth_method = provider
-
-        const newUser = await UserRepository.create(userData, trx)
-        AuthLogger.userCreated(newUser.id, provider, newUser.email || '')
-
-        // Create OAuth provider record
-        try {
-          await UserOAuthProviderRepository.create(
-            {
-              user_id: newUser.id,
-              provider,
-              provider_id: socialId,
-              email: socialEmail,
-              access_token: accessToken,
-              refresh_token: refreshToken,
-            },
-            trx
-          )
-          AuthLogger.dbTransaction('create-oauth-provider', true, { userId: newUser.id, provider })
-        } catch (error: unknown) {
-          AuthLogger.oauthError(provider, error, 'create-oauth-provider')
-          const dbError = error as { code?: string }
-          if (dbError.code !== '42P01') {
-            throw error
-          }
-        }
-
-        AuthLogger.dbTransaction('create-user-complete', true, { userId: newUser.id })
-        return newUser
-      } catch (error: unknown) {
-        AuthLogger.oauthError(provider, error, 'create-user-record')
-        throw error
-      }
-    })
-
-    AuthLogger.userLogin(createdUser.id, createdUser.email || '', provider)
-
-    // Emit user:login event for new user
-    void emitter.emit('user:login', {
-      userId: createdUser.id,
-      ip: '',
-      userAgent: '',
-      method: 'oauth',
-    })
-
-    // New users always go to organizations page to select/create org
-    return { user: createdUser, isNewUser: true, redirectTo: '/organizations' }
+    return SingleFlightService.execute(this.buildSingleFlightKey(loginInput), () =>
+      this.executeLoginFlow(loginInput)
+    )
   }
 
   /**
@@ -246,5 +62,74 @@ export default class SocialLoginCommand {
 
     // 3. User without organization → Organizations selection
     return '/organizations'
+  }
+
+  private buildLoginInput(
+    provider: SupportedProvider,
+    socialData: SocialUserData
+  ): SocialLoginInput {
+    return {
+      provider,
+      socialId: socialData.id,
+      socialEmail: socialData.email,
+      nickName: socialData.nickName,
+      accessToken: socialData.token,
+      refreshToken: socialData.refreshToken,
+    }
+  }
+
+  private buildSingleFlightKey(loginInput: SocialLoginInput): string {
+    return `social_login:${loginInput.provider}:${loginInput.socialId}`
+  }
+
+  private async executeLoginFlow(loginInput: SocialLoginInput): Promise<SocialLoginResult> {
+    const linkedUser = await this.persistenceService.findLinkedUser(loginInput)
+    if (linkedUser) {
+      return this.finalizeExistingUserLogin(linkedUser, loginInput.provider)
+    }
+
+    const existingUser = await db.transaction((trx) =>
+      this.persistenceService.linkExistingUserByEmail(loginInput, trx)
+    )
+    if (existingUser) {
+      return this.finalizeExistingUserLogin(existingUser, loginInput.provider)
+    }
+
+    const createdUser = await db.transaction((trx) =>
+      this.persistenceService.registerNewUser(loginInput, trx)
+    )
+    return this.finalizeNewUserLogin(createdUser, loginInput.provider)
+  }
+
+  private recordSuccessfulLogin(user: User, provider: SupportedProvider): void {
+    AuthLogger.userLogin(user.id, user.email ?? '', provider)
+    void emitter.emit('user:login', {
+      userId: user.id,
+      ip: '',
+      userAgent: '',
+      method: 'oauth',
+    })
+  }
+
+  private finalizeExistingUserLogin(user: User, provider: SupportedProvider): SocialLoginResult {
+    this.recordSuccessfulLogin(user, provider)
+    return this.buildExistingUserResult(user)
+  }
+
+  private finalizeNewUserLogin(user: User, provider: SupportedProvider): SocialLoginResult {
+    this.recordSuccessfulLogin(user, provider)
+    return {
+      user,
+      isNewUser: true,
+      redirectTo: '/organizations',
+    }
+  }
+
+  private buildExistingUserResult(user: User): SocialLoginResult {
+    return {
+      user,
+      isNewUser: false,
+      redirectTo: this.determineRedirectPath(user),
+    }
   }
 }

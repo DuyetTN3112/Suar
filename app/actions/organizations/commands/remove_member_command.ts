@@ -1,25 +1,27 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canRemoveMember } from '#domain/organizations/org_permission_policy'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import type CreateNotification from '#actions/common/create_notification'
+import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { canRemoveMember } from '#domain/organizations/org_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Remove Member from Organization
@@ -43,10 +45,17 @@ export default class RemoveMemberCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const [actorOrgRole, targetMembership] = await Promise.all([
-        OrganizationUserRepository.getMemberRoleName(dto.organizationId, userId, trx),
-        OrganizationUserRepository.findMembership(dto.organizationId, dto.userId, trx),
-      ])
+      const actorMembership = await OrganizationUserRepository.getMembershipContext(
+        dto.organizationId,
+        userId,
+        trx
+      )
+      const actorOrgRole = actorMembership?.role ?? null
+      const targetMembership = await OrganizationUserRepository.findMembership(
+        dto.organizationId,
+        dto.userId,
+        trx
+      )
 
       if (!targetMembership) {
         throw new NotFoundException('Người dùng không phải thành viên của tổ chức này')
@@ -111,12 +120,11 @@ export default class RemoveMemberCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    // Find all projects in this organization via Model
-    const projectIds = await ProjectRepository.findIdsByOrganization(organizationId, trx)
-    if (projectIds.length === 0) return
-
-    // Unassign tasks in these projects via Model
-    await TaskRepository.unassignByUserInProjects(projectIds, userId, trx)
+    await DefaultOrganizationDependencies.projectTask.unassignMemberTasks(
+      organizationId,
+      userId,
+      trx
+    )
   }
 
   /**

@@ -1,15 +1,15 @@
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
 import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { ExecutionContext } from '#types/execution_context'
 
-type ListOptions = {
+interface ListOptions {
   page: number
   limit: number
   isRead?: boolean
 }
 
-type PaginatedResponse<T> = {
+interface PaginatedResponse<T> {
   data: T[]
   meta: {
     total: number
