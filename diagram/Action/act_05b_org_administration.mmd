@@ -1,0 +1,25 @@
+%% act_05b_org_administration.mmd
+%% Scope: Overview of organization admin operations only.
+%% Detail files:
+%%   - act_05f_org_update_member_role.mmd
+%%   - act_05g_org_remove_member.mmd
+%% Notes:
+%%   - transfer ownership / delete org are still not fully wired in routes.
+
+flowchart TD
+    Start([Start]) --> Module["Organization admin module"]
+
+    Module --> Role["Update member role"]
+    Module --> Remove["Remove member"]
+    Module --> Settings["Update org settings"]
+    Module --> Switch["Switch organization context"]
+
+    Role --> End([End])
+    Remove --> End
+    Settings --> End
+    Switch --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Role,Remove,Settings,Switch process

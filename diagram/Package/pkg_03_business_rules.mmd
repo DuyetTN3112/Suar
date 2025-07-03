@@ -1,0 +1,131 @@
+%% ─────────────────────────────────────────────────────────────
+%% pkg_03_business_rules: Business Rules Packages
+%% ─────────────────────────────────────────────────────────────
+%% Scope: All pure business rule modules — zero DB dependencies.
+%% Pattern: PolicyResult (allow/deny) + enforcePolicy() bridge.
+%% ✅ Updated 2026-03: Rules live in app/domain/*/ (100% pure)
+%% ✅ enforcePolicy() moved to app/actions/shared/ (Application layer)
+%% ⚠️ Note: Business logic also lives INSIDE Domain Entities
+%%    (methods on entity classes in app/domain/*/entities/).
+%%    These standalone rules complement entity-level logic.
+%% Related: pkg_02_application_layer.mmd — callers of these rules
+%% ─────────────────────────────────────────────────────────────
+
+graph TD
+    subgraph note["⚠️ Business Logic Distribution"]
+        NOTE["Business logic lives in TWO places:
+        1. Domain Entities (app/domain/*/entities/)
+           — methods on entity classes
+        2. Pure Rule Functions (below)
+           — standalone, 0 DB deps"]
+    end
+
+    subgraph shared_rules["shared/rules/ (app/domain/shared/)"]
+        POLICY_RESULT["PolicyResult
+        (discriminated union:
+        { allowed: true } |
+        { allowed: false, reason, code })"]
+        ID_UTILS["id_utils.ts
+        isSameId() — pure"]
+    end
+
+    subgraph enforce_bridge["Application Layer Bridge (app/actions/shared/)"]
+        ENFORCE["enforcePolicy()
+        (exception bridge:
+        PolicyResult → throw)
+        ✅ Moved out of Domain"]
+    end
+
+    subgraph task_rules["tasks/rules/"]
+        TSM["task_state_machine.ts
+        ALLOWED_TRANSITIONS map
+        isTerminalStatus()"]
+        TAR["task_assignment_rules.ts
+        canAssignTask()
+        validateBatchStatusUpdate()"]
+        TPP["task_permission_policy.ts
+        canCreateTask()
+        canUpdateTask()
+        canDeleteTask()
+        canUpdateTaskStatus()"]
+        TSR["task_status_rules.ts
+        canEditStatus()
+        canDeleteStatus()
+        isValidSlug()
+        isValidCategory()
+        validateWorkflowTransition()"]
+        TTY["task_types.ts
+        (shared type aliases)"]
+    end
+
+    subgraph project_rules["projects/rules/"]
+        PPP["project_permission_policy.ts
+        canCreateProject()
+        canUpdateProject()
+        canDeleteProject()
+        canAddProjectMember()
+        canRemoveProjectMember()"]
+        PSR["project_state_rules.ts
+        canDeleteProjectWithTasks()"]
+    end
+
+    subgraph org_rules["organizations/rules/"]
+        OPP["org_permission_policy.ts
+        canCreateOrg()
+        canInviteUser()
+        canUpdateMemberRole()
+        canTransferOwnership()
+        canDeleteOrg()"]
+    end
+
+    subgraph review_rules_pkg["reviews/rules/"]
+        RP["review_policy.ts
+        canSubmitReview()
+        canConfirmReview()
+        canResolveFlaggedReview()"]
+        RF["review_formulas.ts
+        calculateTrustScore()
+        calculateSpiderChart()
+        detectAnomaly()"]
+    end
+
+    subgraph conv_rules["conversations/rules/"]
+        CPP["conversation_permission_policy.ts
+        canSendMessage()
+        canRecallMessage()
+        canAddParticipant()"]
+        CSR["conversation_state_rules.ts
+        isMessageRecallable()"]
+    end
+
+    subgraph user_rules["users/rules/"]
+        UMR["user_management_rules.ts
+        canApproveUser()
+        canDeactivateUser()
+        canUpdateUserRole()"]
+    end
+
+    %% All rules feed PolicyResult
+    TSM --> POLICY_RESULT
+    TAR --> POLICY_RESULT
+    TPP --> POLICY_RESULT
+    TSR --> POLICY_RESULT
+    PPP --> POLICY_RESULT
+    PSR --> POLICY_RESULT
+    OPP --> POLICY_RESULT
+    RP --> POLICY_RESULT
+    RF --> POLICY_RESULT
+    CPP --> POLICY_RESULT
+    CSR --> POLICY_RESULT
+    UMR --> POLICY_RESULT
+    POLICY_RESULT --> ENFORCE
+
+    classDef sharedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
+    classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
+    classDef noteStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px
+    classDef bridgeStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+
+    class POLICY_RESULT,ID_UTILS sharedStyle
+    class ENFORCE bridgeStyle
+    class TSM,TAR,TPP,TSR,TTY,PPP,PSR,OPP,RP,RF,CPP,CSR,UMR ruleStyle
+    class NOTE noteStyle

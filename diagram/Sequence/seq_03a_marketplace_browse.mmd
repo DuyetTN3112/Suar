@@ -1,0 +1,24 @@
+%% seq_03a_marketplace_browse.mmd
+%% Scope: Browse marketplace task list only.
+
+sequenceDiagram
+    autonumber
+    actor FL as Freelancer
+    participant B as Browser
+    participant C as ListPublicTasksController
+    participant Q as GetPublicTasksQuery
+    participant Repo as TaskRepository
+    participant DB as PostgreSQL
+
+    FL->>B: Open marketplace
+    B->>C: GET /marketplace/tasks
+    C->>Q: execute(filters)
+    Q->>Repo: findPublicTasks(filters)
+    Repo->>DB: SELECT public tasks
+    DB-->>Repo: Task rows
+    Repo-->>Q: Domain entities
+    Q->>Q: apply filters + pagination
+    Q-->>C: Response DTOs
+    C-->>B: Render task list
+    B-->>FL: Browse marketplace tasks
+

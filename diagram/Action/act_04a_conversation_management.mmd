@@ -1,0 +1,65 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_04a: Conversation Management
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Create + Delete conversation lifecycle
+%% Types: Direct 1:1 (title=null, 2 participants) vs Group (3+)
+%% All routes behind middleware.requireOrg() + auth
+%%
+%% Related: act_04b_messaging.mmd — Message operations
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> ConvAction{"Action?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 1: Create Conversation
+    %% ═══════════════════════════════════════════════════════════
+    ConvAction -->|"Create"| CreateConv["CreateConversationCommand:
+    title, participant_ids,
+    organization_id (optional)"]
+    CreateConv --> CheckDuplicate{"Duplicate check:
+    same participants
+    already exist?"}
+    CheckDuplicate -->|Yes| ReturnExisting["Return existing
+    conversation"]
+    ReturnExisting --> End1([End])
+    CheckDuplicate -->|No| DetermineType{"Participants
+    count?"}
+    DetermineType -->|"2 (1:1 direct)"| CreateDirect["Create conversation
+    title = NULL"]
+    DetermineType -->|"3+ (group)"| CreateGroup["Create conversation
+    title = input"]
+    CreateDirect --> AddParticipants
+    CreateGroup --> AddParticipants
+
+    AddParticipants["Create conversation_participants
+    for each user"]
+    AddParticipants --> End2([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 2: Delete Conversation (soft delete)
+    %% ═══════════════════════════════════════════════════════════
+    ConvAction -->|"Delete"| CheckParticipant{"DeleteConversationCommand:
+    caller is participant?"}
+    CheckParticipant -->|No| RejectDelete["❌ Not authorized"]
+    RejectDelete --> End3([End])
+    CheckParticipant -->|Yes| SoftDelete["Soft delete:
+    deleted_at = NOW()"]
+    SoftDelete --> AuditDelete["Emit audit event"]
+    AuditDelete --> End4([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 3: Open existing → go to messaging
+    %% ═══════════════════════════════════════════════════════════
+    ConvAction -->|"Open existing"| GoMessaging(["→ Continue:
+    act_04b (Messaging)"])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E0F7FA,stroke:#00695C,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End1,End2,End3,End4,GoMessaging startEnd
+    class CreateConv,CreateDirect,CreateGroup,AddParticipants,ReturnExisting,SoftDelete,AuditDelete process
+    class ConvAction,CheckDuplicate,DetermineType,CheckParticipant decision
+    class RejectDelete error

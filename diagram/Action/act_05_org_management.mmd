@@ -1,0 +1,26 @@
+%% act_05_org_management.mmd
+%% Scope: Overview of organization membership flows only.
+%% Principle: Overview diagram stays high-level; each detailed task has its own file.
+%% Detail files:
+%%   - act_05c_org_create.mmd
+%%   - act_05d_org_invite_member.mmd
+%%   - act_05e_org_join_request.mmd
+%%   - act_05g_org_remove_member.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Organization membership module"]
+
+    Module --> Create["Create organization"]
+    Module --> Invite["Invite member"]
+    Module --> Join["Approve / reject join request"]
+    Module --> Direct["Direct add member"]
+
+    Create --> End([End])
+    Invite --> End
+    Join --> End
+    Direct --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Create,Invite,Join,Direct process

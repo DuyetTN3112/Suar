@@ -1,0 +1,41 @@
+%% seq_05_org_invite.mmd
+%% Scope: Invite member only.
+%% Backend refs:
+%%   - POST /organizations/:id/members/invite
+%%   - POST /org/members/invite
+%%   - InviteUserCommand
+%% Notes:
+%%   - Accept invitation flow is still not implemented.
+%%   - Email delivery is not wired yet.
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as InviteUserCommand
+    participant Repo as OrgAccessRepository
+    participant DB as PostgreSQL
+    participant Audit as Mongo AuditLog
+
+    Admin->>B: Enter email + role
+    B->>C: POST invite member
+    C->>Cmd: execute(dto)
+    Cmd->>Cmd: Check actor permission
+    Cmd->>Repo: hasPendingInvitation(orgId, email)
+    Repo->>DB: SELECT pending invitation
+    DB-->>Repo: Result
+
+    alt Duplicate pending invitation
+        Repo-->>Cmd: Already exists
+        Cmd-->>C: Conflict error
+        C-->>B: Show validation error
+    else Invitation allowed
+        Repo-->>Cmd: No duplicate
+        Cmd->>Repo: createInvitation(...)
+        Repo->>DB: INSERT organization_invitations
+        DB-->>Repo: Invitation row
+        Cmd->>Audit: create invite audit log
+        Cmd-->>C: Success
+        C-->>B: Redirect with success flash
+    end
