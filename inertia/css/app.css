@@ -1,96 +1,18 @@
-@import 'tailwindcss';
-
-@theme {
-  /* Container settings */
-  --container-center: true;
-  --container-padding: 2rem;
-  --container-2xl: 1400px;
-
-  /* Typography */
-  --font-heading: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
-  --font-body: 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Monaco, monospace;
-
-  /* Border radius */
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-
-  /* Colors - using CSS variables for dynamic theming */
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
-  --color-sidebar-border: hsl(var(--sidebar-border));
-
-  /* Neo-Brutalism accent colors */
-  --color-neo-mint: var(--neo-mint);
-  --color-neo-yellow: var(--neo-yellow);
-  --color-neo-purple: var(--neo-purple);
-  --color-neo-blue: var(--neo-blue);
-  --color-neo-orange: var(--neo-orange);
-  --color-neo-red: var(--neo-red);
-  --color-neo-green: var(--neo-green);
-  --color-neo-pink: var(--neo-pink);
-  --color-neo-lime: var(--neo-lime);
-  --color-neo-peach: var(--neo-peach);
-  --color-neo-cyan: var(--neo-cyan);
-  --color-neo-rose: var(--neo-rose);
-  --color-neo-indigo: var(--neo-indigo);
-  --color-neo-amber: var(--neo-amber);
-  --color-neo-emerald: var(--neo-emerald);
-  --color-neo-sky: var(--neo-sky);
-  --color-neo-fuchsia: var(--neo-fuchsia);
-  --color-neo-coral: var(--neo-coral);
-  --color-neo-lavender: var(--neo-lavender);
-  --color-neo-sunflower: var(--neo-sunflower);
-
-  /* Neo-Brutalism shadows */
-  --shadow-neo: var(--neo-shadow);
-  --shadow-neo-sm: var(--neo-shadow-sm);
-  --shadow-neo-lg: var(--neo-shadow-lg);
-
-  /* Animations */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
-}
+@import 'tailwindcss' source(none);
+@import 'tw-animate-css';
+@config '../../tailwind.config.ts';
+@source '../app';
+@source '../components';
+@source '../layouts';
+@source '../pages';
+@source '../../app';
+@source '../../resources';
 
 @layer base {
   :root {
+    --font-heading: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+    --font-body: 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Monaco, monospace;
+
     /* Neo-Brutalism Light Mode — clean white base + strong warm accent */
     --background: 0 0% 100%;
     --foreground: 18 16% 8%;

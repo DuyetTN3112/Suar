@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { page } from '@inertiajs/svelte'
   import DropdownMenu from './dropdown_menu.svelte'
   import DropdownMenuTrigger from './dropdown_menu_trigger.svelte'
   import DropdownMenuContent from './dropdown_menu_content.svelte'
@@ -20,19 +19,15 @@
     common?: TranslationNamespace
   }
 
-  interface PageProps {
+  interface Props {
     locale?: string
     supportedLocales?: string[]
     translations?: TranslationPayload
-    [key: string]: unknown
   }
 
-  const { t } = useTranslation()
+  const { locale = 'vi', supportedLocales = [], translations }: Props = $props()
 
-  const props = $derived($page.props as PageProps)
-  const locale = $derived(props.locale ?? 'vi')
-  const supportedLocales = $derived(props.supportedLocales ?? [])
-  const translations = $derived(props.translations)
+  const { t } = useTranslation()
 
   // Debug log chi tiết
   $effect(() => {

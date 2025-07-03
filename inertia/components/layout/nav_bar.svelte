@@ -16,33 +16,24 @@
   import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import type { SharedData, SharedAuthUser } from '@/types/shared_data'
 
-  interface AuthUser {
-    id?: string
-    username?: string
-    email?: string
-    avatar_url?: string | null
-  }
-
-  interface PageProps {
-    auth?: {
-      user?: AuthUser
+  interface TranslationPayload {
+    messages?: {
+      user?: Record<string, unknown>
+      common?: Record<string, unknown>
     }
-    user?: {
-      auth?: {
-        user?: AuthUser
-      }
-    }
-    csrfToken?: string
-    locale?: string
-    supportedLocales?: string[]
-    [key: string]: unknown
+    user?: Record<string, unknown>
+    common?: Record<string, unknown>
   }
 
   const { t } = useTranslation()
 
-  const props = $derived($page.props as unknown as PageProps)
-  const user = $derived(props.auth?.user ?? props.user?.auth?.user)
+  // WHITELIST: shell component reads $page.props for auth/context/i18n during transition period.
+  const props = $derived($page.props as unknown as SharedData)
+  const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
+  const translationPayload = $derived(props.translations as TranslationPayload | undefined)
+  const user = $derived(props.auth?.user ?? legacyUser)
   const displayName = $derived(user ? (user.username || user.email || 'User') : '')
   const avatarUrl = $derived(user?.avatar_url || '')
   const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : 'SN')
@@ -74,7 +65,11 @@
     <div class="flex items-center gap-2">
       <ThemeSwitch />
 
-      <LanguageSwitcher />
+      <LanguageSwitcher
+        locale={props.locale}
+        supportedLocales={props.supportedLocales}
+        translations={translationPayload}
+      />
 
       <!-- Notification Dropdown -->
       <NotificationDropdown />

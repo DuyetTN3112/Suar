@@ -18,41 +18,11 @@
   import { formatRoleLabel } from '@/lib/access_ui'
   import { getContext } from 'svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import type { SharedData, SharedAuthUser, SharedAuthOrganization } from '@/types/shared_data'
 
   // Định nghĩa interface cho team/organization
-  interface Organization {
-    id?: string
-    name: string
+  interface Organization extends SharedAuthOrganization {
     logo?: string
-    org_role?: string | null
-    status?: string | null
-  }
-
-  interface Project {
-    id?: string
-    name: string
-  }
-
-  interface AuthUser {
-    id?: string
-    username?: string
-    email?: string
-    organizations?: Organization[]
-    current_organization_id?: string
-    current_organization_role?: string | null
-    current_project?: Project
-  }
-
-  interface PageProps {
-    auth?: {
-      user?: AuthUser
-    }
-    user?: {
-      auth?: {
-        user?: AuthUser
-      }
-    }
-    [key: string]: unknown
   }
 
   const sidebar = getContext<{ isMobile: boolean }>('sidebar')
@@ -62,8 +32,10 @@
   let error = $state<string | null>(null)
   let isLoading = $state(false)
 
-  const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived<AuthUser | null>(props.auth?.user ?? props.user?.auth?.user ?? null)
+  // WHITELIST: shell component reads $page.props for auth/org switching during transition period.
+  const props = $derived($page.props as unknown as SharedData)
+  const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
+  const authUser = $derived<SharedAuthUser | null>(props.auth?.user ?? legacyUser ?? null)
   const currentProject = $derived(authUser?.current_project || null)
 
   // Lấy danh sách tổ chức từ backend

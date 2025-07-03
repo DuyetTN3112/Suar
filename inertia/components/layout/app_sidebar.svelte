@@ -8,32 +8,12 @@
   import NavUser from '@/components/layout/nav_user.svelte'
   import TeamSwitcher from '@/components/layout/team_switcher.svelte'
   import { mainNavigation } from '@/components/navigation.svelte'
+  import type { SharedData, SharedAuthUser } from '@/types/shared_data'
 
-  interface AuthUser {
-    id?: string
-    username?: string
-    email?: string
-    organizations?: Array<{
-      id: string
-      name: string
-      logo?: string
-    }>
-  }
-
-  interface PageProps {
-    auth?: {
-      user?: AuthUser
-    }
-    user?: {
-      auth?: {
-        user?: AuthUser
-      }
-    }
-    [key: string]: unknown
-  }
-
-  const props = $derived($page.props as unknown as PageProps)
-  const authUser = $derived(props.auth?.user ?? props.user?.auth?.user ?? null)
+  // WHITELIST: shell component reads $page.props for auth/org context during transition period.
+  const props = $derived($page.props as unknown as SharedData)
+  const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
+  const authUser = $derived(props.auth?.user ?? legacyUser ?? null)
   const sidebarNavigation = $derived(mainNavigation)
 
   const userInfo = $derived.by(() => {

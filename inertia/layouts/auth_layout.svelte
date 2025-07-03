@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
+  import { page } from '@inertiajs/svelte'
   import NotificationDialog from '@/components/notification_dialog.svelte'
   import ThemeSwitch from '@/components/theme-switch.svelte'
   import LanguageSwitcher from '@/components/ui/language_switcher.svelte'
@@ -8,7 +9,18 @@
     children: Snippet
   }
 
+  interface AuthLayoutPageProps {
+    locale?: string
+    supportedLocales?: string[]
+    translations?: {
+      messages?: Record<string, unknown>
+      user?: Record<string, unknown>
+      common?: Record<string, unknown>
+    }
+  }
+
   const { children }: Props = $props()
+  const sharedProps = $derived($page.props as AuthLayoutPageProps)
 </script>
 
 <div class="min-h-screen bg-background transition-colors duration-300">
@@ -39,7 +51,11 @@
       <div class="flex flex-1 justify-end gap-4 items-center">
         <div class="flex items-center space-x-1">
           <ThemeSwitch />
-          <LanguageSwitcher />
+          <LanguageSwitcher
+            locale={sharedProps.locale}
+            supportedLocales={sharedProps.supportedLocales}
+            translations={sharedProps.translations}
+          />
         </div>
       </div>
     </nav>
