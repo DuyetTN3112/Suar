@@ -79,11 +79,13 @@ export type Task = {
 
 export type TaskMetadata = {
   statuses: Array<{
+    id?: string
     value: string
     label: string
     color?: string
     slug?: string
     category?: string
+    is_system?: boolean
   }>
   labels: Array<{ value: string; label: string; color?: string }>
   priorities: Array<{ value: string; label: string; color?: string }>

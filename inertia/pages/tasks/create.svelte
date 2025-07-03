@@ -133,6 +133,8 @@
     submitting = true
 
     router.post(FRONTEND_ROUTES.TASKS, buildPayload(), {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         submitting = false
       },

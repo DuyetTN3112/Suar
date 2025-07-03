@@ -53,7 +53,7 @@
         alert('Có lỗi xảy ra khi xóa nhiệm vụ. Vui lòng thử lại.')
       },
       preserveScroll: true,
-      preserveState: false,
+      preserveState: true,
       replace: true,
       only: ['tasks']
     })

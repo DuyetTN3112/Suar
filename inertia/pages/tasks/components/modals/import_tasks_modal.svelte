@@ -57,6 +57,8 @@
     formData.append('csv_file', file)
 
     router.post('/tasks/import', formData, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         uploading = false
         props.onOpenChange(false)

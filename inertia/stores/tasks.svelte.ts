@@ -89,6 +89,10 @@ export function createTaskStore() {
     order: 'asc',
   })
 
+  // Tracks in-flight optimistic requests for stale-state guards at page level.
+  let optimisticInFlight = $state(0)
+  let pendingSync = $state<Task[] | null>(null)
+
   // ─── Derived State ──────────────────────────────────────────
 
   /** All tasks as flat array */
@@ -222,15 +226,47 @@ export function createTaskStore() {
       filters.assignees.length > 0
   )
 
+  const isOptimisticActive = $derived(optimisticInFlight > 0)
+
+  function beginOptimistic() {
+    optimisticInFlight += 1
+  }
+
+  function endOptimistic() {
+    optimisticInFlight = Math.max(0, optimisticInFlight - 1)
+
+    if (optimisticInFlight === 0 && pendingSync !== null) {
+      const nextSyncPayload = pendingSync
+      pendingSync = null
+      initFromServerData(nextSyncPayload)
+    }
+  }
+
+  function parseErrorMessage(error: unknown, fallback: string): string {
+    return (
+      (error as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback
+    )
+  }
+
+  function isConflictError(error: unknown): boolean {
+    return (error as { response?: { status?: number } }).response?.status === 409
+  }
+
   // ─── Actions ────────────────────────────────────────────────
 
   /** Initialize store from server data */
   function initFromServerData(tasks: Task[]) {
+    if (optimisticInFlight > 0) {
+      pendingSync = tasks
+      return
+    }
+
     const map: Record<string, Task> = {}
     for (const task of tasks) {
       map[task.id] = task
     }
     tasksMap = map
+    pendingSync = null
   }
 
   /** Add or update a task */
@@ -253,6 +289,8 @@ export function createTaskStore() {
   async function moveTaskStatus(taskId: string, newStatusId: TaskStatus, newSortOrder?: number) {
     const task = getTaskById(taskId)
     if (!task) return
+
+    beginOptimistic()
 
     // Optimistic update
     const prevStatus = task.status
@@ -281,9 +319,10 @@ export function createTaskStore() {
         [taskId]: response.data.data,
       }
     } catch (error: unknown) {
-      const message =
-        (error as { response?: { data?: { message?: string } } }).response?.data?.message ??
+      const message = parseErrorMessage(
+        error,
         'Không thể chuyển trạng thái task theo workflow hiện tại.'
+      )
 
       notificationStore.error('Cập nhật trạng thái thất bại', message)
 
@@ -297,6 +336,12 @@ export function createTaskStore() {
           sort_order: prevSortOrder,
         },
       }
+
+      if (isConflictError(error)) {
+        await fetchGroupedTasks()
+      }
+    } finally {
+      endOptimistic()
     }
   }
 
@@ -304,6 +349,8 @@ export function createTaskStore() {
   async function reorderTask(taskId: string, newSortOrder: number) {
     const task = getTaskById(taskId)
     if (!task) return
+
+    beginOptimistic()
 
     const prevSortOrder = task.sort_order
     tasksMap = {
@@ -315,16 +362,29 @@ export function createTaskStore() {
       await axios.patch(`/api/tasks/${taskId}/sort-order`, {
         sort_order: newSortOrder,
       })
-    } catch {
+    } catch (error: unknown) {
       tasksMap = {
         ...tasksMap,
         [taskId]: { ...task, sort_order: prevSortOrder },
       }
+
+      notificationStore.error(
+        'Sắp xếp task thất bại',
+        parseErrorMessage(error, 'Không thể cập nhật thứ tự task.')
+      )
+
+      if (isConflictError(error)) {
+        await fetchGroupedTasks()
+      }
+    } finally {
+      endOptimistic()
     }
   }
 
   /** Batch update status */
   async function batchUpdateStatus(taskIds: string[], newStatusId: TaskStatus) {
+    beginOptimistic()
+
     // Optimistic update
     const prevStates: Record<
       string,
@@ -348,7 +408,7 @@ export function createTaskStore() {
         task_ids: taskIds,
         task_status_id: newStatusId,
       })
-    } catch {
+    } catch (error: unknown) {
       // Rollback
       const rollback = { ...tasksMap }
       for (const [id, previous] of Object.entries(prevStates)) {
@@ -362,6 +422,17 @@ export function createTaskStore() {
         }
       }
       tasksMap = rollback
+
+      notificationStore.error(
+        'Cập nhật hàng loạt thất bại',
+        parseErrorMessage(error, 'Không thể cập nhật trạng thái cho danh sách task đã chọn.')
+      )
+
+      if (isConflictError(error)) {
+        await fetchGroupedTasks()
+      }
+    } finally {
+      endOptimistic()
     }
   }
 
@@ -487,6 +558,12 @@ export function createTaskStore() {
     },
     get hasActiveFilters() {
       return hasActiveFilters
+    },
+    get isOptimisticActive() {
+      return isOptimisticActive
+    },
+    get pendingSync() {
+      return pendingSync
     },
 
     // Actions

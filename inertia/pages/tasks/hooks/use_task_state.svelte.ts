@@ -27,6 +27,7 @@ export function createTaskStateStore({ initialFilters, metadata }: TasksStatePro
       },
       {
         preserveState: true,
+        preserveScroll: true,
         only: ['tasks'],
       }
     )
