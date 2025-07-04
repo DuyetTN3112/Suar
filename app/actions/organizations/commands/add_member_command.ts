@@ -1,11 +1,23 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import { type ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
-import User from '#models/user'
-import AuditLog from '#models/audit_log'
-import OrganizationRole from '#models/organization_role'
-import type { AddMemberDTO } from '../dtos/add_member_dto.js'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import CreateAuditLog from '#actions/common/create_audit_log'
+import { EntityType } from '#constants/audit_constants'
+import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canAddMember } from '#domain/organizations/org_permission_policy'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
 
 /**
  * Command: Add Member to Organization
@@ -23,7 +35,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
  */
 export default class AddMemberCommand {
   constructor(
-    protected ctx: HttpContext,
+    protected execCtx: ExecutionContext,
     private createNotification: CreateNotification
   ) {}
 
@@ -41,115 +53,81 @@ export default class AddMemberCommand {
    * 8. Send notification (outside transaction)
    */
   async execute(dto: AddMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user
-    if (!currentUser) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const trx = await db.transaction()
 
     try {
       // 1. Validate user exists
-      const userToAdd = await User.find(dto.userId)
+      const userToAdd = await UserRepository.findById(dto.userId, trx)
       if (!userToAdd) {
-        throw new Error(`User with ID ${String(dto.userId)} not found`)
+        throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
       }
 
-      // 2. Check permissions (Owner or Admin)
-      await this.checkPermissions(dto.organizationId, currentUser.id, trx)
+      // 2. Check permissions, role validity, and duplicate membership
+      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+        dto.organizationId,
+        userId,
+        trx
+      )
+      const alreadyMember = await OrganizationUserRepository.isMember(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
+      enforcePolicy(
+        canAddMember({
+          actorOrgRole,
+          targetRoleId: dto.roleId,
+          isAlreadyMember: alreadyMember,
+        })
+      )
 
-      // 3. Validate role_id exists (FK validation)
-      await this.validateRoleId(dto.roleId, trx)
-
-      // 4. Check for duplicate membership
-      await this.checkDuplicateMembership(dto.organizationId, dto.userId, trx)
-
-      // 5. Add member to organization
-      await trx.insertQuery().table('organization_users').insert({
-        organization_id: dto.organizationId,
-        user_id: dto.userId,
-        role_id: dto.roleId,
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
+      // 5. Add member to organization → delegate to Model
+      await OrganizationUserRepository.addMember(
+        {
+          organization_id: dto.organizationId,
+          user_id: dto.userId,
+          org_role: dto.roleId,
+        },
+        trx
+      )
 
       // 6. Create audit log
-      await AuditLog.create(
-        {
-          user_id: currentUser.id,
-          action: 'add_member',
-          entity_type: 'organization',
-          entity_id: dto.organizationId,
-          new_values: {
-            ...dto.toObject(),
-            added_user_id: dto.userId,
-            role: dto.getRoleName(),
-            role_id: dto.roleId,
-          },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
+      await new CreateAuditLog(this.execCtx).handle({
+        user_id: userId,
+        action: 'add_member',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        new_values: {
+          ...dto.toObject(),
+          added_user_id: dto.userId,
+          role: dto.getRoleName(),
+          org_role: dto.roleId,
         },
-        { client: trx }
-      )
+      })
 
       await trx.commit()
 
+      // Emit domain event
+      void emitter.emit('organization:member:added', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        org_role: dto.roleId,
+        invitedBy: userId,
+      })
+
+      // Invalidate organization member caches
+      await CacheService.deleteByPattern(`organization:members:*`)
+      await CacheService.deleteByPattern(`organization:metadata:*`)
+
       // 7. Send notification (outside transaction)
-      await this.sendMemberAddedNotification(dto, currentUser.id)
+      await this.sendMemberAddedNotification(dto, userId)
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to add members
-   * Only Owner (role_id = 1) or Admin (role_id = 2) can add members
-   */
-  private async checkPermissions(
-    organizationId: number,
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .whereIn('role_id', [1, 2]) // Owner or Admin
-      .first()
-
-    if (!membership) {
-      throw new Error('You do not have permission to add members to this organization')
-    }
-  }
-
-  /**
-   * Helper: Check for duplicate membership
-   */
-  private async checkDuplicateMembership(
-    organizationId: number,
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const existingMembership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .first()
-
-    if (existingMembership) {
-      throw new Error('User is already a member of this organization')
-    }
-  }
-
-  /**
-   * Helper: Validate role_id exists in organization_roles
-   * (FK validation - organization_users.role_id -> organization_roles.id)
-   */
-  private async validateRoleId(roleId: number, trx: TransactionClientContract): Promise<void> {
-    const role = await OrganizationRole.query({ client: trx }).where('id', roleId).first()
-
-    if (!role) {
-      throw new Error(`Organization role with ID ${String(roleId)} does not exist`)
     }
   }
 
@@ -158,19 +136,19 @@ export default class AddMemberCommand {
    */
   private async sendMemberAddedNotification(
     dto: AddMemberDTO,
-    _addedByUserId: number
+    _addedByUserId: DatabaseId
   ): Promise<void> {
     try {
       await this.createNotification.handle({
         user_id: dto.userId,
         title: 'Được thêm vào tổ chức',
         message: `Bạn đã được thêm vào tổ chức với vai trò ${dto.getRoleNameVi()}`,
-        type: 'member_added',
-        related_entity_type: 'organization',
+        type: BACKEND_NOTIFICATION_TYPES.MEMBER_ADDED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
-      console.error('[AddMemberCommand] Failed to send notification:', error)
+      loggerService.error('[AddMemberCommand] Failed to send notification:', error)
     }
   }
 }

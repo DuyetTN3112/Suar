@@ -1,36 +1,35 @@
-import Notification from '#models/notification'
-import { inject } from '@adonisjs/core'
-import { HttpContext } from '@adonisjs/core/http'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
+import NotFoundException from '#exceptions/not_found_exception'
 
-@inject()
 export default class MarkNotificationAsRead {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
-  async handle({ id }: { id: number }) {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+  async handle({ id }: { id: DatabaseId }) {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
-    // Tìm thông báo cần đánh dấu
-    const notification = await Notification.query()
-      .where('id', id)
-      .where('user_id', user.id)
-      .firstOrFail()
-    // Đánh dấu đã đọc
-    notification.is_read = true
-    await notification.save()
-    return notification
+
+    const repo = await RepositoryFactory.getNotificationRepository()
+    const updated = await repo.markAsRead(id, userId)
+
+    if (!updated) {
+      throw NotFoundException.resource('Notification', id)
+    }
+
+    return { success: true }
   }
-  // Đánh dấu tất cả thông báo của người dùng là đã đọc
+  // Đánh dấu tất cả thông báo của người dùng là đã đọc → delegate to Model
   async markAllAsRead() {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
-    await Notification.query()
-      .where('user_id', user.id)
-      .where('is_read', false)
-      .update({ is_read: true })
+    const repo = await RepositoryFactory.getNotificationRepository()
+    await repo.markAllAsRead(userId)
     return { success: true }
   }
 }
