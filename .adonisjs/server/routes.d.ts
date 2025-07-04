@@ -82,8 +82,10 @@ export type ScannedRoutes = {
     'api.tasks.grouped': { paramsTuple?: []; params?: {} }
     'api.tasks.timeline': { paramsTuple?: []; params?: {} }
     'api.tasks.batch_status': { paramsTuple?: []; params?: {} }
+    'api.tasks.status_board': { paramsTuple?: []; params?: {} }
     'api.tasks.sort_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.create': { paramsTuple?: []; params?: {} }
+    'tasks.status_board': { paramsTuple?: []; params?: {} }
     'tasks.store': { paramsTuple?: []; params?: {} }
     'tasks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -281,6 +283,7 @@ export type ScannedRoutes = {
     'api.tasks.grouped': { paramsTuple?: []; params?: {} }
     'api.tasks.timeline': { paramsTuple?: []; params?: {} }
     'tasks.create': { paramsTuple?: []; params?: {} }
+    'tasks.status_board': { paramsTuple?: []; params?: {} }
     'tasks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -381,6 +384,7 @@ export type ScannedRoutes = {
     'api.tasks.grouped': { paramsTuple?: []; params?: {} }
     'api.tasks.timeline': { paramsTuple?: []; params?: {} }
     'tasks.create': { paramsTuple?: []; params?: {} }
+    'tasks.status_board': { paramsTuple?: []; params?: {} }
     'tasks.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.edit': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
@@ -470,6 +474,7 @@ export type ScannedRoutes = {
   PATCH: {
     'profile.snapshots.access': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'api.tasks.batch_status': { paramsTuple?: []; params?: {} }
+    'api.tasks.status_board': { paramsTuple?: []; params?: {} }
     'api.tasks.sort_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
     'tasks.update.time': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
   }
