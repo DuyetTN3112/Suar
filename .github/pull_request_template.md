@@ -3,6 +3,14 @@
 - What changed:
 - Why it changed:
 
+## Ownership Gate
+
+- Hotspot touched (if any):
+- Primary owner (`Assigned To` from hotspot map):
+- Backup owner:
+- Tracking ticket/card:
+- SLA acknowledged: [ ] yes
+
 ## Testing Notes
 
 - What contract or invariant does each added or changed test protect?

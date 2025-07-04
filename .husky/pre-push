@@ -1,1 +1,2 @@
+pnpm run check:arch:backend:side-effects
 pnpm test:all:safe

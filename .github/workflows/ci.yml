@@ -83,6 +83,9 @@ jobs:
           path: node_modules
           key: nm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
 
+      - name: Check backend side-effect boundary
+        run: pnpm run check:arch:backend:side-effects
+
       - run: pnpm run lint
       - run: pnpm run typecheck
 
