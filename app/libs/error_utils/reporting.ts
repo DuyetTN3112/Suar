@@ -1,4 +1,4 @@
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import { getErrorCode, getErrorMessage, isError } from './extractors.js'
 
 export function withErrorHandling<T>(

@@ -1,5 +1,5 @@
 import type { ExecutionContext } from '#types/execution_context'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 
 export default class FlushCacheCommand {
   constructor(protected execCtx: ExecutionContext) {}

@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
-import cacheService from '#services/cache_service'
-import loggerService from '#services/logger_service'
+import cacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
 import type { CacheInvalidationEvent } from '#events/event_types'
 import * as CachedPermissionService from '#services/cached_permission_service'
 

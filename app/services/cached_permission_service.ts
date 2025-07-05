@@ -1,5 +1,5 @@
 import type { DatabaseId } from '#types/database'
-import cacheService from '#services/cache_service'
+import cacheService from '#infra/cache/cache_service'
 import * as PermissionService from '#services/permission_service'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
