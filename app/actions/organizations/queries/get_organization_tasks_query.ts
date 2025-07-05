@@ -1,14 +1,22 @@
-import type { HttpContext } from '@adonisjs/core/http'
-import Task from '#models/task'
+import type { ExecutionContext } from '#types/execution_context'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import type Task from '#models/task'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { PAGINATION } from '#constants/common_constants'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 
 interface QueryOptions {
-  organizationId: number
-  statusId?: number
-  priorityId?: number
-  projectId?: number
-  assignedTo?: number
+  organizationId: DatabaseId
+  statusId?: DatabaseId
+  priorityId?: DatabaseId
+  projectId?: DatabaseId
+  assignedTo?: DatabaseId
   search?: string
   page?: number
   limit?: number
@@ -31,7 +39,7 @@ interface PaginatedResult {
  *
  * Pattern: Filtered list with permissions (learned from Tasks module)
  * Features:
- * - Permission check (must be member)
+ * - Permission check through task domain read scope
  * - Filter by status, priority, project, assignee
  * - Search by title/description
  * - Pagination support
@@ -48,12 +56,12 @@ interface PaginatedResult {
  * })
  */
 export default class GetOrganizationTasksQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   async execute(options: QueryOptions): Promise<PaginatedResult> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('Unauthorized')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
     }
     const {
       organizationId,
@@ -63,21 +71,18 @@ export default class GetOrganizationTasksQuery {
       assignedTo,
       search,
       page = 1,
-      limit = 20,
+      limit = PAGINATION.DEFAULT_PER_PAGE,
       sortBy = 'created_at',
       sortOrder = 'desc',
     } = options
 
     // 1. Validate
-    if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
+      throw new BusinessLogicException('Limit phải từ 1 đến 100')
     }
 
-    // 2. Permission check: User must be member
-    const isMember = await this.checkMembership(user.id, organizationId)
-    if (!isMember) {
-      throw new Error('Bạn không có quyền xem tasks của organization này')
-    }
+    // 2. Resolve permission scope
+    const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
     // 3. Try cache first
     const cacheKey = this.buildCacheKey(options)
@@ -86,8 +91,9 @@ export default class GetOrganizationTasksQuery {
       return cached
     }
 
-    // 4. Build query
-    const query = Task.query().where('organization_id', organizationId).whereNull('deleted_at')
+    // 4. Build query and execute with pagination
+    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority']
+    const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
 
     // 5. Apply filters
     if (statusId) {
