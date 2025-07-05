@@ -196,7 +196,7 @@ test.group('Task assignment rules', () => {
     assert.isTrue(
       validateBatchStatusUpdate({
         taskCount: 1,
-        newStatus: TaskStatus.IN_PROGRESS,
+        newStatusId: 'status-in-progress',
         maxBatchSize: 50,
       }).allowed
     )
@@ -204,7 +204,7 @@ test.group('Task assignment rules', () => {
       assert,
       validateBatchStatusUpdate({
         taskCount: 0,
-        newStatus: TaskStatus.IN_PROGRESS,
+        newStatusId: 'status-in-progress',
         maxBatchSize: 50,
       }),
       'BUSINESS_RULE'
@@ -213,7 +213,7 @@ test.group('Task assignment rules', () => {
       assert,
       validateBatchStatusUpdate({
         taskCount: 51,
-        newStatus: TaskStatus.IN_PROGRESS,
+        newStatusId: 'status-in-progress',
         maxBatchSize: 50,
       }),
       'BUSINESS_RULE'
@@ -222,7 +222,7 @@ test.group('Task assignment rules', () => {
       assert,
       validateBatchStatusUpdate({
         taskCount: 1,
-        newStatus: 'invalid_status',
+        newStatusId: '   ',
         maxBatchSize: 50,
       }),
       'BUSINESS_RULE'

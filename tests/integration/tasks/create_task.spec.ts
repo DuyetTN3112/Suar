@@ -279,6 +279,61 @@ test.group('Integration | Create Task', (group) => {
     await assert.rejects(() => command.execute(dto))
   })
 
+  test('allows assigning a freelancer outside the organization', async ({ assert }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const freelancer = await UserFactory.createFreelancer()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const requiredSkillId = await createRequiredSkillId()
+    const projectId = await createTaskProject(org.id, owner.id)
+
+    const ctx = ExecutionContext.system(owner.id)
+    const command = new CreateTaskCommand(ctx, new CreateNotification())
+
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId,
+      projectId,
+      title: 'Freelancer Assignee Task',
+      assigned_to: freelancer.id,
+    })
+
+    const task = await command.execute(dto)
+
+    assert.equal(task.assigned_to, freelancer.id)
+  })
+
+  test('rolls back task creation if required skill validation fails after task insert', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const todoStatusId = await getTodoStatusId(org.id)
+    const projectId = await createTaskProject(org.id, owner.id)
+    const title = 'Rollback Required Skill Task'
+    const inactiveSkill = await SkillFactory.create({ is_active: false })
+
+    const ctx = ExecutionContext.system(owner.id)
+    const command = new CreateTaskCommand(ctx, new CreateNotification())
+
+    const dto = buildCreateTaskDTO({
+      organizationId: org.id,
+      taskStatusId: todoStatusId,
+      requiredSkillId: inactiveSkill.id,
+      projectId,
+      title,
+    })
+
+    await assert.rejects(() => command.execute(dto), BusinessLogicException)
+
+    const rolledBackTask = await Task.query()
+      .where('project_id', projectId)
+      .where('title', title)
+      .whereNull('deleted_at')
+      .first()
+
+    assert.isNull(rolledBackTask)
+  })
+
   test('parent task from another organization is rejected', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const { org: otherOrg, owner: otherOwner } = await OrganizationFactory.createWithOwner()
