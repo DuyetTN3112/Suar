@@ -27,6 +27,89 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
   reporter.boot(...args)
 }
 
+let reportedPgTerminationRejection = false
+
+const normalizeThrownError = (error: unknown): Error => {
+  if (error instanceof Error) {
+    return error
+  }
+
+  return new Error(String(error))
+}
+
+const isIgnorablePgTerminationError = (error: unknown): error is Error => {
+  return Boolean(
+    error instanceof Error &&
+    error.message === 'Connection terminated' &&
+    error.stack?.includes('/node_modules/.pnpm/pg@')
+  )
+}
+
+process.on('unhandledRejection', (error) => {
+  if (isIgnorablePgTerminationError(error)) {
+    if (!reportedPgTerminationRejection) {
+      reportedPgTerminationRejection = true
+      console.warn('[test-runner] Ignoring pg shutdown rejection during teardown')
+    }
+    return
+  }
+
+  throw normalizeThrownError(error)
+})
+
+process.on('uncaughtException', (error) => {
+  if (isIgnorablePgTerminationError(error)) {
+    if (!reportedPgTerminationRejection) {
+      reportedPgTerminationRejection = true
+      console.warn('[test-runner] Ignoring pg shutdown error during teardown')
+    }
+    return
+  }
+
+  throw normalizeThrownError(error)
+})
+
+const closeTestRuntimeConnections = async () => {
+  const [{ default: db }, { default: redis }] = await Promise.all([
+    import('@adonisjs/lucid/services/db'),
+    import('@adonisjs/redis/services/main'),
+  ])
+
+  await Promise.allSettled([db.manager.closeAll(), redis.quit()])
+}
+
+const runWithFilteredJapaProcessListeners = async <T>(callback: () => Promise<T>): Promise<T> => {
+  const originalProcessOn = process.on.bind(process)
+  type ProcessOnEventName = Parameters<typeof process.on>[0]
+  type ProcessOnListener = Parameters<typeof process.on>[1]
+
+  process.on = ((eventName: ProcessOnEventName, listener: ProcessOnListener) => {
+    if (eventName === 'unhandledRejection' || eventName === 'uncaughtException') {
+      const wrappedListener = ((error: unknown, ...args: unknown[]) => {
+        if (isIgnorablePgTerminationError(error)) {
+          if (!reportedPgTerminationRejection) {
+            reportedPgTerminationRejection = true
+            console.warn('[test-runner] Ignoring pg shutdown rejection during teardown')
+          }
+          return
+        }
+
+        return (listener as (...listenerArgs: unknown[]) => unknown)(error, ...args)
+      }) as ProcessOnListener
+
+      return originalProcessOn(eventName, wrappedListener)
+    }
+
+    return originalProcessOn(eventName, listener)
+  }) as typeof process.on
+
+  try {
+    return await callback()
+  } finally {
+    process.on = originalProcessOn
+  }
+}
+
 try {
   const ignitor = new Ignitor(APP_ROOT, { importer: IMPORTER })
 
@@ -86,14 +169,19 @@ try {
           },
         ],
       },
-      forceExit: true,
+      forceExit: false,
       importer: IMPORTER,
     })
 
     /**
      * Run tests
      */
-    await run()
+    try {
+      await runWithFilteredJapaProcessListeners(() => run())
+    } finally {
+      await closeTestRuntimeConnections()
+      await app.terminate()
+    }
   })
 } catch (error) {
   void prettyPrintError(error as Error)
