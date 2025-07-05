@@ -1,9 +1,15 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DeleteProjectDTO } from '../dtos/index.js'
-import Project from '#models/project'
+import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import { DateTime } from 'luxon'
-import db from '@adonisjs/lucid/services/db'
+import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canDeleteProject } from '#domain/projects/project_permission_policy'
+import UserRepository from '#infra/users/repositories/user_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -23,31 +29,46 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
    * @param dto - Validated DeleteProjectDTO
    */
   async handle(dto: DeleteProjectDTO): Promise<void> {
-    const user = this.getCurrentUser()
+    const userId = this.getCurrentUserId()
 
-    await this.executeInTransaction(async (trx) => {
+    const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await Project.query({ client: trx })
-        .where('id', dto.project_id)
-        .whereNull('deleted_at')
-        .forUpdate()
-        .firstOrFail()
+      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
 
-      // 2. Check permissions (owner or superadmin only)
-      await this.validateDeletePermission(user.id, project)
+      // Optional scope guard for adapters that require current organization context.
+      if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
+        throw new ForbiddenException('Dự án không thuộc tổ chức hiện tại')
+      }
 
-      // 3. Check for incomplete tasks
-      await this.checkIncompleteTasks(project.id, trx)
+      // 2. Check permissions and incomplete tasks via pure rule
+      const user = await UserRepository.findNotDeletedOrFail(userId, trx)
+      const orgMembership = await OrganizationUserRepository.findMembership(
+        project.organization_id,
+        userId,
+        trx
+      )
+      const incompleteTaskCount = await TaskRepository.countIncompleteByProject(project.id, trx)
+
+      enforcePolicy(
+        canDeleteProject({
+          actorId: userId,
+          actorSystemRole: user.system_role,
+          actorOrgRole: orgMembership?.org_role ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          incompleteTaskCount,
+        })
+      )
 
       // 4. Store old values for audit
       const oldValues = project.toJSON()
 
       // 5. Perform delete (soft or permanent)
       if (dto.isPermanentDelete()) {
-        await project.useTransaction(trx).delete()
+        await ProjectRepository.hardDelete(project, trx)
       } else {
         project.deleted_at = DateTime.now()
-        await project.useTransaction(trx).save()
+        await ProjectRepository.save(project, trx)
       }
 
       // 6. Log audit trail
@@ -56,70 +77,21 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
         reason: dto.reason,
         permanent: dto.permanent,
       })
+
+      return {
+        projectId: project.id,
+        organizationId: project.organization_id,
+      }
     })
-  }
 
-  /**
-   * Validate user has permission to delete project
-   */
-  private async validateDeletePermission(userId: number, project: Project): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
+    // Emit domain event
+    void emitter.emit('project:deleted', {
+      projectId: deletedProjectEvent.projectId,
+      organizationId: deletedProjectEvent.organizationId,
+      deletedBy: userId,
+    })
 
-    if (isOwner || isCreator) {
-      return
-    }
-
-    // Check if user is superadmin of the organization
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    if (!isSuperAdmin) {
-      throw new Error('Chỉ owner hoặc superadmin mới có thể xóa dự án')
-    }
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
-      .first()) as { id: number } | null
-
-    return !!result
-  }
-
-  /**
-   * Check for incomplete tasks and warn user
-   */
-  private async checkIncompleteTasks(
-    projectId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const incompleteTasks = (await trx
-      .from('tasks')
-      .where('project_id', projectId)
-      .whereNull('deleted_at')
-      .whereNotIn('status_id', [
-        // Assuming these are "completed" status IDs
-        // Adjust based on your task_status table
-        3, // completed
-        4, // cancelled
-      ])
-      .count('* as total')
-      .first()) as { total?: string | number } | null
-
-    const count = Number(incompleteTasks?.total ?? 0)
-
-    if (count > 0) {
-      throw new Error(
-        `Dự án có ${String(count)} công việc chưa hoàn thành. ` +
-          `Vui lòng hoàn thành hoặc hủy các công việc trước khi xóa dự án.`
-      )
-    }
+    // Invalidate project caches after transaction
+    await CacheService.deleteByPattern(`organization:tasks:*`)
   }
 }

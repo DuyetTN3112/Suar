@@ -95,53 +95,22 @@ export default class GetOrganizationTasksQuery {
     const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority']
     const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
 
-    // 5. Apply filters
-    if (statusId) {
-      void query.where('status_id', statusId)
-    }
-
-    if (priorityId) {
-      void query.where('priority_id', priorityId)
-    }
-
-    if (projectId) {
-      void query.where('project_id', projectId)
-    }
-
-    if (assignedTo) {
-      void query.where('assigned_to', assignedTo)
-    }
-
-    if (search) {
-      void query.where((searchQuery) => {
-        void searchQuery
-          .whereILike('title', `%${search}%`)
-          .orWhereILike('description', `%${search}%`)
-      })
-    }
-
-    // 6. Preload relations
-    void query
-      .preload('status')
-      .preload('priority')
-      .preload('label')
-      .preload('assignee', (q) => {
-        void q.select(['id', 'username', 'email'])
-      })
-      .preload('creator', (q) => {
-        void q.select(['id', 'username'])
-      })
-      .preload('project', (q) => {
-        void q.select(['id', 'name', 'status_id'])
-      })
-
-    // 7. Apply sorting
-    const validSortFields = ['created_at', 'updated_at', 'due_date', 'title', 'priority_id']
-    const sortField = validSortFields.includes(sortBy) ? sortBy : 'created_at'
-    void query.orderBy(sortField, sortOrder)
-
-    // 8. Execute with pagination
-    const paginator = await query.paginate(page, limit)
+    const paginator = await TaskRepository.paginateByOrganization(
+      organizationId,
+      {
+        status: statusId,
+        priority: priorityId,
+        assigned_to: assignedTo,
+        parent_task_id: null,
+        project_id: projectId,
+        search,
+        sort_by: sortField,
+        sort_order: sortOrder,
+        page,
+        limit,
+      },
+      permissionFilter
+    )
 
     const result: PaginatedResult = {
       data: paginator.all(),
@@ -159,18 +128,12 @@ export default class GetOrganizationTasksQuery {
     return result
   }
 
-  /**
-   * Check if user is member of organization
-   */
-  private async checkMembership(userId: number, organizationId: number): Promise<boolean> {
-    const membership: unknown = await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .first()
-
-    return !!membership
+  private async resolvePermissionFilter(
+    userId: DatabaseId,
+    organizationId: DatabaseId
+  ): Promise<TaskPermissionFilter> {
+    const accessContext = await buildTaskCollectionAccessContext(userId, organizationId, 'none')
+    return buildTaskPermissionFilter(accessContext)
   }
 
   /**
@@ -179,15 +142,15 @@ export default class GetOrganizationTasksQuery {
   private buildCacheKey(options: QueryOptions): string {
     const parts = [
       'organization:tasks',
-      `org:${String(options.organizationId)}`,
-      `page:${String(options.page ?? 1)}`,
-      `limit:${String(options.limit ?? 20)}`,
+      `org:${options.organizationId}`,
+      `page:${options.page ?? 1}`,
+      `limit:${options.limit ?? PAGINATION.DEFAULT_PER_PAGE}`,
     ]
 
-    if (options.statusId) parts.push(`status:${String(options.statusId)}`)
-    if (options.priorityId) parts.push(`priority:${String(options.priorityId)}`)
-    if (options.projectId) parts.push(`project:${String(options.projectId)}`)
-    if (options.assignedTo) parts.push(`assigned:${String(options.assignedTo)}`)
+    if (options.statusId) parts.push(`status:${options.statusId}`)
+    if (options.priorityId) parts.push(`priority:${options.priorityId}`)
+    if (options.projectId) parts.push(`project:${options.projectId}`)
+    if (options.assignedTo) parts.push(`assigned:${options.assignedTo}`)
     if (options.search) parts.push(`search:${options.search}`)
     if (options.sortBy) parts.push(`sort:${options.sortBy}`)
     if (options.sortOrder) parts.push(`order:${options.sortOrder}`)
@@ -205,7 +168,7 @@ export default class GetOrganizationTasksQuery {
         return JSON.parse(cached) as PaginatedResult
       }
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache get error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache get error:', error)
     }
     return null
   }
@@ -217,7 +180,7 @@ export default class GetOrganizationTasksQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetOrganizationTasksQuery] Cache set error:', error)
+      loggerService.error('[GetOrganizationTasksQuery] Cache set error:', error)
     }
   }
 }
