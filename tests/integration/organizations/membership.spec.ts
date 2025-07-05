@@ -21,6 +21,7 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import AuditLog from '#models/mongo/audit_log'
 import Task from '#models/task'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import CacheService from '#services/cache_service'
 
 type AuditLogEntry = {
   action: string
@@ -65,6 +66,8 @@ test.group('Integration | Organization Membership', (group) => {
       org_role: OrganizationRole.MEMBER,
       status: 'approved',
     })
+    const membershipCacheKey = `organization:members:${org.id}:member-list`
+    await CacheService.set(membershipCacheKey, { userIds: [member.id] })
 
     const command = new UpdateMemberRoleCommand(
       ExecutionContext.system(owner.id),
@@ -82,6 +85,7 @@ test.group('Integration | Organization Membership', (group) => {
     }
     assert.equal(membership.org_role, OrganizationRole.ADMIN)
     assert.isTrue(await OrganizationUserRepository.isAdminOrOwner(member.id, org.id))
+    assert.isNull(await CacheService.get(membershipCacheKey))
 
     const notifications = await getUserNotifications(member.id)
     const roleChanged = notifications.notifications.find(
@@ -124,6 +128,8 @@ test.group('Integration | Organization Membership', (group) => {
       org_role: OrganizationRole.MEMBER,
       status: 'approved',
     })
+    const membershipCacheKey = `organization:members:${org.id}:member-list`
+    await CacheService.set(membershipCacheKey, { userIds: [targetMember.id] })
 
     const command = new UpdateMemberRoleCommand(
       ExecutionContext.system(pendingAdmin.id),
@@ -141,6 +147,7 @@ test.group('Integration | Organization Membership', (group) => {
     }
     assert.equal(membership.org_role, OrganizationRole.MEMBER)
     assert.isFalse(await OrganizationUserRepository.isAdminOrOwner(targetMember.id, org.id))
+    assert.deepEqual(await CacheService.get(membershipCacheKey), { userIds: [targetMember.id] })
 
     const notifications = await getUserNotifications(targetMember.id)
     assert.lengthOf(notifications.notifications, 0)
