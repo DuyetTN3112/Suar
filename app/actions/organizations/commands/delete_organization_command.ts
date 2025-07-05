@@ -42,89 +42,50 @@ export default class DeleteOrganizationCommand {
         OrganizationRepository.countActiveProjects(organization.id, trx),
       ])
 
-
-      // 4. Store old values for audit
-      const oldValues = organization.toJSON()
-
-      // 5. Delete organization (soft or permanent)
-      if (dto.isPermanentDelete()) {
-        // Permanent delete - remove from database
-        await organization.useTransaction(trx).delete()
-      } else {
-        // Soft delete - set deleted_at timestamp
-        organization.deleted_at = DateTime.now()
-        await organization.useTransaction(trx).save()
-      }
-
-      // 6. Create audit log
-      await AuditLog.create(
-        {
-          user_id: user.id,
-          action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
-          entity_type: 'organization',
-          entity_id: organization.id,
-          old_values: oldValues,
-          new_values: {
-            deletion_type: dto.getDeletionType(),
-            reason: dto.getNormalizedReason(),
-          },
-          ip_address: this.ctx.request.ip(),
-          user_agent: this.ctx.request.header('user-agent') || '',
-        },
-        { client: trx }
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canDeleteOrganization({
+          actorId: userId,
+          actorOrgRole: orgRole,
+          activeProjectCount,
+        })
       )
 
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const oldValues = organization.toJSON()
+
+      if (dto.isPermanentDelete()) {
+        await OrganizationRepository.hardDelete(organization, trx)
+      } else {
+        organization.deleted_at = DateTime.now()
+        await OrganizationRepository.save(organization, trx)
+      }
+
+      await new CreateAuditLog(this.execCtx).handle({
+        user_id: userId,
+        action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organization.id,
+        old_values: oldValues,
+        new_values: {
+          deletion_type: dto.getDeletionType(),
+          reason: dto.getNormalizedReason(),
+        },
+      })
+
       await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:deleted', {
+        organizationId: organization.id,
+        deletedBy: userId,
+      })
+
+      // Invalidate organization caches
+      await CacheService.deleteByPattern(`organization:*`)
     } catch (error) {
       await trx.rollback()
       throw error
-    }
-  }
-
-  /**
-   * Helper: Check if user has permission to delete organization
-   * Only Owner (role_id = 1) can delete
-   */
-  private async checkPermissions(
-    organizationId: number,
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    const membership: unknown = await trx
-      .from('organization_users')
-      .where('organization_id', organizationId)
-      .where('user_id', userId)
-      .where('role_id', 1) // Owner only
-      .first()
-
-    if (!membership) {
-      throw new Error('Only the organization owner can delete the organization')
-    }
-  }
-
-  /**
-   * Helper: Check for active projects
-   * Cannot delete organization with active projects
-   */
-  private async checkActiveProjects(
-    organizationId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    interface CountResult {
-      total: number | string
-    }
-    const activeProjectsCount = (await trx
-      .from('projects')
-      .where('organization_id', organizationId)
-      .whereNull('deleted_at')
-      .count('* as total')
-      .first()) as CountResult | null
-
-    const total = Number(activeProjectsCount?.total ?? 0)
-    if (total > 0) {
-      throw new Error(
-        `Cannot delete organization with ${String(total)} active project(s). Please delete or archive all projects first.`
-      )
     }
   }
 }
