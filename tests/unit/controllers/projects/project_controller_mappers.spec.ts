@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import {
   buildDeleteProjectDTO,
   buildProjectsListDTO,
-} from '#controllers/projects/mapper/request/project_request_mapper'
+} from '#controllers/projects/mappers/request/project_request_mapper'
 import {
   mapDeleteProjectApiBody,
   mapOrganizationProjectsPageProps,
@@ -10,7 +10,7 @@ import {
   mapProjectDetailPageProps,
   mapProjectMutationApiBody,
   mapProjectsIndexPageProps,
-} from '#controllers/projects/mapper/response/project_response_mapper'
+} from '#controllers/projects/mappers/response/project_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {

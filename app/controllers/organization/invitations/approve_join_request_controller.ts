@@ -4,8 +4,8 @@ import ProcessJoinRequestCommand from '#actions/organizations/commands/process_j
 import CreateNotification from '#actions/common/create_notification'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildProcessJoinRequestDTO } from '#controllers/organizations/mapper/request/organization_request_mapper'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
+import { buildProcessJoinRequestDTO } from '#controllers/organizations/mappers/request/organization_request_mapper'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
 
 /**
  * ApproveJoinRequestController

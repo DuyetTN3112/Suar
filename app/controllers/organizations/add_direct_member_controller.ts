@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
 import CreateNotification from '#actions/common/create_notification'
-import { buildAddDirectMemberDTO } from './mapper/request/organization_request_mapper.js'
-import { mapOrganizationSuccessApiBody } from './mapper/response/organization_response_mapper.js'
+import { buildAddDirectMemberDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
 /**
  * POST /organizations/:id/members/add-direct

@@ -7,6 +7,7 @@ import { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_
 import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
 import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
 import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
+import type { OrganizationMembersPageFilters } from '#actions/organizations/queries/get_organization_members_page_query'
 import type { DatabaseId } from '#types/database'
 
 const ORGANIZATIONS_DEFAULT_LIMIT = 20
@@ -49,6 +50,29 @@ function toStringArray(value: unknown): string[] {
   )
 }
 
+function toStatusFilter(value: unknown): OrganizationMembersPageFilters['statusFilter'] {
+  const status = toOptionalString(value)
+  return status === 'active' || status === 'pending' || status === 'inactive' ? status : undefined
+}
+
+function toIncludeList(value: unknown): OrganizationMembersPageFilters['include'] {
+  const values = Array.isArray(value)
+    ? value
+    : typeof value === 'string'
+      ? value
+          .split(',')
+          .map((item) => item.trim())
+          .filter((item) => item.length > 0)
+      : []
+
+  const allowed = new Set(['activity', 'audit'])
+  const normalized = values.filter(
+    (item): item is 'activity' | 'audit' => typeof item === 'string' && allowed.has(item)
+  )
+
+  return normalized.length > 0 ? normalized : undefined
+}
+
 export function buildCreateOrganizationDTO(request: HttpContext['request']): CreateOrganizationDTO {
   return new CreateOrganizationDTO(
     request.input('name') as string,
@@ -73,6 +97,22 @@ export function buildOrganizationsListDTO(
     toSortBy(request.input('sort_by', 'created_at') as unknown),
     toSortOrder(request.input('sort_order', 'desc') as unknown)
   )
+}
+
+export function buildOrganizationMembersPageFilters(
+  request: HttpContext['request'],
+  defaults: { page?: number; limit?: number } = {}
+): OrganizationMembersPageFilters {
+  const qs = request.qs() as Record<string, unknown>
+
+  return {
+    page: toPositiveNumber(qs.page, defaults.page ?? 1),
+    limit: toPositiveNumber(qs.limit, defaults.limit ?? 100),
+    roleId: toOptionalString(qs.roleId ?? qs.org_role),
+    search: toOptionalString(qs.search),
+    statusFilter: toStatusFilter(qs.statusFilter ?? qs.status),
+    include: toIncludeList(qs.include),
+  }
 }
 
 export function buildRemoveMemberDTO(

@@ -4,8 +4,8 @@ import RemoveMemberCommand from '#actions/organizations/commands/remove_member_c
 import CreateNotification from '#actions/common/create_notification'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildRemoveMemberDTO } from '#controllers/organizations/mapper/request/organization_request_mapper'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mapper/response/organization_response_mapper'
+import { buildRemoveMemberDTO } from '#controllers/organizations/mappers/request/organization_request_mapper'
+import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
 
 /**
  * RemoveMemberController

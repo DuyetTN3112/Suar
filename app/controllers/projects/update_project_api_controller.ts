@@ -3,8 +3,8 @@ import UpdateProjectCommand from '#actions/projects/commands/update_project_comm
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
 import { ExecutionContext } from '#types/execution_context'
-import { buildUpdateProjectDTO } from './mapper/request/project_request_mapper.js'
-import { mapProjectMutationApiBody } from './mapper/response/project_response_mapper.js'
+import { buildUpdateProjectDTO } from './mappers/request/project_request_mapper.js'
+import { mapProjectMutationApiBody } from './mappers/response/project_response_mapper.js'
 
 /**
  * PUT /api/projects/:id → Update project (API)

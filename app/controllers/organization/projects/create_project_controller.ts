@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import CreateProjectCommand from '#actions/projects/commands/create_project_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildCreateProjectDTO } from '#controllers/projects/mapper/request/project_request_mapper'
-import { mapProjectMutationApiBody } from '#controllers/projects/mapper/response/project_response_mapper'
+import { buildCreateProjectDTO } from '#controllers/projects/mappers/request/project_request_mapper'
+import { mapProjectMutationApiBody } from '#controllers/projects/mappers/response/project_response_mapper'
 
 /**
  * CreateProjectController
