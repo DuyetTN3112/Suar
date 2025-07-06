@@ -30,6 +30,20 @@ export class UpdateMemberRoleDTO {
     this.validate()
   }
 
+  static fromValidatedPayload(payload: {
+    organization_id: DatabaseId
+    user_id: DatabaseId
+    role_id: string
+    allowed_role_ids?: string[]
+  }): UpdateMemberRoleDTO {
+    return new UpdateMemberRoleDTO(
+      payload.organization_id,
+      payload.user_id,
+      payload.role_id,
+      payload.allowed_role_ids ?? [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
+    )
+  }
+
   /**
    * Validate all fields at construction time
    */

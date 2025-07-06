@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
 import type { DatabaseId } from '#types/database'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UserRepository from '#infra/users/repositories/user_repository'

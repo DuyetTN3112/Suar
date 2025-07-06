@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'

@@ -27,6 +27,32 @@ export class GetOrganizationMembersDTO {
     this.validate()
   }
 
+  static fromFilters(
+    organizationId: DatabaseId,
+    filters: {
+      page?: number
+      limit?: number
+      role_id?: string
+      search?: string
+      sort_by?: string
+      sort_order?: 'asc' | 'desc'
+      status_filter?: 'active' | 'pending' | 'inactive'
+      include?: Array<'activity' | 'audit'>
+    }
+  ): GetOrganizationMembersDTO {
+    return new GetOrganizationMembersDTO(
+      organizationId,
+      filters.page,
+      filters.limit,
+      filters.role_id,
+      filters.search,
+      filters.sort_by,
+      filters.sort_order,
+      filters.status_filter,
+      filters.include
+    )
+  }
+
   /**
    * Validate all fields at construction time
    */

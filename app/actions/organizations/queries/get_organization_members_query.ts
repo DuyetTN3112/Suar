@@ -2,7 +2,7 @@ import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
@@ -79,21 +79,20 @@ export default class GetOrganizationMembersQuery {
       include: dto.include,
     })
 
-    const mappedData = data.map(
-      (member) =>
-        new OrganizationMemberResponseDTO({
-          id: member.user_id,
-          user_id: member.user_id,
-          username: member.user.username,
-          email: member.user.email ?? '',
-          org_role: member.org_role,
-          role_name: ORG_ROLE_LABEL[member.org_role] ?? member.org_role,
-          status: member.status,
-          joined_at: new Date(member.created_at).toISOString(),
-          last_activity_at: member.last_activity_at
-            ? new Date(member.last_activity_at).toISOString()
-            : null,
-        })
+    const mappedData = data.map((member) =>
+      OrganizationMemberResponseDTO.fromProps({
+        id: member.user_id,
+        user_id: member.user_id,
+        username: member.user.username,
+        email: member.user.email ?? '',
+        org_role: member.org_role,
+        role_name: ORG_ROLE_LABEL[member.org_role] ?? member.org_role,
+        status: member.status,
+        joined_at: new Date(member.created_at).toISOString(),
+        last_activity_at: member.last_activity_at
+          ? new Date(member.last_activity_at).toISOString()
+          : null,
+      })
     )
 
     // 4. Calculate meta

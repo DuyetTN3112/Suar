@@ -47,49 +47,20 @@ export class OrganizationApplicationMapper {
    * Domain Entity → OrganizationDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: OrganizationEntity): OrganizationDetailResponseDTO {
-    return new OrganizationDetailResponseDTO({
-      id: entity.id,
-      name: entity.name,
-      slug: entity.slug,
-      description: entity.description,
-      logo: entity.logo,
-      website: entity.website,
-      ownerId: entity.ownerId,
-      customRoles: entity.customRoles,
-      partnerType: entity.partnerType,
-      partnerVerifiedAt: entity.partnerVerifiedAt,
-      partnerIsActive: entity.partnerIsActive,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    })
+    return OrganizationDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → OrganizationListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: OrganizationEntity): OrganizationListItemResponseDTO {
-    return new OrganizationListItemResponseDTO({
-      id: entity.id,
-      name: entity.name,
-      slug: entity.slug,
-      description: entity.description,
-      logo: entity.logo,
-      ownerId: entity.ownerId,
-      partnerType: entity.partnerType,
-      partnerIsActive: entity.partnerIsActive,
-      createdAt: entity.createdAt,
-    })
+    return OrganizationListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → OrganizationSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: OrganizationEntity): OrganizationSummaryResponseDTO {
-    return new OrganizationSummaryResponseDTO({
-      id: entity.id,
-      name: entity.name,
-      slug: entity.slug,
-      logo: entity.logo,
-    })
+    return OrganizationSummaryResponseDTO.fromEntity(entity)
   }
 }

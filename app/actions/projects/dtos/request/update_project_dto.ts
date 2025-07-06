@@ -21,6 +21,8 @@ export interface UpdateProjectDTOInterface {
   budget?: number
 }
 
+export type UpdateProjectValidatedPayload = Omit<UpdateProjectDTOInterface, 'project_id'>
+
 export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly project_id: DatabaseId
   public readonly name?: string
@@ -32,6 +34,20 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly owner_id?: DatabaseId | null
   public readonly visibility?: ProjectVisibility
   public readonly budget?: number
+
+  static fromInput(data: UpdateProjectDTOInterface): UpdateProjectDTO {
+    return new UpdateProjectDTO(data)
+  }
+
+  static fromValidatedPayload(
+    payload: UpdateProjectValidatedPayload,
+    projectId: DatabaseId
+  ): UpdateProjectDTO {
+    return new UpdateProjectDTO({
+      ...payload,
+      project_id: projectId,
+    })
+  }
 
   constructor(data: UpdateProjectDTOInterface) {
     this.validateInput(data)

@@ -45,6 +45,22 @@ export class InviteUserDTO {
     this.validate()
   }
 
+  static fromValidatedPayload(payload: {
+    organization_id: DatabaseId
+    email: string
+    role_id?: string
+    allowed_role_ids?: string[]
+    message?: string
+  }): InviteUserDTO {
+    return new InviteUserDTO(
+      payload.organization_id,
+      payload.email,
+      payload.role_id ?? OrganizationRole.MEMBER,
+      payload.allowed_role_ids ?? [OrganizationRole.ADMIN, OrganizationRole.MEMBER],
+      payload.message
+    )
+  }
+
   /**
    * Validate all fields at construction time
    */

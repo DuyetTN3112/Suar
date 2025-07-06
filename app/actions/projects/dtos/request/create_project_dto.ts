@@ -20,6 +20,8 @@ export interface CreateProjectDTOInterface {
   budget?: number
 }
 
+export type CreateProjectValidatedPayload = Omit<CreateProjectDTOInterface, 'organization_id'>
+
 export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly name: string
   public readonly description?: string
@@ -30,6 +32,20 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly manager_id?: DatabaseId | null
   public readonly visibility: ProjectVisibility
   public readonly budget: number
+
+  static fromInput(data: CreateProjectDTOInterface): CreateProjectDTO {
+    return new CreateProjectDTO(data)
+  }
+
+  static fromValidatedPayload(
+    payload: CreateProjectValidatedPayload,
+    organizationId: DatabaseId
+  ): CreateProjectDTO {
+    return new CreateProjectDTO({
+      ...payload,
+      organization_id: organizationId,
+    })
+  }
 
   constructor(data: CreateProjectDTOInterface) {
     // Validate and sanitize input

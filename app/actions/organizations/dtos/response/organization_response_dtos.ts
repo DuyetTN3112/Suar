@@ -6,6 +6,7 @@
  */
 
 import type { CustomRoleDefinition } from '#types/database'
+import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 
 export interface OrganizationDetailResponseDTOProps {
   id: string
@@ -72,7 +73,7 @@ export class OrganizationDetailResponseDTO {
   public readonly createdAt: Date
   public readonly updatedAt: Date
 
-  constructor(props: OrganizationDetailResponseDTOProps) {
+  private constructor(props: OrganizationDetailResponseDTOProps) {
     this.id = props.id
     this.name = props.name
     this.slug = props.slug
@@ -86,6 +87,28 @@ export class OrganizationDetailResponseDTO {
     this.partnerIsActive = props.partnerIsActive
     this.createdAt = props.createdAt
     this.updatedAt = props.updatedAt
+  }
+
+  static fromProps(props: OrganizationDetailResponseDTOProps): OrganizationDetailResponseDTO {
+    return new OrganizationDetailResponseDTO(props)
+  }
+
+  static fromEntity(entity: OrganizationEntity): OrganizationDetailResponseDTO {
+    return new OrganizationDetailResponseDTO({
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      description: entity.description,
+      logo: entity.logo,
+      website: entity.website,
+      ownerId: entity.ownerId,
+      customRoles: entity.customRoles,
+      partnerType: entity.partnerType,
+      partnerVerifiedAt: entity.partnerVerifiedAt,
+      partnerIsActive: entity.partnerIsActive,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
   }
 }
 
@@ -103,7 +126,7 @@ export class OrganizationListItemResponseDTO {
   public readonly partnerIsActive: boolean
   public readonly createdAt: Date
 
-  constructor(props: OrganizationListItemResponseDTOProps) {
+  private constructor(props: OrganizationListItemResponseDTOProps) {
     this.id = props.id
     this.name = props.name
     this.slug = props.slug
@@ -113,6 +136,24 @@ export class OrganizationListItemResponseDTO {
     this.partnerType = props.partnerType
     this.partnerIsActive = props.partnerIsActive
     this.createdAt = props.createdAt
+  }
+
+  static fromProps(props: OrganizationListItemResponseDTOProps): OrganizationListItemResponseDTO {
+    return new OrganizationListItemResponseDTO(props)
+  }
+
+  static fromEntity(entity: OrganizationEntity): OrganizationListItemResponseDTO {
+    return new OrganizationListItemResponseDTO({
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      description: entity.description,
+      logo: entity.logo,
+      ownerId: entity.ownerId,
+      partnerType: entity.partnerType,
+      partnerIsActive: entity.partnerIsActive,
+      createdAt: entity.createdAt,
+    })
   }
 }
 
@@ -125,11 +166,24 @@ export class OrganizationSummaryResponseDTO {
   public readonly slug: string
   public readonly logo: string | null
 
-  constructor(props: OrganizationSummaryResponseDTOProps) {
+  private constructor(props: OrganizationSummaryResponseDTOProps) {
     this.id = props.id
     this.name = props.name
     this.slug = props.slug
     this.logo = props.logo
+  }
+
+  static fromProps(props: OrganizationSummaryResponseDTOProps): OrganizationSummaryResponseDTO {
+    return new OrganizationSummaryResponseDTO(props)
+  }
+
+  static fromEntity(entity: OrganizationEntity): OrganizationSummaryResponseDTO {
+    return new OrganizationSummaryResponseDTO({
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      logo: entity.logo,
+    })
   }
 }
 
@@ -147,7 +201,7 @@ export class OrganizationMemberResponseDTO {
   public readonly joined_at: string
   public readonly last_activity_at?: string | null
 
-  constructor(props: OrganizationMemberResponseDTOProps) {
+  private constructor(props: OrganizationMemberResponseDTOProps) {
     this.id = props.id
     this.user_id = props.user_id
     this.username = props.username
@@ -157,5 +211,9 @@ export class OrganizationMemberResponseDTO {
     this.status = props.status
     this.joined_at = props.joined_at
     this.last_activity_at = props.last_activity_at
+  }
+
+  static fromProps(props: OrganizationMemberResponseDTOProps): OrganizationMemberResponseDTO {
+    return new OrganizationMemberResponseDTO(props)
   }
 }

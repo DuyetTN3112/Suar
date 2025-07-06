@@ -6,6 +6,7 @@
  */
 
 import type { CustomRoleDefinition } from '#types/database'
+import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 
 export interface ProjectDetailResponseDTOProps {
   id: string
@@ -71,7 +72,7 @@ export class ProjectDetailResponseDTO {
   public readonly createdAt: Date
   public readonly updatedAt: Date
 
-  constructor(props: ProjectDetailResponseDTOProps) {
+  private constructor(props: ProjectDetailResponseDTOProps) {
     this.id = props.id
     this.creatorId = props.creatorId
     this.name = props.name
@@ -91,6 +92,33 @@ export class ProjectDetailResponseDTO {
     this.createdAt = props.createdAt
     this.updatedAt = props.updatedAt
   }
+
+  static fromProps(props: ProjectDetailResponseDTOProps): ProjectDetailResponseDTO {
+    return new ProjectDetailResponseDTO(props)
+  }
+
+  static fromEntity(entity: ProjectEntity): ProjectDetailResponseDTO {
+    return new ProjectDetailResponseDTO({
+      id: entity.id,
+      creatorId: entity.creatorId,
+      name: entity.name,
+      description: entity.description,
+      organizationId: entity.organizationId,
+      startDate: entity.startDate,
+      endDate: entity.endDate,
+      status: entity.status,
+      budget: entity.budget,
+      managerId: entity.managerId,
+      ownerId: entity.ownerId,
+      visibility: entity.visibility,
+      allowFreelancer: entity.allowFreelancer,
+      approvalRequiredForMembers: entity.approvalRequiredForMembers,
+      tags: entity.tags,
+      customRoles: entity.customRoles,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
+  }
 }
 
 /**
@@ -108,7 +136,7 @@ export class ProjectListItemResponseDTO {
   public readonly endDate: Date | null
   public readonly createdAt: Date
 
-  constructor(props: ProjectListItemResponseDTOProps) {
+  private constructor(props: ProjectListItemResponseDTOProps) {
     this.id = props.id
     this.name = props.name
     this.description = props.description
@@ -119,6 +147,25 @@ export class ProjectListItemResponseDTO {
     this.startDate = props.startDate
     this.endDate = props.endDate
     this.createdAt = props.createdAt
+  }
+
+  static fromProps(props: ProjectListItemResponseDTOProps): ProjectListItemResponseDTO {
+    return new ProjectListItemResponseDTO(props)
+  }
+
+  static fromEntity(entity: ProjectEntity): ProjectListItemResponseDTO {
+    return new ProjectListItemResponseDTO({
+      id: entity.id,
+      name: entity.name,
+      description: entity.description,
+      status: entity.status,
+      visibility: entity.visibility,
+      allowFreelancer: entity.allowFreelancer,
+      budget: entity.budget,
+      startDate: entity.startDate,
+      endDate: entity.endDate,
+      createdAt: entity.createdAt,
+    })
   }
 }
 
@@ -131,10 +178,23 @@ export class ProjectSummaryResponseDTO {
   public readonly status: string
   public readonly visibility: string
 
-  constructor(props: ProjectSummaryResponseDTOProps) {
+  private constructor(props: ProjectSummaryResponseDTOProps) {
     this.id = props.id
     this.name = props.name
     this.status = props.status
     this.visibility = props.visibility
+  }
+
+  static fromProps(props: ProjectSummaryResponseDTOProps): ProjectSummaryResponseDTO {
+    return new ProjectSummaryResponseDTO(props)
+  }
+
+  static fromEntity(entity: ProjectEntity): ProjectSummaryResponseDTO {
+    return new ProjectSummaryResponseDTO({
+      id: entity.id,
+      name: entity.name,
+      status: entity.status,
+      visibility: entity.visibility,
+    })
   }
 }
