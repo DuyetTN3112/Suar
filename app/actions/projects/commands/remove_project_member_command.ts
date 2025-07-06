@@ -104,103 +104,14 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
   }
 
   /**
-   * Validate requester has permission to remove members
-   */
-  private async validatePermission(userId: number, project: Project): Promise<void> {
-    const isOwner = project.owner_id === userId
-    const isCreator = project.creator_id === userId
-
-    if (isOwner || isCreator) {
-      return
-    }
-
-    // Check if user is superadmin
-    const isSuperAdmin = await this.checkIsSuperAdmin(userId, project.organization_id)
-
-    if (!isSuperAdmin) {
-      throw new Error('Chỉ owner hoặc superadmin mới có thể xóa thành viên khỏi dự án')
-    }
-  }
-
-  /**
-   * Check if user is superadmin of the organization
-   */
-  private async checkIsSuperAdmin(userId: number, organizationId: number): Promise<boolean> {
-    const result = (await db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', organizationId)
-      .where('role_id', 1)
-      .where('status', 'approved')
-      .first()) as { id: number } | null
-
-    return !!result
-  }
-
-  /**
-   * Validate not removing the owner
-   */
-  private validateNotOwner(project: Project, userIdToRemove: number): void {
-    if (project.owner_id === userIdToRemove) {
-      throw new Error('Không thể xóa owner khỏi dự án')
-    }
-
-    if (project.creator_id === userIdToRemove) {
-      throw new Error('Không thể xóa người tạo dự án')
-    }
-  }
-
-  /**
-   * Get member role
-   */
-  private async getMemberRole(
-    projectId: number,
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<string> {
-    const member = (await trx
-      .from('project_members')
-      .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
-      .where('project_members.project_id', projectId)
-      .where('project_members.user_id', userId)
-      .select('project_roles.name as role')
-      .first()) as { role?: string } | null
-
-    return member?.role ?? 'unknown'
-  }
-
-  /**
-   * Reassign all tasks from removed member
+   * Reassign all tasks from removed member → delegate to Model
    */
   private async reassignTasks(
-    projectId: number,
-    fromUserId: number,
-    toUserId: number,
+    projectId: DatabaseId,
+    fromUserId: DatabaseId,
+    toUserId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    await trx
-      .from('tasks')
-      .where('project_id', projectId)
-      .where('assigned_to', fromUserId)
-      .whereNull('deleted_at')
-      .update({
-        assigned_to: toUserId,
-        updated_at: new Date(),
-      })
-  }
-
-  /**
-   * Remove member from project
-   */
-  private async removeMember(
-    projectId: number,
-    userId: number,
-    trx: TransactionClientContract
-  ): Promise<void> {
-    await trx
-      .from('project_members')
-      .where('project_id', projectId)
-      .where('user_id', userId)
-      .delete()
+    await TaskRepository.reassignByUser(projectId, fromUserId, toUserId, trx)
   }
 }
