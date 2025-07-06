@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetTaskApplicationsQuery from '#actions/tasks/queries/get_task_applications_query'
-import { buildGetTaskApplicationsDTO } from './mapper/request/task_application_request_mapper.js'
-import { mapTaskApplicationsPageProps } from './mapper/response/task_application_response_mapper.js'
+import { buildGetTaskApplicationsDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapTaskApplicationsPageProps } from './mappers/response/task_application_response_mapper.js'
 
 /**
  * GET /tasks/:taskId/applications → List applications for a task (project owner)

@@ -1,32 +1,59 @@
 import { test } from '@japa/runner'
-import { buildLogoutUserDTO } from '#controllers/auth/mapper/request/auth_request_mapper'
+import { buildLogoutUserDTO } from '#controllers/auth/mappers/request/auth_request_mapper'
+import {
+  buildSocialAuthCallbackLogContext,
+  buildSocialAuthCallbackUrl,
+  buildSocialAuthRedirectLogContext,
+  buildSupportedSocialAuthProvider,
+} from '#controllers/auth/mappers/request/social_auth_request_mapper'
+import {
+  mapSocialAuthErrorRedirect,
+  mapSocialAuthSessionState,
+  mapSocialAuthSuccessRedirect,
+} from '#controllers/auth/mappers/response/social_auth_response_mapper'
 import {
   buildUpdateAccountSettingsDTO,
   buildUpdateProfileSettingsDTO,
-} from '#controllers/settings/mapper/request/settings_request_mapper'
+} from '#controllers/settings/mappers/request/settings_request_mapper'
 import {
   buildAddDirectMemberDTO,
   buildBulkAddMembersDTO,
+  buildOrganizationMembersPageFilters,
   buildOrganizationsListDTO,
   buildProcessJoinRequestDTO,
   buildRemoveMemberDTO,
-} from '#controllers/organizations/mapper/request/organization_request_mapper'
+} from '#controllers/organizations/mappers/request/organization_request_mapper'
 import {
   mapOrganizationsIndexPageProps,
+  mapOrganizationMembersPageProps,
   mapOrganizationSuccessApiBody,
-} from '#controllers/organizations/mapper/response/organization_response_mapper'
+} from '#controllers/organizations/mappers/response/organization_response_mapper'
+import { buildOrganizationMembersIndexPageInput } from '#controllers/organization/members/mappers/request/list_members_request_mapper'
+import { mapOrganizationMembersIndexPageProps } from '#controllers/organization/members/mappers/response/list_members_response_mapper'
+import { buildInvitationsIndexPageInput } from '#controllers/organization/invitations/mappers/request/list_invitations_request_mapper'
+import { mapInvitationsIndexPageProps } from '#controllers/organization/invitations/mappers/response/list_invitations_response_mapper'
+import { buildUpdateCustomRolesDTO } from '#controllers/organization/access/mappers/request/update_roles_request_mapper'
+import {
+  getUpdateCustomRolesSuccessMessage,
+  mapUpdateCustomRolesSuccessApiBody,
+} from '#controllers/organization/access/mappers/response/update_roles_response_mapper'
 import {
   buildCreateTaskStatusDTO,
   buildDeleteTaskStatusDTO,
   buildOrganizationWorkflowCreateTaskStatusDTO,
   buildUpdateTaskStatusDefinitionDTO,
   buildUpdateWorkflowDTO,
-} from '#controllers/tasks/mapper/request/task_status_request_mapper'
+} from '#controllers/tasks/mappers/request/task_status_request_mapper'
 import {
   mapTaskStatusDeleteApiBody,
   mapTaskStatusMutationApiBody,
   mapWorkflowUpdateApiBody,
-} from '#controllers/tasks/mapper/response/task_status_response_mapper'
+} from '#controllers/tasks/mappers/response/task_status_response_mapper'
+import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#controllers/organizations/mappers/request/join_organization_request_mapper'
+import {
+  getJoinOrganizationSuccessMessage as getJoinOrganizationSuccessMessageDedicated,
+  mapJoinOrganizationSuccessApiBody as mapJoinOrganizationSuccessApiBodyDedicated,
+} from '#controllers/organizations/mappers/response/join_organization_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -36,10 +63,26 @@ function serializable(payload: Record<string, unknown>) {
   }
 }
 
-function fakeRequest(body: Record<string, unknown>, options: { ip?: string } = {}) {
+function fakeRequest(
+  body: Record<string, unknown>,
+  options: {
+    ip?: string
+    headers?: Record<string, string>
+    accepts?: 'html' | 'json'
+  } = {}
+) {
   return {
     input(key: string, fallback?: unknown) {
       return Object.hasOwn(body, key) ? body[key] : fallback
+    },
+    header(key: string) {
+      return options.headers?.[key] ?? options.headers?.[key.toLowerCase()]
+    },
+    accepts() {
+      return options.accepts ?? 'html'
+    },
+    qs() {
+      return body
     },
     body() {
       return body
@@ -79,6 +122,7 @@ test.group('Controller adapter mappers', () => {
       'user-1',
       'session-1'
     )
+    const provider = buildSupportedSocialAuthProvider('google')
     const accountDto = buildUpdateAccountSettingsDTOForTest(
       fakeRequest({ email: ' next@example.com ' }) as never,
       'user-1',
@@ -92,9 +136,61 @@ test.group('Controller adapter mappers', () => {
     assert.equal(logoutDto.userId, 'user-1')
     assert.equal(logoutDto.sessionId, 'session-1')
     assert.equal(logoutDto.ipAddress, '10.0.0.5')
+    assert.equal(provider, 'google')
     assert.equal(accountDto.email, 'next@example.com')
     assert.equal(profileDto.username, 'duyet')
     assert.equal(profileDto.email, 'duyet@example.com')
+    assert.deepEqual(
+      buildSocialAuthRedirectLogContext(
+        fakeRequest(
+          {},
+          {
+            ip: '10.0.0.6',
+            headers: {
+              'referer': '/login',
+              'user-agent': 'unit-test',
+            },
+          }
+        ) as never
+      ),
+      {
+        referer: '/login',
+        userAgent: 'unit-test',
+        ip: '10.0.0.6',
+      }
+    )
+    assert.deepEqual(
+      buildSocialAuthCallbackLogContext(
+        fakeRequest(
+          { code: 'oauth-code' },
+          {
+            headers: {
+              referer: '/login',
+            },
+          }
+        ) as never
+      ),
+      {
+        query: { code: 'oauth-code' },
+        referer: '/login',
+        ip: '127.0.0.1',
+      }
+    )
+    assert.equal(buildSocialAuthCallbackUrl('github'), 'http://localhost:3333/auth/github/callback')
+    assert.deepEqual(mapSocialAuthErrorRedirect('OAuth failed'), {
+      path: '/login',
+      query: {
+        error: 'OAuth failed',
+      },
+    })
+    assert.deepEqual(mapSocialAuthSuccessRedirect('/tasks'), {
+      redirectTo: '/tasks',
+    })
+    assert.deepEqual(mapSocialAuthSessionState('org-1'), {
+      currentOrganizationId: 'org-1',
+    })
+    assert.isNull(mapSocialAuthSessionState(null))
+    assert.throws(() => buildSupportedSocialAuthProvider('facebook'))
   })
 
   test('organization request and response mappers keep list/member contracts stable', ({
@@ -128,6 +224,43 @@ test.group('Controller adapter mappers', () => {
       'org-1',
       'admin-1'
     )
+    const joinInput = buildJoinOrganizationRequestInputDedicated(
+      fakeRequest(
+        {},
+        {
+          accepts: 'json',
+        }
+      ) as never,
+      'org-join-1'
+    )
+    const membersFilters = buildOrganizationMembersPageFilters(
+      fakeRequest({
+        page: '2',
+        limit: '25',
+        roleId: 'org_admin',
+        statusFilter: 'active',
+        include: 'activity,audit',
+      }) as never
+    )
+    const orgMembersPageInput = buildOrganizationMembersIndexPageInput(
+      fakeRequest({
+        page: '3',
+        search: 'alice',
+        org_role: 'org_member',
+        status: 'pending',
+      }) as never,
+      'org-9'
+    )
+    const invitationsPageInput = buildInvitationsIndexPageInput(
+      fakeRequest({
+        page: '4',
+        search: ' invited@example.com ',
+        status: 'expired',
+      }) as never
+    )
+    const customRolesDto = buildUpdateCustomRolesDTO(
+      fakeRequest({ roles: [{ key: 'org_reviewer' }] }) as never
+    )
 
     assert.equal(listDto.page, 1)
     assert.equal(listDto.limit, 15)
@@ -140,6 +273,34 @@ test.group('Controller adapter mappers', () => {
     assert.equal(processResult.successMessage, 'Từ chối yêu cầu tham gia thành công')
     assert.equal(addMemberDto.roleId, 'org_admin')
     assert.deepEqual(bulkDto.userIds, ['user-1', 'user-2'])
+    assert.deepEqual(joinInput, {
+      organizationId: 'org-join-1',
+      responseMode: 'json',
+    })
+    assert.deepEqual(membersFilters, {
+      page: 2,
+      limit: 25,
+      roleId: 'org_admin',
+      search: undefined,
+      statusFilter: 'active',
+      include: ['activity', 'audit'],
+    })
+    assert.deepEqual(orgMembersPageInput, {
+      organizationId: 'org-9',
+      page: 3,
+      perPage: 50,
+      search: 'alice',
+      orgRole: 'org_member',
+      status: 'pending',
+    })
+    assert.deepEqual(invitationsPageInput, {
+      page: 4,
+      search: 'invited@example.com',
+      status: 'expired',
+    })
+    assert.deepEqual(customRolesDto, {
+      custom_roles: [{ key: 'org_reviewer' }],
+    })
 
     assert.deepEqual(
       mapOrganizationsIndexPageProps({
@@ -155,6 +316,76 @@ test.group('Controller adapter mappers', () => {
         allOrganizations: [{ id: 'org-1', name: 'Suar' }],
       }
     )
+    assert.deepEqual(
+      mapOrganizationMembersPageProps({
+        organization: { id: 'org-1' },
+        members: [],
+        roles: [],
+        userRole: 'org_admin',
+        pendingRequests: [],
+        filters: {
+          search: undefined,
+          roleId: undefined,
+          statusFilter: 'inactive',
+          include: undefined,
+        },
+      }),
+      {
+        organization: { id: 'org-1' },
+        members: [],
+        roles: [],
+        userRole: 'org_admin',
+        pendingRequests: [],
+        filters: {
+          search: '',
+          status: 'inactive',
+          roleId: undefined,
+          include: [],
+        },
+      }
+    )
+    assert.deepEqual(
+      mapOrganizationMembersIndexPageProps({
+        members: [],
+        meta: { total: 0, perPage: 50, currentPage: 1, lastPage: 1 },
+        filters: { search: '', orgRole: null, status: null },
+        roleOptions: [],
+      }),
+      {
+        members: [],
+        meta: { total: 0, perPage: 50, currentPage: 1, lastPage: 1 },
+        filters: { search: '', orgRole: null, status: null },
+        roleOptions: [],
+      }
+    )
+    assert.deepEqual(
+      mapInvitationsIndexPageProps({
+        invitations: [],
+        pagination: { total: 0, perPage: 20, currentPage: 1, lastPage: 1 },
+        filters: { search: undefined, status: undefined },
+        roleOptions: [],
+      }),
+      {
+        invitations: [],
+        pagination: { total: 0, perPage: 20, currentPage: 1, lastPage: 1 },
+        filters: { search: undefined, status: undefined },
+        roleOptions: [],
+      }
+    )
+    assert.equal(getUpdateCustomRolesSuccessMessage(), 'Cập nhật vai trò tùy chỉnh thành công')
+    assert.deepEqual(mapUpdateCustomRolesSuccessApiBody(), {
+      success: true,
+      message: 'Cập nhật vai trò tùy chỉnh thành công',
+    })
+    assert.equal(
+      getJoinOrganizationSuccessMessageDedicated(),
+      'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt'
+    )
+    assert.deepEqual(mapJoinOrganizationSuccessApiBodyDedicated({ id: 'org-1' }), {
+      success: true,
+      message: 'Yêu cầu tham gia đã được gửi. Vui lòng chờ quản trị viên phê duyệt',
+      organization: { id: 'org-1' },
+    })
     assert.deepEqual(mapOrganizationSuccessApiBody('done', { count: 2 }), {
       success: true,
       message: 'done',

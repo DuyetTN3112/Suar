@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
-import { buildApplyForTaskDTO } from './mapper/request/task_application_request_mapper.js'
+import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
 
 /**
  * POST /tasks/:taskId/apply → Apply for a task (Inertia)

@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import ResolveFlaggedReviewCommand from '#actions/reviews/commands/resolve_flagged_review_command'
-import { buildResolveFlaggedReviewDTO } from './mapper/request/review_request_mapper.js'
+import { buildResolveFlaggedReviewDTO } from './mappers/request/review_request_mapper.js'
 
 /**
  * POST /admin/flagged-reviews/:id/resolve → Resolve a flagged review (dismiss or confirm)

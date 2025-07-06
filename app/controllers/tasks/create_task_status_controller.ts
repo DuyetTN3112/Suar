@@ -3,8 +3,8 @@ import { ExecutionContext } from '#types/execution_context'
 import CreateTaskStatusCommand from '#actions/tasks/commands/create_task_status_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildCreateTaskStatusDTO } from './mapper/request/task_status_request_mapper.js'
-import { mapTaskStatusMutationApiBody } from './mapper/response/task_status_response_mapper.js'
+import { buildCreateTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
 
 /**
  * POST /api/task-statuses

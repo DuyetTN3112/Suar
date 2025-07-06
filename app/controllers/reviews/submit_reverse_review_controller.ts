@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import SubmitReverseReviewCommand from '#actions/reviews/commands/submit_reverse_review_command'
-import { buildSubmitReverseReviewDTO } from './mapper/request/review_request_mapper.js'
+import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
 
 /**
  * POST /reviews/:id/reverse → Submit reverse review (reviewee rating reviewer)

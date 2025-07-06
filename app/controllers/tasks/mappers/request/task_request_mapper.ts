@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { DatabaseId } from '#types/database'
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import DeleteTaskDTO from '#actions/tasks/dtos/request/delete_task_dto'
+import GetTaskDetailDTO from '#actions/tasks/dtos/request/get_task_detail_dto'
 import UpdateTaskDTO from '#actions/tasks/dtos/request/update_task_dto'
 import UpdateTaskStatusDTO from '#actions/tasks/dtos/request/update_task_status_dto'
 import UpdateTaskTimeDTO from '#actions/tasks/dtos/request/update_task_time_dto'
@@ -100,19 +101,21 @@ export async function buildUpdateTaskDTO(
 ): Promise<UpdateTaskDTO> {
   const payload = await updateTaskRequestValidator.validate(request.body())
 
-  return new UpdateTaskDTO({
-    title: payload.title,
-    description: payload.description,
-    label: payload.label,
-    priority: payload.priority,
-    assigned_to: payload.assigned_to,
-    due_date: payload.due_date,
-    parent_task_id: payload.parent_task_id,
-    estimated_time: payload.estimated_time,
-    actual_time: payload.actual_time,
-    project_id: payload.project_id,
-    updated_by: updatedBy,
-  })
+  return UpdateTaskDTO.fromValidatedPayload(
+    {
+      title: payload.title,
+      description: payload.description,
+      label: payload.label,
+      priority: payload.priority,
+      assigned_to: payload.assigned_to,
+      due_date: payload.due_date,
+      parent_task_id: payload.parent_task_id,
+      estimated_time: payload.estimated_time,
+      actual_time: payload.actual_time,
+      project_id: payload.project_id,
+    },
+    updatedBy
+  )
 }
 
 export function buildUpdateTaskStatusDTO(
@@ -170,4 +173,8 @@ export function buildGetTaskAuditLogsInput(
       PAGINATION.DEFAULT_PER_PAGE
     ),
   }
+}
+
+export function buildGetTaskDetailDTO(taskId: DatabaseId): GetTaskDetailDTO {
+  return GetTaskDetailDTO.createFull(taskId)
 }

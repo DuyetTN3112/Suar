@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildSubmitSkillReviewDTO } from '#controllers/reviews/mapper/request/review_request_mapper'
+import { buildSubmitSkillReviewDTO } from '#controllers/reviews/mappers/request/review_request_mapper'
 import {
   mapCreateReviewSessionApiBody,
   mapFlaggedReviewsPageProps,
@@ -12,7 +12,7 @@ import {
   mapShowReviewPageProps,
   mapTaskSelfAssessmentApiBody,
   mapUserReviewsPageProps,
-} from '#controllers/reviews/mapper/response/review_response_mapper'
+} from '#controllers/reviews/mappers/response/review_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {

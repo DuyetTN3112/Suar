@@ -1,15 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { DatabaseId } from '#types/database'
 import type { GetMyApplicationsInput } from '#actions/tasks/queries/get_my_applications_query'
-import type {
-  ApplyForTaskDTO,
-  ProcessApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import { ApplyForTaskDTO as ApplyForTaskDTOClass } from '#actions/tasks/dtos/request/task_application_dtos'
-import { ProcessApplicationDTO as ProcessApplicationDTOClass } from '#actions/tasks/dtos/request/task_application_dtos'
 import {
+  ApplyForTaskDTO,
   GetPublicTasksDTO,
   GetTaskApplicationsDTO,
+  ProcessApplicationDTO,
 } from '#actions/tasks/dtos/request/task_application_dtos'
 import { applyForTaskRequestValidator, processApplicationRequestValidator } from '#validators/task'
 import {
@@ -34,13 +30,7 @@ export async function buildApplyForTaskDTO(
     application_source: request.input('application_source', 'public_listing') as string,
   })
 
-  return new ApplyForTaskDTOClass({
-    task_id: taskId,
-    message: payload.message,
-    expected_rate: payload.expected_rate,
-    portfolio_links: payload.portfolio_links,
-    application_source: payload.application_source,
-  })
+  return ApplyForTaskDTO.fromValidatedPayload(payload, taskId)
 }
 
 export async function buildProcessApplicationDTO(
@@ -54,21 +44,14 @@ export async function buildProcessApplicationDTO(
     estimated_hours: toOptionalNumericValue(request.input('estimated_hours') as unknown),
   })
 
-  return new ProcessApplicationDTOClass({
-    application_id: applicationId,
-    action: payload.action,
-    rejection_reason: payload.rejection_reason,
-    assignment_type: payload.assignment_type,
-    estimated_hours: payload.estimated_hours,
-  })
+  return ProcessApplicationDTO.fromValidatedPayload(payload, applicationId)
 }
 
 export function buildGetTaskApplicationsDTO(
   request: HttpContext['request'],
   taskId: DatabaseId
 ): GetTaskApplicationsDTO {
-  return new GetTaskApplicationsDTO({
-    task_id: taskId,
+  return GetTaskApplicationsDTO.forTask(taskId, {
     status: toApplicationStatusFilter(request.input('status', 'all') as unknown),
     page: toPositiveNumber(
       request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
@@ -82,7 +65,7 @@ export function buildGetTaskApplicationsDTO(
 }
 
 export function buildGetPublicTasksDTO(request: HttpContext['request']): GetPublicTasksDTO {
-  return new GetPublicTasksDTO({
+  return GetPublicTasksDTO.fromFilters({
     page: toPositiveNumber(
       request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
       PAGINATION.DEFAULT_PAGE

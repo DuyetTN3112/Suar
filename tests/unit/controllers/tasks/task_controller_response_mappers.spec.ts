@@ -4,12 +4,12 @@ import {
   mapPublicTaskCollectionResponse,
   mapPublicTasksApiBody,
   mapPublicTasksPageProps,
-} from '#controllers/tasks/mapper/response/public_task_response_mapper'
+} from '#controllers/tasks/mappers/response/public_task_response_mapper'
 import {
   mapApplyForTaskApiBody,
   mapMyApplicationsPageProps,
   mapTaskApplicationsPageProps,
-} from '#controllers/tasks/mapper/response/task_application_response_mapper'
+} from '#controllers/tasks/mappers/response/task_application_response_mapper'
 import {
   mapTaskCreateApiBody,
   mapTaskDetailPageProps,
@@ -17,7 +17,7 @@ import {
   mapTaskSortOrderApiBody,
   mapTaskStatusApiBody,
   mapTaskUpdateApiBody,
-} from '#controllers/tasks/mapper/response/task_response_mapper'
+} from '#controllers/tasks/mappers/response/task_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {

@@ -72,19 +72,22 @@ export function buildCreateTaskStatusDTO(
   const rawName = request.input('name') as string
   const rawSlug = toOptionalString(request.input('slug') as unknown)
 
-  return new CreateTaskStatusDTO({
-    organization_id: organizationId,
-    name: rawName,
-    slug: rawSlug ?? (options.generateSlugFromName ? toSlug(rawName) : ''),
-    category:
-      toOptionalString(request.input('category') as unknown) ??
-      options.defaultCategory ??
-      TaskStatusCategory.IN_PROGRESS,
-    color: toOptionalString(request.input('color') as unknown) ?? options.defaultColor ?? '#6B7280',
-    icon: toOptionalString(request.input('icon') as unknown),
-    description: toOptionalString(request.input('description') as unknown),
-    sort_order: toOptionalNumber(request.input('sort_order') as unknown),
-  })
+  return CreateTaskStatusDTO.fromValidatedPayload(
+    {
+      name: rawName,
+      slug: rawSlug ?? (options.generateSlugFromName ? toSlug(rawName) : ''),
+      category:
+        toOptionalString(request.input('category') as unknown) ??
+        options.defaultCategory ??
+        TaskStatusCategory.IN_PROGRESS,
+      color:
+        toOptionalString(request.input('color') as unknown) ?? options.defaultColor ?? '#6B7280',
+      icon: toOptionalString(request.input('icon') as unknown),
+      description: toOptionalString(request.input('description') as unknown),
+      sort_order: toOptionalNumber(request.input('sort_order') as unknown),
+    },
+    organizationId
+  )
 }
 
 export function buildOrganizationWorkflowCreateTaskStatusDTO(
@@ -103,25 +106,29 @@ export function buildUpdateTaskStatusDefinitionDTO(
   organizationId: DatabaseId,
   statusId: DatabaseId
 ): UpdateTaskStatusDTO {
-  return new UpdateTaskStatusDTO({
-    status_id: statusId,
-    organization_id: organizationId,
-    name: toOptionalString(request.input('name') as unknown),
-    slug: toOptionalString(request.input('slug') as unknown),
-    category: toOptionalString(request.input('category') as unknown),
-    color: toOptionalString(request.input('color') as unknown),
-    icon: toOptionalNullableString(request.input('icon') as unknown),
-    description: toOptionalNullableString(request.input('description') as unknown),
-    sort_order: toOptionalNumber(request.input('sort_order') as unknown),
-    is_default: toOptionalBoolean(request.input('is_default') as unknown),
-  })
+  return UpdateTaskStatusDTO.fromValidatedPayload(
+    {
+      name: toOptionalString(request.input('name') as unknown),
+      slug: toOptionalString(request.input('slug') as unknown),
+      category: toOptionalString(request.input('category') as unknown),
+      color: toOptionalString(request.input('color') as unknown),
+      icon: toOptionalNullableString(request.input('icon') as unknown),
+      description: toOptionalNullableString(request.input('description') as unknown),
+      sort_order: toOptionalNumber(request.input('sort_order') as unknown),
+      is_default: toOptionalBoolean(request.input('is_default') as unknown),
+    },
+    {
+      status_id: statusId,
+      organization_id: organizationId,
+    }
+  )
 }
 
 export function buildDeleteTaskStatusDTO(
   organizationId: DatabaseId,
   statusId: DatabaseId
 ): DeleteTaskStatusDTO {
-  return new DeleteTaskStatusDTO({
+  return DeleteTaskStatusDTO.fromIdentifiers({
     status_id: statusId,
     organization_id: organizationId,
   })
@@ -131,16 +138,16 @@ export function buildUpdateWorkflowDTO(
   request: HttpContext['request'],
   organizationId: DatabaseId
 ): UpdateWorkflowDTO {
-  return new UpdateWorkflowDTO({
-    organization_id: organizationId,
-    transitions: request.input('transitions', []) as Array<{
+  return UpdateWorkflowDTO.fromTransitions(
+    request.input('transitions', []) as Array<{
       from_status_id: DatabaseId
       to_status_id: DatabaseId
       conditions?: Record<string, unknown>
     }>,
-  })
+    organizationId
+  )
 }
 
 export function buildWithdrawApplicationDTO(applicationId: DatabaseId): WithdrawApplicationDTO {
-  return new WithdrawApplicationDTO(applicationId)
+  return WithdrawApplicationDTO.fromApplicationId(applicationId)
 }

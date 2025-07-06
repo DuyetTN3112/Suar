@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import AddReviewEvidenceCommand from '#actions/reviews/commands/add_review_evidence_command'
-import { buildAddReviewEvidenceDTO } from './mapper/request/review_request_mapper.js'
-import { mapReviewDataApiBody } from './mapper/response/review_response_mapper.js'
+import { buildAddReviewEvidenceDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
 
 /**
  * POST /reviews/:id/evidences
