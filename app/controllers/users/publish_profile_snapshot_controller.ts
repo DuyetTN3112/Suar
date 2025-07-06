@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
-import { buildPublishUserProfileSnapshotDTO } from './mapper/request/user_request_mapper.js'
-import { mapSnapshotMutationApiBody } from './mapper/response/user_response_mapper.js'
+import { buildPublishUserProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
+import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
 
 export default class PublishProfileSnapshotController {
   async handle(ctx: HttpContext) {

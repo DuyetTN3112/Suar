@@ -6,8 +6,8 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { ExecutionContext } from '#types/execution_context'
 import { ErrorMessages } from '#constants/error_constants'
-import { buildSystemUsersListDTO } from './mapper/request/user_request_mapper.js'
-import { mapSystemUsersApiBody } from './mapper/response/user_response_mapper.js'
+import { buildSystemUsersListDTO } from './mappers/request/user_request_mapper.js'
+import { mapSystemUsersApiBody } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /api/system-users → Get system users (not in current organization)

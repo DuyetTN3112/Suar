@@ -1,12 +1,12 @@
 import LogoutUserCommand from '#actions/auth/commands/logout_user_command'
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
-import { buildLogoutUserDTO } from './mapper/request/auth_request_mapper.js'
+import { buildLogoutUserDTO } from './mappers/request/auth_request_mapper.js'
 import {
   getLogoutRedirectPath,
   mapLoggedOutAuthShare,
   shouldUseInertiaLocation,
-} from './mapper/response/auth_response_mapper.js'
+} from './mappers/response/auth_response_mapper.js'
 
 /**
  * LogoutController

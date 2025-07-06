@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import { buildGetUserDetailDTO } from './mapper/request/user_request_mapper.js'
-import { mapEditUserPageProps } from './mapper/response/user_response_mapper.js'
+import { buildGetUserDetailDTO } from './mappers/request/user_request_mapper.js'
+import { mapEditUserPageProps } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /users/:id/edit → Show edit user form

@@ -5,7 +5,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ForbiddenException from '#exceptions/forbidden_exception'
 import { ErrorMessages } from '#constants/error_constants'
-import { mapPendingApprovalUsersApiBody } from './mapper/response/user_response_mapper.js'
+import { mapPendingApprovalUsersApiBody } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /api/users/pending-approval → JSON list of pending approval users

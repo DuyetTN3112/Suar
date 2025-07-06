@@ -39,10 +39,10 @@ const PROFILE_SNAPSHOT_HISTORY_DEFAULT_LIMIT = 20
 const FEATURED_REVIEWS_DEFAULT_LIMIT = 2
 
 export function buildAddUserSkillDTO(request: HttpContext['request']): AddUserSkillDTO {
-  return new AddUserSkillDTO(
-    request.input('skill_id') as string,
-    request.input('level_code') as string
-  )
+  return AddUserSkillDTO.fromValidatedPayload({
+    skill_id: request.input('skill_id') as string,
+    level_code: request.input('level_code') as string,
+  })
 }
 
 export function buildApproveUserDTO(
@@ -189,7 +189,7 @@ export function buildPublishUserProfileSnapshotDTO(request: HttpContext['request
 }
 
 export function buildRemoveUserSkillDTO(userSkillId: string): RemoveUserSkillDTO {
-  return new RemoveUserSkillDTO(userSkillId)
+  return RemoveUserSkillDTO.fromUserSkillId(userSkillId)
 }
 
 export function buildRotateProfileSnapshotShareLinkDTO(snapshotId: string) {
@@ -223,7 +223,10 @@ export function buildUpdateUserSkillDTO(
   request: HttpContext['request'],
   userSkillId: string
 ): UpdateUserSkillDTO {
-  return new UpdateUserSkillDTO(userSkillId, request.input('level_code') as string)
+  return UpdateUserSkillDTO.fromValidatedPayload({
+    user_skill_id: userSkillId,
+    level_code: request.input('level_code') as string,
+  })
 }
 
 export function buildUpdateProfileSnapshotAccessDTO(

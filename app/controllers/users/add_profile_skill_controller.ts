@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExecutionContext } from '#types/execution_context'
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
-import { buildAddUserSkillDTO } from './mapper/request/user_request_mapper.js'
+import { buildAddUserSkillDTO } from './mappers/request/user_request_mapper.js'
 
 /**
  * POST /profile/skills → Add a skill to user's profile

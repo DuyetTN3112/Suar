@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import {
   buildPendingApprovalUsersListDTO,
   buildUsersListDTO,
-} from '#controllers/users/mapper/request/user_request_mapper'
+} from '#controllers/users/mappers/request/user_request_mapper'
 import {
   mapPendingApprovalUsersApiBody,
   mapProfileViewPageProps,
@@ -10,7 +10,7 @@ import {
   mapSuccessMessageApiBody,
   mapUserMetadataPageProps,
   mapUsersIndexPageProps,
-} from '#controllers/users/mapper/response/user_response_mapper'
+} from '#controllers/users/mappers/response/user_response_mapper'
 
 function serializable(payload: Record<string, unknown>) {
   return {
@@ -184,16 +184,18 @@ test.group('User controller mappers', () => {
     assert.equal(profileViewProps.user.trust_tier_code, 'organization')
     assert.equal(profileViewProps.user.credibility_score, 67)
     assert.deepEqual(
-      (profileViewProps as {
-        deliveryMetrics: {
-          delivery: { late_percentage: number }
-          skill_aggregation: {
-            total_skills: number
-            reviewed_skills: number
-            avg_percentage: number
+      (
+        profileViewProps as {
+          deliveryMetrics: {
+            delivery: { late_percentage: number }
+            skill_aggregation: {
+              total_skills: number
+              reviewed_skills: number
+              avg_percentage: number
+            }
           }
         }
-      }).deliveryMetrics,
+      ).deliveryMetrics,
       {
         delivery: { late_percentage: 0 },
         skill_aggregation: {
