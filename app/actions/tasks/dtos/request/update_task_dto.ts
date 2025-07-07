@@ -3,7 +3,7 @@ import type { DatabaseId } from '#types/database'
 import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
 
-interface UpdateTaskDTOInput {
+export interface UpdateTaskDTOInput {
   title?: string
   description?: string
   label?: string | null
@@ -14,6 +14,10 @@ interface UpdateTaskDTOInput {
   estimated_time?: number
   actual_time?: number
   project_id?: DatabaseId
+  updated_by?: DatabaseId
+}
+
+export interface UpdateTaskValidatedPayload extends Omit<UpdateTaskDTOInput, 'updated_by'> {
   updated_by?: DatabaseId
 }
 
@@ -226,6 +230,20 @@ export default class UpdateTaskDTO {
   public readonly updated_by?: DatabaseId
 
   private readonly providedFields: Set<string>
+
+  static fromPartialUpdate(data: UpdateTaskDTOInput): UpdateTaskDTO {
+    return new UpdateTaskDTO(data)
+  }
+
+  static fromValidatedPayload(
+    payload: UpdateTaskValidatedPayload,
+    updatedBy: DatabaseId
+  ): UpdateTaskDTO {
+    return new UpdateTaskDTO({
+      ...payload,
+      updated_by: updatedBy,
+    })
+  }
 
   constructor(data: UpdateTaskDTOInput) {
     const payload = buildUpdateTaskPayload(data)

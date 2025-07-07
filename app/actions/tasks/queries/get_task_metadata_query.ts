@@ -6,7 +6,7 @@ import SkillRepository from '#infra/skills/repositories/skill_repository'
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 

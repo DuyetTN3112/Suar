@@ -6,7 +6,7 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type Task from '#models/task'
 
 /**

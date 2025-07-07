@@ -61,6 +61,30 @@ export class CreateTaskStatusDTO {
     this.description = data.description?.trim()
     this.sort_order = data.sort_order ?? 0
   }
+
+  static fromValidatedPayload(
+    payload: {
+      name: string
+      slug: string
+      category?: string
+      color?: string
+      icon?: string
+      description?: string
+      sort_order?: number
+    },
+    organizationId: DatabaseId
+  ): CreateTaskStatusDTO {
+    return new CreateTaskStatusDTO({
+      organization_id: organizationId,
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category ?? TaskStatusCategory.IN_PROGRESS,
+      color: payload.color,
+      icon: payload.icon,
+      description: payload.description,
+      sort_order: payload.sort_order,
+    })
+  }
 }
 
 /**
@@ -125,6 +149,36 @@ export class UpdateTaskStatusDTO {
     this.is_default = data.is_default
   }
 
+  static fromValidatedPayload(
+    payload: {
+      name?: string
+      slug?: string
+      category?: string
+      color?: string
+      icon?: string | null
+      description?: string | null
+      sort_order?: number
+      is_default?: boolean
+    },
+    identifiers: {
+      organization_id: DatabaseId
+      status_id: DatabaseId
+    }
+  ): UpdateTaskStatusDTO {
+    return new UpdateTaskStatusDTO({
+      status_id: identifiers.status_id,
+      organization_id: identifiers.organization_id,
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category,
+      color: payload.color,
+      icon: payload.icon,
+      description: payload.description,
+      sort_order: payload.sort_order,
+      is_default: payload.is_default,
+    })
+  }
+
   /** Whether the category field is being changed */
   get isChangingCategory(): boolean {
     return this.category !== undefined
@@ -148,6 +202,13 @@ export class DeleteTaskStatusDTO {
 
     this.status_id = data.status_id
     this.organization_id = data.organization_id
+  }
+
+  static fromIdentifiers(identifiers: {
+    status_id: DatabaseId
+    organization_id: DatabaseId
+  }): DeleteTaskStatusDTO {
+    return new DeleteTaskStatusDTO(identifiers)
   }
 }
 
@@ -191,5 +252,19 @@ export class UpdateWorkflowDTO {
       to_status_id: t.to_status_id,
       conditions: t.conditions ?? {},
     }))
+  }
+
+  static fromTransitions(
+    transitions: Array<{
+      from_status_id: DatabaseId
+      to_status_id: DatabaseId
+      conditions?: Record<string, unknown>
+    }>,
+    organizationId: DatabaseId
+  ): UpdateWorkflowDTO {
+    return new UpdateWorkflowDTO({
+      organization_id: organizationId,
+      transitions,
+    })
   }
 }

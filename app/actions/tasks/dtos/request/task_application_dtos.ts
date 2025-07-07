@@ -25,6 +25,24 @@ export class ApplyForTaskDTO {
     this.portfolio_links = data.portfolio_links ?? null
     this.application_source = data.application_source ?? 'public_listing'
   }
+
+  static fromValidatedPayload(
+    payload: {
+      message?: string | null
+      expected_rate?: number | null
+      portfolio_links?: string[] | null
+      application_source?: 'public_listing' | 'invitation' | 'referral'
+    },
+    taskId: DatabaseId
+  ): ApplyForTaskDTO {
+    return new ApplyForTaskDTO({
+      task_id: taskId,
+      message: payload.message,
+      expected_rate: payload.expected_rate,
+      portfolio_links: payload.portfolio_links,
+      application_source: payload.application_source,
+    })
+  }
 }
 
 /**
@@ -52,6 +70,24 @@ export class ProcessApplicationDTO {
     this.assignment_type = data.assignment_type ?? 'freelancer'
     this.estimated_hours = data.estimated_hours ?? null
   }
+
+  static fromValidatedPayload(
+    payload: {
+      action: 'approve' | 'reject'
+      rejection_reason?: string | null
+      assignment_type?: 'member' | 'freelancer' | 'volunteer'
+      estimated_hours?: number | null
+    },
+    applicationId: DatabaseId
+  ): ProcessApplicationDTO {
+    return new ProcessApplicationDTO({
+      application_id: applicationId,
+      action: payload.action,
+      rejection_reason: payload.rejection_reason,
+      assignment_type: payload.assignment_type,
+      estimated_hours: payload.estimated_hours,
+    })
+  }
 }
 
 /**
@@ -64,6 +100,10 @@ export class WithdrawApplicationDTO {
 
   constructor(applicationId: DatabaseId) {
     this.application_id = applicationId
+  }
+
+  static fromApplicationId(applicationId: DatabaseId): WithdrawApplicationDTO {
+    return new WithdrawApplicationDTO(applicationId)
   }
 }
 
@@ -86,6 +126,22 @@ export class GetTaskApplicationsDTO {
     this.status = data.status ?? 'all'
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
+  }
+
+  static forTask(
+    taskId: DatabaseId,
+    params: {
+      status?: ApplicationStatus | 'all'
+      page?: number
+      per_page?: number
+    }
+  ): GetTaskApplicationsDTO {
+    return new GetTaskApplicationsDTO({
+      task_id: taskId,
+      status: params.status,
+      page: params.page,
+      per_page: params.per_page,
+    })
   }
 }
 
@@ -117,6 +173,10 @@ export class GetPublicTasksDTO {
     this.sort_order = data.sort_order ?? 'desc'
 
     this.validateBudgetRange()
+  }
+
+  static fromFilters(data: Partial<GetPublicTasksDTO>): GetPublicTasksDTO {
+    return new GetPublicTasksDTO(data)
   }
 
   private normalizeKeyword(value: unknown): string | null {
