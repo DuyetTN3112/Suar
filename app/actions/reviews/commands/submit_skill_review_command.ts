@@ -1,13 +1,20 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSession from '#models/review_session'
-import SkillReview from '#models/skill_review'
-import Skill from '#models/skill'
-import ProficiencyLevel from '#models/proficiency_level'
-import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import type SkillReview from '#models/skill_review'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
+import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import { ProficiencyLevel } from '#constants'
+import { ReviewSessionStatus } from '#constants/review_constants'
+import ConflictException from '#exceptions/conflict_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { determineSessionStatus } from '#domain/reviews/review_formulas'
 
 /**
  * SubmitSkillReviewCommand
@@ -19,69 +26,80 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   SubmitSkillReviewDTO,
   SkillReview[]
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
       // Get review session
-      const session = await ReviewSession.query({ client: trx })
-        .where('id', dto.review_session_id)
-        .whereIn('status', ['pending', 'in_progress'])
-        .firstOrFail()
-
-      // Check if user already submitted review for this session
-      const existingReview = await SkillReview.query({ client: trx })
-        .where('review_session_id', dto.review_session_id)
-        .where('reviewer_id', userId)
-        .first()
-
-      if (existingReview) {
-        throw new Error('You have already submitted a review for this session')
+      const session = await ReviewSessionRepository.findByIdWithAllowedStatuses(
+        dto.review_session_id,
+        [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS],
+        trx
+      )
+      if (!session) {
+        throw new NotFoundException(
+          'Review session không tồn tại hoặc không ở trạng thái có thể submit'
+        )
       }
 
-      // Validate FK: skill_id and assigned_level_id for all ratings
+      // Check if user already submitted review for this session
+      const existingReview = await SkillReviewRepository.findBySessionAndReviewer(
+        dto.review_session_id,
+        userId,
+        trx
+      )
+
+      if (existingReview) {
+        throw new ConflictException('You have already submitted a review for this session')
+      }
+
+      // Validate FK: skill_id and assigned_level_code for all ratings
       await this.validateForeignKeys(dto.skill_ratings, trx)
 
       // Create skill reviews
-      const skillReviews: SkillReview[] = []
-      for (const rating of dto.skill_ratings) {
-        const review = await SkillReview.create(
-          {
-            review_session_id: dto.review_session_id,
-            reviewer_id: userId,
-            reviewer_type: dto.reviewer_type,
-            skill_id: rating.skill_id,
-            assigned_level_id: rating.assigned_level_id,
-            comment: rating.comment || null,
-          },
-          { client: trx }
-        )
-        skillReviews.push(review)
-      }
+      const skillReviews = await SkillReviewRepository.createMany(
+        dto.skill_ratings.map((rating) => ({
+          review_session_id: dto.review_session_id,
+          reviewer_id: userId,
+          reviewer_type: dto.reviewer_type,
+          skill_id: rating.skill_id,
+          assigned_level_code: rating.assigned_level_code,
+          comment: rating.comment || null,
+        })),
+        trx
+      )
 
-      // Update session status
+      // Update session counters
       if (dto.reviewer_type === 'manager') {
         session.manager_review_completed = true
+
+        // v5: manager can submit overall execution quality dimensions
+        session.overall_quality_score = dto.overall_quality_score
+        session.delivery_timeliness = dto.delivery_timeliness
+        session.requirement_adherence = dto.requirement_adherence
+        session.communication_quality = dto.communication_quality
+        session.code_quality_score = dto.code_quality_score
+        session.proactiveness_score = dto.proactiveness_score
+        session.would_work_with_again = dto.would_work_with_again
+        session.strengths_observed = dto.strengths_observed
+        session.areas_for_improvement = dto.areas_for_improvement
       } else {
         session.peer_reviews_count += 1
       }
 
-      // Check if session is complete
-      if (
-        session.manager_review_completed &&
-        session.peer_reviews_count >= session.required_peer_reviews
-      ) {
-        session.status = 'completed'
+      // Determine new session status via pure rule
+      const newStatus = determineSessionStatus(
+        session.manager_review_completed,
+        session.peer_reviews_count,
+        session.required_peer_reviews,
+        session.status
+      )
+      session.status = newStatus
+      if (newStatus === 'completed') {
         session.completed_at = DateTime.now()
-      } else if (session.status === 'pending') {
-        session.status = 'in_progress'
       }
 
-      await session.useTransaction(trx).save()
+      await ReviewSessionRepository.save(session, trx)
 
       // Log audit
       await this.logAudit('submit_review', 'review_session', session.id, null, {
@@ -91,34 +109,54 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`user:${String(session.reviewee_id)}:*`)
-      await CacheService.deleteByPattern(`review:session:${String(session.id)}`)
+      await CacheService.deleteByPattern(`user:${session.reviewee_id}:*`)
+      await CacheService.deleteByPattern(`review:session:${session.id}`)
+
+      // Emit domain event for spider chart recalculation
+      const scores: Record<string, number> = {}
+      for (const review of skillReviews) {
+        scores[review.skill_id] = 0 // Placeholder — actual score computed by spider chart
+      }
+      void emitter.emit('review:submitted', {
+        reviewSessionId: dto.review_session_id,
+        reviewerId: userId,
+        revieweeId: session.reviewee_id,
+        taskId: session.task_assignment_id,
+        scores,
+      })
 
       return skillReviews
     })
   }
 
   /**
-   * Validate FK: skill_id -> skills.id and assigned_level_id -> proficiency_levels.id
+   * Validate FK: skill_id -> skills.id and assigned_level_code -> ProficiencyLevel enum
    */
   private async validateForeignKeys(
-    ratings: { skill_id: number; assigned_level_id: number }[],
+    ratings: { skill_id: DatabaseId; assigned_level_code: string }[],
     trx: TransactionClientContract
   ): Promise<void> {
+    const skills = await SkillRepository.findByIds(
+      ratings.map((rating) => rating.skill_id),
+      trx
+    )
+    const skillMap = new Map(skills.map((skill) => [skill.id, skill]))
+
     for (const rating of ratings) {
-      // Validate skill_id
-      const skill = await Skill.query({ client: trx }).where('id', rating.skill_id).first()
+      const skill = skillMap.get(rating.skill_id)
       if (!skill) {
-        throw new Error(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
+        throw new NotFoundException(`Skill với ID ${rating.skill_id} không tồn tại`)
       }
 
-      // Validate assigned_level_id
-      const level = await ProficiencyLevel.query({ client: trx })
-        .where('id', rating.assigned_level_id)
-        .first()
-      if (!level) {
-        throw new Error(
-          `Proficiency level với ID ${String(rating.assigned_level_id)} không tồn tại`
+      if (!skill.is_active) {
+        throw new BusinessLogicException(`Skill với ID ${rating.skill_id} đã bị vô hiệu hóa`)
+      }
+
+      // Validate assigned_level_code is a valid ProficiencyLevel constant
+      const validLevels = Object.values(ProficiencyLevel) as string[]
+      if (!validLevels.includes(rating.assigned_level_code)) {
+        throw new BusinessLogicException(
+          `Proficiency level không hợp lệ: ${rating.assigned_level_code}`
         )
       }
     }
