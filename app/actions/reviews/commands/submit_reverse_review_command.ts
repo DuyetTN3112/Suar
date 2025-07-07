@@ -5,7 +5,7 @@ import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/revie
 import { REVIEW_DEFAULTS } from '#constants/review_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 
 /**
  * SubmitReverseReviewCommand

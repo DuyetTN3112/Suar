@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import type { DatabaseId } from '#types/database'
 
 /**

@@ -6,7 +6,7 @@ import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import UserRepository from '#infra/users/repositories/user_repository'
 import { AnomalyFlagType, AnomalySeverity } from '#constants/review_constants'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 
 /**

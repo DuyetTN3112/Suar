@@ -15,6 +15,13 @@ export class AddUserSkillDTO {
     this.skill_id = skillId
     this.level_code = levelCode
   }
+
+  static fromValidatedPayload(payload: {
+    skill_id: DatabaseId
+    level_code: string
+  }): AddUserSkillDTO {
+    return new AddUserSkillDTO(payload.skill_id, payload.level_code)
+  }
 }
 
 /**
@@ -32,6 +39,13 @@ export class UpdateUserSkillDTO {
     this.user_skill_id = userSkillId
     this.level_code = levelCode
   }
+
+  static fromValidatedPayload(payload: {
+    user_skill_id: DatabaseId
+    level_code: string
+  }): UpdateUserSkillDTO {
+    return new UpdateUserSkillDTO(payload.user_skill_id, payload.level_code)
+  }
 }
 
 /**
@@ -45,5 +59,9 @@ export class RemoveUserSkillDTO {
 
   constructor(userSkillId: DatabaseId) {
     this.user_skill_id = userSkillId
+  }
+
+  static fromUserSkillId(userSkillId: DatabaseId): RemoveUserSkillDTO {
+    return new RemoveUserSkillDTO(userSkillId)
   }
 }

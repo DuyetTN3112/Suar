@@ -70,8 +70,34 @@ test.group('Review DTO contracts', () => {
     assert.equal(reviewDto.review_session_id, VALID_UUID)
     assert.equal(reviewDto.reviewer_type, 'manager')
     assert.lengthOf(reviewDto.skill_ratings, 1)
+    assert.deepEqual(reviewDto.quality_metrics, {
+      overall_quality_score: null,
+      delivery_timeliness: null,
+      requirement_adherence: null,
+      communication_quality: null,
+      code_quality_score: null,
+      proactiveness_score: null,
+      would_work_with_again: null,
+    })
     assert.isNull(reviewDto.overall_quality_score)
     assert.isNull(reviewDto.delivery_timeliness)
+
+    const managerFactoryDto = SubmitSkillReviewDTO.forManager({
+      review_session_id: VALID_UUID,
+      skill_ratings: [
+        { skill_id: VALID_UUID_2, assigned_level_code: 'middle', comment: 'Reliable delivery' },
+      ],
+      strengths_observed: 'Ownership',
+    })
+    assert.equal(managerFactoryDto.reviewer_type, 'manager')
+    assert.equal(managerFactoryDto.strengths_observed, 'Ownership')
+
+    const peerFactoryDto = SubmitSkillReviewDTO.forPeer({
+      review_session_id: VALID_UUID,
+      skill_ratings: [{ skill_id: VALID_UUID_2, assigned_level_code: 'junior' }],
+    })
+    assert.equal(peerFactoryDto.reviewer_type, 'peer')
+
     assert.equal(evidenceDto.evidence_type, 'pull_request')
     assert.equal(evidenceDto.url, 'https://example.com/pr/123')
     assert.equal(evidenceDto.title, 'PR 123')

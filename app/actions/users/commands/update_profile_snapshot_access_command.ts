@@ -4,7 +4,7 @@ import UserRepository from '#infra/users/repositories/user_repository'
 import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 
 export interface UpdateProfileSnapshotAccessDTO {
   snapshotId: DatabaseId

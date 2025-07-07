@@ -6,6 +6,7 @@
  */
 
 import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
+import type { UserEntity } from '#domain/users/entities/user_entity'
 
 export interface UserDetailResponseDTOProps {
   id: string
@@ -88,7 +89,7 @@ export class UserDetailResponseDTO {
   public readonly createdAt: Date
   public readonly updatedAt: Date
 
-  constructor(props: UserDetailResponseDTOProps) {
+  private constructor(props: UserDetailResponseDTOProps) {
     this.id = props.id
     this.username = props.username
     this.email = props.email
@@ -111,6 +112,36 @@ export class UserDetailResponseDTO {
     this.createdAt = props.createdAt
     this.updatedAt = props.updatedAt
   }
+
+  static fromProps(props: UserDetailResponseDTOProps): UserDetailResponseDTO {
+    return new UserDetailResponseDTO(props)
+  }
+
+  static fromEntity(entity: UserEntity): UserDetailResponseDTO {
+    return new UserDetailResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      status: entity.status,
+      systemRole: entity.systemRole,
+      currentOrganizationId: entity.currentOrganizationId,
+      authMethod: entity.authMethod,
+      avatarUrl: entity.avatarUrl,
+      bio: entity.bio,
+      phone: entity.phone,
+      address: entity.address,
+      timezone: entity.timezone,
+      language: entity.language,
+      isFreelancer: entity.isFreelancer,
+      freelancerRating: entity.freelancerRating,
+      freelancerCompletedTasksCount: entity.freelancerCompletedTasksCount,
+      profileSettings: entity.profileSettings,
+      trustData: entity.trustData,
+      credibilityData: entity.credibilityData,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    })
+  }
 }
 
 /**
@@ -126,7 +157,7 @@ export class UserListItemResponseDTO {
   public readonly isFreelancer: boolean
   public readonly createdAt: Date
 
-  constructor(props: UserListItemResponseDTOProps) {
+  private constructor(props: UserListItemResponseDTOProps) {
     this.id = props.id
     this.username = props.username
     this.email = props.email
@@ -135,6 +166,23 @@ export class UserListItemResponseDTO {
     this.avatarUrl = props.avatarUrl
     this.isFreelancer = props.isFreelancer
     this.createdAt = props.createdAt
+  }
+
+  static fromProps(props: UserListItemResponseDTOProps): UserListItemResponseDTO {
+    return new UserListItemResponseDTO(props)
+  }
+
+  static fromEntity(entity: UserEntity): UserListItemResponseDTO {
+    return new UserListItemResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      status: entity.status,
+      systemRole: entity.systemRole,
+      avatarUrl: entity.avatarUrl,
+      isFreelancer: entity.isFreelancer,
+      createdAt: entity.createdAt,
+    })
   }
 }
 
@@ -153,7 +201,7 @@ export class UserProfileResponseDTO {
   public readonly freelancerRating: number | null
   public readonly profileSettings: UserProfileSettings | null
 
-  constructor(props: UserProfileResponseDTOProps) {
+  private constructor(props: UserProfileResponseDTOProps) {
     this.id = props.id
     this.username = props.username
     this.email = props.email
@@ -164,6 +212,25 @@ export class UserProfileResponseDTO {
     this.isFreelancer = props.isFreelancer
     this.freelancerRating = props.freelancerRating
     this.profileSettings = props.profileSettings
+  }
+
+  static fromProps(props: UserProfileResponseDTOProps): UserProfileResponseDTO {
+    return new UserProfileResponseDTO(props)
+  }
+
+  static fromEntity(entity: UserEntity): UserProfileResponseDTO {
+    return new UserProfileResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      avatarUrl: entity.avatarUrl,
+      bio: entity.bio,
+      timezone: entity.timezone,
+      language: entity.language,
+      isFreelancer: entity.isFreelancer,
+      freelancerRating: entity.freelancerRating,
+      profileSettings: entity.profileSettings,
+    })
   }
 }
 
@@ -176,10 +243,23 @@ export class UserSummaryResponseDTO {
   public readonly email: string | null
   public readonly avatarUrl: string | null
 
-  constructor(props: UserSummaryResponseDTOProps) {
+  private constructor(props: UserSummaryResponseDTOProps) {
     this.id = props.id
     this.username = props.username
     this.email = props.email
     this.avatarUrl = props.avatarUrl
+  }
+
+  static fromProps(props: UserSummaryResponseDTOProps): UserSummaryResponseDTO {
+    return new UserSummaryResponseDTO(props)
+  }
+
+  static fromEntity(entity: UserEntity): UserSummaryResponseDTO {
+    return new UserSummaryResponseDTO({
+      id: entity.id,
+      username: entity.username,
+      email: entity.email,
+      avatarUrl: entity.avatarUrl,
+    })
   }
 }
