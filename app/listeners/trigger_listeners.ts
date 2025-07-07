@@ -1,5 +1,5 @@
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import { DateTime } from 'luxon'
 import type {
   OrganizationCreatedEvent,

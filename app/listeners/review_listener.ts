@@ -1,6 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import cacheService from '#services/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import cacheService from '#infra/cache/cache_service'
 import { ExecutionContext } from '#types/execution_context'
 import type {
   ReviewSubmittedEvent,

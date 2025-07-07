@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { join } from 'node:path'
 import { access } from 'node:fs/promises'
 import app from '@adonisjs/core/services/app'
-import loggerService from '#services/logger_service'
+import loggerService from '#infra/logger/logger_service'
 import { HttpStatus } from '#constants/error_constants'
 
 /**
