@@ -1,68 +1,70 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import TaskApplication from '#models/task_application'
-import Task from '#models/task'
-import type { ApplyForTaskDTO } from '#actions/tasks/dtos/task_application_dtos'
+import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import CacheService from '#services/cache_service'
+import emitter from '@adonisjs/core/services/emitter'
+import { ApplicationStatus } from '#constants/task_constants'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
+import { DateTime } from 'luxon'
 
 /**
  * ApplyForTaskCommand
  *
  * Allows a freelancer to apply for a public task.
- * Validates:
- * - Task exists and is public listing
- * - User hasn't already applied
- * - User is not the task creator
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
  */
-export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, TaskApplication> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
-  async handle(dto: ApplyForTaskDTO): Promise<TaskApplication> {
+export default class ApplyForTaskCommand extends BaseCommand<
+  ApplyForTaskDTO,
+  import('#models/task_application').default
+> {
+  async handle(dto: ApplyForTaskDTO): Promise<import('#models/task_application').default> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser().id
+      const userId = this.getCurrentUserId()
 
-      // Verify task exists and is a public listing
-      const task = await Task.query({ client: trx })
-        .where('id', dto.task_id)
-        .whereNull('deleted_at')
-        .where('is_public_listing', true)
-        .firstOrFail()
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const task = await TaskRepository.findActiveOrFail(dto.task_id, trx)
 
-      // Cannot apply to own task
-      if (task.creator_id === userId) {
-        throw new Error('Cannot apply to your own task')
-      }
+      const existingApplication =
+        await TaskApplicationRepository.findExistingNonWithdrawnByTaskAndApplicant(
+          dto.task_id,
+          userId,
+          trx
+        )
 
-      // Check if already applied
-      const existingApplication = await TaskApplication.query({ client: trx })
-        .where('task_id', dto.task_id)
-        .where('applicant_id', userId)
-        .whereNot('application_status', 'withdrawn')
-        .first()
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      enforcePolicy(
+        canApplyForTask({
+          actorId: userId,
+          taskCreatorId: task.creator_id,
+          taskVisibility: task.task_visibility,
+          isTaskAlreadyAssigned: task.assigned_to !== null,
+          isApplicationDeadlinePassed:
+            task.application_deadline !== null &&
+            task.application_deadline.toMillis() <= DateTime.now().toMillis(),
+          hasExistingApplication: !!existingApplication,
+        })
+      )
 
-      if (existingApplication) {
-        throw new Error('You have already applied to this task')
-      }
-
-      // Create application
-      const application = await TaskApplication.create(
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const application = await TaskApplicationRepository.create(
         {
           task_id: dto.task_id,
           applicant_id: userId,
-          application_status: 'pending',
+          application_status: ApplicationStatus.PENDING,
           application_source: dto.application_source,
           message: dto.message,
           expected_rate: dto.expected_rate,
           portfolio_links: dto.portfolio_links,
         },
-        { client: trx }
+        trx
       )
 
       // Update task's application count
       task.external_applications_count = (task.external_applications_count || 0) + 1
-      await task.useTransaction(trx).save()
+      await TaskRepository.save(task, trx)
 
       // Log audit
       await this.logAudit('apply_task', 'task_application', application.id, null, {
@@ -73,6 +75,15 @@ export default class ApplyForTaskCommand extends BaseCommand<ApplyForTaskDTO, Ta
 
       // Invalidate cache
       await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
+
+      // Emit domain event
+      void emitter.emit('task:application:submitted', {
+        applicationId: application.id,
+        taskId: dto.task_id,
+        applicantId: userId,
+        projectId: task.project_id ?? '',
+        ownerId: task.creator_id,
+      })
 
       return application
     })

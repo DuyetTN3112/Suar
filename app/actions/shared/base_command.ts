@@ -281,128 +281,18 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
     taskId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    const client = trx || db
-
-    // 1. Check user active (deleted_at IS NULL và status = 'active')
-    const userActiveResult: unknown = await client
-      .from('users')
-      .join('user_status', 'users.status_id', 'user_status.id')
-      .where('users.id', userId)
-      .whereNull('users.deleted_at')
-      .where('user_status.name', 'active')
-      .first()
-    if (!userActiveResult) return false
-
-    // 2. Get task info
-    const taskRaw: unknown = await client
-      .from('tasks')
-      .where('id', taskId)
-      .whereNull('deleted_at')
-      .select('project_id', 'organization_id', 'creator_id')
-      .first()
-
-    const task = taskRaw as {
-      project_id?: number | null
-      organization_id?: number | null
-      creator_id?: number | null
-    } | null
-    if (!task?.organization_id) return false
-
-    // 3. Check superadmin
-    if (await this.isSystemSuperadmin()) return true
-
-    // 4. Check creator + org member approved
-    if (task.creator_id === userId) {
-      const creatorOrgResult: unknown = await client
-        .from('organization_users')
-        .where('user_id', userId)
-        .where('organization_id', task.organization_id)
-        .where('status', 'approved')
-        .first()
-      if (creatorOrgResult) return true
-    }
-
-    // 5. Check project manager/owner (nếu task thuộc project)
-    if (task.project_id) {
-      if (await this.isProjectManagerOrOwner(userId, task.project_id, trx)) return true
-    }
-
-    // 6. Check org admin/owner
-    if (await this.isOrgAdminOrOwner(userId, task.organization_id, trx)) return true
-
-    // 7. Check active task_assignment
-    const assignmentResult: unknown = await client
-      .from('task_assignments')
-      .where('task_id', taskId)
-      .where('assignee_id', userId)
-      .where('assignment_status', 'active')
-      .first()
-    if (assignmentResult) return true
-
-    return false
+    return PermissionService.canUserUpdateTask(userId, taskId, trx)
   }
 
   /**
    * Check if user can view task
    * Equivalent to: can_user_view_task(p_user_id, p_task_id)
-   *
-   * Logic từ database (tương tự can_user_update_task + public task)
    */
   protected async canUserViewTask(
-    userId: number,
-    taskId: number,
+    userId: DatabaseId,
+    taskId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    const client = trx || db
-
-    // 1. Check user exists
-    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
-      return false
-    }
-
-    // 2. Get task info
-    const taskRaw: unknown = await client
-      .from('tasks')
-      .where('id', taskId)
-      .whereNull('deleted_at')
-      .select('project_id', 'organization_id', 'creator_id', 'is_public_listing')
-      .first()
-
-    const task = taskRaw as {
-      project_id?: number | null
-      organization_id?: number | null
-      creator_id?: number | null
-      is_public_listing?: boolean | null
-    } | null
-    if (!task) return false
-
-    // 3. Public task → anyone can view
-    if (task.is_public_listing) return true
-
-    // 4. Check superadmin
-    if (await this.isSystemSuperadmin()) return true
-
-    // 5. Check org member
-    if (task.organization_id) {
-      const orgMemberResult: unknown = await client
-        .from('organization_users')
-        .where('user_id', userId)
-        .where('organization_id', task.organization_id)
-        .where('status', 'approved')
-        .first()
-      if (orgMemberResult) return true
-    }
-
-    // 6. Check project member
-    if (task.project_id) {
-      const projectMemberResult: unknown = await client
-        .from('project_members')
-        .where('user_id', userId)
-        .where('project_id', task.project_id)
-        .first()
-      if (projectMemberResult) return true
-    }
-
-    return false
+    return PermissionService.canUserViewTask(userId, taskId, trx)
   }
 }
