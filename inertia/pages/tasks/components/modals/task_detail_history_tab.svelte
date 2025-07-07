@@ -1,9 +1,11 @@
 <script lang="ts">
   import { format, parseISO } from 'date-fns'
   import { vi } from 'date-fns/locale'
+  import { History } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import { History } from 'lucide-svelte'
+
   import type { Task } from '../../types.svelte'
 
   interface AuditLogEntry {
@@ -100,7 +102,7 @@
             <div class="flex-1">
               <div class="flex items-center justify-between">
                 <span class="font-medium text-sm">
-                  {log.user?.username || log.user?.email || 'Người dùng không xác định'}
+                  {(log.user?.username ?? log.user?.email) ?? 'Người dùng không xác định'}
                 </span>
                 <span class="text-xs text-muted-foreground">
                   {formatDate(log.created_at)}

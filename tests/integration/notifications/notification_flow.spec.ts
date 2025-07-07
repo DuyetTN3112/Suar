@@ -1,13 +1,14 @@
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
+
 import CreateNotification from '#actions/common/create_notification'
+import DeleteNotification from '#actions/notifications/delete_notification'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
-import DeleteNotification from '#actions/notifications/delete_notification'
-import { ExecutionContext } from '#types/execution_context'
-import NotFoundException from '#exceptions/not_found_exception'
 import { BACKEND_NOTIFICATION_TYPES } from '#constants/notification_constants'
+import NotFoundException from '#exceptions/not_found_exception'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
+import { ExecutionContext } from '#types/execution_context'
 
 function requireNotificationId(
   notification: { id: string } | null,

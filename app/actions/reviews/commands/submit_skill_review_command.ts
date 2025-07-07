@@ -1,20 +1,22 @@
-import { DateTime } from 'luxon'
+import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { ProficiencyLevel } from '#constants'
+
+import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { BaseCommand } from '#actions/shared/base_command'
-import type SkillReview from '#models/skill_review'
+import { ReviewSessionStatus } from '#constants/review_constants'
+import { determineSessionStatus } from '#domain/reviews/review_formulas'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import CacheService from '#infra/cache/cache_service'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import SkillRepository from '#infra/skills/repositories/skill_repository'
-import { ProficiencyLevel } from '#constants'
-import { ReviewSessionStatus } from '#constants/review_constants'
-import ConflictException from '#exceptions/conflict_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import CacheService from '#infra/cache/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
+import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { determineSessionStatus } from '#domain/reviews/review_formulas'
 
 /**
  * SubmitSkillReviewCommand
@@ -93,21 +95,21 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   private buildSkillReviewRows(
     dto: SubmitSkillReviewDTO,
     reviewerId: DatabaseId
-  ): Array<{
+  ): {
     review_session_id: DatabaseId
     reviewer_id: DatabaseId
     reviewer_type: 'manager' | 'peer'
     skill_id: DatabaseId
     assigned_level_code: string
     comment: string | null
-  }> {
+  }[] {
     return dto.skill_ratings.map((rating) => ({
       review_session_id: dto.review_session_id,
       reviewer_id: reviewerId,
       reviewer_type: dto.reviewer_type,
       skill_id: rating.skill_id,
       assigned_level_code: rating.assigned_level_code,
-      comment: rating.comment || null,
+      comment: rating.comment ?? null,
     }))
   }
 

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import UpdateOrganizationSettingsCommand from '#actions/organization/settings/commands/update_organization_settings_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * UpdateSettingsController

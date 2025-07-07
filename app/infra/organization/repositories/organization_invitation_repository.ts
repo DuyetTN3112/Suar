@@ -1,5 +1,6 @@
-import type { DatabaseId } from '#types/database'
 import db from '@adonisjs/lucid/services/db'
+
+import type { DatabaseId } from '#types/database'
 
 /**
  * OrganizationInvitationRepository

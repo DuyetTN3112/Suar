@@ -21,8 +21,8 @@ interface UsersPaginatedResult {
 }
 
 interface UserMetadataShape {
-  roles?: Array<{ name?: string; value?: string; label?: string }>
-  statuses?: Array<{ name?: string; value?: string; label?: string }>
+  roles?: { name?: string; value?: string; label?: string }[]
+  statuses?: { name?: string; value?: string; label?: string }[]
 }
 
 function isResponseRecord(value: unknown): value is ResponseRecord {
@@ -126,7 +126,7 @@ function normalizeDeliveryMetrics(deliveryMetrics: unknown) {
 }
 
 function mapMetadataOptions(
-  items: Array<{ name?: string; value?: string; label?: string }> | undefined
+  items: { name?: string; value?: string; label?: string }[] | undefined
 ) {
   return (items ?? []).map((item) => {
     const value = item.value ?? item.name ?? ''

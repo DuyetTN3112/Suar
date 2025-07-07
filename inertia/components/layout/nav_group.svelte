@@ -2,9 +2,16 @@
   import { page, router } from '@inertiajs/svelte'
   import { ChevronRight } from 'lucide-svelte'
   import { getContext } from 'svelte'
+
+  import type { LucideIconComponent } from '@/components/lucide_icon_map'
+  import Badge from '@/components/ui/badge.svelte'
   import Collapsible from '@/components/ui/collapsible.svelte'
   import CollapsibleContent from '@/components/ui/collapsible_content.svelte'
   import CollapsibleTrigger from '@/components/ui/collapsible_trigger.svelte'
+  import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
+  import DropdownMenuContent from '@/components/ui/dropdown_menu_content.svelte'
+  import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
+  import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
   import SidebarGroup from '@/components/ui/sidebar/sidebar_group.svelte'
   import SidebarGroupLabel from '@/components/ui/sidebar/sidebar_group_label.svelte'
   import SidebarMenu from '@/components/ui/sidebar/sidebar_menu.svelte'
@@ -13,13 +20,7 @@
   import SidebarMenuSub from '@/components/ui/sidebar/sidebar_menu_sub.svelte'
   import SidebarMenuSubButton from '@/components/ui/sidebar/sidebar_menu_sub_button.svelte'
   import SidebarMenuSubItem from '@/components/ui/sidebar/sidebar_menu_sub_item.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
-  import DropdownMenuContent from '@/components/ui/dropdown_menu_content.svelte'
-  import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
-  import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import type { LucideIconComponent } from '@/components/lucide_icon_map'
 
   interface BaseNavItem {
     title: string

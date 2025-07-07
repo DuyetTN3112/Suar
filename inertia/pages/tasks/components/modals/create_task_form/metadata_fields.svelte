@@ -1,6 +1,6 @@
 <script lang="ts">
-  import Label from '@/components/ui/label.svelte'
   import Input from '@/components/ui/input.svelte'
+  import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
@@ -21,12 +21,12 @@
     }
     handleSelectChange: (name: string, value: string) => void
     errors: Record<string, string>
-    statuses: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    labels: Array<{ value: string; label: string }>
-    users: Array<{ id: string; username: string; email: string }>
-    parentTasks: Array<{ id: string; title: string; task_status_id: string | null }>
-    projects: Array<{ id: string; name: string }>
+    statuses: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    labels: { value: string; label: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    projects: { id: string; name: string }[]
   }
 
   const { formData, handleSelectChange, errors, statuses, priorities, labels, users, parentTasks, projects }: Props = $props()
@@ -88,7 +88,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{projects.find((project) => project.id === formData.project_id)?.name || 'Chọn project'}</span>
+        <span>{projects.find((project) => project.id === formData.project_id)?.name ?? 'Chọn project'}</span>
       </SelectTrigger>
       <SelectContent>
         {#each projects as project (project.id)}
@@ -114,7 +114,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{statuses.find(s => s.value === formData.task_status_id)?.label || t('task.select_status', {}, 'Chọn trạng thái')}</span>
+        <span>{statuses.find(s => s.value === formData.task_status_id)?.label ?? t('task.select_status', {}, 'Chọn trạng thái')}</span>
       </SelectTrigger>
       <SelectContent>
         {#each statuses as status (status.value)}
@@ -138,7 +138,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{taskTypeOptions.find((option) => option.value === formData.task_type)?.label || 'Chọn loại task'}</span>
+        <span>{taskTypeOptions.find((option) => option.value === formData.task_type)?.label ?? 'Chọn loại task'}</span>
       </SelectTrigger>
       <SelectContent>
         {#each taskTypeOptions as option (option.value)}
@@ -164,7 +164,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{priorities.find(p => p.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
+        <span>{priorities.find(p => p.value === formData.priority)?.label ?? t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
       </SelectTrigger>
       <SelectContent>
         {#each priorities as priority (priority.value)}
@@ -188,7 +188,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{verificationOptions.find((option) => option.value === formData.verification_method)?.label || 'Chọn cách nghiệm thu'}</span>
+        <span>{verificationOptions.find((option) => option.value === formData.verification_method)?.label ?? 'Chọn cách nghiệm thu'}</span>
       </SelectTrigger>
       <SelectContent>
         {#each verificationOptions as option (option.value)}
@@ -214,7 +214,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{labels.find(l => l.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
+        <span>{labels.find(l => l.value === formData.label)?.label ?? t('task.select_label', {}, 'Chọn nhãn')}</span>
       </SelectTrigger>
       <SelectContent>
         {#each labels as label (label.value)}
@@ -239,7 +239,7 @@
     }}
   >
     <SelectTrigger>
-      <span>{users.find(u => u.id === formData.assigned_to)?.username || users.find(u => u.id === formData.assigned_to)?.email || t('task.select_assignee_short', {}, 'Phân công cho')}</span>
+      <span>{(users.find(u => u.id === formData.assigned_to)?.username ?? users.find(u => u.id === formData.assigned_to)?.email) ?? t('task.select_assignee_short', {}, 'Phân công cho')}</span>
     </SelectTrigger>
     <SelectContent>
       {#each users as user (user.id)}
@@ -261,7 +261,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{parentTasks.find((task) => task.id === formData.parent_task_id)?.title || 'Chọn task cha (tuỳ chọn)'}</span>
+        <span>{parentTasks.find((task) => task.id === formData.parent_task_id)?.title ?? 'Chọn task cha (tuỳ chọn)'}</span>
       </SelectTrigger>
       <SelectContent>
         {#each parentTasks as task (task.id)}

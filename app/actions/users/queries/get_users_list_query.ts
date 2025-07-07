@@ -1,8 +1,10 @@
 import { inject } from '@adonisjs/core'
+
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
 import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
-import type User from '#models/user'
+
 import UserRepository from '#infra/users/repositories/user_repository'
+import type User from '#models/user'
 
 /**
  * GetUsersListQuery
@@ -61,10 +63,10 @@ export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, Pagina
       page: dto.pagination.page,
       limit: dto.pagination.limit,
       orgId: dto.organizationId,
-      search: dto.filters.search || '',
-      roleId: dto.filters.roleId || 0,
-      statusId: dto.filters.statusId || 0,
-      excludeStatusId: dto.filters.excludeStatusId || 0,
+      search: dto.filters.search ?? '',
+      roleId: dto.filters.roleId ?? 0,
+      statusId: dto.filters.statusId ?? 0,
+      excludeStatusId: dto.filters.excludeStatusId ?? 0,
       excludeOrgMembers: dto.filters.excludeOrganizationMembers ? 1 : 0,
     })
   }

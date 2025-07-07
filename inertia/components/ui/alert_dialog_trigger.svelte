@@ -6,7 +6,7 @@
   import { AlertDialog as AlertDialogPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  interface Props {
     class?: string
     children?: Snippet
   }

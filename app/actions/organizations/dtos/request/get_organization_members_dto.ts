@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
-import { OrganizationRole } from '#constants/organization_constants'
 import { PAGINATION } from '#constants/common_constants'
+import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for getting organization members list with filters and pagination
@@ -15,14 +15,14 @@ import ValidationException from '#exceptions/validation_exception'
 export class GetOrganizationMembersDTO {
   constructor(
     public readonly organizationId: DatabaseId,
-    public readonly page: number = 1,
+    public readonly page = 1,
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly roleId?: string,
     public readonly search?: string,
-    public readonly sortBy: string = 'joined_at',
+    public readonly sortBy = 'joined_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc',
     public readonly statusFilter?: 'active' | 'pending' | 'inactive',
-    public readonly include?: Array<'activity' | 'audit'>
+    public readonly include?: ('activity' | 'audit')[]
   ) {
     this.validate()
   }
@@ -37,7 +37,7 @@ export class GetOrganizationMembersDTO {
       sort_by?: string
       sort_order?: 'asc' | 'desc'
       status_filter?: 'active' | 'pending' | 'inactive'
-      include?: Array<'activity' | 'audit'>
+      include?: ('activity' | 'audit')[]
     }
   ): GetOrganizationMembersDTO {
     return new GetOrganizationMembersDTO(
@@ -208,7 +208,7 @@ export class GetOrganizationMembersDTO {
     }
 
     return {
-      column: columnMap[this.sortBy] || this.sortBy,
+      column: columnMap[this.sortBy] ?? this.sortBy,
       direction: this.sortOrder,
     }
   }

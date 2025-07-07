@@ -1,11 +1,12 @@
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
-import { testEmail } from '#tests/helpers/test_utils'
+
 import SocialLoginCommand from '#actions/auth/commands/social_login_command'
 import UserRepository from '#infra/users/repositories/user_repository'
 import User from '#models/user'
 import UserOAuthProvider from '#models/user_oauth_provider'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
+import { testEmail } from '#tests/helpers/test_utils'
 
 test.group('Integration | Social Login', (group) => {
   group.setup(async () => {

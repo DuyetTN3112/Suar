@@ -1,11 +1,12 @@
-import * as AuthLogger from '#libs/auth_logger'
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
-import SingleFlightService from '#infra/cache/single_flight_service'
+
 import SocialLoginPersistenceService, {
   type SocialLoginInput,
   type SupportedProvider,
 } from '#infra/auth/social_login_persistence_service'
+import SingleFlightService from '#infra/cache/single_flight_service'
+import * as AuthLogger from '#libs/auth_logger'
 import type User from '#models/user'
 
 interface SocialUserData {
@@ -101,7 +102,7 @@ export default class SocialLoginCommand {
   }
 
   private recordSuccessfulLogin(user: User, provider: SupportedProvider): void {
-    AuthLogger.userLogin(user.id, user.email || '', provider)
+    AuthLogger.userLogin(user.id, user.email ?? '', provider)
     void emitter.emit('user:login', {
       userId: user.id,
       ip: '',

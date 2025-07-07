@@ -1,8 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
+import { baseQuery } from './shared.js'
+
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import OrganizationUser from '#models/organization_user'
-import { baseQuery } from './shared.js'
+import type { DatabaseId } from '#types/database'
+
 
 export const updateRole = async (
   organizationId: DatabaseId,

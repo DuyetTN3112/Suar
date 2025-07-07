@@ -1,16 +1,17 @@
-import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DatabaseId } from '#types/database'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
 import {
   calculatePerformanceAggregateMetrics,
   type PerformanceAggregateMetrics,
   type PerformanceAggregateRow,
   type SelfAssessmentAccuracyRow,
 } from '#domain/users/profile_aggregate_rules'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserPerformanceStatsDTO {
   userId: DatabaseId
@@ -25,7 +26,7 @@ export interface UpsertUserPerformanceStatsResult {
   performanceScore: number | null
 }
 
-type HistoryRow = {
+interface HistoryRow {
   task_type: string | null
   difficulty: string | null
   business_domain: string | null
@@ -95,7 +96,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
   }
 
   private mapSelfAssessmentRows(
-    rows: Array<{ overall_satisfaction: number | string; overall_quality_score: number | string }>
+    rows: { overall_satisfaction: number | string; overall_quality_score: number | string }[]
   ): SelfAssessmentAccuracyRow[] {
     return rows.map((row) => ({
       selfScore: this.toNumber(row.overall_satisfaction),
@@ -124,7 +125,7 @@ export default class UpsertUserPerformanceStatsCommand extends BaseCommand<
         periodEndSql: period.periodEndSql,
       },
       trx
-    )) as Array<{ overall_satisfaction: number | string; overall_quality_score: number | string }>
+    )) as { overall_satisfaction: number | string; overall_quality_score: number | string }[]
 
     const user = await UserRepository.findNotDeletedOrFail(userId, trx)
 

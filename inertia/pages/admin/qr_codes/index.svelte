@@ -107,7 +107,7 @@
       </div>
       <div class="rounded-xl border border-border p-4">
         <p class="text-xs uppercase tracking-[0.14em] text-muted-foreground">Chi nhánh</p>
-        <p class="mt-2 text-lg font-bold">{paymentConfig.branch || 'Không khai báo'}</p>
+        <p class="mt-2 text-lg font-bold">{paymentConfig.branch ?? 'Không khai báo'}</p>
       </div>
     </CardContent>
   </Card>

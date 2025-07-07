@@ -1,9 +1,11 @@
 ﻿import { inject } from '@adonisjs/core'
+import emitter from '@adonisjs/core/services/emitter'
+
 import { BaseCommand } from '../../shared/base_command.js'
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
-import type User from '#models/user'
+
 import UserRepository from '#infra/users/repositories/user_repository'
-import emitter from '@adonisjs/core/services/emitter'
+import type User from '#models/user'
 
 /**
  * UpdateUserProfileCommand

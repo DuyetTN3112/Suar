@@ -1,7 +1,8 @@
 <script lang="ts">
+  import { Bell, BellOff } from 'lucide-svelte'
+
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { Bell, BellOff } from 'lucide-svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {

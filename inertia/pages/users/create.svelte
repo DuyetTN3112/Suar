@@ -1,24 +1,25 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
-  import Button from '@/components/ui/button.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {
     metadata: {
-      roles: Array<{ value: string; label: string }>
-      statuses: Array<{ value: string; label: string }>
+      roles: { value: string; label: string }[]
+      statuses: { value: string; label: string }[]
     }
   }
 
@@ -170,7 +171,7 @@
                 onValueChange={handleSystemRoleChange}
               >
                 <SelectTrigger id="system_role">
-                  <span>{metadata.roles.find(r => r.value === formData.system_role)?.label || t('user.select_role', {}, 'Chọn vai trò')}</span>
+                  <span>{metadata.roles.find(r => r.value === formData.system_role)?.label ?? t('user.select_role', {}, 'Chọn vai trò')}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each metadata.roles as role (role.value)}
@@ -192,7 +193,7 @@
                 onValueChange={handleStatusChange}
               >
                 <SelectTrigger id="status">
-                  <span>{metadata.statuses.find(s => s.value === formData.status)?.label || t('user.select_status', {}, 'Chọn trạng thái')}</span>
+                  <span>{metadata.statuses.find(s => s.value === formData.status)?.label ?? t('user.select_status', {}, 'Chọn trạng thái')}</span>
                 </SelectTrigger>
                 <SelectContent>
                   {#each metadata.statuses as status (status.value)}

@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetPendingRequestsPageQuery from '#actions/organizations/queries/get_pending_requests_page_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id/members/pending

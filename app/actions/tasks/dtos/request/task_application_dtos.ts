@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
-import type { ApplicationStatus } from '#constants/task_constants'
 import { PAGINATION } from '#constants/common_constants'
+import type { ApplicationStatus } from '#constants/task_constants'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * ApplyForTaskDTO

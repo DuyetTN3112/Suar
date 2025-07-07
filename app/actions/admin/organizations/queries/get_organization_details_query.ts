@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -77,8 +77,8 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
       slug: org.slug,
       description: org.description,
       partner_type: org.partner_type,
-      created_at: org.created_at.toISO() || new Date().toISOString(),
-      updated_at: org.updated_at.toISO() || new Date().toISOString(),
+      created_at: org.created_at.toISO() ?? new Date().toISOString(),
+      updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
       owner: {
         id: org.owner.id,
         username: org.owner.username,

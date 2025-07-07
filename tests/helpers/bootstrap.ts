@@ -24,6 +24,7 @@
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
+
 import { applyTestDatastoreOverrides, assertSafeTestDatastores } from './test_datastore_guard.js'
 
 let app: ApplicationService | null = null
@@ -72,7 +73,7 @@ export async function setupApp(): Promise<ApplicationService> {
   await app.boot()
 
   // Start providers (including MongooseProvider for MongoDB connection)
-  await app.start(async () => {})
+  await app.start(() => undefined)
 
   return app
 }

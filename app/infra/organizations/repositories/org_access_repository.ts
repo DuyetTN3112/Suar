@@ -1,9 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import UserRepository from '#infra/users/repositories/user_repository'
 import OrganizationJoinRequest from '#models/organization_join_request'
 import OrganizationUser from '#models/organization_user'
-import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * OrgAccessRepository

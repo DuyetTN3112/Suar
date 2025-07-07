@@ -1,7 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
-import type { DatabaseId } from '#types/database'
+
 import Task from '#models/task'
+import type { DatabaseId } from '#types/database'
 
 export const LEGACY_TASK_STATUS = {
   TODO: 'todo',

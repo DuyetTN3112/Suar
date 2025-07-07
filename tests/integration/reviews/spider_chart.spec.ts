@@ -1,8 +1,10 @@
 import { test } from '@japa/runner'
+
 import RecalculateRevieweeSkillScoresCommand from '#actions/reviews/commands/recalculate_reviewee_skill_scores_command'
 import { ReviewSessionStatus } from '#constants/review_constants'
 import { ProficiencyLevel } from '#constants/user_constants'
 import UserSkill from '#models/user_skill'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -14,7 +16,6 @@ import {
   UserFactory,
   UserSkillFactory,
 } from '#tests/helpers/factories'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Review Skill Recalculation', (group) => {

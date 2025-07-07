@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { CircleCheckBig, CircleX, UserCheck } from 'lucide-svelte'
+
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
@@ -13,7 +15,7 @@
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import { CircleCheckBig, CircleX, UserCheck } from 'lucide-svelte'
+
   import { formatRequestDateTime } from '../members_types'
 
   interface PendingRequest {
@@ -72,7 +74,7 @@
         <TableBody>
           {#each pendingRequests as request (request.user_id)}
             <TableRow>
-              <TableCell class="font-medium">{request.username || request.email}</TableCell>
+              <TableCell class="font-medium">{request.username ?? request.email}</TableCell>
               <TableCell>{request.email}</TableCell>
               <TableCell>
                 {#if request.invited_by}

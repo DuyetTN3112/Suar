@@ -1,22 +1,25 @@
 import { randomBytes } from 'node:crypto'
-import { DateTime } from 'luxon'
-import { BaseCommand } from '#actions/shared/base_command'
-import type User from '#models/user'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
-import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
-import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
-import type { DatabaseId } from '#types/database'
+
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import CacheService from '#infra/cache/cache_service'
-import type UserProfileSnapshot from '#models/user_profile_snapshot'
+import { DateTime } from 'luxon'
+
+import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import {
   buildProfileSnapshotSlug,
   pickTopFrequencyKeys,
 } from '#domain/users/profile_snapshot_rules'
+import CacheService from '#infra/cache/cache_service'
+import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
+import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
+import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
+import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
+import type User from '#models/user'
+import type UserProfileSnapshot from '#models/user_profile_snapshot'
+import type { DatabaseId } from '#types/database'
 
 export interface PublishUserProfileSnapshotDTO {
   snapshotName?: string
@@ -100,7 +103,7 @@ interface SnapshotDomainExpertiseSummary extends Record<string, unknown> {
   tech_stack_frequency: Record<string, number>
   domain_frequency: Record<string, number>
   problem_category_frequency: Record<string, number>
-  top_skills: Array<Record<string, unknown>>
+  top_skills: Record<string, unknown>[]
 }
 
 interface SnapshotTrustMetrics extends Record<string, unknown> {
@@ -346,7 +349,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
       {
         user_id: userId,
         version: content.nextVersion,
-        snapshot_name: dto.snapshotName?.trim() || null,
+        snapshot_name: dto.snapshotName?.trim() ?? null,
         is_current: true,
         is_public: content.isPublic,
         shareable_slug: content.shareableSlug,

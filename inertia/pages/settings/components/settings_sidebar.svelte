@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
   import { User, CreditCard, Bell, Eye, Palette } from 'lucide-svelte'
+
   import { FRONTEND_ROUTES } from '@/constants'
 
   interface Props {

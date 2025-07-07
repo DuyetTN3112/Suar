@@ -1,14 +1,17 @@
 <script lang="ts">
+  import Checkbox from '@/components/ui/checkbox.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import Checkbox from '@/components/ui/checkbox.svelte'
-  import type { Task } from '../../types.svelte.ts'
-  import TaskListRow from './task_list_row.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../types.svelte.ts'
+
+  import TaskListRow from './task_list_row.svelte'
+
 
   interface TaskListProps {
     tasks: Task[]

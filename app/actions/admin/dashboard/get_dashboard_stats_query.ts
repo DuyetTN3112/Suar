@@ -1,11 +1,11 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
 import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 import AdminProjectRepository from '#infra/admin/repositories/admin_project_repository'
-import AdminTaskRepository from '#infra/admin/repositories/admin_task_repository'
 import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
-import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
+import AdminTaskRepository from '#infra/admin/repositories/admin_task_repository'
+import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetDashboardStatsQuery (System Admin)

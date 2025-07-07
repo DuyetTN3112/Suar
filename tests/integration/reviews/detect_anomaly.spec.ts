@@ -1,6 +1,8 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
 import DetectAnomalyCommand from '#actions/reviews/commands/detect_anomaly_command'
+import User from '#models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -13,7 +15,6 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
-import User from '#models/user'
 
 test.group('Integration | Detect Anomaly', (group) => {
   group.setup(async () => {

@@ -1,4 +1,5 @@
 import { test } from '@japa/runner'
+
 import { PolicyResult } from '#domain/shared/policy_result'
 
 test.group('PolicyResult', () => {

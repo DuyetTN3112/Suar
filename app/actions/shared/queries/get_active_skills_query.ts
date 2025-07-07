@@ -17,19 +17,19 @@ export default class GetActiveSkillsQuery {
    * Get all active skills, serialized for frontend consumption.
    */
   static async execute(): Promise<
-    Array<{
+    {
       id: string
       skill_name: string
       category_code: string | null
       [key: string]: unknown
-    }>
+    }[]
   > {
     const skills = await SkillRepository.activeSkills()
-    return skills.map((s) => s.serialize()) as Array<{
+    return skills.map((s) => s.serialize()) as {
       id: string
       skill_name: string
       category_code: string | null
       [key: string]: unknown
-    }>
+    }[]
   }
 }

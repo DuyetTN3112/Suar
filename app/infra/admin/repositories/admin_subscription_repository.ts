@@ -147,7 +147,7 @@ export default class AdminSubscriptionRepository {
         .limit(perPage)
         .offset((page - 1) * perPage),
       countQuery.count('* as total').first(),
-    ])) as [Array<Record<string, unknown>>, Record<string, unknown> | null]
+    ])) as [Record<string, unknown>[], Record<string, unknown> | null]
 
     return {
       subscriptions: rows.map((row) => ({

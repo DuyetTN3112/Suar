@@ -6,12 +6,13 @@
  * Maps ORM entities to domain entities using OrganizationInfraMapper.
  */
 
-import type { OrganizationRepository } from '#domain/organizations/repositories/organization_repository_interface'
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 import { OrganizationInfraMapper } from '../mapper/organization_infra_mapper.js'
+
+import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
+import type { OrganizationRepository } from '#domain/organizations/repositories/organization_repository_interface'
+import NotFoundException from '#exceptions/not_found_exception'
 import Organization from '#models/organization'
 import type { DatabaseId } from '#types/database'
-import NotFoundException from '#exceptions/not_found_exception'
 
 export class OrganizationRepositoryImpl implements OrganizationRepository {
   async findById(id: DatabaseId): Promise<OrganizationEntity | null> {

@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/svelte'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 function getErrorMessage(error: unknown, fallback: string): string {

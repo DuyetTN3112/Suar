@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { mapProfileEditPageProps } from './mappers/response/user_response_mapper.js'
+
 import GetProfileEditPageQuery from '#actions/users/queries/get_profile_edit_page_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import { ExecutionContext } from '#types/execution_context'
-import { mapProfileEditPageProps } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /profile/edit → Display profile edit form

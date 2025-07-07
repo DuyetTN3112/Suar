@@ -1,5 +1,4 @@
 <script lang="ts">
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -10,6 +9,7 @@
   import TabsContent from '@/components/ui/tabs_content.svelte'
   import TabsList from '@/components/ui/tabs_list.svelte'
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { groupByCategory } from '@/lib/access_ui'
 
   interface PermissionPresentation {

@@ -1,10 +1,13 @@
-import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
-import type { DatabaseId } from '#types/database'
+import { DateTime } from 'luxon'
+
+
 import { SystemRoleName } from '#constants'
-import User from '#models/user'
+
 import NotFoundException from '#exceptions/not_found_exception'
+import User from '#models/user'
+import type { DatabaseId } from '#types/database'
 
 export const findActiveOrFail = async (userId: DatabaseId, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()

@@ -1,18 +1,17 @@
 <script lang="ts">
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { router } from '@inertiajs/svelte'
+  import { ChevronLeft, ChevronRight, Inbox } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import { router } from '@inertiajs/svelte'
-  import { notificationStore } from '@/stores/notification_store.svelte'
-  import { ChevronLeft, ChevronRight, Inbox } from 'lucide-svelte'
   import {
     APPLICATION_FILTER_OPTIONS,
     APPLICATION_STATUSES,
@@ -25,6 +24,9 @@
     type ApplicationFilterValue,
     type ApplicationStatus,
   } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { notificationStore } from '@/stores/notification_store.svelte'
+
 
   interface Application {
     id: string
@@ -105,10 +107,10 @@
           : {}
 
       if (payload.success) {
-        notificationStore.success(payload.message || 'Đã rút đơn ứng tuyển thành công')
+        notificationStore.success(payload.message ?? 'Đã rút đơn ứng tuyển thành công')
         router.reload()
       } else {
-        notificationStore.error(payload.message || 'Không thể rút đơn ứng tuyển')
+        notificationStore.error(payload.message ?? 'Không thể rút đơn ứng tuyển')
       }
     } catch (error) {
       console.error('Lỗi khi rút đơn:', error)

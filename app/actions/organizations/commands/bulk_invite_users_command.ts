@@ -1,7 +1,9 @@
-import { type ExecutionContext } from '#types/execution_context'
-import InviteUserCommand from './invite_user_command.js'
 import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+
+import InviteUserCommand from './invite_user_command.js'
+
 import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * DTO for bulk inviting users

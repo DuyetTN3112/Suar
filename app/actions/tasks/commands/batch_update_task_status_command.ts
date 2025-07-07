@@ -1,19 +1,20 @@
-import type Task from '#models/task'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import db from '@adonisjs/lucid/services/db'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ConflictException from '#exceptions/conflict_exception'
-import CacheService from '#infra/cache/cache_service'
-import loggerService from '#infra/logger/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import db from '@adonisjs/lucid/services/db'
+
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc
@@ -76,7 +77,7 @@ export default class BatchUpdateTaskStatusCommand {
 
       // ── DECIDE + PERSIST (per task) ────────────────────────────────────
       let updated = 0
-      const eventsToEmit: Array<{ task: Task; oldStatus: string }> = []
+      const eventsToEmit: { task: Task; oldStatus: string }[] = []
 
       for (const task of tasks) {
         const currentStatusId = task.task_status_id

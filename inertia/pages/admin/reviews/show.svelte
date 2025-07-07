@@ -1,12 +1,13 @@
 <script lang="ts">
   import { Link, router } from '@inertiajs/svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
 
   interface Props {
     review: {
@@ -24,14 +25,14 @@
       skill: { id: string; name: string | null } | null
       comment: string | null
     }
-    evidences: Array<{
+    evidences: {
       id: string
       title: string | null
       url: string | null
       evidence_type: string
       description: string | null
       created_at: string | null
-    }>
+    }[]
   }
 
   const { review, evidences }: Props = $props()
@@ -71,35 +72,35 @@
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <p class="text-muted-foreground">Reviewer</p>
-              <p class="font-medium">{review.reviewer?.username || 'Không rõ'}</p>
-              <p class="text-muted-foreground">{review.reviewer?.email || ''}</p>
+              <p class="font-medium">{review.reviewer?.username ?? 'Không rõ'}</p>
+              <p class="text-muted-foreground">{review.reviewer?.email ?? 'Không có email'}</p>
             </div>
             <div>
               <p class="text-muted-foreground">Reviewee</p>
-              <p class="font-medium">{review.reviewee?.username || 'Không rõ'}</p>
-              <p class="text-muted-foreground">{review.reviewee?.email || ''}</p>
+              <p class="font-medium">{review.reviewee?.username ?? 'Không rõ'}</p>
+              <p class="text-muted-foreground">{review.reviewee?.email ?? 'Không có email'}</p>
             </div>
             <div>
               <p class="text-muted-foreground">Task</p>
-              <p class="font-medium">{review.task?.title || 'Không rõ task'}</p>
+              <p class="font-medium">{review.task?.title ?? 'Không rõ task'}</p>
             </div>
             <div>
               <p class="text-muted-foreground">Skill</p>
-              <p class="font-medium">{review.skill?.name || 'Không rõ skill'}</p>
+              <p class="font-medium">{review.skill?.name ?? 'Không rõ skill'}</p>
             </div>
           </div>
 
           <div>
             <p class="text-muted-foreground">Comment</p>
             <div class="neo-surface-soft mt-1 p-3 text-sm">
-              {review.comment || 'Không có comment'}
+              {review.comment ?? 'Không có comment'}
             </div>
           </div>
 
           <div>
             <p class="text-muted-foreground">Ghi chú moderation</p>
             <div class="neo-surface-soft mt-1 p-3 text-sm">
-              {review.notes || 'Chưa có ghi chú'}
+              {review.notes ?? 'Chưa có ghi chú'}
             </div>
           </div>
         </CardContent>
@@ -123,7 +124,7 @@
           </div>
           <div>
             <p class="text-muted-foreground">Moderator</p>
-            <p class="font-medium">{review.moderator?.username || 'Chưa có'}</p>
+            <p class="font-medium">{review.moderator?.username ?? 'Chưa có'}</p>
           </div>
           <div class="flex gap-2">
             <Button disabled={review.status !== 'pending'} onclick={() => { resolve('confirm'); }}>
@@ -149,8 +150,8 @@
           <div class="grid gap-3 md:grid-cols-2">
             {#each evidences as evidence}
               <div class="neo-surface-soft p-4 text-sm shadow-none">
-                <p class="font-medium">{evidence.title || evidence.evidence_type}</p>
-                <p class="mt-1 text-muted-foreground">{evidence.description || 'Không có mô tả'}</p>
+                <p class="font-medium">{evidence.title ?? evidence.evidence_type}</p>
+                <p class="mt-1 text-muted-foreground">{evidence.description ?? 'Không có mô tả'}</p>
                 {#if evidence.url}
                   <a class="neo-text-blue mt-2 inline-block hover:underline" href={evidence.url} target="_blank" rel="noreferrer">
                     Mở evidence

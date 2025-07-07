@@ -1,5 +1,11 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
+import CreateProjectCommand from '#actions/projects/commands/create_project_command'
+import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
+import AuditLog from '#models/mongo/audit_log'
+import Project from '#models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -7,12 +13,7 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import CreateProjectCommand from '#actions/projects/commands/create_project_command'
-import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
-import Project from '#models/project'
-import AuditLog from '#models/mongo/audit_log'
 import { ExecutionContext } from '#types/execution_context'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 
 test.group('Integration | Create Project', (group) => {
   group.setup(async () => {

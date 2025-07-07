@@ -1,9 +1,11 @@
+import emitter from '@adonisjs/core/services/emitter'
+
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
-import UserRepository from '#infra/users/repositories/user_repository'
-import emitter from '@adonisjs/core/services/emitter'
+
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canChangeUserRole } from '#domain/users/user_management_rules'
+import UserRepository from '#infra/users/repositories/user_repository'
 
 /**
  * ChangeUserRoleCommand (v3)

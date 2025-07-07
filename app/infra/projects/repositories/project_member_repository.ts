@@ -1,9 +1,11 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { ProjectRole } from '#constants'
-import { PAGINATION } from '#constants/common_constants'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { ProjectRole } from '#constants'
+
+import { PAGINATION } from '#constants/common_constants'
 import ProjectMember from '#models/project_member'
+import type { DatabaseId } from '#types/database'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -166,13 +168,13 @@ export default class ProjectMemberRepository {
     },
     trx?: TransactionClientContract
   ): Promise<{
-    data: Array<{
+    data: {
       user_id: string
       role: string
       joined_at: Date
       username: string
       email: string
-    }>
+    }[]
     total: number
   }> {
     const baseDb = trx ?? db

@@ -1,12 +1,16 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import GetOrganizationMembersQuery from './get_organization_members_query.js'
-import GetPendingRequestsQuery from './get_pending_requests_query.js'
-import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
-import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
-import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
 import { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+
+import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
+import GetOrganizationMembersQuery from './get_organization_members_query.js'
+import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
+import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
+import GetPendingRequestsQuery from './get_pending_requests_query.js'
+
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+
 
 export interface OrganizationMembersPageResult {
   organization: { id: DatabaseId; name: string } | null
@@ -22,7 +26,7 @@ export interface OrganizationMembersPageFilters {
   roleId?: string
   search?: string
   statusFilter?: 'active' | 'pending' | 'inactive'
-  include?: Array<'activity' | 'audit'>
+  include?: ('activity' | 'audit')[]
 }
 
 /**

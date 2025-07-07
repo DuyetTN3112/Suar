@@ -137,8 +137,8 @@ export function formatAuditChanges<T extends object>(
   }
 
   const allKeys = new Set([
-    ...Object.keys(oldValues || {}),
-    ...Object.keys(newValues || {}),
+    ...Object.keys(oldValues ?? {}),
+    ...Object.keys(newValues ?? {}),
   ]) as Set<keyof T>
 
   allKeys.forEach((key) => {

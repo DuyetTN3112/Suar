@@ -1,5 +1,6 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+
   import SlicePanel from './_components/status_board_panel.svelte'
   import type { SliceItem, SliceMetadata } from './status_board_types'
 
@@ -72,7 +73,7 @@
 <div class="space-y-4 p-4 sm:p-6">
   <header class="space-y-1">
     <h1 class="text-lg font-semibold">status_board Slice</h1>
-    <p class="text-sm text-muted-foreground">Role: {auth.user?.current_organization_role || 'guest'}</p>
+    <p class="text-sm text-muted-foreground">Role: {auth.user?.current_organization_role ?? 'guest'}</p>
   </header>
 
   {#if conflictMessage}

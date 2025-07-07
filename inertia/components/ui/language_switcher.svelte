@@ -1,12 +1,15 @@
 <script lang="ts">
+  import { Globe } from 'lucide-svelte'
+
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import Button from './button.svelte'
   import DropdownMenu from './dropdown_menu.svelte'
-  import DropdownMenuTrigger from './dropdown_menu_trigger.svelte'
   import DropdownMenuContent from './dropdown_menu_content.svelte'
   import DropdownMenuGroup from './dropdown_menu_group.svelte'
   import DropdownMenuItem from './dropdown_menu_item.svelte'
-  import Button from './button.svelte'
-  import { Globe } from 'lucide-svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
+  import DropdownMenuTrigger from './dropdown_menu_trigger.svelte'
+
 
   type TranslationNamespace = Record<string, unknown>
 
@@ -35,8 +38,8 @@
       return
     }
 
-    const hasUser = Boolean(translations.messages?.user || translations.user)
-    const hasCommon = Boolean(translations.messages?.common || translations.common)
+    const hasUser = Boolean(translations.messages?.user ?? translations.user)
+    const hasCommon = Boolean(translations.messages?.common ?? translations.common)
 
     if (!hasUser && import.meta.env.DEV) {
       console.warn('[LanguageSwitcher] Missing user namespace in translations')

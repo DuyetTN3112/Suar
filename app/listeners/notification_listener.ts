@@ -1,14 +1,15 @@
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import { RepositoryFactory } from '#infra/shared/repositories/index'
-import type {
-  TaskApplicationSubmittedEvent,
-  TaskApplicationReviewedEvent,
-} from '#events/event_types'
+
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import type {
+  TaskApplicationSubmittedEvent,
+  TaskApplicationReviewedEvent,
+} from '#events/event_types'
+import loggerService from '#infra/logger/logger_service'
+import { RepositoryFactory } from '#infra/shared/repositories/index'
 
 /**
  * Notification Listener — Sprint 7

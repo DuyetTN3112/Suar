@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { DatabaseId } from '#types/database'
+
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * ExecutionContext — Decoupled context for Commands and Queries
@@ -60,6 +61,10 @@ export interface ExecutionContext {
   readonly organizationId: DatabaseId | null
 }
 
+export interface AuthenticatedExecutionContext extends ExecutionContext {
+  readonly userId: DatabaseId
+}
+
 /**
  * Factory & helper namespace for ExecutionContext
  */
@@ -73,7 +78,7 @@ export namespace ExecutionContext {
    * @returns ExecutionContext with extracted values
    * @throws Error if user is not authenticated
    */
-  export function fromHttp(ctx: HttpContext): ExecutionContext {
+  export function fromHttp(ctx: HttpContext): AuthenticatedExecutionContext {
     const user = ctx.auth.user
     if (!user) {
       throw new UnauthorizedException('User must be authenticated')
@@ -112,7 +117,7 @@ export namespace ExecutionContext {
    *
    * @param systemUserId - The system/service account user ID
    */
-  export function system(systemUserId: DatabaseId): ExecutionContext {
+  export function system(systemUserId: DatabaseId): AuthenticatedExecutionContext {
     return {
       userId: systemUserId,
       ip: '0.0.0.0',

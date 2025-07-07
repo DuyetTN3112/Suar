@@ -1,7 +1,6 @@
-import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/core/http'
-import { DateTime } from 'luxon'
-import { Settings } from 'luxon'
+import app from '@adonisjs/core/services/app'
+import { DateTime, Settings  } from 'luxon'
 
 // Cấu hình múi giờ mặc định cho Luxon (múi giờ Việt Nam UTC+7)
 DateTime.local().setZone('Asia/Ho_Chi_Minh')

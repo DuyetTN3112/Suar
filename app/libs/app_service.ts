@@ -1,7 +1,8 @@
-import env from '#start/env'
 import { DateTime } from 'luxon'
-import { truncate as truncateString, generateSlug } from '#libs/string_utils'
+
 import { formatDateTime as formatDateTimeLib } from '#libs/date_utils'
+import { truncate as truncateString, generateSlug } from '#libs/string_utils'
+import env from '#start/env'
 
 /**
  * Lấy tên ứng dụng
@@ -37,7 +38,7 @@ function getCurrentDateTime(): DateTime {
  */
 function formatDateTime(
   date: string | Date | DateTime,
-  format: string = 'dd/MM/yyyy HH:mm'
+  format = 'dd/MM/yyyy HH:mm'
 ): string {
   return formatDateTimeLib(date, format)
 }
@@ -74,7 +75,7 @@ function isProd(): boolean {
  * Cắt chuỗi với số ký tự tối đa cho trước và thêm dấu ... nếu chuỗi dài hơn
  * Legacy note: prefer truncate from '#libs/string_utils'
  */
-function truncate(text: string, maxLength: number = 100): string {
+function truncate(text: string, maxLength = 100): string {
   return truncateString(text, maxLength)
 }
 

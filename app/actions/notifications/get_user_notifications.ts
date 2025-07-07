@@ -1,7 +1,7 @@
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
-import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface GetNotificationsOptions {
@@ -27,14 +27,14 @@ export default class GetUserNotifications {
 
   async handle(options: GetNotificationsOptions = {}): Promise<GetNotificationsResult> {
     // Nếu không chỉ định user_id, lấy từ người dùng hiện tại
-    const userId = options.user_id || this.execCtx.userId
+    const userId = options.user_id ?? this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException('Không tìm thấy ID người dùng')
     }
 
-    const page = options.page || 1
-    const limit = options.limit || 10
-    const unreadOnly = options.unread_only || false
+    const page = options.page ?? 1
+    const limit = options.limit ?? 10
+    const unreadOnly = options.unread_only ?? false
 
     const repo = await RepositoryFactory.getNotificationRepository()
 

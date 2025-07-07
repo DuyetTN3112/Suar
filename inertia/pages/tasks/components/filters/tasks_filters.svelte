@@ -1,15 +1,16 @@
 <script lang="ts">
+  import { Search } from 'lucide-svelte'
   import type { Snippet } from 'svelte'
+
   import Input from '@/components/ui/input.svelte'
-  import Tabs from '@/components/ui/tabs.svelte'
-  import TabsContent from '@/components/ui/tabs_content.svelte'
-  import TabsList from '@/components/ui/tabs_list.svelte'
-  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import { Search } from 'lucide-svelte'
+  import Tabs from '@/components/ui/tabs.svelte'
+  import TabsContent from '@/components/ui/tabs_content.svelte'
+  import TabsList from '@/components/ui/tabs_list.svelte'
+  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface TasksFiltersProps {
@@ -21,9 +22,9 @@
       assigned_to?: string
     }
     metadata: {
-      statuses: Array<{ value: string; label: string; color: string }>
-      labels: Array<{ value: string; label: string; color: string }>
-      priorities: Array<{ value: string; label: string; color: string }>
+      statuses: { value: string; label: string; color: string }[]
+      labels: { value: string; label: string; color: string }[]
+      priorities: { value: string; label: string; color: string }[]
     }
     onSearch: (query: string) => void
     onStatusChange: (status: string) => void

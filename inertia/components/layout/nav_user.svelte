@@ -10,6 +10,9 @@
     Shield,
     ShieldOff,
   } from 'lucide-svelte'
+  import { getContext } from 'svelte'
+
+  import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
@@ -20,30 +23,28 @@
   import DropdownMenuSeparator from '@/components/ui/dropdown_menu_separator.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
   import SidebarMenu from '@/components/ui/sidebar/sidebar_menu.svelte'
-  import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
   import SidebarMenuButton from '@/components/ui/sidebar/sidebar_menu_button.svelte'
-  import ConfirmDialog from '@/components/confirm_dialog.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import { getContext } from 'svelte'
+  import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import { useTranslation } from '@/stores/translation.svelte'
 
-  type Props = {
+  interface Props {
     user: {
       name: string
       email: string
     }
   }
 
-  type SharedAuthUser = {
+  interface SharedAuthUser {
     isAdmin?: boolean
   }
 
-  type InterfaceContext = {
+  interface InterfaceContext {
     canSwitchToAdmin?: boolean
     isAdminMode?: boolean
   }
 
-  type PageProps = {
+  interface PageProps {
     auth?: {
       user?: SharedAuthUser
     }

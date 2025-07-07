@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetUserDetailsQuery (System Admin)

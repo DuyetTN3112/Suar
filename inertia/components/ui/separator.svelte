@@ -6,10 +6,11 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Separator as SeparatorPrimitive } from 'bits-ui'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     orientation?: 'horizontal' | 'vertical'
     decorative?: boolean

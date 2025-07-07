@@ -1,13 +1,15 @@
-import { MongoAuditLogModel as MongoAuditLog } from '#models/mongo/audit_log'
+import type { Types } from 'mongoose'
+
 import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
 import type {
   AuditLogCreateData,
   AuditLogQuery,
   AuditLogRecord,
   AuditLogRepository,
 } from '#infra/shared/repositories/interfaces'
-import type { Types } from 'mongoose'
+import { MongoAuditLogModel as MongoAuditLog } from '#models/mongo/audit_log'
+import type { DatabaseId } from '#types/database'
+
 
 /** Shape of a lean audit log document from MongoDB */
 interface AuditLogLeanDoc {
@@ -37,7 +39,7 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
         action: data.action,
         entity_type: data.entity_type,
         entity_id:
-          data.entity_id !== null && data.entity_id !== undefined ? data.entity_id : undefined,
+          data.entity_id ?? undefined,
         old_values: data.old_values ?? undefined,
         new_values: data.new_values ?? undefined,
         ip_address: data.ip_address ?? undefined,
@@ -123,7 +125,7 @@ export default class MongoAuditLogRepository implements AuditLogRepository {
         { $group: { _id: '$user_id', last_active: { $max: '$created_at' } } },
       ])
 
-      for (const row of results as Array<{ _id: string; last_active: Date }>) {
+      for (const row of results as { _id: string; last_active: Date }[]) {
         map.set(row._id, row.last_active)
       }
     } catch (error) {

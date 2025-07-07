@@ -1,10 +1,12 @@
-import { I18n } from '@adonisjs/i18n'
-import i18nManager from '@adonisjs/i18n/services/main'
-import type { NextFn } from '@adonisjs/core/types/http'
-import { type HttpContext, RequestValidator } from '@adonisjs/core/http'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+
+import { type HttpContext, RequestValidator } from '@adonisjs/core/http'
 import app from '@adonisjs/core/services/app'
+import type { NextFn } from '@adonisjs/core/types/http'
+import { I18n } from '@adonisjs/i18n'
+import i18nManager from '@adonisjs/i18n/services/main'
+
 import loggerService from '#infra/logger/logger_service'
 
 /**
@@ -28,7 +30,7 @@ export default class DetectUserLocaleMiddleware {
     }
   }
 
-  private static translationsCache: Map<string, Record<string, Record<string, string>>> = new Map()
+  private static translationsCache = new Map<string, Record<string, Record<string, string>>>()
 
   private isValidLocale(locale: string): boolean {
     if (!locale) return false

@@ -1,18 +1,21 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
+import { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+
 import GetOrganizationDetailQuery from './get_organization_detail_query.js'
 import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
-import { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
 
 export interface OrganizationShowPageResult {
   organization: Awaited<ReturnType<GetOrganizationDetailQuery['execute']>>
-  members: Array<{
+  members: {
     id: DatabaseId
     username: string
     email: string
     org_role: string
     role_name: string
-  }>
+  }[]
   userRole: string
 }
 

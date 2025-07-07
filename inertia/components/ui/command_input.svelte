@@ -1,9 +1,10 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Command as CommandPrimitive } from 'bits-ui'
   import { Search } from 'lucide-svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     [key: string]: unknown
   }

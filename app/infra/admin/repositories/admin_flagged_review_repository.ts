@@ -1,6 +1,7 @@
+import { DateTime } from 'luxon'
+
 import FlaggedReview from '#models/flagged_review'
 import type { DatabaseId } from '#types/database'
-import { DateTime } from 'luxon'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -100,7 +101,7 @@ export default class AdminFlaggedReviewRepository {
     const fr = await FlaggedReview.findOrFail(id)
     fr.status = action === 'dismiss' ? 'dismissed' : 'confirmed'
     fr.reviewed_by = reviewedBy
-    fr.notes = notes || null
+    fr.notes = notes ?? null
     fr.reviewed_at = DateTime.now()
     await fr.save()
   }

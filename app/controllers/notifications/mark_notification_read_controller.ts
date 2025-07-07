@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /notifications/:id/mark-as-read → Mark single notification as read

@@ -1,9 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import Project from '#models/project'
-import NotFoundException from '#exceptions/not_found_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+
 import { getExtraNumber } from './shared.js'
+
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import Project from '#models/project'
+import type { DatabaseId } from '#types/database'
+
 
 export const findDetailWithRelations = async (
   projectId: DatabaseId,
@@ -93,7 +96,7 @@ export const findIdsByOrganization = async (
 export const listSimpleByOrganization = async (
   organizationId: DatabaseId,
   trx?: TransactionClientContract
-): Promise<Array<{ id: string; name: string }>> => {
+): Promise<{ id: string; name: string }[]> => {
   const query = trx ? Project.query({ client: trx }) : Project.query()
   const projects = await query
     .where('organization_id', organizationId)

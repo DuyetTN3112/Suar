@@ -1,25 +1,27 @@
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
+import type CreateNotification from '#actions/common/create_notification'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canRemoveMember } from '#domain/organizations/org_permission_policy'
+import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { canRemoveMember } from '#domain/organizations/org_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Remove Member from Organization

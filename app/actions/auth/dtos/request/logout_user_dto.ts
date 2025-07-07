@@ -1,6 +1,7 @@
-import type { DatabaseId } from '#types/database'
 import type { Command } from '../../../shared/interfaces.js'
+
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 export class LogoutUserDTO implements Command {
   public readonly userId: DatabaseId
   public readonly sessionId?: string

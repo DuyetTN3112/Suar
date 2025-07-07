@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for removing a member from a project
@@ -77,7 +77,7 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
    * Get audit log message
    */
   public getAuditMessage(userName?: string, reassignUserName?: string): string {
-    const userInfo = userName || `User ID ${this.user_id}`
+    const userInfo = userName ?? `User ID ${this.user_id}`
     let message = `Xóa ${userInfo} khỏi dự án`
 
     if (this.hasReason()) {

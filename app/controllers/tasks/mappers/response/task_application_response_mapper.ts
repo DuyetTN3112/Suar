@@ -2,7 +2,7 @@ import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from 
 import { serializeForResponse } from './shared.js'
 
 interface TaskApplicationControllerResult {
-  data: Array<SerializableResponseRecord | ResponseRecord>
+  data: (SerializableResponseRecord | ResponseRecord)[]
   meta: PaginationMeta
 }
 

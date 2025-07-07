@@ -1,19 +1,25 @@
 <script lang="ts">
+  import { router } from '@inertiajs/svelte'
+
+  import { FRONTEND_ROUTES } from '@/constants'
   import AppLayout from '@/layouts/app_layout.svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
-  import type { Task, TaskMetadata, TasksProps } from './types.svelte'
-  import { createTaskStore } from '@/stores/tasks.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+  import { createTaskStore } from '@/stores/tasks.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
+  import TaskDetailPanel from './components/detail/task_detail_panel.svelte'
   import TaskHeader from './components/header/task_header.svelte'
   import TaskScopeBar from './components/header/task_scope_bar.svelte'
-  import KanbanBoard from './components/views/kanban/kanban_board.svelte'
   import CreateTaskModal from './components/modals/create_task_modal.svelte'
   import ImportTasksModal from './components/modals/import_tasks_modal.svelte'
   import TaskStatusManagementDialogs from './components/modals/task_status_management_dialogs.svelte'
-  import TaskDetailPanel from './components/detail/task_detail_panel.svelte'
-  import { router } from '@inertiajs/svelte'
-  import { FRONTEND_ROUTES } from '@/constants'
+  import KanbanBoard from './components/views/kanban/kanban_board.svelte'
+  import { buildProjectScopeFilters } from './scope_helpers'
+  import {
+    createTaskStatusDefinition,
+    deleteTaskStatusDefinition,
+  } from './status_management_api'
   import {
     buildStatusDefinitions,
     canDeleteStatusDefinition,
@@ -21,11 +27,7 @@
     getStatusMutationErrorMessage,
     slugifyStatusName,
   } from './status_management_helpers'
-  import {
-    createTaskStatusDefinition,
-    deleteTaskStatusDefinition,
-  } from './status_management_api'
-  import { buildProjectScopeFilters } from './scope_helpers'
+  import type { Task, TaskMetadata, TasksProps } from './types.svelte'
 
   interface Props extends TasksProps {
     metadata: TaskMetadata
@@ -87,7 +89,7 @@
     if (!createTaskPermission.allowed) {
       notificationStore.error(
         'Bạn không đủ quyền tạo nhiệm vụ',
-        createTaskPermission.reason ||
+        createTaskPermission.reason ??
           'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
       )
       return
@@ -97,7 +99,7 @@
       notificationStore.error('Chưa có project', 'Bạn cần tạo project trước khi tạo task.')
       return
     }
-    selectedCreateStatus = status || ''
+    selectedCreateStatus = status ?? ''
     createModalOpen = true
   }
 
@@ -261,10 +263,10 @@
     priorities={metadata.priorities}
     labels={metadata.labels}
     projects={projectOptions}
-    initialProjectId={projectContext?.selectedProject?.id || projectOptions[0]?.id || ''}
+    initialProjectId={(projectContext?.selectedProject?.id ?? projectOptions[0]?.id) || ''}
     users={metadata.users}
-    parentTasks={metadata.parentTasks || []}
-    availableSkills={metadata.availableSkills || []}
+    parentTasks={metadata.parentTasks ?? []}
+    availableSkills={metadata.availableSkills ?? []}
   />
   <ImportTasksModal open={importModalOpen} onOpenChange={(open: boolean) => { importModalOpen = open }} />
   <TaskDetailPanel

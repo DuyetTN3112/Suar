@@ -2,15 +2,17 @@
   /**
    * ProfileHeader — user avatar, name, org, trust badge, and edit link.
    */
+  import { Pencil, Building2, Mail } from 'lucide-svelte'
+
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
-  import { Pencil, Building2, Mail } from 'lucide-svelte'
+
+  import { navigateToProfileEdit } from '../profile_navigation'
   import type { SerializedUserProfile, TrustTierCode } from '../types.svelte'
   import { TRUST_TIER_CONFIG } from '../types.svelte'
-  import { navigateToProfileEdit } from '../profile_navigation'
 
   interface Props {
     user: SerializedUserProfile

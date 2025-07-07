@@ -1,4 +1,5 @@
 import mongoose from 'mongoose'
+
 import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 
@@ -61,7 +62,7 @@ auditLogSchema.index({ created_at: 1 }, { expireAfterSeconds: 365 * 24 * 60 * 60
  */
 export const MongoAuditLogModel = mongoose.model<AuditLogDocument>('AuditLog', auditLogSchema)
 
-type AuditLogCreateData = {
+interface AuditLogCreateData {
   user_id?: DatabaseId | null
   action: string
   entity_type: string
@@ -72,7 +73,7 @@ type AuditLogCreateData = {
   user_agent?: string | null
 }
 
-type AuditLogFilterData = {
+interface AuditLogFilterData {
   user_id?: string
   action?: string
   entity_type?: string

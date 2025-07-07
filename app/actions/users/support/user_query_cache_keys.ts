@@ -16,7 +16,7 @@ export function buildUserProfileCacheKeys(userId: DatabaseId): string[] {
 
 export function buildUserSkillsCacheKeys(
   userId: DatabaseId,
-  categoryCodes: Array<string | null | undefined> = []
+  categoryCodes: (string | null | undefined)[] = []
 ): string[] {
   const categories = new Set<string>(['all'])
 

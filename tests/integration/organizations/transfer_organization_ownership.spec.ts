@@ -1,4 +1,13 @@
 import { test } from '@japa/runner'
+
+import CreateNotification from '#actions/common/create_notification'
+import TransferOrganizationOwnershipCommand from '#actions/organizations/commands/transfer_organization_ownership_command'
+import { OrganizationRole } from '#constants/organization_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
+import Organization from '#models/organization'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -7,14 +16,6 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
-import { OrganizationRole } from '#constants/organization_constants'
-import Organization from '#models/organization'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
-import CreateNotification from '#actions/common/create_notification'
-import TransferOrganizationOwnershipCommand from '#actions/organizations/commands/transfer_organization_ownership_command'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 
 type NotificationPayload = Parameters<CreateNotification['handle']>[0]
 

@@ -1,5 +1,10 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
+import CalculatePerformanceScoreCommand from '#actions/reviews/commands/calculate_performance_score_command'
+import { ReviewSessionStatus } from '#constants/review_constants'
+import User from '#models/user'
+import UserPerformanceStat from '#models/user_performance_stat'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -9,11 +14,7 @@ import {
   ReviewSessionFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import CalculatePerformanceScoreCommand from '#actions/reviews/commands/calculate_performance_score_command'
-import User from '#models/user'
-import UserPerformanceStat from '#models/user_performance_stat'
 import { ExecutionContext } from '#types/execution_context'
-import { ReviewSessionStatus } from '#constants/review_constants'
 
 test.group('Integration | Performance Score', (group) => {
   group.setup(async () => {

@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store'
+
 import {
   THEME_STORAGE_KEY,
   SYSTEM_THEME_QUERY,

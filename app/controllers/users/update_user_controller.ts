@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildUpdateUserProfileDTO } from './mappers/request/user_request_mapper.js'
+
 import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
 import { ExecutionContext } from '#types/execution_context'
-import { buildUpdateUserProfileDTO } from './mappers/request/user_request_mapper.js'
 
 /**
  * PUT /users/:id → Update user profile

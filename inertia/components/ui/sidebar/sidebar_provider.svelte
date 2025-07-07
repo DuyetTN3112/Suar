@@ -8,7 +8,7 @@
     SIDEBAR_WIDTH_MOBILE,
   } from './sidebar_constants'
 
-  export type SidebarContext = {
+  export interface SidebarContext {
     open: boolean
     isMobile: boolean
     state: 'expanded' | 'collapsed'
@@ -20,11 +20,13 @@
 </script>
 
 <script lang="ts">
-  import { setContext } from 'svelte'
-  import { cn } from '$lib/utils-svelte'
   import { Tooltip } from 'bits-ui'
+  import { setContext } from 'svelte'
   import type { Snippet } from 'svelte'
   import type { HTMLAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
+
   import {
     SIDEBAR_COOKIE_MAX_AGE,
     SIDEBAR_COOKIE_NAME,
@@ -33,7 +35,7 @@
     SIDEBAR_WIDTH_ICON,
   } from './sidebar_constants'
 
-  type SidebarContext = {
+  interface SidebarContext {
     open: boolean
     isMobile: boolean
     state: 'expanded' | 'collapsed'
@@ -153,7 +155,7 @@
 <Tooltip.Provider delayDuration={0}>
   <div
     data-slot="sidebar-wrapper"
-    style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style || ''}"
+    style="--sidebar-width: {SIDEBAR_WIDTH}; --sidebar-width-icon: {SIDEBAR_WIDTH_ICON}; {style ?? ''}"
     class={cn('group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full', className)}
     {...restProps}
   >

@@ -2,7 +2,7 @@ import { RepositoryFactory } from '#infra/shared/repositories/index'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
-type AuditLogData = {
+interface AuditLogData {
   user_id: DatabaseId
   action: string
   entity_type: string

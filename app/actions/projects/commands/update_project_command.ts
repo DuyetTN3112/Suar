@@ -1,15 +1,17 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
-import type { DatabaseId } from '#types/database'
-import CacheService from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
+
+import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
+import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import UserRepository from '#infra/users/repositories/user_repository'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import { canUpdateProjectFields } from '#domain/projects/project_permission_policy'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Command to update an existing project

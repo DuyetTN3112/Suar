@@ -1,13 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { DatabaseId } from '#types/database'
-import type { GetMyApplicationsInput } from '#actions/tasks/queries/get_my_applications_query'
-import {
-  ApplyForTaskDTO,
-  GetPublicTasksDTO,
-  GetTaskApplicationsDTO,
-  ProcessApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import { applyForTaskRequestValidator, processApplicationRequestValidator } from '#validators/task'
+
 import {
   PAGINATION,
   toApplicationStatusFilter,
@@ -18,6 +10,17 @@ import {
   toPublicTaskSortBy,
   toPublicTaskSortOrder,
 } from './shared.js'
+
+import {
+  ApplyForTaskDTO,
+  GetPublicTasksDTO,
+  GetTaskApplicationsDTO,
+  ProcessApplicationDTO,
+} from '#actions/tasks/dtos/request/task_application_dtos'
+import type { GetMyApplicationsInput } from '#actions/tasks/queries/get_my_applications_query'
+import type { DatabaseId } from '#types/database'
+import { applyForTaskRequestValidator, processApplicationRequestValidator } from '#validators/task'
+
 
 export async function buildApplyForTaskDTO(
   request: HttpContext['request'],

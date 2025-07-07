@@ -8,13 +8,14 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
 import {
   OrganizationDetailResponseDTO,
   OrganizationListItemResponseDTO,
   OrganizationSummaryResponseDTO,
 } from '../dtos/response/organization_response_dtos.js'
+
+import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 
 export class OrganizationApplicationMapper {
   private readonly __instanceMarker = true

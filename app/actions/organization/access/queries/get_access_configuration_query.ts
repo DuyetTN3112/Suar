@@ -1,12 +1,16 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
-import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
+
+import { BaseQuery } from '#actions/shared/base_query'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#constants/permissions'
 import {
   ORG_ROLE_PRESETS,
   buildOrganizationDepartmentCoverage,
   sanitizeCustomRoleDefinitions,
 } from '#domain/organizations/org_access_rules'
+import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
+import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import {
   describePermission,
   formatRoleLabel,
@@ -14,11 +18,8 @@ import {
   listKnownOrganizationPermissions,
   listProjectPermissionCatalog,
 } from '#libs/access_surface'
-import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#constants/permissions'
-import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
+import Organization from '#models/organization'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface RoleEntry {
   code: string
@@ -53,7 +54,7 @@ export interface AccessConfigurationResult {
   permissionCatalog: ReturnType<typeof listKnownOrganizationPermissions>
   projectPermissionCatalog: ReturnType<typeof listProjectPermissionCatalog>
   rolePresets: typeof ORG_ROLE_PRESETS
-  departments: Array<{
+  departments: {
     id: string
     name: string
     description: string
@@ -61,7 +62,7 @@ export interface AccessConfigurationResult {
     suggestedRoles: string[]
     matchedRoles: string[]
     estimatedHeadcount: number
-  }>
+  }[]
 }
 
 const toNumberValue = (value: unknown): number => {

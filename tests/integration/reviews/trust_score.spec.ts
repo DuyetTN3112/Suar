@@ -1,4 +1,8 @@
 import { test } from '@japa/runner'
+
+import CalculateTrustScoreCommand from '#actions/reviews/commands/calculate_trust_score_command'
+import { ReviewSessionStatus } from '#constants/review_constants'
+import User from '#models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -10,10 +14,7 @@ import {
   SkillReviewFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import CalculateTrustScoreCommand from '#actions/reviews/commands/calculate_trust_score_command'
-import User from '#models/user'
 import { ExecutionContext } from '#types/execution_context'
-import { ReviewSessionStatus } from '#constants/review_constants'
 
 test.group('Integration | Trust Score', (group) => {
   group.setup(async () => {

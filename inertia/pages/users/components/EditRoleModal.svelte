@@ -1,4 +1,5 @@
 <script lang="ts">
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
@@ -9,8 +10,8 @@
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
-  import Button from '@/components/ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import type { User } from '../types'
   import { getUserDisplayName } from '../utils/user_utils'
 

@@ -23,12 +23,12 @@ export interface TaskEditPageResult {
     canAssign: boolean
   }
   metadata: {
-    statuses: Array<{ value: string; label: string }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: string; username: string; email: string }>
-    parentTasks: Array<{ id: string; title: string; task_status_id: string | null }>
-    projects: Array<{ id: string; name: string }>
+    statuses: { value: string; label: string }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: string; username: string; email: string }[]
+    parentTasks: { id: string; title: string; task_status_id: string | null }[]
+    projects: { id: string; name: string }[]
   }
 }
 

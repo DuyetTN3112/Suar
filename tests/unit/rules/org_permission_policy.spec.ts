@@ -1,4 +1,6 @@
 import { test } from '@japa/runner'
+
+import { OrganizationRole } from '#constants/organization_constants'
 import {
   canTransferOwnership,
   canRemoveMember,
@@ -9,7 +11,6 @@ import {
   canCreateJoinRequest,
   checkJoinEligibility,
 } from '#domain/organizations/org_permission_policy'
-import { OrganizationRole } from '#constants/organization_constants'
 
 function assertDenied(
   assert: {

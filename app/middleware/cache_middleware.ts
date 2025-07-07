@@ -1,7 +1,8 @@
-import cacheService from '#infra/cache/cache_service'
-import * as SingleFlightService from '#infra/cache/single_flight_service'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
+
+import cacheService from '#infra/cache/cache_service'
+import * as SingleFlightService from '#infra/cache/single_flight_service'
 import loggerService from '#infra/logger/logger_service'
 
 /**

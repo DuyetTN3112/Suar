@@ -1,10 +1,11 @@
-import TaskRepository from '#infra/tasks/repositories/task_repository'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
+
 import { PAGINATION } from '#constants/common_constants'
+import ValidationException from '#exceptions/validation_exception'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -109,7 +110,7 @@ export default class GetUserTasksQuery {
       'task:user',
       `user:${options.userId}`,
       `org:${options.organizationId}`,
-      `filter:${options.filterType || 'both'}`,
+      `filter:${options.filterType ?? 'both'}`,
     ]
 
     if (options.statusId) {
@@ -120,8 +121,8 @@ export default class GetUserTasksQuery {
       parts.push(`priority:${options.priorityId}`)
     }
 
-    parts.push(`page:${options.page || 1}`)
-    parts.push(`limit:${options.limit || 10}`)
+    parts.push(`page:${options.page ?? 1}`)
+    parts.push(`limit:${options.limit ?? 10}`)
 
     return parts.join(':')
   }

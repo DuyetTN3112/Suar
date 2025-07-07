@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import ReverseReview from '#models/reverse_review'
+import type { DatabaseId } from '#types/database'
 
 export default class ReverseReviewRepository {
   private readonly __instanceMarker = true

@@ -1,8 +1,9 @@
 import { test } from '@japa/runner'
+
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { PolicyResult } from '#domain/shared/policy_result'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
 
 test.group('enforcePolicy', () => {
   test('allowed results are a no-op', ({ assert }) => {

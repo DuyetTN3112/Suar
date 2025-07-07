@@ -19,7 +19,7 @@ export function mapProjectsIndexPageProps(
 ) {
   return {
     projects: serializeCollectionForResponse(
-      result.data as Array<SerializableResponseRecord | ResponseRecord>
+      result.data as (SerializableResponseRecord | ResponseRecord)[]
     ),
     pagination: result.pagination,
     filters: result.filters,

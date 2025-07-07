@@ -2,9 +2,10 @@
   /**
    * TrustScoreBadge — displays the user's trust score as a visual indicator.
    */
+  import { Shield } from 'lucide-svelte'
+
   import type { TrustTierCode } from '../types.svelte'
   import { TRUST_TIER_CONFIG } from '../types.svelte'
-  import { Shield } from 'lucide-svelte'
 
   interface Props {
     trustScore?: number | null

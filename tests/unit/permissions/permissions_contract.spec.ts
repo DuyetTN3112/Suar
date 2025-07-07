@@ -1,4 +1,6 @@
 import { test } from '@japa/runner'
+
+import { OrganizationRole } from '#constants/organization_constants'
 import {
   ORG_ROLE_LEVEL,
   ORG_ROLE_PERMISSIONS,
@@ -11,7 +13,6 @@ import {
   hasProjectPermission,
   hasSystemPermission,
 } from '#constants/permissions'
-import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
 

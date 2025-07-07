@@ -1,12 +1,14 @@
 <script lang="ts">
+  import { Building, Info } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { Building, Info } from 'lucide-svelte'
+
   import OrganizationPaginationControls from './organization_pagination_controls.svelte'
 
   interface Organization {
@@ -74,7 +76,7 @@
             <div class="truncate">{org.name}</div>
           </CardTitle>
           <CardDescription class="text-xs line-clamp-1">
-            {org.description || 'Không có mô tả'}
+            {org.description ?? 'Không có mô tả'}
           </CardDescription>
         </CardHeader>
         <CardContent class="p-3 pt-0 pb-1"></CardContent>

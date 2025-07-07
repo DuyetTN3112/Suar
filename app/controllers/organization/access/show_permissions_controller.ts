@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetAccessConfigurationQuery from '#actions/organization/access/queries/get_access_configuration_query'
+import { ExecutionContext } from '#types/execution_context'
 
 export default class ShowPermissionsController {
   async handle(ctx: HttpContext) {

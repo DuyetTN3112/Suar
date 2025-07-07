@@ -39,7 +39,7 @@ export function serializeForResponse(
 }
 
 export function serializeCollectionForResponse(
-  values: Array<SerializableResponseRecord | ResponseRecord>
+  values: (SerializableResponseRecord | ResponseRecord)[]
 ): ResponseRecord[] {
   return values.map((value) => serializeForResponse(value))
 }

@@ -1,5 +1,5 @@
-import type OrganizationUser from '#models/organization_user'
 import type Organization from '#models/organization'
+import type OrganizationUser from '#models/organization_user'
 import type Project from '#models/project'
 import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'

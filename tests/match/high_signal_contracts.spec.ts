@@ -1,6 +1,7 @@
-import { test } from '@japa/runner'
 import fs from 'node:fs'
 import path from 'node:path'
+
+import { test } from '@japa/runner'
 
 const WORKSPACE_ROOT = path.resolve(import.meta.dirname, '../..')
 

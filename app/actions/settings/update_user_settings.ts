@@ -1,4 +1,4 @@
-type SettingsData = {
+interface SettingsData {
   theme?: 'light' | 'dark' | 'system'
   notifications_enabled?: boolean
   display_mode?: 'grid' | 'list'

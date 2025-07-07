@@ -1,8 +1,9 @@
 import { test } from '@japa/runner'
-import RevokeTaskAccessCommand from '#actions/tasks/commands/revoke_task_access_command'
+
 import CreateNotification from '#actions/common/create_notification'
-import TaskAssignment from '#models/task_assignment'
+import RevokeTaskAccessCommand from '#actions/tasks/commands/revoke_task_access_command'
 import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import TaskAssignment from '#models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

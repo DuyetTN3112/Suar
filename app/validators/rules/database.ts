@@ -1,5 +1,5 @@
-import vine from '@vinejs/vine'
 import db from '@adonisjs/lucid/services/db'
+import vine from '@vinejs/vine'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -66,7 +66,7 @@ export function optionalDatabaseId() {
  */
 export function existsRule(
   table: string,
-  column: string = 'id',
+  column = 'id',
   options: { softDelete?: boolean } = {}
 ) {
   return vine

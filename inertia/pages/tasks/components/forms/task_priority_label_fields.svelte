@@ -1,9 +1,9 @@
 <script lang="ts">
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface OptionItem {
@@ -35,7 +35,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{priorities.find((item) => item.value === formData.priority)?.label || t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
+        <span>{priorities.find((item) => item.value === formData.priority)?.label ?? t('task.select_priority', {}, 'Chọn mức độ ưu tiên')}</span>
       </SelectTrigger>
       <SelectContent>
         {#each priorities as priority (priority.value)}
@@ -56,7 +56,7 @@
       }}
     >
       <SelectTrigger>
-        <span>{labels.find((item) => item.value === formData.label)?.label || t('task.select_label', {}, 'Chọn nhãn')}</span>
+        <span>{labels.find((item) => item.value === formData.label)?.label ?? t('task.select_label', {}, 'Chọn nhãn')}</span>
       </SelectTrigger>
       <SelectContent>
         {#each labels as label (label.value)}

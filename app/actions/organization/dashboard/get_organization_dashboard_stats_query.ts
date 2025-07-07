@@ -1,8 +1,8 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
 import OrganizationProjectRepository from '#infra/organization/repositories/organization_project_repository'
 import OrganizationTaskRepository from '#infra/organization/repositories/organization_task_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetOrganizationDashboardStatsQuery (Organization Admin)

@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { Building, Search, Info } from 'lucide-svelte'
+
+  import type { LucideIconComponent } from '@/components/lucide_icon_map'
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -8,8 +11,7 @@
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { Building, Search, Info } from 'lucide-svelte'
-  import type { LucideIconComponent } from '@/components/lucide_icon_map'
+
   import OrganizationPaginationControls from './organization_pagination_controls.svelte'
 
   interface Organization {
@@ -126,7 +128,7 @@
               {/if}
             </CardTitle>
             <CardDescription class="text-xs line-clamp-1">
-              {org.description || 'Không có mô tả'}
+              {org.description ?? 'Không có mô tả'}
             </CardDescription>
           </CardHeader>
           <CardContent class="p-3 pt-0 pb-1"></CardContent>
@@ -145,7 +147,7 @@
               <Button
                 size="sm"
                 variant={buttonConfig.variant}
-                class={`flex-1 h-7 text-xs ${buttonConfig.className || ''}`}
+                class={`flex-1 h-7 text-xs ${buttonConfig.className ?? ''}`}
                 disabled={buttonConfig.disabled}
                 onclick={buttonConfig.onClick}
               >

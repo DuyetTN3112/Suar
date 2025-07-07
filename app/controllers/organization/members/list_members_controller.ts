@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import GetOrganizationMembersIndexPageQuery from '#actions/organization/members/queries/get_organization_members_index_page_query'
+
 import { buildOrganizationMembersIndexPageInput } from './mappers/request/list_members_request_mapper.js'
 import { mapOrganizationMembersIndexPageProps } from './mappers/response/list_members_response_mapper.js'
+
+import GetOrganizationMembersIndexPageQuery from '#actions/organization/members/queries/get_organization_members_index_page_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListMembersController

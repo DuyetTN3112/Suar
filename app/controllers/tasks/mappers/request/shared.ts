@@ -1,8 +1,8 @@
+import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
+import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
 import { PAGINATION } from '#constants/common_constants'
 import { ApplicationStatus } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
-import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import type { GetTasksIndexPageInput } from '#actions/tasks/queries/get_tasks_index_page_query'
 
 export const TASKS_DEFAULT_LIMIT = 10
 
@@ -98,7 +98,7 @@ export function toPublicTaskSortOrder(value: unknown): GetPublicTasksDTO['sort_o
 export function toOptionalRecordArray(
   value: unknown,
   fieldName: string
-): Array<Record<string, unknown>> | undefined {
+): Record<string, unknown>[] | undefined {
   if (value === undefined || value === null) {
     return undefined
   }

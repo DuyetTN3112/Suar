@@ -1,14 +1,16 @@
 <script lang="ts">
   import { Link, router } from '@inertiajs/svelte'
+  import { Info, Users, ArrowRight } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { Info, Users, ArrowRight } from 'lucide-svelte'
+
 
   interface Organization {
     id: string
@@ -59,7 +61,7 @@
       {/if}
     </div>
     <CardDescription class="line-clamp-2">
-      {organization.description || 'Chưa có mô tả'}
+      {organization.description ?? 'Chưa có mô tả'}
     </CardDescription>
   </CardHeader>
   <CardContent>

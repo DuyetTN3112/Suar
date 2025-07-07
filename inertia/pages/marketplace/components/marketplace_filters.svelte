@@ -4,9 +4,11 @@
    * Emits changes via Inertia router.get to reload with server-side filtering.
    */
   import { router } from '@inertiajs/svelte'
+  import { Search, X } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { Search, X } from 'lucide-svelte'
+
   import { DIFFICULTY_CONFIG, SORT_OPTIONS, type MarketplaceFilters as Filters } from '../types.svelte'
 
   interface Props {

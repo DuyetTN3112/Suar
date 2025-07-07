@@ -1,12 +1,14 @@
-import { type ExecutionContext } from '#types/execution_context'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+
 import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import type { DatabaseId } from '#types/database'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import emitter from '@adonisjs/core/services/emitter'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
+
 
 /**
  * Command: Create Join Request
@@ -31,7 +33,7 @@ export default class CreateJoinRequestCommand {
         trx
       )
 
-      if (existingMembership && existingMembership.status === OrganizationUserStatus.REJECTED) {
+      if (existingMembership?.status === OrganizationUserStatus.REJECTED) {
         await OrganizationUserRepository.updateStatus(organizationId, userId, 'pending', trx)
       } else {
         await OrganizationUserRepository.addMember(

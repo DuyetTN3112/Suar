@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
-import type { DatabaseId } from '#types/database'
+
+import { isRecord, toNullableDatabaseId, toNullableNumber, toNullableString } from './shared.js'
 import type {
   FeaturedSkillReviewRow,
   TaskAssignmentMetricsRow,
@@ -7,7 +8,8 @@ import type {
   UserCreatedAtRow,
   UserSkillAggregationRow,
 } from './types.js'
-import { isRecord, toNullableDatabaseId, toNullableNumber, toNullableString } from './shared.js'
+
+import type { DatabaseId } from '#types/database'
 
 export const findTaskAssignmentsForMetrics = async (
   userId: DatabaseId
@@ -49,7 +51,7 @@ export const findUserSkillsForAggregation = async (
 
 export const findTopReviewedSkills = async (
   userId: DatabaseId,
-  limit: number = 2
+  limit = 2
 ): Promise<TopReviewedSkillRow[]> => {
   return db
     .from('user_skills as us')

@@ -1,4 +1,4 @@
-type ProfileGroupStyle = {
+interface ProfileGroupStyle {
   title: string
   badgeClass: string
   dotClass: string
@@ -63,7 +63,7 @@ export function getProfileLevelLabel(levelCode?: string | null): string {
   if (code.includes('lead')) return 'Lead'
   if (code.includes('prin')) return 'Principal'
   if (code.includes('mas')) return 'Master'
-  return levelCode || 'Unrated'
+  return levelCode ?? 'Unrated'
 }
 
 export function getProfileLevelClass(levelCode?: string | null): string {

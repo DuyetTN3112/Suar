@@ -2,15 +2,15 @@ import type { LookupListRoute } from '@adonisjs/http-server/types'
 
 declare module '@adonisjs/http-server/types' {
   interface RoutesList {
-    [method: string]: { [identifier: string]: LookupListRoute }
-    GET: { [key: string]: LookupListRoute }
-    POST: { [key: string]: LookupListRoute }
-    PUT: { [key: string]: LookupListRoute }
-    PATCH: { [key: string]: LookupListRoute }
-    DELETE: { [key: string]: LookupListRoute }
-    HEAD: { [key: string]: LookupListRoute }
-    OPTIONS: { [key: string]: LookupListRoute }
-    ALL: { [key: string]: LookupListRoute }
+    [method: string]: Record<string, LookupListRoute>
+    GET: Record<string, LookupListRoute>
+    POST: Record<string, LookupListRoute>
+    PUT: Record<string, LookupListRoute>
+    PATCH: Record<string, LookupListRoute>
+    DELETE: Record<string, LookupListRoute>
+    HEAD: Record<string, LookupListRoute>
+    OPTIONS: Record<string, LookupListRoute>
+    ALL: Record<string, LookupListRoute>
   }
 }
 
@@ -33,13 +33,13 @@ declare module '@adonisjs/inertia/types' {
         isAdmin: boolean
         current_organization_id: string | null
         current_organization_role: string | null
-        organizations: Array<{
+        organizations: {
           id: string
           name: string
           logo: string | null
           org_role: string | null
           status: string | null
-        }>
+        }[]
       } | null
     }
     context: {
@@ -52,7 +52,6 @@ declare module '@adonisjs/inertia/types' {
   }
 
   interface InertiaPages {
-    // Keep page contracts permissive until generated contracts are wired reliably.
-    [key: string]: Record<string, any>
+    [page: string]: Record<string, any>
   }
 }

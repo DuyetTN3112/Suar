@@ -1,10 +1,7 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import type { TaskItemProps } from '../../types.svelte'
   import { Trash2 } from 'lucide-svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { canDeleteTask } from '../../utils/task_permissions.svelte'
-  import TaskDetailModal from '../modals/task_detail_modal.svelte'
+
   import AlertDialog from '@/components/ui/alert_dialog.svelte'
   import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
   import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
@@ -13,6 +10,11 @@
   import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
   import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
   import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
+  import Button from '@/components/ui/button.svelte'
+
+  import type { TaskItemProps } from '../../types.svelte'
+  import { canDeleteTask } from '../../utils/task_permissions.svelte'
+  import TaskDetailModal from '../modals/task_detail_modal.svelte'
 
   const {
     task,

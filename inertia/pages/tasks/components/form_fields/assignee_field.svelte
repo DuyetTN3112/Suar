@@ -1,19 +1,20 @@
 <script lang="ts">
-  import type { Task } from '../../types.svelte'
-  import Label from '@/components/ui/label.svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
+  import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
 
+  import type { Task } from '../../types.svelte'
+
   interface Props {
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     canEdit: boolean
-    users: Array<{ id: string; username: string; email: string }>
+    users: { id: string; username: string; email: string }[]
     task: Task
   }
 

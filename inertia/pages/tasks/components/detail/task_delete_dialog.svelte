@@ -1,12 +1,12 @@
 <script lang="ts">
   import AlertDialogRoot from '@/components/ui/alert_dialog.svelte'
+  import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
+  import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
   import AlertDialogContent from '@/components/ui/alert_dialog_content.svelte'
-  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
-  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
   import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
   import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
-  import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
-  import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
+  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
+  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {

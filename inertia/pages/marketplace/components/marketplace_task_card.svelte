@@ -1,9 +1,4 @@
 <script lang="ts">
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import {
     Building2,
     Calendar,
@@ -17,6 +12,13 @@
     Clock3,
     RefreshCw,
   } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+
   import { DIFFICULTY_CONFIG, type MarketplaceTask } from '../types.svelte'
 
   interface Props {
@@ -130,11 +132,15 @@
           name?: string
         } | undefined
         const skillName =
-          skillData?.skill_name?.trim() ||
-          skillData?.skillName?.trim() ||
-          skillData?.name?.trim() ||
-          skillData?.skill_code?.trim() ||
-          skillData?.skillCode?.trim() ||
+          [
+            skillData?.skill_name,
+            skillData?.skillName,
+            skillData?.name,
+            skillData?.skill_code,
+            skillData?.skillCode,
+          ]
+            .map((value) => value?.trim())
+            .find((value): value is string => value !== undefined && value.length > 0) ??
           (r.skill_id ? `Skill #${r.skill_id}` : 'Kỹ năng chưa đặt tên')
 
         const levelRaw = (r.required_level_code ?? '').trim().toLowerCase()

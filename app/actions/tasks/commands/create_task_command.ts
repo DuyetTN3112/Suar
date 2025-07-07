@@ -1,34 +1,36 @@
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskRequiredSkillRepository from '#infra/tasks/repositories/task_required_skill_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
+import emitter from '@adonisjs/core/services/emitter'
+import logger from '@adonisjs/core/services/logger'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateNotification from '#actions/common/create_notification'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
-import logger from '@adonisjs/core/services/logger'
-import type { ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { DateTime } from 'luxon'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#infra/cache/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
-import type { DatabaseId } from '#types/database'
-import type Task from '#models/task'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canCreateTask } from '#domain/tasks/task_permission_policy'
 import { validateTaskCreationFields } from '#domain/tasks/task_assignment_rules'
-import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
-import CreateNotification from '#actions/common/create_notification'
+import { canCreateTask } from '#domain/tasks/task_permission_policy'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectRepository from '#infra/projects/repositories/project_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskRequiredSkillRepository from '#infra/tasks/repositories/task_required_skill_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command để tạo task mới
@@ -170,7 +172,7 @@ export default class CreateTaskCommand {
     return TaskRepository.create(
       {
         title: dto.title,
-        description: dto.description || '',
+        description: dto.description ?? '',
         status: selectedStatus.category,
         task_status_id: selectedStatus.id,
         task_type: dto.task_type,
@@ -191,8 +193,8 @@ export default class CreateTaskCommand {
         problem_category: dto.problem_category ?? null,
         business_domain: dto.business_domain ?? null,
         estimated_users_affected: dto.estimated_users_affected ?? null,
-        label: dto.label || undefined,
-        priority: dto.priority || undefined,
+        label: dto.label ?? undefined,
+        priority: dto.priority ?? undefined,
         assigned_to: dto.assigned_to ?? null,
         due_date: resolvedDueDate,
         parent_task_id: dto.parent_task_id ?? null,
@@ -335,7 +337,7 @@ export default class CreateTaskCommand {
       await this.createNotification.handle({
         user_id: assignee.id,
         title: 'Bạn có nhiệm vụ mới',
-        message: `${creator.username || creator.email || 'Người dùng'} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
+        message: `${creator.username ?? creator.email ?? 'Người dùng'} đã giao cho bạn nhiệm vụ mới: ${task.title}`,
         type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
         related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
         related_entity_id: task.id,

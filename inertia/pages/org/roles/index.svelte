@@ -1,18 +1,19 @@
 <script lang="ts">
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { groupByCategory, normalizeRoleCode } from '@/lib/access_ui'
+
+  import BuiltInRolesPanel from './components/built_in_roles_panel.svelte'
+  import CustomRoleEditorPanel from './components/custom_role_editor_panel.svelte'
+  import RolePresetCreatePanel from './components/role_preset_create_panel.svelte'
+  import RoleSummaryCards from './components/role_summary_cards.svelte'
+  import RolesPageHeader from './components/roles_page_header.svelte'
+  import RolesQuickLinks from './components/roles_quick_links.svelte'
   import {
     saveOrganizationRoles,
     type CustomRoleDraft,
     type OrganizationRolesPageProps,
     type RolePreset,
   } from './roles_helpers'
-  import RoleSummaryCards from './components/role_summary_cards.svelte'
-  import BuiltInRolesPanel from './components/built_in_roles_panel.svelte'
-  import RolePresetCreatePanel from './components/role_preset_create_panel.svelte'
-  import RolesQuickLinks from './components/roles_quick_links.svelte'
-  import RolesPageHeader from './components/roles_page_header.svelte'
-  import CustomRoleEditorPanel from './components/custom_role_editor_panel.svelte'
 
   const { organization, summary, organizationRoles, permissionCatalog, rolePresets }: OrganizationRolesPageProps = $props()
 

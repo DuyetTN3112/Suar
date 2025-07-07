@@ -1,9 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
-import { HttpStatus } from '#constants/error_constants'
+
 import { buildUpdateTaskStatusDTO } from './mappers/request/task_request_mapper.js'
 import { mapTaskStatusApiBody } from './mappers/response/task_response_mapper.js'
+
+import UpdateTaskStatusCommand from '#actions/tasks/commands/update_task_status_command'
+import { HttpStatus } from '#constants/error_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * PATCH /tasks/:id/status

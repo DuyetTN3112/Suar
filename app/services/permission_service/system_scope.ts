@@ -1,7 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { hasSystemPermission, SYSTEM_ROLE_PERMISSIONS } from '#constants/permissions'
+
 import { findActiveUser, type SystemRoleInfo } from './shared.js'
+
+import { hasSystemPermission, SYSTEM_ROLE_PERMISSIONS } from '#constants/permissions'
+import type { DatabaseId } from '#types/database'
 
 export async function isSystemSuperadmin(
   userId: DatabaseId,

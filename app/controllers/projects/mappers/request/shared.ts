@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
+
+import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
 import { PAGINATION } from '#constants/common_constants'
 import type { ProjectVisibility } from '#constants/project_constants'
-import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
 
 export const PROJECTS_DEFAULT_LIMIT = 20
 
@@ -66,7 +67,7 @@ export function toPositiveNumber(
   return fallback
 }
 
-export function toBoolean(value: unknown, fallback: boolean = false): boolean {
+export function toBoolean(value: unknown, fallback = false): boolean {
   if (typeof value === 'boolean') {
     return value
   }

@@ -3,11 +3,13 @@
    * Reverse Review Form — allows reviewee to rate their reviewers
    */
   import { router } from '@inertiajs/svelte'
+  import { Star } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import { Star } from 'lucide-svelte'
+
   import type { ReverseReviewTargetType } from '../types.svelte'
   import { REVERSE_REVIEW_TARGET_CONFIG } from '../types.svelte'
 
@@ -82,8 +84,7 @@
           <button
             type="button"
               class="w-full text-left rounded-lg border p-3 transition-colors hover:bg-accent/50
-              {selectedTarget &&
-              selectedTarget.id === reviewer.id &&
+              {selectedTarget?.id === reviewer.id &&
               selectedTarget.type === reviewer.type
                 ? 'border-primary bg-accent'
                 : 'border-border'}"

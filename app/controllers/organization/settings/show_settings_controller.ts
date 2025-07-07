@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetOrganizationSettingsQuery from '#actions/organization/settings/queries/get_organization_settings_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ShowSettingsController

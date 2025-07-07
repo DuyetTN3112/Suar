@@ -1,5 +1,7 @@
 <script lang="ts">
+  import { Check, Copy, Landmark, LoaderCircle, QrCode } from 'lucide-svelte'
   import QRCode from 'qrcode'
+
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -10,7 +12,6 @@
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import { buildSubscriptionTransferContent, formatVnd, generateBankQrString } from '@/lib/viet_qr'
-  import { Check, Copy, Landmark, LoaderCircle, QrCode } from 'lucide-svelte'
 
   interface PaymentConfig {
     bankName: string

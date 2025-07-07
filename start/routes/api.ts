@@ -1,7 +1,9 @@
 import router from '@adonisjs/core/services/router'
+
 import { middleware } from '../kernel.js'
-import { apiThrottle } from '#start/limiter'
+
 import env from '#start/env'
+import { apiThrottle } from '#start/limiter'
 
 // Lazy-loaded use-case controllers
 const GetOrganizationMembersApiController = () =>

@@ -1,7 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import Organization from '#models/organization'
+
 import NotFoundException from '#exceptions/not_found_exception'
+import Organization from '#models/organization'
+import type { DatabaseId } from '#types/database'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -194,7 +195,7 @@ export default class OrganizationRepository {
     },
     trx?: TransactionClientContract
   ): Promise<{
-    data: Array<{
+    data: {
       id: string
       name: string
       slug: string
@@ -204,7 +205,7 @@ export default class OrganizationRepository {
       owner_id: string
       created_at: Date
       updated_at: Date
-    }>
+    }[]
     total: number
   }> {
     const dbModule = await import('@adonisjs/lucid/services/db')

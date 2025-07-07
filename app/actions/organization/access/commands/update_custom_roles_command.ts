@@ -1,10 +1,10 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import type { ExecutionContext } from '#types/execution_context'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { sanitizeCustomRoleDefinitions } from '#domain/organizations/org_access_rules'
+import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import OrganizationSettingsRepository from '#infra/organization/repositories/organization_settings_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
-import { sanitizeCustomRoleDefinitions } from '#domain/organizations/org_access_rules'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface UpdateCustomRolesDTO {
   custom_roles: unknown

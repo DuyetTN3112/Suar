@@ -3,13 +3,15 @@
    * Flagged Reviews Page — GET /admin/flagged-reviews
    * Admin panel to review and resolve anomaly-flagged reviews.
    */
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { router, page } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
+  import { ShieldAlert, TriangleAlert, CircleCheck } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
   import SimplePagination from './components/simple_pagination.svelte'
-  import { ShieldAlert, TriangleAlert, CircleCheck } from 'lucide-svelte'
   import type {
     FlaggedReviewsProps,
     FlaggedReviewStatus,

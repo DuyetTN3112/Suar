@@ -1,14 +1,16 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import { ProficiencyLevel } from '#constants'
-import { del as deleteCacheKey } from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
+
+import { ProficiencyLevel } from '#constants'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import type { UpdateUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import {
   buildUserProfileCacheKeys,
   buildUserSkillsCacheKeys,
 } from '#actions/users/support/user_query_cache_keys'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { del as deleteCacheKey } from '#infra/cache/cache_service'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 
 /**
  * Command to update a user's skill proficiency level

@@ -1,7 +1,8 @@
 import { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
 import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 export interface UpdateTaskDTOInput {
   title?: string
@@ -311,7 +312,7 @@ export default class UpdateTaskDTO {
     }
 
     if (this.providedFields.has('description')) {
-      updates.description = this.description || null
+      updates.description = this.description ?? null
     }
 
     if (this.providedFields.has('label')) {

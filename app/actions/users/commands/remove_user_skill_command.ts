@@ -1,13 +1,14 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import { del as deleteCacheKey } from '#infra/cache/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
+
+import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import {
   buildUserProfileCacheKeys,
   buildUserSkillsCacheKeys,
 } from '#actions/users/support/user_query_cache_keys'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { del as deleteCacheKey } from '#infra/cache/cache_service'
+import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 
 /**
  * Command to remove a skill from user's profile

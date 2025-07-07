@@ -11,11 +11,12 @@
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { RadioGroup as RadioGroupPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     value?: string
     disabled?: boolean

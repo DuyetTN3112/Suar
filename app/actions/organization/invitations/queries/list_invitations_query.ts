@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import OrganizationInvitationRepository from '#infra/organization/repositories/organization_invitation_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListInvitationsQuery
@@ -16,7 +16,7 @@ export interface ListInvitationsDTO {
 }
 
 export interface ListInvitationsResult {
-  invitations: Array<{
+  invitations: {
     id: string
     email: string
     org_role: string
@@ -27,7 +27,7 @@ export interface ListInvitationsResult {
     status: 'pending' | 'accepted' | 'declined' | 'expired'
     invited_at: string
     expires_at: string
-  }>
+  }[]
   pagination: {
     total: number
     perPage: number
@@ -57,8 +57,8 @@ export default class ListInvitationsQuery extends BaseQuery<
       throw new Error('Organization context required')
     }
 
-    const page = dto.page || 1
-    const perPage = dto.perPage || 20
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 20
 
     // Fetch from repository
     const result = await this.invitationRepo.listInvitations(

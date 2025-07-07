@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * ListOrganizationMembersQuery (Organization Admin)
@@ -19,7 +19,7 @@ export interface ListOrganizationMembersDTO {
 }
 
 export interface ListOrganizationMembersResult {
-  data: Array<{
+  data: {
     user_id: string
     username: string
     email: string | null
@@ -27,7 +27,7 @@ export interface ListOrganizationMembersResult {
     status: string
     invited_by: string | null
     created_at: string
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -48,8 +48,8 @@ export default class ListOrganizationMembersQuery extends BaseQuery<
   }
 
   async handle(dto: ListOrganizationMembersDTO): Promise<ListOrganizationMembersResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     // Fetch from repository (Infrastructure layer)
     const result = await this.memberRepo.listMembers(

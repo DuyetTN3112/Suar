@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetSubscriptionQrCatalogQuery from '#actions/admin/packages/queries/get_subscription_qr_catalog_query'
+import { ExecutionContext } from '#types/execution_context'
 
 export default class ShowQrCodesController {
   async handle(ctx: HttpContext) {

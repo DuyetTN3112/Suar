@@ -1,5 +1,6 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
@@ -8,12 +9,14 @@
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import ManagerReviewSection from './manager_review_section.svelte'
+
   import type {
     SerializedSkill,
     ProficiencyLevelOption,
     ReviewerType,
   } from '../types.svelte'
+
+  import ManagerReviewSection from './manager_review_section.svelte'
 
   interface Props {
     sessionId: string
@@ -64,7 +67,7 @@
     const skillRatings = skills.map<Record<string, string | undefined>>((skill) => ({
       skill_id: skill.id,
       level_code: ratings[skill.id]?.level_code ?? '',
-      comment: ratings[skill.id]?.comment || undefined,
+      comment: ratings[skill.id]?.comment ?? undefined,
     }))
 
     router.post(

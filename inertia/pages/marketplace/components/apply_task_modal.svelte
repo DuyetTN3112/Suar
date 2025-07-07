@@ -3,17 +3,20 @@
    * ApplyTaskModal — dialog for applying to a marketplace task.
    * Posts to /api/tasks/:taskId/apply
    */
+  import { router } from '@inertiajs/svelte'
+  import axios from 'axios'
+
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Textarea from '@/components/ui/textarea.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
+  import DialogHeader from '@/components/ui/dialog_header.svelte'
+  import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Label from '@/components/ui/label.svelte'
-  import axios from 'axios'
-  import { router } from '@inertiajs/svelte'
+  import Textarea from '@/components/ui/textarea.svelte'
+
+
   import type { MarketplaceTask } from '../types.svelte'
 
   interface Props {
@@ -93,7 +96,7 @@
       error =
         responseData?.status === 419
           ? 'Phiên bảo mật đã hết hạn. Vui lòng tải lại trang rồi thử lại.'
-          : responseData?.data?.message || 'Đã xảy ra lỗi mạng. Vui lòng thử lại.'
+          : responseData?.data?.message ?? 'Đã xảy ra lỗi mạng. Vui lòng thử lại.'
     } finally {
       submitting = false
     }

@@ -1,6 +1,6 @@
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
 import { PAGINATION } from '#constants/common_constants'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 type TaskListSortOrder = 'asc' | 'desc'
@@ -236,14 +236,14 @@ export default class GetTasksListDTO {
   }
 
   public hasFilters(): boolean {
-    return !!(
-      this.task_status_id ||
-      this.priority ||
-      this.label ||
-      this.assigned_to ||
+    return (
+      this.task_status_id !== undefined ||
+      this.priority !== undefined ||
+      this.label !== undefined ||
+      this.assigned_to !== undefined ||
       this.parent_task_id !== undefined ||
       this.project_id !== undefined ||
-      this.search
+      this.search !== undefined
     )
   }
 

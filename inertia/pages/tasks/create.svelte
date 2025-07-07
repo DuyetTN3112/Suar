@@ -1,25 +1,28 @@
 <script lang="ts">
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { router } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardFooter from '@/components/ui/card_footer.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { router } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import CreateTaskForm from './components/modals/create_task_form.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import CreateTaskForm from './components/modals/create_task_form.svelte'
+
 
   interface Props {
     metadata: {
-      statuses: Array<{ value: string; label: string }>
-      labels: Array<{ value: string; label: string }>
-      priorities: Array<{ value: string; label: string }>
-      users: Array<{ id: string; username: string; email: string }>
-      parentTasks?: Array<{ id: string; title: string; task_status_id: string | null }>
-      availableSkills?: Array<{ id: string; name: string }>
-      projects?: Array<{ id: string; name: string }>
+      statuses: { value: string; label: string }[]
+      labels: { value: string; label: string }[]
+      priorities: { value: string; label: string }[]
+      users: { id: string; username: string; email: string }[]
+      parentTasks?: { id: string; title: string; task_status_id: string | null }[]
+      availableSkills?: { id: string; name: string }[]
+      projects?: { id: string; name: string }[]
     }
   }
 
@@ -39,7 +42,7 @@
     due_date: '',
     parent_task_id: '',
     estimated_time: '0',
-    required_skills: [] as Array<{ id: string; name: string; level: string }>,
+    required_skills: [] as { id: string; name: string; level: string }[],
     acceptance_criteria: '',
     context_background: '',
     tech_stack_text: '',
@@ -197,9 +200,9 @@
           priorities={metadata.priorities}
           labels={metadata.labels}
           users={metadata.users}
-          parentTasks={metadata.parentTasks || []}
-          availableSkills={metadata.availableSkills || []}
-          projects={metadata.projects || []}
+          parentTasks={metadata.parentTasks ?? []}
+          availableSkills={metadata.availableSkills ?? []}
+          projects={metadata.projects ?? []}
         />
       </CardContent>
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { TriangleAlert } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
@@ -7,7 +9,6 @@
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Input from '@/components/ui/input.svelte'
-  import { TriangleAlert } from 'lucide-svelte'
 
   interface DeleteStatusTarget {
     status: string

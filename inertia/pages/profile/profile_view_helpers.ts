@@ -1,5 +1,5 @@
-import type { SpiderChartPoint } from './types.svelte'
 import { getProfileGroupStyle } from './profile_theme'
+import type { SpiderChartPoint } from './types.svelte'
 
 export interface NormalizedProfileSkill {
   id: string
@@ -17,15 +17,13 @@ export interface GroupedProfileSkills {
   badgeClass: string
   dotClass: string
   textClass: string
-  items: Array<
-    | NormalizedProfileSkill
+  items: (| NormalizedProfileSkill
     | {
         id: string
         skill_name: string
         level_code: string | null
         total_reviews: number
-      }
-  >
+      })[]
 }
 
 const PROFILE_SKILL_GROUP_ORDER = ['technical', 'soft_skill', 'delivery']

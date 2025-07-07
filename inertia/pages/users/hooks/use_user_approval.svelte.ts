@@ -1,6 +1,8 @@
-import { get, writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { get, writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 interface PendingCountResponse {

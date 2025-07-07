@@ -4,13 +4,14 @@
  * Maps domain entities to response DTOs for the API layer.
  */
 
-import type { ReviewSessionEntity } from '#domain/reviews/entities/review_session_entity'
-import type { SkillReviewEntity } from '#domain/reviews/entities/skill_review_entity'
 import type {
   ReviewSessionResponseDTO,
   SkillReviewResponseDTO,
   ReviewSummaryResponseDTO,
 } from '../dtos/response/review_response_dtos.js'
+
+import type { ReviewSessionEntity } from '#domain/reviews/entities/review_session_entity'
+import type { SkillReviewEntity } from '#domain/reviews/entities/skill_review_entity'
 
 export class ReviewApplicationMapper {
   private readonly __instanceMarker = true

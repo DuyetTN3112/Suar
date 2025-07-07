@@ -6,12 +6,13 @@
  * Maps ORM entities to domain entities using ProjectInfraMapper.
  */
 
-import type { ProjectRepository } from '#domain/projects/repositories/project_repository_interface'
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 import { ProjectInfraMapper } from '../mapper/project_infra_mapper.js'
+
+import type { ProjectEntity } from '#domain/projects/entities/project_entity'
+import type { ProjectRepository } from '#domain/projects/repositories/project_repository_interface'
+import NotFoundException from '#exceptions/not_found_exception'
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
-import NotFoundException from '#exceptions/not_found_exception'
 
 export class ProjectRepositoryImpl implements ProjectRepository {
   async findById(id: DatabaseId): Promise<ProjectEntity | null> {

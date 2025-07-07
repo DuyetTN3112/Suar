@@ -12,11 +12,12 @@ import type {
   UserRoleChangeContext,
   UserDeactivationContext,
 } from './user_types.js'
+
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import { SystemRoleName } from '#constants/user_constants'
+import { isSameId } from '#domain/shared/id_utils'
 import type { PolicyResult } from '#domain/shared/policy_result'
 import { PolicyResult as PR } from '#domain/shared/policy_result'
-import { SystemRoleName } from '#constants/user_constants'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import { isSameId } from '#domain/shared/id_utils'
 
 const SYSTEM_ADMIN_ROLES = new Set<string>([SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN])
 

@@ -1,5 +1,6 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
 import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import GetTasksListDTO from '#actions/tasks/dtos/request/get_tasks_list_dto'
 import {
@@ -49,7 +50,7 @@ test.group('Task DTO contracts', () => {
     assert.equal(dto.task_type, 'code_review')
     assert.equal(dto.verification_method, 'peer_review')
     assert.deepEqual(dto.required_skills, [{ id: VALID_UUID_3, level: 'middle' }])
-    assert.deepEqual(dto.toObject()['learning_objectives'], ['test quality'])
+    assert.deepEqual(dto.toObject().learning_objectives, ['test quality'])
     const helperDto = new CreateTaskDTO({
       ...validCreatePayload(),
       assigned_to: VALID_UUID_2,

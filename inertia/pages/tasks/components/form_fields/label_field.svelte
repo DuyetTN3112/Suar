@@ -1,5 +1,4 @@
 <script lang="ts">
-  import type { Task } from '../../types.svelte'
   import Label from '@/components/ui/label.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
@@ -7,24 +6,26 @@
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectValue from '@/components/ui/select_value.svelte'
 
+  import type { Task } from '../../types.svelte'
+
   interface Props {
     formData: Partial<Task>
     handleSelectChange: (name: string, value: string) => void
     canEdit: boolean
-    labels: Array<{ value: string; label: string; color: string }>
+    labels: { value: string; label: string; color: string }[]
     task: Task
   }
 
   const { formData, handleSelectChange, canEdit, labels, task }: Props = $props()
 
-  const currentLabel = $derived(labels.find(l => l.value === (formData.label || task.label)))
+  const currentLabel = $derived(labels.find(l => l.value === (formData.label ?? task.label)))
 </script>
 
 <div class="grid gap-2">
   <Label for="label">Nhãn</Label>
   {#if canEdit}
     <Select
-      value={formData.label || ''}
+      value={formData.label ?? ''}
       onValueChange={(value: string) => { handleSelectChange('label', value); }}
     >
       <SelectTrigger>

@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import type TaskApplication from '#models/task_application'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 export interface GetMyApplicationsInput {
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'

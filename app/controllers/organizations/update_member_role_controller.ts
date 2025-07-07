@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+
 import CreateNotification from '#actions/common/create_notification'
+import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/update-role/:userId

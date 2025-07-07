@@ -1,7 +1,8 @@
 import { router } from '@inertiajs/svelte'
+
 import type { Task } from '../../../../types.svelte'
 
-type CurrentUserLike = {
+interface CurrentUserLike {
   id?: string
   userId?: string
   current_organization_id?: string

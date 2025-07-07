@@ -9,8 +9,9 @@
 |
 */
 
-import limiter from '@adonisjs/limiter/services/main'
 import type { HttpContext } from '@adonisjs/core/http'
+import limiter from '@adonisjs/limiter/services/main'
+
 import env from '#start/env'
 
 /**

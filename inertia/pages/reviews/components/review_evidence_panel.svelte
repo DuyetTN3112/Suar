@@ -1,6 +1,7 @@
 <script lang="ts">
   import axios from 'axios'
   import { onMount } from 'svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
@@ -9,6 +10,7 @@
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
+
   import type { ReviewEvidenceItem } from '../types.svelte'
 
   interface Props {
@@ -52,7 +54,7 @@
       evidences = response.data.data
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      errorMessage = message || 'Không thể tải evidence của review.'
+      errorMessage = message ?? 'Không thể tải evidence của review.'
     } finally {
       loading = false
     }
@@ -82,7 +84,7 @@
       }
     } catch (error: unknown) {
       const message = (error as { response?: { data?: { message?: string } } }).response?.data?.message
-      errorMessage = message || 'Không thể thêm evidence.'
+      errorMessage = message ?? 'Không thể thêm evidence.'
     } finally {
       submitting = false
     }
@@ -116,7 +118,7 @@
           }}
         >
           <SelectTrigger>
-            <span>{evidenceTypeOptions.find((option) => option.value === formData.evidence_type)?.label || 'Chọn loại evidence'}</span>
+            <span>{evidenceTypeOptions.find((option) => option.value === formData.evidence_type)?.label ?? 'Chọn loại evidence'}</span>
           </SelectTrigger>
           <SelectContent>
             {#each evidenceTypeOptions as option (option.value)}
@@ -184,7 +186,7 @@
           <article class="rounded-lg border p-4">
             <div class="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p class="text-sm font-semibold">{evidence.title || 'Evidence không có tiêu đề'}</p>
+                <p class="text-sm font-semibold">{evidence.title ?? 'Evidence không có tiêu đề'}</p>
                 <p class="text-xs uppercase tracking-wide text-muted-foreground">{evidence.evidence_type}</p>
               </div>
               <span class="text-xs text-muted-foreground">{formatDate(evidence.created_at)}</span>

@@ -1,6 +1,6 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
 import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListFlaggedReviewsDTO {
   page?: number
@@ -12,7 +12,7 @@ export interface ListFlaggedReviewsDTO {
 }
 
 export interface ListFlaggedReviewsResult {
-  data: Array<{
+  data: {
     id: string
     reviewer: { id: string; username: string; email: string } | null
     reviewee: { id: string; username: string } | null
@@ -24,7 +24,7 @@ export interface ListFlaggedReviewsResult {
     notes: string | null
     created_at: string
     reviewed_at: string | null
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -45,8 +45,8 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
   }
 
   async handle(dto: ListFlaggedReviewsDTO): Promise<ListFlaggedReviewsResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     const result = await this.repo.listFlaggedReviews(
       { search: dto.search, flagType: dto.flagType, severity: dto.severity, status: dto.status },
@@ -62,7 +62,7 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
         reviewer: {
           id: fr.skill_review.reviewer.id,
           username: fr.skill_review.reviewer.username,
-          email: fr.skill_review.reviewer.email || '',
+          email: fr.skill_review.reviewer.email ?? '',
         },
         reviewee: {
           id: fr.skill_review.review_session.reviewee.id,
@@ -79,7 +79,7 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
         severity: fr.severity,
         status: fr.status,
         notes: fr.notes,
-        created_at: fr.detected_at.toISO() || fr.created_at.toISO() || new Date().toISOString(),
+        created_at: (fr.detected_at.toISO() ?? fr.created_at.toISO()) ?? new Date().toISOString(),
         reviewed_at: fr.reviewed_at?.toISO() ?? null,
       })),
       meta: { total: result.total, perPage, currentPage: page, lastPage },

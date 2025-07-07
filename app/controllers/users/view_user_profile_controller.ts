@@ -1,7 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
+
 import GetProfileViewPageQuery from '#actions/users/queries/get_profile_view_page_query'
 import { ExecutionContext } from '#types/execution_context'
-import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
 
 /**
  * GET /users/:id/profile → View another user's public profile

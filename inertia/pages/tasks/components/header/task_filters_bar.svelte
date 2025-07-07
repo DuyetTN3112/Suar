@@ -1,22 +1,24 @@
 <script lang="ts">
-  import Input from '@/components/ui/input.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import type { TaskPriority, TaskLabel } from '../../types.svelte'
   import { Search } from 'lucide-svelte'
+
+  import Input from '@/components/ui/input.svelte'
+  import type { TaskStore } from '@/stores/tasks.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { TaskPriority, TaskLabel } from '../../types.svelte'
 
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{
+      statuses: {
         value: string
         label: string
         slug?: string
         category?: string
-      }>
-      labels: Array<{ value: string; label: string }>
-      priorities: Array<{ value: string; label: string }>
-      users: Array<{ id: string; username: string; email: string }>
+      }[]
+      labels: { value: string; label: string }[]
+      priorities: { value: string; label: string }[]
+      users: { id: string; username: string; email: string }[]
     }
   }
 

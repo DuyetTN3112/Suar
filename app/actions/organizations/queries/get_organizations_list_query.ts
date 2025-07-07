@@ -1,11 +1,13 @@
-import type { ExecutionContext } from '#types/execution_context'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import redis from '@adonisjs/redis/services/main'
+
+import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
+
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
 import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { ExecutionContext } from '#types/execution_context'
 
 interface OrganizationRecord {
   id: DatabaseId

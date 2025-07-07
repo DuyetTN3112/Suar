@@ -1,6 +1,8 @@
 import axios from 'axios'
-import type { Task } from '../types.svelte'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
+import type { Task } from '../types.svelte'
 
 interface CreateTaskPermissionResponse {
   success: boolean
@@ -31,7 +33,7 @@ export function createTaskModalsStore() {
       } else {
         notificationStore.error(
           'Bạn không đủ quyền tạo nhiệm vụ',
-          response.data.reason ||
+          response.data.reason ??
             'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
         )
       }

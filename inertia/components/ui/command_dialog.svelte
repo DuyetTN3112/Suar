@@ -1,10 +1,11 @@
 <script lang="ts">
   import { Command as CommandPrimitive } from 'bits-ui'
+
   import Dialog from './dialog.svelte'
   import DialogContent from './dialog_content.svelte'
+  import DialogDescription from './dialog_description.svelte'
   import DialogHeader from './dialog_header.svelte'
   import DialogTitle from './dialog_title.svelte'
-  import DialogDescription from './dialog_description.svelte'
 
   export let open = false
   export let onOpenChange: ((open: boolean) => void) | undefined = undefined

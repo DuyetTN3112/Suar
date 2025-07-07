@@ -1,32 +1,34 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import Button from '@/components/ui/button.svelte'
-   import { FRONTEND_ROUTES } from '@/constants'
-  import Card from '@/components/ui/card.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Table from '@/components/ui/table.svelte'
-  import TableHeader from '@/components/ui/table_header.svelte'
-  import TableBody from '@/components/ui/table_body.svelte'
-  import TableRow from '@/components/ui/table_row.svelte'
-  import TableHead from '@/components/ui/table_head.svelte'
-  import TableCell from '@/components/ui/table_cell.svelte'
-  import Tabs from '@/components/ui/tabs.svelte'
-  import TabsContent from '@/components/ui/tabs_content.svelte'
-  import TabsList from '@/components/ui/tabs_list.svelte'
-  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
+
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import type { ProjectShowProps } from './types'
+  import Table from '@/components/ui/table.svelte'
+  import TableBody from '@/components/ui/table_body.svelte'
+  import TableCell from '@/components/ui/table_cell.svelte'
+  import TableHead from '@/components/ui/table_head.svelte'
+  import TableHeader from '@/components/ui/table_header.svelte'
+  import TableRow from '@/components/ui/table_row.svelte'
+  import Tabs from '@/components/ui/tabs.svelte'
+  import TabsContent from '@/components/ui/tabs_content.svelte'
+  import TabsList from '@/components/ui/tabs_list.svelte'
+  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
+   import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { formatDate } from '@/lib/utils'
+
+  import type { ProjectShowProps } from './types'
 
   const { project, members, tasks, permissions }: ProjectShowProps = $props()
   const safeTasks = $derived(tasks)
@@ -103,13 +105,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 class="text-sm font-medium text-muted-foreground mb-1">Mô tả</h3>
-                <p>{project.description || 'Không có'}</p>
+                <p>{project.description ?? 'Không có'}</p>
               </div>
 
               <div>
                 <h3 class="text-sm font-medium text-muted-foreground mb-1">Trạng thái</h3>
                 <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {project.status || 'Không có'}
+                  {project.status ?? 'Không có'}
                 </div>
               </div>
 
@@ -125,12 +127,12 @@
 
               <div>
                 <h3 class="text-sm font-medium text-muted-foreground mb-1">Người tạo</h3>
-                <p>{project.creator_name || 'Không có'}</p>
+                <p>{project.creator_name ?? 'Không có'}</p>
               </div>
 
               <div>
                 <h3 class="text-sm font-medium text-muted-foreground mb-1">Quản lý</h3>
-                <p>{project.manager_name || 'Không có'}</p>
+                <p>{project.manager_name ?? 'Không có'}</p>
               </div>
             </div>
           </CardContent>
@@ -229,10 +231,10 @@
                       </TableCell>
                       <TableCell>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                          {task.priority || '-'}
+                          {task.priority ?? '-'}
                         </span>
                       </TableCell>
-                      <TableCell>{task.assignee_name || '-'}</TableCell>
+                      <TableCell>{task.assignee_name ?? '-'}</TableCell>
                       <TableCell>{task.due_date ? formatDate(task.due_date) : '-'}</TableCell>
                     </TableRow>
                   {/each}

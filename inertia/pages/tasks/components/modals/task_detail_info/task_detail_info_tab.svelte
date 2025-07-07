@@ -1,11 +1,14 @@
 <script lang="ts">
-  import TaskDetailFields from './task_detail_fields.svelte'
-  import TaskDetailActions from './task_detail_actions.svelte'
-  import type { Task } from '../../../types.svelte'
-  import { useTaskDetailForm } from './hooks/use_task_detail_form.svelte'
-  import { formatDate } from '../../../utils/task_formatter.svelte'
   import { Calendar, User } from 'lucide-svelte'
+
   import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../../types.svelte'
+  import { formatDate } from '../../../utils/task_formatter.svelte'
+
+  import { useTaskDetailForm } from './hooks/use_task_detail_form.svelte'
+  import TaskDetailActions from './task_detail_actions.svelte'
+  import TaskDetailFields from './task_detail_fields.svelte'
 
   interface Props {
     task: Task
@@ -14,10 +17,10 @@
     isEditing: boolean
     errors: Record<string, string>
     setErrors: (errors: Record<string, string>) => void
-    statuses: Array<{ value: string; label: string; color: string }>
-    priorities: Array<{ value: string; label: string; color: string }>
-    labels: Array<{ value: string; label: string; color: string }>
-    users: Array<{ id: string; username: string; email: string }>
+    statuses: { value: string; label: string; color: string }[]
+    priorities: { value: string; label: string; color: string }[]
+    labels: { value: string; label: string; color: string }[]
+    users: { id: string; username: string; email: string }[]
     submitting: boolean
     setSubmitting: (value: boolean) => void
     onUpdate?: (updatedTask: Task | null) => void

@@ -1,10 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import {
-  getProjectRoleLevel,
-  hasProjectPermission,
-  PROJECT_ROLE_PERMISSIONS,
-} from '#constants/permissions'
+
 import {
   findActiveProject,
   findActiveUser,
@@ -12,6 +7,13 @@ import {
   findProjectMember,
   type ProjectMembershipInfo,
 } from './shared.js'
+
+import {
+  getProjectRoleLevel,
+  hasProjectPermission,
+  PROJECT_ROLE_PERMISSIONS,
+} from '#constants/permissions'
+import type { DatabaseId } from '#types/database'
 
 export async function getProjectMembership(
   userId: DatabaseId,

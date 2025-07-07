@@ -1,12 +1,14 @@
-import type TaskStatus from '#models/task_status'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
-import type { ExecutionContext } from '#types/execution_context'
 import db from '@adonisjs/lucid/services/db'
+
+import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import ConflictException from '#exceptions/conflict_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import type TaskStatus from '#models/task_status'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Create a new task status for an organization.
@@ -50,8 +52,8 @@ export default class CreateTaskStatusCommand {
           slug: dto.slug,
           category: dto.category,
           color: dto.color,
-          icon: dto.icon || null,
-          description: dto.description || null,
+          icon: dto.icon ?? null,
+          description: dto.description ?? null,
           sort_order: dto.sort_order,
           is_default: false,
           is_system: false,

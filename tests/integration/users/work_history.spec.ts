@@ -1,5 +1,12 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
+import BuildUserWorkHistoryCommand from '#actions/users/commands/build_user_work_history_command'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
+import ReviewEvidence from '#models/review_evidence'
+import TaskSelfAssessment from '#models/task_self_assessment'
+import UserWorkHistory from '#models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -12,13 +19,7 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
-import BuildUserWorkHistoryCommand from '#actions/users/commands/build_user_work_history_command'
 import { ExecutionContext } from '#types/execution_context'
-import UserWorkHistory from '#models/user_work_history'
-import ReviewEvidence from '#models/review_evidence'
-import TaskSelfAssessment from '#models/task_self_assessment'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import db from '@adonisjs/lucid/services/db'
 
 function buildExecutionContext(userId: string): ExecutionContext {
   return ExecutionContext.system(userId)
@@ -32,7 +33,7 @@ async function getLatestAuditSummary(userId: string) {
   })
     .sort({ created_at: -1 })
     .lean()
-    .exec()) as Array<{ new_values?: Record<string, unknown> | null }>
+    .exec()) as { new_values?: Record<string, unknown> | null }[]
 }
 
 async function seedCompletedAssignment() {

@@ -1,8 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
-import { ExecutionContext } from '#types/execution_context'
+
 import { buildGetUserDetailDTO } from './mappers/request/user_request_mapper.js'
 import { mapShowUserPageProps } from './mappers/response/user_response_mapper.js'
+
+import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /users/:id → Show user detail

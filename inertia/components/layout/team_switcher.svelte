@@ -1,7 +1,9 @@
 <script lang="ts">
   import { page, router } from '@inertiajs/svelte'
   import { Check, ChevronsUpDown } from 'lucide-svelte'
-  import { cn } from '$lib/utils-svelte'
+  import { getContext } from 'svelte'
+
+  import { getIconComponent } from '@/components/icons_svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
@@ -14,11 +16,11 @@
   import SidebarMenu from '@/components/ui/sidebar/sidebar_menu.svelte'
   import SidebarMenuButton from '@/components/ui/sidebar/sidebar_menu_button.svelte'
   import SidebarMenuItem from '@/components/ui/sidebar/sidebar_menu_item.svelte'
-  import { getIconComponent } from '@/components/icons_svelte'
-  import { formatRoleLabel } from '@/lib/access_ui'
-  import { getContext } from 'svelte'
   import { FRONTEND_ROUTES } from '@/constants'
+  import { formatRoleLabel } from '@/lib/access_ui'
   import type { SharedData, SharedAuthUser, SharedAuthOrganization } from '@/types/shared_data'
+
+  import { cn } from '$lib/utils-svelte'
 
   // Định nghĩa interface cho team/organization
   interface Organization extends SharedAuthOrganization {
@@ -36,7 +38,7 @@
   const props = $derived($page.props as unknown as SharedData)
   const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const authUser = $derived<SharedAuthUser | null>(props.auth?.user ?? legacyUser ?? null)
-  const currentProject = $derived(authUser?.current_project || null)
+  const currentProject = $derived(authUser?.current_project ?? null)
 
   // Lấy danh sách tổ chức từ backend
   const organizations = $derived.by(() => {
@@ -45,9 +47,9 @@
       return authUser.organizations.map((org) => ({
         id: org.id,
         name: org.name,
-        logo: org.logo || 'Building',
-        org_role: org.org_role || null,
-        status: org.status || null,
+        logo: org.logo ?? 'Building',
+        org_role: org.org_role ?? null,
+        status: org.status ?? null,
       }))
     }
     return [] as Organization[]
@@ -97,7 +99,7 @@
 
       try {
         const csrfToken =
-          document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+          document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 
         const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
           method: 'POST',
@@ -121,13 +123,13 @@
         }
 
         if (!response.ok || !payload.success) {
-          error = payload.message || 'Có lỗi xảy ra khi chuyển đổi tổ chức'
+          error = payload.message ?? 'Có lỗi xảy ra khi chuyển đổi tổ chức'
           isLoading = false
           return
         }
 
         isLoading = false
-        router.visit(payload.redirect || FRONTEND_ROUTES.TASKS, {
+        router.visit(payload.redirect ?? FRONTEND_ROUTES.TASKS, {
           preserveState: false,
           preserveScroll: false,
           replace: true,
@@ -154,7 +156,7 @@
   }
 </script>
 
-{#if error || organizations.length === 0}
+{#if error ?? organizations.length === 0}
   <SidebarMenu>
     <SidebarMenuItem>
       <SidebarMenuButton
@@ -233,7 +235,7 @@
                 >
                   <Avatar class="h-6 w-6 rounded-lg">
                     <AvatarFallback>
-                      {@const IconComponent = getIconComponent(organization.logo || 'Building')}
+                      {@const IconComponent = getIconComponent(organization.logo ?? 'Building')}
                       <IconComponent class="h-4 w-4" />
                     </AvatarFallback>
                   </Avatar>

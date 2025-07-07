@@ -3,10 +3,11 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
   }
 

@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { Trash2 } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
@@ -11,10 +13,10 @@
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import { Trash2 } from 'lucide-svelte'
+
   import type { OrganizationMember, Role } from '../members_types'
 
-  type Props = {
+  interface Props {
     members: OrganizationMember[]
     roles: Role[]
     userRole: string

@@ -1,8 +1,8 @@
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
-import { configure, processCLIArgs, run } from '@japa/runner'
 import { assert } from '@japa/assert'
-import { SpecReporter } from '@japa/spec-reporter'
 import { fileSystem } from '@japa/file-system'
+import { configure, processCLIArgs, run } from '@japa/runner'
+import { SpecReporter } from '@japa/spec-reporter'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -163,7 +163,7 @@ try {
 
   let runtimeStarted = false
   if (shouldStartRuntimeProviders) {
-    await app.start(async () => {})
+    await app.start(() => undefined)
     runtimeStarted = true
   }
 

@@ -1,19 +1,20 @@
-import { type ExecutionContext } from '#types/execution_context'
-import db from '@adonisjs/lucid/services/db'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import CreateAuditLog from '#actions/common/create_audit_log'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   canAccessOrganizationAdminShell,
   canSwitchOrganization,
 } from '#domain/organizations/org_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * Command: Switch Organization

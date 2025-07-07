@@ -1,15 +1,17 @@
 <script lang="ts">
-  import { Trash2 } from 'lucide-svelte'
-  import type { Task } from '../../types.svelte'
   import { router } from '@inertiajs/svelte'
+  import { Trash2 } from 'lucide-svelte'
+
   import AlertDialogRoot from '@/components/ui/alert_dialog.svelte'
+  import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
+  import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
   import AlertDialogContent from '@/components/ui/alert_dialog_content.svelte'
-  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
-  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
   import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
   import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
-  import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
-  import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
+  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
+  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
+
+  import type { Task } from '../../types.svelte'
 
   interface Props {
     task: Task
@@ -45,7 +47,7 @@
       return true
     }
 
-    const creatorId = task.creator_id || (task.creator && task.creator.id)
+    const creatorId = task.creator_id || (task.creator?.id)
     const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
     if (isCreator) {

@@ -1,15 +1,7 @@
 <script lang="ts">
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import Separator from '@/components/ui/separator.svelte'
-  import NotificationFilters from './components/notification_filters.svelte'
-  import NotificationCard from './components/notification_card.svelte'
-  import NotificationPagination from './components/notification_pagination.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { router } from '@inertiajs/svelte'
+  import { formatDistanceToNow } from 'date-fns'
+  import { vi } from 'date-fns/locale'
   import {
     Bell,
     CheckCheck,
@@ -22,12 +14,25 @@
     FileText,
     Inbox,
   } from 'lucide-svelte'
-  import { formatDistanceToNow } from 'date-fns'
-  import { vi } from 'date-fns/locale'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import Separator from '@/components/ui/separator.svelte'
   import {
     FRONTEND_NOTIFICATION_TYPES,
     type FrontendNotificationType,
   } from '@/constants/notifications'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import NotificationCard from './components/notification_card.svelte'
+  import NotificationFilters from './components/notification_filters.svelte'
+  import NotificationPagination from './components/notification_pagination.svelte'
+
+
+
 
   interface NotificationItem {
     id: string
@@ -55,7 +60,7 @@
     filters: { page: number; limit: number; unread_only: boolean }
   }
 
-  const { notifications, unread_count, filters }: Props = $props()
+  const { notifications, unread_count: initialUnreadCount, filters }: Props = $props()
   const { t } = useTranslation()
 
   const initialItems = $derived(Array.isArray(notifications) ? notifications : notifications.data)
@@ -69,11 +74,11 @@
 
   $effect(() => {
     items = initialItems
-    unreadCount = unread_count
+    unreadCount = initialUnreadCount
     unreadOnly = filters.unread_only
     currentPage = Array.isArray(notifications)
       ? filters.page
-      : (notifications.meta?.current_page || filters.page)
+      : (notifications.meta?.current_page ?? filters.page)
   })
 
   const displayedItems = $derived(
@@ -87,7 +92,7 @@
 
   function getCsrfToken(): string {
     if (typeof document === 'undefined') return ''
-    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
   function getIcon(type: FrontendNotificationType) {
@@ -95,6 +100,8 @@
       case FRONTEND_NOTIFICATION_TYPES.TASK:
       case FRONTEND_NOTIFICATION_TYPES.TASK_ASSIGNED:
       case FRONTEND_NOTIFICATION_TYPES.TASK_OVERDUE:
+      case FRONTEND_NOTIFICATION_TYPES.TASK_APPLICATION:
+      case FRONTEND_NOTIFICATION_TYPES.TASK_APPLICATION_REVIEW:
         return Clock
       case FRONTEND_NOTIFICATION_TYPES.MESSAGE:
       case FRONTEND_NOTIFICATION_TYPES.CONVERSATION:
@@ -113,7 +120,7 @@
         return FileText
       case FRONTEND_NOTIFICATION_TYPES.INFO:
         return Info
-      default:
+      case FRONTEND_NOTIFICATION_TYPES.DEFAULT:
         return Bell
     }
   }

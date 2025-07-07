@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
+
 import { test } from '@japa/runner'
+
 import SubmitSkillReviewCommand from '#actions/reviews/commands/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ReviewSessionStatus } from '#constants/review_constants'
@@ -10,6 +12,7 @@ import NotFoundException from '#exceptions/not_found_exception'
 import AuditLog from '#models/mongo/audit_log'
 import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
   OrganizationFactory,
@@ -19,7 +22,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Submit Review', (group) => {
@@ -59,11 +61,11 @@ test.group('Integration | Submit Review', (group) => {
     actorId: string
     reviewSessionId: string
     reviewerType: 'manager' | 'peer'
-    skillRatings: Array<{
+    skillRatings: {
       skill_id: string
       assigned_level_code: string
       comment?: string
-    }>
+    }[]
     overall_quality_score?: number
     delivery_timeliness?: string
     requirement_adherence?: number

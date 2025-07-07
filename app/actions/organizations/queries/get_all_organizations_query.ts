@@ -56,8 +56,8 @@ export default class GetAllOrganizationsQuery {
       logo: org.logo,
       website: org.website,
       founded_date: '2023',
-      owner: ownerMap.get(org.owner_id) || 'Admin',
-      employee_count: memberCountMap.get(org.id) || 0,
+      owner: ownerMap.get(org.owner_id) ?? 'Admin',
+      employee_count: memberCountMap.get(org.id) ?? 0,
       project_count: null,
       industry: null,
       location: null,
@@ -91,13 +91,13 @@ export default class GetAllOrganizationsQuery {
    * Used by ApiListOrganizationsController.
    */
   async getBasicList(): Promise<
-    Array<{
+    {
       id: DatabaseId
       name: string
       description?: string | null
       logo?: string | null
       website?: string | null
-    }>
+    }[]
   > {
     const organizations = await OrganizationRepository.findAllActiveBasicList()
 

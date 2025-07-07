@@ -1,8 +1,5 @@
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ProficiencyLevel } from '#constants/user_constants'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
+
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
 import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
 import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
@@ -12,6 +9,10 @@ import {
   UpdateUserSkillDTO,
 } from '#actions/users/dtos/request/user_skill_dtos'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
+import { ProficiencyLevel } from '#constants/user_constants'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Skills', (group) => {

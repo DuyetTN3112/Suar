@@ -16,10 +16,11 @@ import type {
   OrgJoinRequestProcessContext,
   OrgJoinRequestEligibility,
 } from './org_types.js'
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+
 import { OrganizationRole } from '#constants/organization_constants'
 import { isSameId } from '#domain/shared/id_utils'
+import type { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult as PR } from '#domain/shared/policy_result'
 
 const OWNER_OR_ADMIN_ROLES = new Set<string>([OrganizationRole.OWNER, OrganizationRole.ADMIN])
 const VALID_ORG_ROLES = new Set<string>(Object.values(OrganizationRole))

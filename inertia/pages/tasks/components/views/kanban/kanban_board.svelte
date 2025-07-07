@@ -1,23 +1,28 @@
 <script lang="ts">
-  import type { Task } from '../../../types.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import KanbanColumn from './kanban_column.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { Plus } from 'lucide-svelte'
+
+  import type { TaskStore } from '@/stores/tasks.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../../types.svelte'
+
+  import KanbanColumn from './kanban_column.svelte'
+
+
 
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{
+      statuses: {
         value: string
         label: string
         color?: string
         slug?: string
         category?: string
-      }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
-      users: Array<{ id: string; username: string; email: string }>
+      }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
+      users: { id: string; username: string; email: string }[]
     }
     onTaskClick?: (task: Task) => void
     onCreateTask?: (status: string) => void
@@ -140,7 +145,7 @@
       return
     }
 
-    const sourceKey = draggingColumnKey || draggedColumnKey
+    const sourceKey = draggingColumnKey ?? draggedColumnKey
     draggingColumnKey = null
 
     if (!sourceKey || sourceKey === targetKey) return
@@ -170,7 +175,7 @@
 
   function handleEditStatus(status: string, newLabel: string) {
     // TODO: Update status label
-    console.log('Edit status:', status, 'to', newLabel)
+    console.warn('Edit status not implemented yet:', status, 'to', newLabel)
   }
 
   function handleCreateStatus() {

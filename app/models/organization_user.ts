@@ -1,9 +1,12 @@
-import { DateTime } from 'luxon'
 import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
-import { OrganizationUserStatus } from '#constants/organization_constants'
-import User from './user.js'
+import { DateTime } from 'luxon'
+
+
 import Organization from './organization.js'
+import User from './user.js'
+
+import { OrganizationUserStatus } from '#constants/organization_constants'
 
 // Class chứa thông tin quan hệ giữa User và Organization
 export default class OrganizationUser extends BaseModel {

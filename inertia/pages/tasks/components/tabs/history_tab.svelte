@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { formatDate } from '../task_detail_utils'
   import type { AuditLog } from '../task_detail_types'
+  import { formatDate } from '../task_detail_utils'
 
   interface Props {
     auditLogs: AuditLog[]
@@ -22,7 +22,7 @@
             {formatDate(log.created_at)}
           </div>
           <div>
-            <div class="font-medium">{log.user?.username || 'Người dùng'}</div>
+            <div class="font-medium">{log.user?.username ?? 'Người dùng'}</div>
             <div class="text-xs">{log.action}</div>
             {#if log.changes}
               <div class="text-xs mt-1 text-muted-foreground">

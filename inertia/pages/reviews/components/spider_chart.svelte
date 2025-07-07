@@ -39,9 +39,9 @@
 
   // Grid ring paths (concentric pentagons/polygons)
   const gridRings = $derived(
-    Array.from({ length: levels }, (_, i) => {
+    Array.from({ length: levels }, (_ring, i) => {
       const ringRadius = (radius * (i + 1)) / levels
-      const points = Array.from({ length: count }, (_, j) => {
+      const points = Array.from({ length: count }, (_axis, j) => {
         const pos = polarToCartesian(getAngle(j, count), ringRadius, center)
         return `${pos.x},${pos.y}`
       })

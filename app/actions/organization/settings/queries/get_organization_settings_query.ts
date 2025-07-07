@@ -1,9 +1,9 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type { ExecutionContext } from '#types/execution_context'
-import OrganizationSettingsRepository from '#infra/organization/repositories/organization_settings_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
+import OrganizationSettingsRepository from '#infra/organization/repositories/organization_settings_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * GetOrganizationSettingsQuery

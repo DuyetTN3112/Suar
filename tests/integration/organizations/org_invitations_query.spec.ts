@@ -1,4 +1,12 @@
 import { test } from '@japa/runner'
+
+import ListInvitationsQuery from '#actions/organization/invitations/queries/list_invitations_query'
+import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
+import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import AuditLog from '#models/mongo/audit_log'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -6,15 +14,8 @@ import {
   OrganizationUserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
-import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
-import ListInvitationsQuery from '#actions/organization/invitations/queries/list_invitations_query'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
-import ForbiddenException from '#exceptions/forbidden_exception'
 
-type AuditLogEntry = {
+interface AuditLogEntry {
   action: string
   new_values?: Record<string, unknown>
 }

@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import type { DatabaseId } from '#types/database'
 
 export interface JoinOrganizationRequestInput {

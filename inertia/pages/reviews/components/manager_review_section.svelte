@@ -88,7 +88,7 @@
       <Label for="delivery_timeliness">Delivery timeliness</Label>
       <Select value={deliveryTimeliness} onValueChange={onDeliveryTimelinessChange}>
         <SelectTrigger {disabled}>
-          <span>{deliveryTimelinessOptions.find((option) => option.value === deliveryTimeliness)?.label || 'Chọn timeliness'}</span>
+          <span>{deliveryTimelinessOptions.find((option) => option.value === deliveryTimeliness)?.label ?? 'Chọn timeliness'}</span>
         </SelectTrigger>
         <SelectContent>
           {#each deliveryTimelinessOptions as option (option.value)}

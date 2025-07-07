@@ -1,10 +1,12 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+
+import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 import GetTasksPageQuery from './get_tasks_page_query.js'
-import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
+
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 
@@ -30,7 +32,7 @@ export interface GetTasksIndexPageResult {
   }
   stats: NonNullable<Awaited<ReturnType<GetTasksPageQuery['execute']>>['tasksResult']['stats']>
   metadata: Awaited<ReturnType<GetTasksPageQuery['execute']>>['metadata']
-  projectOptions: Array<{ id: DatabaseId; name: string }>
+  projectOptions: { id: DatabaseId; name: string }[]
   projectContext: {
     selectedProject: { id: DatabaseId; name: string } | null
   }

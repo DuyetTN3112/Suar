@@ -8,13 +8,14 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 import {
   ProjectDetailResponseDTO,
   ProjectListItemResponseDTO,
   ProjectSummaryResponseDTO,
 } from '../dtos/response/project_response_dtos.js'
+
+import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 
 export class ProjectApplicationMapper {
   private readonly __instanceMarker = true

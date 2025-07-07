@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { NextFn } from '@adonisjs/core/types/http'
 import emitter from '@adonisjs/core/services/emitter'
+import type { NextFn } from '@adonisjs/core/types/http'
+
 import loggerService from '#infra/logger/logger_service'
 
 /**

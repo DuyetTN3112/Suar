@@ -3,12 +3,13 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
   import Circle from 'lucide-svelte/icons/circle'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     value: string
     disabled?: boolean

@@ -1,5 +1,6 @@
-import env from '#start/env'
 import type { ConnectOptions } from 'mongoose'
+
+import env from '#start/env'
 
 export interface MongoDbConfig {
   useDefaultConnection: boolean

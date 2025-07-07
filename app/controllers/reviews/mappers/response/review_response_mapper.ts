@@ -79,7 +79,7 @@ export function mapFlaggedReviewsPageProps(
 }
 
 export function mapReviewEvidenceCollectionApiBody(
-  evidences: Array<SerializableResponseRecord | ResponseRecord>
+  evidences: (SerializableResponseRecord | ResponseRecord)[]
 ) {
   return {
     success: true,

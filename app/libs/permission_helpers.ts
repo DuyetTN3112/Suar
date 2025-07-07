@@ -11,6 +11,7 @@
 
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 
 /**
@@ -30,7 +31,7 @@ export async function isOrganizationOwner(
   organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  const client = trx || db
+  const client = trx ?? db
 
   const result = (await client
     .from('organization_users')
@@ -51,7 +52,7 @@ export async function isOrganizationAdminOrOwner(
   organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  const client = trx || db
+  const client = trx ?? db
 
   const result = (await client
     .from('organization_users')
@@ -72,7 +73,7 @@ export async function isApprovedOrganizationMember(
   organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  const client = trx || db
+  const client = trx ?? db
 
   const result = (await client
     .from('organization_users')
@@ -94,7 +95,7 @@ export async function getOrganizationMemberRole(
   organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<string | null> {
-  const client = trx || db
+  const client = trx ?? db
 
   const result = (await client
     .from('organization_users')
@@ -115,7 +116,7 @@ export async function canManageOrganizationMembers(
   organizationId: string | number,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  const client = trx || db
+  const client = trx ?? db
 
   const result = (await client
     .from('organization_users')

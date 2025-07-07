@@ -1,10 +1,12 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
+import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+
 import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
-import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+
 import ForbiddenException from '#exceptions/forbidden_exception'
-import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface TaskEditPageResult {
   task: TaskQueryRecord
@@ -16,12 +18,12 @@ export interface TaskEditPageResult {
     canAssign: boolean
   }
   metadata: {
-    statuses: Array<{ value: string; label: string }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-    projects: Array<{ id: DatabaseId; name: string }>
+    statuses: { value: string; label: string }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: DatabaseId; username: string; email: string }[]
+    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+    projects: { id: DatabaseId; name: string }[]
   }
 }
 

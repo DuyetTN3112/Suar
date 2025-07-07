@@ -1,4 +1,5 @@
 import db from '@adonisjs/lucid/services/db'
+
 import Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 
@@ -63,7 +64,7 @@ export interface ListProjectsFilters {
 }
 
 export interface ListProjectsResult {
-  projects: Array<{
+  projects: {
     id: string
     name: string
     description: string | null
@@ -73,7 +74,7 @@ export interface ListProjectsResult {
       members: number
       tasks: number
     }
-  }>
+  }[]
   total: number
 }
 
@@ -160,10 +161,10 @@ export default class OrganizationProjectRepository {
       name: project.name,
       description: project.description,
       status: project.status,
-      created_at: project.created_at.toISO() || new Date().toISOString(),
+      created_at: project.created_at.toISO() ?? new Date().toISOString(),
       _count: {
-        members: memberCounts[project.id] || 0,
-        tasks: taskCounts[project.id] || 0,
+        members: memberCounts[project.id] ?? 0,
+        tasks: taskCounts[project.id] ?? 0,
       },
     }))
 
@@ -185,7 +186,7 @@ export default class OrganizationProjectRepository {
       organization_id: organizationId,
       creator_id: creatorId,
       name: data.name,
-      description: data.description || null,
+      description: data.description ?? null,
       status: 'pending',
       budget: 0,
       visibility: 'team',

@@ -1,16 +1,19 @@
 <script lang="ts">
-  import TableRow from '@/components/ui/table_row.svelte'
-  import TableCell from '@/components/ui/table_cell.svelte'
   import Checkbox from '@/components/ui/checkbox.svelte'
+  import TableCell from '@/components/ui/table_cell.svelte'
+  import TableRow from '@/components/ui/table_row.svelte'
+
   import type { Task } from '../../types.svelte'
-  import TaskItemDeleteButton from './task_item_delete_button.svelte'
-  import StatusCell from './cells/child/status_cell.svelte'
-  import LabelCell from './cells/child/label_cell.svelte'
-  import PriorityCell from './cells/child/priority_cell.svelte'
+  import TaskDetailModal from '../modals/task_detail_modal.svelte'
+
   import AssigneeCell from './cells/child/assignee_cell.svelte'
   import DateCell from './cells/child/date_cell.svelte'
   import DueDateCell from './cells/child/due_date_cell.svelte'
-  import TaskDetailModal from '../modals/task_detail_modal.svelte'
+  import LabelCell from './cells/child/label_cell.svelte'
+  import PriorityCell from './cells/child/priority_cell.svelte'
+  import StatusCell from './cells/child/status_cell.svelte'
+  import TaskItemDeleteButton from './task_item_delete_button.svelte'
+
 
   interface Props {
     childTask: Task

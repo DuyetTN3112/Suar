@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { ChevronLeft, ChevronRight } from 'lucide-svelte'
+
+  import { cn } from '$lib/utils-svelte'
 
   const DAYS = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7']
   const MONTHS = [
@@ -15,7 +16,7 @@
     isOutside?: boolean
   }
 
-  type Props = {
+  interface Props {
     class?: string
     month?: Date
     selected?: Date | Date[] | { from: Date; to: Date }

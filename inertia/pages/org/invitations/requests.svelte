@@ -1,14 +1,16 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { Search, UserCheck, UserX } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Input from '@/components/ui/input.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import { Search, UserCheck, UserX } from 'lucide-svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+
 
   interface Props {
     requests: {
@@ -109,7 +111,7 @@
               <div class="neo-surface-soft flex items-center justify-between gap-4 p-4">
                 <div>
                   <div class="font-medium">{request.username}</div>
-                  <div class="text-sm text-muted-foreground">{request.email || 'Không có email'}</div>
+                  <div class="text-sm text-muted-foreground">{request.email ?? 'Không có email'}</div>
                   <div class="flex items-center gap-2 mt-2">
                     <Badge variant="outline">{request.org_role}</Badge>
                     <span class="text-xs text-muted-foreground">

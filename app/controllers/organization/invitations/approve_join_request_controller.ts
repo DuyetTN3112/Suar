@@ -1,11 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
+
 import CreateNotification from '#actions/common/create_notification'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import { ErrorMessages } from '#constants/error_constants'
 import { buildProcessJoinRequestDTO } from '#controllers/organizations/mappers/request/organization_request_mapper'
 import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * ApproveJoinRequestController

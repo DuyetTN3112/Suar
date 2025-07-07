@@ -9,6 +9,7 @@
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
+
   import type { RolePreset } from '../roles_helpers'
 
   interface Props {
@@ -51,7 +52,7 @@
             <p class="font-bold">{formatRoleLabel(preset.name)}</p>
             <Badge variant="outline">{preset.permissions.length} quyền</Badge>
           </div>
-          <p class="mt-2 text-sm text-muted-foreground">{preset.description || 'Preset vai trò'}</p>
+          <p class="mt-2 text-sm text-muted-foreground">{preset.description ?? 'Preset vai trò'}</p>
         </button>
       {/each}
     </CardContent>

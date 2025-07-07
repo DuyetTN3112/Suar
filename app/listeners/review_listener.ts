@@ -1,12 +1,13 @@
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#infra/logger/logger_service'
-import cacheService from '#infra/cache/cache_service'
-import { ExecutionContext } from '#types/execution_context'
+
 import type {
   ReviewSubmittedEvent,
   ReviewConfirmedEvent,
   SkillScoreUpdatedEvent,
 } from '#events/event_types'
+import cacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * Review Listener — Sprint 7

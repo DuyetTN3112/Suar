@@ -1,5 +1,7 @@
 import axios from 'axios'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type {
   Task,
   TaskStatus,
@@ -108,7 +110,7 @@ export function createTaskStore() {
       result = result.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
-          t.description?.toLowerCase().includes(q) ||
+          (t.description?.toLowerCase().includes(q) ?? false) ||
           t.id.includes(q)
       )
     }
@@ -116,7 +118,7 @@ export function createTaskStore() {
     // Status filter
     if (filters.statuses.length > 0) {
       result = result.filter((t) => {
-        const effectiveStatus = t.task_status_id || t.status
+        const effectiveStatus = t.task_status_id ?? t.status
         return Boolean(effectiveStatus && filters.statuses.includes(effectiveStatus))
       })
     }
@@ -140,7 +142,7 @@ export function createTaskStore() {
     if (filters.assignees.length > 0) {
       result = result.filter(
         (t) =>
-          (t.assigned_to && filters.assignees.includes(t.assigned_to)) ||
+          (t.assigned_to && filters.assignees.includes(t.assigned_to)) ??
           (t.assignee && filters.assignees.includes(t.assignee.id))
       )
     }
@@ -173,8 +175,8 @@ export function createTaskStore() {
           cmp = (PRIORITY_ORDER[a.priority] ?? 99) - (PRIORITY_ORDER[b.priority] ?? 99)
           break
         case 'status': {
-          const aStatus = a.task_status_id || a.status || ''
-          const bStatus = b.task_status_id || b.status || ''
+          const aStatus = (a.task_status_id ?? a.status) || ''
+          const bStatus = (b.task_status_id ?? b.status) || ''
           cmp = aStatus.localeCompare(bStatus)
           break
         }
@@ -194,13 +196,11 @@ export function createTaskStore() {
     const grouped: Partial<Record<string, Task[]>> = {}
 
     for (const task of sortedTasks) {
-      const statusKey = task.task_status_id || task.status
+      const statusKey = task.task_status_id ?? task.status
       if (!statusKey) {
         continue
       }
-      if (!grouped[statusKey]) {
-        grouped[statusKey] = []
-      }
+      grouped[statusKey] ??= [];
       grouped[statusKey].push(task)
     }
 

@@ -3,8 +3,9 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Avatar as AvatarPrimitive, type AvatarFallbackProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = AvatarFallbackProps & {
     class?: string

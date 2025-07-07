@@ -3,9 +3,10 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { AlertDialog as AlertDialogPrimitive, type AlertDialogActionProps } from 'bits-ui'
   import type { Snippet } from 'svelte'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = AlertDialogActionProps & {
     class?: string

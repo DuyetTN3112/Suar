@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+
 import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 /**
  * OrganizationAdminContextMiddleware

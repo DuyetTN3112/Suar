@@ -9,9 +9,7 @@ import logger from '@adonisjs/core/services/logger'
  * @module AuthLogger
  */
 
-interface LogContext {
-  [key: string]: unknown
-}
+type LogContext = Record<string, unknown>;
 
 interface SocialUser {
   id: string | number
@@ -39,7 +37,7 @@ function writeConsole(lines: string[]): void {
   }
 
   for (const line of lines) {
-    console.log(line)
+    console.warn(line)
   }
 }
 

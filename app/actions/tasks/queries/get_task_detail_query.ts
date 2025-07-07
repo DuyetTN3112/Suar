@@ -1,16 +1,21 @@
-import UserRepository from '#infra/users/repositories/user_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
-import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#infra/logger/logger_service'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+
+import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import loggerService from '#infra/logger/logger_service'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+
+
 
 interface TaskDetailPermissions {
   isCreator: boolean
@@ -107,8 +112,8 @@ export default class GetTaskDetailQuery {
   private formatChanges(
     oldValues: Record<string, unknown>,
     newValues: Record<string, unknown>
-  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
-    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
+  ): { field: string; oldValue: unknown; newValue: unknown }[] {
+    const changes: { field: string; oldValue: unknown; newValue: unknown }[] = []
 
     for (const key in newValues) {
       if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
@@ -161,8 +166,8 @@ export default class GetTaskDetailQuery {
     })
   }
 
-  private getOptionalRelations(dto: GetTaskDetailDTO): Array<'childTasks' | 'versions'> {
-    const relations: Array<'childTasks' | 'versions'> = []
+  private getOptionalRelations(dto: GetTaskDetailDTO): ('childTasks' | 'versions')[] {
+    const relations: ('childTasks' | 'versions')[] = []
 
     if (dto.shouldLoadChildTasks()) {
       relations.push('childTasks')
