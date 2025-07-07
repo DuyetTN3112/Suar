@@ -13,7 +13,7 @@ import { ExecutionContext } from '#types/execution_context'
 import UserProfileSnapshot from '#models/user_profile_snapshot'
 import TaskAssignment from '#models/task_assignment'
 import UserWorkHistory from '#models/user_work_history'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
 import db from '@adonisjs/lucid/services/db'
 
 const cacheService = CacheService as unknown as {

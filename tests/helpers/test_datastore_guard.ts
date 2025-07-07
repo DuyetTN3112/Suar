@@ -1,4 +1,51 @@
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
 const TEST_NAME_PATTERN = /(^test$|(^|[-_])test($|[-_])|_test$|-test$)/i
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+
+const readDotEnvValue = (key: string): string | undefined => {
+  const envPath = path.join(PROJECT_ROOT, '.env')
+  if (!fs.existsSync(envPath)) {
+    return undefined
+  }
+
+  const content = fs.readFileSync(envPath, 'utf8')
+  for (const rawLine of content.split('\n')) {
+    const line = rawLine.trim()
+    if (!line || line.startsWith('#')) {
+      continue
+    }
+
+    const separatorIndex = line.indexOf('=')
+    if (separatorIndex <= 0) {
+      continue
+    }
+
+    const parsedKey = line.slice(0, separatorIndex).trim()
+    if (parsedKey !== key) {
+      continue
+    }
+
+    const parsedValue = line.slice(separatorIndex + 1).trim()
+    if (!parsedValue) {
+      return undefined
+    }
+
+    if (
+      (parsedValue.startsWith('"') && parsedValue.endsWith('"')) ||
+      (parsedValue.startsWith("'") && parsedValue.endsWith("'"))
+    ) {
+      return parsedValue.slice(1, -1)
+    }
+
+    return parsedValue
+  }
+
+  return undefined
+}
 
 const isSafeTestName = (value: string | undefined): boolean => {
   return typeof value === 'string' && TEST_NAME_PATTERN.test(value)
@@ -23,12 +70,17 @@ const getMongoDatabaseName = (mongoUrl: string | undefined): string | null => {
 }
 
 export const applyTestDatastoreOverrides = (): void => {
-  if (process.env.PG_TEST_DATABASE) {
-    process.env.PG_DATABASE = process.env.PG_TEST_DATABASE
+  const pgTestDatabase = process.env.PG_TEST_DATABASE ?? readDotEnvValue('PG_TEST_DATABASE')
+  const mongoTestUrl = process.env.MONGODB_TEST_URL ?? readDotEnvValue('MONGODB_TEST_URL')
+
+  if (pgTestDatabase) {
+    process.env.PG_TEST_DATABASE = pgTestDatabase
+    process.env.PG_DATABASE = pgTestDatabase
   }
 
-  if (process.env.MONGODB_TEST_URL) {
-    process.env.MONGODB_URL = process.env.MONGODB_TEST_URL
+  if (mongoTestUrl) {
+    process.env.MONGODB_TEST_URL = mongoTestUrl
+    process.env.MONGODB_URL = mongoTestUrl
   }
 }
 
@@ -40,8 +92,8 @@ export const assertSafeTestDatastores = async (): Promise<void> => {
   const envModule = await import('#start/env')
   const env = envModule.default
 
-  const pgDatabase = env.get('PG_DATABASE', '')
-  const mongoUrl = env.get('MONGODB_URL', '')
+  const pgDatabase = process.env.PG_DATABASE ?? env.get('PG_DATABASE', '')
+  const mongoUrl = process.env.MONGODB_URL ?? env.get('MONGODB_URL', '')
   const mongoDatabaseName = getMongoDatabaseName(mongoUrl)
   const issues: string[] = []
 
