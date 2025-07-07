@@ -129,29 +129,13 @@ export default class GetProjectMembersQuery extends BaseQuery<
 
     const userIds = members.map((m) => m.user_id)
 
-    // Get task counts for each member
-    const taskCounts = (await db
-      .from('tasks')
-      .select('assigned_to as user_id')
-      .count('* as count')
-      .where('project_id', projectId)
-      .whereIn('assigned_to', userIds)
-      .whereNull('deleted_at')
-      .groupBy('assigned_to')) as TaskCountRow[]
-
-    // Get last activity for each member (from audit logs)
-    const lastActivities = (await db
-      .from('audit_logs')
-      .select('user_id')
-      .max('created_at as last_active')
-      .where('entity_type', 'project')
-      .where('entity_id', projectId)
-      .whereIn('user_id', userIds)
-      .groupBy('user_id')) as LastActivityRow[]
-
-    // Create maps for easy lookup
-    const taskCountMap = new Map(taskCounts.map((t) => [t.user_id, Number(t.count)]))
-    const lastActivityMap = new Map(lastActivities.map((a) => [a.user_id, a.last_active]))
+    // Get task counts and last activity in parallel → delegate to Model
+    const [taskCountMap, lastActivityMap] = await Promise.all([
+      TaskRepository.countByAssignees(projectId, userIds),
+      RepositoryFactory.getAuditLogRepository().then((repo) =>
+        repo.getLastActivityByUsers('project', projectId, userIds)
+      ),
+    ])
 
     // Enrich members
     return members.map((member) => ({
