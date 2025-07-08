@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListJoinRequestsQuery from '#actions/organization/invitations/queries/list_join_requests_query'
+import ListJoinRequestsQuery from '#actions/organizations/current/invitations/queries/list_join_requests_query'
 import { PAGINATION } from '#constants/common_constants'
 import { ExecutionContext } from '#types/execution_context'
 

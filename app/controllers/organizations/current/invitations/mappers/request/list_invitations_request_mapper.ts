@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { InvitationsIndexPageInput } from '#actions/organization/invitations/queries/get_invitations_index_page_query'
+import type { InvitationsIndexPageInput } from '#actions/organizations/current/invitations/queries/get_invitations_index_page_query'
 import { PAGINATION } from '#constants/common_constants'
 
 function toPageNumber(value: unknown): number {
