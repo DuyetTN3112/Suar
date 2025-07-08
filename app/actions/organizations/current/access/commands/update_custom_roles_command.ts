@@ -1,8 +1,8 @@
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { sanitizeCustomRoleDefinitions } from '#domain/organizations/org_access_rules'
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
-import OrganizationSettingsRepository from '#infra/organization/repositories/organization_settings_repository'
+import OrganizationSettingsRepository from '#infra/organizations/current/repositories/organization_settings_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -28,7 +28,11 @@ export default class UpdateCustomRolesCommand extends BaseCommand<UpdateCustomRo
       throw new Error('User context required')
     }
 
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(organizationId, userId)
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
+      organizationId,
+      userId
+    )
+    const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canUpdateOrganization(actorOrgRole))
 
     await this.settingsRepo.updateOrganization(organizationId, {
