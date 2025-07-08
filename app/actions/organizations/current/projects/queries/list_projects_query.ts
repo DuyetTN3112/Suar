@@ -1,5 +1,5 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import OrganizationProjectRepository from '#infra/organization/repositories/organization_project_repository'
+import OrganizationProjectRepository from '#infra/organizations/current/repositories/organization_project_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
