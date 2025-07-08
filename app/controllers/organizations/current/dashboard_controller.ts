@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetOrganizationDashboardStatsQuery from '#actions/organization/dashboard/get_organization_dashboard_stats_query'
+import GetOrganizationDashboardStatsQuery from '#actions/organizations/current/dashboard/get_organization_dashboard_stats_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

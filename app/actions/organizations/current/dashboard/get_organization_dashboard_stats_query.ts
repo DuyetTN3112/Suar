@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import OrganizationMemberRepository from '#infra/organization/repositories/organization_member_repository'
-import OrganizationProjectRepository from '#infra/organization/repositories/organization_project_repository'
-import OrganizationTaskRepository from '#infra/organization/repositories/organization_task_repository'
+import OrganizationMemberRepository from '#infra/organizations/current/repositories/organization_member_repository'
+import OrganizationProjectRepository from '#infra/organizations/current/repositories/organization_project_repository'
+import OrganizationTaskRepository from '#infra/organizations/current/repositories/organization_task_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
