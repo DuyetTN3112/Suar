@@ -3,8 +3,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import CreateNotification from '#actions/common/create_notification'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import { ErrorMessages } from '#constants/error_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
+import { buildCurrentOrganizationRoleUpdateInput } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#controllers/organizations/current/mappers/response/current_organization_mutation_response_mapper'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -25,22 +25,18 @@ export default class UpdateMemberRoleController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const targetUserId = params.id as string
-    const newRoleId =
-      (request.input('roleId') as string | undefined) ??
-      (request.input('org_role') as string | undefined) ??
-      OrganizationRole.MEMBER
+    const roleUpdateInput = buildCurrentOrganizationRoleUpdateInput(
+      request,
+      organizationId,
+      params.id as string
+    )
     await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).executeFromRequest(
-      {
-        organizationId,
-        userId: targetUserId,
-        roleId: newRoleId,
-      },
+      roleUpdateInput,
       { resolveAssignableRoles: true }
     )
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json(mapOrganizationSuccessApiBody('Cập nhật vai trò thành công'))
+      response.json(mapCurrentOrganizationSuccessApiBody('Cập nhật vai trò thành công'))
       return
     }
 

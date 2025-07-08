@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import type { OrganizationMembersIndexPageInput } from '#actions/organization/members/queries/get_organization_members_index_page_query'
+import type { OrganizationMembersIndexPageInput } from '#actions/organizations/current/members/queries/get_organization_members_index_page_query'
 
 const ORG_MEMBERS_PER_PAGE = 50
 

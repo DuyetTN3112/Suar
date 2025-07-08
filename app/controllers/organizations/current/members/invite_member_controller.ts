@@ -2,8 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
 import { ErrorMessages } from '#constants/error_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import { mapOrganizationSuccessApiBody } from '#controllers/organizations/mappers/response/organization_response_mapper'
+import { buildCurrentOrganizationInviteMemberInput } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#controllers/organizations/current/mappers/response/current_organization_mutation_response_mapper'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -24,22 +24,13 @@ export default class InviteMemberController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const email = request.input('email') as string
-    const roleId =
-      (request.input('roleId') as string | undefined) ??
-      (request.input('org_role') as string | undefined) ??
-      OrganizationRole.MEMBER
-    await new InviteUserCommand(execCtx).executeFromRequest(
-      {
-        organizationId,
-        email,
-        roleId,
-      },
-      { resolveAssignableRoles: true }
-    )
+    const inviteMemberInput = buildCurrentOrganizationInviteMemberInput(request, organizationId)
+    await new InviteUserCommand(execCtx).executeFromRequest(inviteMemberInput, {
+      resolveAssignableRoles: true,
+    })
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json(mapOrganizationSuccessApiBody('Gửi lời mời thành công'))
+      response.json(mapCurrentOrganizationSuccessApiBody('Gửi lời mời thành công'))
       return
     }
 
