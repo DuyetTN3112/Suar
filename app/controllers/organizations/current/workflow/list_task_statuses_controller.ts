@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListTaskStatusesQuery from '#actions/organization/workflow/queries/list_task_statuses_query'
+import ListTaskStatusesQuery from '#actions/organizations/current/workflow/queries/list_task_statuses_query'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
