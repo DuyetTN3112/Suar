@@ -4,12 +4,12 @@
  * 100% pure, 0 framework dependencies.
  * Used by all `rules/` modules to return allow/deny decisions.
  *
- * Commands map PolicyResult → exceptions via `enforcePolicy()` (separate file).
+ * Commands map PolicyResult -> exceptions via `enforcePolicy()` (separate file).
  *
  * @example
  * ```typescript
- * import type { PolicyResult } from '#domain/shared/policy_result'
- * import { PolicyResult as PR } from '#domain/shared/policy_result'
+ * import type { PolicyResult } from '#domain/policies/policy_result'
+ * import { PolicyResult as PR } from '#domain/policies/policy_result'
  *
  * export function canDeleteTask(ctx: ...): PolicyResult {
  *   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
