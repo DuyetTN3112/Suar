@@ -1,6 +1,10 @@
-import AuditLog from '#models/audit_log'
-import type { HttpContext } from '@adonisjs/core/http'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import UserRepository from '#infra/users/repositories/user_repository'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import ValidationException from '#exceptions/validation_exception'
+import { PAGINATION } from '#constants/common_constants'
 
 /**
  * Query để lấy audit logs của task
@@ -16,26 +20,24 @@ import redis from '@adonisjs/redis/services/main'
  * - changes: [{ field, oldValue, newValue }]
  */
 export default class GetTaskAuditLogsQuery {
-  constructor(protected ctx: HttpContext) {}
-
   /**
    * Execute query
    */
   async execute(
-    taskId: number,
+    taskId: DatabaseId,
     limit: number = 20
   ): Promise<
     Array<{
-      id: number
+      id: DatabaseId
       action: string
-      user: { id: number; name: string; email: string } | null
+      user: { id: DatabaseId; name: string; email: string } | null
       timestamp: Date
       changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
     }>
   > {
     // Validate limit
-    if (limit < 1 || limit > 100) {
-      throw new Error('Limit phải từ 1 đến 100')
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
+      throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
@@ -45,31 +47,34 @@ export default class GetTaskAuditLogsQuery {
       return cached
     }
 
-    // Load audit logs
-    const logs = await AuditLog.query()
-      .where('entity_type', 'task')
-      .where('entity_id', taskId)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .preload('user', (userQuery) => {
-        void userQuery.select(['id', 'username', 'email'])
-      })
+    // Load audit logs via RepositoryFactory
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'task',
+      entity_id: taskId,
+      limit,
+    })
+
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
     // Format logs
     const formattedLogs = logs.map((log) => {
+      const user = userMap.get(log.user_id ?? '')
       return {
         id: log.id,
         action: log.action,
-        user: {
-          id: log.user.id,
-          name: log.user.username || 'Unknown',
-          email: log.user.email,
-        },
-        timestamp: log.created_at.toJSDate(),
-        changes: this.formatChanges(
-          (log.old_values || {}) as Record<string, unknown>,
-          (log.new_values || {}) as Record<string, unknown>
-        ),
+        user: user
+          ? {
+              id: user.id,
+              name: user.username || 'Unknown',
+              email: user.email ?? '',
+            }
+          : null,
+        timestamp: log.created_at,
+        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
 
@@ -106,9 +111,9 @@ export default class GetTaskAuditLogsQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<Array<{
-    id: number
+    id: DatabaseId
     action: string
-    user: { id: number; name: string; email: string } | null
+    user: { id: DatabaseId; name: string; email: string } | null
     timestamp: Date
     changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
   }> | null> {
@@ -118,16 +123,16 @@ export default class GetTaskAuditLogsQuery {
         const parsed: unknown = JSON.parse(cached)
         if (Array.isArray(parsed)) {
           return parsed as Array<{
-            id: number
+            id: DatabaseId
             action: string
-            user: { id: number; name: string; email: string } | null
+            user: { id: DatabaseId; name: string; email: string } | null
             timestamp: Date
             changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
           }>
         }
       }
     } catch (error) {
-      console.error('[GetTaskAuditLogsQuery] Cache get error:', error)
+      loggerService.error('[GetTaskAuditLogsQuery] Cache get error:', error)
     }
     return null
   }
@@ -139,7 +144,7 @@ export default class GetTaskAuditLogsQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskAuditLogsQuery] Cache set error:', error)
+      loggerService.error('[GetTaskAuditLogsQuery] Cache set error:', error)
     }
   }
 }

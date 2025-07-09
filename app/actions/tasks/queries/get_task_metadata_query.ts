@@ -1,10 +1,14 @@
-import TaskStatus from '#models/task_status'
-import TaskLabel from '#models/task_label'
-import TaskPriority from '#models/task_priority'
-import User from '#models/user'
-import Task from '#models/task'
-import type { HttpContext } from '@adonisjs/core/http'
+import { TaskLabel, TaskPriority } from '#constants'
+import UserRepository from '#infra/users/repositories/user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import SkillRepository from '#infra/skills/repositories/skill_repository'
+import GetTaskProjectsQuery from './get_task_projects_query.js'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 
 /**
  * Query để lấy metadata cho task forms
@@ -22,39 +26,40 @@ import redis from '@adonisjs/redis/services/main'
  * - Only root tasks for parent selection
  */
 export default class GetTaskMetadataQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
    */
-  async execute(organizationId?: number): Promise<{
-    statuses: TaskStatus[]
-    labels: TaskLabel[]
-    priorities: TaskPriority[]
-    users: Array<{ id: number; name: string; email: string }>
-    parentTasks: Array<{ id: number; title: string; status_id: number }>
+  async execute(organizationId?: DatabaseId): Promise<{
+    statuses: Array<{
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+    }>
+    labels: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
+    users: Array<{ id: DatabaseId; username: string; email: string }>
+    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
+    availableSkills: Array<{ id: DatabaseId; name: string }>
+    projects: Array<{ id: DatabaseId; name: string }>
   }> {
     // Get organization_id
-    const orgId = (organizationId || this.ctx.session.get('current_organization_id')) as
-      | number
-      | undefined
+    const orgId = (organizationId || this.execCtx.organizationId) as DatabaseId | undefined
 
     if (!orgId) {
-      throw new Error('Organization ID là bắt buộc')
+      throw new BusinessLogicException('Organization ID là bắt buộc')
     }
 
     // Try cache first
-    const cacheKey = `task:metadata:org:${orgId}`
+    const cacheKey = `task:metadata:v2:org:${orgId}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
     }
 
-    // Load all metadata in parallel
-    const [statuses, labels, priorities, users, parentTasks] = await Promise.all([
-      this.loadStatuses(),
-      this.loadLabels(),
-      this.loadPriorities(),
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
     ])

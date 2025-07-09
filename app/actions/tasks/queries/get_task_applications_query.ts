@@ -1,7 +1,7 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import TaskApplication from '#models/task_application'
-import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/task_application_dtos'
+import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
+import type TaskApplication from '#models/task_application'
+import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 interface ApplicationListResult {
   data: TaskApplication[]
@@ -23,10 +23,6 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
   GetTaskApplicationsDTO,
   ApplicationListResult
 > {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
   async handle(dto: GetTaskApplicationsDTO): Promise<ApplicationListResult> {
     const cacheKey = this.generateCacheKey('task:applications', {
       taskId: dto.task_id,
@@ -35,23 +31,11 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      const query = TaskApplication.query()
-        .where('task_id', dto.task_id)
-        .preload('applicant', (userQuery) => {
-          void userQuery.preload('detail')
-          void userQuery.preload('skills', (skillsQuery) => {
-            void skillsQuery.preload('skill')
-            void skillsQuery.preload('proficiency_level')
-          })
-        })
-        .orderBy('applied_at', 'desc')
-
-      // Filter by status
-      if (dto.status && dto.status !== 'all') {
-        void query.where('application_status', dto.status)
-      }
-
-      const result = await query.paginate(dto.page, dto.per_page)
+      const result = await TaskApplicationRepository.paginateByTask(dto.task_id, {
+        status: dto.status,
+        page: dto.page,
+        perPage: dto.per_page,
+      })
 
       return {
         data: result.all(),

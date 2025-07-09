@@ -232,9 +232,9 @@ export default class UpdateTaskCommand {
     const trackedFields = [
       'title',
       'description',
-      'status_id',
-      'label_id',
-      'priority_id',
+      'status',
+      'label',
+      'priority',
       'assigned_to',
       'due_date',
       'parent_task_id',
@@ -251,17 +251,21 @@ export default class UpdateTaskCommand {
 
     if (!hasChanges) return
 
-    // Insert into task_versions
-    await trx.table('task_versions').insert({
-      task_id: oldValues.id,
-      title: oldValues.title,
-      description: oldValues.description,
-      status_id: oldValues.status_id,
-      label_id: oldValues.label_id,
-      priority_id: oldValues.priority_id,
-      assigned_to: oldValues.assigned_to,
-      changed_by: changedBy,
-      created_at: new Date(),
-    })
+    // Insert into task_versions → delegate to TaskVersion model
+    const snapshot = oldValues as Record<string, string | null>
+    await TaskVersionRepository.createSnapshot(
+      {
+        task_id: snapshot.id as string,
+        title: snapshot.title as string,
+        description: snapshot.description ?? null,
+        status: snapshot.status as string,
+        label: snapshot.label as string,
+        priority: snapshot.priority as string,
+        difficulty: snapshot.difficulty ?? null,
+        assigned_to: snapshot.assigned_to ?? null,
+        changed_by: changedBy,
+      },
+      trx
+    )
   }
 }

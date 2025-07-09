@@ -1,10 +1,16 @@
-import Task from '#models/task'
-import type User from '#models/user'
-import AuditLog from '#models/audit_log'
-import type GetTaskDetailDTO from '../dtos/get_task_detail_dto.js'
-import type { HttpContext } from '@adonisjs/core/http'
+import type Task from '#models/task'
+import UserRepository from '#infra/users/repositories/user_repository'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import type { ExecutionContext } from '#types/execution_context'
 import redis from '@adonisjs/redis/services/main'
-import db from '@adonisjs/lucid/services/db'
+import loggerService from '#services/logger_service'
+import type { DatabaseId } from '#types/database'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 
 /**
  * Query để lấy chi tiết một task
@@ -23,7 +29,7 @@ import db from '@adonisjs/lucid/services/db'
  * - Org Owner/Manager: Xem tasks trong org
  */
 export default class GetTaskDetailQuery {
-  constructor(protected ctx: HttpContext) {}
+  constructor(protected execCtx: ExecutionContext) {}
 
   /**
    * Execute query
@@ -39,9 +45,9 @@ export default class GetTaskDetailQuery {
     }
     auditLogs?: unknown[]
   }> {
-    const user = this.ctx.auth.user
-    if (!user) {
-      throw new Error('User chưa đăng nhập')
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
     }
 
     // Try cache first (if not minimal load)
@@ -53,34 +59,27 @@ export default class GetTaskDetailQuery {
       }
     }
 
-    // Load task
-    const task = await Task.query().where('id', dto.task_id).whereNull('deleted_at').firstOrFail()
+    // Load task với basic relations (v3: status/label/priority are inline columns)
+    const task = await TaskRepository.findByIdWithDetailRelations(dto.task_id)
 
-    // Check permission
-    await this.validateViewPermission(user, task)
+    const permissionContext = await buildTaskPermissionContext(userId, task)
+    enforcePolicy(canViewTask(permissionContext))
 
-    // Load basic relations (always) - Using sequential loads for type safety
-    await task.load('status')
-    await task.load('label')
-    await task.load('priority')
-    await task.load('assignee')
-    await task.load('creator')
-    await task.load('updater')
-    await task.load('organization')
-    await task.load('project')
-    await task.load('parentTask')
+    // Load optional relations (batch load)
+    const optionalLoads: Array<'childTasks' | 'versions'> = []
+    if (dto.shouldLoadChildTasks()) optionalLoads.push('childTasks')
+    if (dto.shouldLoadVersions()) optionalLoads.push('versions')
 
-    // Load optional relations
-    if (dto.shouldLoadChildTasks()) {
-      await task.load('childTasks')
+    if (optionalLoads.length > 0) {
+      await task.load((loader) => {
+        for (const rel of optionalLoads) {
+          loader.load(rel)
+        }
+      })
     }
 
-    if (dto.shouldLoadVersions()) {
-      await task.load('versions')
-    }
-
-    // Calculate permissions
-    const permissions = await this.calculatePermissions(user, task)
+    // Calculate permissions (reuse fetched role data)
+    const permissions = calculateTaskPermissions(permissionContext)
 
     // Load audit logs if requested
     let auditLogs: unknown[] | undefined
@@ -104,120 +103,35 @@ export default class GetTaskDetailQuery {
   }
 
   /**
-   * Validate view permission
-   */
-  private async validateViewPermission(user: User, task: Task): Promise<void> {
-    // Check if user is system superadmin via system_roles table (suar.sql)
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
-
-    // Admin/Superadmin can view all
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-    if (isSuperAdmin) {
-      return
-    }
-
-    // Creator can view
-    if (task.creator_id === user.id) {
-      return
-    }
-
-    // Assignee can view
-    if (task.assigned_to && task.assigned_to === user.id) {
-      return
-    }
-
-    // Check organization role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
-
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
-      return
-    }
-
-    throw new Error('Bạn không có quyền xem task này')
-  }
-
-  /**
-   * Calculate permissions for current user
-   */
-  private async calculatePermissions(
-    user: User,
-    task: Task
-  ): Promise<{
-    isCreator: boolean
-    isAssignee: boolean
-    canEdit: boolean
-    canDelete: boolean
-    canAssign: boolean
-  }> {
-    // Check if user is system superadmin via system_roles table
-    const userData = (await db
-      .from('users')
-      .join('system_roles', 'users.system_role_id', 'system_roles.id')
-      .where('users.id', user.id)
-      .select('system_roles.name as role_name')
-      .first()) as { role_name?: string } | null
-
-    const isCreator = task.creator_id === user.id
-    const isAssignee = task.assigned_to && task.assigned_to === user.id
-    const isSuperAdmin = ['superadmin', 'admin'].includes(userData?.role_name?.toLowerCase() || '')
-
-    // Check org role
-    const orgUser = (await db
-      .from('organization_users')
-      .where('organization_id', task.organization_id)
-      .where('user_id', user.id)
-      .first()) as { role_id: number } | null
-
-    const isOrgOwnerOrManager = orgUser && [1, 2].includes(orgUser.role_id)
-
-    // Permissions
-    const canEdit = Boolean(isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager)
-    const canDelete = Boolean(isSuperAdmin || isCreator || isOrgOwnerOrManager)
-    const canAssign = Boolean(isSuperAdmin || isCreator || isAssignee || isOrgOwnerOrManager)
-
-    return {
-      isCreator,
-      isAssignee: !!isAssignee,
-      canEdit,
-      canDelete,
-      canAssign,
-    }
-  }
-
-  /**
    * Load audit logs
    */
-  private async loadAuditLogs(taskId: number, limit: number): Promise<unknown[]> {
-    const logs = await AuditLog.query()
-      .where('entity_type', 'task')
-      .where('entity_id', taskId)
-      .orderBy('created_at', 'desc')
-      .limit(limit)
-      .preload('user')
+  private async loadAuditLogs(taskId: DatabaseId, limit: number): Promise<unknown[]> {
+    const auditRepo = await RepositoryFactory.getAuditLogRepository()
+    const { data: logs } = await auditRepo.findMany({
+      entity_type: 'task',
+      entity_id: taskId,
+      limit,
+    })
+
+    // Load users from PostgreSQL
+    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
+    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
+    const userMap = new Map(users.map((u) => [u.id, u]))
 
     return logs.map((log) => {
+      const user = userMap.get(log.user_id ?? '')
       return {
         id: log.id,
         action: log.action,
-        user: {
-          id: log.user.id,
-          name: log.user.username,
-          email: log.user.email,
-        },
+        user: user
+          ? {
+              id: user.id,
+              name: user.username || 'Unknown',
+              email: user.email ?? '',
+            }
+          : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(
-          (log.old_values ?? {}) as Record<string, unknown>,
-          (log.new_values ?? {}) as Record<string, unknown>
-        ),
+        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
   }
@@ -275,7 +189,7 @@ export default class GetTaskDetailQuery {
         return parsed
       }
     } catch (error) {
-      console.error('[GetTaskDetailQuery] Cache get error:', error)
+      loggerService.error('[GetTaskDetailQuery] Cache get error:', error)
     }
     return null
   }
@@ -287,7 +201,7 @@ export default class GetTaskDetailQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskDetailQuery] Cache set error:', error)
+      loggerService.error('[GetTaskDetailQuery] Cache set error:', error)
     }
   }
 }
