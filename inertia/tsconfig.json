@@ -1,7 +1,6 @@
 {
   "extends": "@adonisjs/tsconfig/tsconfig.client.json",
   "compilerOptions": {
-    "jsx": "react-jsx",
     "module": "ESNext",
     "moduleResolution": "bundler",
     "esModuleInterop": true,
@@ -27,13 +26,18 @@
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
 
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"],
       "@lib/*": ["./lib/*"],
-      "@/context/*": ["./context/*"],
-      "@/hooks/*": ["./hooks/*"]
+      "$lib/*": ["./lib/*"],
+      "$lib": ["./lib"]
     },
     "types": ["vite/client"]
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts", "./**/*.svelte"],
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
 }
