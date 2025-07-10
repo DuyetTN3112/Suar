@@ -60,8 +60,16 @@ export default class GetTaskMetadataQuery {
       return cached
     }
 
+    const statuses = await this.loadStatuses(orgId)
+    const labels = this.loadLabels()
+    const priorities = this.loadPriorities()
+
+    // Load async metadata in parallel
+    const [users, parentTasks, availableSkills, projects] = await Promise.all([
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
+      this.loadAvailableSkills(),
+      new GetTaskProjectsQuery().execute(orgId),
     ])
 
     const result = {
@@ -70,6 +78,8 @@ export default class GetTaskMetadataQuery {
       priorities,
       users,
       parentTasks,
+      availableSkills,
+      projects,
     }
 
     // Cache result
@@ -79,43 +89,49 @@ export default class GetTaskMetadataQuery {
   }
 
   /**
-   * Load all task statuses
+   * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(): Promise<TaskStatus[]> {
-    return await TaskStatus.query().orderBy('id', 'asc')
+  private async loadStatuses(
+    organizationId: DatabaseId
+  ): Promise<
+    Array<{ value: string; label: string; slug: string; category: string; color?: string }>
+  > {
+    const statuses = await TaskStatusRepository.findByOrganization(organizationId)
+    return statuses.map((status) => ({
+      value: status.id,
+      label: status.name,
+      slug: status.slug,
+      category: status.category,
+      color: status.color,
+    }))
   }
 
   /**
-   * Load all task labels
+   * Load all task labels — v3: static enum values
    */
-  private async loadLabels(): Promise<TaskLabel[]> {
-    return await TaskLabel.query().orderBy('name', 'asc')
+  private loadLabels(): Array<{ value: string; label: string }> {
+    return Object.values(TaskLabel).map((v) => ({ value: v, label: v }))
   }
 
   /**
-   * Load all task priorities
+   * Load all task priorities — v3: static enum values
    */
-  private async loadPriorities(): Promise<TaskPriority[]> {
-    return await TaskPriority.query().orderBy('id', 'asc')
+  private loadPriorities(): Array<{ value: string; label: string }> {
+    return Object.values(TaskPriority).map((v) => ({ value: v, label: v }))
   }
 
   /**
    * Load users in organization
    */
   private async loadUsers(
-    organizationId: number
-  ): Promise<Array<{ id: number; name: string; email: string }>> {
-    const users = await User.query()
-      .select(['users.id', 'users.username', 'users.email'])
-      .join('organization_users', 'users.id', 'organization_users.user_id')
-      .where('organization_users.organization_id', organizationId)
-      .whereNull('users.deleted_at')
-      .orderBy('users.username', 'asc')
+    organizationId: DatabaseId
+  ): Promise<Array<{ id: DatabaseId; username: string; email: string }>> {
+    const users = await UserRepository.findByOrganization(organizationId)
 
     return users.map((user) => ({
       id: user.id,
-      name: user.username,
-      email: user.email,
+      username: user.username,
+      email: user.email ?? '',
     }))
   }
 
@@ -123,20 +139,25 @@ export default class GetTaskMetadataQuery {
    * Load potential parent tasks (root tasks only, not deleted)
    */
   private async loadParentTasks(
-    organizationId: number
-  ): Promise<Array<{ id: number; title: string; status_id: number }>> {
-    const tasks = await Task.query()
-      .select(['id', 'title', 'status_id'])
-      .where('organization_id', organizationId)
-      .whereNull('parent_task_id') // Only root tasks
-      .whereNull('deleted_at')
-      .orderBy('title', 'asc')
-      .limit(100) // Limit to avoid huge lists
+    organizationId: DatabaseId
+  ): Promise<Array<{ id: DatabaseId; title: string; task_status_id: string | null }>> {
+    const tasks = await TaskRepository.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
       id: task.id,
       title: task.title,
-      status_id: task.status_id,
+      task_status_id: task.task_status_id,
+    }))
+  }
+
+  /**
+   * Load active skills used for task required-skills selection.
+   */
+  private async loadAvailableSkills(): Promise<Array<{ id: DatabaseId; name: string }>> {
+    const skills = await SkillRepository.activeSkills()
+    return skills.map((skill) => ({
+      id: skill.id,
+      name: skill.skill_name,
     }))
   }
 
@@ -144,26 +165,42 @@ export default class GetTaskMetadataQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    statuses: TaskStatus[]
-    labels: TaskLabel[]
-    priorities: TaskPriority[]
-    users: Array<{ id: number; name: string; email: string }>
-    parentTasks: Array<{ id: number; title: string; status_id: number }>
+    statuses: Array<{
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+    }>
+    labels: Array<{ value: string; label: string }>
+    priorities: Array<{ value: string; label: string }>
+    users: Array<{ id: DatabaseId; username: string; email: string }>
+    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
+    availableSkills: Array<{ id: DatabaseId; name: string }>
+    projects: Array<{ id: DatabaseId; name: string }>
   } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
         const parsed = JSON.parse(cached) as {
-          statuses: TaskStatus[]
-          labels: TaskLabel[]
-          priorities: TaskPriority[]
-          users: Array<{ id: number; name: string; email: string }>
-          parentTasks: Array<{ id: number; title: string; status_id: number }>
+          statuses: Array<{
+            value: string
+            label: string
+            slug: string
+            category: string
+            color?: string
+          }>
+          labels: Array<{ value: string; label: string }>
+          priorities: Array<{ value: string; label: string }>
+          users: Array<{ id: DatabaseId; username: string; email: string }>
+          parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
+          availableSkills: Array<{ id: DatabaseId; name: string }>
+          projects: Array<{ id: DatabaseId; name: string }>
         }
         return parsed
       }
     } catch (error) {
-      console.error('[GetTaskMetadataQuery] Cache get error:', error)
+      loggerService.error('[GetTaskMetadataQuery] Cache get error:', error)
     }
     return null
   }
@@ -175,7 +212,7 @@ export default class GetTaskMetadataQuery {
     try {
       await redis.setex(key, ttl, JSON.stringify(data))
     } catch (error) {
-      console.error('[GetTaskMetadataQuery] Cache set error:', error)
+      loggerService.error('[GetTaskMetadataQuery] Cache set error:', error)
     }
   }
 }

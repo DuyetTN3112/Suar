@@ -1,27 +1,24 @@
 import { BaseCommand } from '../../shared/base_command.js'
-import type { ChangeUserRoleDTO } from '../dtos/index.js'
-import db from '@adonisjs/lucid/services/db'
+import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
+import UserRepository from '#infra/users/repositories/user_repository'
+import emitter from '@adonisjs/core/services/emitter'
+import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { canChangeUserRole } from '#domain/users/user_management_rules'
 
 /**
- * ChangeUserRoleCommand
+ * ChangeUserRoleCommand (v3)
  *
- * Changes a user's role in an organization.
- * Uses stored procedure for permission checks.
- *
- * This is a Command (Write operation) that changes system state.
+ * Changes a user's system role.
+ * v3: system_role is inline VARCHAR on users table.
+ * newRoleId in DTO is now a role name string (e.g. 'superadmin', 'system_admin').
  *
  * Business Rules:
  * - Only superadmin can change roles
- * - Uses stored procedure: change_user_role_with_permission
- * - Audit log is created automatically by stored procedure
+ * - Cannot change own role
+ * - Target user must exist and not be deleted
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
-  /**
-   * Main handler - changes user role using stored procedure
-   */
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
-    // Use stored procedure with permission checks built-in
-    await this.changeRoleViaStoredProcedure(dto)
 
     // Log the action
     await this.logAudit('change_user_role', 'user', dto.targetUserId, null, {
