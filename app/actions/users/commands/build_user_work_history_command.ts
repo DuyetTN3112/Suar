@@ -206,166 +206,197 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     return []
   }
 
+  private async loadAssignmentSnapshots(
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<AssignmentSnapshotRow[]> {
+    return (await UserAnalyticsRepository.listCompletedAssignmentSnapshots(
+      userId,
+      trx
+    )) as AssignmentSnapshotRow[]
+  }
 
-      if (dto.fullRebuild) {
-        await UserWorkHistoryRepository.deleteByUser(dto.userId, trx)
+  private async deleteExistingWorkHistory(
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await UserWorkHistoryRepository.deleteByUser(userId, trx)
+  }
+
+  private async loadAssignmentAnalytics(
+    userId: DatabaseId,
+    assignment: AssignmentSnapshotRow,
+    trx: TransactionClientContract
+  ): Promise<AssignmentAnalytics> {
+    const completedAt = this.toDateTime(assignment.completed_at)
+    const reviewSessions = (await UserAnalyticsRepository.listCompletedReviewSessionsForAssignment(
+      assignment.task_assignment_id,
+      userId,
+      trx
+    )) as CompletedReviewSessionRow[]
+
+    const sessionIds = reviewSessions.map((session) => session.id)
+    const qualityValues = reviewSessions
+      .map((session) => session.overall_quality_score)
+      .filter((value): value is number => typeof value === 'number')
+
+    const overallQualityScore = calculateAverageScore(qualityValues)
+
+    const skillScores =
+      sessionIds.length > 0
+        ? (
+            (await UserAnalyticsRepository.listSkillReviewSummariesBySessionIds(
+              sessionIds,
+              trx
+            )) as SkillReviewSummaryRow[]
+          ).map((item) => ({
+            skill_id: item.skill_id,
+            skill_name: item.skill_name,
+            assigned_level_code: item.assigned_level_code,
+            reviewer_type: item.reviewer_type,
+            comment: item.comment,
+          }))
+        : []
+
+    const evidenceLinks =
+      sessionIds.length > 0
+        ? (
+            (await UserAnalyticsRepository.listReviewEvidenceSummariesBySessionIds(
+              sessionIds,
+              trx
+            )) as ReviewEvidenceSummaryRow[]
+          ).map((item) => ({
+            evidence_id: item.id,
+            evidence_type: item.evidence_type,
+            url: item.url,
+            title: item.title,
+          }))
+        : []
+
+    const selfAssessment = (await UserAnalyticsRepository.findSelfAssessmentNarrative(
+      assignment.task_assignment_id,
+      userId,
+      trx
+    )) as SelfAssessmentNarrativeRow | undefined
+
+    return {
+      completedAt,
+      overallQualityScore,
+      skillScores,
+      evidenceLinks,
+      knowledgeArtifacts: buildKnowledgeArtifacts({
+        whatWentWell: selfAssessment?.what_went_well ?? null,
+        whatWouldDoDifferent: selfAssessment?.what_would_do_different ?? null,
+      }),
+    }
+  }
+
+  private buildWorkHistoryPayload(
+    assignment: AssignmentSnapshotRow,
+    analytics: AssignmentAnalytics
+  ): WorkHistoryPayload {
+    const dueDate = this.toDateTime(assignment.due_date)
+    const { wasOnTime, daysEarlyOrLate } = calculateWorkHistoryDeliveryTiming({
+      dueDate: dueDate?.toJSDate() ?? null,
+      completedAt: analytics.completedAt?.toJSDate() ?? null,
+    })
+
+    return {
+      task_id: assignment.task_id,
+      task_assignment_id: assignment.task_assignment_id,
+      organization_id: assignment.organization_id,
+      project_id: assignment.project_id,
+      task_title: assignment.task_title,
+      task_type: assignment.task_type,
+      business_domain: assignment.business_domain,
+      problem_category: assignment.problem_category,
+      role_in_task: assignment.role_in_task,
+      autonomy_level: assignment.autonomy_level,
+      collaboration_type: assignment.collaboration_type,
+      tech_stack: this.toStringArray(assignment.tech_stack),
+      domain_tags: this.toStringArray(assignment.domain_tags),
+      difficulty: assignment.difficulty,
+      estimated_hours:
+        this.toNumber(assignment.assignment_estimated_hours) ??
+        this.toNumber(assignment.estimated_time),
+      actual_hours:
+        this.toNumber(assignment.assignment_actual_hours) ?? this.toNumber(assignment.actual_time),
+      was_on_time: wasOnTime,
+      days_early_or_late: daysEarlyOrLate,
+      measurable_outcomes: this.toObjectArray(assignment.measurable_outcomes),
+      estimated_business_value: assignment.impact_scope,
+      knowledge_artifacts: analytics.knowledgeArtifacts,
+      overall_quality_score: analytics.overallQualityScore,
+      skill_scores: analytics.skillScores,
+      evidence_links: analytics.evidenceLinks,
+      completed_at: analytics.completedAt,
+      is_featured: false,
+      is_public: false,
+    }
+  }
+
+  private async upsertWorkHistoryRow(
+    userId: DatabaseId,
+    payload: WorkHistoryPayload,
+    trx: TransactionClientContract
+  ): Promise<'inserted' | 'updated'> {
+    const existing = await UserWorkHistoryRepository.findByUserAndAssignment(
+      userId,
+      payload.task_assignment_id,
+      trx
+    )
+
+    if (existing) {
+      existing.merge(payload)
+      await UserWorkHistoryRepository.save(existing, trx)
+      return 'updated'
+    }
+
+    await UserWorkHistoryRepository.create(
+      {
+        user_id: userId,
+        ...payload,
+      },
+      trx
+    )
+    return 'inserted'
+  }
+
+  private async materializeWorkHistory(
+    userId: DatabaseId,
+    assignmentRows: AssignmentSnapshotRow[],
+    trx: TransactionClientContract
+  ): Promise<MaterializedWorkHistoryBatch> {
+    let inserted = 0
+    let updated = 0
+
+    for (const assignment of assignmentRows) {
+      const analytics = await this.loadAssignmentAnalytics(userId, assignment, trx)
+      const payload = this.buildWorkHistoryPayload(assignment, analytics)
+      const outcome = await this.upsertWorkHistoryRow(userId, payload, trx)
+
+      if (outcome === 'inserted') {
+        inserted += 1
+      } else {
+        updated += 1
       }
+    }
 
-      let inserted = 0
-      let updated = 0
+    return { inserted, updated }
+  }
 
-      for (const assignment of assignmentRows) {
-        const dueDate = this.toDateTime(assignment.due_date)
-        const completedAt = this.toDateTime(assignment.completed_at)
-        const { wasOnTime, daysEarlyOrLate } = calculateWorkHistoryDeliveryTiming({
-          dueDate: dueDate?.toJSDate() ?? null,
-          completedAt: completedAt?.toJSDate() ?? null,
-        })
-
-        const reviewSessions =
-          (await UserAnalyticsRepository.listCompletedReviewSessionsForAssignment(
-            assignment.task_assignment_id,
-            dto.userId,
-            trx
-          )) as Array<{
-            id: string
-            overall_quality_score: number | null
-          }>
-
-        const sessionIds = reviewSessions.map((session) => session.id)
-        const qualityValues = reviewSessions
-          .map((session) => session.overall_quality_score)
-          .filter((value): value is number => typeof value === 'number')
-
-        const overallQualityScore = calculateAverageScore(qualityValues)
-
-        const skillScores =
-          sessionIds.length > 0
-            ? (
-                (await UserAnalyticsRepository.listSkillReviewSummariesBySessionIds(
-                  sessionIds,
-                  trx
-                )) as Array<{
-                  skill_id: string
-                  skill_name: string | null
-                  assigned_level_code: string
-                  reviewer_type: string
-                  comment: string | null
-                }>
-              ).map((item) => ({
-                skill_id: item.skill_id,
-                skill_name: item.skill_name,
-                assigned_level_code: item.assigned_level_code,
-                reviewer_type: item.reviewer_type,
-                comment: item.comment,
-              }))
-            : []
-
-        const evidenceLinks =
-          sessionIds.length > 0
-            ? (
-                (await UserAnalyticsRepository.listReviewEvidenceSummariesBySessionIds(
-                  sessionIds,
-                  trx
-                )) as Array<{
-                  id: string
-                  evidence_type: string
-                  url: string | null
-                  title: string | null
-                }>
-              ).map((item) => ({
-                evidence_id: item.id,
-                evidence_type: item.evidence_type,
-                url: item.url,
-                title: item.title,
-              }))
-            : []
-
-        const selfAssessment = (await UserAnalyticsRepository.findSelfAssessmentNarrative(
-          assignment.task_assignment_id,
-          dto.userId,
-          trx
-        )) as
-          | {
-              what_went_well: string | null
-              what_would_do_different: string | null
-            }
-          | undefined
-
-        const knowledgeArtifacts = buildKnowledgeArtifacts({
-          whatWentWell: selfAssessment?.what_went_well ?? null,
-          whatWouldDoDifferent: selfAssessment?.what_would_do_different ?? null,
-        })
-
-        const payload = {
-          task_id: assignment.task_id,
-          task_assignment_id: assignment.task_assignment_id,
-          organization_id: assignment.organization_id,
-          project_id: assignment.project_id,
-          task_title: assignment.task_title,
-          task_type: assignment.task_type,
-          business_domain: assignment.business_domain,
-          problem_category: assignment.problem_category,
-          role_in_task: assignment.role_in_task,
-          autonomy_level: assignment.autonomy_level,
-          collaboration_type: assignment.collaboration_type,
-          tech_stack: this.toStringArray(assignment.tech_stack),
-          domain_tags: this.toStringArray(assignment.domain_tags),
-          difficulty: assignment.difficulty,
-          estimated_hours:
-            this.toNumber(assignment.assignment_estimated_hours) ??
-            this.toNumber(assignment.estimated_time),
-          actual_hours:
-            this.toNumber(assignment.assignment_actual_hours) ??
-            this.toNumber(assignment.actual_time),
-          was_on_time: wasOnTime,
-          days_early_or_late: daysEarlyOrLate,
-          measurable_outcomes: this.toObjectArray(assignment.measurable_outcomes),
-          estimated_business_value: assignment.impact_scope,
-          knowledge_artifacts: knowledgeArtifacts,
-          overall_quality_score: overallQualityScore,
-          skill_scores: skillScores,
-          evidence_links: evidenceLinks,
-          completed_at: completedAt,
-          is_featured: false,
-          is_public: false,
-        }
-
-        const existing = await UserWorkHistoryRepository.findByUserAndAssignment(
-          dto.userId,
-          assignment.task_assignment_id,
-          trx
-        )
-
-        if (existing) {
-          existing.merge(payload)
-          await UserWorkHistoryRepository.save(existing, trx)
-          updated += 1
-        } else {
-          await UserWorkHistoryRepository.create(
-            {
-              user_id: dto.userId,
-              ...payload,
-            },
-            trx
-          )
-          inserted += 1
-        }
-      }
-
-      await this.logAudit('build_user_work_history', 'user_work_history', dto.userId, null, {
-        full_rebuild: dto.fullRebuild ?? false,
-        total_completed_assignments: assignmentRows.length,
-        inserted,
-        updated,
-      })
-
-      return {
-        userId: dto.userId,
-        totalCompletedAssignments: assignmentRows.length,
-        inserted,
-        updated,
-      }
+  private async auditBuildSummary(
+    userId: DatabaseId,
+    fullRebuild: boolean,
+    totalCompletedAssignments: number,
+    inserted: number,
+    updated: number
+  ): Promise<void> {
+    await this.logAudit('build_user_work_history', 'user_work_history', userId, null, {
+      full_rebuild: fullRebuild,
+      total_completed_assignments: totalCompletedAssignments,
+      inserted,
+      updated,
     })
   }
 }

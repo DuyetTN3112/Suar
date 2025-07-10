@@ -8,16 +8,17 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import { type UserEntity } from '#domain/users/entities/user_entity'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
-import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
+import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 import {
   UserDetailResponseDTO,
   UserListItemResponseDTO,
   UserProfileResponseDTO,
   UserSummaryResponseDTO,
 } from '../dtos/response/user_response_dtos.js'
+
+import { type UserEntity } from '#domain/users/entities/user_entity'
 
 export class UserApplicationMapper {
   private readonly __instanceMarker = true
@@ -83,69 +84,27 @@ export class UserApplicationMapper {
    * Domain Entity → UserDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: UserEntity): UserDetailResponseDTO {
-    return new UserDetailResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.status,
-      entity.systemRole,
-      entity.currentOrganizationId,
-      entity.authMethod,
-      entity.avatarUrl,
-      entity.bio,
-      entity.phone,
-      entity.address,
-      entity.timezone,
-      entity.language,
-      entity.isFreelancer,
-      entity.freelancerRating,
-      entity.freelancerCompletedTasksCount,
-      entity.profileSettings,
-      entity.trustData,
-      entity.credibilityData,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return UserDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → UserListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: UserEntity): UserListItemResponseDTO {
-    return new UserListItemResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.status,
-      entity.systemRole,
-      entity.avatarUrl,
-      entity.isFreelancer,
-      entity.createdAt
-    )
+    return UserListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → UserProfileResponseDTO (public profile view)
    */
   static toProfileResponse(entity: UserEntity): UserProfileResponseDTO {
-    return new UserProfileResponseDTO(
-      entity.id,
-      entity.username,
-      entity.email,
-      entity.avatarUrl,
-      entity.bio,
-      entity.timezone,
-      entity.language,
-      entity.isFreelancer,
-      entity.freelancerRating,
-      entity.profileSettings
-    )
+    return UserProfileResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → UserSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: UserEntity): UserSummaryResponseDTO {
-    return new UserSummaryResponseDTO(entity.id, entity.username, entity.email, entity.avatarUrl)
+    return UserSummaryResponseDTO.fromEntity(entity)
   }
 }
