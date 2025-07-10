@@ -168,15 +168,7 @@ export default class Task extends BaseModel {
   @column()
   declare sort_order: number
 
-  @belongsTo(() => TaskLabel, {
-    foreignKey: 'label_id',
-  })
-  declare label: BelongsTo<typeof TaskLabel>
-
-  @belongsTo(() => TaskPriority, {
-    foreignKey: 'priority_id',
-  })
-  declare priority: BelongsTo<typeof TaskPriority>
+  // ===== Relationships =====
 
   @belongsTo(() => User, {
     foreignKey: 'assigned_to',
@@ -213,11 +205,11 @@ export default class Task extends BaseModel {
   })
   declare childTasks: HasMany<typeof Task>
 
-  @hasMany(() => TaskVersion)
+  @hasMany(() => TaskVersion, {
+    foreignKey: 'task_id',
+    localKey: 'id',
+  })
   declare versions: HasMany<typeof TaskVersion>
-
-  @belongsTo(() => TaskDifficultyLevel, { foreignKey: 'difficulty_level_id' })
-  declare difficulty_level: BelongsTo<typeof TaskDifficultyLevel>
 
   @hasMany(() => TaskApplication, { foreignKey: 'task_id' })
   declare applications: HasMany<typeof TaskApplication>
@@ -228,17 +220,6 @@ export default class Task extends BaseModel {
   @hasMany(() => TaskRequiredSkill, { foreignKey: 'task_id' })
   declare required_skills_rel: HasMany<typeof TaskRequiredSkill>
 
-  /**
-   * Tùy chỉnh cách serialization của các trường DateTime
-   */
-  override serialize() {
-    return {
-      ...this.serializeAttributes(),
-      ...this.serializeRelations(),
-      created_at: this.created_at.toISO(),
-      updated_at: this.updated_at.toISO(),
-      due_date: this.due_date ? this.due_date.toISO() : null,
-      deleted_at: this.deleted_at ? this.deleted_at.toISO() : null,
-    }
-  }
+  @belongsTo(() => TaskStatusModel, { foreignKey: 'task_status_id' })
+  declare taskStatus: BelongsTo<typeof TaskStatusModel>
 }

@@ -1,20 +1,26 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany, hasOne, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
-import SystemRole from './system_role.js'
-import UserStatus from './user_status.js'
+import { SystemRoleName } from '#constants'
 import Organization from './organization.js'
 import Task from './task.js'
 import Project from './project.js'
-import Conversation from './conversation.js'
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
 import UserOAuthProvider from './user_oauth_provider.js'
-import UserDetail from './user_detail.js'
 import UserSkill from './user_skill.js'
-import UserSpiderChartData from './user_spider_chart_data.js'
+
+function parseJsonColumn<T>(value: string | T | null): T | null {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const parsed: unknown = JSON.parse(value)
+  return parsed as T
+}
 
 export default class User extends BaseModel {
   static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
@@ -22,19 +28,86 @@ export default class User extends BaseModel {
   static override table = 'users'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
   declare username: string
 
   @column()
-  declare email: string
+  declare email: string | null
 
   @column()
-  declare status_id: number
+  declare status: string
+
+  /**
+   * v3.0: Inline system_role VARCHAR — replaces system_role_id UUID → system_roles table
+   * CHECK: 'superadmin', 'system_admin', 'registered_user'
+   */
+  @column()
+  declare system_role: string
 
   @column()
-  declare system_role_id: number | null
+  declare current_organization_id: string | null
+
+  @column()
+  declare auth_method: 'google' | 'github'
+
+  // ===== Merged from user_details (v2.0) =====
+  @column()
+  declare avatar_url: string | null
+
+  @column()
+  declare bio: string | null
+
+  @column()
+  declare phone: string | null
+
+  @column()
+  declare address: string | null
+
+  @column()
+  declare timezone: string
+
+  @column()
+  declare language: string
+
+  @column()
+  declare is_freelancer: boolean
+
+  @column()
+  declare freelancer_rating: number | null
+
+  @column()
+  declare freelancer_completed_tasks_count: number
+
+  // ===== JSONB columns =====
+
+  /**
+   * v3.0: Merged from public_profile_settings
+   */
+  @column({
+    prepare: (value: UserProfileSettings | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserProfileSettings | null) => parseJsonColumn(value),
+  })
+  declare profile_settings: UserProfileSettings | null
+
+  /**
+   * v3.0: trust_data — current_tier_code string (not UUID)
+   */
+  @column({
+    prepare: (value: UserTrustData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserTrustData | null) => parseJsonColumn(value),
+  })
+  declare trust_data: UserTrustData | null
+
+  /**
+   * v3.0: Merged from reviewer_credibility
+   */
+  @column({
+    prepare: (value: UserCredibilityData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserCredibilityData | null) => parseJsonColumn(value),
+  })
+  declare credibility_data: UserCredibilityData | null
 
   @column.dateTime()
   declare deleted_at: DateTime | null
@@ -45,21 +118,7 @@ export default class User extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updated_at: DateTime
 
-  @column()
-  declare current_organization_id: number | null
-
-  @column()
-  declare auth_method: 'email' | 'google' | 'github'
-
-  @belongsTo(() => SystemRole, {
-    foreignKey: 'system_role_id',
-  })
-  declare system_role: BelongsTo<typeof SystemRole>
-
-  @belongsTo(() => UserStatus, {
-    foreignKey: 'status_id',
-  })
-  declare status: BelongsTo<typeof UserStatus>
+  // ===== Relationships =====
 
   @belongsTo(() => Organization, {
     foreignKey: 'current_organization_id',
@@ -93,7 +152,7 @@ export default class User extends BaseModel {
 
   @manyToMany(() => Project, {
     pivotTable: 'project_members',
-    pivotColumns: ['project_role_id'],
+    pivotColumns: ['project_role'],
     pivotTimestamps: {
       createdAt: 'created_at',
       updatedAt: false,
@@ -107,30 +166,28 @@ export default class User extends BaseModel {
   @hasMany(() => AuditLog)
   declare audit_logs: HasMany<typeof AuditLog>
 
-  @manyToMany(() => Conversation, {
-    pivotTable: 'conversation_participants',
-  })
-  declare conversations: ManyToMany<typeof Conversation>
-
   @hasMany(() => UserOAuthProvider, {
     foreignKey: 'user_id',
   })
   declare oauth_providers: HasMany<typeof UserOAuthProvider>
 
   /**
-   * Kiểm tra xem user có quyền admin hay không
+   * v3.0: Check isAdmin directly from inline system_role column
+   * No more preloading system_role relationship
    */
   get isAdmin() {
-    const role = this.$preloaded.system_role as typeof this.system_role | undefined
-    return role !== undefined && ['superadmin', 'system_admin'].includes(role.name)
+    return [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN].includes(
+      this.system_role as SystemRoleName
+    )
   }
 
   @manyToMany(() => Organization, {
     pivotTable: 'organization_users',
-    pivotColumns: ['role_id', 'status', 'invited_by'],
+    pivotColumns: ['org_role', 'status', 'invited_by'],
     pivotTimestamps: true,
   })
   declare organizations: ManyToMany<typeof Organization>
+
   /**
    * Mối quan hệ trực tiếp đến bảng pivot organization_users
    */
@@ -139,19 +196,8 @@ export default class User extends BaseModel {
   })
   declare organization_users: HasMany<typeof OrganizationUser>
 
-  // ===== Profile Relationships =====
-  @hasOne(() => UserDetail, {
-    foreignKey: 'user_id',
-  })
-  declare detail: HasOne<typeof UserDetail>
-
   @hasMany(() => UserSkill, {
     foreignKey: 'user_id',
   })
   declare skills: HasMany<typeof UserSkill>
-
-  @hasMany(() => UserSpiderChartData, {
-    foreignKey: 'user_id',
-  })
-  declare spider_chart_data: HasMany<typeof UserSpiderChartData>
 }
