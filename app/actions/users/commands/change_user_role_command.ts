@@ -19,31 +19,51 @@ import { canChangeUserRole } from '#domain/users/user_management_rules'
  */
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
+    // Verify permissions via pure rule
+    const isSuperadmin = await UserRepository.isSuperadmin(dto.changerId)
+    enforcePolicy(
+      canChangeUserRole({
+        actorId: dto.changerId,
+        targetUserId: dto.targetUserId,
+        isActorSuperadmin: isSuperadmin,
+        newRole: dto.newRoleId,
+      })
+    )
+
+    // Verify target user exists and not deleted
+    const targetUser = await UserRepository.findNotDeletedOrFail(dto.targetUserId)
+
+    // Get old role for audit log
+    const oldRole = targetUser.system_role
+
+    // v3: Update inline system_role string
+    targetUser.system_role = dto.newRoleId
+    await UserRepository.save(targetUser)
 
     // Log the action
-    await this.logAudit('change_user_role', 'user', dto.targetUserId, null, {
-      new_role_id: dto.newRoleId,
-    })
-  }
+    await this.logAudit(
+      'change_user_role',
+      'user',
+      dto.targetUserId,
+      { system_role: oldRole },
+      { system_role: dto.newRoleId }
+    )
 
-  /**
-   * Call stored procedure to change user role
-   * Stored procedure handles all permission checks
-   */
-  private async changeRoleViaStoredProcedure(dto: ChangeUserRoleDTO): Promise<void> {
-    try {
-      await db.rawQuery('CALL change_user_role_with_permission(?, ?, ?)', [
-        dto.changerId,
-        dto.targetUserId,
-        dto.newRoleId,
-      ])
-    } catch (error) {
-      // Stored procedure throws error if no permission
-      throw new Error(
-        error instanceof Error
-          ? error.message
-          : 'Chỉ superadmin mới có thể thay đổi vai trò người dùng'
-      )
-    }
+    // Emit audit event
+    void emitter.emit('audit:log', {
+      userId: dto.changerId,
+      action: 'change_user_role',
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      oldValues: { system_role: oldRole },
+      newValues: { system_role: dto.newRoleId },
+    })
+
+    // Invalidate permission cache
+    void emitter.emit('cache:invalidate', {
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      patterns: [`*user:${dto.targetUserId}:*`],
+    })
   }
 }

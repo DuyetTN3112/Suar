@@ -1,20 +1,27 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
-import User from '#models/user'
+import type User from '#models/user'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
+import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
 
 /**
  * GetUserProfileDTO
  */
 export class GetUserProfileDTO {
-  declare user_id: number
+  declare user_id: DatabaseId
   declare include_skills: boolean
   declare include_spider_chart: boolean
 
-  constructor(userId: number, includeSkills = true, includeSpiderChart = true) {
+  constructor(userId: DatabaseId, includeSkills = true, includeSpiderChart = true) {
     this.user_id = userId
     this.include_skills = includeSkills
     this.include_spider_chart = includeSpiderChart
   }
+}
+
+export interface UserProfileResult {
+  user: User
+  completeness: number
 }
 
 /**
@@ -25,18 +32,12 @@ export class GetUserProfileDTO {
  * - User details (avatar, bio, freelancer info)
  * - Skills with proficiency levels
  * - Spider chart data for soft skills
+ * - Profile completeness percentage
  *
  * Uses caching for performance (5 min TTL)
  */
-export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, User> {
-  constructor(protected override ctx: HttpContext) {
-    super(ctx)
-  }
-
-  /**
-   * Execute the query to get user profile
-   */
-  async handle(dto: GetUserProfileDTO): Promise<User> {
+export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, UserProfileResult> {
+  async handle(dto: GetUserProfileDTO): Promise<UserProfileResult> {
     const cacheKey = this.generateCacheKey('users:profile', {
       userId: dto.user_id,
       includeSkills: dto.include_skills,
@@ -44,31 +45,10 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const query = User.query()
-        .where('id', dto.user_id)
-        .whereNull('deleted_at')
-        .preload('system_role')
-        .preload('status')
-        .preload('detail')
-        .preload('current_organization')
-
-      if (dto.include_skills) {
-        void query.preload('skills', (skillsQuery) => {
-          void skillsQuery.preload('skill', (sq) => void sq.preload('category'))
-          void skillsQuery.preload('proficiency_level')
-        })
-      }
-
-      if (dto.include_spider_chart) {
-        void query.preload('spider_chart_data', (chartQuery) => {
-          void chartQuery.preload('skill', (sq) => void sq.preload('category'))
-          void chartQuery.preload('avg_level')
-        })
-      }
-
-      const user = await query.firstOrFail()
-
-      return user
+      const user = await UserRepository.findProfileWithRelations(dto.user_id, {
+        includeSkills: dto.include_skills,
+      })
+      return { user, completeness: calculateProfileCompleteness(user.serialize()) }
     })
   }
 }
