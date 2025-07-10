@@ -4,34 +4,34 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import ReviewSession from './review_session.js'
 import User from './user.js'
 import Skill from './skill.js'
-import ProficiencyLevel from './proficiency_level.js'
 
 /**
- * SkillReview Model
+ * SkillReview Model (v3)
  *
  * Individual skill rating within a review session.
- * A reviewer rates each skill separately.
+ * assigned_level_code: inline proficiency level string (replaces assigned_level_id FK)
  */
 export default class SkillReview extends BaseModel {
   static override table = 'skill_reviews'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare review_session_id: number
+  declare review_session_id: string
 
   @column()
-  declare reviewer_id: number
+  declare reviewer_id: string
 
   @column()
   declare reviewer_type: 'manager' | 'peer'
 
   @column()
-  declare skill_id: number
+  declare skill_id: string
 
+  // v3: inline level code replaces assigned_level_id FK
   @column()
-  declare assigned_level_id: number
+  declare assigned_level_code: string
 
   @column()
   declare comment: string | null
@@ -51,7 +51,4 @@ export default class SkillReview extends BaseModel {
 
   @belongsTo(() => Skill, { foreignKey: 'skill_id' })
   declare skill: BelongsTo<typeof Skill>
-
-  @belongsTo(() => ProficiencyLevel, { foreignKey: 'assigned_level_id' })
-  declare assigned_level: BelongsTo<typeof ProficiencyLevel>
 }

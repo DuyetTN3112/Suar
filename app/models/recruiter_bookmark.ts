@@ -12,13 +12,13 @@ export default class RecruiterBookmark extends BaseModel {
   static override table = 'recruiter_bookmarks'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare recruiter_user_id: number
+  declare recruiter_user_id: string
 
   @column()
-  declare talent_user_id: number
+  declare talent_user_id: string
 
   @column()
   declare notes: string | null

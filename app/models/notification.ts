@@ -7,10 +7,10 @@ export default class Notification extends BaseModel {
   static override table = 'notifications'
 
   @column({ isPrimary: true })
-  declare id: number
+  declare id: string
 
   @column()
-  declare user_id: number
+  declare user_id: string
 
   @column()
   declare title: string
