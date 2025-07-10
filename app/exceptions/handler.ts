@@ -225,8 +225,90 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
   override async report(error: unknown, ctx: HttpContext): Promise<void> {
     if (!app.inProduction && error instanceof Error) {
+      const youch = new Youch()
+      const output = await youch.toANSI(error)
+      console.log(output)
+    }
+
+    // Structured logging cho production
+    if (error instanceof Error) {
+      const statusCode = isHttpError(error) ? error.status : 500
+      const errorCode = isHttpError(error) ? (error as HttpError).code : undefined
+
+      // Không log 4xx errors (client errors) ở mức error, chỉ log 5xx
+      if (statusCode >= 500) {
+        loggerService.error(`[HttpException] ${error.message}`, {
+          code: errorCode,
+          status: statusCode,
+          url: ctx.request.url(),
+          method: ctx.request.method(),
+          userId: ctx.auth.user?.id ?? 'anonymous',
+          stack: error.stack,
+        })
+      } else {
+        loggerService.warn(`[HttpException] ${error.message}`, {
+          code: errorCode,
+          status: statusCode,
+          url: ctx.request.url(),
+          method: ctx.request.method(),
+        })
+      }
     }
 
     await super.report(error, ctx)
+  }
+
+  // ================================================================
+  // Private Helpers
+  // ================================================================
+
+  /**
+   * Map HTTP status code sang ErrorCode string
+   */
+  private getErrorCodeFromStatus(status: number): string {
+    switch (status) {
+      case HttpStatus.BAD_REQUEST:
+        return ErrorCode.BUSINESS_LOGIC
+      case HttpStatus.UNAUTHORIZED:
+        return ErrorCode.UNAUTHORIZED
+      case HttpStatus.FORBIDDEN:
+        return ErrorCode.FORBIDDEN
+      case HttpStatus.NOT_FOUND:
+        return ErrorCode.NOT_FOUND
+      case HttpStatus.CONFLICT:
+        return ErrorCode.CONFLICT
+      case HttpStatus.UNPROCESSABLE_ENTITY:
+        return ErrorCode.VALIDATION
+      case HttpStatus.RATE_LIMIT:
+        return ErrorCode.RATE_LIMIT
+      default:
+        return ErrorCode.INTERNAL
+    }
+  }
+
+  /**
+   * Flatten VineJS validation errors thành Record<string, string>
+   */
+  private flattenValidationErrors(messages: unknown): Record<string, string> {
+    const errors: Record<string, string> = {}
+
+    if (Array.isArray(messages)) {
+      for (const msg of messages) {
+        if (msg && typeof msg === 'object' && 'field' in msg && 'message' in msg) {
+          const msgRecord = msg as Record<string, unknown>
+          errors[String(msgRecord.field)] = String(msgRecord.message)
+        }
+      }
+    } else if (messages && typeof messages === 'object') {
+      for (const [key, value] of Object.entries(messages as Record<string, unknown>)) {
+        if (typeof value === 'string') {
+          errors[key] = value
+        } else if (Array.isArray(value) && value.length > 0) {
+          errors[key] = String(value[0])
+        }
+      }
+    }
+
+    return errors
   }
 }
