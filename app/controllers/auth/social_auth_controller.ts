@@ -1,6 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import {
+  logSocialAuthCallbackStart,
+  logSocialAuthConfigCheck,
+  logSocialAuthRedirect,
+} from '#actions/auth/support/social_auth_logging'
+import {
   buildSocialAuthCallbackLogContext,
   buildSocialAuthCallbackUrl,
   buildSocialAuthRedirectLogContext,
@@ -13,7 +18,6 @@ import {
 } from './mappers/response/social_auth_response_mapper.js'
 
 import ProcessSocialAuthCallbackCommand from '#actions/auth/commands/process_social_auth_callback_command'
-import * as AuthLogger from '#libs/auth_logger'
 import env from '#start/env'
 
 export default class SocialAuthController {
@@ -26,9 +30,9 @@ export default class SocialAuthController {
     const hasClientId = !!env.get(`${provider.toUpperCase()}_CLIENT_ID`)
     const hasClientSecret = !!env.get(`${provider.toUpperCase()}_CLIENT_SECRET`)
     const callbackUrl = buildSocialAuthCallbackUrl(provider)
-    AuthLogger.configCheck(provider, hasClientId, hasClientSecret, callbackUrl)
+    logSocialAuthConfigCheck(provider, hasClientId, hasClientSecret, callbackUrl)
 
-    AuthLogger.oauthRedirect(provider, buildSocialAuthRedirectLogContext(request))
+    logSocialAuthRedirect(provider, buildSocialAuthRedirectLogContext(request))
     const socialAuth = ally.use(provider)
     await socialAuth.redirect()
   }
@@ -39,7 +43,7 @@ export default class SocialAuthController {
   async callback({ params, ally, auth, response, request, session }: HttpContext) {
     const provider = buildSupportedSocialAuthProvider(params.provider as string)
 
-    AuthLogger.oauthCallbackStart(provider, buildSocialAuthCallbackLogContext(request))
+    logSocialAuthCallbackStart(provider, buildSocialAuthCallbackLogContext(request))
 
     const callbackResult = await new ProcessSocialAuthCallbackCommand().execute(
       provider,
