@@ -6,7 +6,7 @@ import SocialLoginPersistenceService, {
   type SupportedProvider,
 } from '#infra/auth/social_login_persistence_service'
 import SingleFlightService from '#infra/cache/single_flight_service'
-import * as AuthLogger from '#libs/auth_logger'
+import * as AuthLogger from '#infra/logger/auth_logger'
 import type User from '#models/user'
 
 interface SocialUserData {
