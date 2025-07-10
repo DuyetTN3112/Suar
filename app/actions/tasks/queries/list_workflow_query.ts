@@ -1,5 +1,5 @@
-import type TaskWorkflowTransition from '#models/task_workflow_transition'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
+import type TaskWorkflowTransition from '#models/task_workflow_transition'
 import type { DatabaseId } from '#types/database'
 
 /**

@@ -1,14 +1,17 @@
+import redis from '@adonisjs/redis/services/main'
+
 import { TaskLabel, TaskPriority } from '#constants'
-import UserRepository from '#infra/users/repositories/user_repository'
+
+import GetTaskProjectsQuery from './get_task_projects_query.js'
+
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import GetTaskProjectsQuery from './get_task_projects_query.js'
-import type { ExecutionContext } from '#types/execution_context'
-import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Query để lấy metadata cho task forms
@@ -32,22 +35,24 @@ export default class GetTaskMetadataQuery {
    * Execute query
    */
   async execute(organizationId?: DatabaseId): Promise<{
-    statuses: Array<{
+    statuses: {
+      id: string
       value: string
       label: string
       slug: string
       category: string
       color?: string
-    }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-    availableSkills: Array<{ id: DatabaseId; name: string }>
-    projects: Array<{ id: DatabaseId; name: string }>
+      is_system: boolean
+    }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: DatabaseId; username: string; email: string }[]
+    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+    availableSkills: { id: DatabaseId; name: string }[]
+    projects: { id: DatabaseId; name: string }[]
   }> {
     // Get organization_id
-    const orgId = (organizationId || this.execCtx.organizationId) as DatabaseId | undefined
+    const orgId = (organizationId ?? this.execCtx.organizationId) as DatabaseId | undefined
 
     if (!orgId) {
       throw new BusinessLogicException('Organization ID là bắt buộc')
@@ -91,32 +96,40 @@ export default class GetTaskMetadataQuery {
   /**
    * Load all task statuses — v3: static enum values
    */
-  private async loadStatuses(
-    organizationId: DatabaseId
-  ): Promise<
-    Array<{ value: string; label: string; slug: string; category: string; color?: string }>
+  private async loadStatuses(organizationId: DatabaseId): Promise<
+    {
+      id: string
+      value: string
+      label: string
+      slug: string
+      category: string
+      color?: string
+      is_system: boolean
+    }[]
   > {
     const statuses = await TaskStatusRepository.findByOrganization(organizationId)
     return statuses.map((status) => ({
+      id: status.id,
       value: status.id,
       label: status.name,
       slug: status.slug,
       category: status.category,
       color: status.color,
+      is_system: status.is_system,
     }))
   }
 
   /**
    * Load all task labels — v3: static enum values
    */
-  private loadLabels(): Array<{ value: string; label: string }> {
+  private loadLabels(): { value: string; label: string }[] {
     return Object.values(TaskLabel).map((v) => ({ value: v, label: v }))
   }
 
   /**
    * Load all task priorities — v3: static enum values
    */
-  private loadPriorities(): Array<{ value: string; label: string }> {
+  private loadPriorities(): { value: string; label: string }[] {
     return Object.values(TaskPriority).map((v) => ({ value: v, label: v }))
   }
 
@@ -125,14 +138,8 @@ export default class GetTaskMetadataQuery {
    */
   private async loadUsers(
     organizationId: DatabaseId
-  ): Promise<Array<{ id: DatabaseId; username: string; email: string }>> {
-    const users = await UserRepository.findByOrganization(organizationId)
-
-    return users.map((user) => ({
-      id: user.id,
-      username: user.username,
-      email: user.email ?? '',
-    }))
+  ): Promise<{ id: DatabaseId; username: string; email: string }[]> {
+    return DefaultTaskDependencies.user.listUsersByOrganization(organizationId)
   }
 
   /**
@@ -140,7 +147,7 @@ export default class GetTaskMetadataQuery {
    */
   private async loadParentTasks(
     organizationId: DatabaseId
-  ): Promise<Array<{ id: DatabaseId; title: string; task_status_id: string | null }>> {
+  ): Promise<{ id: DatabaseId; title: string; task_status_id: string | null }[]> {
     const tasks = await TaskRepository.findRootTasksByOrganization(organizationId)
 
     return tasks.map((task) => ({
@@ -153,49 +160,49 @@ export default class GetTaskMetadataQuery {
   /**
    * Load active skills used for task required-skills selection.
    */
-  private async loadAvailableSkills(): Promise<Array<{ id: DatabaseId; name: string }>> {
-    const skills = await SkillRepository.activeSkills()
-    return skills.map((skill) => ({
-      id: skill.id,
-      name: skill.skill_name,
-    }))
+  private async loadAvailableSkills(): Promise<{ id: DatabaseId; name: string }[]> {
+    return DefaultTaskDependencies.skill.listActiveSkills()
   }
 
   /**
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    statuses: Array<{
+    statuses: {
+      id: string
       value: string
       label: string
       slug: string
       category: string
       color?: string
-    }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-    availableSkills: Array<{ id: DatabaseId; name: string }>
-    projects: Array<{ id: DatabaseId; name: string }>
+      is_system: boolean
+    }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: DatabaseId; username: string; email: string }[]
+    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+    availableSkills: { id: DatabaseId; name: string }[]
+    projects: { id: DatabaseId; name: string }[]
   } | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
         const parsed = JSON.parse(cached) as {
-          statuses: Array<{
+          statuses: {
+            id: string
             value: string
             label: string
             slug: string
             category: string
             color?: string
-          }>
-          labels: Array<{ value: string; label: string }>
-          priorities: Array<{ value: string; label: string }>
-          users: Array<{ id: DatabaseId; username: string; email: string }>
-          parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-          availableSkills: Array<{ id: DatabaseId; name: string }>
-          projects: Array<{ id: DatabaseId; name: string }>
+            is_system: boolean
+          }[]
+          labels: { value: string; label: string }[]
+          priorities: { value: string; label: string }[]
+          users: { id: DatabaseId; username: string; email: string }[]
+          parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+          availableSkills: { id: DatabaseId; name: string }[]
+          projects: { id: DatabaseId; name: string }[]
         }
         return parsed
       }

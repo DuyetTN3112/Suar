@@ -1,10 +1,19 @@
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
-import UserRepository from '#infra/users/repositories/user_repository'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
+
+import {
+  buildAuditUserMap,
+  formatAuditChanges,
+  listAuditLogsByEntity,
+} from '#actions/audit/read_audit_logs'
 import { PAGINATION } from '#constants/common_constants'
+import ValidationException from '#exceptions/validation_exception'
+import loggerService from '#infra/logger/logger_service'
+import type { DatabaseId } from '#types/database'
+
+export interface GetTaskAuditLogsInput {
+  taskId: DatabaseId
+  limit?: number
+}
 
 /**
  * Query để lấy audit logs của task
@@ -23,42 +32,31 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Execute query
    */
-  async execute(
-    taskId: DatabaseId,
-    limit: number = 20
-  ): Promise<
-    Array<{
+  async execute(input: GetTaskAuditLogsInput): Promise<
+    {
       id: DatabaseId
       action: string
       user: { id: DatabaseId; name: string; email: string } | null
       timestamp: Date
-      changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
-    }>
+      changes: { field: string; oldValue: unknown; newValue: unknown }[]
+    }[]
   > {
+    const limit = input.limit ?? 20
+
     // Validate limit
     if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
       throw new ValidationException('Limit phải từ 1 đến 100')
     }
 
     // Try cache first
-    const cacheKey = `task:audit:${taskId}:limit:${limit}`
+    const cacheKey = `task:audit:${input.taskId}:limit:${limit}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
     }
 
-    // Load audit logs via RepositoryFactory
-    const auditRepo = await RepositoryFactory.getAuditLogRepository()
-    const { data: logs } = await auditRepo.findMany({
-      entity_type: 'task',
-      entity_id: taskId,
-      limit,
-    })
-
-    // Load users from PostgreSQL
-    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
-    const userMap = new Map(users.map((u) => [u.id, u]))
+    const logs = await listAuditLogsByEntity('task', input.taskId, limit)
+    const userMap = await buildAuditUserMap(logs, ['id', 'username', 'email'])
 
     // Format logs
     const formattedLogs = logs.map((log) => {
@@ -69,12 +67,12 @@ export default class GetTaskAuditLogsQuery {
         user: user
           ? {
               id: user.id,
-              name: user.username || 'Unknown',
+              name: user.username ?? 'Unknown',
               email: user.email ?? '',
             }
           : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
+        changes: formatAuditChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
 
@@ -85,50 +83,27 @@ export default class GetTaskAuditLogsQuery {
   }
 
   /**
-   * Format changes from old/new values
-   */
-  private formatChanges(
-    oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>
-  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
-    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
-
-    // Compare all fields in newValues
-    for (const key in newValues) {
-      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
-        changes.push({
-          field: key,
-          oldValue: oldValues[key] ?? null,
-          newValue: newValues[key] ?? null,
-        })
-      }
-    }
-
-    return changes
-  }
-
-  /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<Array<{
+  private async getFromCache(key: string): Promise<{
     id: DatabaseId
     action: string
     user: { id: DatabaseId; name: string; email: string } | null
     timestamp: Date
-    changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
-  }> | null> {
+    changes: { field: string; oldValue: unknown; newValue: unknown }[]
+  }[] | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
         const parsed: unknown = JSON.parse(cached)
         if (Array.isArray(parsed)) {
-          return parsed as Array<{
+          return parsed as {
             id: DatabaseId
             action: string
             user: { id: DatabaseId; name: string; email: string } | null
             timestamp: Date
-            changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
-          }>
+            changes: { field: string; oldValue: unknown; newValue: unknown }[]
+          }[]
         }
       }
     } catch (error) {

@@ -1,13 +1,15 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import type Task from '#models/task'
-import GetTasksListQuery from './get_tasks_list_query.js'
-import GetTaskMetadataQuery from './get_task_metadata_query.js'
 import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import type { TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+
+import GetTaskMetadataQuery from './get_task_metadata_query.js'
+import GetTasksListQuery from './get_tasks_list_query.js'
+
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface TasksPageResult {
   tasksResult: {
-    data: Task[]
+    data: TaskListQueryRecord[]
     meta: {
       total: number
       per_page: number
@@ -23,18 +25,20 @@ export interface TasksPageResult {
     }
   }
   metadata: {
-    statuses: Array<{
+    statuses: {
+      id: string
       value: string
       label: string
       slug: string
       category: string
       color?: string
-    }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-    projects: Array<{ id: DatabaseId; name: string }>
+      is_system: boolean
+    }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: DatabaseId; username: string; email: string }[]
+    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+    projects: { id: DatabaseId; name: string }[]
   }
 }
 

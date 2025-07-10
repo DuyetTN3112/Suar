@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
 import { TaskStatusCategory } from '#constants/task_constants'
-import ValidationException from '#exceptions/validation_exception'
 import { isValidSlug, isValidCategory } from '#domain/tasks/task_status_rules'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for creating a new task status within an organization.
@@ -56,10 +56,34 @@ export class CreateTaskStatusDTO {
     this.name = data.name.trim()
     this.slug = data.slug
     this.category = data.category
-    this.color = data.color || '#6B7280'
+    this.color = data.color ?? '#6B7280'
     this.icon = data.icon?.trim()
     this.description = data.description?.trim()
     this.sort_order = data.sort_order ?? 0
+  }
+
+  static fromValidatedPayload(
+    payload: {
+      name: string
+      slug: string
+      category?: string
+      color?: string
+      icon?: string
+      description?: string
+      sort_order?: number
+    },
+    organizationId: DatabaseId
+  ): CreateTaskStatusDTO {
+    return new CreateTaskStatusDTO({
+      organization_id: organizationId,
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category ?? TaskStatusCategory.IN_PROGRESS,
+      color: payload.color,
+      icon: payload.icon,
+      description: payload.description,
+      sort_order: payload.sort_order,
+    })
   }
 }
 
@@ -96,7 +120,7 @@ export class UpdateTaskStatusDTO {
     if (!data.organization_id) {
       throw new ValidationException('organization_id là bắt buộc')
     }
-    if (data.name !== undefined && data.name.trim().length === 0) {
+    if (data.name?.trim().length === 0) {
       throw new ValidationException('Tên trạng thái không được để trống')
     }
     if (data.name !== undefined && data.name.length > 50) {
@@ -125,6 +149,36 @@ export class UpdateTaskStatusDTO {
     this.is_default = data.is_default
   }
 
+  static fromValidatedPayload(
+    payload: {
+      name?: string
+      slug?: string
+      category?: string
+      color?: string
+      icon?: string | null
+      description?: string | null
+      sort_order?: number
+      is_default?: boolean
+    },
+    identifiers: {
+      organization_id: DatabaseId
+      status_id: DatabaseId
+    }
+  ): UpdateTaskStatusDTO {
+    return new UpdateTaskStatusDTO({
+      status_id: identifiers.status_id,
+      organization_id: identifiers.organization_id,
+      name: payload.name,
+      slug: payload.slug,
+      category: payload.category,
+      color: payload.color,
+      icon: payload.icon,
+      description: payload.description,
+      sort_order: payload.sort_order,
+      is_default: payload.is_default,
+    })
+  }
+
   /** Whether the category field is being changed */
   get isChangingCategory(): boolean {
     return this.category !== undefined
@@ -149,6 +203,13 @@ export class DeleteTaskStatusDTO {
     this.status_id = data.status_id
     this.organization_id = data.organization_id
   }
+
+  static fromIdentifiers(identifiers: {
+    status_id: DatabaseId
+    organization_id: DatabaseId
+  }): DeleteTaskStatusDTO {
+    return new DeleteTaskStatusDTO(identifiers)
+  }
 }
 
 /**
@@ -156,19 +217,19 @@ export class DeleteTaskStatusDTO {
  */
 export class UpdateWorkflowDTO {
   public readonly organization_id: DatabaseId
-  public readonly transitions: Array<{
+  public readonly transitions: {
     from_status_id: DatabaseId
     to_status_id: DatabaseId
     conditions: Record<string, unknown>
-  }>
+  }[]
 
   constructor(data: {
     organization_id: DatabaseId
-    transitions: Array<{
+    transitions: {
       from_status_id: DatabaseId
       to_status_id: DatabaseId
       conditions?: Record<string, unknown>
-    }>
+    }[]
   }) {
     if (!data.organization_id) {
       throw new ValidationException('organization_id là bắt buộc')
@@ -191,5 +252,19 @@ export class UpdateWorkflowDTO {
       to_status_id: t.to_status_id,
       conditions: t.conditions ?? {},
     }))
+  }
+
+  static fromTransitions(
+    transitions: {
+      from_status_id: DatabaseId
+      to_status_id: DatabaseId
+      conditions?: Record<string, unknown>
+    }[],
+    organizationId: DatabaseId
+  ): UpdateWorkflowDTO {
+    return new UpdateWorkflowDTO({
+      organization_id: organizationId,
+      transitions,
+    })
   }
 }

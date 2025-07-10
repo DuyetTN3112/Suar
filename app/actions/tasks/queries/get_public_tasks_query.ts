@@ -1,7 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
+import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type Task from '#models/task'
-import type { GetPublicTasksDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 
 interface PublicTaskListResult {
   data: Task[]
