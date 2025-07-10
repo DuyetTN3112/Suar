@@ -1,10 +1,14 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Container settings */
   --container-center: true;
   --container-padding: 2rem;
   --container-2xl: 1400px;
+
+  /* Typography */
+  --font-heading: 'Space Grotesk', 'Avenir Next', 'Segoe UI', sans-serif;
+  --font-body: 'JetBrains Mono', 'SFMono-Regular', 'Cascadia Mono', Menlo, Monaco, monospace;
 
   /* Border radius */
   --radius-lg: var(--radius);
@@ -35,6 +39,33 @@
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
 
+  /* Neo-Brutalism accent colors */
+  --color-neo-mint: var(--neo-mint);
+  --color-neo-yellow: var(--neo-yellow);
+  --color-neo-purple: var(--neo-purple);
+  --color-neo-blue: var(--neo-blue);
+  --color-neo-orange: var(--neo-orange);
+  --color-neo-red: var(--neo-red);
+  --color-neo-green: var(--neo-green);
+  --color-neo-pink: var(--neo-pink);
+  --color-neo-lime: var(--neo-lime);
+  --color-neo-peach: var(--neo-peach);
+  --color-neo-cyan: var(--neo-cyan);
+  --color-neo-rose: var(--neo-rose);
+  --color-neo-indigo: var(--neo-indigo);
+  --color-neo-amber: var(--neo-amber);
+  --color-neo-emerald: var(--neo-emerald);
+  --color-neo-sky: var(--neo-sky);
+  --color-neo-fuchsia: var(--neo-fuchsia);
+  --color-neo-coral: var(--neo-coral);
+  --color-neo-lavender: var(--neo-lavender);
+  --color-neo-sunflower: var(--neo-sunflower);
+
+  /* Neo-Brutalism shadows */
+  --shadow-neo: var(--neo-shadow);
+  --shadow-neo-sm: var(--neo-shadow-sm);
+  --shadow-neo-lg: var(--neo-shadow-lg);
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -60,58 +91,94 @@
 
 @layer base {
   :root {
+    /* Neo-Brutalism Light Mode — clean white base + strong warm accent */
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 18 16% 8%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 18 16% 8%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --popover-foreground: 18 16% 8%;
+    --primary: 14 94% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 219 84% 58%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 97%;
+    --muted-foreground: 220 9% 36%;
+    --accent: 0 0% 98.4%;
+    --accent-foreground: 18 16% 8%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 18 16% 8%;
+    --input: 18 16% 8%;
+    --ring: 14 94% 55%;
+    --radius: 8px;
+
+    /* Neo-Brutalism tokens */
+    --neo-border-width: 2px;
+    --neo-shadow: 4px 4px 0px 0px hsl(18 16% 8%);
+    --neo-shadow-sm: 2px 2px 0px 0px hsl(18 16% 8%);
+    --neo-shadow-lg: 6px 6px 0px 0px hsl(18 16% 8%);
+    --neo-translate: 4px;
+    --neo-translate-sm: 2px;
+
+    /* Neo accent palette — orange-red primary, blue + plum as secondary accents */
+    --neo-mint: #2563eb;
+    --neo-yellow: #f45d2d;
+    --neo-purple: #c026d3;
+    --neo-blue: #2563eb;
+    --neo-orange: #f45d2d;
+    --neo-red: #e11d48;
+    --neo-green: #2563eb;
+    --neo-pink: #db2777;
+    --neo-lime: #c026d3;
+    --neo-peach: #fb923c;
+    --neo-cyan: #38bdf8;
+    --neo-rose: #e11d48;
+    --neo-indigo: #4f46e5;
+    --neo-amber: #f45d2d;
+    --neo-emerald: #2563eb;
+    --neo-sky: #38bdf8;
+    --neo-fuchsia: #c026d3;
+    --neo-coral: #f97316;
+    --neo-lavender: #e879f9;
+    --neo-sunflower: #f45d2d;
 
     /* Sidebar variables */
     --sidebar: 0 0% 100%;
-    --sidebar-foreground: 222.2 84% 4.9%;
-    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-foreground: 18 16% 8%;
+    --sidebar-border: 18 16% 8%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Neo-Brutalism Dark Mode — black base with the same warm accent */
+    --background: 18 14% 8%;
+    --foreground: 0 0% 97%;
+    --card: 18 14% 11%;
+    --card-foreground: 0 0% 97%;
+    --popover: 18 14% 11%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 14 94% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 219 84% 64%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 18 10% 17%;
+    --muted-foreground: 220 8% 70%;
+    --accent: 15 48% 18%;
+    --accent-foreground: 0 0% 97%;
+    --destructive: 0 84% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 14 94% 60%;
+
+    --neo-shadow: 4px 4px 0px 0px rgba(255, 255, 255, 0.12);
+    --neo-shadow-sm: 2px 2px 0px 0px rgba(255, 255, 255, 0.12);
+    --neo-shadow-lg: 6px 6px 0px 0px rgba(255, 255, 255, 0.12);
 
     /* Sidebar variables for dark mode */
-    --sidebar: 222.2 84% 4.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar: 18 14% 9%;
+    --sidebar-foreground: 0 0% 97%;
+    --sidebar-border: 0 0% 92%;
   }
 
   * {
@@ -120,6 +187,45 @@
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    line-height: 1.5;
+  }
+
+  button,
+  label,
+  summary,
+  [role='button'],
+  [data-slot='sidebar-group-label'],
+  [data-sidebar='menu-button'],
+  [data-sidebar='menu-sub-button'] {
+    font-family: var(--font-heading);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+  }
+
+  input,
+  textarea,
+  select,
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-body);
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
   }
 }
 
