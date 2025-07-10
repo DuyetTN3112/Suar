@@ -1,18 +1,20 @@
-import type Task from '#models/task'
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
+import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ConflictException from '#exceptions/conflict_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { ExecutionContext } from '#types/execution_context'
+import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
-import db from '@adonisjs/lucid/services/db'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#services/cache_service'
-import loggerService from '#services/logger_service'
-import emitter from '@adonisjs/core/services/emitter'
-import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc
@@ -41,14 +43,12 @@ export default class BatchUpdateTaskStatusCommand {
     enforcePolicy(
       validateBatchStatusUpdate({
         taskCount: taskIds.length,
-        newStatus: newTaskStatusId,
+        newStatusId: newTaskStatusId,
         maxBatchSize: 50,
       })
     )
 
     const trx = await db.transaction()
-    const failed: DatabaseId[] = []
-
     try {
       // Verify the target status exists and belongs to this org
       const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
@@ -66,16 +66,26 @@ export default class BatchUpdateTaskStatusCommand {
       // ── FETCH ──────────────────────────────────────────────────────────
       const tasks = await TaskRepository.findActiveByIdsInOrganization(taskIds, organizationId, trx)
 
+      // Atomic mode: if any requested task is missing from organization scope, fail the whole batch.
+      if (tasks.length !== taskIds.length) {
+        const foundIds = new Set(tasks.map((task) => task.id))
+        const missingIds = taskIds.filter((id) => !foundIds.has(id))
+        throw new ConflictException(
+          `Không thể cập nhật hàng loạt vì có task không hợp lệ hoặc ngoài phạm vi tổ chức: ${missingIds.join(', ')}`
+        )
+      }
+
       // ── DECIDE + PERSIST (per task) ────────────────────────────────────
       let updated = 0
-      const eventsToEmit: Array<{ task: Task; oldStatus: string }> = []
+      const eventsToEmit: { task: Task; oldStatus: string }[] = []
 
       for (const task of tasks) {
         const currentStatusId = task.task_status_id
 
         if (!currentStatusId) {
-          failed.push(task.id)
-          continue
+          throw new ConflictException(
+            `Không thể cập nhật task ${task.id} vì thiếu task_status_id hợp lệ`
+          )
         }
 
         // Load transitions for this task's current status
@@ -95,21 +105,23 @@ export default class BatchUpdateTaskStatusCommand {
           isAssigned: task.assigned_to !== null,
         })
 
-        if (result.allowed) {
-          const oldStatus = task.status
-          const oldTaskStatusId = task.task_status_id
-          task.task_status_id = newTaskStatusId
-          task.status = newStatus.category // backward compat: category only
-          task.updated_by = userId
-          await TaskRepository.save(task, trx)
-          updated++
+        if (!result.allowed) {
+          throw new ConflictException(
+            `Không thể chuyển trạng thái task ${task.id} theo workflow hiện tại`
+          )
+        }
 
-          // Queue event and emit after commit.
-          if (oldTaskStatusId !== newTaskStatusId) {
-            eventsToEmit.push({ task, oldStatus })
-          }
-        } else {
-          failed.push(task.id)
+        const oldStatus = task.status
+        const oldTaskStatusId = task.task_status_id
+        task.task_status_id = newTaskStatusId
+        task.status = newStatus.category // backward compat: category only
+        task.updated_by = userId
+        await TaskRepository.save(task, trx)
+        updated++
+
+        // Queue event and emit after commit.
+        if (oldTaskStatusId !== newTaskStatusId) {
+          eventsToEmit.push({ task, oldStatus })
         }
       }
 
@@ -129,10 +141,14 @@ export default class BatchUpdateTaskStatusCommand {
       // Invalidate caches
       await CacheService.invalidateEntityType('tasks')
 
-      return { updated, failed }
+      return { updated, failed: [] }
     } catch (error) {
       await trx.rollback()
-      loggerService.error('[BatchUpdateTaskStatusCommand] Error:', error)
+      if (error instanceof ConflictException) {
+        loggerService.warn('[BatchUpdateTaskStatusCommand] Conflict:', error.message)
+      } else {
+        loggerService.error('[BatchUpdateTaskStatusCommand] Error:', error)
+      }
       throw error
     }
   }

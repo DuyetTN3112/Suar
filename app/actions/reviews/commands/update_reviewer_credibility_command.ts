@@ -1,10 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import UserRepository from '#infra/users/repositories/user_repository'
+import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
-import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for updating reviewer credibility
@@ -38,15 +40,17 @@ export default class UpdateReviewerCredibilityCommand extends BaseCommand<
       const score = calculateCredibilityScore(totalReviews, confirmed, disputed)
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const user = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
-      user.credibility_data = {
-        credibility_score: score,
-        total_reviews_given: totalReviews,
-        accurate_reviews: confirmed,
-        disputed_reviews: disputed,
-        last_calculated_at: DateTime.now().toISO(),
-      }
-      await UserRepository.save(user, trx)
+      await DefaultReviewDependencies.user.updateCredibilityData(
+        dto.user_id,
+        {
+          credibility_score: score,
+          total_reviews_given: totalReviews,
+          accurate_reviews: confirmed,
+          disputed_reviews: disputed,
+          last_calculated_at: DateTime.now().toISO(),
+        },
+        trx
+      )
 
       return {
         credibility_score: score,

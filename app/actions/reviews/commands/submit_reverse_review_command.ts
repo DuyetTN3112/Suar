@@ -1,11 +1,11 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import ReverseReviewRepository from '#infra/reviews/repositories/reverse_review_repository'
 import type { SubmitReverseReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
+import { BaseCommand } from '#actions/shared/base_command'
 import { REVIEW_DEFAULTS } from '#constants/review_constants'
-import ConflictException from '#exceptions/conflict_exception'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#services/cache_service'
+import ConflictException from '#exceptions/conflict_exception'
+import CacheService from '#infra/cache/cache_service'
+import ReverseReviewRepository from '#infra/reviews/repositories/reverse_review_repository'
+import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 
 /**
  * SubmitReverseReviewCommand
@@ -18,7 +18,7 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
   import('#models/reverse_review').default
 > {
   async handle(dto: SubmitReverseReviewDTO): Promise<import('#models/reverse_review').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Validate rating range
@@ -81,10 +81,13 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
         is_anonymous: dto.is_anonymous,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
-
-      return reverseReview
+      return {
+        reverseReview,
+        cachePattern: `review:session:${dto.review_session_id}`,
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    return result.reverseReview
   }
 }

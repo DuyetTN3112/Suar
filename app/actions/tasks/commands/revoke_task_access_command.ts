@@ -1,19 +1,25 @@
-import type { ExecutionContext } from '#types/execution_context'
-import { BaseCommand } from '#actions/shared/base_command'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import type CreateNotification from '#actions/common/create_notification'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import { AssignmentStatus } from '#constants/task_constants'
-import CacheService from '#services/cache_service'
-import loggerService from '#services/logger_service'
 import emitter from '@adonisjs/core/services/emitter'
-import type { DatabaseId } from '#types/database'
-import NotFoundException from '#exceptions/not_found_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import type CreateNotification from '#actions/common/create_notification'
+import { BaseCommand } from '#actions/shared/base_command'
+import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
+import { AssignmentStatus } from '#constants/task_constants'
 import { canRevokeAssignment } from '#domain/tasks/task_assignment_rules'
 import { canRevokeTaskAccess } from '#domain/tasks/task_permission_policy'
-import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import type { TaskAccessRevokedEvent } from '#events/event_types'
+import NotFoundException from '#exceptions/not_found_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * DTO for revoking task access
@@ -22,6 +28,26 @@ export interface RevokeTaskAccessDTO {
   assignment_id: DatabaseId
   reason: string
 }
+
+interface RevokeNotificationPlan {
+  taskId: DatabaseId
+  assigneeId: DatabaseId
+  assigneeName: string
+  projectId: DatabaseId | null
+  revokerId: DatabaseId
+  reason: string
+}
+
+interface RevokeTaskAccessResult {
+  assignmentId: DatabaseId
+  taskId: DatabaseId
+  notificationPlan: RevokeNotificationPlan
+  event: TaskAccessRevokedEvent
+}
+
+type ActiveAssignmentRecord = NonNullable<
+  Awaited<ReturnType<typeof TaskAssignmentRepository.findActiveWithDetails>>
+>
 
 /**
  * Command: Revoke Task Access
@@ -44,24 +70,130 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
 
   async handle(dto: RevokeTaskAccessDTO): Promise<void> {
     const userId = this.getCurrentUserId()
+    const result = await this.executeInTransaction(async (trx: TransactionClientContract) => {
+      const assignmentRecord = await this.loadAssignmentRecord(dto.assignment_id, trx)
 
-    await this.executeInTransaction(async (trx: TransactionClientContract) => {
-      // 1. Get assignment details → delegate to Model
-      const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(
-        dto.assignment_id,
-        trx
-      )
+      await this.ensureAssignmentCanBeRevoked(assignmentRecord, dto.reason, userId, trx)
+      await this.cancelAssignment(dto.assignment_id, dto.reason, userId, trx)
+      await this.logRevokeAudit(dto.assignment_id, assignmentRecord, dto.reason)
 
-      if (!assignmentRecord) {
-        throw new NotFoundException('Assignment không tồn tại')
+      return this.buildRevokeResult(dto.assignment_id, assignmentRecord, dto.reason, userId)
+    })
+
+    await this.sendNotifications(result.notificationPlan)
+    await CacheService.deleteByPattern(`task:${result.taskId}:*`)
+    await CacheService.deleteByPattern(`task:user:*`)
+    void emitter.emit('task:access:revoked', result.event)
+  }
+
+  private async loadAssignmentRecord(
+    assignmentId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<ActiveAssignmentRecord> {
+    const assignmentRecord = await TaskAssignmentRepository.findActiveWithDetails(assignmentId, trx)
+
+    if (!assignmentRecord) {
+      throw new NotFoundException('Assignment không tồn tại')
+    }
+
+    return assignmentRecord
+  }
+
+  private async ensureAssignmentCanBeRevoked(
+    assignmentRecord: ActiveAssignmentRecord,
+    reason: string,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    enforcePolicy(
+      canRevokeAssignment({
+        assignmentStatus: assignmentRecord.assignment_status,
+        reason,
+      })
+    )
+
+    const permissionContext = await buildTaskPermissionContext(userId, assignmentRecord.task, trx)
+    enforcePolicy(canRevokeTaskAccess(permissionContext))
+  }
+
+  private async cancelAssignment(
+    assignmentId: DatabaseId,
+    reason: string,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await TaskAssignmentRepository.cancelAssignment(
+      assignmentId,
+      `REVOKED - Lý do: ${reason} | Revoked by user_id: ${userId} | Revoked at: ${new Date().toISOString()}`,
+      trx
+    )
+  }
+
+  private async logRevokeAudit(
+    assignmentId: DatabaseId,
+    assignmentRecord: ActiveAssignmentRecord,
+    reason: string
+  ): Promise<void> {
+    await this.logAudit(
+      AuditAction.REVOKE_ACCESS,
+      EntityType.TASK_ASSIGNMENT,
+      assignmentId,
+      {
+        status: AssignmentStatus.ACTIVE,
+        assignee_id: assignmentRecord.assignee_id,
+        assignment_type: assignmentRecord.assignment_type,
+      },
+      {
+        status: AssignmentStatus.CANCELLED,
+        reason,
+      }
+    )
+  }
+
+  private buildRevokeResult(
+    assignmentId: DatabaseId,
+    assignmentRecord: ActiveAssignmentRecord,
+    reason: string,
+    userId: DatabaseId
+  ): RevokeTaskAccessResult {
+    return {
+      assignmentId,
+      taskId: assignmentRecord.task_id,
+      notificationPlan: {
+        taskId: assignmentRecord.task_id,
+        assigneeId: assignmentRecord.assignee_id,
+        assigneeName: assignmentRecord.assignee.username,
+        projectId: assignmentRecord.task.project_id,
+        revokerId: userId,
+        reason,
+      },
+      event: {
+        taskId: assignmentRecord.task_id,
+        userId: assignmentRecord.assignee_id,
+        revokedBy: userId,
+        reason,
+      },
+    }
+  }
+
+  private async sendNotifications(plan: RevokeNotificationPlan): Promise<void> {
+    try {
+      await this.notificationService.handle({
+        user_id: plan.assigneeId,
+        title: 'Quyền truy cập task đã bị thu hồi',
+        message: `Quyền truy cập của bạn vào task đã bị thu hồi. Lý do: ${plan.reason}`,
+        type: BACKEND_NOTIFICATION_TYPES.TASK_ACCESS_REVOKED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+        related_entity_id: plan.taskId,
+      })
+
+      if (!plan.projectId) {
+        return
       }
 
-      // 2. Validate assignment status + reason via pure rule
-      enforcePolicy(
-        canRevokeAssignment({
-          assignmentStatus: assignmentRecord.assignment_status,
-          reason: dto.reason,
-        })
+      const managerIds = await TaskAssignmentRepository.findProjectManagerIds(
+        plan.projectId,
+        plan.revokerId
       )
 
       const permissionContext = await buildTaskPermissionContext(userId, assignmentRecord.task, trx)

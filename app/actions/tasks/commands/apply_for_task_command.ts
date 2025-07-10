@@ -1,13 +1,15 @@
+import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
+import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
+import { ApplicationStatus } from '#constants/task_constants'
+import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
+import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type { ApplyForTaskDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import CacheService from '#services/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
-import { ApplicationStatus } from '#constants/task_constants'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canApplyForTask } from '#domain/tasks/task_assignment_rules'
-import { DateTime } from 'luxon'
+
 
 /**
  * ApplyForTaskCommand
@@ -21,7 +23,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
   import('#models/task_application').default
 > {
   async handle(dto: ApplyForTaskDTO): Promise<import('#models/task_application').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // ── FETCH ──────────────────────────────────────────────────────────
@@ -73,19 +75,22 @@ export default class ApplyForTaskCommand extends BaseCommand<
         expected_rate: dto.expected_rate,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
-
-      // Emit domain event
-      void emitter.emit('task:application:submitted', {
-        applicationId: application.id,
-        taskId: dto.task_id,
-        applicantId: userId,
-        projectId: task.project_id ?? '',
-        ownerId: task.creator_id,
-      })
-
-      return application
+      return {
+        application,
+        cachePattern: `task:${dto.task_id}:*`,
+        applicationSubmittedEvent: {
+          applicationId: application.id,
+          taskId: dto.task_id,
+          applicantId: userId,
+          projectId: task.project_id ?? '',
+          ownerId: task.creator_id,
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    void emitter.emit('task:application:submitted', result.applicationSubmittedEvent)
+
+    return result.application
   }
 }
