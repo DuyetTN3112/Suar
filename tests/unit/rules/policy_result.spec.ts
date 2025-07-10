@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { PolicyResult } from '#domain/shared/policy_result'
+import { PolicyResult } from '#domain/policies/policy_result'
 
 test.group('PolicyResult', () => {
   test('allow returns a fresh allow-only result object', ({ assert }) => {
