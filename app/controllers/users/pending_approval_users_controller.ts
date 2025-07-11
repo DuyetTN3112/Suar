@@ -4,8 +4,8 @@ import { buildPendingApprovalUsersListDTO } from './mappers/request/user_request
 import { mapPendingApprovalUsersPageProps } from './mappers/response/user_response_mapper.js'
 
 import GetUserMetadata from '#actions/users/get_user_metadata'
-import CheckSuperAdminPermissionQuery from '#actions/users/queries/check_super_admin_permission_query'
 import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import { resolveSystemUserAdminAccess } from '#controllers/authorization/require_system_user_admin_access'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -15,24 +15,15 @@ export default class PendingApprovalUsersController {
   async handle(ctx: HttpContext) {
     const getUsersListQuery = new GetUsersListQuery(ExecutionContext.fromHttp(ctx))
     const getUserMetadata = new GetUserMetadata()
-    const { request, inertia, auth } = ctx
+    const { request, inertia } = ctx
 
-    const organizationId = auth.user?.current_organization_id
-    if (!organizationId) {
+    const accessContext = await resolveSystemUserAdminAccess(ctx)
+    if (!accessContext) {
       inertia.location('/users')
       return
     }
 
-    const canAccessQueue = await CheckSuperAdminPermissionQuery.execute(
-      auth.user.id,
-      organizationId
-    )
-    if (!canAccessQueue) {
-      inertia.location('/users')
-      return
-    }
-
-    const dto = buildPendingApprovalUsersListDTO(request, organizationId)
+    const dto = buildPendingApprovalUsersListDTO(request, accessContext.organizationId)
 
     const users = await getUsersListQuery.handle(dto)
     const metadata = getUserMetadata.handle()
