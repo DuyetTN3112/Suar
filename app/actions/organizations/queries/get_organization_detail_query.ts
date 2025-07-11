@@ -2,16 +2,16 @@ import redis from '@adonisjs/redis/services/main'
 
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { canViewOrganization } from '#domain/organizations/org_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface OwnerRecord {
   id: DatabaseId
@@ -118,12 +118,13 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: DatabaseId, userId: DatabaseId): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       undefined,
       true
     )
+    const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canViewOrganization(actorOrgRole))
   }
 
@@ -131,7 +132,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Get owner details
    */
   private async getOwner(ownerId: DatabaseId): Promise<OwnerRecord | null> {
-    const owner = await UserRepository.findById(ownerId)
+    const owner = await DefaultOrganizationDependencies.user.findUserIdentity(ownerId)
     if (!owner) return null
     return { id: owner.id, email: owner.email ?? '' }
   }
@@ -146,8 +147,10 @@ export default class GetOrganizationDetailQuery {
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
       OrganizationUserRepository.countMembers(organizationId),
-      ProjectRepository.countByOrgIds([organizationId]).then((m) => m.get(organizationId) ?? 0),
-      ProjectRepository.countTasksByOrganization(organizationId),
+      DefaultOrganizationDependencies.projectTask
+        .countProjectsByOrganizationIds([organizationId])
+        .then((m) => m.get(organizationId) ?? 0),
+      DefaultOrganizationDependencies.projectTask.countTasksByOrganization(organizationId),
     ])
 
     return {

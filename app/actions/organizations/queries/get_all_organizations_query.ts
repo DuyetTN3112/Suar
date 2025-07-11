@@ -1,7 +1,8 @@
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface EnhancedOrganization {
   id: DatabaseId
@@ -43,7 +44,7 @@ export default class GetAllOrganizationsQuery {
 
     // Batch query: owner usernames
     const ownerIds = [...new Set(allOrganizations.map((org) => org.owner_id))]
-    const owners = await UserRepository.findByIds(ownerIds, ['id', 'username'])
+    const owners = await DefaultOrganizationDependencies.user.findOwnerNamesByIds(ownerIds)
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: member counts
