@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetUsersInOrganizationQuery from '#actions/organizations/queries/get_users_in_organization_query'
+import GetHttpUsersInOrganizationQuery from '#actions/http/queries/get_users_in_organization_query'
 import { ErrorMessages } from '#constants/error_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -24,7 +24,7 @@ export default class GetUsersInOrganizationApiController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const query = new GetUsersInOrganizationQuery()
+    const query = new GetHttpUsersInOrganizationQuery()
     const formattedUsers = await query.execute(organizationId, auth.user.id)
 
     response.json({ success: true, users: formattedUsers })
