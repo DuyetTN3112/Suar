@@ -2,9 +2,9 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -83,11 +83,12 @@ export default class TransferOrganizationOwnershipCommand {
       dto.organization_id,
       trx
     )
-    const newOwnerRole = await OrganizationUserRepository.getMemberRoleName(
+    const newOwnerMembership = await OrganizationUserRepository.getMembershipContext(
       dto.organization_id,
       dto.new_owner_id,
       trx
     )
+    const newOwnerRole = newOwnerMembership?.role ?? null
 
     return {
       organization,

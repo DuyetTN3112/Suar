@@ -4,8 +4,8 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
@@ -103,11 +103,12 @@ export default class UpdateOrganizationCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       trx
     )
+    const actorOrgRole = actorMembership?.role ?? null
 
     enforcePolicy(canUpdateOrganization(actorOrgRole))
   }

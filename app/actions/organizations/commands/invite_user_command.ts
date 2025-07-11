@@ -2,15 +2,15 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import {
   buildInviteUserDTO,
   type BuildMemberRequestOptions,
   type InviteMemberRequestInput,
-} from '../support/member_request_mappers.js'
+} from '../builders/member_request_dto_builders.js'
+import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { canInviteOrganizationMembers } from '#domain/organizations/org_permission_policy'
@@ -20,9 +20,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import OrgAccessRepository from '#infra/organizations/repositories/org_access_repository'
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Invite User to Organization
@@ -85,7 +86,7 @@ export default class InviteUserCommand {
     await this.checkPermissions(dto.organizationId, userId, trx)
 
     const normalizedEmail = dto.getNormalizedEmail()
-    const invitee = await UserRepository.findByEmail(normalizedEmail, trx)
+    const invitee = await DefaultOrganizationDependencies.user.findUserByEmail(normalizedEmail, trx)
     if (!invitee) {
       throw new NotFoundException('Không tìm thấy người dùng với email này')
     }
@@ -180,11 +181,12 @@ export default class InviteUserCommand {
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       organizationId,
       userId,
       trx
     )
+    const actorOrgRole = actorMembership?.role ?? null
     enforcePolicy(canInviteOrganizationMembers(actorOrgRole))
   }
 

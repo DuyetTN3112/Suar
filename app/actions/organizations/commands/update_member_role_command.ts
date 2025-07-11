@@ -2,24 +2,24 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 import {
   buildUpdateMemberRoleDTO,
   type BuildMemberRequestOptions,
   type UpdateMemberRoleRequestInput,
-} from '../support/member_request_mappers.js'
+} from '../builders/member_request_dto_builders.js'
+import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
 import { canChangeRole } from '#domain/organizations/org_permission_policy'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 import ConflictException from '#exceptions/conflict_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
@@ -27,7 +27,6 @@ import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
 
 /**
  * Command: Update Member Role
@@ -114,27 +113,27 @@ export default class UpdateMemberRoleCommand {
     actorId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<{ actorOrgRole: string; targetCurrentRole: string }> {
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const actorMembership = await OrganizationUserRepository.getMembershipContext(
       dto.organizationId,
       actorId,
       trx
     )
-    const targetCurrentRole = await OrganizationUserRepository.getMemberRoleName(
+    const targetMembership = await OrganizationUserRepository.getMembershipContext(
       dto.organizationId,
       dto.userId,
       trx,
       false
     )
+    const actorOrgRole = actorMembership?.role ?? null
+    const targetCurrentRole = targetMembership?.role ?? null
 
-    if (!actorOrgRole) {
-      throw new ForbiddenException('Bạn không phải thành viên của tổ chức này')
-    }
+    enforcePolicy(actorOrgRole ? PR.allow() : PR.deny('Bạn không phải thành viên của tổ chức này'))
 
     if (!targetCurrentRole) {
       throw new NotFoundException('Người dùng đích không phải thành viên của tổ chức này')
     }
 
-    return { actorOrgRole, targetCurrentRole }
+    return { actorOrgRole: actorOrgRole as string, targetCurrentRole }
   }
 
   /**

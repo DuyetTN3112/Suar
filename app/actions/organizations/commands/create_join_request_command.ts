@@ -1,7 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'

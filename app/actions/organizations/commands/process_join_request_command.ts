@@ -3,9 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -57,11 +57,12 @@ export default class ProcessJoinRequestCommand {
       }
 
       // 2. Check permissions
-      const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+      const actorMembership = await OrganizationUserRepository.getMembershipContext(
         dto.organizationId,
         userId,
         trx
       )
+      const actorOrgRole = actorMembership?.role ?? null
       enforcePolicy(
         canProcessJoinRequest({
           actorOrgRole,
