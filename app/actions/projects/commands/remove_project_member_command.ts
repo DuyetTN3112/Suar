@@ -3,17 +3,16 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canRemoveProjectMember } from '#domain/projects/project_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * Command to remove a member from a project
@@ -40,8 +39,8 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       const project = await ProjectRepository.findActiveOrFail(dto.project_id, trx)
 
       // 2. Check permissions via pure rule
-      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
-      const orgMembership = await OrganizationUserRepository.findMembership(
+      const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
+      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
         project.organization_id,
         userId,
         trx
@@ -51,7 +50,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         canRemoveProjectMember({
           actorId: userId,
           actorSystemRole: actor.system_role,
-          actorOrgRole: orgMembership?.org_role ?? null,
+          actorOrgRole,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
           targetUserId: dto.user_id,
@@ -59,7 +58,7 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       )
 
       // 3. Load user to be removed (for audit log)
-      const userToRemove = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
+      const userToRemove = await DefaultProjectDependencies.user.findActorInfo(dto.user_id, trx)
 
       // 5. Get member role before removal
       const memberRole = await ProjectMemberRepository.getRoleName(dto.project_id, dto.user_id, trx)
@@ -114,6 +113,6 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     toUserId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    await TaskRepository.reassignByUser(projectId, fromUserId, toUserId, trx)
+    await DefaultProjectDependencies.task.reassignByUser(projectId, fromUserId, toUserId, trx)
   }
 }

@@ -2,9 +2,9 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -15,12 +15,13 @@ import { canTransferProjectOwnership } from '#domain/projects/project_permission
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
 import type Project from '#models/project'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * DTO for transferring project ownership
@@ -80,21 +81,21 @@ export default class TransferProjectOwnershipCommand {
     const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
     const currentOwnerId = project.owner_id ?? null
 
-    const orgMembership = await OrganizationUserRepository.findMembership(
+    const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
       project.organization_id,
       actorId,
       trx
     )
-    const isNewOwnerOrgMember = await OrganizationUserRepository.isApprovedMember(
-      dto.new_owner_id,
+    const isNewOwnerOrgMember = await DefaultProjectDependencies.organization.isApprovedMember(
       project.organization_id,
+      dto.new_owner_id,
       trx
     )
 
     enforcePolicy(
       canTransferProjectOwnership({
         actorId,
-        actorOrgRole: orgMembership?.org_role ?? null,
+        actorOrgRole,
         projectOwnerId: currentOwnerId ?? '',
         newOwnerId: dto.new_owner_id,
         isNewOwnerOrgMember,

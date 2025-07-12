@@ -2,15 +2,14 @@ import emitter from '@adonisjs/core/services/emitter'
 
 import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canAddProjectMember } from '#domain/projects/project_permission_policy'
 import CacheService from '#infra/cache/cache_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import ProjectRepository from '#infra/projects/repositories/project_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 
 /**
@@ -39,13 +38,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const project = await ProjectRepository.findActiveOrFail(dto.project_id, trx)
 
       // 2-6. Validate via pure rule
-      const actor = await UserRepository.findNotDeletedOrFail(userId, trx)
-      const actorOrgMembership = await OrganizationUserRepository.findMembership(
+      const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
+      const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
         project.organization_id,
         userId,
         trx
       )
-      const isTargetOrgMember = await OrganizationUserRepository.isApprovedMember(
+      const isTargetOrgMember = await DefaultProjectDependencies.organization.isApprovedMember(
         project.organization_id,
         dto.user_id,
         trx
@@ -60,7 +59,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
         canAddProjectMember({
           actorId: userId,
           actorSystemRole: actor.system_role,
-          actorOrgRole: actorOrgMembership?.org_role ?? null,
+          actorOrgRole,
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
           targetRole: dto.project_role,
@@ -70,7 +69,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       )
 
       // Load user to be added (for audit log)
-      const userToAdd = await UserRepository.findNotDeletedOrFail(dto.user_id, trx)
+      const userToAdd = await DefaultProjectDependencies.user.findActorInfo(dto.user_id, trx)
 
       // 7. Add user as member
       await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
