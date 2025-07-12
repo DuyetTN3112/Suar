@@ -1,5 +1,9 @@
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import {
+  canAccessReviewSession,
+  canUpsertTaskSelfAssessment,
+} from '#domain/reviews/review_policy'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#infra/reviews/repositories/task_self_assessment_repository'
 
@@ -31,13 +35,16 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
       const userId = this.getCurrentUserId()
 
       const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+      enforcePolicy(canAccessReviewSession({ sessionExists: !!session }))
       if (!session) {
-        throw new ForbiddenException('Review session không tồn tại')
+        throw new Error('Review session must exist after policy enforcement')
       }
-
-      if (session.reviewee_id !== userId) {
-        throw new ForbiddenException('Chỉ reviewee mới được tự đánh giá')
-      }
+      enforcePolicy(
+        canUpsertTaskSelfAssessment({
+          actorId: userId,
+          sessionRevieweeId: session.reviewee_id,
+        })
+      )
 
       const existing = await TaskSelfAssessmentRepository.findByTaskAssignmentAndUser(
         session.task_assignment_id,

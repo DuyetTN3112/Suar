@@ -5,8 +5,8 @@ import { BaseCommand } from '#actions/shared/base_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * CreateReviewSessionCommand
@@ -21,7 +21,7 @@ export default class CreateReviewSessionCommand extends BaseCommand<
   async handle(dto: CreateReviewSessionDTO): Promise<import('#models/review_session').default> {
     const result = await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
-      const assignment = await TaskAssignmentRepository.findCompletedById(
+      const assignment = await DefaultReviewDependencies.taskAssignment.findCompletedAssignment(
         dto.task_assignment_id,
         trx
       )

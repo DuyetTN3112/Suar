@@ -7,11 +7,10 @@ import {
   determineTier,
   mapLevelCodeToNumber,
 } from '#domain/reviews/review_formulas'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for CalculateTrustScore
@@ -90,22 +89,22 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       (evidenceCountResult[0] as TrustScoreEvidenceCountRow).total
     )
 
-    const orgMemberships = (await OrganizationUserRepository.listMembershipsByUser(
+    const organizationIds = await DefaultReviewDependencies.organization.listOrganizationIdsByUser(
       userId,
       trx
-    )) as TrustScoreOrgMembershipRow[]
+    )
 
     let belongsToPartnerOrg = false
-    if (orgMemberships.length > 0) {
-      const orgIds = orgMemberships.map((membership) => membership.organization_id)
-      belongsToPartnerOrg = await OrganizationRepository.hasAnyActivePartnerByIds(orgIds, trx)
+    if (organizationIds.length > 0) {
+      belongsToPartnerOrg =
+        await DefaultReviewDependencies.organization.hasAnyActivePartnerByIds(organizationIds, trx)
     }
 
     return {
       sessions,
       reviews,
       sessionsWithEvidence,
-      orgMemberships,
+      organizationIds,
       belongsToPartnerOrg,
     }
   }
@@ -123,7 +122,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     const volumeRecency = (volumeScore + recencyScore) / 2
     const orgPartnerWeight = fetched.belongsToPartnerOrg
       ? 100
-      : fetched.orgMemberships.length > 0
+      : fetched.organizationIds.length > 0
         ? 70
         : 30
 
@@ -136,7 +135,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     })
 
     const { tierCode, tierWeight, tierName } = determineTier(
-      fetched.orgMemberships.length > 0,
+      fetched.organizationIds.length > 0,
       fetched.belongsToPartnerOrg
     )
 
@@ -234,17 +233,18 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     computed: TrustScoreComputationResult,
     trx: TransactionClientContract
   ): Promise<void> {
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
-    user.trust_data = {
-      ...(user.trust_data ?? {}),
+    await DefaultReviewDependencies.user.mergeTrustData(
+      userId,
+      {
       current_tier_code: computed.tierCode,
       calculated_score: computed.calculatedScore,
       raw_score: computed.rawScore,
       total_verified_reviews: computed.totalVerifiedReviews,
       last_calculated_at: DateTime.now().toISO(),
       scoring_version: computed.scoringVersion,
-    }
-    await UserRepository.save(user, trx)
+      },
+      trx
+    )
   }
 
   private async logTrustScoreAudit(
@@ -286,15 +286,11 @@ interface TrustScoreEvidenceCountRow {
   total: number | string
 }
 
-interface TrustScoreOrgMembershipRow {
-  organization_id: string
-}
-
 interface TrustScoreFetchResult {
   sessions: TrustScoreSessionRow[]
   reviews: TrustScoreReviewRow[]
   sessionsWithEvidence: number
-  orgMemberships: TrustScoreOrgMembershipRow[]
+  organizationIds: DatabaseId[]
   belongsToPartnerOrg: boolean
 }
 

@@ -9,9 +9,9 @@ import {
   mapWeightedScoreToLevelCode,
 } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
 import type { DatabaseId } from '#types/database'
 
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 export interface RecalculateRevieweeSkillScoresDTO {
   userId: DatabaseId
@@ -238,37 +238,20 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     computed: ComputedSkillScore,
     trx: TransactionClientContract
   ): Promise<PersistedUserSkillResult> {
-    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
-    const oldScore = existing?.avg_percentage ?? null
     const roundedAverage = computed.avgPercentage
 
-    if (existing) {
-      existing.level_code = computed.levelCode
-      existing.total_reviews = reviews.length
-      existing.avg_score = roundedAverage
-      existing.avg_percentage = roundedAverage
-      existing.last_calculated_at = DateTime.now()
-      existing.last_reviewed_at = computed.mostRecentReviewAt
-      existing.source = 'reviewed'
-      await UserSkillRepository.save(existing, trx)
-    } else {
-      await UserSkillRepository.create(
-        {
-          user_id: userId,
-          skill_id: skillId,
-          level_code: computed.levelCode,
-          total_reviews: reviews.length,
-          avg_score: roundedAverage,
-          avg_percentage: roundedAverage,
-          last_calculated_at: DateTime.now(),
-          last_reviewed_at: computed.mostRecentReviewAt,
-          source: 'reviewed',
-        },
-        trx
-      )
-    }
-
-    return { oldScore }
+    return DefaultReviewDependencies.userSkill.upsertReviewedSkillScore(
+      userId,
+      skillId,
+      {
+        levelCode: computed.levelCode,
+        totalReviews: reviews.length,
+        avgScore: roundedAverage,
+        avgPercentage: roundedAverage,
+        lastReviewedAt: computed.mostRecentReviewAt,
+      },
+      trx
+    )
   }
 
   private async logSkillRecalculationAudit(

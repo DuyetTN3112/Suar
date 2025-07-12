@@ -1,5 +1,6 @@
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import { canAccessReviewSession, canAddReviewEvidence } from '#domain/reviews/review_policy'
 import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
@@ -26,8 +27,9 @@ export default class AddReviewEvidenceCommand extends BaseCommand<
       const userId = this.getCurrentUserId()
 
       const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+      enforcePolicy(canAccessReviewSession({ sessionExists: !!session }))
       if (!session) {
-        throw new ForbiddenException('Review session không tồn tại')
+        throw new Error('Review session must exist after policy enforcement')
       }
 
       const submittedReview = await SkillReviewRepository.findBySessionAndReviewer(
@@ -35,11 +37,13 @@ export default class AddReviewEvidenceCommand extends BaseCommand<
         userId,
         trx
       )
-
-      const canAttach = session.reviewee_id === userId || !!submittedReview
-      if (!canAttach) {
-        throw new ForbiddenException('Bạn không có quyền thêm evidence cho review này')
-      }
+      enforcePolicy(
+        canAddReviewEvidence({
+          actorId: userId,
+          sessionRevieweeId: session.reviewee_id,
+          hasSubmittedReview: !!submittedReview,
+        })
+      )
 
       const evidence = await ReviewEvidenceRepository.create(
         {
