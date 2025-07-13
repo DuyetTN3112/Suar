@@ -3,7 +3,7 @@
   "compilerOptions": {
     "rootDir": "./",
     "outDir": "./build",
-    "jsx": "react-jsx",
+    "rewriteRelativeImportExtensions": true,
 
     /* 🚨 STRICT MODE - Kiểm tra nghiêm ngặt */
     "strict": true,
@@ -79,16 +79,35 @@
       "#config/*": [
         "./config/*"
       ],
+      "#domain/*": [
+        "./app/domain/*"
+      ],
       "#actions/*": [
         "./app/actions/*"
+      ],
+      "#constants/*": [
+        "./app/constants/*"
+      ],
+      "#constants": [
+        "./app/constants/index.ts"
+      ],
+      "#libs/*": [
+        "./app/libs/*"
+      ],
+      "#libs": [
+        "./app/libs/index.ts"
       ],
       "#helpers/*": [
         "./app/helpers/*"
       ],
       "#utils/*": [
         "./app/utils/*"
+      ],
+      "#infra/*": [
+        "./app/infra/*"
       ]
     }
   },
-  "exclude": ["./inertia/**/*", "node_modules", "build"]
+  "exclude": ["./inertia/**/*", "node_modules", "build"],
+  "references": [{ "path": "./tsconfig.inertia.json" }]
 }
