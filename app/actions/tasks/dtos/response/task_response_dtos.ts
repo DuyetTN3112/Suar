@@ -56,6 +56,68 @@ export interface TaskSummaryResponseDTOProps {
   priority: string
 }
 
+type TaskSharedResponseProps = Pick<
+  TaskListItemResponseDTOProps,
+  | 'id'
+  | 'title'
+  | 'status'
+  | 'label'
+  | 'priority'
+  | 'difficulty'
+  | 'assignedTo'
+  | 'dueDate'
+  | 'organizationId'
+  | 'projectId'
+  | 'sortOrder'
+  | 'createdAt'
+>
+
+function createTaskSharedResponseProps(entity: TaskEntity): TaskSharedResponseProps {
+  return {
+    id: entity.id,
+    title: entity.title,
+    status: entity.status,
+    label: entity.label,
+    priority: entity.priority,
+    difficulty: entity.difficulty,
+    assignedTo: entity.assignedTo,
+    dueDate: entity.dueDate,
+    organizationId: entity.organizationId,
+    projectId: entity.projectId,
+    sortOrder: entity.sortOrder,
+    createdAt: entity.createdAt,
+  }
+}
+
+function createTaskDetailResponseProps(entity: TaskEntity): TaskDetailResponseDTOProps {
+  const shared = createTaskSharedResponseProps(entity)
+
+  return {
+    ...shared,
+    description: entity.description,
+    taskStatusId: entity.taskStatusId,
+    creatorId: entity.creatorId,
+    updatedBy: entity.updatedBy,
+    parentTaskId: entity.parentTaskId,
+    estimatedTime: entity.estimatedTime,
+    actualTime: entity.actualTime,
+    taskVisibility: entity.taskVisibility,
+    applicationDeadline: entity.applicationDeadline,
+    estimatedBudget: entity.estimatedBudget,
+    externalApplicationsCount: entity.externalApplicationsCount,
+    updatedAt: entity.updatedAt,
+  }
+}
+
+function createTaskSummaryResponseProps(entity: TaskEntity): TaskSummaryResponseDTOProps {
+  return {
+    id: entity.id,
+    title: entity.title,
+    status: entity.status,
+    priority: entity.priority,
+  }
+}
+
 /**
  * TaskDetailResponseDTO — Full task detail for detail views
  */
@@ -117,32 +179,7 @@ export class TaskDetailResponseDTO {
   }
 
   static fromEntity(entity: TaskEntity): TaskDetailResponseDTO {
-    return new TaskDetailResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      description: entity.description,
-      status: entity.status,
-      taskStatusId: entity.taskStatusId,
-      label: entity.label,
-      priority: entity.priority,
-      difficulty: entity.difficulty,
-      assignedTo: entity.assignedTo,
-      creatorId: entity.creatorId,
-      updatedBy: entity.updatedBy,
-      dueDate: entity.dueDate,
-      parentTaskId: entity.parentTaskId,
-      estimatedTime: entity.estimatedTime,
-      actualTime: entity.actualTime,
-      organizationId: entity.organizationId,
-      projectId: entity.projectId,
-      taskVisibility: entity.taskVisibility,
-      applicationDeadline: entity.applicationDeadline,
-      estimatedBudget: entity.estimatedBudget,
-      externalApplicationsCount: entity.externalApplicationsCount,
-      sortOrder: entity.sortOrder,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    })
+    return new TaskDetailResponseDTO(createTaskDetailResponseProps(entity))
   }
 }
 
@@ -183,20 +220,7 @@ export class TaskListItemResponseDTO {
   }
 
   static fromEntity(entity: TaskEntity): TaskListItemResponseDTO {
-    return new TaskListItemResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      status: entity.status,
-      label: entity.label,
-      priority: entity.priority,
-      difficulty: entity.difficulty,
-      assignedTo: entity.assignedTo,
-      dueDate: entity.dueDate,
-      organizationId: entity.organizationId,
-      projectId: entity.projectId,
-      sortOrder: entity.sortOrder,
-      createdAt: entity.createdAt,
-    })
+    return new TaskListItemResponseDTO(createTaskSharedResponseProps(entity))
   }
 }
 
@@ -221,11 +245,6 @@ export class TaskSummaryResponseDTO {
   }
 
   static fromEntity(entity: TaskEntity): TaskSummaryResponseDTO {
-    return new TaskSummaryResponseDTO({
-      id: entity.id,
-      title: entity.title,
-      status: entity.status,
-      priority: entity.priority,
-    })
+    return new TaskSummaryResponseDTO(createTaskSummaryResponseProps(entity))
   }
 }
