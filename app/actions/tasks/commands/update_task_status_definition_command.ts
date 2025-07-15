@@ -2,8 +2,8 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canEditStatus } from '#domain/tasks/task_status_rules'
 import ConflictException from '#exceptions/conflict_exception'

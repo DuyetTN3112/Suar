@@ -3,17 +3,18 @@ import { DateTime } from 'luxon'
 
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canDeleteStatus } from '#domain/tasks/task_status_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Command: Soft-delete a task status definition.
@@ -51,7 +52,7 @@ export default class DeleteTaskStatusCommand {
       const count = await TaskRepository.countByTaskStatusId(dto.status_id, trx)
 
       if (status.category === 'done' && count > 0) {
-        if (await ReviewSessionRepository.hasAnyForTasksWithStatus(dto.status_id, trx)) {
+        if (await DefaultTaskDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)) {
           throw new BusinessLogicException(
             'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'
           )
