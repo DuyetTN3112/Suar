@@ -1,8 +1,8 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import type User from '#models/user'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
 import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type User from '#models/user'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUserProfileDTO

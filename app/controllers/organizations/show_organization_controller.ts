@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+
 import GetOrganizationShowPageQuery from '#actions/organizations/queries/get_organization_show_page_query'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /organizations/:id

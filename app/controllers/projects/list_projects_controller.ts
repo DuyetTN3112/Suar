@@ -1,10 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildProjectsListDTO } from './mappers/request/project_request_mapper.js'
+import { mapProjectsIndexPageProps } from './mappers/response/project_response_mapper.js'
+
 import GetProjectsListQuery from '#actions/projects/queries/get_projects_list_query'
-import type { GetProjectsListDTO } from '#actions/projects/queries/get_projects_list_query'
-import { ProjectVisibility } from '#constants/project_constants'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /projects → List projects
@@ -17,51 +19,14 @@ export default class ListProjectsController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = this.buildListDTO(request, organizationId)
+    const dto = buildProjectsListDTO(request, organizationId)
     const query = new GetProjectsListQuery(ExecutionContext.fromHttp(ctx))
     const result = await query.handle(dto)
     const showOrganizationRequiredModal = session.has('show_organization_required_modal')
 
-    return await inertia.render('projects/index', {
-      projects: result.data,
-      pagination: result.pagination,
-      filters: result.filters,
-      stats: result.stats,
-      showOrganizationRequiredModal,
-    })
-  }
-
-  private buildListDTO(
-    request: HttpContext['request'],
-    organizationId: string
-  ): GetProjectsListDTO {
-    const visibilityInput = request.input('visibility') as string | undefined
-    const sortByInput = (request.input('sort_by', 'created_at') ?? 'created_at') as string
-
-    const validVisibilities = Object.values(ProjectVisibility) as string[]
-    const visibility: ProjectVisibility | undefined = validVisibilities.includes(
-      visibilityInput as string
+    return await inertia.render(
+      'projects/index',
+      mapProjectsIndexPageProps(result, showOrganizationRequiredModal)
     )
-      ? (visibilityInput as ProjectVisibility)
-      : undefined
-
-    const validSortBy = ['created_at', 'name', 'start_date', 'end_date'] as const
-    type SortByType = (typeof validSortBy)[number]
-    const sortBy: SortByType = validSortBy.includes(sortByInput as SortByType)
-      ? (sortByInput as SortByType)
-      : 'created_at'
-
-    return {
-      page: Number(request.input('page', 1)),
-      limit: Number(request.input('limit', 20)),
-      organization_id: organizationId,
-      status: request.input('status') as string | undefined,
-      creator_id: request.input('creator_id') as string | undefined,
-      manager_id: request.input('manager_id') as string | undefined,
-      visibility,
-      search: request.input('search') as string | undefined,
-      sort_by: sortBy,
-      sort_order: (request.input('sort_order', 'desc') ?? 'desc') as 'asc' | 'desc',
-    }
   }
 }

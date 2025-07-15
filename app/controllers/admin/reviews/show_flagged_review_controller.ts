@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import GetFlaggedReviewDetailQuery from '#actions/admin/reviews/queries/get_flagged_review_detail_query'
+import { ExecutionContext } from '#types/execution_context'
 
 export default class ShowFlaggedReviewController {
   async handle(ctx: HttpContext) {

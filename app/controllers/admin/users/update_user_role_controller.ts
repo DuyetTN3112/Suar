@@ -1,12 +1,16 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UpdateUserSystemRoleCommand from '#actions/admin/users/commands/update_user_system_role_command'
 
-const SYSTEM_ROLES = ['superadmin', 'system_admin', 'registered_user'] as const
-type SystemRole = (typeof SYSTEM_ROLES)[number]
+import UpdateUserSystemRoleCommand from '#actions/admin/users/commands/update_user_system_role_command'
+import { ErrorMessages } from '#constants/error_constants'
+import { SystemRoleName } from '#constants/user_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
+
+const SYSTEM_ROLES = Object.values(SystemRoleName) as readonly string[]
+type SystemRole = SystemRoleName
 
 const isSystemRole = (value: string): value is SystemRole => {
-  return SYSTEM_ROLES.includes(value as SystemRole)
+  return SYSTEM_ROLES.includes(value)
 }
 
 /**
@@ -21,15 +25,15 @@ export default class UpdateUserRoleController {
     const { request, response, params, session } = ctx
     const rawUserId: unknown = params.id
     if (typeof rawUserId !== 'string' || rawUserId.length === 0) {
-      throw new Error('Invalid user id')
+      throw new BusinessLogicException(ErrorMessages.INVALID_ID)
     }
 
     const rawSystemRole: unknown = request.input('system_role')
     if (typeof rawSystemRole !== 'string' || rawSystemRole.length === 0) {
-      throw new Error('system_role is required')
+      throw new BusinessLogicException(ErrorMessages.FIELD_REQUIRED)
     }
     if (!isSystemRole(rawSystemRole)) {
-      throw new Error('Invalid system_role')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const execCtx = ExecutionContext.fromHttp(ctx)

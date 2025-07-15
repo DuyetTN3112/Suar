@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
 import UpdateUserSettings from '#actions/settings/update_user_settings'
 
 /**

@@ -1,15 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
+
 import DeleteProjectCommand from '#actions/projects/commands/delete_project_command'
-import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /projects/:id → Delete project
  */
 export default class DeleteProjectController {
   async handle(ctx: HttpContext) {
-    const { params, response, session } = ctx
-    const dto = new DeleteProjectDTO({ project_id: params.id as string })
+    const { params, request, response, session } = ctx
+    const dto = buildDeleteProjectDTO(request, params.id as string)
     const command = new DeleteProjectCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 

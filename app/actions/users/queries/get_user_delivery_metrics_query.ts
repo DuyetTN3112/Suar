@@ -1,6 +1,4 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
 import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
@@ -13,6 +11,8 @@ import type {
   TaskAssignmentData,
   UserSkillData,
 } from '#domain/users/profile_metrics_types'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type { DatabaseId } from '#types/database'
 
 /**
  * GetUserDeliveryMetricsDTO

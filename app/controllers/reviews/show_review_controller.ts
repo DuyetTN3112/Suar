@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { mapShowReviewPageProps } from './mappers/response/review_response_mapper.js'
+
+import GetReviewShowPageQuery from '#actions/reviews/queries/get_review_show_page_query'
 import { ExecutionContext } from '#types/execution_context'
-import GetReviewSessionQuery from '#actions/reviews/queries/get_review_session_query'
-import GetActiveSkillsQuery from '#actions/shared/queries/get_active_skills_query'
-import { GetReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { proficiencyLevelOptions } from '#constants/user_constants'
 
 /**
  * GET /reviews/:id → Show review session details
@@ -11,20 +11,13 @@ import { proficiencyLevelOptions } from '#constants/user_constants'
 export default class ShowReviewController {
   async handle(ctx: HttpContext) {
     const { params, inertia } = ctx
+    const pageData = await new GetReviewShowPageQuery(ExecutionContext.fromHttp(ctx)).execute(
+      params.id as string
+    )
 
-    const [session, skills] = await Promise.all([
-      new GetReviewSessionQuery(ExecutionContext.fromHttp(ctx)).handle(
-        new GetReviewSessionDTO(params.id as string)
-      ),
-      GetActiveSkillsQuery.execute(),
-    ])
-
-    const proficiencyLevels = proficiencyLevelOptions
-
-    return inertia.render('reviews/show', {
-      session: session.serialize(),
-      skills,
-      proficiencyLevels,
-    })
+    return inertia.render(
+      'reviews/show',
+      mapShowReviewPageProps(pageData.session, pageData.skills, pageData.proficiencyLevels)
+    )
   }
 }

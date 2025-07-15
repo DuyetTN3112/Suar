@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildResolveFlaggedReviewDTO } from './mappers/request/review_request_mapper.js'
+
 import ResolveFlaggedReviewCommand from '#actions/reviews/commands/resolve_flagged_review_command'
-import type { ResolveFlaggedReviewDTO } from '#actions/reviews/commands/resolve_flagged_review_command'
-import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /admin/flagged-reviews/:id/resolve → Resolve a flagged review (dismiss or confirm)
@@ -11,16 +12,7 @@ export default class ResolveFlaggedReviewController {
   async handle(ctx: HttpContext) {
     const { request, response, params, session } = ctx
 
-    const action = request.input('action') as string
-    if (action !== 'dismissed' && action !== 'confirmed') {
-      throw new BusinessLogicException('action must be "dismissed" or "confirmed"')
-    }
-
-    const dto: ResolveFlaggedReviewDTO = {
-      flagged_review_id: params.id as string,
-      action: action,
-      notes: request.input('notes') as string | null,
-    }
+    const dto = buildResolveFlaggedReviewDTO(request, params.id as string)
 
     const command = new ResolveFlaggedReviewCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)

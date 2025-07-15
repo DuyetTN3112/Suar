@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import AddMemberByEmailCommand from '#actions/organizations/commands/add_member_by_email_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/members/add

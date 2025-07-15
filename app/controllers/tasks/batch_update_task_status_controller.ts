@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { ErrorMessages } from '#constants/error_constants'
+
 import BatchUpdateTaskStatusCommand from '#actions/tasks/commands/batch_update_task_status_command'
+import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * PATCH /api/tasks/batch-status
@@ -26,11 +27,11 @@ export default class BatchUpdateTaskStatusController {
     const taskStatusIdRaw = payload.task_status_id
 
     if (!Array.isArray(taskIdsRaw) || !taskIdsRaw.every((id) => typeof id === 'string')) {
-      throw new BusinessLogicException('Danh sach task khong hop le')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     if (typeof taskStatusIdRaw !== 'string' || taskStatusIdRaw.trim().length === 0) {
-      throw new BusinessLogicException('Task status khong hop le')
+      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
     }
 
     const execCtx = ExecutionContext.fromHttp(ctx)

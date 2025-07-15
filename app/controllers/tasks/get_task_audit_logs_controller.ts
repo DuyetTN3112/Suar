@@ -1,5 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildGetTaskAuditLogsInput } from './mappers/request/task_request_mapper.js'
+
 import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_query'
+import { mapTaskAuditLogResponse } from '#controllers/audit/mappers/audit_log_response_mapper'
 
 /**
  * GET /tasks/:id/audit-logs
@@ -7,16 +11,12 @@ import GetTaskAuditLogsQuery from '#actions/tasks/queries/get_task_audit_logs_qu
  */
 export default class GetTaskAuditLogsController {
   async handle(ctx: HttpContext) {
-    const taskId = ctx.params.id as string
-    const limit = ctx.request.input('limit', 20) as number
-
     const getTaskAuditLogsQuery = new GetTaskAuditLogsQuery()
-    const auditLogs = await getTaskAuditLogsQuery.execute(taskId, limit)
+    const auditLogs = await getTaskAuditLogsQuery.execute(
+      buildGetTaskAuditLogsInput(ctx.request, ctx.params.id as string)
+    )
 
-    ctx.response.json({
-      success: true,
-      data: auditLogs,
-    })
+    ctx.response.json(mapTaskAuditLogResponse(auditLogs))
     return
   }
 }

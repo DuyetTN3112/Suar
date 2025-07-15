@@ -1,7 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { mapProjectDetailApiBody } from './mappers/response/project_response_mapper.js'
+
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -18,14 +21,7 @@ export default class GetProjectDetailApiController {
 
     const query = new GetProjectDetailQuery(ExecutionContext.fromHttp(ctx))
     const projectId = params.id as string
-
-    try {
-      const result = await query.handle({ projectId, organizationId })
-      response.json(result)
-      return
-    } catch (error) {
-      // Let error middleware handle it
-      throw error
-    }
+    const result = await query.handle({ projectId, organizationId })
+    response.json(mapProjectDetailApiBody(result))
   }
 }

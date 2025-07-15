@@ -57,7 +57,7 @@ export enum TaskStatusCategory {
  * Default task statuses seeded when creating a new organization.
  * System statuses (is_system=true) cannot be deleted or have their category changed.
  */
-export const DEFAULT_TASK_STATUSES: ReadonlyArray<{
+export const DEFAULT_TASK_STATUSES: readonly {
   name: string
   slug: string
   category: TaskStatusCategory
@@ -65,7 +65,7 @@ export const DEFAULT_TASK_STATUSES: ReadonlyArray<{
   sort_order: number
   is_default: boolean
   is_system: boolean
-}> = [
+}[] = [
   {
     name: 'TODO',
     slug: 'todo',
@@ -135,11 +135,11 @@ export const DEFAULT_TASK_STATUSES: ReadonlyArray<{
  * Default workflow transitions seeded for new orgs.
  * Keys: "from_slug → to_slug", value: conditions JSON.
  */
-export const DEFAULT_WORKFLOW_TRANSITIONS: Array<{
+export const DEFAULT_WORKFLOW_TRANSITIONS: {
   from_slug: string
   to_slug: string
   conditions: Record<string, unknown>
-}> = [
+}[] = [
   { from_slug: 'todo', to_slug: 'in_progress', conditions: { requires_assignee: true } },
   { from_slug: 'todo', to_slug: 'cancelled', conditions: {} },
   { from_slug: 'in_progress', to_slug: 'done_dev', conditions: {} },

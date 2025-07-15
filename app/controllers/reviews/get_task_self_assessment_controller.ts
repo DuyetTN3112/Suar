@@ -1,4 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { mapTaskSelfAssessmentApiBody } from './mappers/response/review_response_mapper.js'
+
 import GetTaskSelfAssessmentQuery from '#actions/reviews/queries/get_task_self_assessment_query'
 
 /**
@@ -10,6 +13,6 @@ export default class GetTaskSelfAssessmentController {
     const query = new GetTaskSelfAssessmentQuery()
     const data = await query.execute(params.id as string)
 
-    response.status(200).json({ success: true, data })
+    response.status(200).json(mapTaskSelfAssessmentApiBody(data))
   }
 }
