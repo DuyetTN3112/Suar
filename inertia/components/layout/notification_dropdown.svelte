@@ -1,5 +1,8 @@
 <script lang="ts">
+  import { format } from 'date-fns'
+  import { vi } from 'date-fns/locale'
   import { Bell, Check, Trash2 } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
   import DropdownMenuContent from '@/components/ui/dropdown_menu_content.svelte'
@@ -8,11 +11,10 @@
   import DropdownMenuLabel from '@/components/ui/dropdown_menu_label.svelte'
   import DropdownMenuSeparator from '@/components/ui/dropdown_menu_separator.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
+  import { FRONTEND_NOTIFICATION_TYPES } from '@/constants/notifications'
   import { useNotifications } from '@/stores/notifications.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import { format } from 'date-fns'
-  import { vi } from 'date-fns/locale'
-  import { FRONTEND_NOTIFICATION_TYPES } from '@/constants/notifications'
+
 
   interface NotificationDropdownProps {
     class?: string
@@ -45,7 +47,7 @@
         // Nếu không thành công, thử parse theo định dạng MySQL
         if (isNaN(date.getTime())) {
           // Định dạng: YYYY-MM-DD HH:MM:SS
-          const parts = dateString.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/)
+          const parts = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})$/.exec(dateString)
           if (parts) {
             const [, year, month, day, hour, minute, second] = parts
             date = new Date(

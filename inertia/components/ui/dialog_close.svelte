@@ -6,7 +6,7 @@
   import { Dialog as DialogPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  interface Props {
     class?: string
     children?: Snippet
   }

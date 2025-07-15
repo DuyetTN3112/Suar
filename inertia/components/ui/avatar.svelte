@@ -12,8 +12,9 @@
 </script>
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Avatar as AvatarPrimitive, type AvatarRootProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = AvatarRootProps & {
     class?: string

@@ -1,14 +1,17 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
-  import Popover from '@/components/ui/popover.svelte'
-  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
-  import PopoverContent from '@/components/ui/popover_content.svelte'
-  import Tooltip from '@/components/ui/tooltip.svelte'
-  import TooltipTrigger from '@/components/ui/tooltip_trigger.svelte'
-  import TooltipContent from '@/components/ui/tooltip_content.svelte'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import Popover from '@/components/ui/popover.svelte'
+  import PopoverContent from '@/components/ui/popover_content.svelte'
+  import PopoverTrigger from '@/components/ui/popover_trigger.svelte'
+  import Tooltip from '@/components/ui/tooltip.svelte'
+  import TooltipContent from '@/components/ui/tooltip_content.svelte'
+  import TooltipTrigger from '@/components/ui/tooltip_trigger.svelte'
+
+  import { cn } from '$lib/utils-svelte'
+
+
+  interface Props {
     children: Snippet
     class?: string
     contentClass?: string

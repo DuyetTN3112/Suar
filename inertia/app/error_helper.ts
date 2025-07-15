@@ -80,7 +80,7 @@ export function showErrorOnScreen(error: unknown): void {
   // Hiển thị thông tin file và dòng lỗi
   if (displayError.source || displayError.lineno) {
     const location = document.createElement('div')
-    location.textContent = `Vị trí: ${displayError.source || 'Unknown'} (dòng ${displayError.lineno ?? '?'}, cột ${displayError.colno ?? '?'})`
+    location.textContent = `Vị trí: ${displayError.source ?? 'Unknown'} (dòng ${displayError.lineno ?? '?'}, cột ${displayError.colno ?? '?'})`
     location.style.marginBottom = '10px'
     errorDiv.appendChild(location)
   }
@@ -129,6 +129,6 @@ export function setupGlobalErrorHandlers(): void {
   }
   // Bắt lỗi Promise không được xử lý
   window.addEventListener('unhandledrejection', function (event) {
-    showErrorOnScreen(event.reason || { message: 'Unhandled Promise Rejection' })
+    showErrorOnScreen(event.reason ?? { message: 'Unhandled Promise Rejection' })
   })
 }

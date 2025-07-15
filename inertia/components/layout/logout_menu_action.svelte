@@ -1,11 +1,13 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
   import { LogOut } from 'lucide-svelte'
+
   import ConfirmDialog from '@/components/confirm_dialog.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import { cn } from '$lib/utils-svelte'
 
-  type Props = {
+  interface Props {
     class?: string
     withIcon?: boolean
   }

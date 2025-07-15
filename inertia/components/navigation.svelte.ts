@@ -3,6 +3,7 @@ import {
   type LucideIconComponent,
   type LucideIconName,
 } from '@/components/lucide_icon_map'
+import { FRONTEND_ROUTES } from '@/constants'
 
 interface BaseNavItem {
   title: string
@@ -42,7 +43,7 @@ const navigationData = [
       {
         title: 'Tasks',
         titleKey: 'navigation.tasks',
-        url: '/tasks',
+        url: FRONTEND_ROUTES.TASKS,
         iconName: 'SquareCheckBig',
       },
       {
@@ -107,25 +108,25 @@ const navigationData = [
         items: [
           {
             title: 'Hồ sơ cá nhân',
-            url: '/settings/profile',
+            url: FRONTEND_ROUTES.SETTINGS_PROFILE,
           },
           {
             title: 'Tài khoản',
             titleKey: 'navigation.account',
-            url: '/settings/account',
+            url: FRONTEND_ROUTES.SETTINGS_ACCOUNT,
           },
           {
             title: 'Giao diện',
             titleKey: 'navigation.appearance',
-            url: '/settings/appearance',
+            url: FRONTEND_ROUTES.SETTINGS_APPEARANCE,
           },
           {
             title: 'Thông báo',
-            url: '/settings/notifications',
+            url: FRONTEND_ROUTES.SETTINGS_NOTIFICATIONS,
           },
           {
             title: 'Hiển thị',
-            url: '/settings/display',
+            url: FRONTEND_ROUTES.SETTINGS_DISPLAY,
           },
         ],
       },
@@ -260,35 +261,35 @@ const organizationNavigationData = [
     items: [
       {
         title: 'Phòng ban',
-        url: '/org/departments',
+        url: FRONTEND_ROUTES.ORG_DEPARTMENTS,
         iconName: 'Building2',
       },
       {
         title: 'Vai trò',
-        url: '/org/roles',
+        url: FRONTEND_ROUTES.ORG_ROLES,
         iconName: 'Shield',
       },
       {
         title: 'Quyền hạn',
-        url: '/org/permissions',
+        url: FRONTEND_ROUTES.ORG_PERMISSIONS,
         iconName: 'ShieldCheck',
       },
       {
         title: 'Thành viên',
         titleKey: 'org.members',
-        url: '/org/members',
+        url: FRONTEND_ROUTES.ORG_MEMBERS,
         iconName: 'Users',
       },
       {
         title: 'Lời mời',
         titleKey: 'org.invitations',
-        url: '/org/invitations/invitations',
+        url: FRONTEND_ROUTES.ORG_INVITATIONS,
         iconName: 'Mail',
       },
       {
         title: 'Yêu cầu tham gia',
         titleKey: 'org.requests',
-        url: '/org/invitations/requests',
+        url: FRONTEND_ROUTES.ORG_INVITATION_REQUESTS,
         iconName: 'UserRoundPlus',
       },
     ],
@@ -323,7 +324,7 @@ const organizationNavigationData = [
       {
         title: 'Thông tin tổ chức',
         titleKey: 'org.organization_settings',
-        url: '/org/settings',
+        url: FRONTEND_ROUTES.ORG_SETTINGS,
         iconName: 'Settings',
       },
     ],

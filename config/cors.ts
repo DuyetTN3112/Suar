@@ -1,4 +1,5 @@
 import { defineConfig } from '@adonisjs/cors'
+
 import env from '#start/env'
 
 const corsConfig = defineConfig({

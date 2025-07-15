@@ -1,5 +1,5 @@
-import { defineConfig } from '@adonisjs/inertia'
 import app from '@adonisjs/core/services/app'
+import { defineConfig } from '@adonisjs/inertia'
 
 const inertiaConfig = defineConfig({
   rootView: 'inertia_layout',
