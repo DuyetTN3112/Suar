@@ -17,24 +17,9 @@ export default class MyApplicationsController {
     const filters = buildGetMyApplicationsInput(request)
     const result = await query.handle(filters)
 
-    const query = new GetMyApplicationsQuery(ExecutionContext.fromHttp(ctx))
-    const statusRaw = request.input('status', 'all') as unknown
-    const statusFilter = validateStatus(typeof statusRaw === 'string' ? statusRaw : 'all')
-    const page = toPageNumber(request.input('page', 1) as unknown, 1)
-    const perPage = toPageNumber(request.input('per_page', 20) as unknown, 20)
-
-    const result = await query.handle({
-      status: statusFilter,
-      page,
-      per_page: perPage,
-    })
-
-    return inertia.render('applications/my-applications', {
-      applications: result.data.map((application) => {
-        return isSerializable(application) ? application.serialize() : application
-      }),
-      meta: result.meta,
-      statusFilter: statusFilter,
-    })
+    return inertia.render(
+      'applications/my-applications',
+      mapMyApplicationsPageProps(result, filters.status)
+    )
   }
 }

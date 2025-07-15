@@ -1,4 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import TaskRequiredSkill from '#models/task_required_skill'
 
 export default class TaskRequiredSkillRepository {

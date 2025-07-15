@@ -151,7 +151,7 @@ export function randomString(length: number, charset = 'alphanumeric'): string {
     hex: '0123456789abcdef',
   }
 
-  const chars = charsets[charset] || charset
+  const chars = charsets[charset] ?? charset
   let result = ''
 
   for (let i = 0; i < length; i++) {
@@ -183,5 +183,5 @@ export function formatCurrency(amount: number, currency = 'VND', locale = 'vi-VN
  */
 export function pluralize(count: number, singular: string, plural?: string): string {
   if (count === 1) return singular
-  return plural || `${singular}s`
+  return plural ?? `${singular}s`
 }

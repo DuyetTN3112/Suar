@@ -7,6 +7,7 @@
  */
 
 import type { OrganizationEntity } from '../entities/organization_entity.js'
+
 import type { DatabaseId } from '#types/database'
 
 export interface OrganizationRepository {

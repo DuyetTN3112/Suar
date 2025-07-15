@@ -1,7 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import { proficiencyLevelOptions } from '#constants'
+
 import SkillReview from '#models/skill_review'
+import type { DatabaseId } from '#types/database'
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -181,7 +183,7 @@ export default class SkillReviewRepository {
   }
 
   static async createMany(
-    rows: Array<Partial<SkillReview>>,
+    rows: Partial<SkillReview>[],
     trx?: TransactionClientContract
   ): Promise<SkillReview[]> {
     const created: SkillReview[] = []

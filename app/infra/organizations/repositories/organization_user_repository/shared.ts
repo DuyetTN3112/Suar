@@ -1,4 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import OrganizationUser from '#models/organization_user'
 
 export interface CountResultRow {

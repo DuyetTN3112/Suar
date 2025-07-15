@@ -1,8 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import Task from '#models/task'
-import NotFoundException from '#exceptions/not_found_exception'
+
 import { baseQuery } from './shared.js'
+
+import NotFoundException from '#exceptions/not_found_exception'
+import Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+
 
 export const findActiveTaskIdentity = async (
   taskId: DatabaseId,

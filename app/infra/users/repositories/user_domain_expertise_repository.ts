@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import UserDomainExpertise from '#models/user_domain_expertise'
+import type { DatabaseId } from '#types/database'
 
 export default class UserDomainExpertiseRepository {
   private readonly __instanceMarker = true

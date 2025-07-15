@@ -1,5 +1,5 @@
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 
 export interface OrganizationCreationContext {
   actorIsActive: boolean
@@ -58,7 +58,7 @@ export function buildOrganizationSlugCandidate(baseSlug: string, attempt: number
 export async function resolveUniqueOrganizationSlug(
   baseSlug: string,
   slugExists: (candidate: string) => Promise<boolean>,
-  maxAttempts: number = 1000
+  maxAttempts = 1000
 ): Promise<string | null> {
   for (let attempt = 0; attempt <= maxAttempts; attempt++) {
     const candidate = buildOrganizationSlugCandidate(baseSlug, attempt)

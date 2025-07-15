@@ -1,8 +1,7 @@
-import { DateTime } from 'luxon'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
-import type { DatabaseId } from '#types/database'
-import type Task from '#models/task'
+import { DateTime } from 'luxon'
+
 import {
   LEGACY_TASK_STATUS,
   STATUS_CATEGORY_SQL,
@@ -14,6 +13,9 @@ import {
   toNumberValue,
   type TaskPermissionFilter,
 } from './shared.js'
+
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
 
 const statTotal = async (base: ModelQueryBuilderContract<typeof Task>): Promise<number> => {
   const result = await base.clone().count('* as total').first()

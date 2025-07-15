@@ -1,7 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import Skill from '#models/skill'
 import UserSkill from '#models/user_skill'
+import type { DatabaseId } from '#types/database'
 
 /**
  * SkillRepository
@@ -31,7 +32,7 @@ export default class SkillRepository {
 
   static async getSpiderChartSkillIds(
     trx?: TransactionClientContract
-  ): Promise<Array<{ id: DatabaseId }>> {
+  ): Promise<{ id: DatabaseId }[]> {
     const query = trx ? Skill.query({ client: trx }) : Skill.query()
     const skills = await query
       .where('display_type', 'spider_chart')

@@ -111,7 +111,7 @@ export function pick<T extends object, K extends keyof T>(obj: T, keys: K[]): Pi
 export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
   const result: Partial<T> = {}
   const keysToOmit = new Set(keys)
-  for (const key of Object.keys(obj) as Array<keyof T>) {
+  for (const key of Object.keys(obj) as (keyof T)[]) {
     if (!keysToOmit.has(key as K)) {
       result[key] = obj[key]
     }
@@ -130,8 +130,8 @@ export function deepClone<T>(obj: T): T {
  * Merge objects deeply
  */
 type DeepPartial<T> =
-  T extends Array<infer U>
-    ? Array<DeepPartial<U>>
+  T extends (infer U)[]
+    ? DeepPartial<U>[]
     : T extends object
       ? { [K in keyof T]?: DeepPartial<T[K]> }
       : T

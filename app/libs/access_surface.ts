@@ -1,9 +1,9 @@
+import { OrganizationRole } from '#constants/organization_constants'
 import {
   ORG_ROLE_PERMISSIONS,
   PROJECT_ROLE_PERMISSIONS,
   SYSTEM_ROLE_PERMISSIONS,
 } from '#constants/permissions'
-import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
 import type { CustomRoleDefinition } from '#types/database'
