@@ -1,11 +1,11 @@
 import type { User } from '../types'
 
-type AuthUserOrganization = {
+interface AuthUserOrganization {
   organization_id: string
   org_role: string
 }
 
-type AuthUserLike = {
+interface AuthUserLike {
   current_organization_id?: string | null
   org_role?: string | null
   system_role?: string | null

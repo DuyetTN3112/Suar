@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { PendingApprovalProps, User } from '../types'
 
 type PendingUsersState = PendingApprovalProps['users']
@@ -39,6 +41,8 @@ export function createPendingApproval(getUsers: () => PendingUsersState) {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
+        preserveState: true,
+        preserveScroll: true,
         onSuccess: () => {
           notificationStore.success('Đã phê duyệt người dùng thành công')
           const newData = users.data.filter((u) => u.id !== user.id)

@@ -1,4 +1,5 @@
 import axios from 'axios'
+
 import {
   FRONTEND_NOTIFICATION_TYPES,
   type FrontendNotificationType,
@@ -43,7 +44,7 @@ interface LatestNotificationsResponse {
 
 function getCsrfToken(): string {
   if (!browser) return ''
-  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+  return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 }
 
 function getHeaders() {
@@ -61,7 +62,7 @@ let loading = $state(false)
 let error = $state<string | null>(null)
 let fetched = $state(false)
 
-async function fetchLatest(limit: number = 10) {
+async function fetchLatest(limit = 10) {
   if (!browser) return
   loading = true
   try {

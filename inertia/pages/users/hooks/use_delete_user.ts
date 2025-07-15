@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/svelte'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -34,6 +36,8 @@ export const useDeleteUser = (authUserId: string) => {
     isDeleting = true
     // Sử dụng Inertia router để gửi request DELETE
     router.delete(`/organizations/users/${currentUserToDelete.id}/remove`, {
+      preserveState: true,
+      preserveScroll: true,
       onBefore: () => {
         // Ngăn xóa tài khoản đang đăng nhập
         if (currentUserToDelete.id === authUserId) {
@@ -48,8 +52,7 @@ export const useDeleteUser = (authUserId: string) => {
         notificationStore.success('Đã xóa người dùng khỏi tổ chức thành công')
         deleteModalOpen = false
         isDeleting = false
-        // Tải lại trang để cập nhật danh sách
-        window.location.reload()
+        router.reload({ only: ['users', 'flash'] })
       },
       onError: (errors: unknown) => {
         console.error('Lỗi khi xóa người dùng:', errors)

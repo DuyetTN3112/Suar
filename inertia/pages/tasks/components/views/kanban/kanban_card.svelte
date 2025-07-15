@@ -1,6 +1,4 @@
 <script lang="ts">
-  import type { Task } from '../../../types.svelte'
-  import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
   import {
     GripVertical,
     Calendar,
@@ -9,13 +7,17 @@
     Clock,
   } from 'lucide-svelte'
 
+  import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
+
+  import type { Task } from '../../../types.svelte'
+
   interface Props {
     task: Task
     displayProperties: TaskDisplayProperties
     metadata: {
-      statuses: Array<{ value: string; label: string; color?: string }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
+      statuses: { value: string; label: string; color?: string }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
     }
     onTaskClick?: (task: Task) => void
     ondragstart?: (e: DragEvent) => void

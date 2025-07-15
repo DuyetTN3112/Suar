@@ -1,5 +1,7 @@
 import { router } from '@inertiajs/svelte'
+
 import type { Task } from '../types.svelte'
+
 import {
   createTaskFiltersStore,
   type TaskFilters,
@@ -27,6 +29,7 @@ export function createTaskStateStore({ initialFilters, metadata }: TasksStatePro
       },
       {
         preserveState: true,
+        preserveScroll: true,
         only: ['tasks'],
       }
     )

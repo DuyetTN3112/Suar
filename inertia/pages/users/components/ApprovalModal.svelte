@@ -1,11 +1,11 @@
 <script lang="ts">
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
@@ -13,6 +13,7 @@
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import type { User } from '../types'
   import { getUserDisplayName } from '../utils/user_utils'
 

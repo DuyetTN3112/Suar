@@ -1,9 +1,12 @@
 <script lang="ts">
-  import Badge from '@/components/ui/badge.svelte'
-  import type { Task } from '../../../types.svelte'
-  import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
-  import KanbanCard from './kanban_card.svelte'
   import { Plus, Trash2, GripVertical } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
+
+  import type { Task } from '../../../types.svelte'
+
+  import KanbanCard from './kanban_card.svelte'
 
   interface Props {
     status: string
@@ -11,9 +14,9 @@
     tasks: Task[]
     displayProperties: TaskDisplayProperties
     metadata: {
-      statuses: Array<{ value: string; label: string; color?: string }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
+      statuses: { value: string; label: string; color?: string }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
     }
     onTaskClick?: (task: Task) => void
     onDropTask: (taskId: string, newStatus: string, sortOrder: number) => void

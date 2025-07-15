@@ -12,11 +12,11 @@ interface User {
  * Kiểm tra xem người dùng có quyền xóa task hay không
  */
 export function canDeleteTask(task: Task, currentUser: User | null | undefined): boolean {
-  if (!currentUser || !currentUser.id) {
+  if (!currentUser?.id) {
     return false
   }
 
-  const userRole = currentUser.role || ''
+  const userRole = currentUser.role ?? ''
   const isSuperAdmin = userRole === 'superadmin'
 
   if (isSuperAdmin) {
@@ -34,7 +34,7 @@ export function canDeleteTask(task: Task, currentUser: User | null | undefined):
     return true
   }
 
-  const creatorId = task.creator_id || (task.creator && task.creator.id)
+  const creatorId = task.creator_id || (task.creator?.id)
   const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
   if (isCreator) {
@@ -58,7 +58,7 @@ export function getRoleFromAuth(): string {
   const authUser = (window as { auth?: { user?: AuthUser } }).auth?.user
   if (!authUser) {
     if (import.meta.env.MODE === 'development') {
-      console.log('Debug - getRoleFromAuth: No auth user found')
+      console.warn('Debug - getRoleFromAuth: No auth user found')
     }
     return ''
   }
@@ -113,7 +113,7 @@ export function getCurrentUserInfo(): {
  * Kiểm tra xem người dùng có quyền chỉnh sửa task hay không
  */
 export function canEditTask(task: Task, currentUser: User | null | undefined): boolean {
-  if (!currentUser || !currentUser.id) {
+  if (!currentUser?.id) {
     return false
   }
 
@@ -135,10 +135,10 @@ export function canEditTask(task: Task, currentUser: User | null | undefined): b
     return true
   }
 
-  const creatorId = task.creator_id || (task.creator && task.creator.id)
+  const creatorId = task.creator_id || (task.creator?.id)
   const isCreator = Boolean(creatorId && creatorId === currentUser.id)
 
-  const assigneeId = task.assigned_to || (task.assignee && task.assignee.id)
+  const assigneeId = task.assigned_to ?? (task.assignee?.id)
   const isAssignee = Boolean(assigneeId && assigneeId === currentUser.id)
 
   return isCreator || isAssignee
