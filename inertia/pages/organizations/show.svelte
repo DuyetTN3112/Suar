@@ -1,25 +1,26 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
+  import { ArrowLeft, Building, Mail, MapPin, Phone, Globe, Calendar } from 'lucide-svelte'
+
+  import Avatar from '@/components/ui/avatar.svelte'
+  import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
+  import AvatarImage from '@/components/ui/avatar_image.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Tabs from '@/components/ui/tabs.svelte'
-  import TabsContent from '@/components/ui/tabs_content.svelte'
-  import TabsList from '@/components/ui/tabs_list.svelte'
-  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
-  import Avatar from '@/components/ui/avatar.svelte'
-  import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
-  import AvatarImage from '@/components/ui/avatar_image.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import { ArrowLeft, Building, Mail, MapPin, Phone, Globe, Calendar } from 'lucide-svelte'
+  import Tabs from '@/components/ui/tabs.svelte'
+  import TabsContent from '@/components/ui/tabs_content.svelte'
+  import TabsList from '@/components/ui/tabs_list.svelte'
+  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
   import { formatDate } from '@/lib/utils'
 
@@ -90,7 +91,7 @@
             </div>
             <CardTitle class="text-center text-2xl">{organization.name}</CardTitle>
             <CardDescription class="text-center">
-              {organization.description || 'Chưa có mô tả'}
+              {organization.description ?? 'Chưa có mô tả'}
             </CardDescription>
           </CardHeader>
 
