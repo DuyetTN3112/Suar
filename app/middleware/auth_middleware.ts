@@ -1,7 +1,8 @@
+import type { Authenticators } from '@adonisjs/auth/types'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import type { Authenticators } from '@adonisjs/auth/types'
-import loggerService from '#services/logger_service'
+
+import loggerService from '#infra/logger/logger_service'
 
 /**
  * Auth Middleware — Xác thực + Batch preload relationships
@@ -23,7 +24,7 @@ export default class AuthMiddleware {
     options: { guards?: (keyof Authenticators)[] } = {}
   ): Promise<void> {
     try {
-      await ctx.auth.authenticateUsing(options.guards || ['web'], {
+      await ctx.auth.authenticateUsing(options.guards ?? ['web'], {
         loginRoute: this.redirectTo,
       })
 

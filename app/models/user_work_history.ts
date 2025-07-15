@@ -1,6 +1,7 @@
-import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
+
 import User from './user.js'
 
 const parseJsonColumn = <T>(value: string | T | null): T | null => {
@@ -80,38 +81,38 @@ export default class UserWorkHistory extends BaseModel {
   declare days_early_or_late: number | null
 
   @column({
-    prepare: (value: Array<Record<string, unknown>> | null) => JSON.stringify(value ?? []),
-    consume: (value: string | Array<Record<string, unknown>> | null) =>
-      parseJsonColumn<Array<Record<string, unknown>>>(value) ?? [],
+    prepare: (value: Record<string, unknown>[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | Record<string, unknown>[] | null) =>
+      parseJsonColumn<Record<string, unknown>[]>(value) ?? [],
   })
-  declare measurable_outcomes: Array<Record<string, unknown>>
+  declare measurable_outcomes: Record<string, unknown>[]
 
   @column()
   declare estimated_business_value: string | null
 
   @column({
-    prepare: (value: Array<Record<string, unknown>> | null) => JSON.stringify(value ?? []),
-    consume: (value: string | Array<Record<string, unknown>> | null) =>
-      parseJsonColumn<Array<Record<string, unknown>>>(value) ?? [],
+    prepare: (value: Record<string, unknown>[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | Record<string, unknown>[] | null) =>
+      parseJsonColumn<Record<string, unknown>[]>(value) ?? [],
   })
-  declare knowledge_artifacts: Array<Record<string, unknown>>
+  declare knowledge_artifacts: Record<string, unknown>[]
 
   @column()
   declare overall_quality_score: number | null
 
   @column({
-    prepare: (value: Array<Record<string, unknown>> | null) => JSON.stringify(value ?? []),
-    consume: (value: string | Array<Record<string, unknown>> | null) =>
-      parseJsonColumn<Array<Record<string, unknown>>>(value) ?? [],
+    prepare: (value: Record<string, unknown>[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | Record<string, unknown>[] | null) =>
+      parseJsonColumn<Record<string, unknown>[]>(value) ?? [],
   })
-  declare skill_scores: Array<Record<string, unknown>>
+  declare skill_scores: Record<string, unknown>[]
 
   @column({
-    prepare: (value: Array<Record<string, unknown>> | null) => JSON.stringify(value ?? []),
-    consume: (value: string | Array<Record<string, unknown>> | null) =>
-      parseJsonColumn<Array<Record<string, unknown>>>(value) ?? [],
+    prepare: (value: Record<string, unknown>[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | Record<string, unknown>[] | null) =>
+      parseJsonColumn<Record<string, unknown>[]>(value) ?? [],
   })
-  declare evidence_links: Array<Record<string, unknown>>
+  declare evidence_links: Record<string, unknown>[]
 
   @column()
   declare is_featured: boolean
