@@ -5,8 +5,9 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import type { HTMLInputAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = Omit<HTMLInputAttributes, 'value'> & {
     class?: string

@@ -19,7 +19,7 @@
   import { Select as SelectPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  interface Props {
     type?: 'single'
     value?: string
     open?: boolean

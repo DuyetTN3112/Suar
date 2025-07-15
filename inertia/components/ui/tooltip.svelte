@@ -14,7 +14,7 @@
   import { Tooltip as TooltipPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  interface Props {
     children?: Snippet
     [key: string]: unknown
   }

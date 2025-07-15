@@ -1,6 +1,7 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
   import { Building } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'

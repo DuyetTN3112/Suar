@@ -1,11 +1,12 @@
 <script lang="ts">
+  import { Link } from '@inertiajs/svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { Link } from '@inertiajs/svelte'
 
   interface User {
     id: string
@@ -104,7 +105,7 @@
             </div>
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Email</dt>
-              <dd class="mt-1 text-sm text-foreground">{user.email || 'Chưa cung cấp'}</dd>
+              <dd class="mt-1 text-sm text-foreground">{user.email ?? 'Chưa cung cấp'}</dd>
             </div>
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Vai trò hệ thống</dt>

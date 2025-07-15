@@ -32,8 +32,8 @@ export function formatVnd(value: number): string {
 export function generateBankQrString(
   bankCode: string,
   bankAccountNumber: string,
-  amount: string = '',
-  content: string = ''
+  amount = '',
+  content = ''
 ): string {
   const fixedAccountType = 'QRIBFTTA'
   const initMode = '000201'

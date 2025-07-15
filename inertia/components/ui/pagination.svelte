@@ -1,9 +1,10 @@
 <script lang="ts">
-  import Button from './button.svelte'
-  import { ChevronLeft, ChevronRight } from 'lucide-svelte'
   import { router } from '@inertiajs/svelte'
+  import { ChevronLeft, ChevronRight } from 'lucide-svelte'
 
-  type Props = {
+  import Button from './button.svelte'
+
+  interface Props {
     currentPage: number
     totalPages: number
     baseUrl: string
