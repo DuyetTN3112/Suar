@@ -1,7 +1,8 @@
 <script lang="ts">
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import Button from '@/components/ui/button.svelte'
   import { CircleCheck } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
 
   interface Props {
     canDelete: boolean

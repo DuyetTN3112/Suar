@@ -2,10 +2,11 @@
   /**
    * ReviewerInfo — displays reviewer avatar + name + type badge.
    */
-  import Badge from '@/components/ui/badge.svelte'
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
+  import Badge from '@/components/ui/badge.svelte'
+
   import type { SerializedUser, ReviewerType } from '../types.svelte'
   import { REVIEWER_TYPE_CONFIG } from '../types.svelte'
 

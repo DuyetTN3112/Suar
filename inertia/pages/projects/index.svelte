@@ -1,33 +1,36 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+  import { Building, ArrowRight } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Table from '@/components/ui/table.svelte'
-  import TableHeader from '@/components/ui/table_header.svelte'
-  import TableBody from '@/components/ui/table_body.svelte'
-  import TableRow from '@/components/ui/table_row.svelte'
-  import TableHead from '@/components/ui/table_head.svelte'
-  import TableCell from '@/components/ui/table_cell.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
+  import DialogDescription from '@/components/ui/dialog_description.svelte'
+  import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import DialogDescription from '@/components/ui/dialog_description.svelte'
-  import { Building, ArrowRight } from 'lucide-svelte'
   import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
-  import type { ProjectsIndexProps } from './types'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import Table from '@/components/ui/table.svelte'
+  import TableBody from '@/components/ui/table_body.svelte'
+  import TableCell from '@/components/ui/table_cell.svelte'
+  import TableHead from '@/components/ui/table_head.svelte'
+  import TableHeader from '@/components/ui/table_header.svelte'
+  import TableRow from '@/components/ui/table_row.svelte'
+  import { FRONTEND_ROUTES, getProjectDetailRoute } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { formatDate } from '@/lib/utils'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
   import ProjectDetailModal from './components/project_detail_modal.svelte'
+  import type { ProjectsIndexProps } from './types'
 
   const { t } = useTranslation()
 
@@ -62,7 +65,7 @@
       showOrganizationModal = true
       return
     }
-    router.get('/projects/create')
+    router.get(FRONTEND_ROUTES.PROJECTS_CREATE)
   }
 
   function handleViewProject(id: string) {
@@ -72,7 +75,10 @@
 
   function handleDeleteProject(id: string) {
     if (confirm(t('common.confirm_delete', {}, 'Bạn có chắc chắn muốn xóa?'))) {
-      router.delete(`/projects/${id}`)
+      router.delete(getProjectDetailRoute(id), {
+        preserveState: true,
+        preserveScroll: true,
+      })
     }
   }
 
@@ -80,11 +86,11 @@
     detailModalOpen = false
     selectedProjectId = undefined
     // Refresh projects list
-    router.visit('/projects', { replace: true })
+    router.visit(FRONTEND_ROUTES.PROJECTS, { replace: true })
   }
 
   function handleGoToOrganizations() {
-    router.get('/organizations')
+    router.get(FRONTEND_ROUTES.ORGANIZATIONS)
   }
 
   interface SwitchOrganizationResponse {
@@ -98,9 +104,9 @@
 
     try {
       const csrfToken =
-        document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+        document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
 
-      const response = await fetch('/switch-organization', {
+      const response = await fetch(FRONTEND_ROUTES.SWITCH_ORGANIZATION, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -114,12 +120,12 @@
 
       const payload = (await response.json()) as SwitchOrganizationResponse
       if (!response.ok || !payload.success) {
-        notificationStore.error(payload.message || 'Không thể chuyển tổ chức')
+        notificationStore.error(payload.message ?? 'Không thể chuyển tổ chức')
         return
       }
 
-      notificationStore.success(payload.message || 'Đã chuyển tổ chức')
-      router.visit(payload.redirect || '/tasks', {
+      notificationStore.success(payload.message ?? 'Đã chuyển tổ chức')
+      router.visit(payload.redirect ?? FRONTEND_ROUTES.TASKS, {
         preserveState: false,
         preserveScroll: false,
         replace: true,
@@ -150,7 +156,7 @@
         >
           <SelectTrigger>
             <span>
-              {organizations.find((org) => org.id === selectedOrganizationId)?.name || 'Chọn tổ chức'}
+              {organizations.find((org) => org.id === selectedOrganizationId)?.name ?? 'Chọn tổ chức'}
             </span>
           </SelectTrigger>
           <SelectContent>
@@ -202,7 +208,7 @@
                       {project.status}
                     </span>
                   </TableCell>
-                  <TableCell>{project.manager_name || '-'}</TableCell>
+                  <TableCell>{project.manager_name ?? '-'}</TableCell>
                   <TableCell>{project.start_date ? formatDate(project.start_date) : '-'}</TableCell>
                   <TableCell>{project.end_date ? formatDate(project.end_date) : '-'}</TableCell>
                   <TableCell class="text-right">

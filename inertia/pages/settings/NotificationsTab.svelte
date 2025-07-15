@@ -1,12 +1,13 @@
 <script lang="ts">
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Label from '@/components/ui/label.svelte'
   import Checkbox from '@/components/ui/checkbox.svelte'
+  import Label from '@/components/ui/label.svelte'
+
   import type { NotificationsTabProps } from './types'
 
   const { form, onSubmit, processing }: NotificationsTabProps = $props()

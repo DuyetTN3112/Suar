@@ -107,11 +107,11 @@
   )
 
   function goToReviews() {
-    router.get(`/users/${user.id}/reviews`)
+    navigateToUserReviews(user.id)
   }
 
   function goToEditProfile() {
-    router.get('/profile/edit')
+    navigateToProfileEdit()
   }
 </script>
 
@@ -196,119 +196,15 @@
       </div>
     </section>
 
-    <section class="grid gap-3 xl:grid-cols-2">
-      <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Chi tiết kỹ năng</p>
+    <ProfileSkillsAndChartsSection
+      groupedSkills={normalizedGroupedSkills}
+      {spiderChartData}
+      {neoBrutalCard}
+    />
 
-        {#if effectiveGroupedSkills.length === 0}
-          <p class="text-sm font-semibold text-muted-foreground">Chưa có kỹ năng nào</p>
-        {:else}
-          <div class="space-y-4">
-            {#each effectiveGroupedSkills as group (group.code)}
-              <div class="space-y-1">
-                <div class="flex items-center gap-2 border-b-2 border-border pb-1">
-                  <span class="h-2 w-2 rounded-full {group.dotClass}"></span>
-                  <span class="text-[11px] font-black uppercase tracking-wide {group.textClass}">{group.title}</span>
-                </div>
-
-                {#each group.items as skill (skill.id)}
-                  <div class="flex items-center justify-between gap-2 border-b border-dashed border-border/60 py-1 text-xs {skill.total_reviews === 0 ? 'opacity-60' : ''}">
-                    <span class="flex items-center gap-1 font-bold">
-                      {skill.skill_name}
-                      {#if skill.total_reviews === 0}
-                        <span class="rounded border border-border px-1 text-[9px]">tự khai</span>
-                      {/if}
-                    </span>
-                    <span class="rounded-full border-2 border-border px-2 py-0.5 text-[10px] font-black shadow-neo-sm {getProfileLevelClass(skill.level_code)}">{getProfileLevelLabel(skill.level_code)}</span>
-                  </div>
-                {/each}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-
-      <div class={neoBrutalCard}>
-        <p class="mb-3 text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">Biểu đồ kỹ năng</p>
-
-        <div class="space-y-4">
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-magenta"></span>Kỹ thuật</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-magenta">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.technical}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-
-          <div class="border-t-2 border-border pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-blue"></span>Kỹ năng mềm</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-blue">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.soft_skills}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-
-          <div class="border-t-2 border-border pt-4">
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] font-bold text-muted-foreground">
-              <div class="flex items-center gap-1"><span class="h-2 w-2 rounded-full neo-dot-orange"></span>Delivery</div>
-              <div class="flex items-center gap-3 text-[10px]"><span class="neo-text-orange">Đã review</span></div>
-            </div>
-            <div class="min-h-[220px]">
-              <SpiderChart
-                softSkills={spiderChartData.delivery}
-                softSkillsLabel="Đã review"
-                size={300}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="neo-hero-blue rounded-[10px] p-4">
-      <div class="mb-2 flex items-center justify-between gap-2">
-        <p class="text-[10px] font-black uppercase tracking-[0.18em] text-white">Đánh giá nổi bật</p>
-        <span class="neo-pill-ink rounded-full px-2 py-0.5 text-[10px] font-black">{totalReviews} đánh giá</span>
-      </div>
-
-      {#if featuredReviews.length === 0}
-        <p class="border-t-2 border-white pt-2 text-sm font-semibold text-white">Chưa có đánh giá nổi bật để hiển thị.</p>
-      {:else}
-        <div class="grid gap-3 md:grid-cols-2">
-          {#each featuredReviews as item (item.skill_id)}
-            <article class="border-t-2 border-white pt-2">
-              <div class="mb-1 flex items-center gap-2">
-                <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-border bg-background text-[10px] font-black text-foreground">
-                  {item.skill_name.slice(0, 2).toUpperCase()}
-                </div>
-                <div>
-                  <p class="text-xs font-black text-white">{item.reviewer_name}</p>
-                  <p class="text-[10px] font-semibold text-white/75">{item.reviewer_role}</p>
-                </div>
-                <div class="ml-auto flex gap-1" aria-label={`${item.stars} stars`}>
-                  {#each Array.from({ length: 5 }) as _, i}
-                    <span class={i < item.stars ? 'text-orange-300' : 'text-white/30'}>★</span>
-                  {/each}
-                </div>
-              </div>
-              <p class="text-xs font-semibold text-white">{item.content}</p>
-              <p class="mt-1 text-[10px] font-semibold text-white/75">{item.task_name}</p>
-            </article>
-          {/each}
-        </div>
-      {/if}
-    </section>
+    <ProfileFeaturedReviewsSection
+      featuredReviews={featuredReviews}
+      reviewedSkillsCount={totalReviews}
+    />
   </div>
 </AppLayout>

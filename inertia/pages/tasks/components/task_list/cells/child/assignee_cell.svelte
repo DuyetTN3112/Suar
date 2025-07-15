@@ -13,7 +13,7 @@
 
   const assigneeLabel = $derived(
     assignee
-      ? assignee.username || assignee.email || (assignee.id ? `User #${assignee.id}` : 'Chưa gán')
+      ? (assignee.username ?? assignee.email) ?? (assignee.id ? `User #${assignee.id}` : 'Chưa gán')
       : 'Chưa gán'
   )
 </script>

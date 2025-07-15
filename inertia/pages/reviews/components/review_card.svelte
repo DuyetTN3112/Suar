@@ -3,13 +3,16 @@
    * ReviewCard — displays a review session summary in a card layout.
    * Used in pending.svelte and my-reviews.svelte.
    */
+  import { ClipboardCheck, User, Calendar } from 'lucide-svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import ReviewStatusBadge from './review_status_badge.svelte'
-  import { ClipboardCheck, User, Calendar } from 'lucide-svelte'
+
   import type { SerializedReviewSession } from '../types.svelte'
+
+  import ReviewStatusBadge from './review_status_badge.svelte'
 
   interface Props {
     review: SerializedReviewSession

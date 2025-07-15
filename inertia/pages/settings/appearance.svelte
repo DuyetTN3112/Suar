@@ -1,13 +1,15 @@
 <script lang="ts">
   import { router, page } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Label from '@/components/ui/label.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTheme, type Theme } from '@/stores/theme.svelte'
 
   interface AppearanceUserData {
@@ -37,13 +39,13 @@
   let theme = $state<Theme>('light')
   let formInitialized = $state(false)
 
-  const themeOptions: Array<{
+  const themeOptions: {
     value: Theme
     title: string
     description: string
     previewClass: string
     lineClass: string
-  }> = [
+  }[] = [
     {
       value: 'light',
       title: 'Sáng',
@@ -80,10 +82,12 @@
 
   function handleSubmit(e: Event) {
     e.preventDefault()
-    router.post('/settings/appearance', {
+    router.post(FRONTEND_ROUTES.SETTINGS_APPEARANCE, {
       theme,
       font: 'brand'
     }, {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         setTheme(theme)
       }

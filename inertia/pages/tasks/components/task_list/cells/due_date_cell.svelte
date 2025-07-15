@@ -1,6 +1,7 @@
 <script lang="ts">
-  import type { Task } from '../../../types.svelte'
   import { CalendarIcon } from 'lucide-svelte'
+
+  import type { Task } from '../../../types.svelte'
 
   interface Props {
     task: Task

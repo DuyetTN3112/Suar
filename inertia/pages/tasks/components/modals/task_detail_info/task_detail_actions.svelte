@@ -1,7 +1,9 @@
 <script lang="ts">
-  import Button from '@/components/ui/button.svelte'
-  import type { Task } from '../../../types.svelte'
   import { Save, Trash2, CircleCheckBig, CircleAlert } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
+
+  import type { Task } from '../../../types.svelte'
 
   interface TaskActionResponse {
     data?: Task
@@ -46,7 +48,7 @@
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'X-CSRF-TOKEN':
-            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
         },
         body: JSON.stringify({ task_status_id: completedStatus }),
       })
@@ -58,7 +60,7 @@
         }
       } else {
         const payload = (await response.json()) as TaskActionResponse
-        setErrors(payload.errors || {})
+        setErrors(payload.errors ?? {})
       }
     } catch (error) {
       console.error('Lỗi khi cập nhật trạng thái nhiệm vụ:', error)
@@ -79,7 +81,7 @@
           'Content-Type': 'application/json',
           'Accept': 'application/json',
           'X-CSRF-TOKEN':
-            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? '',
         },
       })
 
@@ -89,7 +91,7 @@
         }
       } else {
         const payload = (await response.json()) as TaskActionResponse
-        setErrors(payload.errors || {})
+        setErrors(payload.errors ?? {})
         console.error('Lỗi khi xóa nhiệm vụ:', payload)
       }
     } catch (error) {

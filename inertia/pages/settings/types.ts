@@ -1,4 +1,4 @@
-export type UserSettings = {
+export interface UserSettings {
   id?: string
   userId?: string
   theme?: 'light' | 'dark' | 'system'
@@ -9,36 +9,36 @@ export type UserSettings = {
   updated_at?: string
 }
 
-export type User = {
+export interface User {
   id: string
   email: string
   username: string
 }
 
-export type SettingsProps = {
+export interface SettingsProps {
   user: User
   settings: UserSettings
 }
 
-export type ProfileFormData = {
+export interface ProfileFormData {
   username: string
   email: string
 }
 
-export type AccountFormData = {
+export interface AccountFormData {
   email: string
 }
 
-export type AppearanceFormData = {
+export interface AppearanceFormData {
   theme: 'light' | 'dark' | 'system'
 }
 
-export type NotificationsFormData = {
+export interface NotificationsFormData {
   emailNotifications: boolean
   pushNotifications: boolean
 }
 
-export type FormProps = {
+export interface FormProps {
   onSubmit: (e: SubmitEvent) => void
   processing: boolean
 }

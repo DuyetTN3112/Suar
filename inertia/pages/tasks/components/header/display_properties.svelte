@@ -1,8 +1,7 @@
 <script lang="ts">
   import Checkbox from '@/components/ui/checkbox.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import type { TaskDisplayProperties } from '@/stores/tasks.svelte'
+  import type { TaskStore, TaskDisplayProperties  } from '@/stores/tasks.svelte'
+    import { useTranslation } from '@/stores/translation.svelte'
 
   interface Props {
     store: TaskStore
@@ -11,7 +10,7 @@
   const { store }: Props = $props()
   const { t } = useTranslation()
 
-  const properties: Array<{ key: keyof TaskDisplayProperties; label: string }> = [
+  const properties: { key: keyof TaskDisplayProperties; label: string }[] = [
     { key: 'status', label: t('task.status', {}, 'Trạng thái') },
     { key: 'priority', label: t('task.priority', {}, 'Ưu tiên') },
     { key: 'label', label: t('task.label', {}, 'Nhãn') },

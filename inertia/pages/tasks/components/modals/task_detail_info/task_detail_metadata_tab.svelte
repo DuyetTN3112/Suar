@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { formatDate } from '../../../utils/task_formatter.svelte'
-  import type { Task } from '../../../types.svelte'
   import {
     Calendar,
     User,
@@ -13,20 +11,23 @@
     Timer
   } from 'lucide-svelte'
 
+  import type { Task } from '../../../types.svelte'
+  import { formatDate } from '../../../utils/task_formatter.svelte'
+
   interface Props {
     task: Task
-    users?: Array<{
+    users?: {
       id: string
       username: string
       email: string
-    }>
+    }[]
   }
 
   const props: Props = $props()
 
   const creator = $derived(props.users?.find((user) => user.id === props.task.creator_id))
   const assignee = $derived(props.users?.find((user) => user.id === props.task.assigned_to))
-  const childTasksCount = $derived(props.task.childTasks?.length || 0)
+  const childTasksCount = $derived(props.task.childTasks?.length ?? 0)
 
   function getUserInitials(user?: { username: string; email: string }): string {
     if (!user) return '?'
@@ -149,7 +150,7 @@
         <Briefcase class="h-4 w-4 mr-2 text-muted-foreground mt-0.5" />
         <div>
           <p class="text-xs font-medium text-muted-foreground">Tổ chức</p>
-          <p class="text-sm">{props.task.organization?.name || (props.task.organization_id ? `ID: ${props.task.organization_id}` : 'Không có')}</p>
+          <p class="text-sm">{props.task.organization?.name ?? (props.task.organization_id ? `ID: ${props.task.organization_id}` : 'Không có')}</p>
         </div>
       </div>
 
