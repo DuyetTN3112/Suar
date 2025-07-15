@@ -14,6 +14,7 @@ import {
   // DateTime,
   Settings,
 } from 'luxon'
+
 import env from './env.js'
 
 /**
@@ -111,7 +112,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
   if (isShuttingDown) return
   isShuttingDown = true
 
-  console.log(`\n🔄 Received ${signal}, starting graceful shutdown...`)
+  console.warn(`\n🔄 Received ${signal}, starting graceful shutdown...`)
 
   try {
     // Import services dynamically để tránh circular deps
@@ -119,14 +120,14 @@ async function gracefulShutdown(signal: string): Promise<void> {
     const { default: db } = await import('@adonisjs/lucid/services/db')
 
     // Close Redis connections
-    console.log('📦 Closing Redis connections...')
+    console.warn('📦 Closing Redis connections...')
     await redis.quit()
 
     // Close Database connections
-    console.log('🗄️  Closing database connections...')
+    console.warn('🗄️  Closing database connections...')
     await db.manager.closeAll()
 
-    console.log('✅ Graceful shutdown completed')
+    console.warn('✅ Graceful shutdown completed')
     process.exit(0)
   } catch (error) {
     console.error('❌ Error during graceful shutdown:', error)
@@ -149,7 +150,7 @@ process.on('SIGINT', () => {
 // (process.on + process.kill(SIGUSR2) = infinite loop)
 process.once('SIGUSR2', () => {
   void (async () => {
-    console.log('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
+    console.warn('\n🔥 Hot reload detected (SIGUSR2), cleaning up...')
     try {
       const { default: redis } = await import('@adonisjs/redis/services/main')
       const { default: db } = await import('@adonisjs/lucid/services/db')
@@ -157,7 +158,7 @@ process.once('SIGUSR2', () => {
       await redis.quit()
       await db.manager.closeAll()
 
-      console.log('✅ Cleanup completed, restarting...')
+      console.warn('✅ Cleanup completed, restarting...')
       process.kill(process.pid, 'SIGUSR2')
     } catch (error) {
       console.error('❌ Error during hot reload cleanup:', error)
@@ -176,7 +177,7 @@ if (import.meta.hot) {
   const hmr = import.meta.hot as { dispose: (cb: () => void) => void }
   hmr.dispose(() => {
     void (async () => {
-      console.log('🔥 HMR: Disposing kernel module...')
+      console.warn('🔥 HMR: Disposing kernel module...')
       try {
         const { default: redis } = await import('@adonisjs/redis/services/main')
         const { default: db } = await import('@adonisjs/lucid/services/db')
@@ -184,7 +185,7 @@ if (import.meta.hot) {
         await redis.quit()
         await db.manager.closeAll()
 
-        console.log('✅ HMR cleanup completed')
+        console.warn('✅ HMR cleanup completed')
       } catch (error) {
         console.error('❌ Error during HMR cleanup:', error)
       }

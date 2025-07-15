@@ -1,4 +1,9 @@
 import { test } from '@japa/runner'
+
+import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
+import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
+import AuditLog from '#models/mongo/audit_log'
+import ReviewSession from '#models/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -7,10 +12,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
-import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
-import ReviewSession from '#models/review_session'
-import AuditLog from '#models/mongo/audit_log'
 import { ExecutionContext } from '#types/execution_context'
 
 async function createAssignment(assignmentStatus: 'active' | 'completed') {
