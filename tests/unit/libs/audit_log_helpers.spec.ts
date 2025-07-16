@@ -1,4 +1,6 @@
 import { test } from '@japa/runner'
+
+import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   pickAuditFields,
   createAuditDescription,
@@ -7,7 +9,6 @@ import {
   prepareDeleteManyLog,
   maskSensitiveFields,
 } from '#libs/audit_log_helpers'
-import { AuditAction, EntityType } from '#constants/audit_constants'
 
 test.group('Audit log helpers', () => {
   test('selection and description helpers keep audit payloads focused and readable', ({

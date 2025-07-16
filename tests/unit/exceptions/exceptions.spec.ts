@@ -1,11 +1,12 @@
 import { test } from '@japa/runner'
-import NotFoundException from '#exceptions/not_found_exception'
-import ValidationException from '#exceptions/validation_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
 import RateLimitException from '#exceptions/rate_limit_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import ValidationException from '#exceptions/validation_exception'
 
 test.group('Exception contracts', () => {
   test('constructors and not-found factories expose canonical HTTP status contracts', ({

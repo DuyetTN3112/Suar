@@ -1,4 +1,7 @@
 import { test } from '@japa/runner'
+
+import { OrganizationUserStatus } from '#constants/organization_constants'
+import { SystemRoleName } from '#constants/user_constants'
 import {
   canApproveUser,
   canAccessAllowedSystemRoles,
@@ -9,8 +12,6 @@ import {
   canToggleAdminMode,
   validateSystemRole,
 } from '#domain/users/user_management_rules'
-import { SystemRoleName } from '#constants/user_constants'
-import { OrganizationUserStatus } from '#constants/organization_constants'
 
 test.group('User management rules', () => {
   test('approval and role validation only allow declared admin workflows', ({ assert }) => {

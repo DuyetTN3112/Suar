@@ -1,11 +1,12 @@
-import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import UserProfileSnapshot from '#models/user_profile_snapshot'
 import db from '@adonisjs/lucid/services/db'
+import { test } from '@japa/runner'
+
 import GetPublicProfileSnapshotQuery, {
   GetPublicProfileSnapshotDTO,
 } from '#actions/users/queries/get_public_profile_snapshot_query'
+import UserProfileSnapshot from '#models/user_profile_snapshot'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
 async function checkProfileSnapshotTable(): Promise<boolean> {
