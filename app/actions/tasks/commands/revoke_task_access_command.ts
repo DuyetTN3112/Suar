@@ -1,9 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {

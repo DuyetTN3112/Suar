@@ -1,8 +1,8 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
 import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
