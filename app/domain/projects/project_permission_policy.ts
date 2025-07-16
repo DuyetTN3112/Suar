@@ -24,9 +24,9 @@ import type {
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
 import { SystemRoleName } from '#constants/user_constants'
-import { isSameId } from '#domain/shared/id_utils'
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import { isSameId } from '#domain/identifiers/id_utils'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 import type { DatabaseId } from '#types/database'
 
 // ============================================================================
@@ -69,6 +69,28 @@ export function canCreateProject(ctx: {
   if (ctx.isOrgAdminOrOwner) return PR.allow()
 
   return PR.deny('Chỉ org_admin và org_owner mới có thể tạo project')
+}
+
+/**
+ * Check whether a project can be accessed from the current organization scope.
+ */
+export function canAccessProjectOrganizationScope(ctx: {
+  requestedOrganizationId: DatabaseId | null
+  projectOrganizationId: DatabaseId
+}): PolicyResult {
+  if (!ctx.requestedOrganizationId) return PR.allow()
+  if (isSameId(ctx.requestedOrganizationId, ctx.projectOrganizationId)) return PR.allow()
+
+  return PR.deny('Bạn không có quyền truy cập dự án ngoài tổ chức hiện tại')
+}
+
+/**
+ * Check whether actor can view project members.
+ */
+export function canViewProjectMembers(ctx: { hasProjectAccess: boolean }): PolicyResult {
+  if (ctx.hasProjectAccess) return PR.allow()
+
+  return PR.deny('Bạn không có quyền xem danh sách thành viên của dự án này')
 }
 
 /**

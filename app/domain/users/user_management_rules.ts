@@ -15,9 +15,9 @@ import type {
 
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import { SystemRoleName } from '#constants/user_constants'
-import { isSameId } from '#domain/shared/id_utils'
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import { isSameId } from '#domain/identifiers/id_utils'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 
 const SYSTEM_ADMIN_ROLES = new Set<string>([SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN])
 
@@ -140,6 +140,13 @@ export function canAccessUserAdministrationQueue(input: {
   }
 
   return PR.deny('Bạn không có quyền truy cập khu vực quản trị người dùng')
+}
+
+export function canAccessSystemUsersList(input: {
+  actorSystemRole: string | null
+  actorOrgRole: string | null
+}): PolicyResult {
+  return canAccessUserAdministrationQueue(input)
 }
 
 /**

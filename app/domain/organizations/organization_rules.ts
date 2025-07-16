@@ -1,5 +1,5 @@
-import type { PolicyResult } from '#domain/shared/policy_result'
-import { PolicyResult as PR } from '#domain/shared/policy_result'
+import type { PolicyResult } from '#domain/policies/policy_result'
+import { PolicyResult as PR } from '#domain/policies/policy_result'
 
 export interface OrganizationCreationContext {
   actorIsActive: boolean

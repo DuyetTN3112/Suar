@@ -6,6 +6,34 @@
 
 import type { DatabaseId } from '#types/database'
 
+export type OrgRole = 'org_owner' | 'org_admin' | 'org_member'
+
+export type MembershipContext = {
+  readonly userId: DatabaseId
+  readonly organizationId: DatabaseId
+  readonly role: OrgRole
+} | null
+
+export function toOrgRole(value: string | null | undefined): OrgRole | null {
+  if (value === 'org_owner' || value === 'org_admin' || value === 'org_member') {
+    return value
+  }
+
+  return null
+}
+
+export function isOrgOwner(role: OrgRole | null | undefined): boolean {
+  return role === 'org_owner'
+}
+
+export function isOrgAdminOrAbove(role: OrgRole | null | undefined): boolean {
+  return role === 'org_owner' || role === 'org_admin'
+}
+
+export function isAnyOrgMember(role: OrgRole | null | undefined): role is OrgRole {
+  return role !== null && role !== undefined
+}
+
 /**
  * Context for ownership transfer decision.
  */
