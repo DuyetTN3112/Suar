@@ -3,14 +3,17 @@ import redis from '@adonisjs/redis/services/main'
 import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
 import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
+import {
+  buildAuditUserMap,
+  formatAuditChanges,
+  listAuditLogsByEntity,
+} from '#actions/audit/read_audit_logs'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { calculateTaskPermissions, canViewTask } from '#domain/tasks/task_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import loggerService from '#infra/logger/logger_service'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -76,17 +79,8 @@ export default class GetTaskDetailQuery {
    * Load audit logs
    */
   private async loadAuditLogs(taskId: DatabaseId, limit: number): Promise<unknown[]> {
-    const auditRepo = await RepositoryFactory.getAuditLogRepository()
-    const { data: logs } = await auditRepo.findMany({
-      entity_type: 'task',
-      entity_id: taskId,
-      limit,
-    })
-
-    // Load users from PostgreSQL
-    const userIds = [...new Set(logs.map((l) => l.user_id).filter(Boolean))] as string[]
-    const users = await UserRepository.findByIds(userIds, ['id', 'username', 'email'])
-    const userMap = new Map(users.map((u) => [u.id, u]))
+    const logs = await listAuditLogsByEntity('task', taskId, limit)
+    const userMap = await buildAuditUserMap(logs, ['id', 'username', 'email'])
 
     return logs.map((log) => {
       const user = userMap.get(log.user_id ?? '')
@@ -96,36 +90,14 @@ export default class GetTaskDetailQuery {
         user: user
           ? {
               id: user.id,
-              name: user.username || 'Unknown',
+              name: user.username ?? 'Unknown',
               email: user.email ?? '',
             }
           : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
+        changes: formatAuditChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
-  }
-
-  /**
-   * Format changes for audit log
-   */
-  private formatChanges(
-    oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>
-  ): { field: string; oldValue: unknown; newValue: unknown }[] {
-    const changes: { field: string; oldValue: unknown; newValue: unknown }[] = []
-
-    for (const key in newValues) {
-      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
-        changes.push({
-          field: key,
-          oldValue: oldValues[key],
-          newValue: newValues[key],
-        })
-      }
-    }
-
-    return changes
   }
 
   private ensureUserId(): DatabaseId {

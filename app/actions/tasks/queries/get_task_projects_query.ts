@@ -1,4 +1,5 @@
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -6,6 +7,6 @@ import type { DatabaseId } from '#types/database'
  */
 export default class GetTaskProjectsQuery {
   async execute(organizationId: DatabaseId): Promise<{ id: string; name: string }[]> {
-    return ProjectRepository.listSimpleByOrganization(organizationId)
+    return DefaultTaskDependencies.project.listProjectsByOrganization(organizationId)
   }
 }
