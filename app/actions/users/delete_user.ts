@@ -1,4 +1,4 @@
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import UserRepository from '#infra/users/repositories/user_repository'
 import type { ExecutionContext } from '#types/execution_context'

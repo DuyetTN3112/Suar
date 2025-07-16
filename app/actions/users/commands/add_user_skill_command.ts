@@ -11,8 +11,9 @@ import {
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import { del as deleteCacheKey } from '#infra/cache/cache_service'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
 import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * Command to add a skill to user's profile
@@ -27,7 +28,7 @@ export default class AddUserSkillCommand extends BaseCommand<
       const userId = this.getCurrentUserId()
 
       // Verify skill exists and is active
-      const [skill] = await SkillRepository.findActiveByIds([dto.skill_id], trx)
+      const skill = await DefaultUserDependencies.skill.findActiveSkillById(dto.skill_id, trx)
 
       if (!skill) {
         throw new BusinessLogicException('Skill không tồn tại hoặc đã bị vô hiệu hóa')

@@ -1,9 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import CreateAuditLog from '#actions/common/create_audit_log'
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
@@ -14,9 +14,10 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import loggerService from '#infra/logger/logger_service'
 import UserRepository from '#infra/users/repositories/user_repository'
 import type User from '#models/user'
-import PermissionService from '#services/permission_service'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * DTO for deactivating a user
@@ -52,7 +53,10 @@ export default class DeactivateUserCommand {
 
     try {
       // 1-2. Check permissions via pure rule
-      const isSuperadmin = await PermissionService.isSystemSuperadmin(adminUserId, trx)
+      const isSuperadmin = await DefaultUserDependencies.permission.isSystemSuperadmin(
+        adminUserId,
+        trx
+      )
       enforcePolicy(
         canDeactivateUser({
           actorId: adminUserId,

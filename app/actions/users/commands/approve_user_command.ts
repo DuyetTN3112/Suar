@@ -3,11 +3,10 @@ import emitter from '@adonisjs/core/services/emitter'
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
 
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { canApproveUser } from '#domain/users/user_management_rules'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import PermissionService from '#services/permission_service'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * ApproveUserCommand
@@ -29,12 +28,12 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
    */
   async handle(dto: ApproveUserDTO): Promise<void> {
     // 1-2. Verify permission and status via pure rule
-    const hasPermission = await PermissionService.checkOrgPermission(
+    const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
       dto.approverId,
       dto.organizationId,
       'can_approve_members'
     )
-    const membership = await OrganizationUserRepository.findMembership(
+    const membership = await DefaultUserDependencies.organizationMembership.findMembershipStatus(
       dto.userId,
       dto.organizationId
     )
@@ -47,10 +46,9 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     )
 
     // 3. Update user status to approved
-    await OrganizationUserRepository.updateStatus(
+    await DefaultUserDependencies.organizationMembership.approveMembership(
       dto.userId,
-      dto.organizationId,
-      OrganizationUserStatus.APPROVED
+      dto.organizationId
     )
 
     // 4. Log the approval
