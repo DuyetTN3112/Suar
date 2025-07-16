@@ -1,0 +1,22 @@
+{
+  "extends": "./inertia/tsconfig.json",
+  "compilerOptions": {
+    "ignoreDeprecations": "6.0",
+    "rootDir": "./inertia",
+    "composite": true,
+    "outDir": "./.cache/inertia/build",
+    "declarationDir": "./.cache/inertia/types",
+    "tsBuildInfoFile": "./.cache/tsconfig.inertia.tsbuildinfo",
+    "paths": {
+      "~/generated/*": ["./inertia/generated/*"]
+    }
+  },
+  "include": [
+    "./inertia/**/*.ts",
+    "./inertia/**/*.svelte",
+    "./inertia/tests/component/**/*.ts",
+    "./inertia/tests/e2e/**/*.ts",
+    "./inertia/tests/storybook/**/*.svelte",
+    "./tests/shared/**/*.ts"
+  ]
+}
