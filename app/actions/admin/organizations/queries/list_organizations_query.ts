@@ -1,6 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
+import type { PartnerType } from '#constants/organization_constants'
+import { AdminOrganizationReadOps } from '#infra/admin/repositories/read/admin_organization_queries'
 import type { ExecutionContext } from '#types/execution_context'
-import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -35,11 +36,11 @@ export interface ListOrganizationsDTO {
   page?: number
   perPage?: number
   search?: string
-  partnerType?: string
+  partnerType?: PartnerType
 }
 
 export interface ListOrganizationsResult {
-  data: Array<{
+  data: {
     id: string
     name: string
     slug: string
@@ -58,7 +59,7 @@ export interface ListOrganizationsResult {
       members: number
       projects: number
     }
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -73,14 +74,14 @@ export default class ListOrganizationsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private orgRepo = new AdminOrganizationRepository()
+    private orgRepo = AdminOrganizationReadOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListOrganizationsDTO): Promise<ListOrganizationsResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     // Fetch from repository (Infrastructure layer)
     const result = await this.orgRepo.listOrganizations(
@@ -99,17 +100,17 @@ export default class ListOrganizationsQuery extends BaseQuery<
         id: org.id,
         name: org.name,
         slug: org.slug,
-        description: org.description || null,
+        description: org.description ?? null,
         owner_id: org.owner_id,
         owner: {
           id: org.owner.id,
           username: org.owner.username,
-          email: org.owner.email || '',
+          email: org.owner.email ?? '',
         },
         partner_type: org.partner_type,
-        partner_is_active: org.partner_is_active || false,
-        created_at: org.created_at.toISO() || new Date().toISOString(),
-        updated_at: org.updated_at.toISO() || new Date().toISOString(),
+        partner_is_active: org.partner_is_active ?? false,
+        created_at: org.created_at.toISO() ?? new Date().toISOString(),
+        updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
         _count: {
           members: getExtrasNumber(org, 'users_count'),
           projects: getExtrasNumber(org, 'projects_count'),

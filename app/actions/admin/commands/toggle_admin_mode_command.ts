@@ -1,9 +1,7 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
-import { canToggleAdminMode } from '#domain/users/user_management_rules'
+import { BaseCommand } from '#actions/admin/base_command'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { userPublicApi } from '#actions/users/public_api'
 
 export interface ToggleAdminModeDTO {
   enabled: boolean
@@ -15,15 +13,18 @@ export interface ToggleAdminModeResult {
   successMessage: string
 }
 
+// Admin module là orchestration layer. Import từ public APIs của nhiều modules
+// (users, organizations) tại đây là intentional — đây là trách nhiệm của
+// orchestration layer, không phải boundary violation.
 export default class ToggleAdminModeCommand extends BaseCommand<
   ToggleAdminModeDTO,
   ToggleAdminModeResult
 > {
   async handle(dto: ToggleAdminModeDTO): Promise<ToggleAdminModeResult> {
     const userId = this.getCurrentUserId()
-    const actorSystemRole = await UserRepository.getSystemRoleName(userId)
+    const actorSystemRole = await userPublicApi.getSystemRoleName(userId)
 
-    enforcePolicy(canToggleAdminMode(actorSystemRole))
+    enforcePolicy(userPublicApi.canToggleAdminMode(actorSystemRole))
 
     if (dto.enabled) {
       return {
@@ -42,16 +43,19 @@ export default class ToggleAdminModeCommand extends BaseCommand<
       }
     }
 
-    const actorOrgRole = await OrganizationUserRepository.getMemberRoleName(
+    const membershipContext = await organizationPublicApi.getMembershipContext(
       organizationId,
       userId,
       undefined,
       true
     )
+    const actorOrgRole = membershipContext?.role ?? null
 
     return {
       enabled: false,
-      redirectPath: canAccessOrganizationAdminShell(actorOrgRole) ? '/org' : '/tasks',
+      redirectPath: organizationPublicApi.canAccessAdminShell(actorOrgRole).allowed
+        ? '/org'
+        : '/tasks',
       successMessage: 'Đã tắt Admin Mode',
     }
   }
