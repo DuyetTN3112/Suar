@@ -4,41 +4,16 @@ import cacheService from '#infra/cache/cache_service'
 import * as PermissionService from '#services/permission_service'
 import type { DatabaseId } from '#types/database'
 
-
-/**
- * CachedPermissionService
- *
- * Wrapper quanh PermissionService, thêm Redis cache layer.
- * Giảm DB queries từ 5-7/request xuống 0-1/request cho permission checks.
- *
- * Cache Strategy:
- * - System role info: TTL 10 phút (ít thay đổi)
- * - Org membership: TTL 5 phút (thay đổi khi add/remove member)
- * - Project membership: TTL 5 phút
- * - Task permissions: KHÔNG cache (phụ thuộc nhiều factors, thay đổi thường xuyên)
- *
- * Cache Invalidation:
- * - Qua CacheInvalidationListener khi emit events
- * - Pattern: 'perm:user:{userId}:*' hoặc 'perm:org:{orgId}:*'
- *
- * QUAN TRỌNG: Khi có transaction (trx), BYPASS cache vì
- * data trong transaction chưa commit → cache có thể stale.
- */
-
 const CACHE_TTL = {
-  SYSTEM_ROLE: 600, // 10 phút
-  ORG_MEMBERSHIP: 300, // 5 phút
-  PROJECT_MEMBERSHIP: 300, // 5 phút
+  SYSTEM_ROLE: 600,
+  ORG_MEMBERSHIP: 300,
+  PROJECT_MEMBERSHIP: 300,
 } as const
 
-/**
- * System level — cached
- */
 export async function isSystemSuperadmin(
   userId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  // Bypass cache khi có transaction
   if (trx) {
     return PermissionService.isSystemSuperadmin(userId, trx)
   }
@@ -74,9 +49,6 @@ export async function getSystemRoleInfo(userId: DatabaseId, trx?: TransactionCli
   )
 }
 
-/**
- * Organization level — cached
- */
 export async function getOrgMembership(
   userId: DatabaseId,
   orgId: DatabaseId,
@@ -153,9 +125,6 @@ export async function checkOrgPermission(
   )
 }
 
-/**
- * Project level — cached
- */
 export async function getProjectMembership(
   userId: DatabaseId,
   projectId: DatabaseId,
@@ -202,31 +171,18 @@ export async function checkProjectPermission(
   )
 }
 
-/**
- * Task level — KHÔNG cache (phụ thuộc quá nhiều factors)
- * Delegate trực tiếp sang PermissionService
- */
 export const canUserUpdateTask = PermissionService.canUserUpdateTask
 export const canUserViewTask = PermissionService.canUserViewTask
 export const canManageProject = PermissionService.canManageProject
 
-/**
- * Invalidate tất cả permission cache của 1 user
- */
 export async function invalidateUserPermissions(userId: DatabaseId): Promise<void> {
   await cacheService.deleteByPattern(`perm:*:${userId}*`)
 }
 
-/**
- * Invalidate tất cả permission cache liên quan đến 1 organization
- */
 export async function invalidateOrgPermissions(orgId: DatabaseId): Promise<void> {
   await cacheService.deleteByPattern(`perm:org:${orgId}:*`)
 }
 
-/**
- * Invalidate tất cả permission cache liên quan đến 1 project
- */
 export async function invalidateProjectPermissions(projectId: DatabaseId): Promise<void> {
   await cacheService.deleteByPattern(`perm:project:${projectId}:*`)
 }

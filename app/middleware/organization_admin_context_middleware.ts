@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
+import type { OrgRole } from '#domain/organizations/org_types'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 /**
@@ -36,7 +37,7 @@ export default class OrganizationAdminContextMiddleware {
   async handle({ auth, view }: HttpContext, next: NextFn): Promise<void> {
     // Default context
     let isOrgAdmin = false
-    let orgRole: string | null = null
+    let orgRole: OrgRole | null = null
     let contextType: 'organization' | 'user' = 'user'
 
     // Check if user has current organization
@@ -44,10 +45,14 @@ export default class OrganizationAdminContextMiddleware {
     const currentOrgId = user?.current_organization_id
 
     if (currentOrgId) {
-      orgRole = await OrganizationUserRepository.getMemberRoleName(currentOrgId, user.id)
+      const membershipContext = await OrganizationUserRepository.getMembershipContext(
+        currentOrgId,
+        user.id
+      )
+      orgRole = membershipContext?.role ?? null
 
       if (orgRole) {
-        isOrgAdmin = canAccessOrganizationAdminShell(orgRole)
+        isOrgAdmin = canAccessOrganizationAdminShell(orgRole).allowed
         contextType = isOrgAdmin ? 'organization' : 'user'
       }
     }

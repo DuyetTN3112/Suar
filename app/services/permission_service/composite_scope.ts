@@ -1,8 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { isOrgAdminOrOwner } from './organization_scope.js'
-import { isSystemSuperadmin } from './system_scope.js'
+import { getOrgMembership } from './organization_scope.js'
+import { getSystemRoleInfo } from './system_scope.js'
 
+import { canManageProjectMembers } from '#domain/projects/project_permission_policy'
 import type { DatabaseId } from '#types/database'
 
 export async function canManageProject(
@@ -12,9 +13,18 @@ export async function canManageProject(
   organizationId: DatabaseId,
   trx?: TransactionClientContract
 ): Promise<boolean> {
-  if (userId === projectOwnerId || userId === projectCreatorId) return true
-  if (await isSystemSuperadmin(userId, trx)) return true
-  if (await isOrgAdminOrOwner(userId, organizationId, trx)) return true
+  const [systemRoleInfo, orgMembership] = await Promise.all([
+    getSystemRoleInfo(userId, trx),
+    getOrgMembership(userId, organizationId, trx),
+  ])
 
-  return false
+  return canManageProjectMembers({
+    actorId: userId,
+    actorSystemRole: systemRoleInfo?.roleName ?? null,
+    actorOrgRole: orgMembership?.org_role ?? null,
+    actorProjectRole: null,
+    projectOwnerId: projectOwnerId ?? ('' as DatabaseId),
+    projectCreatorId,
+    projectOrganizationId: organizationId,
+  }).allowed
 }
