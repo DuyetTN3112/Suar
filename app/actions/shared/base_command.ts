@@ -4,9 +4,9 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
+import { writeAuditLog } from '#actions/audit/write_audit_log'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { RepositoryFactory } from '#infra/shared/repositories/index'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -81,16 +81,13 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   ): Promise<void> {
     if (!this.execCtx.userId) return
 
-    const repo = await RepositoryFactory.getAuditLogRepository()
-    await repo.create({
+    await writeAuditLog(this.execCtx, {
       user_id: this.execCtx.userId,
       action,
       entity_type: entityType,
       entity_id: entityId,
-      old_values: oldValues as Record<string, unknown> | null,
-      new_values: newValues as Record<string, unknown> | null,
-      ip_address: this.execCtx.ip,
-      user_agent: this.execCtx.userAgent,
+      old_values: oldValues,
+      new_values: newValues,
     })
   }
 
