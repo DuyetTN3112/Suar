@@ -1,15 +1,16 @@
+import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { ProcessApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import CacheService from '#services/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus, AssignmentStatus } from '#constants/task_constants'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
 import { canProcessApplication } from '#domain/tasks/task_assignment_rules'
+import NotFoundException from '#exceptions/not_found_exception'
+import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * ProcessApplicationCommand
@@ -28,7 +29,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
   import('#models/task_application').default
 > {
   async handle(dto: ProcessApplicationDTO): Promise<import('#models/task_application').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Get application with task
@@ -114,20 +115,24 @@ export default class ProcessApplicationCommand extends BaseCommand<
         }
       )
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${task.id}:*`)
-      await CacheService.deleteByPattern(`user:${application.applicant_id}:*`)
-
-      // Emit domain event
-      void emitter.emit('task:application:reviewed', {
-        applicationId: application.id,
-        taskId: task.id,
-        applicantId: application.applicant_id,
-        reviewedBy: userId,
-        status: application.application_status,
-      })
-
-      return application
+      return {
+        application,
+        taskCachePattern: `task:${task.id}:*`,
+        applicantCachePattern: `user:${application.applicant_id}:*`,
+        applicationReviewedEvent: {
+          applicationId: application.id,
+          taskId: task.id,
+          applicantId: application.applicant_id,
+          reviewedBy: userId,
+          status: application.application_status,
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.taskCachePattern)
+    await CacheService.deleteByPattern(result.applicantCachePattern)
+    void emitter.emit('task:application:reviewed', result.applicationReviewedEvent)
+
+    return result.application
   }
 }

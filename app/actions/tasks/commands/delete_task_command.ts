@@ -1,18 +1,24 @@
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import type { ExecutionContext } from '#types/execution_context'
-import { DateTime } from 'luxon'
-import db from '@adonisjs/lucid/services/db'
-import { getErrorMessage } from '#libs/error_utils'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+
+import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import CreateNotification from '#actions/common/create_notification'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
+import { canDeleteTask, canPermanentDeleteTask } from '#domain/tasks/task_permission_policy'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import { getErrorMessage } from '#libs/error_utils'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Command để xóa task
@@ -28,7 +34,7 @@ import { buildTaskPermissionContext } from '#actions/tasks/support/task_permissi
 export default class DeleteTaskCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: CreateNotification = new CreateNotification()
   ) {}
 
   /**
@@ -100,10 +106,10 @@ export default class DeleteTaskCommand {
       if (taskData.assigned_to && taskData.assigned_to !== userId) {
         await this.createNotification.handle({
           user_id: taskData.assigned_to as string,
-          type: 'task_deleted',
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: 'task',
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
       }
@@ -111,10 +117,10 @@ export default class DeleteTaskCommand {
       if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
           user_id: taskData.creator_id as string,
-          type: 'task_deleted',
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
           message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
-          related_entity_type: 'task',
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
       }

@@ -1,7 +1,7 @@
 import { BaseCommand } from '#actions/shared/base_command'
-import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import CacheService from '#services/cache_service'
+import CacheService from '#infra/cache/cache_service'
+import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -23,7 +23,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
   import('#models/flagged_review').default
 > {
   async handle(dto: ResolveFlaggedReviewDTO): Promise<import('#models/flagged_review').default> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       const flaggedReview = await FlaggedReviewRepository.findByIdForUpdate(
@@ -39,7 +39,7 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         throw new BusinessLogicException('This flagged review has already been resolved')
       }
 
-      const validActions: string[] = ['dismissed', 'confirmed']
+      const validActions: ResolveFlaggedReviewDTO['action'][] = ['dismissed', 'confirmed']
       if (!validActions.includes(dto.action)) {
         throw new BusinessLogicException('Action must be "dismissed" or "confirmed"')
       }
@@ -59,9 +59,13 @@ export default class ResolveFlaggedReviewCommand extends BaseCommand<
         notes: dto.notes,
       })
 
-      await CacheService.deleteByPattern('flagged:*')
-
-      return flaggedReview
+      return {
+        flaggedReview,
+        cachePattern: 'flagged:*',
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    return result.flaggedReview
   }
 }

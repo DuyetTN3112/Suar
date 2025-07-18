@@ -1,4 +1,5 @@
-import SkillRepository from '#infra/skills/repositories/skill_repository'
+import { DefaultSharedDependencies } from '../ports/shared_external_dependencies_impl.js'
+import type { SharedExternalDependencies } from '../ports/shared_external_dependencies.js'
 
 /**
  * Query: Get Active Skills
@@ -16,20 +17,26 @@ export default class GetActiveSkillsQuery {
   /**
    * Get all active skills, serialized for frontend consumption.
    */
-  static async execute(): Promise<
-    Array<{
+  static async execute(
+    deps: SharedExternalDependencies = DefaultSharedDependencies
+  ): Promise<
+    {
       id: string
       skill_name: string
       category_code: string | null
       [key: string]: unknown
-    }>
+    }[]
   > {
-    const skills = await SkillRepository.activeSkills()
-    return skills.map((s) => s.serialize()) as Array<{
+    const skills = await deps.skill.listActiveSkills()
+    return skills.map((skill) => ({
+      id: skill.id,
+      skill_name: skill.skill_name,
+      category_code: skill.category_code,
+    })) as {
       id: string
       skill_name: string
       category_code: string | null
       [key: string]: unknown
-    }>
+    }[]
   }
 }
