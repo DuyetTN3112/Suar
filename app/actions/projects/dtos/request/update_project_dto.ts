@@ -1,7 +1,8 @@
 import type { DateTime } from 'luxon'
-import type { DatabaseId } from '#types/database'
+
 import { ProjectStatus, ProjectVisibility } from '#constants/project_constants'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for updating an existing project
@@ -21,6 +22,8 @@ export interface UpdateProjectDTOInterface {
   budget?: number
 }
 
+export type UpdateProjectValidatedPayload = Omit<UpdateProjectDTOInterface, 'project_id'>
+
 export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly project_id: DatabaseId
   public readonly name?: string
@@ -33,12 +36,26 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
   public readonly visibility?: ProjectVisibility
   public readonly budget?: number
 
+  static fromInput(data: UpdateProjectDTOInterface): UpdateProjectDTO {
+    return new UpdateProjectDTO(data)
+  }
+
+  static fromValidatedPayload(
+    payload: UpdateProjectValidatedPayload,
+    projectId: DatabaseId
+  ): UpdateProjectDTO {
+    return new UpdateProjectDTO({
+      ...payload,
+      project_id: projectId,
+    })
+  }
+
   constructor(data: UpdateProjectDTOInterface) {
     this.validateInput(data)
 
     this.project_id = data.project_id
     this.name = data.name?.trim()
-    this.description = data.description?.trim() || null
+    this.description = data.description?.trim() ?? null
     this.status = data.status
     this.start_date = data.start_date
     this.end_date = data.end_date
@@ -139,8 +156,8 @@ export class UpdateProjectDTO implements UpdateProjectDTOInterface {
     if (this.name !== undefined) result.name = this.name
     if (this.description !== undefined) result.description = this.description
     if (this.status !== undefined) result.status = this.status
-    if (this.start_date !== undefined) result.start_date = this.start_date?.toJSDate() || null
-    if (this.end_date !== undefined) result.end_date = this.end_date?.toJSDate() || null
+    if (this.start_date !== undefined) result.start_date = this.start_date?.toJSDate() ?? null
+    if (this.end_date !== undefined) result.end_date = this.end_date?.toJSDate() ?? null
     if (this.manager_id !== undefined) result.manager_id = this.manager_id
     if (this.owner_id !== undefined) result.owner_id = this.owner_id
     if (this.visibility !== undefined) result.visibility = this.visibility
