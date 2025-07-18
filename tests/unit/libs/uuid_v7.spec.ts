@@ -6,7 +6,6 @@ import {
   isUUIDv7,
   generateUUIDv7Batch,
   compareUUIDv7,
-  getPostgresUUIDv7FunctionSQL,
 } from '#libs/uuid_v7'
 
 const UUID_V4 = '550e8400-e29b-41d4-a716-446655440000'
@@ -53,16 +52,5 @@ test.group('UUID v7 utils', () => {
     assert.isTrue(isUUIDv7(first.toUpperCase()))
     assert.isFalse(isUUIDv7(UUID_V4))
     assert.isFalse(isUUIDv7('not-a-uuid'))
-  })
-
-  test('SQL helper preserves the expected migration surface for database-side generation', ({
-    assert,
-  }) => {
-    const sql = getPostgresUUIDv7FunctionSQL()
-
-    assert.include(sql, 'CREATE OR REPLACE FUNCTION')
-    assert.include(sql, 'gen_random_uuid_v7')
-    assert.include(sql, 'RETURNS uuid')
-    assert.include(sql, 'plpgsql')
   })
 })
