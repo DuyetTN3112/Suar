@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import type { InertiaPages } from '@adonisjs/inertia/types'
 
 import { getErrorMessage } from '#libs/error_utils'
 
@@ -71,7 +72,7 @@ export interface ErrorResponseOptions {
   /** HTTP status code for JSON error (default: 500) */
   statusCode?: number
   /** Inertia page to render on error (instead of redirect) */
-  inertiaErrorPage?: string
+  inertiaErrorPage?: keyof InertiaPages
   /** Additional data to pass with Inertia error page */
   inertiaErrorData?: Record<string, unknown>
 }
@@ -81,7 +82,7 @@ export interface ErrorResponseOptions {
  */
 export interface DataResponseOptions {
   /** Inertia page component to render */
-  inertiaPage?: string
+  inertiaPage?: keyof InertiaPages
   /** Data to pass to Inertia page */
   inertiaData?: Record<string, unknown>
   /** JSON data for API responses */

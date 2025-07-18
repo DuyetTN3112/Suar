@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import type { JSONDataTypes } from '@adonisjs/core/types/transformers'
 import type { NextFn } from '@adonisjs/core/types/http'
+import type { JSONDataTypes } from '@adonisjs/core/types/transformers'
 import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 import type { PageProps } from '@adonisjs/inertia/types'
 
