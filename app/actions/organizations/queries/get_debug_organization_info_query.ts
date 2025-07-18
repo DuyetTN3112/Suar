@@ -1,5 +1,6 @@
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface DebugOrgInfo {
   user_id: DatabaseId
@@ -25,14 +26,14 @@ export default class GetDebugOrganizationInfoQuery {
     userId: DatabaseId,
     sessionOrgId: string | undefined
   ): Promise<DebugOrgInfo> {
-    const user = await UserRepository.findWithOrganizations(userId)
+    const user = await DefaultOrganizationDependencies.user.loadDebugOrganizations(userId)
 
     return {
       user_id: user.id,
       username: user.username,
-      user_current_organization_id: user.current_organization_id,
+      user_current_organization_id: user.currentOrganizationId,
       session_organization_id: sessionOrgId,
-      organizations: user.organizations.map((org) => org.serialize()),
+      organizations: user.organizations,
     }
   }
 }

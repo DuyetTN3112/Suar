@@ -1,7 +1,7 @@
-import type { DatabaseId } from '#types/database'
 import { OrganizationRole } from '#constants/organization_constants'
 import ValidationException from '#exceptions/validation_exception'
 import { formatRoleLabel } from '#libs/access_surface'
+import type { DatabaseId } from '#types/database'
 
 export interface UpdateMemberRoleRecord {
   org_role: string
@@ -28,6 +28,20 @@ export class UpdateMemberRoleDTO {
     public readonly allowedRoleIds: string[] = [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
   ) {
     this.validate()
+  }
+
+  static fromValidatedPayload(payload: {
+    organization_id: DatabaseId
+    user_id: DatabaseId
+    role_id: string
+    allowed_role_ids?: string[]
+  }): UpdateMemberRoleDTO {
+    return new UpdateMemberRoleDTO(
+      payload.organization_id,
+      payload.user_id,
+      payload.role_id,
+      payload.allowed_role_ids ?? [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
+    )
   }
 
   /**
@@ -73,7 +87,7 @@ export class UpdateMemberRoleDTO {
       [OrganizationRole.ADMIN]: 'Quản trị viên',
       [OrganizationRole.MEMBER]: 'Thành viên',
     }
-    return roleNames[this.newRoleId] || formatRoleLabel(this.newRoleId)
+    return roleNames[this.newRoleId] ?? formatRoleLabel(this.newRoleId)
   }
 
   /**
