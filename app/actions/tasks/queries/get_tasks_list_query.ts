@@ -1,14 +1,19 @@
+import redis from '@adonisjs/redis/services/main'
+
+import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+
+import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
-import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
-import type { ExecutionContext } from '#types/execution_context'
-import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
 import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type Task from '#models/task'
-import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
-import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
+import type { ExecutionContext } from '#types/execution_context'
+
+
+
 
 /**
  * Query để lấy danh sách tasks với filters và permissions
@@ -34,7 +39,7 @@ export default class GetTasksListQuery {
    * Execute query
    */
   async execute(dto: GetTasksListDTO): Promise<{
-    data: Task[]
+    data: TaskListQueryRecord[]
     meta: {
       total: number
       per_page: number
@@ -75,8 +80,8 @@ export default class GetTasksListQuery {
         parent_task_id: dto.hasParentFilter() ? dto.parent_task_id : undefined,
         project_id: dto.hasProjectFilter() ? dto.project_id : undefined,
         search: dto.hasSearch() ? dto.search : undefined,
-        sort_by: dto.sort_by ?? 'due_date',
-        sort_order: dto.sort_order ?? 'asc',
+        sort_by: dto.sort_by,
+        sort_order: dto.sort_order,
         page: dto.page,
         limit: dto.limit,
       },
@@ -90,7 +95,7 @@ export default class GetTasksListQuery {
     )
 
     const result = {
-      data: paginator.all(),
+      data: mapTaskListOutput(paginator.all()),
       meta: {
         total: paginator.total,
         per_page: paginator.perPage,
@@ -124,7 +129,7 @@ export default class GetTasksListQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    data: Task[]
+    data: TaskListQueryRecord[]
     meta: {
       total: number
       per_page: number
@@ -143,7 +148,7 @@ export default class GetTasksListQuery {
       const cached = await redis.get(key)
       if (cached) {
         return JSON.parse(cached) as {
-          data: Task[]
+          data: TaskListQueryRecord[]
           meta: {
             total: number
             per_page: number

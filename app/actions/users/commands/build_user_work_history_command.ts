@@ -1,13 +1,15 @@
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+
 import { BaseCommand } from '#actions/shared/base_command'
-import type { DatabaseId } from '#types/database'
-import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
-import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
 import {
   buildKnowledgeArtifacts,
   calculateAverageScore,
   calculateWorkHistoryDeliveryTiming,
 } from '#domain/users/profile_aggregate_rules'
+import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
+import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
+import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {
   userId: DatabaseId
@@ -46,10 +48,105 @@ interface AssignmentSnapshotRow {
   impact_scope: string | null
 }
 
+interface CompletedReviewSessionRow {
+  id: string
+  overall_quality_score: number | null
+}
+
+interface SkillReviewSummaryRow {
+  skill_id: string
+  skill_name: string | null
+  assigned_level_code: string
+  reviewer_type: string
+  comment: string | null
+}
+
+interface ReviewEvidenceSummaryRow {
+  id: string
+  evidence_type: string
+  url: string | null
+  title: string | null
+}
+
+interface SelfAssessmentNarrativeRow {
+  what_went_well: string | null
+  what_would_do_different: string | null
+}
+
+interface AssignmentAnalytics {
+  completedAt: DateTime | null
+  overallQualityScore: number | null
+  skillScores: Record<string, unknown>[]
+  evidenceLinks: Record<string, unknown>[]
+  knowledgeArtifacts: Record<string, unknown>[]
+}
+
+interface WorkHistoryPayload {
+  task_id: string
+  task_assignment_id: string
+  organization_id: string | null
+  project_id: string | null
+  task_title: string
+  task_type: string | null
+  business_domain: string | null
+  problem_category: string | null
+  role_in_task: string | null
+  autonomy_level: string | null
+  collaboration_type: string | null
+  tech_stack: string[]
+  domain_tags: string[]
+  difficulty: string | null
+  estimated_hours: number | null
+  actual_hours: number | null
+  was_on_time: boolean | null
+  days_early_or_late: number | null
+  measurable_outcomes: Record<string, unknown>[]
+  estimated_business_value: string | null
+  knowledge_artifacts: Record<string, unknown>[]
+  overall_quality_score: number | null
+  skill_scores: Record<string, unknown>[]
+  evidence_links: Record<string, unknown>[]
+  completed_at: DateTime | null
+  is_featured: boolean
+  is_public: boolean
+}
+
+interface MaterializedWorkHistoryBatch {
+  inserted: number
+  updated: number
+}
+
 export default class BuildUserWorkHistoryCommand extends BaseCommand<
   BuildUserWorkHistoryDTO,
   BuildUserWorkHistoryResult
 > {
+  async handle(dto: BuildUserWorkHistoryDTO): Promise<BuildUserWorkHistoryResult> {
+    return await this.executeInTransaction(async (trx) => {
+      const assignmentRows = await this.loadAssignmentSnapshots(dto.userId, trx)
+
+      if (dto.fullRebuild) {
+        await this.deleteExistingWorkHistory(dto.userId, trx)
+      }
+
+      const materialized = await this.materializeWorkHistory(dto.userId, assignmentRows, trx)
+
+      await this.auditBuildSummary(
+        dto.userId,
+        dto.fullRebuild ?? false,
+        assignmentRows.length,
+        materialized.inserted,
+        materialized.updated
+      )
+
+      return {
+        userId: dto.userId,
+        totalCompletedAssignments: assignmentRows.length,
+        inserted: materialized.inserted,
+        updated: materialized.updated,
+      }
+    })
+  }
+
   private toDateTime(value: Date | string | null): DateTime | null {
     if (!value) return null
 
@@ -86,7 +183,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     return []
   }
 
-  private toObjectArray(value: unknown): Array<Record<string, unknown>> {
+  private toObjectArray(value: unknown): Record<string, unknown>[] {
     if (Array.isArray(value)) {
       return value.filter(
         (item): item is Record<string, unknown> => typeof item === 'object' && item !== null
@@ -109,12 +206,6 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     return []
   }
 
-  async handle(dto: BuildUserWorkHistoryDTO): Promise<BuildUserWorkHistoryResult> {
-    return await this.executeInTransaction(async (trx) => {
-      const assignmentRows = (await UserAnalyticsRepository.listCompletedAssignmentSnapshots(
-        dto.userId,
-        trx
-      )) as AssignmentSnapshotRow[]
 
       if (dto.fullRebuild) {
         await UserWorkHistoryRepository.deleteByUser(dto.userId, trx)
