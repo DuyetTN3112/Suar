@@ -8,25 +8,12 @@
   import { createTaskStore } from '@/stores/tasks.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
-  import TaskDetailPanel from './components/detail/task_detail_panel.svelte'
   import TaskHeader from './components/header/task_header.svelte'
   import TaskScopeBar from './components/header/task_scope_bar.svelte'
-  import CreateTaskModal from './components/modals/create_task_modal.svelte'
-  import ImportTasksModal from './components/modals/import_tasks_modal.svelte'
-  import TaskStatusManagementDialogs from './components/modals/task_status_management_dialogs.svelte'
+  import TaskIndexModals from './components/modals/task_index_modals.svelte'
   import KanbanBoard from './components/views/kanban/kanban_board.svelte'
   import { buildProjectScopeFilters } from './scope_helpers'
-  import {
-    createTaskStatusDefinition,
-    deleteTaskStatusDefinition,
-  } from './status_management_api'
-  import {
-    buildStatusDefinitions,
-    canDeleteStatusDefinition,
-    findStatusDefinition,
-    getStatusMutationErrorMessage,
-    slugifyStatusName,
-  } from './status_management_helpers'
+  import { createStatusManagementController } from './status_management_controller.svelte'
   import type { Task, TaskMetadata, TasksProps } from './types.svelte'
 
   interface Props extends TasksProps {
@@ -60,15 +47,6 @@
 
   let createModalOpen = $state(false)
   let selectedCreateStatus = $state('')
-  let createStatusModalOpen = $state(false)
-  let createStatusName = $state('')
-  let createStatusSubmitting = $state(false)
-  let createStatusError = $state('')
-  const statusDefinitions = $derived(buildStatusDefinitions(metadata.statuses))
-  let deleteStatusModalOpen = $state(false)
-  let deleteStatusSubmitting = $state(false)
-  let deleteStatusError = $state('')
-  let statusDeleteTarget = $state<{ status: string; label: string; taskCount: number; id?: string; isSystem?: boolean } | null>(null)
   let importModalOpen = $state(false)
   let detailModalOpen = $state(false)
   let selectedTask = $state<Task | null>(null)
@@ -77,13 +55,11 @@
     reason: permissions?.createTaskReason ?? null,
   })
 
-  function isBoardReady(actionErrorMessage?: string): boolean {
-    if (!isBoardMutationLocked) return true
-    if (actionErrorMessage) {
-      notificationStore.error('Board dang dong bo', actionErrorMessage)
-    }
-    return false
-  }
+  const statusManager = createStatusManagementController({
+    getStatuses: () => metadata.statuses,
+    canManageWorkflow: () => canManageWorkflow,
+    isBoardMutationLocked: () => isBoardMutationLocked,
+  })
 
   function handleCreateClick(status?: string) {
     if (!createTaskPermission.allowed) {
@@ -103,98 +79,6 @@
     createModalOpen = true
   }
 
-  function handleCreateStatusClick() {
-    if (!isBoardReady('Vui long doi thao tac keo-tha hoan tat truoc khi quan ly trang thai.')) return
-    createStatusModalOpen = true
-    createStatusError = ''
-  }
-
-  async function handleCreateStatusSubmit() {
-    if (isBoardMutationLocked) {
-      createStatusError = 'Board dang dong bo. Vui long thu lai sau it giay.'
-      return
-    }
-
-    const name = createStatusName.trim()
-    const slug = slugifyStatusName(name)
-
-    if (!name) {
-      createStatusError = 'Tên trạng thái là bắt buộc'
-      return
-    }
-
-    if (!slug) {
-      createStatusError = 'Tên trạng thái không hợp lệ'
-      return
-    }
-    createStatusSubmitting = true
-    createStatusError = ''
-
-    try {
-      await createTaskStatusDefinition({ name, slug, sortOrder: metadata.statuses.length })
-      notificationStore.success('Đã tạo trạng thái mới')
-      createStatusModalOpen = false
-      createStatusName = ''
-      router.reload({
-        only: ['metadata', 'tasks', 'flash'],
-      })
-    } catch (error: unknown) {
-      createStatusError = getStatusMutationErrorMessage(error, 'Không thể tạo trạng thái')
-    } finally {
-      createStatusSubmitting = false
-    }
-  }
-
-  function canDeleteStatus(status: string): boolean {
-    return canDeleteStatusDefinition(statusDefinitions, status, canManageWorkflow)
-  }
-
-  function handleDeleteStatusClick(payload: { status: string; label: string; taskCount: number }) {
-    if (!isBoardReady('Vui long doi thao tac keo-tha hoan tat truoc khi xoa trang thai.')) return
-
-    const definition = findStatusDefinition(statusDefinitions, payload.status)
-    statusDeleteTarget = {
-      ...payload,
-      id: definition?.id,
-      isSystem: definition?.is_system,
-    }
-    deleteStatusError = ''
-    deleteStatusModalOpen = true
-  }
-
-  async function confirmDeleteStatus() {
-    if (isBoardMutationLocked) {
-      deleteStatusError = 'Board dang dong bo. Vui long thu lai sau it giay.'
-      return
-    }
-
-    if (!statusDeleteTarget?.id) {
-      deleteStatusError = 'Không thể xoá trạng thái này.'
-      return
-    }
-
-    if (statusDeleteTarget.taskCount > 0) {
-      deleteStatusError = 'Trạng thái còn task. Hãy chuyển task sang cột khác trước khi xoá.'
-      return
-    }
-    deleteStatusSubmitting = true
-    deleteStatusError = ''
-
-    try {
-      await deleteTaskStatusDefinition(statusDeleteTarget.id)
-      notificationStore.success('Đã xoá trạng thái')
-      deleteStatusModalOpen = false
-      statusDeleteTarget = null
-      router.reload({
-        only: ['metadata', 'tasks', 'flash'],
-      })
-    } catch (error: unknown) {
-      deleteStatusError = getStatusMutationErrorMessage(error, 'Không thể xoá trạng thái')
-    } finally {
-      deleteStatusSubmitting = false
-    }
-  }
-
   function handleViewTaskDetail(task: Task) {
     selectedTask = task
     detailModalOpen = true
@@ -211,21 +95,10 @@
     store.upsertTask(task)
   }
 
-  function handleCreateStatusDialogClose() {
-    createStatusModalOpen = false
-    createStatusName = ''
-    createStatusError = ''
-  }
-
-  function handleDeleteStatusDialogClose() {
-    deleteStatusModalOpen = false
-    deleteStatusError = ''
-    statusDeleteTarget = null
-  }
-
-  const hasDeleteTargetTasks = $derived((statusDeleteTarget?.taskCount ?? 0) > 0)
-
-  const pageTitle = $derived(shellMode === 'organization' ? 'Task tổ chức' : t('task.task_list', {}, 'Quản lý nhiệm vụ'))
+  const pageTitle = $derived(
+    shellMode === 'organization' ? 'Task tổ chức' : t('task.task_list', {}, 'Quản lý nhiệm vụ')
+  )
+  const vm = $derived({ createTaskPermission })
 </script>
 
 <svelte:head>
@@ -238,7 +111,7 @@
       {filters}
       {projectContext}
       {projectOptions}
-      {createTaskPermission}
+      createTaskPermission={vm.createTaskPermission}
       onProjectScopeChange={handleProjectScopeChange}
     />
     <TaskHeader {store} {metadata} />
@@ -247,62 +120,59 @@
       {metadata}
       onTaskClick={handleViewTaskDetail}
       onCreateTask={handleCreateClick}
-      onCreateStatus={handleCreateStatusClick}
-      onDeleteStatus={handleDeleteStatusClick}
-      canCreateTask={createTaskPermission.allowed}
+      onCreateStatus={statusManager.handleCreateStatusClick}
+      onDeleteStatus={statusManager.handleDeleteStatusClick}
+      canCreateTask={vm.createTaskPermission.allowed}
       canManageStatuses={canManageWorkflow}
-      {canDeleteStatus}
+      canDeleteStatus={statusManager.canDeleteStatus}
     />
   </div>
-  <CreateTaskModal
-    bind:open={createModalOpen}
-    onOpenChange={(open: boolean) => { createModalOpen = open }}
-    initialStatus={selectedCreateStatus}
-    onCreated={handleTaskCreated}
-    statuses={metadata.statuses}
-    priorities={metadata.priorities}
-    labels={metadata.labels}
-    projects={projectOptions}
-    initialProjectId={(projectContext?.selectedProject?.id ?? projectOptions[0]?.id) || ''}
-    users={metadata.users}
-    parentTasks={metadata.parentTasks ?? []}
-    availableSkills={metadata.availableSkills ?? []}
-  />
-  <ImportTasksModal open={importModalOpen} onOpenChange={(open: boolean) => { importModalOpen = open }} />
-  <TaskDetailPanel
-    bind:open={detailModalOpen}
-    onOpenChange={(open: boolean) => {
-      detailModalOpen = open
-      if (!open) {
-        setTimeout(() => { selectedTask = null }, 300)
-      }
-    }}
-    task={selectedTask}
+  <TaskIndexModals
     {store}
     {metadata}
-  />
-  <TaskStatusManagementDialogs
-    createOpen={createStatusModalOpen}
-    createStatusName={createStatusName}
-    {createStatusError}
-    createStatusSubmitting={createStatusSubmitting}
-    onCreateSubmit={handleCreateStatusSubmit}
-    onCreateClose={handleCreateStatusDialogClose}
-    onCreateOpenChange={(open: boolean) => {
-      createStatusModalOpen = open
+    {projectOptions}
+    {projectContext}
+    {createModalOpen}
+    onCreateModalOpenChange={(open: boolean) => {
+      createModalOpen = open
+    }}
+    {selectedCreateStatus}
+    onTaskCreated={handleTaskCreated}
+    {importModalOpen}
+    onImportModalOpenChange={(open: boolean) => {
+      importModalOpen = open
+    }}
+    {detailModalOpen}
+    onDetailModalOpenChange={(open: boolean) => {
+      detailModalOpen = open
+    }}
+    {selectedTask}
+    onDetailClose={() => {
+      setTimeout(() => {
+        selectedTask = null
+      }, 300)
+    }}
+    createStatusModalOpen={statusManager.createStatusModalOpen}
+    createStatusName={statusManager.createStatusName}
+    createStatusError={statusManager.createStatusError}
+    createStatusSubmitting={statusManager.createStatusSubmitting}
+    onCreateStatusSubmit={statusManager.handleCreateStatusSubmit}
+    onCreateStatusDialogClose={statusManager.handleCreateStatusDialogClose}
+    onCreateStatusModalOpenChange={(open: boolean) => {
+      statusManager.createStatusModalOpen = open
     }}
     onCreateStatusNameChange={(value: string) => {
-      createStatusName = value
+      statusManager.createStatusName = value
     }}
-    deleteOpen={deleteStatusModalOpen}
-    deleteStatusError={deleteStatusError}
-    deleteStatusSubmitting={deleteStatusSubmitting}
-    deleteStatusTarget={statusDeleteTarget}
-    {hasDeleteTargetTasks}
-    onDeleteConfirm={confirmDeleteStatus}
-    onDeleteClose={handleDeleteStatusDialogClose}
-    onDeleteOpenChange={(open: boolean) => {
-      deleteStatusModalOpen = open
+    deleteStatusModalOpen={statusManager.deleteStatusModalOpen}
+    deleteStatusError={statusManager.deleteStatusError}
+    deleteStatusSubmitting={statusManager.deleteStatusSubmitting}
+    statusDeleteTarget={statusManager.statusDeleteTarget}
+    hasDeleteTargetTasks={statusManager.hasDeleteTargetTasks}
+    onDeleteStatusConfirm={statusManager.confirmDeleteStatus}
+    onDeleteStatusDialogClose={statusManager.handleDeleteStatusDialogClose}
+    onDeleteStatusModalOpenChange={(open: boolean) => {
+      statusManager.deleteStatusModalOpen = open
     }}
   />
 </Layout>
