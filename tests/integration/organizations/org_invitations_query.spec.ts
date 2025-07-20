@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import ListInvitationsQuery from '#actions/organization/invitations/queries/list_invitations_query'
 import InviteUserCommand from '#actions/organizations/commands/invite_user_command'
+import ListInvitationsQuery from '#actions/organizations/current/invitations/queries/list_invitations_query'
 import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
