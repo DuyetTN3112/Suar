@@ -12,15 +12,15 @@ import {
   mapSocialAuthSessionState,
   mapSocialAuthSuccessRedirect,
 } from '#controllers/auth/mappers/response/social_auth_response_mapper'
-import { buildUpdateCustomRolesDTO } from '#controllers/organization/access/mappers/request/update_roles_request_mapper'
+import { buildUpdateCustomRolesDTO } from '#controllers/organizations/current/access/mappers/request/update_roles_request_mapper'
 import {
   getUpdateCustomRolesSuccessMessage,
   mapUpdateCustomRolesSuccessApiBody,
-} from '#controllers/organization/access/mappers/response/update_roles_response_mapper'
-import { buildInvitationsIndexPageInput } from '#controllers/organization/invitations/mappers/request/list_invitations_request_mapper'
-import { mapInvitationsIndexPageProps } from '#controllers/organization/invitations/mappers/response/list_invitations_response_mapper'
-import { buildOrganizationMembersIndexPageInput } from '#controllers/organization/members/mappers/request/list_members_request_mapper'
-import { mapOrganizationMembersIndexPageProps } from '#controllers/organization/members/mappers/response/list_members_response_mapper'
+} from '#controllers/organizations/current/access/mappers/response/update_roles_response_mapper'
+import { buildInvitationsIndexPageInput } from '#controllers/organizations/current/invitations/mappers/request/list_invitations_request_mapper'
+import { mapInvitationsIndexPageProps } from '#controllers/organizations/current/invitations/mappers/response/list_invitations_response_mapper'
+import { buildOrganizationMembersIndexPageInput } from '#controllers/organizations/current/members/mappers/request/list_members_request_mapper'
+import { mapOrganizationMembersIndexPageProps } from '#controllers/organizations/current/members/mappers/response/list_members_response_mapper'
 import { buildJoinOrganizationRequestInput as buildJoinOrganizationRequestInputDedicated } from '#controllers/organizations/mappers/request/join_organization_request_mapper'
 import {
   buildAddDirectMemberDTO,
@@ -56,6 +56,12 @@ import {
   mapWorkflowUpdateApiBody,
 } from '#controllers/tasks/mappers/response/task_status_response_mapper'
 
+interface ControllerRequestOptions {
+  ip?: string
+  headers?: Record<string, string>
+  accepts?: 'html' | 'json'
+}
+
 function serializable(payload: Record<string, unknown>) {
   return {
     serialize() {
@@ -66,11 +72,7 @@ function serializable(payload: Record<string, unknown>) {
 
 function fakeRequest(
   body: Record<string, unknown>,
-  options: {
-    ip?: string
-    headers?: Record<string, string>
-    accepts?: 'html' | 'json'
-  } = {}
+  options: ControllerRequestOptions = {}
 ) {
   return {
     input(key: string, fallback?: unknown) {
@@ -143,16 +145,7 @@ test.group('Controller adapter mappers', () => {
     assert.equal(profileDto.email, 'duyet@example.com')
     assert.deepEqual(
       buildSocialAuthRedirectLogContext(
-        fakeRequest(
-          {},
-          {
-            ip: '10.0.0.6',
-            headers: {
-              'referer': '/login',
-              'user-agent': 'unit-test',
-            },
-          }
-        ) as never
+        fakeRequest({}, { ip: '10.0.0.6', headers: { referer: '/login', 'user-agent': 'unit-test' } }) as never
       ),
       {
         referer: '/login',
@@ -162,14 +155,7 @@ test.group('Controller adapter mappers', () => {
     )
     assert.deepEqual(
       buildSocialAuthCallbackLogContext(
-        fakeRequest(
-          { code: 'oauth-code' },
-          {
-            headers: {
-              referer: '/login',
-            },
-          }
-        ) as never
+        fakeRequest({ code: 'oauth-code' }, { headers: { referer: '/login' } }) as never
       ),
       {
         query: { code: 'oauth-code' },
@@ -443,7 +429,7 @@ test.group('Controller adapter mappers', () => {
       },
     ])
 
-    assert.deepEqual(mapTaskStatusMutationApiBody(serializable({ id: 'status-1' })), {
+    assert.deepEqual(mapTaskStatusMutationApiBody(serializable({ id: 'status-1' }) as never), {
       success: true,
       data: { id: 'status-1' },
     })
