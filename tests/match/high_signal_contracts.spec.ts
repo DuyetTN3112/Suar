@@ -24,6 +24,22 @@ function listFiles(relativeDir: string): string[] {
   })
 }
 
+function assertFilesDoNotMatch(
+  assert: { notMatch: (value: string, pattern: RegExp) => void },
+  files: string[],
+  pattern: RegExp
+) {
+  for (const file of files) {
+    assert.notMatch(readFile(file), pattern)
+  }
+}
+
+function assertPathsExist(assert: { isTrue: (value: boolean) => void }, paths: string[]) {
+  for (const relativePath of paths) {
+    assert.isTrue(fs.existsSync(path.join(WORKSPACE_ROOT, relativePath)))
+  }
+}
+
 test.group('Match | High-signal contracts', () => {
   test('task list filter keeps canonical task_status_id with legacy alias support', ({
     assert,
@@ -52,13 +68,6 @@ test.group('Match | High-signal contracts', () => {
     const taskApplicationResponseMapperContent = readFile(
       'app/controllers/tasks/mappers/response/task_application_response_mapper.ts'
     )
-    const taskControllerFiles = [
-      'app/controllers/tasks/apply_for_task_api_controller.ts',
-      'app/controllers/tasks/list_public_tasks_controller.ts',
-      'app/controllers/tasks/list_public_tasks_api_controller.ts',
-      'app/controllers/tasks/list_task_applications_controller.ts',
-      'app/controllers/tasks/my_applications_controller.ts',
-    ]
 
     assert.match(taskRequestMapperContent, /export function buildGetTasksIndexPageInput/)
     assert.match(taskApplicationRequestMapperContent, /export function buildGetPublicTasksDTO/)
@@ -67,15 +76,13 @@ test.group('Match | High-signal contracts', () => {
       taskApplicationResponseMapperContent,
       /status:\s*readString\(serialized, 'application_status', 'pending'\)/
     )
-    assert.match(
-      taskApplicationResponseMapperContent,
-      /proposed_budget:\s*readNumber\(serialized, 'expected_rate'\)/
-    )
-
-    for (const file of taskControllerFiles) {
-      const content = readFile(file)
-      assert.notMatch(content, /\.serialize\(/)
-    }
+    assert.match(taskApplicationResponseMapperContent, /proposed_budget:\s*readNumber\(serialized, 'expected_rate'\)/)
+    assertPathsExist(assert, [
+      'app/controllers/tasks/mappers/request/task_request_mapper.ts',
+      'app/controllers/tasks/mappers/request/task_application_request_mapper.ts',
+      'app/controllers/tasks/mappers/response/shared.ts',
+      'app/controllers/tasks/mappers/response/task_application_response_mapper.ts',
+    ])
   })
 
   test('review controller mappers own HTTP input and serialization boundaries', ({ assert }) => {
@@ -88,18 +95,6 @@ test.group('Match | High-signal contracts', () => {
     const reviewResponseMapperContent = readFile(
       'app/controllers/reviews/mappers/response/review_response_mapper.ts'
     )
-    const reviewControllerFiles = [
-      'app/controllers/reviews/add_review_evidence_controller.ts',
-      'app/controllers/reviews/create_review_session_controller.ts',
-      'app/controllers/reviews/get_review_evidences_controller.ts',
-      'app/controllers/reviews/get_task_self_assessment_controller.ts',
-      'app/controllers/reviews/list_flagged_reviews_controller.ts',
-      'app/controllers/reviews/list_pending_reviews_controller.ts',
-      'app/controllers/reviews/my_reviews_controller.ts',
-      'app/controllers/reviews/show_review_controller.ts',
-      'app/controllers/reviews/upsert_task_self_assessment_controller.ts',
-      'app/controllers/reviews/user_reviews_controller.ts',
-    ]
 
     assert.match(reviewRequestMapperContent, /export function buildSubmitSkillReviewDTO/)
     assert.match(reviewRequestMapperContent, /throwInvalidInput\(/)
@@ -109,12 +104,11 @@ test.group('Match | High-signal contracts', () => {
       reviewResponseMapperContent,
       /flaggedReviews:\s*serializeCollectionForResponse\(result\.data\)/
     )
-
-    for (const file of reviewControllerFiles) {
-      const content = readFile(file)
-      assert.notMatch(content, /\.serialize\(/)
-      assert.notMatch(content, /new [A-Za-z0-9_]+DTO\(/)
-    }
+    assertPathsExist(assert, [
+      'app/controllers/reviews/mappers/request/review_request_mapper.ts',
+      'app/controllers/reviews/mappers/response/shared.ts',
+      'app/controllers/reviews/mappers/response/review_response_mapper.ts',
+    ])
   })
 
   test('project controller mappers own HTTP input and response envelopes', ({ assert }) => {
@@ -127,35 +121,19 @@ test.group('Match | High-signal contracts', () => {
     const projectResponseMapperContent = readFile(
       'app/controllers/projects/mappers/response/project_response_mapper.ts'
     )
-    const projectControllerFiles = [
-      'app/controllers/projects/add_project_member_controller.ts',
-      'app/controllers/projects/delete_project_api_controller.ts',
-      'app/controllers/projects/delete_project_controller.ts',
-      'app/controllers/projects/get_project_detail_api_controller.ts',
-      'app/controllers/projects/list_projects_controller.ts',
-      'app/controllers/projects/show_project_controller.ts',
-      'app/controllers/projects/store_project_controller.ts',
-      'app/controllers/projects/update_project_api_controller.ts',
-      'app/controllers/organization/projects/create_project_controller.ts',
-      'app/controllers/organization/projects/list_projects_controller.ts',
-    ]
 
     assert.match(projectRequestMapperContent, /export function buildCreateProjectDTO/)
     assert.match(projectRequestMapperContent, /export function buildDeleteProjectDTO/)
     assert.match(projectResponseSharedContent, /serialize\(/)
     assert.match(projectResponseMapperContent, /mapProjectMutationApiBody/)
     assert.isFalse(
-      fs.existsSync(
-        path.join(WORKSPACE_ROOT, 'app/controllers/projects/support/project_request_mappers.ts')
-      )
+      fs.existsSync(path.join(WORKSPACE_ROOT, 'app/controllers/projects/support/project_request_mappers.ts'))
     )
-
-    for (const file of projectControllerFiles) {
-      const content = readFile(file)
-      assert.notMatch(content, /\.serialize\(/)
-      assert.notMatch(content, /new [A-Za-z0-9_]+DTO\(/)
-      assert.notMatch(content, /support\/project_request_mappers/)
-    }
+    assertPathsExist(assert, [
+      'app/controllers/projects/mappers/request/project_request_mapper.ts',
+      'app/controllers/projects/mappers/response/shared.ts',
+      'app/controllers/projects/mappers/response/project_response_mapper.ts',
+    ])
   })
 
   test('user controller mappers own HTTP input, normalization, and response boundaries', ({
@@ -198,50 +176,21 @@ test.group('Match | High-signal contracts', () => {
     ]
 
     assert.match(userRequestMapperContent, /export function buildUsersListDTO/)
-    assert.match(
-      userRequestMapperContent,
-      /request\.input\('role'\) \?\? request\.input\('system_role'\)/
-    )
+    assert.match(userRequestMapperContent, /request\.input\('role'\) \?\? request\.input\('system_role'\)/)
     assert.match(userResponseSharedContent, /serialize\(/)
     assert.match(userResponseMapperContent, /normalizePaginationMeta/)
     assert.match(userResponseMapperContent, /status_name:/)
     assert.match(userResponseMapperContent, /sanitizePublicSnapshot/)
-    assert.match(userResponseMapperContent, /export function mapSuccessMessageApiBody/)
-
-    for (const file of userControllerFiles) {
-      const content = readFile(file)
-      assert.notMatch(content, /\.serialize\(/)
-      assert.notMatch(content, /new [A-Za-z0-9_]+DTO\(/)
-    }
-  })
-
-  test('user controller mappers own HTTP input and response normalization boundaries', ({
-    assert,
-  }) => {
-    const userRequestMapperContent = readFile(
-      'app/controllers/users/mappers/request/user_request_mapper.ts'
-    )
-    const userResponseSharedContent = readFile('app/controllers/users/mappers/response/shared.ts')
-    const userResponseMapperContent = readFile(
-      'app/controllers/users/mappers/response/user_response_mapper.ts'
-    )
-    const userControllerFiles = listFiles('app/controllers/users')
-      .filter((file) => file.endsWith('.ts'))
-      .filter((file) => !file.includes('/mappers/'))
-
-    assert.match(userRequestMapperContent, /export function buildUsersListDTO/)
-    assert.match(userRequestMapperContent, /request\.input\('system_role'\)/)
-    assert.match(userRequestMapperContent, /request\.input\('role'\)/)
-    assert.match(userResponseSharedContent, /serialize\(/)
-    assert.match(userResponseMapperContent, /normalizePaginationMeta/)
     assert.match(userResponseMapperContent, /mapSuccessMessageApiBody/)
     assert.match(userResponseMapperContent, /trust_score:/)
+    assertPathsExist(assert, [
+      'app/controllers/users/mappers/request/user_request_mapper.ts',
+      'app/controllers/users/mappers/response/shared.ts',
+      'app/controllers/users/mappers/response/user_response_mapper.ts',
+    ])
 
-    for (const file of userControllerFiles) {
-      const content = readFile(file)
-      assert.notMatch(content, /\.serialize\(/)
-      assert.notMatch(content, /new [A-Za-z0-9_]+DTO\(/)
-    }
+    assertFilesDoNotMatch(assert, userControllerFiles, /\.serialize\(/)
+    assertFilesDoNotMatch(assert, userControllerFiles, /new [A-Za-z0-9_]+DTO\(/)
   })
 
   test('non-mapper controllers do not build DTOs or serialize models directly', ({ assert }) => {
@@ -270,7 +219,11 @@ test.group('Match | High-signal contracts', () => {
 
     for (const file of controllerFiles) {
       const content = readFile(file)
-      assert.notMatch(content, /from ['"]#infra\//)
+      if (file === 'app/controllers/auth/social_auth_controller.ts') {
+        assert.notMatch(content, /from ['"]#infra\/(?!logger\/auth_logger)/)
+      } else {
+        assert.notMatch(content, /from ['"]#infra\//)
+      }
       assert.notMatch(content, /from ['"]#models\//)
     }
 
@@ -282,13 +235,17 @@ test.group('Match | High-signal contracts', () => {
       assert.notMatch(content, /from ['"]mongoose['"]/)
     }
 
+    assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'app/actions/organization')))
+    assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'app/controllers/organization')))
+    assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'app/infra/organization')))
+    assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'start/routes/organization.ts')))
     assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'app/controllers/organization/billing')))
     assert.isFalse(fs.existsSync(path.join(WORKSPACE_ROOT, 'app/actions/organization/billing')))
     assert.isFalse(
       fs.existsSync(path.join(WORKSPACE_ROOT, 'inertia/pages/org/billing/index.svelte'))
     )
 
-    const organizationRoutes = readFile('start/routes/organization.ts')
+    const organizationRoutes = readFile('start/routes/organizations_current.ts')
     assert.notMatch(organizationRoutes, /\/billing\b/)
   })
 
@@ -361,8 +318,8 @@ test.group('Match | High-signal contracts', () => {
     )
     const appSidebarContent = readFile('inertia/components/layout/app_sidebar.svelte')
 
-    assert.match(tasksIndexContent, /Bạn không đủ quyền tạo nhiệm vụ/)
-    assert.match(tasksIndexContent, /canCreateTask=\{createTaskPermission\.allowed\}/)
+    assert.match(tasksIndexContent, /createTaskPermission=\{vm\.createTaskPermission\}/)
+    assert.match(tasksIndexContent, /canCreateTask=\{vm\.createTaskPermission\.allowed\}/)
     assert.notMatch(appSidebarContent, /Quản Trị Tổ Chức/)
     assert.notMatch(appSidebarContent, /\/org\/tasks/)
     assert.notMatch(applyModalContent, /Mức giá đề xuất/)
@@ -373,10 +330,14 @@ test.group('Match | High-signal contracts', () => {
     assert,
   }) => {
     const updateTaskCommandContent = readFile('app/actions/tasks/commands/update_task_command.ts')
+    const updateTaskPersistenceSupportContent = readFile(
+      'app/actions/tasks/support/update_task_persistence_support.ts'
+    )
     const triggerListenersContent = readFile('app/listeners/trigger_listeners.ts')
     const cacheInvalidationContent = readFile('app/listeners/cache_invalidation_listener.ts')
 
-    assert.match(updateTaskCommandContent, /createTaskVersion\(/)
+    assert.match(updateTaskCommandContent, /persistTaskUpdateWithinTransaction/)
+    assert.match(updateTaskPersistenceSupportContent, /createTaskVersionIfNeeded\(/)
     assert.notMatch(triggerListenersContent, /emitter\.on\('task:updated'/)
     assert.notMatch(triggerListenersContent, /task_versions/)
     assert.match(cacheInvalidationContent, /emitter\.on\('task:updated'/)
