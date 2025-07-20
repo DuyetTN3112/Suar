@@ -1,8 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { mapProjectDetailPageProps } from './mappers/response/project_response_mapper.js'
+
 import GetProjectDetailQuery from '#actions/projects/queries/get_project_detail_query'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
+
 
 /**
  * GET /projects/:id → Show project detail
@@ -18,6 +22,6 @@ export default class ShowProjectController {
     const projectId = params.id as string
     const result = await query.handle({ projectId, organizationId })
 
-    return await inertia.render('projects/show', result)
+    return await inertia.render('projects/show', mapProjectDetailPageProps(result))
   }
 }

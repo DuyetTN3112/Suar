@@ -1,6 +1,7 @@
 import { BaseQuery } from '#actions/shared/base_query'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * GetUserSkillsDTO
@@ -44,13 +45,11 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
   async handle(dto: GetUserSkillsDTO): Promise<UserSkillResult[]> {
     const cacheKey = this.generateCacheKey('users:skills', {
       userId: dto.user_id,
-      category: dto.category_code || 'all',
+      category: dto.category_code ?? 'all',
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const query = SkillRepository.findUserSkillsWithSkill(dto.user_id)
-
-      const userSkills = await query
+      const userSkills = await DefaultUserDependencies.skill.listUserSkillDetails(dto.user_id)
 
       // Filter by category if specified (v3: category_code is inline on skills table)
       let filteredSkills = userSkills

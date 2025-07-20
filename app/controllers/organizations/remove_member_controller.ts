@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
-import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
+
+import { buildRemoveMemberDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+
 import CreateNotification from '#actions/common/create_notification'
+import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /organizations/:id/members/:userId
@@ -12,13 +15,13 @@ export default class RemoveMemberController {
   async handle(ctx: HttpContext) {
     const { params, request, response, session } = ctx
 
-    const dto = new RemoveMemberDTO(params.id as string, params.userId as string)
+    const dto = buildRemoveMemberDTO(request, params.id as string, params.userId as string)
     await new RemoveMemberCommand(ExecutionContext.fromHttp(ctx), new CreateNotification()).execute(
       dto
     )
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({ success: true, message: 'Xóa thành viên thành công' })
+      response.json(mapOrganizationSuccessApiBody('Xóa thành viên thành công'))
       return
     }
 

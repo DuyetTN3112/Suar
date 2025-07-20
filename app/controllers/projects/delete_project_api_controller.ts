@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildDeleteProjectDTO } from './mappers/request/project_request_mapper.js'
+import { mapDeleteProjectApiBody } from './mappers/response/project_response_mapper.js'
+
 import DeleteProjectCommand from '#actions/projects/commands/delete_project_command'
-import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -13,20 +16,17 @@ import { ExecutionContext } from '#types/execution_context'
  */
 export default class DeleteProjectApiController {
   async handle(ctx: HttpContext) {
-    const { params, response, session } = ctx
+    const { params, request, response, session } = ctx
     const organizationId = session.get('current_organization_id') as string | undefined
 
     if (!organizationId) {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = new DeleteProjectDTO({
-      project_id: params.id as string,
-      current_organization_id: organizationId,
-    })
+    const dto = buildDeleteProjectDTO(request, params.id as string, organizationId)
     const command = new DeleteProjectCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
-    response.json({ success: true, message: 'Dự án đã được xóa' })
+    response.json(mapDeleteProjectApiBody('Dự án đã được xóa'))
   }
 }

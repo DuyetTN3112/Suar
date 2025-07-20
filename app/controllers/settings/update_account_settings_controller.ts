@@ -1,8 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
-import { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
+
+import { buildUpdateAccountSettingsDTO } from './mappers/request/settings_request_mapper.js'
+import { getAccountSettingsUpdatedMessage } from './mappers/response/settings_response_mapper.js'
+
+import UpdateAccountSettingsCommand from '#actions/settings/commands/update_account_settings_command'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /settings/account → Update account settings
@@ -15,16 +18,11 @@ export default class UpdateAccountSettingsController {
     if (!user) {
       throw new UnauthorizedException()
     }
-    const data = request.only(['email']) as { email?: string }
-    const dto = new UpdateUserProfileDTO(
-      user.id,
-      undefined,
-      data.email || (user.email ?? undefined)
-    )
-    const command = new UpdateUserProfileCommand(ExecutionContext.fromHttp(ctx))
+    const dto = buildUpdateAccountSettingsDTO(request, user.id, user.email)
+    const command = new UpdateAccountSettingsCommand(ExecutionContext.fromHttp(ctx))
     await command.handle(dto)
 
-    session.flash('success', 'Thông tin tài khoản đã được cập nhật thành công')
+    session.flash('success', getAccountSettingsUpdatedMessage())
     response.redirect().back()
   }
 }

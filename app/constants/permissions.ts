@@ -13,9 +13,9 @@
  * @module Permissions
  */
 
-import { SystemRoleName } from './user_constants.js'
 import { OrganizationRole } from './organization_constants.js'
 import { ProjectRole } from './project_constants.js'
+import { SystemRoleName } from './user_constants.js'
 
 // ============================================================================
 // System Role Permissions

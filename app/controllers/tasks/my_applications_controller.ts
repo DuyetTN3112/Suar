@@ -1,24 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildGetMyApplicationsInput } from './mappers/request/task_application_request_mapper.js'
+import { mapMyApplicationsPageProps } from './mappers/response/task_application_response_mapper.js'
+
 import GetMyApplicationsQuery from '#actions/tasks/queries/get_my_applications_query'
-import { ApplicationStatus } from '#constants/task_constants'
-
-const isSerializable = (value: unknown): value is { serialize: () => unknown } => {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'serialize' in value &&
-    typeof (value as { serialize?: unknown }).serialize === 'function'
-  )
-}
-
-function validateStatus(value: string): ApplicationStatus | 'all' {
-  const validStatuses: string[] = Object.values(ApplicationStatus)
-  if (validStatuses.includes(value) || value === 'all') {
-    return value as ApplicationStatus | 'all'
-  }
-  return 'all'
-}
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /my-applications → List my applications (freelancer view)
@@ -27,16 +13,9 @@ export default class MyApplicationsController {
   async handle(ctx: HttpContext) {
     const { request, inertia } = ctx
 
-    const toPageNumber = (value: unknown, fallback: number): number => {
-      if (typeof value === 'number' && Number.isFinite(value)) {
-        return Math.max(1, Math.trunc(value))
-      }
-      if (typeof value === 'string') {
-        const parsed = Number(value)
-        return Number.isFinite(parsed) ? Math.max(1, Math.trunc(parsed)) : fallback
-      }
-      return fallback
-    }
+    const query = new GetMyApplicationsQuery(ExecutionContext.fromHttp(ctx))
+    const filters = buildGetMyApplicationsInput(request)
+    const result = await query.handle(filters)
 
     const query = new GetMyApplicationsQuery(ExecutionContext.fromHttp(ctx))
     const statusRaw = request.input('status', 'all') as unknown

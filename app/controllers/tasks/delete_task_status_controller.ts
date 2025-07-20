@@ -1,9 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildDeleteTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusDeleteApiBody } from './mappers/response/task_status_response_mapper.js'
+
 import DeleteTaskStatusCommand from '#actions/tasks/commands/delete_task_status_command'
-import { DeleteTaskStatusDTO } from '#actions/tasks/dtos/request/task_status_dtos'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /api/task-statuses/:id
@@ -18,14 +21,11 @@ export default class DeleteTaskStatusController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const dto = new DeleteTaskStatusDTO({
-      status_id: params.id as string,
-      organization_id: organizationId,
-    })
+    const dto = buildDeleteTaskStatusDTO(organizationId, params.id as string)
 
     const command = new DeleteTaskStatusCommand(ExecutionContext.fromHttp(ctx))
     await command.execute(dto)
 
-    response.json({ success: true })
+    response.json(mapTaskStatusDeleteApiBody())
   }
 }
