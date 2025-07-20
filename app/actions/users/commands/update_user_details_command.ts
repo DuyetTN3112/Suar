@@ -1,9 +1,12 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
-import type User from '#models/user'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
 import emitter from '@adonisjs/core/services/emitter'
+
+import type { UpdateUserDetailsDTO } from '../dtos/request/update_user_details_dto.js'
+
+import { BaseCommand } from '#actions/shared/base_command'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import UserRepository from '#infra/users/repositories/user_repository'
+import type User from '#models/user'
+
 
 /**
  * UpdateUserDetailsCommand
@@ -26,7 +29,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
       throw new UnauthorizedException()
     }
 
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userRecord = await UserRepository.findNotDeletedOrFail(userId, trx)
 
       const oldValues = {
@@ -45,10 +48,10 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         bio: dto.bio !== undefined ? dto.bio : userRecord.bio,
         phone: dto.phone !== undefined ? dto.phone : userRecord.phone,
         address: dto.address !== undefined ? dto.address : userRecord.address,
-        timezone: dto.timezone !== undefined ? dto.timezone : userRecord.timezone,
-        language: dto.language !== undefined ? dto.language : userRecord.language,
+        timezone: dto.timezone ?? userRecord.timezone,
+        language: dto.language ?? userRecord.language,
         is_freelancer:
-          dto.is_freelancer !== undefined ? dto.is_freelancer : userRecord.is_freelancer,
+          dto.is_freelancer ?? userRecord.is_freelancer,
       })
       await UserRepository.save(userRecord, trx)
 
@@ -63,21 +66,25 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
         is_freelancer: dto.is_freelancer,
       })
 
-      // Emit domain event
-      void emitter.emit('user:profile:updated', {
-        userId,
-        changes: {
-          avatar_url: dto.avatar_url,
-          bio: dto.bio,
-          phone: dto.phone,
-          address: dto.address,
-          timezone: dto.timezone,
-          language: dto.language,
-          is_freelancer: dto.is_freelancer,
+      return {
+        userRecord,
+        profileUpdatedEvent: {
+          userId,
+          changes: {
+            avatar_url: dto.avatar_url,
+            bio: dto.bio,
+            phone: dto.phone,
+            address: dto.address,
+            timezone: dto.timezone,
+            language: dto.language,
+            is_freelancer: dto.is_freelancer,
+          },
         },
-      })
-
-      return userRecord
+      }
     })
+
+    void emitter.emit('user:profile:updated', result.profileUpdatedEvent)
+
+    return result.userRecord
   }
 }

@@ -1,8 +1,10 @@
+import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
+import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
+import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
+
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DatabaseId } from '#types/database'
-import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
-import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
-import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
+
 
 export interface RefreshUserProfileAggregatesDTO {
   userId: DatabaseId
