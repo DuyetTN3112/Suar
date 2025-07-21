@@ -3,10 +3,12 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
+import { orgTaskBootstrap } from '#actions/tasks/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -22,13 +24,12 @@ import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type Organization from '#models/organization'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import * as OrganizationMutations from '#infra/organizations/repositories/write/organization_mutations'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import type { OrganizationRecord } from '#types/organization_records'
 
 /**
  * Command: Create Organization
@@ -51,13 +52,13 @@ interface OrganizationCreationContext {
 }
 
 interface PersistedOrganizationCreation {
-  organization: Organization
+  organization: OrganizationRecord
 }
 
 export default class CreateOrganizationCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
   /**
@@ -65,7 +66,7 @@ export default class CreateOrganizationCommand {
    *
    * Pattern: REQUIRE ACTOR → FETCH/VALIDATE → PERSIST → POST-COMMIT
    */
-  async execute(dto: CreateOrganizationDTO): Promise<Organization> {
+  async execute(dto: CreateOrganizationDTO): Promise<OrganizationRecord> {
     const actorId = this.requireActorId()
     const creation = await this.persistOrganizationCreationInTransaction(dto, actorId)
     await this.runPostCommitEffects(creation.organization, actorId)
@@ -102,7 +103,7 @@ export default class CreateOrganizationCommand {
   ): Promise<PersistedOrganizationCreation> {
     const slug = await this.getUniqueSlug(context.baseSlug, trx)
 
-    const organization = await OrganizationRepository.create(
+    const organization = await OrganizationMutations.createRecord(
       {
         name: dto.name,
         slug,
@@ -133,17 +134,18 @@ export default class CreateOrganizationCommand {
     )
 
     // Seed default task statuses + workflow transitions inside the same transaction.
-    const taskStatusModule = await import('#actions/tasks/commands/seed_default_task_statuses')
-    const { seedDefaultTaskStatuses } = taskStatusModule
-    await seedDefaultTaskStatuses(organization.id, trx)
+    await orgTaskBootstrap.seedDefaultStatusesForOrganization(organization.id, trx)
 
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: actorId,
-      action: AuditAction.CREATE,
-      entity_type: EntityType.ORGANIZATION,
-      entity_id: organization.id,
-      new_values: organization.toJSON(),
-    })
+    await auditPublicApi.log(
+      {
+        user_id: actorId,
+        action: AuditAction.CREATE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: organization.id,
+        new_values: organization,
+      },
+      this.execCtx
+    )
 
     return { organization }
   }
@@ -166,12 +168,14 @@ export default class CreateOrganizationCommand {
   }
 
   private async runPostCommitEffects(
-    organization: Organization,
+    organization: OrganizationRecord,
     actorId: DatabaseId
   ): Promise<void> {
     void emitter.emit('organization:created', {
-      organization,
+      organizationId: organization.id,
       ownerId: actorId,
+      name: organization.name,
+      slug: organization.slug,
       ip: this.execCtx.ip,
     })
 
@@ -196,7 +200,7 @@ export default class CreateOrganizationCommand {
    * Helper: Send welcome notification
    */
   private async sendWelcomeNotification(
-    organization: Organization,
+    organization: OrganizationRecord,
     userId: DatabaseId
   ): Promise<void> {
     try {

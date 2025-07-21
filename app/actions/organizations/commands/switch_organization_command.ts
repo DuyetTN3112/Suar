@@ -1,8 +1,10 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   canAccessOrganizationAdminShell,
@@ -10,12 +12,10 @@ import {
 } from '#domain/organizations/org_permission_policy'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Switch Organization
@@ -85,14 +85,17 @@ export default class SwitchOrganizationCommand {
       )
 
       // 4. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.SWITCH_ORGANIZATION,
-        entity_type: EntityType.USER,
-        entity_id: userId,
-        old_values: { current_organization_id: currentOrganizationId },
-        new_values: { current_organization_id: organizationId },
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.SWITCH_ORGANIZATION,
+          entity_type: EntityType.USER,
+          entity_id: userId,
+          old_values: { current_organization_id: currentOrganizationId },
+          new_values: { current_organization_id: organizationId },
+        },
+        this.execCtx
+      )
 
       await trx.commit()
 

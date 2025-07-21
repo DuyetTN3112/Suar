@@ -1,5 +1,5 @@
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import { writeAuditLog as persistAuditLog } from '#infra/audit/repositories/audit_log_writer_repository'
+import { writeAuditLog as persistAuditLog } from '#infra/audit/repositories/write/audit_log_writer_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 

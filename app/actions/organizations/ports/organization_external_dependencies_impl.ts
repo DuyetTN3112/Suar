@@ -1,10 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type { DatabaseId } from '#types/database'
-
 import type {
   DebugUserOrganizationsInfo,
   OrganizationExternalDependencies,
@@ -14,12 +9,18 @@ import type {
   OrganizationUserReaderWriter,
 } from './organization_external_dependencies.js'
 
+import { projectPublicApi } from '#actions/projects/public_api'
+import { taskPublicApi } from '#actions/tasks/public_api'
+import { userPublicApi } from '#actions/users/public_api'
+import type { DatabaseId } from '#types/database'
+
+
 export class InfraOrganizationUserReaderWriter implements OrganizationUserReaderWriter {
   async findOwnerNamesByIds(
     userIds: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<OrganizationOwnerName[]> {
-    const users = await UserRepository.findByIds(userIds, ['id', 'username'], trx)
+    const users = await userPublicApi.findByIds(userIds, ['id', 'username'], trx)
     return users.map((user) => ({
       id: user.id,
       username: user.username,
@@ -30,7 +31,7 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<OrganizationUserIdentity | null> {
-    const user = await UserRepository.findById(userId, trx)
+    const user = await userPublicApi.findById(userId, trx)
     if (!user) {
       return null
     }
@@ -47,7 +48,7 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
     email: string,
     trx?: TransactionClientContract
   ): Promise<OrganizationUserIdentity | null> {
-    const user = await UserRepository.findByEmail(email, trx)
+    const user = await userPublicApi.findByEmail(email, trx)
     if (!user) {
       return null
     }
@@ -61,7 +62,7 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
   }
 
   async isActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
-    return UserRepository.isActive(userId, trx)
+    return userPublicApi.isActive(userId, trx)
   }
 
   async updateCurrentOrganization(
@@ -69,11 +70,11 @@ export class InfraOrganizationUserReaderWriter implements OrganizationUserReader
     organizationId: DatabaseId | null,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await UserRepository.updateCurrentOrganization(userId, organizationId, trx)
+    await userPublicApi.updateCurrentOrganization(userId, organizationId, trx)
   }
 
   async loadDebugOrganizations(userId: DatabaseId): Promise<DebugUserOrganizationsInfo> {
-    const user = await UserRepository.findWithOrganizations(userId)
+    const user = await userPublicApi.findWithOrganizations(userId)
 
     return {
       id: user.id,
@@ -91,14 +92,22 @@ export class InfraOrganizationProjectTaskReaderWriter
     organizationIds: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<Map<string, number>> {
-    return ProjectRepository.countByOrgIds(organizationIds, trx)
+    return projectPublicApi.countByOrganizationIds(organizationIds, trx)
   }
 
   async countTasksByOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<number> {
-    return ProjectRepository.countTasksByOrganization(organizationId, trx)
+    const projectIds = await projectPublicApi.findIdsByOrganization(organizationId, trx)
+    const taskCounts = await taskPublicApi.countByProjectIds(projectIds, trx)
+
+    let total = 0
+    for (const count of taskCounts.values()) {
+      total += count
+    }
+
+    return total
   }
 
   async unassignMemberTasks(
@@ -106,12 +115,12 @@ export class InfraOrganizationProjectTaskReaderWriter
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    const projectIds = await ProjectRepository.findIdsByOrganization(organizationId, trx)
+    const projectIds = await projectPublicApi.findIdsByOrganization(organizationId, trx)
     if (projectIds.length === 0) {
       return
     }
 
-    await TaskRepository.unassignByUserInProjects(projectIds, userId, trx)
+    await taskPublicApi.unassignByUserInProjects(projectIds, userId, trx)
   }
 }
 

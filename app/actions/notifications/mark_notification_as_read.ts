@@ -1,6 +1,6 @@
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import { notificationRepositoryProvider } from '#infra/notifications/repositories/notification_repository_provider'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -13,7 +13,7 @@ export default class MarkNotificationAsRead {
       throw new UnauthorizedException()
     }
 
-    const repo = await RepositoryFactory.getNotificationRepository()
+    const repo = notificationRepositoryProvider.getNotificationRepository()
     const updated = await repo.markAsRead(id, userId)
 
     if (!updated) {
@@ -28,7 +28,7 @@ export default class MarkNotificationAsRead {
     if (!userId) {
       throw new UnauthorizedException()
     }
-    const repo = await RepositoryFactory.getNotificationRepository()
+    const repo = notificationRepositoryProvider.getNotificationRepository()
     await repo.markAllAsRead(userId)
     return { success: true }
   }

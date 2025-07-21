@@ -5,7 +5,7 @@ import {
   listAuditLogsByEntity as listByEntity,
   type AuditLogRecord,
   type AuditUserField,
-} from '#infra/audit/repositories/audit_log_read_repository'
+} from '#infra/audit/repositories/read/audit_log_read_repository'
 import type { DatabaseId } from '#types/database'
 
 export async function listAuditLogsByEntity(

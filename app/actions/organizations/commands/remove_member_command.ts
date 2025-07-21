@@ -3,10 +3,11 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -21,8 +22,6 @@ import OrganizationUserRepository from '#infra/organizations/repositories/organi
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
 
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
-
 /**
  * Command: Remove Member from Organization
  *
@@ -33,7 +32,7 @@ import { DefaultOrganizationDependencies } from '../ports/organization_external_
 export default class RemoveMemberCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
   async execute(dto: RemoveMemberDTO): Promise<void> {
@@ -78,18 +77,29 @@ export default class RemoveMemberCommand {
       // Remove member from organization
       await OrganizationUserRepository.deleteMember(dto.organizationId, dto.userId, trx)
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: 'remove_member',
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organizationId,
-        old_values: targetMembership.toJSON(),
-        new_values: {
-          removed_user_id: dto.userId,
-          removed_user_role: targetMembership.org_role,
-          reason: dto.getNormalizedReason(),
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: 'remove_member',
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: dto.organizationId,
+          old_values: {
+            organization_id: targetMembership.organization_id,
+            user_id: targetMembership.user_id,
+            org_role: targetMembership.org_role,
+            status: targetMembership.status,
+            invited_by: targetMembership.invited_by,
+            created_at: targetMembership.created_at.toISO(),
+            updated_at: targetMembership.updated_at.toISO(),
+          },
+          new_values: {
+            removed_user_id: dto.userId,
+            removed_user_role: targetMembership.org_role,
+            reason: dto.getNormalizedReason(),
+          },
         },
-      })
+        this.execCtx
+      )
 
       await trx.commit()
 

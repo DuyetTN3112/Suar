@@ -1,7 +1,8 @@
-import GetTasksIndexPageQuery, {
+import {
+  taskPublicApi,
   type GetTasksIndexPageInput,
   type GetTasksIndexPageResult,
-} from '#actions/tasks/queries/get_tasks_index_page_query'
+} from '#actions/tasks/public_api'
 import type { ExecutionContext } from '#types/execution_context'
 
 export type OrganizationTasksIndexPageInput = GetTasksIndexPageInput
@@ -13,6 +14,6 @@ export default class GetOrganizationTasksIndexPageQuery {
   async execute(
     input: OrganizationTasksIndexPageInput
   ): Promise<OrganizationTasksIndexPageResult> {
-    return new GetTasksIndexPageQuery(this.execCtx).execute(input)
+    return taskPublicApi.getTasksIndexPage(input, this.execCtx)
   }
 }

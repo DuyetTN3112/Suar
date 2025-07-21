@@ -3,9 +3,9 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -34,7 +34,7 @@ import { type ExecutionContext } from '#types/execution_context'
 export default class ProcessJoinRequestCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
   async execute(dto: ProcessJoinRequestDTO): Promise<void> {
@@ -81,23 +81,26 @@ export default class ProcessJoinRequestCommand {
       )
 
       // 4. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: `${dto.getStatus()}_join_request`,
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organizationId,
-        old_values: {
-          organization_id: pendingMembership.organization_id,
-          user_id: pendingMembership.user_id,
-          status: pendingMembership.status,
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: `${dto.getStatus()}_join_request`,
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: dto.organizationId,
+          old_values: {
+            organization_id: pendingMembership.organization_id,
+            user_id: pendingMembership.user_id,
+            status: pendingMembership.status,
+          },
+          new_values: {
+            status: newStatus,
+            requester_id: dto.targetUserId,
+            action: dto.getActionVerb(),
+            reason: dto.getNormalizedReason(),
+          },
         },
-        new_values: {
-          status: newStatus,
-          requester_id: dto.targetUserId,
-          action: dto.getActionVerb(),
-          reason: dto.getNormalizedReason(),
-        },
-      })
+        this.execCtx
+      )
 
       await trx.commit()
 

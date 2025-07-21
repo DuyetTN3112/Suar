@@ -8,22 +8,21 @@ import {
   type InviteMemberRequestInput,
 } from '../builders/member_request_dto_builders.js'
 import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { canInviteOrganizationMembers } from '#domain/organizations/org_permission_policy'
 import ConflictException from '#exceptions/conflict_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import OrgAccessRepository from '#infra/organizations/repositories/org_access_repository'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrgAccessRepository from '#infra/organizations/repositories/read/org_access_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Invite User to Organization
@@ -147,19 +146,22 @@ export default class InviteUserCommand {
       invitation: Awaited<ReturnType<typeof OrgAccessRepository.createInvitation>>
     }
   ): Promise<void> {
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: userId,
-      action: AuditAction.INVITE,
-      entity_type: EntityType.ORGANIZATION,
-      entity_id: dto.organizationId,
-      new_values: {
-        email: invitationContext.normalizedEmail,
-        role: dto.getRoleName(),
-        invited_user_id: invitationContext.inviteeId,
-        invited_membership_user_id: invitationContext.invitation.user_id,
-        status: invitationContext.invitation.status,
+    await auditPublicApi.log(
+      {
+        user_id: userId,
+        action: AuditAction.INVITE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        new_values: {
+          email: invitationContext.normalizedEmail,
+          role: dto.getRoleName(),
+          invited_user_id: invitationContext.inviteeId,
+          invited_membership_user_id: invitationContext.invitation.user_id,
+          status: invitationContext.invitation.status,
+        },
       },
-    })
+      this.execCtx
+    )
 
     void emitter.emit('audit:log', {
       userId,

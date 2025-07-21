@@ -9,9 +9,9 @@ import {
 } from '../builders/member_request_dto_builders.js'
 import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -46,7 +46,7 @@ import { type ExecutionContext } from '#types/execution_context'
 export default class UpdateMemberRoleCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
   async executeFromRequest(
@@ -169,14 +169,17 @@ export default class UpdateMemberRoleCommand {
   ): Promise<void> {
     await OrganizationUserRepository.updateRole(dto.organizationId, dto.userId, dto.newRoleId, trx)
 
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: actorId,
-      action: AuditAction.UPDATE_MEMBER_ROLE,
-      entity_type: EntityType.ORGANIZATION,
-      entity_id: dto.organizationId,
-      old_values: { user_id: dto.userId, org_role: oldRole },
-      new_values: { user_id: dto.userId, org_role: dto.newRoleId },
-    })
+    await auditPublicApi.log(
+      {
+        user_id: actorId,
+        action: AuditAction.UPDATE_MEMBER_ROLE,
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organizationId,
+        old_values: { user_id: dto.userId, org_role: oldRole },
+        new_values: { user_id: dto.userId, org_role: dto.newRoleId },
+      },
+      this.execCtx
+    )
   }
 
   /**
