@@ -1,6 +1,7 @@
-import { DateTime } from 'luxon'
 import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
+
 import User from './user.js'
 
 const parseJsonColumn = <T>(value: string | T | null): T | null => {
@@ -41,11 +42,11 @@ export default class UserDomainExpertise extends BaseModel {
   declare problem_category_frequency: Record<string, number>
 
   @column({
-    prepare: (value: Array<Record<string, unknown>> | null) => JSON.stringify(value ?? []),
-    consume: (value: string | Array<Record<string, unknown>> | null) =>
-      parseJsonColumn<Array<Record<string, unknown>>>(value) ?? [],
+    prepare: (value: Record<string, unknown>[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | Record<string, unknown>[] | null) =>
+      parseJsonColumn<Record<string, unknown>[]>(value) ?? [],
   })
-  declare top_skills: Array<Record<string, unknown>>
+  declare top_skills: Record<string, unknown>[]
 
   @column.dateTime()
   declare calculated_at: DateTime

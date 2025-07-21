@@ -1,17 +1,20 @@
-import { DateTime } from 'luxon'
+import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
 import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
-import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
-import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
+import { DateTime } from 'luxon'
+
 import { SystemRoleName } from '#constants'
-import Organization from './organization.js'
-import Task from './task.js'
-import Project from './project.js'
+
 import AuditLog from './audit_log.js'
 import Notification from './notification.js'
+import Organization from './organization.js'
 import OrganizationUser from './organization_user.js'
+import Project from './project.js'
+import Task from './task.js'
 import UserOAuthProvider from './user_oauth_provider.js'
 import UserSkill from './user_skill.js'
+
+import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
 
 function parseJsonColumn<T>(value: string | T | null): T | null {
   if (typeof value !== 'string') {

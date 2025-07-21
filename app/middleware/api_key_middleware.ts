@@ -1,9 +1,11 @@
+import { timingSafeEqual } from 'node:crypto'
+
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
-import env from '#start/env'
-import { timingSafeEqual } from 'node:crypto'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+
 import { HttpStatus } from '#constants/error_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import env from '#start/env'
 
 /**
  * Middleware kiểm tra API key cho các endpoint được bảo vệ như health check.
