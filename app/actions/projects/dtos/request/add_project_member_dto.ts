@@ -45,7 +45,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
     // Role validation (if provided) - check it's a valid ProjectRole string
     if (data.project_role !== undefined) {
       const validRoles = Object.values(ProjectRole) as string[]
-      if (!validRoles.includes(data.project_role as string)) {
+      if (!validRoles.includes(data.project_role)) {
         throw new ValidationException('Vai trò dự án không hợp lệ')
       }
     }

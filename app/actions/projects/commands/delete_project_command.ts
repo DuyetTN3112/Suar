@@ -1,16 +1,15 @@
 import emitter from '@adonisjs/core/services/emitter'
-import { DateTime } from 'luxon'
 
 import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/projects/base_command'
 import { PolicyResult as PR } from '#domain/policies/policy_result'
 import { canDeleteProject } from '#domain/projects/project_permission_policy'
 import CacheService from '#infra/cache/cache_service'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+import * as projectMutations from '#infra/projects/repositories/write/project_mutations'
 
 /**
  * Command to delete a project (soft delete by default)
@@ -34,7 +33,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
 
     const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await ProjectRepository.findActiveForUpdate(dto.project_id, trx)
+      const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
 
       // Optional scope guard for adapters that require current organization context.
       if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
@@ -65,22 +64,28 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       )
 
       // 4. Store old values for audit
-      const oldValues = project.toJSON()
+      const oldValues = { ...project }
 
       // 5. Perform delete (soft or permanent)
-      if (dto.isPermanentDelete()) {
-        await ProjectRepository.hardDelete(project, trx)
-      } else {
-        project.deleted_at = DateTime.now()
-        await ProjectRepository.save(project, trx)
-      }
+      const deletedProject = dto.isPermanentDelete()
+        ? await projectMutations.hardDeleteByIdRecord(project.id, trx)
+        : await projectMutations.softDeleteByIdRecord(project.id, trx)
 
       // 6. Log audit trail
-      await this.logAudit('delete', 'project', project.id, oldValues, {
-        deleted_at: project.deleted_at,
-        reason: dto.reason,
-        permanent: dto.permanent,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'delete',
+          entity_type: 'project',
+          entity_id: project.id,
+          old_values: oldValues,
+          new_values: {
+            deleted_at: deletedProject.deleted_at,
+            reason: dto.reason,
+            permanent: dto.permanent,
+          },
+        })
+      }
 
       return {
         projectId: project.id,

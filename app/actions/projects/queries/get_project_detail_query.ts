@@ -1,6 +1,8 @@
-import { buildAuditUserMap, listAuditLogsByEntity } from '#actions/audit/read_audit_logs'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseQuery } from '#actions/shared/base_query'
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseQuery } from '#actions/projects/base_query'
 import {
   canAccessProjectOrganizationScope,
   calculateProjectDetailPermissions,
@@ -8,12 +10,10 @@ import {
 } from '#domain/projects/project_permission_policy'
 import type { ProjectPermissionContext } from '#domain/projects/project_types'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import type Project from '#models/project'
+import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
+import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+import type { ProjectDetailRecord } from '#types/project_records'
 
 /**
  * Member interface for query results
@@ -122,7 +122,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     }
 
     // Load project with relations
-    const project = await ProjectRepository.findDetailWithRelations(projectId)
+    const project = await projectModelQueries.findDetailWithRelationsRecord(projectId)
 
     const permissionContext = await this.buildPermissionContext(
       userId,
@@ -151,20 +151,20 @@ export default class GetProjectDetailQuery extends BaseQuery<
         name: project.name,
         description: project.description,
         organization_id: project.organization_id,
-        organization_name: project.organization.name,
+        organization_name: project.organization?.name ?? null,
         creator_id: project.creator_id,
-        creator_name: project.creator.username,
+        creator_name: project.creator?.username ?? null,
         manager_id: project.manager_id,
-        manager_name: project.manager_id ? project.manager.username : null,
+        manager_name: project.manager?.username ?? null,
         owner_id: project.owner_id,
-        owner_name: project.owner_id ? project.owner.username : null,
-        start_date: project.start_date ? project.start_date.toISO() : null,
-        end_date: project.end_date ? project.end_date.toISO() : null,
+        owner_name: project.owner?.username ?? null,
+        start_date: project.start_date,
+        end_date: project.end_date,
         status: project.status,
         budget: project.budget,
         visibility: project.visibility,
-        created_at: project.created_at.toISO(),
-        updated_at: project.updated_at.toISO(),
+        created_at: project.created_at,
+        updated_at: project.updated_at,
       },
       members,
       tasks,
@@ -176,7 +176,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
 
   private async buildPermissionContext(
     userId: DatabaseId,
-    project: Project,
+    project: ProjectDetailRecord,
     currentOrganizationId?: DatabaseId
   ): Promise<ProjectPermissionContext> {
     enforcePolicy(
@@ -190,7 +190,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const [actorSystemRole, actorMembership, actorProjectRole] = await Promise.all([
       DefaultProjectDependencies.user.getSystemRoleName(userId),
       DefaultProjectDependencies.organization.getMembershipRole(orgId, userId),
-      ProjectMemberRepository.getRoleName(project.id, userId).then((role) =>
+      projectMemberQueries.getRoleName(project.id, userId).then((role) =>
         role === 'unknown' ? null : role
       ),
     ])
@@ -201,7 +201,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
       actorOrgRole: actorMembership,
       actorProjectRole,
       projectCreatorId: project.creator_id,
-      projectOwnerId: project.owner_id ?? ('' as DatabaseId),
+      projectOwnerId: project.owner_id ?? (''),
       projectOrganizationId: project.organization_id,
     }
   }
@@ -210,7 +210,7 @@ export default class GetProjectDetailQuery extends BaseQuery<
    * Get list of project members with details → delegate to Model
    */
   private async getMembers(projectId: DatabaseId): Promise<ProjectMemberResult[]> {
-    const { data: members } = await ProjectMemberRepository.getMembersWithDetails(projectId)
+    const { data: members } = await projectMemberQueries.getMembersWithDetails(projectId)
 
     // Get task count for each member via Model
     const taskCountMap = await DefaultProjectDependencies.task.countByAssignees(projectId)
@@ -263,8 +263,8 @@ export default class GetProjectDetailQuery extends BaseQuery<
       username: string | null
     }[]
   > {
-    const logs = await listAuditLogsByEntity('project', projectId, 10)
-    const userMap = await buildAuditUserMap(logs, ['id', 'username'])
+    const logs = await auditPublicApi.listByEntity('project', projectId, 10)
+    const userMap = await auditPublicApi.buildUserMap(logs, ['id', 'username'])
 
     return logs.map((log) => {
       const user = userMap.get(String(log.user_id))
