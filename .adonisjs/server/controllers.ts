@@ -121,6 +121,7 @@ export const controllers = {
         },
         response: {
           CurrentOrganizationMutationResponseMapper: () => import('#controllers/organizations/current/mappers/response/current_organization_mutation_response_mapper'),
+          Shared: () => import('#controllers/organizations/current/mappers/response/shared'),
         },
       },
       members: {
@@ -140,6 +141,14 @@ export const controllers = {
       projects: {
         CreateProject: () => import('#controllers/organizations/current/projects/create_project_controller'),
         ListProjects: () => import('#controllers/organizations/current/projects/list_projects_controller'),
+        mappers: {
+          request: {
+            CurrentProjectRequestMapper: () => import('#controllers/organizations/current/projects/mappers/request/current_project_request_mapper'),
+          },
+          response: {
+            CurrentProjectResponseMapper: () => import('#controllers/organizations/current/projects/mappers/response/current_project_response_mapper'),
+          },
+        },
       },
       settings: {
         ShowSettings: () => import('#controllers/organizations/current/settings/show_settings_controller'),
@@ -147,10 +156,23 @@ export const controllers = {
       },
       tasks: {
         ListTasks: () => import('#controllers/organizations/current/tasks/list_tasks_controller'),
+        mappers: {
+          request: {
+            CurrentTaskRequestMapper: () => import('#controllers/organizations/current/tasks/mappers/request/current_task_request_mapper'),
+          },
+        },
       },
       workflow: {
         CreateTaskStatus: () => import('#controllers/organizations/current/workflow/create_task_status_controller'),
         ListTaskStatuses: () => import('#controllers/organizations/current/workflow/list_task_statuses_controller'),
+        mappers: {
+          request: {
+            CurrentTaskStatusRequestMapper: () => import('#controllers/organizations/current/workflow/mappers/request/current_task_status_request_mapper'),
+          },
+          response: {
+            CurrentTaskStatusResponseMapper: () => import('#controllers/organizations/current/workflow/mappers/response/current_task_status_response_mapper'),
+          },
+        },
       },
     },
     InviteMember: () => import('#controllers/organizations/invite_member_controller'),
