@@ -62,3 +62,6 @@ logs/
 package-lock.json
 yarn.lock
 .gitnexus
+
+# Local AI agent config
+.claude/
