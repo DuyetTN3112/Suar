@@ -1,7 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { isValidId } from '#libs/id_utils'
-import type Task from '#models/task'
+
 import {
   STATUS_CATEGORY_SQL,
   applyPermissionFilter,
@@ -10,6 +8,11 @@ import {
   toNumberValue,
   type TaskPermissionFilter,
 } from './shared.js'
+
+import { isValidId } from '#libs/id_utils'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+
 
 export const findRootTasksForKanban = async (
   organizationId: DatabaseId,
@@ -215,7 +218,7 @@ export const paginateByUser = async (
 
 export const findRootTasksByOrganization = async (
   organizationId: DatabaseId,
-  limit: number = 100,
+  limit = 100,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
   return baseQuery(trx)

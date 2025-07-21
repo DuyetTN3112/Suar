@@ -7,6 +7,7 @@
  */
 
 import type { TaskEntity } from '../entities/task_entity.js'
+
 import type { DatabaseId } from '#types/database'
 
 export interface TaskRepository {

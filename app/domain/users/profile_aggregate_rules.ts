@@ -125,6 +125,8 @@ function computeStreaks(rows: PerformanceAggregateRow[]): {
 
 function getLevelWeight(levelCode: string | null): number {
   switch (levelCode) {
+    case null:
+      return 1
     case 'expert':
       return 4
     case 'advanced':
@@ -178,7 +180,7 @@ export function buildKnowledgeArtifacts(input: {
   return artifacts
 }
 
-export function calculateAverageScore(values: Array<number | null | undefined>): number | null {
+export function calculateAverageScore(values: (number | null | undefined)[]): number | null {
   return average(
     values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value)),
     2

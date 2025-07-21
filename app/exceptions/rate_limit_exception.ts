@@ -1,4 +1,5 @@
 import { Exception } from '@adonisjs/core/exceptions'
+
 import { ErrorMessages } from '#constants/error_constants'
 
 /**

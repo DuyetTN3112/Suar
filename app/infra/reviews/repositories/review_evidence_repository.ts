@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import ReviewEvidence from '#models/review_evidence'
+import type { DatabaseId } from '#types/database'
 
 export default class ReviewEvidenceRepository {
   private readonly __instanceMarker = true

@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildRegisterUserDTO } from './mappers/request/user_request_mapper.js'
+
 import RegisterUserCommand from '#actions/users/commands/register_user_command'
-import { RegisterUserDTO } from '#actions/users/dtos/request/register_user_dto'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -11,12 +13,7 @@ export default class StoreUserController {
     const registerUserCommand = new RegisterUserCommand(ExecutionContext.fromHttp(ctx))
     const { request, response, session, i18n } = ctx
 
-    const dto = new RegisterUserDTO(
-      request.input('username') as string,
-      request.input('email') as string,
-      request.input('role') as string,
-      request.input('status') as string
-    )
+    const dto = buildRegisterUserDTO(request)
 
     await registerUserCommand.handle(dto)
 

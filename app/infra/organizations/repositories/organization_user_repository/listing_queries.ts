@@ -1,8 +1,6 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import db from '@adonisjs/lucid/services/db'
-import type OrganizationUser from '#models/organization_user'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import {
   baseQuery,
   isRecord,
@@ -10,6 +8,11 @@ import {
   type CountResultRow,
   type PaginatedMemberRow,
 } from './shared.js'
+
+import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import type OrganizationUser from '#models/organization_user'
+import type { DatabaseId } from '#types/database'
+
 
 export const countMembers = async (
   organizationId: DatabaseId,
@@ -70,21 +73,24 @@ export const paginateMembers = async (
     limit: number
     orgRole?: string
     search?: string
+    statusFilter?: string
+    include?: ('activity' | 'audit')[]
   },
   trx?: TransactionClientContract
 ): Promise<{
-  data: Array<{
+  data: {
     user_id: string
     org_role: string
     status: string
     created_at: Date | string
+    last_activity_at?: Date | string | null
     user: {
       id: string
       username: string
       email: string | null
       status: string
     }
-  }>
+  }[]
   total: number
 }> => {
   const baseDb = trx ?? db
@@ -115,6 +121,14 @@ export const paginateMembers = async (
     })
   }
 
+  if (options.statusFilter) {
+    void query.where('ou.status', options.statusFilter)
+  }
+
+  if (options.include?.includes('activity')) {
+    void query.select('u.updated_at as last_activity_at')
+  }
+
   const countQuery = query.clone()
   const countResultRaw = (await countQuery.count('* as count')) as unknown
   const countResult = Array.isArray(countResultRaw) ? countResultRaw : []
@@ -141,6 +155,11 @@ export const paginateMembers = async (
         org_role: member.org_role,
         status: member.status,
         created_at: member.created_at,
+        last_activity_at: (member as unknown as Record<string, unknown>).last_activity_at as
+          | Date
+          | string
+          | null
+          | undefined,
         user: {
           id: member.user_id,
           username: member.username,

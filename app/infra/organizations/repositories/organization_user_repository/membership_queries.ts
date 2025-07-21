@@ -1,9 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
+import { baseQuery } from './shared.js'
+
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
+import type { MembershipContext } from '#domain/organizations/org_types'
+import { toOrgRole } from '#domain/organizations/org_types'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import type OrganizationUser from '#models/organization_user'
-import { baseQuery } from './shared.js'
+import type { DatabaseId } from '#types/database'
+
 
 export const findMembership = async (
   organizationId: DatabaseId,
@@ -78,7 +83,7 @@ export const isAdminOrOwner = async (
   userId: DatabaseId,
   organizationId: DatabaseId,
   trx?: TransactionClientContract,
-  requireApproved: boolean = true
+  requireApproved = true
 ): Promise<boolean> => {
   const query = baseQuery(trx)
     .where('organization_id', organizationId)
@@ -141,12 +146,12 @@ export const isMember = async (
   return !!membership
 }
 
-export const getMemberRoleName = async (
+export const getMembershipContext = async (
   organizationId: DatabaseId,
   userId: DatabaseId,
   trx?: TransactionClientContract,
-  approvedOnly: boolean = true
-): Promise<string | null> => {
+  approvedOnly = true
+): Promise<MembershipContext> => {
   const query = baseQuery(trx).where('organization_id', organizationId).where('user_id', userId)
 
   if (approvedOnly) {
@@ -154,7 +159,16 @@ export const getMemberRoleName = async (
   }
 
   const membership = await query.first()
-  return membership?.org_role ?? null
+  const role = toOrgRole(membership?.org_role)
+  if (!role) {
+    return null
+  }
+
+  return {
+    userId,
+    organizationId,
+    role,
+  }
 }
 
 export const findMembershipsByUser = async (
