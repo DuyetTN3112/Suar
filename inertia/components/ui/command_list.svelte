@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Command as CommandPrimitive, type CommandListProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = CommandListProps
 

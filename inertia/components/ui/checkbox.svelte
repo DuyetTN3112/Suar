@@ -6,9 +6,10 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Checkbox as CheckboxPrimitive, type CheckboxRootProps } from 'bits-ui'
   import Check from 'lucide-svelte/icons/check'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = Omit<
     CheckboxRootProps,
@@ -47,9 +48,9 @@
   )}
   {...restProps}
 >
-  {#snippet children({ checked, indeterminate })}
+  {#snippet children({ checked: isChecked, indeterminate: isIndeterminate })}
     <div class="flex items-center justify-center text-current">
-      {#if checked === true || indeterminate}
+      {#if isChecked === true || isIndeterminate}
         <Check class="h-4 w-4" />
       {/if}
     </div>

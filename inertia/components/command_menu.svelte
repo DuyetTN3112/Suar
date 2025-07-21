@@ -1,8 +1,8 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
   import { ArrowRightIcon } from 'lucide-svelte'
-  import { useTheme } from '@/stores/theme.svelte'
-  import { useSearch } from '@/stores/search.svelte'
+
+  import { mainNavigation } from '@/components/navigation.svelte'
   import CommandDialog from '@/components/ui/command_dialog.svelte'
   import CommandEmpty from '@/components/ui/command_empty.svelte'
   import CommandGroup from '@/components/ui/command_group.svelte'
@@ -11,7 +11,9 @@
   import CommandList from '@/components/ui/command_list.svelte'
   import CommandSeparator from '@/components/ui/command_separator.svelte'
   import ScrollArea from '@/components/ui/scroll_area.svelte'
-  import { mainNavigation } from '@/components/navigation.svelte'
+  import { THEME_OPTIONS } from '@/constants/theme'
+  import { useSearch } from '@/stores/search.svelte'
+  import { useTheme } from '@/stores/theme.svelte'
 
   const sidebarData = {
     navGroups: mainNavigation,
@@ -104,8 +106,8 @@
       <CommandSeparator />
       <CommandGroup heading="Giao diện">
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('light') }) }}
-          value="Sáng"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[0].value) }) }}
+          value={THEME_OPTIONS[0].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
@@ -113,8 +115,8 @@
           Chế độ sáng
         </CommandItem>
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('dark') }) }}
-          value="Tối"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[1].value) }) }}
+          value={THEME_OPTIONS[1].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
@@ -122,8 +124,8 @@
           Chế độ tối
         </CommandItem>
         <CommandItem
-          onSelect={() => { runCommand(() => { setTheme('system') }) }}
-          value="Hệ thống"
+          onSelect={() => { runCommand(() => { setTheme(THEME_OPTIONS[2].value) }) }}
+          value={THEME_OPTIONS[2].label}
         >
           <div class="mr-2 flex h-4 w-4 items-center justify-center">
             <ArrowRightIcon class="text-muted-foreground/80 size-2" />
