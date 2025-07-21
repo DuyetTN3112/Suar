@@ -20,7 +20,7 @@ type UserKey =
   | 'freelancerOne'
   | 'freelancerTwo'
 
-type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD'
+type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD' | 'orgE'
 type ProjectKey =
   | 'orgAPlatform'
   | 'orgAOperations'
@@ -30,6 +30,8 @@ type ProjectKey =
   | 'orgBCurriculumOps'
   | 'orgCMarketplaceLab'
   | 'orgDTalentShowcase'
+  | 'orgEDataOps'
+  | 'orgEInsightEngine'
 type StatusSlug = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
 
 type SeededUser = {
@@ -1060,7 +1062,321 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
   },
 ]
 
-const SEEDED_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
+const BULK_STATUS_SEQUENCE: TaskSpec['status'][] = ['todo', 'in_progress', 'in_review', 'done']
+const BULK_LABEL_SEQUENCE: TaskSpec['label'][] = [
+  'feature',
+  'enhancement',
+  'documentation',
+  'bug',
+]
+const BULK_PRIORITY_SEQUENCE: TaskSpec['priority'][] = ['medium', 'high', 'low', 'urgent']
+const BULK_DIFFICULTY_SEQUENCE: TaskSpec['difficulty'][] = ['easy', 'medium', 'hard', 'expert']
+const BULK_TASK_TYPE_SEQUENCE: TaskSpec['taskType'][] = [
+  'feature_development',
+  'technical_writing',
+  'qa_testing',
+  'bug_fix',
+  'code_review',
+  'ui_ux_design',
+]
+const BULK_COLLABORATION_SEQUENCE: TaskSpec['collaborationType'][] = [
+  'solo',
+  'small_team',
+  'pair_programming',
+  'cross_team',
+]
+const BULK_AUTONOMY_SEQUENCE: TaskSpec['autonomyLevel'][] = [
+  'supervised',
+  'autonomous',
+  'led_others',
+]
+const BULK_ROLE_SEQUENCE: TaskSpec['roleInTask'][] = [
+  'contributor',
+  'lead',
+  'reviewer',
+  'architect',
+]
+const BULK_ENVIRONMENT_SEQUENCE: TaskSpec['environment'][] = [
+  'development',
+  'staging',
+  'mixed',
+  'production',
+]
+const BULK_IMPACT_SEQUENCE: TaskSpec['impactScope'][] = [
+  'team',
+  'project',
+  'organization',
+  'end_users',
+]
+const BULK_VERIFICATION_SEQUENCE: TaskSpec['verificationMethod'][] = [
+  'code_review',
+  'manual_qa',
+  'documentation_review',
+  'manager_approval',
+]
+
+type GeneratedProjectTaskSeedConfig = {
+  organization: OrgKey
+  targetTaskCount: number
+  creators: UserKey[]
+  assignees: UserKey[]
+  titlePrefix: string
+  businessDomain: TaskSpec['businessDomain']
+  problemCategories: TaskSpec['problemCategory'][]
+  techStack: string[]
+  requiredSkills: string[]
+}
+
+const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeedConfig> = {
+  orgAPlatform: {
+    organization: 'orgA',
+    targetTaskCount: 8,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'member', 'orgAdmin', 'peerReviewer'],
+    titlePrefix: 'Org A platform backlog',
+    businessDomain: 'saas',
+    problemCategories: ['new_capability', 'maintainability', 'automation', 'ux_improvement'],
+    techStack: ['AdonisJS', 'Svelte', 'PostgreSQL', 'Redis'],
+    requiredSkills: ['typescript', 'testing', 'postgresql', 'communication'],
+  },
+  orgAOperations: {
+    organization: 'orgA',
+    targetTaskCount: 4,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org A admin quality backlog',
+    businessDomain: 'internal_tooling',
+    problemCategories: ['maintainability', 'automation', 'new_capability', 'ux_improvement'],
+    techStack: ['AdonisJS', 'PostgreSQL', 'MongoDB'],
+    requiredSkills: ['testing', 'communication', 'problem_solving'],
+  },
+  orgADesignSystem: {
+    organization: 'orgA',
+    targetTaskCount: 3,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['orgAdmin', 'member'],
+    titlePrefix: 'Org A design system backlog',
+    businessDomain: 'saas',
+    problemCategories: ['ux_improvement', 'new_capability', 'maintainability'],
+    techStack: ['Svelte', 'TypeScript', 'Design System'],
+    requiredSkills: ['svelte', 'communication', 'testing'],
+  },
+  orgAAnalytics: {
+    organization: 'orgA',
+    targetTaskCount: 5,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'peerReviewer', 'orgAdmin'],
+    titlePrefix: 'Org A analytics backlog',
+    businessDomain: 'saas',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'Charts'],
+    requiredSkills: ['postgresql', 'problem_solving', 'testing'],
+  },
+  orgBKnowledgeBase: {
+    organization: 'orgB',
+    targetTaskCount: 10,
+    creators: ['orgBOwner'],
+    assignees: ['orgBOwner', 'owner', 'member'],
+    titlePrefix: 'Org B knowledge backlog',
+    businessDomain: 'edtech',
+    problemCategories: ['maintainability', 'automation', 'ux_improvement', 'new_capability'],
+    techStack: ['Documentation', 'Svelte', 'PostgreSQL'],
+    requiredSkills: ['communication', 'testing', 'problem_solving'],
+  },
+  orgBCurriculumOps: {
+    organization: 'orgB',
+    targetTaskCount: 10,
+    creators: ['orgBOwner'],
+    assignees: ['orgBOwner', 'owner', 'member'],
+    titlePrefix: 'Org B curriculum backlog',
+    businessDomain: 'edtech',
+    problemCategories: ['automation', 'maintainability', 'new_capability', 'ux_improvement'],
+    techStack: ['Documentation', 'PostgreSQL', 'Svelte'],
+    requiredSkills: ['communication', 'testing', 'problem_solving'],
+  },
+  orgCMarketplaceLab: {
+    organization: 'orgC',
+    targetTaskCount: 20,
+    creators: ['peerReviewer', 'orgAdmin'],
+    assignees: ['peerReviewer', 'owner', 'orgAdmin'],
+    titlePrefix: 'Org C marketplace backlog',
+    businessDomain: 'saas',
+    problemCategories: ['automation', 'new_capability', 'maintainability', 'performance'],
+    techStack: ['AdonisJS', 'Charts', 'PostgreSQL', 'MongoDB'],
+    requiredSkills: ['postgresql', 'problem_solving', 'testing', 'communication'],
+  },
+  orgDTalentShowcase: {
+    organization: 'orgD',
+    targetTaskCount: 20,
+    creators: ['freelancerOne'],
+    assignees: ['freelancerOne', 'owner', 'freelancerTwo'],
+    titlePrefix: 'Org D talent backlog',
+    businessDomain: 'saas',
+    problemCategories: ['new_capability', 'ux_improvement', 'automation', 'technical_debt'],
+    techStack: ['Svelte', 'TypeScript', 'MongoDB'],
+    requiredSkills: ['svelte', 'communication', 'testing'],
+  },
+  orgEDataOps: {
+    organization: 'orgE',
+    targetTaskCount: 10,
+    creators: ['freelancerTwo', 'orgAdmin'],
+    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org E data ops backlog',
+    businessDomain: 'data_platform',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
+    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+  },
+  orgEInsightEngine: {
+    organization: 'orgE',
+    targetTaskCount: 10,
+    creators: ['freelancerTwo', 'orgAdmin'],
+    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org E insight backlog',
+    businessDomain: 'data_platform',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
+    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+  },
+}
+
+function pickCycled<T>(items: readonly T[], index: number, label: string): T {
+  const item = items[index % items.length]
+  if (item === undefined) {
+    throw new Error(`Missing generated seed item for ${label}`)
+  }
+
+  return item
+}
+
+function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
+  const currentCounts = existingSpecs.reduce(
+    (counts, spec) => {
+      counts[spec.project] = (counts[spec.project] ?? 0) + 1
+      return counts
+    },
+    {} as Partial<Record<ProjectKey, number>>
+  )
+
+  const generated: TaskSpec[] = []
+
+  for (const [project, config] of Object.entries(GENERATED_PROJECT_TASK_CONFIG) as Array<
+    [ProjectKey, GeneratedProjectTaskSeedConfig]
+  >) {
+    const currentCount = currentCounts[project] ?? 0
+
+    for (
+      let targetIndex = currentCount;
+      targetIndex < config.targetTaskCount;
+      targetIndex += 1
+    ) {
+      const ordinal = targetIndex - currentCount + 1
+      const status = pickCycled(BULK_STATUS_SEQUENCE, targetIndex, `${project}:status`)
+      const taskStatus: TaskSpec['taskStatus'] = status
+      const creator = pickCycled(config.creators, targetIndex, `${project}:creator`)
+      const assignee =
+        status === 'todo' && ordinal % 3 === 0
+          ? undefined
+          : pickCycled(config.assignees, targetIndex, `${project}:assignee`)
+      const visibility: TaskSpec['visibility'] =
+        status === 'todo' && ordinal % 6 === 0
+          ? 'all'
+          : status === 'todo' && ordinal % 4 === 0
+            ? 'external'
+            : 'internal'
+      const estimatedHours = 6 + (ordinal % 5) * 2
+      const actualHours =
+        status === 'done'
+          ? Math.max(estimatedHours - 1, estimatedHours + ((ordinal % 3) - 1))
+          : Math.max(2, estimatedHours - 3)
+      const dueDaysOffset =
+        status === 'done' ? -(ordinal % 9) - 1 : (ordinal % 10) + 2
+      const requiredSkills = config.requiredSkills
+        .slice(ordinal % config.requiredSkills.length)
+        .concat(config.requiredSkills.slice(0, ordinal % config.requiredSkills.length))
+        .slice(0, 2)
+
+      generated.push({
+        key: `${project}-bulk-${String(ordinal).padStart(2, '0')}`,
+        organization: config.organization,
+        project,
+        creator,
+        assignee,
+        title: `${config.titlePrefix} ${String(targetIndex + 1).padStart(2, '0')}`,
+        description:
+          `Seed thêm dữ liệu dày cho project ${project} để dashboard, board và analytics không còn thưa.` +
+          ` Mục này dùng cho QA local nhiều trạng thái hơn.`,
+        status,
+        taskStatus,
+        label: pickCycled(BULK_LABEL_SEQUENCE, targetIndex, `${project}:label`),
+        priority: pickCycled(BULK_PRIORITY_SEQUENCE, targetIndex, `${project}:priority`),
+        difficulty: pickCycled(BULK_DIFFICULTY_SEQUENCE, targetIndex, `${project}:difficulty`),
+        visibility,
+        dueDaysOffset,
+        assignmentCompletedDaysAgo: status === 'done' ? (ordinal % 7) + 1 : undefined,
+        assignmentEstimatedHours: estimatedHours,
+        assignmentActualHours: actualHours,
+        taskType: pickCycled(BULK_TASK_TYPE_SEQUENCE, targetIndex, `${project}:taskType`),
+        acceptanceCriteria: [
+          `Board của project ${project} có thêm dữ liệu trạng thái ${status}`,
+          'Project detail và dashboard đọc được số liệu seeded mới',
+        ],
+        verificationMethod: pickCycled(
+          BULK_VERIFICATION_SEQUENCE,
+          targetIndex,
+          `${project}:verificationMethod`
+        ),
+        expectedDeliverables: [
+          'Updated seeded task record',
+          'Board card with realistic metadata',
+        ],
+        contextBackground:
+          `Generated filler task cho project ${project} trong ${config.organization} để project này có đủ task seed cho QA local.`,
+        impactScope: pickCycled(BULK_IMPACT_SEQUENCE, targetIndex, `${project}:impactScope`),
+        techStack: config.techStack,
+        environment: pickCycled(BULK_ENVIRONMENT_SEQUENCE, targetIndex, `${project}:environment`),
+        collaborationType: pickCycled(
+          BULK_COLLABORATION_SEQUENCE,
+          targetIndex,
+          `${project}:collaborationType`
+        ),
+        complexityNotes:
+          'Generated seed task giữ metadata thật nhưng không gắn thêm review scenario chuyên biệt.',
+        measurableOutcomes: [
+          { metric: 'seeded_project_task_density', target: config.targetTaskCount },
+          { metric: 'status_bucket', value: status },
+        ],
+        learningObjectives: [
+          'High-density local QA',
+          'Cross-organization navigation verification',
+        ],
+        domainTags: [config.organization, project, 'seed-density', 'task-board'],
+        roleInTask: pickCycled(BULK_ROLE_SEQUENCE, targetIndex, `${project}:roleInTask`),
+        autonomyLevel: pickCycled(
+          BULK_AUTONOMY_SEQUENCE,
+          targetIndex,
+          `${project}:autonomyLevel`
+        ),
+        problemCategory: pickCycled(
+          config.problemCategories,
+          targetIndex,
+          `${project}:problemCategory`
+        ),
+        businessDomain: config.businessDomain,
+        estimatedUsersAffected: 12 + ordinal * 3,
+        estimatedBudget: 3_000_000 + ordinal * 350_000,
+        applicationDeadlineDaysAhead: visibility === 'internal' ? undefined : (ordinal % 6) + 3,
+        requiredSkills,
+      })
+    }
+  }
+
+  return generated
+}
+
+const CORE_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
+const GENERATED_TASK_SPECS = buildGeneratedTaskSpecs(CORE_TASK_SPECS)
+const SEEDED_TASK_SPECS = [...CORE_TASK_SPECS, ...GENERATED_TASK_SPECS]
 
 export default class SeedData extends BaseCommand {
   static override commandName = 'seed:data'
@@ -1654,6 +1970,14 @@ export default class SeedData extends BaseCommand {
         description:
           'Organization thiên về external contributors, dùng để seed package adoption và public task nhiều hơn.',
       },
+      orgE: {
+        name: 'Data Ops Research Guild',
+        slug: 'data-ops-research-guild',
+        owner: 'freelancerTwo',
+        plan: 'professional',
+        description:
+          'Organization thứ năm để tăng mật độ dữ liệu đa tenant, tập trung vào data ops, analytics và insight workflow.',
+      },
     }
 
     const result: Partial<Record<OrgKey, SeededOrg>> = {}
@@ -1788,6 +2112,28 @@ export default class SeedData extends BaseCommand {
         status: 'approved',
         invitedBy: 'freelancerOne',
       },
+      { organization: 'orgE', user: 'freelancerTwo', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgE',
+        user: 'owner',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
+      {
+        organization: 'orgE',
+        user: 'member',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
+      {
+        organization: 'orgE',
+        user: 'orgAdmin',
+        role: 'org_admin',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
     ]
 
     for (const item of memberships) {
@@ -1904,6 +2250,24 @@ export default class SeedData extends BaseCommand {
         status: 'in_progress',
         visibility: 'team',
       },
+      orgEDataOps: {
+        name: 'Data Ops Command Center',
+        organization: 'orgE',
+        creator: 'freelancerTwo',
+        owner: 'freelancerTwo',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgEInsightEngine: {
+        name: 'Insight Engine Studio',
+        organization: 'orgE',
+        creator: 'freelancerTwo',
+        owner: 'freelancerTwo',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'private',
+      },
     }
 
     const seeded: Partial<Record<ProjectKey, SeededProject>> = {}
@@ -1985,6 +2349,13 @@ export default class SeedData extends BaseCommand {
       { project: 'orgDTalentShowcase', user: 'freelancerOne', role: 'project_owner' },
       { project: 'orgDTalentShowcase', user: 'owner', role: 'project_member' },
       { project: 'orgDTalentShowcase', user: 'freelancerTwo', role: 'project_member' },
+      { project: 'orgEDataOps', user: 'freelancerTwo', role: 'project_owner' },
+      { project: 'orgEDataOps', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgEDataOps', user: 'owner', role: 'project_member' },
+      { project: 'orgEDataOps', user: 'member', role: 'project_member' },
+      { project: 'orgEInsightEngine', user: 'freelancerTwo', role: 'project_owner' },
+      { project: 'orgEInsightEngine', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgEInsightEngine', user: 'owner', role: 'project_member' },
     ]
 
     for (const row of rows) {
@@ -3107,7 +3478,7 @@ export default class SeedData extends BaseCommand {
       ['orgBOwner', organizations.orgB.id],
       ['superadmin', null],
       ['freelancerOne', null],
-      ['freelancerTwo', null],
+      ['freelancerTwo', organizations.orgE.id],
     ]
 
     for (const [userKey, currentOrgId] of updates) {
@@ -4179,6 +4550,32 @@ export default class SeedData extends BaseCommand {
 
     this.logger.info(
       `Users=${userCount}, organizations=${orgCount}, projects=${projectCount}, tasks=${taskCount}, review_sessions=${reviewCount}, user_subscriptions=${subscriptionCount}, mongo_notifications=${notificationCount}, mongo_audit_logs=${auditLogCount}, mongo_user_activity_logs=${userActivityCount}`
+    )
+
+    const taskCountRows = (await db
+      .from('tasks as t')
+      .join('organizations as o', 'o.id', 't.organization_id')
+      .select('o.slug')
+      .count('* as total')
+      .groupBy('o.slug')
+      .orderBy('o.slug')) as Array<{ slug: string; total: string | number }>
+
+    this.logger.info(
+      `Task counts by org: ${taskCountRows.map((row) => `${row.slug}=${Number(row.total)}`).join(', ')}`
+    )
+
+    const projectTaskCountRows = (await db
+      .from('tasks as t')
+      .join('projects as p', 'p.id', 't.project_id')
+      .join('organizations as o', 'o.id', 'p.organization_id')
+      .select('o.slug', 'p.name')
+      .count('* as total')
+      .groupBy('o.slug', 'p.name')
+      .orderBy('o.slug')
+      .orderBy('p.name')) as Array<{ slug: string; name: string; total: string | number }>
+
+    this.logger.info(
+      `Task counts by project: ${projectTaskCountRows.map((row) => `${row.slug}/${row.name}=${Number(row.total)}`).join(', ')}`
     )
     this.logger.info(
       `Owner account: ${context.users.owner.email} | Superadmin: ${context.users.superadmin.username} | Member account: ${context.users.member.username}`
