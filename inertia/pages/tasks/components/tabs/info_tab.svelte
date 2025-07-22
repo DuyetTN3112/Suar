@@ -1,14 +1,17 @@
 <script lang="ts">
-  import Label from '@/components/ui/label.svelte'
   import Input from '@/components/ui/input.svelte'
+  import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
+
   import type { Task } from '../../types.svelte'
+  import AssigneeField from '../form_fields/assignee_field.svelte'
+  import LabelField from '../form_fields/label_field.svelte'
+  import PriorityField from '../form_fields/priority_field.svelte'
+  import StatusField from '../form_fields/status_field.svelte'
+
   import TaskCreatorInfo from './info/task_creator_info.svelte'
   import TaskDueDateField from './info/task_due_date_field.svelte'
-  import StatusField from '../form_fields/status_field.svelte'
-  import PriorityField from '../form_fields/priority_field.svelte'
-  import LabelField from '../form_fields/label_field.svelte'
-  import AssigneeField from '../form_fields/assignee_field.svelte'
+
 
   interface Props {
     task: Task
@@ -20,10 +23,10 @@
     errors: Record<string, string>
     isEditing: boolean
     canEdit: boolean
-    statuses: Array<{ value: string; label: string; color: string }>
-    priorities: Array<{ value: string; label: string; color: string }>
-    labels: Array<{ value: string; label: string; color: string }>
-    users: Array<{ id: string; username: string; email: string }>
+    statuses: { value: string; label: string; color: string }[]
+    priorities: { value: string; label: string; color: string }[]
+    labels: { value: string; label: string; color: string }[]
+    users: { id: string; username: string; email: string }[]
   }
 
   const {
@@ -51,7 +54,7 @@
     <Input
       id="title"
       name="title"
-      value={formData.title || ''}
+      value={formData.title ?? ''}
       oninput={handleChange}
       placeholder="Nhập tiêu đề nhiệm vụ"
       readonly={!isEditing}
@@ -67,7 +70,7 @@
     <Textarea
       id="description"
       name="description"
-      value={formData.description || ''}
+      value={formData.description ?? ''}
       oninput={handleChange}
       placeholder="Nhập mô tả chi tiết về nhiệm vụ"
       rows={3}

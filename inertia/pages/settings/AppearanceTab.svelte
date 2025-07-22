@@ -1,11 +1,13 @@
 <script lang="ts">
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
+  import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Label from '@/components/ui/label.svelte'
+  import { THEME_OPTIONS } from '@/constants/theme'
+
   import type { AppearanceTabProps } from './types'
 
   const { form, onSubmit, processing }: AppearanceTabProps = $props()
@@ -28,21 +30,21 @@
             variant={form.data.theme === 'light' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'light'); }}
           >
-            Sáng
+            {THEME_OPTIONS[0].label}
           </Button>
           <Button
             type="button"
             variant={form.data.theme === 'dark' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'dark'); }}
           >
-            Tối
+            {THEME_OPTIONS[1].label}
           </Button>
           <Button
             type="button"
             variant={form.data.theme === 'system' ? 'default' : 'outline'}
             onclick={() => { form.setData('theme', 'system'); }}
           >
-            Hệ thống
+            {THEME_OPTIONS[2].label}
           </Button>
         </div>
       </div>

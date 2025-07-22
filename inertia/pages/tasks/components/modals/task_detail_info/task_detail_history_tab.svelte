@@ -1,9 +1,9 @@
 <script lang="ts">
-  import { formatDate } from '../../../utils/task_formatter.svelte'
   import type { Task } from '../../../types.svelte'
+  import { formatDate } from '../../../utils/task_formatter.svelte'
 
   interface Props {
-    auditLogs: Array<{
+    auditLogs: {
       id: string
       action: string
       user?: {
@@ -13,7 +13,7 @@
       created_at: string
       old_values?: Record<string, string | number | boolean | null | undefined>
       new_values?: Record<string, string | number | boolean | null | undefined>
-    }>
+    }[]
     task: Task | null
   }
 

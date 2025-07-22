@@ -1,39 +1,13 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-
-  const settingsCards = [
-    {
-      title: 'Hồ sơ cá nhân',
-      description: 'Avatar, bio và các liên kết công khai.',
-      href: '/settings/profile',
-    },
-    {
-      title: 'Tài khoản',
-      description: 'Thông tin xác thực và package của user account.',
-      href: '/settings/account',
-    },
-    {
-      title: 'Giao diện',
-      description: 'Theme sáng tối và bộ font chuẩn của dashboard.',
-      href: '/settings/appearance',
-    },
-    {
-      title: 'Thông báo',
-      description: 'Các luồng nhận thông báo từ hệ thống.',
-      href: '/settings/notifications',
-    },
-    {
-      title: 'Hiển thị',
-      description: 'Density, layout và chuyển động của UI.',
-      href: '/settings/display',
-    },
-  ]
+  import { SETTINGS_CARDS as settingsCards } from '@/constants/settings'
+  import AppLayout from '@/layouts/app_layout.svelte'
 </script>
 
 <svelte:head>

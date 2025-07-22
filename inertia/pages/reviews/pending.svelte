@@ -3,12 +3,14 @@
    * Pending Reviews Page — GET /reviews/pending
    * Lists review sessions awaiting the current user's review.
    */
-  import AppLayout from '@/layouts/app_layout.svelte'
   import { router } from '@inertiajs/svelte'
+  import { ClipboardList } from 'lucide-svelte'
+
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import ReviewCard from './components/review_card.svelte'
   import SimplePagination from './components/simple_pagination.svelte'
-  import { ClipboardList } from 'lucide-svelte'
   import type { PendingReviewsProps, SerializedReviewSession } from './types.svelte'
 
   interface Props {
