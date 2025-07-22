@@ -6,8 +6,9 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Label as LabelPrimitive, type LabelRootProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = LabelRootProps & {
     class?: string

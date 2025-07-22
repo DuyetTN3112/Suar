@@ -3,13 +3,15 @@
    * Marketplace Tasks Page — GET /marketplace/tasks
    * Browse public tasks available for freelancers to apply.
    */
+  import { Search } from 'lucide-svelte'
+
   import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
-  import { Search } from 'lucide-svelte'
-  import MarketplaceTaskCard from './components/marketplace_task_card.svelte'
-  import MarketplaceFilters from './components/marketplace_filters.svelte'
-  import SimplePagination from './components/simple_pagination.svelte'
+
   import ApplyTaskModal from './components/apply_task_modal.svelte'
+  import MarketplaceFilters from './components/marketplace_filters.svelte'
+  import MarketplaceTaskCard from './components/marketplace_task_card.svelte'
+  import SimplePagination from './components/simple_pagination.svelte'
   import type { MarketplaceTasksProps, MarketplaceTask } from './types.svelte'
 
   interface Props {

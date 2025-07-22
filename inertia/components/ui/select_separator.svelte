@@ -5,7 +5,7 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
 
-  type Props = {
+  interface Props {
     class?: string
   }
 

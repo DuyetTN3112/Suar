@@ -1,12 +1,13 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
 
   interface Props {
     stats: {
@@ -16,7 +17,7 @@
       cancelled: number
       byPlan: Record<string, number>
     }
-    subscriptions: Array<{
+    subscriptions: {
       id: string
       user_id: string
       username: string
@@ -29,7 +30,7 @@
       auto_renew: boolean
       created_at: string | null
       updated_at: string | null
-    }>
+    }[]
     meta: {
       total: number
       perPage: number
@@ -41,13 +42,13 @@
       plan: string
       status: string
     }
-    packages: Array<{
+    packages: {
       id: string
       storagePlan: string
       name: string
       priceLabel: string
       features: string[]
-    }>
+    }[]
   }
 
   const { stats, subscriptions, meta, packages }: Props = $props()
@@ -146,7 +147,7 @@
                 <tr class="text-sm">
                   <td>
                     <div class="font-medium">{subscription.username}</div>
-                    <div class="text-xs text-muted-foreground">{subscription.email || 'Không có email'}</div>
+                    <div class="text-xs text-muted-foreground">{subscription.email ?? 'Không có email'}</div>
                   </td>
                   <td>
                     <Badge variant="outline">{subscription.plan}</Badge>

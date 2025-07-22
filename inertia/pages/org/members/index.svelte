@@ -1,18 +1,26 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
-  import OrganizationLayout from '@/layouts/organization_layout.svelte'
+  import { router, Link  } from '@inertiajs/svelte'
+
   import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import Select from '@/components/ui/select.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
   import SelectTrigger from '@/components/ui/select_trigger.svelte'
+    import {
+    FRONTEND_ROUTES,
+    MEMBERSHIP_STATUSES,
+    MEMBERSHIP_STATUS_LABELS,
+    MEMBERSHIP_STATUS_PILL_CLASSES,
+    getOrgMemberRoleRoute,
+    type MembershipStatus,
+  } from '@/constants'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { formatRoleLabel } from '@/lib/access_ui'
-  import { Link } from '@inertiajs/svelte'
 
   interface Member {
     user_id: string
@@ -36,10 +44,10 @@
       orgRole?: string
       status?: string
     }
-    roleOptions: Array<{
+    roleOptions: {
       value: string
       label: string
-    }>
+    }[]
   }
 
   const { members, meta, roleOptions }: Props = $props()
@@ -50,7 +58,7 @@
   let roleError = $state('')
 
   function getCsrfToken(): string {
-    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+    return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
   function roleLabel(role: string): string {
@@ -58,16 +66,7 @@
   }
 
   function statusLabel(status: string): string {
-    switch (status) {
-      case 'approved':
-        return 'Đã duyệt'
-      case 'pending':
-        return 'Chờ duyệt'
-      case 'rejected':
-        return 'Từ chối'
-      default:
-        return status
-    }
+    return MEMBERSHIP_STATUS_LABELS[status as MembershipStatus] || status
   }
 
   function roleClass(role: string): string {
@@ -87,16 +86,7 @@
   }
 
   function statusClass(status: string): string {
-    switch (status) {
-      case 'approved':
-        return 'neo-pill-blue'
-      case 'pending':
-        return 'neo-pill-orange'
-      case 'rejected':
-        return 'neo-pill-ink'
-      default:
-        return 'neo-pill-soft'
-    }
+    return MEMBERSHIP_STATUS_PILL_CLASSES[status as MembershipStatus] || 'neo-pill-soft'
   }
 
   function selectedRole(member: Member): string {
@@ -104,7 +94,7 @@
   }
 
   function canEditRole(member: Member): boolean {
-    return member.status === 'approved' && member.org_role !== 'org_owner'
+    return member.status === MEMBERSHIP_STATUSES.APPROVED && member.org_role !== 'org_owner'
   }
 
   async function saveRole(member: Member) {
@@ -124,7 +114,7 @@
     roleError = ''
 
     try {
-      const response = await fetch(`/org/members/${member.user_id}/role`, {
+      const response = await fetch(getOrgMemberRoleRoute(member.user_id), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -144,11 +134,11 @@
       }
 
       if (!response.ok || !payload.success) {
-        roleError = payload.message || 'Không thể cập nhật vai trò.'
+        roleError = payload.message ?? 'Không thể cập nhật vai trò.'
         return
       }
 
-      roleMessage = payload.message || 'Đã cập nhật vai trò.'
+      roleMessage = payload.message ?? 'Đã cập nhật vai trò.'
       router.visit(`${window.location.pathname}${window.location.search}`, {
         preserveScroll: true,
         preserveState: false,
@@ -172,19 +162,19 @@
         <p class="mt-2 max-w-3xl text-sm text-muted-foreground">Danh sách thành viên trong ngữ cảnh tổ chức hiện tại. Flow mời người và duyệt yêu cầu đã tách riêng sang các màn chuyên biệt.</p>
       </div>
       <div class="flex gap-2">
-        <Link href="/org/departments">
+        <Link href={FRONTEND_ROUTES.ORG_DEPARTMENTS}>
           <Button variant="outline">Phòng ban</Button>
         </Link>
-        <Link href="/org/roles">
+        <Link href={FRONTEND_ROUTES.ORG_ROLES}>
           <Button variant="outline">Vai trò</Button>
         </Link>
-        <Link href="/org/permissions">
+        <Link href={FRONTEND_ROUTES.ORG_PERMISSIONS}>
           <Button variant="outline">Quyền hạn</Button>
         </Link>
-        <Link href="/org/invitations/requests">
+        <Link href={FRONTEND_ROUTES.ORG_INVITATION_REQUESTS}>
           <Button variant="outline">Yêu cầu tham gia</Button>
         </Link>
-        <Link href="/org/invitations/invitations">
+        <Link href={FRONTEND_ROUTES.ORG_INVITATIONS}>
           <Button>Mời thành viên</Button>
         </Link>
       </div>
@@ -217,7 +207,7 @@
               {#each members as member}
                 <tr class="text-sm">
                   <td class="font-medium">{member.username}</td>
-                  <td class="text-muted-foreground">{member.email || '-'}</td>
+                  <td class="text-muted-foreground">{member.email ?? '-'}</td>
                   <td>
                     <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {roleClass(member.org_role)}">
                       {roleLabel(member.org_role)}

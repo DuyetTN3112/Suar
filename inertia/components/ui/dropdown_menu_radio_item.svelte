@@ -7,6 +7,9 @@
   import Circle from 'lucide-svelte/icons/circle'
   import type { Snippet } from 'svelte'
 
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     value: string
     disabled?: boolean

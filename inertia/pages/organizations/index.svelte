@@ -1,22 +1,17 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import CardFooter from '@/components/ui/card_footer.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Input from '@/components/ui/input.svelte'
+  import { Plus, Clock, CircleAlert } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
-  import { Building, Plus, Search, Info, Users, ChevronLeft, ChevronRight, Clock, CircleAlert } from 'lucide-svelte'
+  import { FRONTEND_PAGINATION } from '@/constants/pagination'
+  import { FRONTEND_ROUTES } from '@/constants/routes'
   import AppLayout from '@/layouts/app_layout.svelte'
-  import Dialog from '@/components/ui/dialog.svelte'
-  import DialogContent from '@/components/ui/dialog_content.svelte'
-  import DialogHeader from '@/components/ui/dialog_header.svelte'
-  import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import DialogFooter from '@/components/ui/dialog_footer.svelte'
-  import Badge from '@/components/ui/badge.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
+
+  import OrganizationAvailableSection from './components/organization_available_section.svelte'
+  import OrganizationDetailDialog from './components/organization_detail_dialog.svelte'
+  import OrganizationUserMembershipsSection from './components/organization_user_memberships_section.svelte'
+  import { joinOrganizationRequest, switchOrganizationRequest } from './organizations_api'
 
   interface Organization {
     id: string
@@ -35,30 +30,11 @@
 
   interface Props {
     organizations: Organization[]
-    currentOrganizationId: string | null
     allOrganizations?: Organization[]
+    currentOrganizationId: string | null
   }
 
-  interface JoinOrganizationResponse {
-    success?: boolean
-    message?: string
-    joinRequest?: {
-      status?: string | null
-    }
-    membership?: {
-      status?: string | null
-    }
-  }
-
-  interface SwitchOrganizationResponse {
-    success?: boolean
-    message?: string
-    redirect?: string
-  }
-
-  const props: Props = $props()
-  const organizations = $derived(props.organizations)
-  const allOrganizations = $derived(props.allOrganizations ?? [])
+  const { organizations, allOrganizations = [], currentOrganizationId }: Props = $props()
 
   let searchTerm = $state('')
   let allOrgsPage = $state(1)
@@ -69,18 +45,31 @@
   const orgMembershipStatus = $state<Partial<Record<string, { status: string | null }>>>({})
 
   $effect(() => {
-    localCurrentOrgId = props.currentOrganizationId
+    localCurrentOrgId = currentOrganizationId
   })
 
-  // Số lượng tổ chức hiển thị trên mỗi trang (2 dòng x 5 cột)
-  const ITEMS_PER_PAGE = 10
+  const ITEMS_PER_PAGE = FRONTEND_PAGINATION.ORGANIZATIONS_ITEMS_PER_PAGE
 
-  // Hàm xử lý tham gia tổ chức
   async function handleJoinOrganization(id: string) {
     try {
-      const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      const data = await joinOrganizationRequest(id)
+      if (!data.success) {
+        notificationStore.error(data.message ?? 'Không thể tham gia tổ chức')
+        if (data.membership?.status) {
+          orgMembershipStatus[id] = { status: data.membership.status }
+        }
+        return
+      }
 
-      if (!csrfToken) {
+      notificationStore.success(data.message ?? 'Đã gửi yêu cầu tham gia tổ chức thành công')
+      if (data.joinRequest) {
+        orgMembershipStatus[id] = { status: data.joinRequest.status ?? 'pending' }
+      }
+      if (showDetailDialog) {
+        showDetailDialog = false
+      }
+    } catch (error) {
+      if ((error as Error).message === 'missing-csrf-token') {
         notificationStore.error('Không tìm thấy CSRF token. Vui lòng tải lại trang.')
         return
       }

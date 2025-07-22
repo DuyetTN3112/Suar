@@ -5,8 +5,9 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import type { HTMLTextareaAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = Omit<HTMLTextareaAttributes, 'value'> & {
     class?: string

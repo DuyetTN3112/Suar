@@ -1,13 +1,16 @@
 <script lang="ts">
   import { getContext } from 'svelte'
-  import { cn } from '$lib/utils-svelte'
-  import Sheet from '../sheet.svelte'
-  import SheetContent from '../sheet_content.svelte'
-  import SheetHeader from '../sheet_header.svelte'
-  import SheetTitle from '../sheet_title.svelte'
-  import SheetDescription from '../sheet_description.svelte'
   import type { Snippet } from 'svelte'
   import type { HTMLAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
+
+  import Sheet from '../sheet.svelte'
+  import SheetContent from '../sheet_content.svelte'
+  import SheetDescription from '../sheet_description.svelte'
+  import SheetHeader from '../sheet_header.svelte'
+  import SheetTitle from '../sheet_title.svelte'
+
   import {
     SIDEBAR_WIDTH,
     SIDEBAR_WIDTH_MOBILE,
@@ -30,7 +33,7 @@
     ...restProps
   }: Props = $props()
 
-  type SidebarContext = {
+  interface SidebarContext {
     isMobile: boolean
     state: 'expanded' | 'collapsed'
     openMobile: boolean

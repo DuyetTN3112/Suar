@@ -1,17 +1,20 @@
 <script lang="ts">
   import { page, Link } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import {
     SquareCheckBig, Building, Users, FolderOpen, Plus, ArrowRight,
     TrendingUp, Clock, Star, Zap
   } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
 
   interface AuthUser {
     id?: string
@@ -44,13 +47,13 @@
       <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 class="text-3xl font-black tracking-tight">
-            {t('dashboard.welcome', {}, 'Xin chào')}, {user?.username || 'User'}! 👋
+            {t('dashboard.welcome', {}, 'Xin chào')}, {user?.username ?? 'User'}! 👋
           </h1>
           <p class="text-muted-foreground mt-1 text-lg">
             {t('dashboard.subtitle', {}, 'Quản lý công việc và dự án của bạn')}
           </p>
         </div>
-        <Link href="/tasks/create">
+        <Link href={FRONTEND_ROUTES.TASKS_CREATE}>
           <Button class="gap-2 font-bold">
             <Plus class="h-4 w-4" />
             {t('task.create_new', {}, 'Tạo nhiệm vụ mới')}
@@ -71,7 +74,7 @@
             <p class="text-2xl font-black text-foreground">{t('dashboard.view_all', {}, 'Xem tất cả')}</p>
           </div>
         </div>
-        <Link href="/tasks" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.TASKS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>
@@ -86,7 +89,7 @@
             <p class="text-2xl font-black text-foreground">{t('dashboard.view_all', {}, 'Xem tất cả')}</p>
           </div>
         </div>
-        <Link href="/projects" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.PROJECTS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>
@@ -101,7 +104,7 @@
             <p class="text-2xl font-black text-foreground">{user?.organizations?.length ?? 0}</p>
           </div>
         </div>
-        <Link href="/organizations" class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
+        <Link href={FRONTEND_ROUTES.ORGANIZATIONS} class="mt-3 inline-flex items-center gap-1 text-sm font-bold text-foreground hover:underline">
           {t('common.go', {}, 'Đi đến')} <ArrowRight class="h-4 w-4" />
         </Link>
       </div>

@@ -1,8 +1,10 @@
 <script lang="ts">
   import { Link } from '@inertiajs/svelte'
-  import OrganizationCard from './OrganizationCard.svelte'
   import { Building, Plus } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
+
+  import OrganizationCard from './OrganizationCard.svelte'
 
   interface Organization {
     id: string

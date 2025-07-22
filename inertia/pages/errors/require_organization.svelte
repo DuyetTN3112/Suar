@@ -1,15 +1,17 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
+  import axios from 'axios'
+  import { Building, Plus, ArrowRight, Search, ChevronLeft, ChevronRight } from 'lucide-svelte'
+
   import Button from '@/components/ui/button.svelte'
-  import Input from '@/components/ui/input.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
+  import CardFooter from '@/components/ui/card_footer.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import CardFooter from '@/components/ui/card_footer.svelte'
-  import { Building, Plus, ArrowRight, Search, ChevronLeft, ChevronRight } from 'lucide-svelte'
-  import axios from 'axios'
+  import Input from '@/components/ui/input.svelte'
+  import { FRONTEND_PAGINATION } from '@/constants/pagination'
 
   interface Organization {
     id: string
@@ -24,13 +26,13 @@
   let error = $state('')
   let searchTerm = $state('')
   let currentPage = $state(1)
-  const organizationsPerPage = 6
+  const organizationsPerPage = FRONTEND_PAGINATION.REQUIRE_ORGANIZATION_ITEMS_PER_PAGE
 
   const filteredOrganizations = $derived(
     organizations.filter(
       (org) =>
         org.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (org.description && org.description.toLowerCase().includes(searchTerm.toLowerCase()))
+        org.description?.toLowerCase().includes(searchTerm.toLowerCase())
     )
   )
 
@@ -55,7 +57,10 @@
   }
 
   function handleJoinOrganization(id: string) {
-    router.post(`/organizations/${id}/join`)
+    router.post(`/organizations/${id}/join`, {}, {
+      preserveState: true,
+      preserveScroll: true,
+    })
   }
 
   function handleSearch(e: Event) {
@@ -146,7 +151,7 @@
                   {org.name}
                 </CardTitle>
                 <CardDescription class="line-clamp-2 h-10">
-                  {org.description || 'Không có mô tả'}
+                  {org.description ?? 'Không có mô tả'}
                 </CardDescription>
               </CardHeader>
               <CardContent class="py-4">

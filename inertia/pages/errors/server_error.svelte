@@ -8,9 +8,9 @@
   const { error }: Props = $props()
 
   const errorMessage = $derived(
-    error?.message || 'Đã xảy ra lỗi không xác định trên máy chủ'
+    error?.message ?? 'Đã xảy ra lỗi không xác định trên máy chủ'
   )
-  const errorName = $derived(error?.name || 'Unknown')
+  const errorName = $derived(error?.name ?? 'Unknown')
 </script>
 
 <svelte:head>
