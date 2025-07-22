@@ -8,7 +8,7 @@ export const listeners = {
   AuditLogListener: () => import('#listeners/audit_log_listener'),
   CacheInvalidationListener: () => import('#listeners/cache_invalidation_listener'),
   CleanupListener: () => import('#listeners/cleanup_listener'),
+  LifecycleLogListener: () => import('#listeners/lifecycle_log_listener'),
   NotificationListener: () => import('#listeners/notification_listener'),
   ReviewListener: () => import('#listeners/review_listener'),
-  TriggerListeners: () => import('#listeners/trigger_listeners'),
 }
