@@ -1,7 +1,8 @@
 <script lang="ts">
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import OrganizationDebugTool from './components/organization-debug-tool.svelte'
   import { useTranslation } from '@/hooks/use_translation.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+
+  import OrganizationDebugTool from './components/organization-debug-tool.svelte'
 
   const { t } = useTranslation()
   const pageTitle = t('organization.debug_tool', {}, 'Công cụ kiểm tra tổ chức')

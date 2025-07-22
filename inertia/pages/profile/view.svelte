@@ -1,15 +1,20 @@
 <script lang="ts">
 
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import { router } from '@inertiajs/svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import Button from '@/components/ui/button.svelte'
-  import SpiderChart from '../reviews/components/spider_chart.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import ProfileFeaturedReviewsSection from './components/profile_featured_reviews_section.svelte'
+  import ProfileSkillsAndChartsSection from './components/profile_skills_and_charts_section.svelte'
+  import { navigateToProfileEdit, navigateToUserReviews } from './profile_navigation'
   import {
-    getProfileGroupStyle,
-    getProfileLevelClass,
-    getProfileLevelLabel,
-  } from './profile_theme'
+    buildGroupedSkillsByCategory,
+    createGroupedSkillsFromSpiderData,
+    getUserInitials,
+    getUserNumberField,
+    getUserStringField,
+    normalizeProfileSkillRelation,
+  } from './profile_view_helpers'
   import type { ProfileViewProps } from './types.svelte'
 
   interface DeliveryMetrics {
@@ -59,140 +64,15 @@
 
   const pageTitle = $derived(isOwnProfile ? t('profile.show', {}, 'Hồ sơ cá nhân') : `${user.username} - Hồ sơ`)
 
-  const userSkills = $derived(
-    (user.skills ?? []).map((s) => {
-      const relation = s as unknown as Record<string, unknown>
-      const skill = (s.skill ?? {}) as Record<string, unknown>
-      return {
-        id: s.id,
-        skill_id: s.skill_id,
-        skill_name:
-          (skill.skill_name as string | undefined) ??
-          (skill.skillName as string | undefined) ??
-          (relation.skill_name as string | undefined) ??
-          'Kỹ năng chưa đặt tên',
-        category_code:
-          (skill.category_code as string | undefined) ??
-          (skill.categoryCode as string | undefined) ??
-          (relation.category_code as string | undefined) ??
-          'other',
-        level_code:
-          (s as { level_code?: string | null }).level_code ??
-          (relation.level_code as string | undefined) ??
-          (relation.levelCode as string | undefined) ??
-          null,
-        avg_percentage: s.avg_percentage ?? (relation.avgPercentage as number | null | undefined) ?? null,
-        total_reviews:
-          (s as { total_reviews?: number }).total_reviews ??
-          (relation.totalReviews as number | undefined) ??
-          0,
-      }
-    })
-  )
+  const userSkills = $derived((user.skills ?? []).map((s) => normalizeProfileSkillRelation(s)))
 
-  const groupedSkills = $derived(() => {
-    const groups = new Map<string, Array<(typeof userSkills)[number]>>()
-    for (const skill of userSkills) {
-      const key = skill.category_code || 'other'
-      let bucket = groups.get(key)
-      if (!bucket) {
-        bucket = []
-        groups.set(key, bucket)
-      }
-      bucket.push(skill)
-    }
-
-    const order = ['technical', 'soft_skill', 'delivery']
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => {
-        const ai = order.indexOf(a)
-        const bi = order.indexOf(b)
-        return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi)
-      })
-      .map(([code, items]) => {
-        const style = getProfileGroupStyle(code)
-        return {
-          code,
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-          items,
-        }
-      })
-  })
+  const groupedSkills = $derived(() => buildGroupedSkillsByCategory(userSkills))
 
   const fallbackGroupedSkills = $derived.by(() => {
     const fromSpider = [
-      (() => {
-        const style = getProfileGroupStyle('technical')
-        return {
-          code: 'technical',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.technical.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
-      (() => {
-        const style = getProfileGroupStyle('soft_skill')
-        return {
-          code: 'soft_skill',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.soft_skills.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
-      (() => {
-        const style = getProfileGroupStyle('delivery')
-        return {
-          code: 'delivery',
-          title: style.title,
-          badgeClass: style.badgeClass,
-          dotClass: style.dotClass,
-          textClass: style.textClass,
-        items: spiderChartData.delivery.map((point) => {
-          const pointData = point as unknown as Record<string, unknown>
-          return {
-            id: point.skill_id,
-            skill_name: point.skill_name,
-            level_code:
-              point.level_code ??
-              (pointData.level_code as string | undefined) ??
-              (pointData.levelCode as string | undefined) ??
-              null,
-            total_reviews: point.total_reviews,
-          }
-        }),
-        }
-      })(),
+      createGroupedSkillsFromSpiderData('technical', spiderChartData.technical),
+      createGroupedSkillsFromSpiderData('soft_skill', spiderChartData.soft_skills),
+      createGroupedSkillsFromSpiderData('delivery', spiderChartData.delivery),
     ]
 
     return fromSpider.filter((group) => group.items.length > 0)
@@ -205,19 +85,26 @@
 
   const totalReviews = $derived(userSkills.reduce((sum, s) => sum + s.total_reviews, 0))
 
-  const initials = $derived(
-    user.username
-      .split(/[\s@]+/)
-      .slice(0, 2)
-      .map((s) => s[0].toUpperCase())
-      .join('')
+  const normalizedGroupedSkills = $derived(
+    effectiveGroupedSkills.map((group) => ({
+      code: group.code,
+      title: group.title,
+      bgClass: group.badgeClass,
+      items: group.items,
+    }))
   )
+
+  const initials = $derived(getUserInitials(user.username))
   const neoBrutalCard = 'neo-panel p-4'
   const neoMetricCard = 'neo-panel-muted px-3 py-2 text-center'
 
-  const profileLanguage = $derived((user as Record<string, unknown>).language as string | undefined)
-  const freelancerRating = $derived((user as Record<string, unknown>).freelancer_rating as number | null | undefined)
-  const doneTasks = $derived((user as Record<string, unknown>).freelancer_completed_tasks_count as number | undefined)
+  const profileLanguage = $derived(getUserStringField(user as Record<string, unknown>, 'language'))
+  const freelancerRating = $derived(
+    getUserNumberField(user as Record<string, unknown>, 'freelancer_rating')
+  )
+  const doneTasks = $derived(
+    getUserNumberField(user as Record<string, unknown>, 'freelancer_completed_tasks_count')
+  )
 
   function goToReviews() {
     router.get(`/users/${user.id}/reviews`)
