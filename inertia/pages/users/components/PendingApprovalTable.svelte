@@ -1,14 +1,15 @@
 <script lang="ts">
   import Button from '@/components/ui/button.svelte'
+  import Pagination from '@/components/ui/pagination.svelte'
   import Table from '@/components/ui/table.svelte'
   import TableBody from '@/components/ui/table_body.svelte'
   import TableCell from '@/components/ui/table_cell.svelte'
   import TableHead from '@/components/ui/table_head.svelte'
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
-  import Pagination from '@/components/ui/pagination.svelte'
-  import type { User } from '../types'
+
   import { createPendingApproval } from '../hooks/use_pending_approval.svelte'
+  import type { User } from '../types'
 
   interface Props {
     users: {

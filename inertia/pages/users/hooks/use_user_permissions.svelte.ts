@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -50,13 +52,13 @@ export function createUserPermissions() {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        preserveScroll: false,
-        preserveState: false,
+        preserveScroll: true,
+        preserveState: true,
         onSuccess: () => {
           notificationStore.success('Đã cập nhật quyền người dùng thành công')
           editModalOpen.set(false)
           isSubmitting.set(false)
-          router.reload({ only: ['users'] })
+          router.reload({ only: ['users', 'flash'] })
         },
         onError: (errors: unknown) => {
           console.error('Lỗi khi cập nhật quyền:', errors)

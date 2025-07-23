@@ -1,6 +1,8 @@
-import { writable } from 'svelte/store'
 import { router } from '@inertiajs/svelte'
+import { writable } from 'svelte/store'
+
 import { notificationStore } from '@/stores/notification_store.svelte'
+
 import type { User } from '../types'
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -28,6 +30,8 @@ export function createDeleteUser(authUserId: string) {
     isDeleting.set(true)
 
     router.delete(`/organizations/users/${user.id}/remove`, {
+      preserveState: true,
+      preserveScroll: true,
       onBefore: () => {
         if (user.id === authUserId) {
           notificationStore.error('Không thể xóa tài khoản của chính bạn')
@@ -41,7 +45,7 @@ export function createDeleteUser(authUserId: string) {
         notificationStore.success('Đã xóa người dùng khỏi tổ chức thành công')
         deleteModalOpen.set(false)
         isDeleting.set(false)
-        router.reload()
+        router.reload({ only: ['users', 'flash'] })
       },
       onError: (errors: unknown) => {
         console.error('Lỗi khi xóa người dùng:', errors)

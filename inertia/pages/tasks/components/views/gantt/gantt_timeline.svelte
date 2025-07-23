@@ -1,17 +1,20 @@
 <script lang="ts">
-  import type { Task } from '../../../types.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import { useTranslation } from '@/stores/translation.svelte'
   import { Calendar, ChevronLeft, ChevronRight } from 'lucide-svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import type { TaskStore } from '@/stores/tasks.svelte'
+  import { useTranslation } from '@/stores/translation.svelte'
+
+  import type { Task } from '../../../types.svelte'
+
 
   interface Props {
     store: TaskStore
     metadata: {
-      statuses: Array<{ value: string; label: string; color?: string }>
-      labels: Array<{ value: string; label: string; color?: string }>
-      priorities: Array<{ value: string; label: string; color?: string }>
-      users: Array<{ id: string; username: string; email: string }>
+      statuses: { value: string; label: string; color?: string }[]
+      labels: { value: string; label: string; color?: string }[]
+      priorities: { value: string; label: string; color?: string }[]
+      users: { id: string; username: string; email: string }[]
     }
     onTaskClick?: (task: Task) => void
   }
@@ -46,7 +49,7 @@
 
   // Generate day columns
   const days = $derived.by(() => {
-    const result: Array<{ date: Date; label: string; isWeekend: boolean; isToday: boolean }> = []
+    const result: { date: Date; label: string; isWeekend: boolean; isToday: boolean }[] = []
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
@@ -65,7 +68,7 @@
 
   // Generate week headers
   const weeks = $derived.by(() => {
-    const result: Array<{ label: string; days: number; startIdx: number }> = []
+    const result: { label: string; days: number; startIdx: number }[] = []
     let currentWeek = -1
 
     for (let i = 0; i < totalDays; i++) {
