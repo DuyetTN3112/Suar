@@ -1,4 +1,9 @@
 import { test } from '@japa/runner'
+
+import { OrganizationRole } from '#constants/organization_constants'
+import { ProjectRole } from '#constants/project_constants'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -6,10 +11,6 @@ import {
   ProjectFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ProjectRole } from '#constants/project_constants'
-import { OrganizationRole } from '#constants/organization_constants'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
 
 test.group('Integration | Project Members', (group) => {
   group.setup(async () => {

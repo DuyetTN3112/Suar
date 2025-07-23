@@ -1,6 +1,8 @@
-import router from '@adonisjs/core/services/router'
 import type { HttpContext } from '@adonisjs/core/http'
+import router from '@adonisjs/core/services/router'
+
 import { middleware } from '../kernel.js'
+
 import { throttle } from '#start/limiter'
 
 // Users — use-case controllers
