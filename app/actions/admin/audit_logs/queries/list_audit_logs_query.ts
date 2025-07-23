@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import AdminAuditLogRepository from '#infra/admin/repositories/admin_audit_log_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
+import { BaseQuery } from '#actions/admin/base_query'
+import { userPublicApi } from '#actions/users/public_api'
+import { AdminAuditLogReadOps } from '#infra/admin/repositories/read/admin_audit_log_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListAuditLogsDTO {
@@ -45,7 +45,7 @@ export interface ListAuditLogsResult {
 export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, ListAuditLogsResult> {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminAuditLogRepository()
+    private repo = AdminAuditLogReadOps
   ) {
     super(execCtx)
   }
@@ -68,7 +68,7 @@ export default class ListAuditLogsQuery extends BaseQuery<ListAuditLogsDTO, List
     const userIds = [...new Set(result.data.map((log) => log.user_id).filter((value) => !!value))]
     const users =
       userIds.length > 0
-        ? await UserRepository.findByIds(userIds as string[], ['id', 'username'])
+        ? await userPublicApi.findByIds(userIds as string[], ['id', 'username'])
         : []
     const userMap = new Map(users.map((user) => [user.id, user]))
 
