@@ -1,6 +1,4 @@
-import { DateTime } from 'luxon'
-
-import TaskStatus from '#models/task_status'
+import TaskStatus from '#infra/tasks/models/task_status'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -15,11 +13,6 @@ export interface TaskStatusData {
   color: string
   order: number
   is_default: boolean
-}
-
-export interface CreateTaskStatusData {
-  name: string
-  color: string
 }
 
 export default class OrganizationWorkflowRepository {
@@ -41,45 +34,4 @@ export default class OrganizationWorkflowRepository {
     }))
   }
 
-  /**
-   * Create a new task status
-   */
-  async createTaskStatus(
-    organizationId: DatabaseId,
-    data: CreateTaskStatusData
-  ): Promise<TaskStatus> {
-    // Get the current max sort order
-    const maxOrderResult = await TaskStatus.query()
-      .where('organization_id', organizationId)
-      .max('sort_order as max_order')
-      .first()
-
-    const extras = maxOrderResult?.$extras as { max_order?: unknown }
-    const maxOrder =
-      typeof extras.max_order === 'number' ? extras.max_order : Number(extras.max_order ?? 0)
-
-    const status = await TaskStatus.create({
-      organization_id: organizationId,
-      name: data.name,
-      slug: data.name.toLowerCase().replace(/\s+/g, '-'),
-      category: 'in_progress',
-      color: data.color,
-      sort_order: maxOrder + 1,
-      is_default: false,
-      is_system: false,
-    })
-
-    return status
-  }
-
-  /**
-   * Delete a task status
-   */
-  async deleteTaskStatus(id: DatabaseId): Promise<void> {
-    const status = await TaskStatus.findOrFail(id)
-
-    // Soft delete
-    status.deleted_at = DateTime.now()
-    await status.save()
-  }
 }

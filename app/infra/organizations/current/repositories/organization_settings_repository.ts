@@ -1,18 +1,11 @@
-import Organization from '#models/organization'
-import type { CustomRoleDefinition, DatabaseId } from '#types/database'
+import Organization from '#infra/organizations/models/organization'
+import type { DatabaseId } from '#types/database'
 
 /**
  * OrganizationSettingsRepository (Infrastructure Layer)
  *
  * Handles all database queries for organization settings management.
  */
-
-export interface UpdateOrganizationData {
-  name?: string
-  description?: string
-  website?: string
-  custom_roles?: CustomRoleDefinition[] | null
-}
 
 export interface OrganizationData {
   id: string
@@ -40,33 +33,4 @@ export default class OrganizationSettingsRepository {
     }
   }
 
-  /**
-   * Update organization settings
-   */
-  async updateOrganization(
-    organizationId: DatabaseId,
-    data: UpdateOrganizationData
-  ): Promise<Organization> {
-    const org = await Organization.findOrFail(organizationId)
-
-    if (data.name !== undefined) {
-      org.name = data.name
-    }
-
-    if (data.description !== undefined) {
-      org.description = data.description || null
-    }
-
-    if (data.website !== undefined) {
-      org.website = data.website || null
-    }
-
-    if (data.custom_roles !== undefined) {
-      org.custom_roles = data.custom_roles
-    }
-
-    await org.save()
-
-    return org
-  }
 }
