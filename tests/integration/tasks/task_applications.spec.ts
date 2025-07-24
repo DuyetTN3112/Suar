@@ -1,5 +1,18 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
+
+import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
+import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
+import WithdrawApplicationCommand from '#actions/tasks/commands/withdraw_application_command'
+import {
+  ApplyForTaskDTO,
+  ProcessApplicationDTO,
+  WithdrawApplicationDTO,
+} from '#actions/tasks/dtos/request/task_application_dtos'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import Task from '#models/task'
+import TaskApplication from '#models/task_application'
+import TaskAssignment from '#models/task_assignment'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
@@ -8,16 +21,6 @@ import {
   TaskApplicationFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import ApplyForTaskCommand from '#actions/tasks/commands/apply_for_task_command'
-import ProcessApplicationCommand from '#actions/tasks/commands/process_application_command'
-import {
-  ApplyForTaskDTO,
-  ProcessApplicationDTO,
-} from '#actions/tasks/dtos/request/task_application_dtos'
-import TaskApplication from '#models/task_application'
-import TaskAssignment from '#models/task_assignment'
-import Task from '#models/task'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ExecutionContext } from '#types/execution_context'
 
 async function expectBusinessRule(
@@ -239,5 +242,29 @@ test.group('Integration | Task Applications', (group) => {
     })
 
     await expectBusinessRule(assert, () => command.handle(dto), 'không thể duyệt thêm')
+  })
+
+  test('withdraw command marks the application as withdrawn and decrements the public application count', async ({
+    assert,
+  }) => {
+    const { task } = await createPublicTask()
+    const applicant = await UserFactory.createFreelancer()
+    const application = await TaskApplicationFactory.create({
+      task_id: task.id,
+      applicant_id: applicant.id,
+      application_status: 'pending',
+    })
+
+    task.external_applications_count = 1
+    await task.save()
+
+    const command = new WithdrawApplicationCommand(ExecutionContext.system(applicant.id))
+    await command.handle(new WithdrawApplicationDTO(application.id))
+
+    const withdrawn = await TaskApplication.findOrFail(application.id)
+    const updatedTask = await Task.findOrFail(task.id)
+
+    assert.equal(withdrawn.application_status, 'withdrawn')
+    assert.equal(updatedTask.external_applications_count, 0)
   })
 })
