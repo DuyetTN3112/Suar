@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import { ErrorMessages } from '#constants/error_constants'
 import { buildCurrentOrganizationRoleUpdateInput } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
@@ -30,7 +30,7 @@ export default class UpdateMemberRoleController {
       organizationId,
       params.id as string
     )
-    await new UpdateMemberRoleCommand(execCtx, new CreateNotification()).executeFromRequest(
+    await new UpdateMemberRoleCommand(execCtx, notificationPublicApi).executeFromRequest(
       roleUpdateInput,
       { resolveAssignableRoles: true }
     )

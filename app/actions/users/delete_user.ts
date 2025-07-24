@@ -1,6 +1,7 @@
-import CreateAuditLog from '#actions/audit/create_audit_log'
+import { auditPublicApi } from '#actions/audit/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as userMutations from '#infra/users/repositories/write/user_mutations'
 import type { ExecutionContext } from '#types/execution_context'
 
 export default class DeleteUser {
@@ -24,7 +25,7 @@ export default class DeleteUser {
 
     try {
       // Verify current user is superadmin
-      const isSuperadmin = await UserRepository.isSuperadmin(currentUserId)
+      const isSuperadmin = await userModelQueries.isSuperadmin(currentUserId)
       if (!isSuperadmin) {
         return {
           success: false,
@@ -35,7 +36,7 @@ export default class DeleteUser {
       // Verify target user exists and is not deleted
       let targetUser
       try {
-        targetUser = await UserRepository.findNotDeletedOrFail(id)
+        targetUser = await userModelQueries.findNotDeletedOrFail(id)
       } catch {
         return {
           success: false,
@@ -43,15 +44,18 @@ export default class DeleteUser {
         }
       }
 
-      await UserRepository.softDelete(targetUser)
+      await userMutations.softDelete(targetUser)
 
       // Ghi log hành động
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: currentUserId,
-        action: AuditAction.DELETE,
-        entity_type: EntityType.USER,
-        entity_id: id,
-      })
+      await auditPublicApi.log(
+        {
+          user_id: currentUserId,
+          action: AuditAction.DELETE,
+          entity_type: EntityType.USER,
+          entity_id: id,
+        },
+        this.execCtx
+      )
 
       return {
         success: true,

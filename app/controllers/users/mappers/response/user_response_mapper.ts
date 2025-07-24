@@ -29,17 +29,21 @@ function isResponseRecord(value: unknown): value is ResponseRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function readValue(record: ResponseRecord, key: string): unknown {
+  return (record as Record<string, unknown>)[key]
+}
+
 function readString(
   record: ResponseRecord,
   key: string,
   fallback: string | null = null
 ): string | null {
-  const value = record[key]
+  const value = readValue(record, key)
   return typeof value === 'string' ? value : fallback
 }
 
 function readNumber(record: ResponseRecord, key: string): number | null {
-  const value = record[key]
+  const value = readValue(record, key)
 
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value
@@ -54,22 +58,21 @@ function readNumber(record: ResponseRecord, key: string): number | null {
 }
 
 function readRecord(record: ResponseRecord, key: string): ResponseRecord | null {
-  const value = record[key]
+  const value = readValue(record, key)
   return isResponseRecord(value) ? value : null
 }
 
 function normalizeUserResponse(
   user: SerializableResponseRecord | ResponseRecord,
   options: { includeDerivedFields?: boolean } = {}
-): ResponseRecord {
+): Record<string, unknown> {
   const includeDerivedFields = options.includeDerivedFields ?? true
   const serialized = serializeForResponse(user)
   const trustData = readRecord(serialized, 'trust_data')
   const credibilityData = readRecord(serialized, 'credibility_data')
   const currentOrganization = readRecord(serialized, 'current_organization')
-  const normalizedSkills = Array.isArray(serialized.skills)
-    ? serializeCollectionForResponse(serialized.skills)
-    : serialized.skills
+  const skills = readValue(serialized, 'skills')
+  const normalizedSkills = Array.isArray(skills) ? serializeCollectionForResponse(skills) : skills
 
   const normalized = {
     ...serialized,

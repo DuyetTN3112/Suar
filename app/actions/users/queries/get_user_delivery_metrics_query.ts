@@ -1,4 +1,4 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/users/base_query'
 import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
@@ -11,7 +11,7 @@ import type {
   TaskAssignmentData,
   UserSkillData,
 } from '#domain/users/profile_metrics_types'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -54,9 +54,9 @@ export default class GetUserDeliveryMetricsQuery extends BaseQuery<
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // Fetch from repository (Infra Layer)
-      const assignments = await UserRepository.findTaskAssignmentsForMetrics(dto.user_id)
-      const userSkills = await UserRepository.findUserSkillsForAggregation(dto.user_id)
-      const user = await UserRepository.findUserCreatedAt(dto.user_id)
+      const assignments = await userAnalyticsQueries.findTaskAssignmentsForMetrics(dto.user_id)
+      const userSkills = await userAnalyticsQueries.findUserSkillsForAggregation(dto.user_id)
+      const user = await userAnalyticsQueries.findUserCreatedAt(dto.user_id)
 
       if (!user) {
         throw new Error(`User ${dto.user_id} not found`)

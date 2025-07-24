@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import FlushCacheCommand from '#actions/common/commands/flush_cache_command'
+import { FlushCacheCommand } from '#actions/http/cache/public_api'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

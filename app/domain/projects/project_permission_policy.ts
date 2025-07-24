@@ -339,7 +339,7 @@ export function calculateProjectPermissions(ctx: ProjectPermissionContext): {
     actorId: ctx.actorId,
     actorOrgRole: ctx.actorOrgRole,
     projectOwnerId: ctx.projectOwnerId,
-    newOwnerId: '' as DatabaseId,
+    newOwnerId: '',
     isNewOwnerOrgMember: true,
   }).allowed
 

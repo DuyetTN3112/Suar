@@ -79,6 +79,17 @@ export default class DeactivateUserCommand {
       )
 
       // 5. Create audit log
+      await auditPublicApi.log(
+        {
+          user_id: adminUserId,
+          action: 'deactivate_user',
+          entity_type: 'users',
+          entity_id: dto.user_id,
+          old_values: { status: oldStatus },
+          new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
+        },
+        this.execCtx
+      )
 
       await trx.commit()
 
@@ -92,7 +103,7 @@ export default class DeactivateUserCommand {
       // 6. Send notification
       await this.sendNotification(dto.user_id, dto.reason)
 
-      return user
+      return updatedUser
     } catch (error) {
       await trx.rollback()
       throw error

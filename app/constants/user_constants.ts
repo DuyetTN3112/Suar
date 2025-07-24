@@ -155,18 +155,6 @@ export const proficiencyLevelOptions = [
 ]
 
 /**
- * Tìm level code tương ứng từ percentage
- */
-export function getLevelCodeFromPercentage(percentage: number): ProficiencyLevel {
-  for (const opt of proficiencyLevelOptions) {
-    if (percentage >= opt.minPercentage && percentage < opt.maxPercentage) {
-      return opt.value
-    }
-  }
-  return ProficiencyLevel.MASTER // 100%
-}
-
-/**
  * Trust Tier codes (v3.0: thay trust_tiers table)
  */
 export enum TrustTierCode {

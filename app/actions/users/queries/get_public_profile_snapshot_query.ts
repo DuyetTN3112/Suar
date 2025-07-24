@@ -1,6 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/users/base_query'
 import NotFoundException from '#exceptions/not_found_exception'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
+import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileSnapshotRecord } from '#types/user_records'
 
 export class GetPublicProfileSnapshotDTO {
   declare slug: string
@@ -14,7 +15,7 @@ export class GetPublicProfileSnapshotDTO {
 }
 
 export interface PublicProfileSnapshotResult {
-  snapshot: import('#models/user_profile_snapshot').default
+  snapshot: UserProfileSnapshotRecord
 }
 
 export default class GetPublicProfileSnapshotQuery extends BaseQuery<
@@ -28,10 +29,7 @@ export default class GetPublicProfileSnapshotQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 180, async () => {
-      const snapshot = await UserProfileSnapshotRepository.findPublicBySlugOrToken(
-        dto.slug,
-        dto.token
-      )
+      const snapshot = await profileSnapshotQueries.findPublicBySlugOrToken(dto.slug, dto.token)
 
       if (!snapshot) {
         throw new NotFoundException('Public profile snapshot not found')
