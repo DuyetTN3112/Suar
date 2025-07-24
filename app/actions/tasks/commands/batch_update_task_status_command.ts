@@ -1,20 +1,20 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { validateBatchStatusUpdate } from '#domain/tasks/task_assignment_rules'
 import { validateWorkflowTransition } from '#domain/tasks/task_status_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
+import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord } from '#types/task_records'
 
 /**
  * Command để batch update status cho nhiều tasks cùng lúc
@@ -64,7 +64,7 @@ export default class BatchUpdateTaskStatusCommand {
       }
 
       // ── FETCH ──────────────────────────────────────────────────────────
-      const tasks = await TaskRepository.findActiveByIdsInOrganization(taskIds, organizationId, trx)
+      const tasks = await TaskRepository.findActiveByIdsInOrganizationAsRecords(taskIds, organizationId, trx)
 
       // Atomic mode: if any requested task is missing from organization scope, fail the whole batch.
       if (tasks.length !== taskIds.length) {
@@ -77,7 +77,7 @@ export default class BatchUpdateTaskStatusCommand {
 
       // ── DECIDE + PERSIST (per task) ────────────────────────────────────
       let updated = 0
-      const eventsToEmit: { task: Task; oldStatus: string }[] = []
+      const eventsToEmit: { task: TaskRecord; oldStatus: string }[] = []
 
       for (const task of tasks) {
         const currentStatusId = task.task_status_id
@@ -113,15 +113,21 @@ export default class BatchUpdateTaskStatusCommand {
 
         const oldStatus = task.status
         const oldTaskStatusId = task.task_status_id
-        task.task_status_id = newTaskStatusId
-        task.status = newStatus.category // backward compat: category only
-        task.updated_by = userId
-        await TaskRepository.save(task, trx)
+        
+        const updatedTask = await TaskRepository.updateTask(
+          task.id,
+          {
+            task_status_id: newTaskStatusId,
+            status: newStatus.category,
+            updated_by: userId,
+          },
+          trx
+        )
         updated++
 
         // Queue event and emit after commit.
         if (oldTaskStatusId !== newTaskStatusId) {
-          eventsToEmit.push({ task, oldStatus })
+          eventsToEmit.push({ task: updatedTask, oldStatus })
         }
       }
 
@@ -129,7 +135,8 @@ export default class BatchUpdateTaskStatusCommand {
 
       for (const event of eventsToEmit) {
         void emitter.emit('task:status:changed', {
-          task: event.task,
+          taskId: event.task.id,
+          assignedTo: event.task.assigned_to,
           oldStatus: event.oldStatus,
           newStatusId: newTaskStatusId,
           newStatus: newStatus.slug,
@@ -139,7 +146,12 @@ export default class BatchUpdateTaskStatusCommand {
       }
 
       // Invalidate caches
-      await CacheService.invalidateEntityType('tasks')
+      // Since it's a batch update, deleting all task pattern for this org
+      // We could use taskCacheAdapter, but we also want to delete the whole tasks list
+      await taskCacheAdapter.invalidateOnTaskCreate()
+      for (const taskId of taskIds) {
+        await taskCacheAdapter.invalidateOnTaskUpdate(taskId)
+      }
 
       return { updated, failed: [] }
     } catch (error) {

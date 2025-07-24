@@ -1,7 +1,7 @@
 import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'

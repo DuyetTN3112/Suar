@@ -1,29 +1,24 @@
 import emitter from '@adonisjs/core/services/emitter'
 import logger from '@adonisjs/core/services/logger'
 
-import type CreateNotification from '#actions/common/create_notification'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import type CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
+import type { TaskCachePort } from '#actions/tasks/ports/task_cache_port'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
-import CacheService from '#infra/cache/cache_service'
-import type Task from '#models/task'
+import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
-
-async function invalidateTaskCreateCaches(): Promise<void> {
-  await CacheService.deleteByPattern('organization:tasks:*')
-  await CacheService.deleteByPattern('tasks:public:*')
-  await CacheService.deleteByPattern('task:user:*')
-}
+import type { TaskRecord } from '#types/task_records'
 
 async function sendTaskAssignmentNotification(
-  task: Task,
+  task: TaskRecord,
   creatorId: DatabaseId,
   assigneeId: DatabaseId,
-  createNotification: CreateNotification
+  createNotification: NotificationCreator
 ): Promise<void> {
   try {
     if (assigneeId === creatorId) {
@@ -61,19 +56,20 @@ async function sendTaskAssignmentNotification(
 }
 
 export async function runTaskCreatedPostCommitEffects(
-  task: Task,
+  task: TaskRecord,
   dto: CreateTaskDTO,
   creatorId: DatabaseId,
-  createNotification: CreateNotification
+  createNotification: NotificationCreator,
+  cache: TaskCachePort = taskCacheAdapter
 ): Promise<void> {
   void emitter.emit('task:created', {
-    task,
+    taskId: task.id,
     creatorId,
     organizationId: dto.organization_id,
     projectId: dto.project_id,
   })
 
-  await invalidateTaskCreateCaches()
+  await cache.invalidateOnTaskCreate()
 
   if (dto.isAssigned() && dto.assigned_to !== undefined) {
     await sendTaskAssignmentNotification(task, creatorId, dto.assigned_to, createNotification)

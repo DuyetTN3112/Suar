@@ -1,14 +1,14 @@
-import redis from '@adonisjs/redis/services/main'
 
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord } from '#types/task_records'
 
 
 
@@ -21,7 +21,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class GetTasksTimelineQuery {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(organizationId: DatabaseId): Promise<Task[]> {
+  async execute(organizationId: DatabaseId): Promise<TaskDetailRecord[]> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -36,7 +36,7 @@ export default class GetTasksTimelineQuery {
     // Determine permission filter
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
 
-    const tasks = await TaskRepository.findTasksForTimeline(organizationId, permissionFilter)
+    const tasks = await TaskRepository.findTasksForTimelineAsRecords(organizationId, permissionFilter)
 
     // Cache 2 minutes
     await this.saveToCache(cacheKey, tasks, 120)
@@ -52,10 +52,10 @@ export default class GetTasksTimelineQuery {
     return buildTaskPermissionFilter(accessContext)
   }
 
-  private async getFromCache(key: string): Promise<Task[] | null> {
+  private async getFromCache(key: string): Promise<TaskDetailRecord[] | null> {
     try {
-      const cached = await redis.get(key)
-      if (cached) return JSON.parse(cached) as Task[]
+      const cached = await CacheService.get<TaskDetailRecord[]>(key)
+      if (cached) return cached
     } catch (error) {
       loggerService.error('[GetTasksTimelineQuery] Cache get error:', error)
     }
@@ -64,7 +64,7 @@ export default class GetTasksTimelineQuery {
 
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTasksTimelineQuery] Cache set error:', error)
     }

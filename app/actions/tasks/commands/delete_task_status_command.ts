@@ -1,10 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
+
 
 import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canDeleteStatus } from '#domain/tasks/task_status_rules'
 import BusinessLogicException from '#exceptions/business_logic_exception'
@@ -13,8 +14,6 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type { ExecutionContext } from '#types/execution_context'
-
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Command: Soft-delete a task status definition.
@@ -52,7 +51,9 @@ export default class DeleteTaskStatusCommand {
       const count = await TaskRepository.countByTaskStatusId(dto.status_id, trx)
 
       if (status.category === 'done' && count > 0) {
-        if (await DefaultTaskDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)) {
+        if (
+          await DefaultTaskDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)
+        ) {
           throw new BusinessLogicException(
             'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'
           )
@@ -68,16 +69,18 @@ export default class DeleteTaskStatusCommand {
       )
 
       // ── PERSIST (soft delete) ──────────────────────────────────────────
-      status.deleted_at = DateTime.now()
-      await TaskStatusRepository.save(status, trx)
+      await TaskStatusRepository.softDelete(status.id, status.organization_id, trx)
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.DELETE,
-        entity_type: EntityType.TASK_STATUS,
-        entity_id: status.id,
-        old_values: status.toJSON(),
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.DELETE,
+          entity_type: EntityType.TASK_STATUS,
+          entity_id: status.id,
+          old_values: { ...status },
+        },
+        this.execCtx
+      )
 
       await trx.commit()
     } catch (error) {

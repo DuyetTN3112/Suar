@@ -1,17 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/tasks/base_query'
 import type { GetTaskApplicationsDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
-import type TaskApplication from '#models/task_application'
-
-interface ApplicationListResult {
-  data: TaskApplication[]
-  meta: {
-    total: number
-    per_page: number
-    current_page: number
-    last_page: number
-  }
-}
+import type { PaginatedTaskApplicationRecords } from '#types/task_records'
 
 /**
  * GetTaskApplicationsQuery
@@ -21,9 +11,9 @@ interface ApplicationListResult {
  */
 export default class GetTaskApplicationsQuery extends BaseQuery<
   GetTaskApplicationsDTO,
-  ApplicationListResult
+  PaginatedTaskApplicationRecords
 > {
-  async handle(dto: GetTaskApplicationsDTO): Promise<ApplicationListResult> {
+  async handle(dto: GetTaskApplicationsDTO): Promise<PaginatedTaskApplicationRecords> {
     const cacheKey = this.generateCacheKey('task:applications', {
       taskId: dto.task_id,
       status: dto.status,
@@ -31,21 +21,11 @@ export default class GetTaskApplicationsQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      const result = await TaskApplicationRepository.paginateByTask(dto.task_id, {
+      return TaskApplicationRepository.paginateByTask(dto.task_id, {
         status: dto.status,
         page: dto.page,
         perPage: dto.per_page,
       })
-
-      return {
-        data: result.all(),
-        meta: {
-          total: result.total,
-          per_page: result.perPage,
-          current_page: result.currentPage,
-          last_page: result.lastPage,
-        },
-      }
     })
   }
 }

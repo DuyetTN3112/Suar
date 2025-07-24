@@ -1,14 +1,15 @@
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 
-import CreateNotification from '#actions/common/create_notification'
-import { BaseCommand } from '#actions/shared/base_command'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
+import { BaseCommand } from '#actions/tasks/base_command'
+import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
 import { persistTaskUpdateWithinTransaction } from '#actions/tasks/support/update_task_persistence_support'
 import { runUpdateTaskPostCommitEffects } from '#actions/tasks/support/update_task_post_commit_support'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord } from '#types/task_records'
 
 interface UpdateTaskCommandInput {
   taskId: DatabaseId
@@ -18,7 +19,7 @@ interface UpdateTaskCommandInput {
 interface UpdateTaskCommandDependencies {
   persistTaskUpdateWithinTransaction: typeof persistTaskUpdateWithinTransaction
   runUpdateTaskPostCommitEffects: typeof runUpdateTaskPostCommitEffects
-  taskRepository: Pick<typeof TaskRepository, 'findByIdWithWriteRelations'>
+  taskRepository: TaskDetailQueryRepositoryPort
 }
 
 const defaultDependencies: UpdateTaskCommandDependencies = {
@@ -39,10 +40,10 @@ const defaultDependencies: UpdateTaskCommandDependencies = {
  *
  * Pattern: FETCH → DECIDE → PERSIST
  */
-export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInput, Task> {
+export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInput, TaskDetailRecord> {
   constructor(
     execCtx: ExecutionContext,
-    private createNotification: CreateNotification = new CreateNotification(),
+    private createNotification: NotificationCreator = notificationPublicApi,
     private dependencies: UpdateTaskCommandDependencies = defaultDependencies
   ) {
     super(execCtx)
@@ -55,7 +56,7 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
    * - before_task_update: Validate assignee thuộc org
    * - task_version_after_update: Tạo version history khi có thay đổi
    */
-  async handle(input: UpdateTaskCommandInput): Promise<Task> {
+  async handle(input: UpdateTaskCommandInput): Promise<TaskDetailRecord> {
     const userId = this.getCurrentUserId()
     this.ensureHasUpdates(input.dto)
     const updateResult = await this.executeInTransaction((trx) =>
@@ -73,10 +74,10 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
       input.dto,
       this.createNotification
     )
-    return await this.dependencies.taskRepository.findByIdWithWriteRelations(updateResult.task.id)
+    return await this.dependencies.taskRepository.findByIdWithDetailRecord(updateResult.task.id)
   }
 
-  async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<Task> {
+  async execute(taskId: DatabaseId, dto: UpdateTaskDTO): Promise<TaskDetailRecord> {
     return await this.handle({ taskId, dto })
   }
 

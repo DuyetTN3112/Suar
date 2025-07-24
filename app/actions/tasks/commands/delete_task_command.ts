@@ -4,9 +4,9 @@ import { DateTime } from 'luxon'
 
 import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
@@ -34,7 +34,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class DeleteTaskCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification = new CreateNotification()
+    private createNotification: NotificationCreator = notificationPublicApi
   ) {}
 
   /**
@@ -71,22 +71,28 @@ export default class DeleteTaskCommand {
       }
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const taskData = task.toJSON()
+      const taskData = { ...task }
 
       if (dto.isPermanentDelete()) {
-        await TaskRepository.hardDelete(task, trx)
+        await TaskRepository.hardDeleteById(dto.task_id, trx)
       } else {
-        task.deleted_at = DateTime.now()
-        await TaskRepository.save(task, trx)
+        await TaskRepository.updateTask(
+          dto.task_id,
+          { deleted_at: DateTime.now().toISO() },
+          trx
+        )
       }
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
-        entity_type: EntityType.TASK,
-        entity_id: dto.task_id,
-        old_values: taskData,
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
+          entity_type: EntityType.TASK,
+          entity_id: dto.task_id,
+          old_values: taskData,
+        },
+        this.execCtx
+      )
 
       await trx.commit()
 
@@ -105,10 +111,10 @@ export default class DeleteTaskCommand {
       // Send notifications (after transaction)
       if (taskData.assigned_to && taskData.assigned_to !== userId) {
         await this.createNotification.handle({
-          user_id: taskData.assigned_to as string,
+          user_id: taskData.assigned_to,
           type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
+          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
           related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
@@ -116,10 +122,10 @@ export default class DeleteTaskCommand {
 
       if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
         await this.createNotification.handle({
-          user_id: taskData.creator_id as string,
+          user_id: taskData.creator_id,
           type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
           title: 'Nhiệm vụ đã bị xóa',
-          message: `Nhiệm vụ "${String(taskData.title)}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
+          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
           related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
           related_entity_id: dto.task_id,
         })
