@@ -12,8 +12,8 @@ import { ReviewSessionEntity } from '#domain/reviews/entities/review_session_ent
 import type { ReviewSessionEntityProps } from '#domain/reviews/entities/review_session_entity'
 import { SkillReviewEntity } from '#domain/reviews/entities/skill_review_entity'
 import type { SkillReviewEntityProps } from '#domain/reviews/entities/skill_review_entity'
-import type ReviewSession from '#models/review_session'
-import type SkillReview from '#models/skill_review'
+import type ReviewSession from '#infra/reviews/models/review_session'
+import type SkillReview from '#infra/reviews/models/skill_review'
 
 export class ReviewInfraMapper {
   private readonly __instanceMarker = true

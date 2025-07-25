@@ -1,6 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskSelfAssessment from '#models/task_self_assessment'
+import * as taskSelfAssessmentQueries from './read/task_self_assessment_queries.js'
+import * as taskSelfAssessmentMutations from './write/task_self_assessment_mutations.js'
+
+import type TaskSelfAssessment from '#infra/tasks/models/task_self_assessment'
 import type { DatabaseId } from '#types/database'
 
 export default class TaskSelfAssessmentRepository {
@@ -10,36 +13,25 @@ export default class TaskSelfAssessmentRepository {
     void new TaskSelfAssessmentRepository().__instanceMarker
   }
 
-  private static baseQuery(trx?: TransactionClientContract) {
-    return trx ? TaskSelfAssessment.query({ client: trx }) : TaskSelfAssessment.query()
-  }
-
   static async findByTaskAssignmentAndUser(
     taskAssignmentId: DatabaseId,
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskSelfAssessment | null> {
-    return this.baseQuery(trx)
-      .where('task_assignment_id', taskAssignmentId)
-      .where('user_id', userId)
-      .first()
+    return taskSelfAssessmentQueries.findByTaskAssignmentAndUser(taskAssignmentId, userId, trx)
   }
 
   static async create(
     data: Partial<TaskSelfAssessment>,
     trx?: TransactionClientContract
   ): Promise<TaskSelfAssessment> {
-    return TaskSelfAssessment.create(data, trx ? { client: trx } : undefined)
+    return taskSelfAssessmentMutations.create(data, trx)
   }
 
   static async save(
     assessment: TaskSelfAssessment,
     trx?: TransactionClientContract
   ): Promise<TaskSelfAssessment> {
-    if (trx) {
-      assessment.useTransaction(trx)
-    }
-    await assessment.save()
-    return assessment
+    return taskSelfAssessmentMutations.save(assessment, trx)
   }
 }
