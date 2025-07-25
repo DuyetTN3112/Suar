@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserPerformanceStat from '#models/user_performance_stat'
+import UserPerformanceStat from '#infra/users/models/user_performance_stat'
 import type { DatabaseId } from '#types/database'
 
 export default class UserPerformanceStatRepository {

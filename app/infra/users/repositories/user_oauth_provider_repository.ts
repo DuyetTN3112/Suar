@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserOAuthProvider from '#models/user_oauth_provider'
+import UserOAuthProvider from '#infra/users/models/user_oauth_provider'
 
 export default class UserOAuthProviderRepository {
   private readonly __instanceMarker = true

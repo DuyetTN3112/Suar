@@ -195,4 +195,39 @@ export default class TaskStatusRepository {
     await status.save()
     return status
   }
+
+  static async update(
+    statusId: DatabaseId,
+    organizationId: DatabaseId,
+    data: Record<string, unknown>,
+    trx: TransactionClientContract
+  ): Promise<TaskStatusRecord> {
+    const status = await TaskStatus.query({ client: trx })
+      .where('id', statusId)
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .forUpdate()
+      .firstOrFail()
+      
+    status.merge(data)
+    await status.save()
+    return toTaskStatusRecord(status)
+  }
+
+  static async softDelete(
+    statusId: DatabaseId,
+    organizationId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const { DateTime } = await import('luxon')
+    const status = await TaskStatus.query({ client: trx })
+      .where('id', statusId)
+      .where('organization_id', organizationId)
+      .whereNull('deleted_at')
+      .forUpdate()
+      .firstOrFail()
+      
+    status.deleted_at = DateTime.now()
+    await status.save()
+  }
 }

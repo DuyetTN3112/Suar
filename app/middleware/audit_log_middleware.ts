@@ -11,7 +11,7 @@ import loggerService from '#infra/logger/logger_service'
  * SAU: Emit event → AuditLogListener xử lý (Repository Pattern, DualWrite)
  *
  * SINGLE AUDIT PATH: Event-driven only
- *   middleware → emit('audit:log') → AuditLogListener → RepositoryFactory
+ *   middleware → emit('audit:log') → AuditLogListener → auditRepositoryProvider
  *
  * Pattern: Fire-and-forget, non-blocking
  */

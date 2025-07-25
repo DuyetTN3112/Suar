@@ -24,9 +24,6 @@ export * from './string_utils.js'
 // Audit log helpers
 export * from './audit_log_helpers.js'
 
-// Permission helpers
-export * from './permission_helpers.js'
-
 // ID utilities (UUID migration prep)
 export * from './id_utils.js'
 
