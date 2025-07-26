@@ -1,5 +1,6 @@
+import { BaseCommand } from '#actions/admin/base_command'
 import { toStorageSubscriptionPlan } from '#domain/users/subscription_rules'
-import AdminSubscriptionRepository from '#infra/admin/repositories/admin_subscription_repository'
+import { AdminSubscriptionWriteOps } from '#infra/admin/repositories/write/admin_subscription_mutations'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface UpdateSubscriptionDTO {
@@ -10,14 +11,16 @@ export interface UpdateSubscriptionDTO {
   expires_at?: string | null
 }
 
-export default class UpdateSubscriptionCommand {
+export default class UpdateSubscriptionCommand extends BaseCommand<UpdateSubscriptionDTO> {
   constructor(
-    protected execCtx: ExecutionContext,
-    private repo = new AdminSubscriptionRepository()
-  ) {}
+    execCtx: ExecutionContext,
+    private repo = AdminSubscriptionWriteOps
+  ) {
+    super(execCtx)
+  }
 
   async handle(dto: UpdateSubscriptionDTO): Promise<void> {
-    void this.execCtx
+    // Intentionally no executeInTransaction: this is a single-table subscription update.
     await this.repo.updateSubscription(dto.subscriptionId, {
       plan: toStorageSubscriptionPlan(dto.plan),
       status: dto.status,
