@@ -1,5 +1,5 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import AdminFlaggedReviewRepository from '#infra/admin/repositories/admin_flagged_review_repository'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminFlaggedReviewReadOps } from '#infra/admin/repositories/read/admin_flagged_review_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 export interface ListFlaggedReviewsDTO {
@@ -39,7 +39,7 @@ export default class ListFlaggedReviewsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private repo = new AdminFlaggedReviewRepository()
+    private repo = AdminFlaggedReviewReadOps
   ) {
     super(execCtx)
   }
