@@ -1,7 +1,8 @@
 import { Exception } from '@adonisjs/core/exceptions'
 
-import { BaseCommand } from '#actions/shared/base_command'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import { BaseCommand } from '#actions/admin/base_command'
+import { AdminUserReadOps } from '#infra/admin/repositories/read/admin_user_queries'
+import { AdminUserWriteOps } from '#infra/admin/repositories/write/admin_user_mutations'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -24,21 +25,22 @@ export interface UpdateUserSystemRoleDTO {
 export default class UpdateUserSystemRoleCommand extends BaseCommand<UpdateUserSystemRoleDTO> {
   constructor(
     execCtx: ExecutionContext,
-    private userRepo = new AdminUserRepository()
+    private userReadRepo = AdminUserReadOps,
+    private userWriteRepo = AdminUserWriteOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: UpdateUserSystemRoleDTO): Promise<void> {
     // Fetch target user from repository
-    const user = await this.userRepo.findById(dto.userId)
+    const user = await this.userReadRepo.findById(dto.userId)
     if (!user) {
       throw new Exception('User not found', { status: 404 })
     }
 
     // Fetch current admin (executor) from repository
     const currentUserId = this.getCurrentUserId()
-    const currentUser = await this.userRepo.findById(currentUserId)
+    const currentUser = await this.userReadRepo.findById(currentUserId)
     if (!currentUser) {
       throw new Exception('Current user not found', { status: 401 })
     }
@@ -54,6 +56,6 @@ export default class UpdateUserSystemRoleCommand extends BaseCommand<UpdateUserS
     }
 
     // Delegate to repository for persistence
-    await this.userRepo.updateSystemRole(dto.userId, dto.systemRole)
+    await this.userWriteRepo.updateSystemRole(dto.userId, dto.systemRole)
   }
 }
