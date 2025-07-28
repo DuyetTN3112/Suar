@@ -1,0 +1,19 @@
+%% act_04_communication_overview.mmd
+%% Scope: Communication overview (conversation + messaging operations).
+%% Detail files:
+%%   - act_04a_conversation_management.mmd
+%%   - act_04b_messaging.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Communication module"]
+
+    Module --> Conversation["Manage conversation container"]
+    Module --> Messaging["Send/read/recall messages"]
+
+    Conversation --> End([End])
+    Messaging --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Conversation,Messaging process

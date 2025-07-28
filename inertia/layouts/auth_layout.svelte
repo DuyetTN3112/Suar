@@ -21,7 +21,7 @@
   }
 
   const { children }: Props = $props()
-  const sharedProps = $derived($page.props as AuthLayoutPageProps)
+  const sharedProps = $derived(page.props as AuthLayoutPageProps)
 </script>
 
 <div class="min-h-screen bg-background transition-colors duration-300">

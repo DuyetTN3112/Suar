@@ -5,7 +5,7 @@ import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ProficiencyLevel } from '#constants/user_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import NotFoundException from '#exceptions/not_found_exception'
-import type Skill from '#models/skill'
+import type Skill from '#infra/skills/models/skill'
 import {
   OrganizationFactory,
   ReviewSessionFactory,

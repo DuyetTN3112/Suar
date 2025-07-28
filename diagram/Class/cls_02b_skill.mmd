@@ -1,13 +1,12 @@
 
 %% Class Diagram: Skill Domain
-%% Source: app/models/skill.ts, user_skill.ts, task_required_skill.ts,
-%%         recruiter_bookmark.ts
+%% Source: app/infra/skills/models/skill.ts,
+%%         app/infra/users/models/user_skill.ts, app/infra/users/models/recruiter_bookmark.ts,
+%%         app/infra/tasks/models/task_required_skill.ts
 %% Scope: Columns match @column decorators exactly.
-%%         ⚡ = leaked static method (should → Repository layer).
+%%         Repository methods now live in app/infra/skills/repositories/skill_repository.ts.
 %%         RecruiterBookmark: model + table exist but NO routes wired.
-%%         🏛️ NOTE: No domain entities / repositories / mappers exist yet
-%%         for the Skill module. Clean Architecture DDD migration is pending.
-%%         Skill data is still accessed directly via ORM models.
+%%         NOTE: Skill has an action public API + infra repository, but no dedicated domain entity yet.
 classDiagram
     class Skill {
         +UUID id PK
@@ -21,10 +20,6 @@ classDiagram
         +Integer sort_order
         +DateTime created_at
         +DateTime updated_at
-        --
-        +$activeSkills() scope⚡
-        +$byCategory(code) scope⚡
-        +$getSpiderChartSkillIds(trx?)⚡
     }
 
     class UserSkill {
@@ -43,8 +38,6 @@ classDiagram
         --
         +get hasBeenReviewed() Boolean
         +get displayScore() String
-        +$findByUserAndSkill(userId, skillId)⚡
-        +$getUserSkillsWithDetails(userId)⚡
     }
 
     class TaskRequiredSkill {
@@ -67,6 +60,17 @@ classDiagram
         +DateTime updated_at
     }
 
+    class SkillRepository {
+        +activeSkills()
+        +byCategory(categoryCode)
+        +getSpiderChartSkillIds(trx?)
+        +findActiveByIds(ids, trx?)
+        +findByIds(ids, trx?)
+        +findByUserAndSkill(userId, skillId)
+        +getUserSkillsWithDetails(userId)
+        +findUserSkillsWithSkill(userId, trx?)
+    }
+
     %% Relationships
     Skill "1" --> "*" TaskRequiredSkill : tagged in
     Skill "1" --> "*" UserSkill : acquired by
@@ -74,7 +78,6 @@ classDiagram
 
     note for RecruiterBookmark "Model + table exist but NO routes/controllers wired.
     Zero methods — completely passive entity."
-    note for Skill "🏛️ No Domain Entity / Repository yet.
-    DDD migration pending for Skill module.
-    Currently accessed directly via ORM model."
-
+    note for Skill "Lucid model only. Query methods moved to SkillRepository."
+    note for SkillRepository "Read repository for Skill and UserSkill.
+    Used by app/actions/skills public API and tests."

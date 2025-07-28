@@ -1,0 +1,23 @@
+%% state_11_admin_mode.mmd - Admin Mode Session State
+%% Scope: Session-level admin mode toggling and redirects.
+
+stateDiagram-v2
+    [*] --> user_mode : authenticated session
+
+    user_mode --> admin_mode : POST /admin/toggle (enabled=true)
+    admin_mode --> user_mode : POST /admin/toggle (enabled=false)
+
+    admin_mode --> admin_mode : access /admin/*
+    user_mode --> user_mode : access non-admin routes
+
+    admin_mode --> user_mode : role check fails
+
+    note right of admin_mode
+        session.is_admin_mode = true
+        redirect target defaults to /admin
+    end note
+
+    note right of user_mode
+        session.is_admin_mode = false
+        redirect target: /org, /tasks, or /organizations
+    end note

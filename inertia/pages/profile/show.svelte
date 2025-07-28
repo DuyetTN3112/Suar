@@ -76,7 +76,7 @@
   const { t } = useTranslation()
 
   const pageTitle = $derived(t('profile.show', {}, 'Hồ sơ cá nhân'))
-  const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
+  const flash = $derived((page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
 
   // Group skills by category (simple transform - NO business logic)
   const userSkills = $derived((user.skills ?? []).map((skillRelation) => normalizeProfileSkillRelation(skillRelation)))

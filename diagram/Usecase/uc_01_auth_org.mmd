@@ -14,6 +14,8 @@ flowchart LR
     subgraph system["Identity & Organization"]
         oauth([Authenticate with OAuth])
         account([Manage account profile and skills])
+        settings([Manage personal settings])
+        notifications([Use notification center])
         membership([Join, create, or switch organization])
         orgAdminUc([Manage organization members and roles])
         systemAdminUc([Administer users, organizations, and packages])
@@ -21,6 +23,8 @@ flowchart LR
 
     user --> oauth
     user --> account
+    user --> settings
+    user --> notifications
     user --> membership
     orgAdmin --> orgAdminUc
     orgOwner --> orgAdminUc
@@ -32,4 +36,4 @@ flowchart LR
     classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
     class user,orgAdmin,orgOwner,systemAdmin,superadmin actor
-    class oauth,account,membership,orgAdminUc,systemAdminUc usecase
+    class oauth,account,settings,notifications,membership,orgAdminUc,systemAdminUc usecase

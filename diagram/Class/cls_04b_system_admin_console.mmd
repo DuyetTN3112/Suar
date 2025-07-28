@@ -1,0 +1,47 @@
+%% Class Diagram: System Admin Console Slice
+%% Scope: Admin dashboard and moderation commands.
+
+classDiagram
+    class AdminDashboardController {
+        +handle(ctx)
+        +users(ctx)
+        +operations(ctx)
+        +subscriptions(ctx)
+    }
+    class ToggleAdminModeController {
+        +handle(ctx)
+    }
+    class UpdateUserRoleController {
+        +handle(ctx)
+    }
+    class SuspendUserController {
+        +handle(ctx)
+    }
+    class ResolveFlaggedReviewController {
+        +handle(ctx)
+    }
+
+    class ToggleAdminModeCommand {
+        +handle(dto)
+    }
+    class UpdateUserSystemRoleCommand {
+        +handle(dto)
+    }
+    class SuspendUserCommand {
+        +handle(dto)
+    }
+    class ResolveFlaggedReviewCommand {
+        +handle(dto)
+    }
+
+    class AdminUserRepository
+    class AdminFlaggedReviewRepository
+
+    ToggleAdminModeController --> ToggleAdminModeCommand
+    UpdateUserRoleController --> UpdateUserSystemRoleCommand
+    SuspendUserController --> SuspendUserCommand
+    ResolveFlaggedReviewController --> ResolveFlaggedReviewCommand
+
+    UpdateUserSystemRoleCommand --> AdminUserRepository
+    SuspendUserCommand --> AdminUserRepository
+    ResolveFlaggedReviewCommand --> AdminFlaggedReviewRepository

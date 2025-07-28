@@ -27,9 +27,10 @@ import type { InertiaPageModule, PageComponentRecord } from '@/types/inertia'
 
 const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte')
 
-type CreateInertiaAppOptions = Parameters<typeof createInertiaApp>[0]
+type CreateInertiaAppOptions = NonNullable<Parameters<typeof createInertiaApp>[0]>
 type ComponentResolver = NonNullable<CreateInertiaAppOptions['resolve']>
 type ResolvedComponent = Awaited<ReturnType<ComponentResolver>>
+type InitialPage = NonNullable<CreateInertiaAppOptions['page']>
 
 // Configure Axios với CSRF token (giống React)
 axios.defaults.withCredentials = true
@@ -55,8 +56,13 @@ axios.interceptors.response.use(
 
 initTheme()
 
+const appEl = document.getElementById('app')
+const initialPage = appEl?.dataset.page ? (JSON.parse(appEl.dataset.page) as InitialPage) : undefined
+
 // Khởi tạo Inertia với Svelte 5
 void createInertiaApp({
+  page: initialPage,
+
   progress: {
     color: '#f45d2d',
     showSpinner: true,

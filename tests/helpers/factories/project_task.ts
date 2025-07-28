@@ -6,12 +6,12 @@ import { toFactoryDateTime, type FactoryDateValue } from './core.js'
 import { OrganizationFactory, UserFactory } from './user_org.js'
 
 import { DEFAULT_TASK_STATUSES, TaskStatusCategory } from '#constants/task_constants'
-import Project from '#models/project'
-import ProjectMember from '#models/project_member'
-import Task from '#models/task'
-import TaskApplication from '#models/task_application'
-import TaskAssignment from '#models/task_assignment'
-import TaskStatusModel from '#models/task_status'
+import Project from '#infra/projects/models/project'
+import ProjectMember from '#infra/projects/models/project_member'
+import Task from '#infra/tasks/models/task'
+import TaskApplication from '#infra/tasks/models/task_application'
+import TaskAssignment from '#infra/tasks/models/task_assignment'
+import TaskStatusModel from '#infra/tasks/models/task_status'
 
 const taskStatusCategoryBySlug: Record<string, TaskStatusCategory> = {
   todo: TaskStatusCategory.TODO,

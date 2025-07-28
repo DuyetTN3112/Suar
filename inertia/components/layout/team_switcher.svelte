@@ -34,8 +34,8 @@
   let error = $state<string | null>(null)
   let isLoading = $state(false)
 
-  // WHITELIST: shell component reads $page.props for auth/org switching during transition period.
-  const props = $derived($page.props as unknown as SharedData)
+  // WHITELIST: shell component reads page.props for auth/org switching during transition period.
+  const props = $derived(page.props as unknown as SharedData)
   const legacyUser = $derived((props.user as { auth?: { user?: SharedAuthUser } } | undefined)?.auth?.user)
   const authUser = $derived<SharedAuthUser | null>(props.auth?.user ?? legacyUser ?? null)
   const currentProject = $derived(authUser?.current_project ?? null)

@@ -31,7 +31,7 @@
   }
 
   const { t } = useTranslation()
-  const props = $derived($page.props as unknown as PageProps)
+  const props = $derived(page.props as unknown as PageProps)
   const user = $derived(props.auth?.user)
   const hasOrg = $derived(!!user?.current_organization_id)
 </script>

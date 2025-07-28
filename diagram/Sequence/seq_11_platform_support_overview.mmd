@@ -1,0 +1,32 @@
+%% seq_11_platform_support_overview.mmd
+%% Scope: Platform support interaction overview.
+%% Detail files:
+%%   - seq_11_notification_center.mmd
+%%   - seq_12_user_settings_preferences.mmd
+%%   - seq_13_system_admin_console.mmd
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    actor A as System Admin
+    participant UI as Browser
+    participant C as Controllers
+    participant App as Commands / Queries
+
+    Note over U,App: NOTIFICATION CENTER
+    U->>UI: Open notifications / mutate read state
+    UI->>C: GET/POST/DELETE /notifications/*
+    C->>App: Notification actions
+    C-->>UI: Inertia/JSON response
+
+    Note over U,App: SETTINGS PREFERENCES
+    U->>UI: Open/update settings
+    UI->>C: GET/POST /settings/*
+    C->>App: Settings actions + profile command
+    C-->>UI: Redirect/render updated state
+
+    Note over A,App: SYSTEM ADMIN CONSOLE
+    A->>UI: Toggle/admin dashboard/moderation
+    UI->>C: /admin/* routes
+    C->>App: Admin commands/queries
+    C-->>UI: Render admin pages + mutation feedback

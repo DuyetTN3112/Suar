@@ -37,7 +37,7 @@
 
   // Flash messages
   const flash = $derived(
-    ($page as { props: { flash?: { success?: string; error?: string } } }).props.flash
+    (page as { props: { flash?: { success?: string; error?: string } } }).props.flash
   )
 
   // Resolve form state

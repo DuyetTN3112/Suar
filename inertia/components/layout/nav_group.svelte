@@ -52,7 +52,7 @@
   const sidebar = getContext<{ state: string; setOpenMobile: (open: boolean) => void }>('sidebar')
   const { t } = useTranslation()
 
-  const currentUrl = $derived($page.url)
+  const currentUrl = $derived(page.url)
 
   const translatedTitle = $derived(titleKey ? t(titleKey, {}, title) : title)
 

@@ -2,9 +2,9 @@ import db from '@adonisjs/lucid/services/db'
 
 import { assertSafeTestDatastores } from '../test_datastore_guard.js'
 
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import MongoNotification from '#models/mongo/notification'
-import MongoUserActivityLog from '#models/mongo/user_activity_log'
+import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
+import MongoNotification from '#infra/notifications/models/notification'
+import MongoUserActivityLog from '#infra/user_activity/models/user_activity_log'
 
 export async function cleanupTestData(): Promise<void> {
   await assertSafeTestDatastores()

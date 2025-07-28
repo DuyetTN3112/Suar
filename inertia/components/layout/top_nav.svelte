@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { Link } from '@inertiajs/svelte'
   import { Menu } from 'lucide-svelte'
 
   import Button from '@/components/ui/button.svelte'
@@ -24,15 +24,6 @@
 
   const { class: className, links }: TopNavProps = $props()
 
-  // Optimize navigation to maintain SPA behavior
-  function handleNavigation(url: string, e: MouseEvent) {
-    e.preventDefault()
-
-    router.visit(url, {
-      preserveScroll: true,
-      preserveState: true,
-    })
-  }
 </script>
 
 <div class="md:hidden">
@@ -46,13 +37,11 @@
       {#each links as link}
         <DropdownMenuItem>
           <Link
-            href={link.href}
-            class={!link.isActive ? 'text-muted-foreground' : ''}
-            onclick={(e: MouseEvent) => {
-              if (!link.disabled) {
-                handleNavigation(link.href, e)
-              }
-            }}
+            href={link.disabled ? '#' : link.href}
+            preserveScroll={true}
+            preserveState={true}
+            aria-disabled={link.disabled}
+            class={cn(!link.isActive && 'text-muted-foreground', link.disabled && 'pointer-events-none opacity-50')}
           >
             {link.title}
           </Link>
@@ -70,13 +59,15 @@
 >
   {#each links as link}
     <Link
-      href={link.href}
-      class="hover:text-primary text-sm font-medium transition-colors {link.isActive ? '' : 'text-muted-foreground'}"
-      onclick={(e: MouseEvent) => {
-        if (!link.disabled) {
-          handleNavigation(link.href, e)
-        }
-      }}
+      href={link.disabled ? '#' : link.href}
+      preserveScroll={true}
+      preserveState={true}
+      aria-disabled={link.disabled}
+      class={cn(
+        'hover:text-primary text-sm font-medium transition-colors',
+        !link.isActive && 'text-muted-foreground',
+        link.disabled && 'pointer-events-none opacity-50'
+      )}
     >
       {link.title}
     </Link>

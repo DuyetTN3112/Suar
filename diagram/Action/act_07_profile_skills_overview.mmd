@@ -1,0 +1,19 @@
+%% act_07_profile_skills_overview.mmd
+%% Scope: Profile and skill intelligence overview.
+%% Detail files:
+%%   - act_07a_profile_management.mmd
+%%   - act_07b_skill_management.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Profile and skills module"]
+
+    Module --> Profile["Manage profile and public presentation"]
+    Module --> Skills["Manage skills and spider score recalculation"]
+
+    Profile --> End([End])
+    Skills --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Profile,Skills process

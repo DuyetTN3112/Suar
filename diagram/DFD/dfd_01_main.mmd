@@ -1,6 +1,6 @@
 %% DFD 01 — Main Overview (Level 1)
 %% Scope: Entire platform overview only.
-%% Principle: keep Level 1 readable; detailed domains live in dfd_02..dfd_05.
+%% Principle: keep Level 1 readable; detailed domains live in dfd_02..dfd_06.
 
 flowchart TD
     User([User / Freelancer])
@@ -12,9 +12,10 @@ flowchart TD
     (organization -> project -> task)"]]
     P3[["3. Marketplace"]]
     P4[["4. Review, Profile & Messaging"]]
+    P5[["5. Settings, Notifications & Admin Console"]]
 
     D1[(PostgreSQL core tables)]
-    D2[(Mongo audit / notifications)]
+    D2[(Mongo audit / notifications / user activity)]
     D3[(Redis sessions / cache)]
 
     User --> P1
@@ -23,6 +24,8 @@ flowchart TD
     User --> P3
     User --> P4
     Admin --> P4
+    User --> P5
+    Admin --> P5
 
     P1 --> D1
     P1 --> D3
@@ -32,10 +35,13 @@ flowchart TD
     P4 --> D1
     P4 --> D2
     P4 --> D3
+    P5 --> D1
+    P5 --> D2
+    P5 --> D3
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     class User,Admin,OAuth entity
-    class P1,P2,P3,P4 process
+    class P1,P2,P3,P4,P5 process
     class D1,D2,D3 datastore

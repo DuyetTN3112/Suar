@@ -44,7 +44,7 @@
     }
   }
 
-  const pageProps = $derived($page.props as SettingsDisplayPageProps)
+  const pageProps = $derived(page.props as SettingsDisplayPageProps)
   const user = $derived(pageProps.auth?.user ?? defaultUser)
 
   let formInitialized = $state(false)

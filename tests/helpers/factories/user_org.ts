@@ -1,9 +1,9 @@
 import { testEmail, testId, testSlug, testUsername } from '../test_utils.js'
 
 import type { OrganizationUserStatus } from '#constants/organization_constants'
-import Organization from '#models/organization'
-import OrganizationUser from '#models/organization_user'
-import User from '#models/user'
+import Organization from '#infra/organizations/models/organization'
+import OrganizationUser from '#infra/organizations/models/organization_user'
+import User from '#infra/users/models/user'
 
 type OrgUserStatus = `${OrganizationUserStatus}`
 

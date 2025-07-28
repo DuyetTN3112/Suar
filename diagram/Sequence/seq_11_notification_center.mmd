@@ -1,0 +1,46 @@
+%% seq_11_notification_center.mmd
+%% Scope: list/poll notifications and mutate read state.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant UI as Browser / Inertia page
+    participant C as Notification Controllers
+    participant A as Notification Actions
+    participant RP as NotificationRepositoryProvider
+    participant NR as Notification Repository
+
+    U->>UI: Open notification center
+    UI->>C: GET /notifications?page=&limit=&unread_only=
+    C->>A: GetUserNotifications.handle(options)
+    A->>RP: getNotificationRepository()
+    RP-->>A: repository instance
+    A->>NR: findByUser(userId, filters)
+    A->>NR: getUnreadCount(userId)
+    NR-->>A: list + unread count
+    A-->>C: paginated payload
+    C-->>UI: inertia.render(notifications/index)
+
+    U->>UI: Poll latest notifications
+    UI->>C: GET /notifications/latest
+    C->>A: GetUserNotifications.handle(page=1)
+    A-->>C: latest list + unread count
+    C-->>UI: JSON response
+
+    U->>UI: Mark one as read
+    UI->>C: POST /notifications/:id/mark-as-read
+    C->>A: MarkNotificationAsRead.handle(id)
+    A->>NR: update read state
+    C-->>UI: { success: true }
+
+    U->>UI: Mark all as read
+    UI->>C: POST /notifications/mark-all-as-read
+    C->>A: MarkNotificationAsRead.markAllAsRead()
+    A->>NR: bulk update by user
+    C-->>UI: { success: true }
+
+    U->>UI: Delete read notifications
+    UI->>C: DELETE /notifications
+    C->>A: DeleteNotification.deleteAllRead()
+    A->>NR: bulk delete read items
+    C-->>UI: { success: true }
