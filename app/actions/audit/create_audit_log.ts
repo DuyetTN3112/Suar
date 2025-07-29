@@ -2,7 +2,7 @@ import { writeAuditLog } from '#actions/audit/write_audit_log'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
-interface AuditLogData {
+export interface AuditLogData {
   user_id: DatabaseId
   action: string
   entity_type: string
