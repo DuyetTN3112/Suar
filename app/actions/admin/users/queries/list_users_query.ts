@@ -1,5 +1,5 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminUserReadOps } from '#infra/admin/repositories/read/admin_user_queries'
 import type { ExecutionContext } from '#types/execution_context'
 
 /**
@@ -39,7 +39,7 @@ export interface ListUsersResult {
 export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersResult> {
   constructor(
     execCtx: ExecutionContext,
-    private userRepo = new AdminUserRepository()
+    private userRepo = AdminUserReadOps
   ) {
     super(execCtx)
   }
