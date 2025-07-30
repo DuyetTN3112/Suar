@@ -1,0 +1,68 @@
+%% Class Diagram: User & Auth Core
+%% Scope: Identity, OAuth binding, remember-me token, and domain entity.
+
+classDiagram
+    class User {
+        +id
+        +username
+        +email
+        +status
+        +system_role
+        +current_organization_id
+        +auth_method
+        +avatar_url
+        +bio
+        +is_freelancer
+        +deleted_at
+    }
+
+    class UserOAuthProvider {
+        +id
+        +user_id
+        +provider
+        +provider_id
+    }
+
+    class RememberMeToken {
+        +id
+        +tokenable_id
+        +hash
+        +expires_at
+    }
+
+    class UserEntity {
+        <<Domain Entity>>
+        +id
+        +username
+        +email
+        +status
+        +systemRole
+        +currentOrganizationId
+        +authMethod
+        +isFreelancer
+        +deletedAt
+        +isActive
+        +isAdmin
+        +isSuperadmin
+        +canChangeRoleOf()
+        +canDeactivate()
+    }
+
+    class UserRepository {
+        <<interface>>
+        +findById()
+        +findActiveOrFail()
+        +findNotDeletedOrFail()
+        +findWithOrganizations()
+        +isActive()
+        +isFreelancer()
+        +isSystemAdmin()
+    }
+
+    User "1" --> "many" UserOAuthProvider : has OAuth providers
+    User "1" --> "many" RememberMeToken : has remember tokens
+    User --> UserEntity : mapped to domain
+    UserRepository ..> UserEntity : loads
+
+    note for User "OAuth only in current routes.
+    Remember-me is provided by Adonis session auth."

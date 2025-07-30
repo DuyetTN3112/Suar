@@ -1,0 +1,129 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_07b: Skill Management
+%% ─────────────────────────────────────────────────────────────
+%% Scope:
+%%   1. Skill CRUD (add/edit/remove) — source: 'imported'
+%%   2. Spider Chart View (2-color: imported vs reviewed)
+%%   3. System-triggered skill recalc (source: 'reviewed')
+%%
+%% Skill Source Logic:
+%%   - Manual add → source = 'imported' (trust = 0)
+%%   - Review completed → source = 'reviewed' (trust > 0)
+%%   - User can only edit/remove 'imported' skills
+%%
+%% Related: act_07a_profile_management.mmd
+%% Backend: ProfileController → UserAction commands/queries
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> SkillAction{"Skill
+    action?"}
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 1: Add Skill (source = 'imported')
+    %% ═══════════════════════════════════════════════════════════
+    SkillAction -->|"Add Skill"| SearchSkill["Search skills catalog
+    (skills table, is_active)"]
+    SearchSkill --> SelectSkill["Select skill"]
+    SelectSkill --> SetLevel["Set self-assessed
+    proficiency level
+    (beginner → master)"]
+    SetLevel --> ValidateSkill{"AddUserSkillCommand:
+    • skill exists & active?
+    • level_code valid?
+    • no duplicate?"}
+    ValidateSkill -->|Invalid| ShowSkillError["Show validation
+    error"]
+    ShowSkillError --> SkillAction
+    ValidateSkill -->|Valid| SaveSkill["POST /profile/skills
+    → INSERT user_skills
+    (source = 'imported')"]
+    SaveSkill --> SkillEvents["Log audit +
+    invalidate cache +
+    emit skill:score:updated"]
+    SkillEvents --> End1([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 2: Edit Skill Level
+    %% ═══════════════════════════════════════════════════════════
+    SkillAction -->|"Edit Level"| EditSkillLevel["Change proficiency
+    level for existing skill"]
+    EditSkillLevel --> CheckOwnership1{"PUT /profile/skills/:id
+    → user_id matches
+    current user?"}
+    CheckOwnership1 -->|No| Forbidden1["403 Forbidden"]
+    Forbidden1 --> End2a([End])
+    CheckOwnership1 -->|Yes| UpdateSkill["UpdateUserSkillCommand
+    UPDATE user_skills
+    SET level_code = ?"]
+    UpdateSkill --> SkillEvents2["Log audit +
+    invalidate cache +
+    emit skill:score:updated"]
+    SkillEvents2 --> End2([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 3: Remove Skill
+    %% ═══════════════════════════════════════════════════════════
+    SkillAction -->|"Remove Skill"| CheckOwnership2{"DELETE /profile/skills/:id
+    → user_id matches
+    current user?"}
+    CheckOwnership2 -->|No| Forbidden2["403 Forbidden"]
+    Forbidden2 --> End3a([End])
+    CheckOwnership2 -->|Yes| DeleteSkill["RemoveUserSkillCommand
+    DELETE FROM user_skills"]
+    DeleteSkill --> SkillEvents3["Log audit +
+    invalidate cache +
+    emit skill:score:updated"]
+    SkillEvents3 --> End3([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 4: Spider Chart View (2-color)
+    %% ═══════════════════════════════════════════════════════════
+    SkillAction -->|"View Spider Chart"| LoadSpider["GetSpiderChartDataQuery
+    (5min cache)
+    → user_skills WHERE
+    skill.display_type = 'spider_chart'"]
+    LoadSpider --> SplitCategories["Split into:
+    • soft_skills array
+    • delivery array"]
+    SplitCategories --> RenderChart["Render radar chart:
+    ● Solid line: source = 'reviewed'
+      (avg_percentage from reviews)
+    ○ Dashed line: source = 'imported'
+      (self-assessed level)"]
+    RenderChart --> End4([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% FLOW 5: System-triggered Skill Recalculation
+    %% (source = 'reviewed', NOT user-initiated)
+    %% ═══════════════════════════════════════════════════════════
+    ReviewCompleted(["Event: review
+    session completed"]) --> CalcSpider["CalculateSpiderChartCommand"]
+    CalcSpider --> FetchSpiderSkills["Fetch skills WHERE
+    display_type = 'spider_chart'"]
+    FetchSpiderSkills --> ForEachSkill["For each spider skill:
+    1. SkillReview.calculateSkillAvgPercentage()
+    2. getLevelCodeFromPercentage()"]
+    ForEachSkill --> UpsertSkill["UPSERT user_skills:
+    avg_percentage = calculated
+    level_code = derived
+    source = 'reviewed'
+    last_calculated_at = now"]
+    UpsertSkill --> InvalidateSpider["Invalidate cache:
+    spider:user:{userId}
+    skill_scores:user:{userId}"]
+    InvalidateSpider --> End5([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef skill fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef spider fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    classDef event fill:#FFF9C4,stroke:#F57F17,color:#333
+    class Start,End1,End2,End2a,End3,End3a,End4,End5,ReviewCompleted startEnd
+    class SkillAction,ValidateSkill,CheckOwnership1,CheckOwnership2 decision
+    class SearchSkill,SelectSkill,SetLevel,SaveSkill,EditSkillLevel,UpdateSkill,DeleteSkill skill
+    class LoadSpider,SplitCategories,RenderChart,CalcSpider,FetchSpiderSkills,ForEachSkill,UpsertSkill spider
+    class ShowSkillError,Forbidden1,Forbidden2 error
+    class SkillEvents,SkillEvents2,SkillEvents3,InvalidateSpider event

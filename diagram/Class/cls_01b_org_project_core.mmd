@@ -1,0 +1,91 @@
+%% Class Diagram: Organization & Project Core
+%% Scope: Organization membership, project ownership, and core repositories.
+
+classDiagram
+    class Organization {
+        +id
+        +name
+        +slug
+        +description
+        +logo
+        +website
+        +owner_id
+        +custom_roles
+        +deleted_at
+    }
+
+    class OrganizationUser {
+        +organization_id
+        +user_id
+        +org_role
+        +status
+        +invited_by
+    }
+
+    class Project {
+        +id
+        +creator_id
+        +organization_id
+        +name
+        +status
+        +manager_id
+        +owner_id
+        +visibility
+        +allow_freelancer
+        +approval_required_for_members
+    }
+
+    class ProjectMember {
+        +project_id
+        +user_id
+        +project_role
+    }
+
+    class OrganizationEntity {
+        <<Domain Entity>>
+        +id
+        +name
+        +slug
+        +ownerId
+        +partnerType
+        +partnerIsActive
+        +hasCustomRoles()
+    }
+
+    class ProjectEntity {
+        <<Domain Entity>>
+        +id
+        +creatorId
+        +organizationId
+        +name
+        +status
+        +ownerId
+        +managerId
+        +isPublic()
+        +allowsFreelancers()
+    }
+
+    class OrganizationRepository {
+        <<interface>>
+        +findById()
+        +findBySlug()
+        +findByOwnerId()
+        +findNotDeletedOrFail()
+    }
+
+    class ProjectRepository {
+        <<interface>>
+        +findById()
+        +findByOrganization()
+        +findByCreator()
+        +findByManager()
+        +findNotDeletedOrFail()
+    }
+
+    Organization "1" --> "many" OrganizationUser : membership
+    Organization "1" --> "many" Project : contains
+    Project "1" --> "many" ProjectMember : members
+    Organization --> OrganizationEntity : mapped to domain
+    Project --> ProjectEntity : mapped to domain
+    OrganizationRepository ..> OrganizationEntity : loads
+    ProjectRepository ..> ProjectEntity : loads
