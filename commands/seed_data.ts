@@ -898,3 +898,903 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
     assignmentEstimatedHours: 14,
     assignmentActualHours: 13,
     taskType: 'feature_development',
+    acceptanceCriteria: ['Có public showcase draft', 'Có proof links để admin xem'],
+    verificationMethod: 'demo_presentation',
+    expectedDeliverables: ['Talent showcase landing', 'Portfolio attachments'],
+    contextBackground: 'Làm dày dataset cho admin organization overview.',
+    impactScope: 'end_users',
+    techStack: ['Svelte', 'TypeScript'],
+    environment: 'staging',
+    collaborationType: 'solo',
+    complexityNotes: 'Task seed thêm đa dạng owner type.',
+    measurableOutcomes: [{ metric: 'showcase_sections', target: 3 }],
+    learningObjectives: ['Portfolio presentation'],
+    domainTags: ['portfolio', 'external', 'talent'],
+    roleInTask: 'lead',
+    autonomyLevel: 'autonomous',
+    problemCategory: 'new_capability',
+    businessDomain: 'saas',
+    estimatedUsersAffected: 55,
+    estimatedBudget: 10000000,
+    requiredSkills: ['svelte', 'communication'],
+  },
+  {
+    key: 'orgd-package-upsell',
+    organization: 'orgD',
+    project: 'orgDTalentShowcase',
+    creator: 'freelancerOne',
+    title: 'Thiết kế nội dung upsell cho gói ProMax',
+    description:
+      'Task public để admin và user đều có thể test thêm dữ liệu package-related và marketplace.',
+    status: 'todo',
+    taskStatus: 'todo',
+    label: 'documentation',
+    priority: 'medium',
+    difficulty: 'easy',
+    visibility: 'all',
+    dueDaysOffset: 10,
+    taskType: 'technical_writing',
+    acceptanceCriteria: ['Copy nhấn mạnh khác biệt Pro và ProMax', 'Có CTA rõ ràng'],
+    verificationMethod: 'documentation_review',
+    expectedDeliverables: ['Upsell copy deck'],
+    contextBackground: 'Tạo thêm public task và data cho package management narratives.',
+    impactScope: 'end_users',
+    techStack: ['Documentation'],
+    environment: 'development',
+    collaborationType: 'solo',
+    complexityNotes: 'Task mở cho external apply.',
+    measurableOutcomes: [{ metric: 'upsell_copy_variants', target: 2 }],
+    learningObjectives: ['Package positioning'],
+    domainTags: ['package', 'copy', 'marketplace'],
+    roleInTask: 'architect',
+    autonomyLevel: 'autonomous',
+    problemCategory: 'new_capability',
+    businessDomain: 'saas',
+    estimatedUsersAffected: 75,
+    estimatedBudget: 4500000,
+    applicationDeadlineDaysAhead: 6,
+    requiredSkills: ['communication', 'testing'],
+  },
+]
+
+const SEEDED_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
+
+export default class SeedData extends BaseCommand {
+  static override commandName = 'seed:data'
+  static override description = 'Seed deterministic local demo data for admin/org/user flows'
+
+  static override options: CommandOptions = {
+    startApp: true,
+    staysAlive: true,
+  }
+
+  @flags.boolean({ description: 'Delete all existing seedable data before inserting the demo set' })
+  declare fresh: boolean
+
+  private seedCompleted = false
+
+  private installShutdownErrorGuard(): void {
+    process.once('uncaughtException', (error) => {
+      if (
+        this.seedCompleted &&
+        error instanceof Error &&
+        error.message.startsWith('Connection terminated')
+      ) {
+        this.logger.warning('Ignoring late PostgreSQL shutdown error after successful seed.')
+        process.exit(0)
+      }
+
+      this.logger.error(
+        `Seed command crashed: ${error instanceof Error ? error.message : String(error)}`
+      )
+      process.exit(1)
+    })
+  }
+
+  override async run() {
+    this.installShutdownErrorGuard()
+    this.logger.info('Starting deterministic seed for admin/org/user demo data...')
+
+    let context!: SeedContext
+
+    await db.transaction(async (trx) => {
+      if (this.fresh) {
+        this.logger.warning('Clearing PostgreSQL seed scope...')
+        await this.resetPostgres(trx)
+      }
+
+      const skills = await this.seedSkills(trx)
+      const users = await this.seedUsers(trx)
+      const organizations = await this.seedOrganizations(trx, users)
+      await this.seedOrganizationMemberships(trx, users, organizations)
+      const projects = await this.seedProjects(trx, users, organizations)
+      await this.seedProjectMembers(trx, users, projects)
+      const statuses = await this.seedTaskStatuses(trx, organizations)
+      const tasks = await this.seedTasks(trx, users, projects, organizations, statuses)
+      const assignments = await this.seedTaskAssignments(trx, users, tasks)
+      await this.seedTaskApplications(trx, users, tasks)
+      await this.seedTaskRequiredSkills(trx, tasks, skills)
+      await this.seedReviewData(trx, users, tasks, assignments, skills, organizations)
+      await this.seedUserSkills(trx, users, skills)
+      await this.seedUserSubscriptions(trx, users)
+      await this.seedProjectAttachments(trx, users, projects)
+      await this.updateCurrentOrganizations(trx, users, organizations)
+
+      context = {
+        users,
+        organizations,
+        projects,
+        skills,
+        tasks,
+        assignments,
+        snapshots: {},
+      }
+    })
+
+    await this.ensureMongoConnection()
+
+    if (this.fresh) {
+      this.logger.warning('Clearing MongoDB seed scope...')
+      await this.resetMongo()
+    }
+
+    context = await this.seedProfileAggregates(context)
+    await this.seedMongo(context)
+    await this.logSummary(context)
+
+    this.seedCompleted = true
+    this.logger.success('Seed data inserted successfully.')
+    await this.closeSeedConnections()
+  }
+
+  private uuid(): string {
+    return randomUUID()
+  }
+
+  private isoDaysAgo(daysAgo: number, hour = 9): string {
+    const value = new Date()
+    value.setDate(value.getDate() - daysAgo)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  private isoDaysAhead(daysAhead: number, hour = 17): string {
+    const value = new Date()
+    value.setDate(value.getDate() + daysAhead)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  private toJson(value: unknown): string {
+    return JSON.stringify(value)
+  }
+
+  private getTaskSpec(taskKey: string): TaskSpec {
+    const spec = SEEDED_TASK_SPECS.find((item) => item.key === taskKey)
+    if (!spec) {
+      throw new Error(`Missing task spec for ${taskKey}`)
+    }
+
+    return spec
+  }
+
+  private readNonEmptyString(value: unknown, fallback: string): string {
+    return typeof value === 'string' && value.length > 0 ? value : fallback
+  }
+
+  private toRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
+
+    return {}
+  }
+
+  private parseJsonRecord(value: string): Record<string, unknown> {
+    const parsed: unknown = JSON.parse(value)
+    return this.toRecord(parsed)
+  }
+
+  private requireValue<T>(value: T | undefined, label: string): T {
+    if (value === undefined) {
+      throw new Error(`Missing seeded value for ${label}`)
+    }
+
+    return value
+  }
+
+  private applyWhere(query: any, where: Record<string, unknown>) {
+    for (const [key, value] of Object.entries(where)) {
+      query.where(key, value)
+    }
+    return query
+  }
+
+  private async findRow(trx: any, table: string, where: Record<string, unknown>) {
+    return await this.applyWhere(trx.from(table), where).first()
+  }
+
+  private async deleteTableIfExists(trx: any, table: string): Promise<void> {
+    const exists = await trx
+      .from('information_schema.tables')
+      .where('table_schema', 'public')
+      .where('table_name', table)
+      .first()
+
+    if (!exists) {
+      return
+    }
+
+    await trx.from(table).delete()
+  }
+
+  private async ensureMongoConnection(): Promise<void> {
+    const mongoUrl = env.get('MONGODB_URL', '')
+    if (!mongoUrl) {
+      this.logger.warning('MONGODB_URL is not configured, skipping MongoDB seed.')
+      return
+    }
+
+    if (mongoose.connection.readyState === 1) {
+      return
+    }
+
+    if (mongoose.connection.readyState === 2) {
+      await mongoose.connection.asPromise()
+      return
+    }
+
+    await mongoose.connect(mongoUrl)
+  }
+
+  private async closeSeedConnections(): Promise<void> {
+    if (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2) {
+      await mongoose.disconnect()
+    }
+
+    await db.manager.closeAll()
+  }
+
+  private async resetPostgres(trx: any): Promise<void> {
+    const tables = [
+      'flagged_reviews',
+      'reverse_reviews',
+      'skill_reviews',
+      'review_evidences',
+      'task_self_assessments',
+      'review_sessions',
+      'user_profile_snapshots',
+      'user_work_history',
+      'user_domain_expertise',
+      'user_performance_stats',
+      'user_skills',
+      'recruiter_bookmarks',
+      'user_subscriptions',
+      'messages',
+      'conversation_participants',
+      'conversations',
+      'task_required_skills',
+      'task_versions',
+      'task_assignments',
+      'task_applications',
+      'project_attachments',
+      'project_members',
+      'tasks',
+      'task_workflow_transitions',
+      'task_statuses',
+      'organization_users',
+      'projects',
+      'organizations',
+      'user_oauth_providers',
+      'skills',
+      'remember_me_tokens',
+      'users',
+    ]
+
+    for (const table of tables) {
+      await this.deleteTableIfExists(trx, table)
+    }
+  }
+
+  private async resetMongo(): Promise<void> {
+    if (!env.get('MONGODB_URL', '')) {
+      return
+    }
+
+    await Promise.all([
+      MongoNotification.deleteMany({}),
+      MongoAuditLogModel.deleteMany({}),
+      MongoUserActivityLog.deleteMany({}),
+    ])
+  }
+
+  private async seedSkills(trx: any): Promise<Record<string, string>> {
+    const skillSpecs = [
+      ['typescript', 'TypeScript', 'technical'],
+      ['svelte', 'Svelte', 'technical'],
+      ['postgresql', 'PostgreSQL', 'technical'],
+      ['mongodb', 'MongoDB', 'technical'],
+      ['devops', 'DevOps', 'technical'],
+      ['testing', 'Testing & QA', 'delivery'],
+      ['code_review', 'Code Review', 'delivery'],
+      ['communication', 'Communication', 'soft_skill'],
+      ['problem_solving', 'Problem Solving', 'soft_skill'],
+      ['leadership', 'Leadership', 'soft_skill'],
+    ] as const
+
+    const result: Record<string, string> = {}
+
+    for (const [code, name, category] of skillSpecs) {
+      const existing = await this.findRow(trx, 'skills', { skill_code: code })
+      const id = existing?.id ?? this.uuid()
+      const payload = {
+        category_code: category,
+        display_type: 'spider_chart',
+        skill_code: code,
+        skill_name: name,
+        description: `${name} - seeded demo skill for UI verification`,
+        icon_url: `https://cdn.suar.local/skills/${code}.svg`,
+        is_active: true,
+        sort_order: Object.keys(result).length,
+        created_at: this.isoDaysAgo(90),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await trx.from('skills').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('skills')
+          .insert({ id, ...payload })
+      }
+
+      result[code] = id
+    }
+
+    return result
+  }
+
+  private async seedUsers(trx: any): Promise<Record<UserKey, SeededUser>> {
+    const specs: Record<
+      UserKey,
+      {
+        username: string
+        email: string
+        system_role: 'superadmin' | 'registered_user'
+        auth_method: 'google' | 'github'
+        bio: string
+        is_freelancer: boolean
+        rating: number | null
+        completedTasks: number
+        headline: string
+        preferredJobTypes: string[]
+      }
+    > = {
+      owner: {
+        username: 'Suar',
+        email: 'tranngocduyet31@gmail.com',
+        system_role: 'registered_user',
+        auth_method: 'github',
+        bio: 'Chủ organization A, có dự án đang quản lý và đồng thời là thành viên thường của organization B để test context switching.',
+        is_freelancer: false,
+        rating: 4.7,
+        completedTasks: 2,
+        headline: 'Organization owner testing multi-org workspace',
+        preferredJobTypes: ['full-time', 'project-based'],
+      },
+      superadmin: {
+        username: 'DuyetTN3112(edu)',
+        email: 'td6622i@gre.ac.uk',
+        system_role: 'superadmin',
+        auth_method: 'google',
+        bio: 'System superadmin account dùng để kiểm tra redirect vào admin và dữ liệu trang quản trị.',
+        is_freelancer: false,
+        rating: null,
+        completedTasks: 0,
+        headline: 'System administrator for redirect and admin dashboard checks',
+        preferredJobTypes: ['admin'],
+      },
+      member: {
+        username: 'duyetlaaithe',
+        email: 'duyetlaaithe@gmail.com',
+        system_role: 'registered_user',
+        auth_method: 'github',
+        bio: 'User thường thuộc organization của Suar, đã có task đang làm, task hoàn thành, review, proof và profile snapshot.',
+        is_freelancer: true,
+        rating: 4.5,
+        completedTasks: 3,
+        headline: 'Contributor with completed work history and published profile proof',
+        preferredJobTypes: ['contract', 'part-time'],
+      },
+      orgAdmin: {
+        username: 'LinhPM',
+        email: 'linh.pm@suar.local',
+        system_role: 'registered_user',
+        auth_method: 'google',
+        bio: 'Org admin của organization A, chịu trách nhiệm review và quản lý project.',
+        is_freelancer: false,
+        rating: 4.6,
+        completedTasks: 1,
+        headline: 'Organization admin and project manager',
+        preferredJobTypes: ['full-time'],
+      },
+      peerReviewer: {
+        username: 'HaQA',
+        email: 'ha.qa@suar.local',
+        system_role: 'registered_user',
+        auth_method: 'google',
+        bio: 'Peer reviewer seed user để tạo review chéo và flagged review cho admin kiểm tra.',
+        is_freelancer: false,
+        rating: 4.2,
+        completedTasks: 1,
+        headline: 'Peer reviewer for quality and flagged review scenarios',
+        preferredJobTypes: ['full-time'],
+      },
+      orgBOwner: {
+        username: 'OpenEduOwner',
+        email: 'owner.edu@suar.local',
+        system_role: 'registered_user',
+        auth_method: 'google',
+        bio: 'Chủ organization B, dùng để tạo case chuyển từ owner ở org A sang member ở org B.',
+        is_freelancer: false,
+        rating: 4.4,
+        completedTasks: 1,
+        headline: 'Owner of the secondary organization',
+        preferredJobTypes: ['full-time'],
+      },
+      freelancerOne: {
+        username: 'MaiFreelancer',
+        email: 'mai.freelancer@suar.local',
+        system_role: 'registered_user',
+        auth_method: 'github',
+        bio: 'Freelancer ứng tuyển task public để test marketplace và notification.',
+        is_freelancer: true,
+        rating: 4.8,
+        completedTasks: 6,
+        headline: 'External contributor for marketplace scenarios',
+        preferredJobTypes: ['freelance', 'contract'],
+      },
+      freelancerTwo: {
+        username: 'NamFreelancer',
+        email: 'nam.freelancer@suar.local',
+        system_role: 'registered_user',
+        auth_method: 'github',
+        bio: 'Freelancer phụ thứ hai để task application list có nhiều trạng thái hơn.',
+        is_freelancer: true,
+        rating: 4.3,
+        completedTasks: 4,
+        headline: 'Secondary marketplace applicant',
+        preferredJobTypes: ['freelance'],
+      },
+    }
+
+    const seeded: Partial<Record<UserKey, SeededUser>> = {}
+
+    for (const [key, spec] of Object.entries(specs) as Array<[UserKey, (typeof specs)[UserKey]]>) {
+      const existing = await this.findRow(trx, 'users', { email: spec.email })
+      const id = existing?.id ?? this.uuid()
+
+      const payload = {
+        username: spec.username,
+        email: spec.email,
+        status: 'active',
+        system_role: spec.system_role,
+        current_organization_id: null,
+        auth_method: spec.auth_method,
+        avatar_url: `https://api.dicebear.com/9.x/identicon/svg?seed=${encodeURIComponent(spec.username)}`,
+        bio: spec.bio,
+        phone: '+84900000000',
+        address: 'Ho Chi Minh City, Vietnam',
+        timezone: 'Asia/Ho_Chi_Minh',
+        language: 'vi',
+        is_freelancer: spec.is_freelancer,
+        freelancer_rating: spec.rating,
+        freelancer_completed_tasks_count: spec.completedTasks,
+        ranking_priority: spec.system_role === 'superadmin' ? 1 : 2,
+        is_verified_badge: true,
+        profile_settings: this.toJson({
+          is_searchable: spec.is_freelancer,
+          show_contact_info: false,
+          show_organizations: true,
+          show_projects: true,
+          show_spider_chart: true,
+          show_technical_skills: true,
+          custom_headline: spec.headline,
+          preferred_job_types: spec.preferredJobTypes,
+          preferred_locations: ['remote', 'Ho Chi Minh'],
+          min_salary_expectation: spec.is_freelancer ? 25000000 : null,
+          salary_currency: 'VND',
+          available_from: spec.is_freelancer ? this.isoDaysAhead(7) : null,
+        }),
+        trust_data: this.toJson({
+          current_tier_code: spec.system_role === 'superadmin' ? 'partner' : 'organization',
+          calculated_score: spec.system_role === 'superadmin' ? 99 : 82,
+          raw_score: spec.system_role === 'superadmin' ? 120 : 94,
+          total_verified_reviews: spec.completedTasks,
+          last_calculated_at: this.isoDaysAgo(1),
+        }),
+        credibility_data: this.toJson({
+          credibility_score: spec.system_role === 'superadmin' ? 98 : 84,
+          total_reviews_given: spec.completedTasks + 2,
+          accurate_reviews: spec.completedTasks + 1,
+          disputed_reviews: key === 'peerReviewer' ? 1 : 0,
+          last_calculated_at: this.isoDaysAgo(1),
+        }),
+        created_at: this.isoDaysAgo(120),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await trx.from('users').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('users')
+          .insert({ id, ...payload })
+      }
+
+      seeded[key] = {
+        id,
+        username: spec.username,
+        email: spec.email,
+      }
+    }
+
+    return seeded as Record<UserKey, SeededUser>
+  }
+
+  private async seedOrganizations(
+    trx: any,
+    users: Record<UserKey, SeededUser>
+  ): Promise<Record<OrgKey, SeededOrg>> {
+    const specs: Record<
+      OrgKey,
+      {
+        name: string
+        slug: string
+        owner: UserKey
+        plan: 'starter' | 'professional'
+        description: string
+      }
+    > = {
+      orgA: {
+        name: 'Suar Workspace Lab',
+        slug: 'suar-workspace-lab',
+        owner: 'owner',
+        plan: 'professional',
+        description:
+          'Organization chính dùng để test giao diện owner/admin và dữ liệu project/task cho tài khoản tranngocduyet31@gmail.com.',
+      },
+      orgB: {
+        name: 'Open Education Guild',
+        slug: 'open-education-guild',
+        owner: 'orgBOwner',
+        plan: 'starter',
+        description:
+          'Organization phụ để kiểm tra case user đổi context từ org_owner sang org_member.',
+      },
+      orgC: {
+        name: 'Creator Circle Studio',
+        slug: 'creator-circle-studio',
+        owner: 'peerReviewer',
+        plan: 'starter',
+        description:
+          'Organization thứ ba để kiểm tra thêm case user là member ở nhiều org và admin dashboard có nhiều tenants hơn.',
+      },
+      orgD: {
+        name: 'Remote Talent Pool',
+        slug: 'remote-talent-pool',
+        owner: 'freelancerOne',
+        plan: 'professional',
+        description:
+          'Organization thiên về external contributors, dùng để seed package adoption và public task nhiều hơn.',
+      },
+    }
+
+    const result: Partial<Record<OrgKey, SeededOrg>> = {}
+
+    for (const [key, spec] of Object.entries(specs) as Array<[OrgKey, (typeof specs)[OrgKey]]>) {
+      const existing = await this.findRow(trx, 'organizations', { slug: spec.slug })
+      const id = existing?.id ?? this.uuid()
+      const payload = {
+        name: spec.name,
+        slug: spec.slug,
+        description: spec.description,
+        logo: `https://api.dicebear.com/9.x/shapes/svg?seed=${spec.slug}`,
+        website: `https://${spec.slug}.local`,
+        plan: spec.plan,
+        owner_id: users[spec.owner].id,
+        custom_roles: this.toJson([
+          {
+            name: 'tech_lead',
+            permissions: ['manage_projects', 'manage_tasks', 'review_code'],
+            description: 'Technical lead',
+          },
+        ]),
+        partner_type: key === 'orgA' ? 'gold' : null,
+        partner_verified_at: key === 'orgA' ? this.isoDaysAgo(45) : null,
+        partner_verified_by: key === 'orgA' ? users.superadmin.id : null,
+        partner_verification_proof:
+          key === 'orgA' ? 'Seeded verification proof for local admin testing' : null,
+        partner_expires_at: key === 'orgA' ? this.isoDaysAhead(180) : null,
+        partner_is_active: key === 'orgA',
+        created_at: this.isoDaysAgo(90),
+        updated_at: this.isoDaysAgo(2),
+      }
+
+      if (existing) {
+        await trx.from('organizations').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('organizations')
+          .insert({ id, ...payload })
+      }
+
+      result[key] = { id, name: spec.name, slug: spec.slug }
+    }
+
+    return result as Record<OrgKey, SeededOrg>
+  }
+
+  private async seedOrganizationMemberships(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    organizations: Record<OrgKey, SeededOrg>
+  ): Promise<void> {
+    const memberships: Array<{
+      organization: OrgKey
+      user: UserKey
+      role: 'org_owner' | 'org_admin' | 'org_member'
+      status: 'approved' | 'pending'
+      invitedBy?: UserKey
+    }> = [
+      { organization: 'orgA', user: 'owner', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgA',
+        user: 'orgAdmin',
+        role: 'org_admin',
+        status: 'approved',
+        invitedBy: 'owner',
+      },
+      {
+        organization: 'orgA',
+        user: 'member',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'owner',
+      },
+      {
+        organization: 'orgA',
+        user: 'peerReviewer',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'orgAdmin',
+      },
+      {
+        organization: 'orgA',
+        user: 'freelancerOne',
+        role: 'org_member',
+        status: 'pending',
+        invitedBy: 'owner',
+      },
+      { organization: 'orgB', user: 'orgBOwner', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgB',
+        user: 'owner',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'orgBOwner',
+      },
+      {
+        organization: 'orgB',
+        user: 'member',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'orgBOwner',
+      },
+      { organization: 'orgC', user: 'peerReviewer', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgC',
+        user: 'owner',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'peerReviewer',
+      },
+      {
+        organization: 'orgC',
+        user: 'orgAdmin',
+        role: 'org_admin',
+        status: 'approved',
+        invitedBy: 'peerReviewer',
+      },
+      { organization: 'orgD', user: 'freelancerOne', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgD',
+        user: 'owner',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerOne',
+      },
+      {
+        organization: 'orgD',
+        user: 'freelancerTwo',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerOne',
+      },
+    ]
+
+    for (const item of memberships) {
+      const where = {
+        organization_id: organizations[item.organization].id,
+        user_id: users[item.user].id,
+      }
+      const existing = await this.findRow(trx, 'organization_users', where)
+      const payload = {
+        org_role: item.role,
+        status: item.status,
+        invited_by: item.invitedBy ? users[item.invitedBy].id : null,
+        created_at: this.isoDaysAgo(item.status === 'approved' ? 60 : 2),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('organization_users'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('organization_users')
+          .insert({ ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedProjects(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    organizations: Record<OrgKey, SeededOrg>
+  ): Promise<Record<ProjectKey, SeededProject>> {
+    const specs: Record<
+      ProjectKey,
+      {
+        name: string
+        organization: OrgKey
+        creator: UserKey
+        owner: UserKey
+        manager: UserKey
+        status: 'in_progress' | 'completed'
+        visibility: 'team' | 'private'
+      }
+    > = {
+      orgAPlatform: {
+        name: 'Org Context & Profile Platform',
+        organization: 'orgA',
+        creator: 'owner',
+        owner: 'owner',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgAOperations: {
+        name: 'Admin Quality Control',
+        organization: 'orgA',
+        creator: 'owner',
+        owner: 'owner',
+        manager: 'owner',
+        status: 'in_progress',
+        visibility: 'private',
+      },
+      orgADesignSystem: {
+        name: 'Workspace Design System',
+        organization: 'orgA',
+        creator: 'owner',
+        owner: 'owner',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgAAnalytics: {
+        name: 'System Metrics & Moderation Hub',
+        organization: 'orgA',
+        creator: 'owner',
+        owner: 'owner',
+        manager: 'owner',
+        status: 'in_progress',
+        visibility: 'private',
+      },
+      orgBKnowledgeBase: {
+        name: 'Org B Knowledge Base',
+        organization: 'orgB',
+        creator: 'orgBOwner',
+        owner: 'orgBOwner',
+        manager: 'orgBOwner',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgBCurriculumOps: {
+        name: 'Org B Curriculum Ops',
+        organization: 'orgB',
+        creator: 'orgBOwner',
+        owner: 'orgBOwner',
+        manager: 'orgBOwner',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgCMarketplaceLab: {
+        name: 'Marketplace Growth Lab',
+        organization: 'orgC',
+        creator: 'peerReviewer',
+        owner: 'peerReviewer',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgDTalentShowcase: {
+        name: 'Talent Showcase Portal',
+        organization: 'orgD',
+        creator: 'freelancerOne',
+        owner: 'freelancerOne',
+        manager: 'freelancerOne',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+    }
+
+    const seeded: Partial<Record<ProjectKey, SeededProject>> = {}
+
+    for (const [key, spec] of Object.entries(specs) as Array<
+      [ProjectKey, (typeof specs)[ProjectKey]]
+    >) {
+      const organizationId = organizations[spec.organization].id
+      const existing = await trx
+        .from('projects')
+        .where('organization_id', organizationId)
+        .where('name', spec.name)
+        .first()
+      const id = existing?.id ?? this.uuid()
+      const payload = {
+        creator_id: users[spec.creator].id,
+        name: spec.name,
+        description: `${spec.name} - seeded project for local end-to-end verification.`,
+        organization_id: organizationId,
+        start_date: this.isoDaysAgo(30),
+        end_date: this.isoDaysAhead(45),
+        status: spec.status,
+        budget: spec.organization === 'orgA' ? 45000000 : 18000000,
+        manager_id: users[spec.manager].id,
+        owner_id: users[spec.owner].id,
+        visibility: spec.visibility,
+        allow_freelancer: spec.organization === 'orgA',
+        approval_required_for_members: true,
+        tags: this.toJson(
+          spec.organization === 'orgA' ? ['rbac', 'profile', 'admin'] : ['handbook', 'member-flow']
+        ),
+        custom_roles: this.toJson([]),
+        created_at: this.isoDaysAgo(30),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await trx.from('projects').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('projects')
+          .insert({ id, ...payload })
+      }
+
+      seeded[key] = { id, name: spec.name, organizationId }
+    }
+
+    return seeded as Record<ProjectKey, SeededProject>
+  }
+
+  private async seedProjectMembers(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    projects: Record<ProjectKey, SeededProject>
+  ): Promise<void> {
+    const rows: Array<{ project: ProjectKey; user: UserKey; role: string }> = [
+      { project: 'orgAPlatform', user: 'owner', role: 'project_owner' },
