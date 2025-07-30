@@ -1,0 +1,92 @@
+%% ─────────────────────────────────────────────────────────────
+%% act_02b: Marketplace Apply
+%% ─────────────────────────────────────────────────────────────
+%% Scope: Application submission → processing → assignment
+%% Freelancer applies, Task Creator reviews & approves/rejects
+%% Only task creator can approve/reject (not PM/org admin)
+%%
+%% Related: act_02a_marketplace_browse.mmd — Browse flow
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start(["From act_02a:
+    Freelancer wants to apply"]) --> CanApply{"canApplyForTask:
+    • Not own task?
+    • visibility ∈ {external, all}?
+    • No existing non-withdrawn app?"}
+    CanApply -->|Denied| ShowDenied["Show error:
+    cannot apply"]
+    ShowDenied --> End1([End])
+
+    CanApply -->|Allowed| FillApplication["Fill application
+    (ALL fields optional):
+    • message (cover letter)
+    • expected_rate
+    • portfolio_links[]
+    • source = 'public_listing'"]
+
+    FillApplication --> SubmitApplication["ApplyForTaskCommand
+    POST /tasks/:taskId/apply
+    → INSERT task_applications
+    status = 'pending'"]
+
+    SubmitApplication --> IncrementCount["external_applications_count
+    += 1"]
+    IncrementCount --> AuditApply["Log audit +
+    Notify task creator"]
+    AuditApply --> End2([End])
+
+    %% ═══════════════════════════════════════════════════════════
+    %% TASK CREATOR: Review Applications
+    %% ═══════════════════════════════════════════════════════════
+    CreatorStart(["Task Creator opens
+    applications"]) --> ViewApps["GET /tasks/:taskId/applications
+    → GetTaskApplicationsQuery
+    (preloads applicant + skills)"]
+
+    ViewApps --> ReviewApp["Review applicant:
+    • Profile + spider chart
+    • Skills & levels
+    • Cover message
+    • Expected rate
+    • Portfolio links"]
+
+    ReviewApp --> PMDecision{"Approve or
+    Reject?
+    ⚠️ Only task creator
+    (not PM/org admin)"}
+
+    PMDecision -->|Approve| CreateAssignment["ProcessApplicationCommand:
+    1. app.status = 'approved'
+    2. Create TaskAssignment
+       (type, hours, status=active)
+    3. task.assigned_to = applicant
+    4. Auto-reject ALL other
+       pending applications"]
+    CreateAssignment --> NotifyApproved["Notify applicant:
+    Application approved"]
+    NotifyApproved --> End3([End])
+
+    PMDecision -->|Reject| RejectApplication["ProcessApplicationCommand:
+    1. app.status = 'rejected'
+    2. rejection_reason = input"]
+    RejectApplication --> NotifyRejected["Notify applicant:
+    Application rejected"]
+    NotifyRejected --> ViewApps
+
+    %% ─── Known Gaps ───
+    %% ⚠️ application_deadline NOT checked by ApplyForTaskCommand
+    %% ⚠️ Only task creator can process — PM/org admin excluded
+    %% ⚠️ external_applications_count NOT decremented on approve/reject
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef pm fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End1,End2,End3,CreatorStart startEnd
+    class FillApplication,SubmitApplication,IncrementCount,AuditApply process
+    class CanApply,PMDecision decision
+    class ViewApps,ReviewApp,CreateAssignment,NotifyApproved,RejectApplication,NotifyRejected pm
+    class ShowDenied error
