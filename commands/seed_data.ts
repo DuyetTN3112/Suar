@@ -1798,3 +1798,903 @@ export default class SeedData extends BaseCommand {
   ): Promise<void> {
     const rows: Array<{ project: ProjectKey; user: UserKey; role: string }> = [
       { project: 'orgAPlatform', user: 'owner', role: 'project_owner' },
+      { project: 'orgAPlatform', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgAPlatform', user: 'member', role: 'project_member' },
+      { project: 'orgAPlatform', user: 'peerReviewer', role: 'project_member' },
+      { project: 'orgAOperations', user: 'owner', role: 'project_owner' },
+      { project: 'orgAOperations', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgAOperations', user: 'member', role: 'project_viewer' },
+      { project: 'orgADesignSystem', user: 'owner', role: 'project_owner' },
+      { project: 'orgADesignSystem', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgADesignSystem', user: 'member', role: 'project_member' },
+      { project: 'orgAAnalytics', user: 'owner', role: 'project_owner' },
+      { project: 'orgAAnalytics', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgAAnalytics', user: 'peerReviewer', role: 'project_member' },
+      { project: 'orgBKnowledgeBase', user: 'orgBOwner', role: 'project_owner' },
+      { project: 'orgBKnowledgeBase', user: 'owner', role: 'project_member' },
+      { project: 'orgBKnowledgeBase', user: 'member', role: 'project_member' },
+      { project: 'orgBCurriculumOps', user: 'orgBOwner', role: 'project_owner' },
+      { project: 'orgBCurriculumOps', user: 'owner', role: 'project_member' },
+      { project: 'orgCMarketplaceLab', user: 'peerReviewer', role: 'project_owner' },
+      { project: 'orgCMarketplaceLab', user: 'owner', role: 'project_member' },
+      { project: 'orgCMarketplaceLab', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgDTalentShowcase', user: 'freelancerOne', role: 'project_owner' },
+      { project: 'orgDTalentShowcase', user: 'owner', role: 'project_member' },
+      { project: 'orgDTalentShowcase', user: 'freelancerTwo', role: 'project_member' },
+    ]
+
+    for (const row of rows) {
+      const where = {
+        project_id: projects[row.project].id,
+        user_id: users[row.user].id,
+      }
+      const existing = await this.findRow(trx, 'project_members', where)
+      const payload = {
+        project_role: row.role,
+        created_at: this.isoDaysAgo(20),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('project_members'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('project_members')
+          .insert({ ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedTaskStatuses(
+    trx: any,
+    organizations: Record<OrgKey, SeededOrg>
+  ): Promise<Record<OrgKey, Record<StatusSlug, string>>> {
+    const definitions = [
+      { slug: 'todo', name: 'Backlog', category: 'todo', color: '#94A3B8', sort: 0 },
+      {
+        slug: 'in_progress',
+        name: 'In Progress',
+        category: 'in_progress',
+        color: '#3B82F6',
+        sort: 1,
+      },
+      {
+        slug: 'in_review',
+        name: 'Ready for Review',
+        category: 'in_progress',
+        color: '#F59E0B',
+        sort: 2,
+      },
+      { slug: 'done', name: 'Done', category: 'done', color: '#10B981', sort: 3 },
+      { slug: 'cancelled', name: 'Cancelled', category: 'cancelled', color: '#64748B', sort: 4 },
+    ] as const
+
+    const transitions: Array<[StatusSlug, StatusSlug]> = [
+      ['todo', 'in_progress'],
+      ['in_progress', 'in_review'],
+      ['in_review', 'done'],
+      ['in_progress', 'cancelled'],
+      ['todo', 'cancelled'],
+      ['in_review', 'in_progress'],
+    ]
+
+    const result: Partial<Record<OrgKey, Record<StatusSlug, string>>> = {}
+
+    for (const [orgKey, org] of Object.entries(organizations) as Array<[OrgKey, SeededOrg]>) {
+      const statusMap: Partial<Record<StatusSlug, string>> = {}
+
+      for (const def of definitions) {
+        const existing = await trx
+          .from('task_statuses')
+          .where('organization_id', org.id)
+          .where('slug', def.slug)
+          .first()
+        const id = existing?.id ?? this.uuid()
+        const payload = {
+          organization_id: org.id,
+          name: def.name,
+          slug: def.slug,
+          category: def.category,
+          color: def.color,
+          icon: null,
+          description: `${def.name} seeded status`,
+          sort_order: def.sort,
+          is_default: def.slug === 'todo',
+          is_system: true,
+          created_at: this.isoDaysAgo(30),
+          updated_at: this.isoDaysAgo(1),
+          deleted_at: null,
+        }
+
+        if (existing) {
+          await trx.from('task_statuses').where('id', id).update(payload)
+        } else {
+          await trx
+            .insertQuery()
+            .table('task_statuses')
+            .insert({ id, ...payload })
+        }
+
+        statusMap[def.slug] = id
+      }
+
+      await trx.from('task_workflow_transitions').where('organization_id', org.id).delete()
+
+      for (const [from, to] of transitions) {
+        await trx
+          .insertQuery()
+          .table('task_workflow_transitions')
+          .insert({
+            id: this.uuid(),
+            organization_id: org.id,
+            from_status_id: statusMap[from],
+            to_status_id: statusMap[to],
+            conditions: this.toJson(
+              from === 'todo' && to === 'in_progress' ? { requires_assignee: true } : {}
+            ),
+            created_at: this.isoDaysAgo(15),
+          })
+      }
+
+      result[orgKey] = statusMap as Record<StatusSlug, string>
+    }
+
+    return result as Record<OrgKey, Record<StatusSlug, string>>
+  }
+
+  private async seedTasks(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    projects: Record<ProjectKey, SeededProject>,
+    organizations: Record<OrgKey, SeededOrg>,
+    statuses: Record<OrgKey, Record<StatusSlug, string>>
+  ): Promise<Record<string, SeededTask>> {
+    const result: Record<string, SeededTask> = {}
+
+    for (const spec of SEEDED_TASK_SPECS) {
+      const project = projects[spec.project]
+      const organization = organizations[spec.organization]
+      const existing = await trx
+        .from('tasks')
+        .where('project_id', project.id)
+        .where('title', spec.title)
+        .first()
+      const id = existing?.id ?? this.uuid()
+      const assignedUserId = spec.assignee ? users[spec.assignee].id : null
+      const dueDate =
+        spec.dueDaysOffset >= 0
+          ? this.isoDaysAhead(spec.dueDaysOffset)
+          : this.isoDaysAgo(Math.abs(spec.dueDaysOffset))
+
+      const payload = {
+        title: spec.title,
+        description: spec.description,
+        status: spec.status,
+        label: spec.label,
+        priority: spec.priority,
+        difficulty: spec.difficulty,
+        assigned_to: assignedUserId,
+        creator_id: users[spec.creator].id,
+        updated_by: users[spec.creator].id,
+        due_date: dueDate,
+        parent_task_id: null,
+        estimated_time: spec.assignmentEstimatedHours ?? 8,
+        actual_time:
+          spec.status === 'done'
+            ? (spec.assignmentActualHours ?? spec.assignmentEstimatedHours ?? 8)
+            : (spec.assignmentActualHours ?? 0),
+        organization_id: organization.id,
+        project_id: project.id,
+        task_visibility: spec.visibility,
+        application_deadline:
+          spec.visibility === 'internal'
+            ? null
+            : this.isoDaysAhead(spec.applicationDeadlineDaysAhead ?? 4),
+        task_type: spec.taskType,
+        acceptance_criteria: spec.acceptanceCriteria.join('\n'),
+        verification_method: spec.verificationMethod,
+        expected_deliverables: this.toJson(spec.expectedDeliverables),
+        context_background: spec.contextBackground,
+        impact_scope: spec.impactScope,
+        tech_stack: this.toJson(spec.techStack),
+        environment: spec.environment,
+        collaboration_type: spec.collaborationType,
+        complexity_notes: spec.complexityNotes,
+        measurable_outcomes: this.toJson(spec.measurableOutcomes),
+        learning_objectives: this.toJson(spec.learningObjectives),
+        domain_tags: this.toJson(spec.domainTags),
+        role_in_task: spec.roleInTask,
+        autonomy_level: spec.autonomyLevel,
+        problem_category: spec.problemCategory,
+        business_domain: spec.businessDomain,
+        estimated_users_affected: spec.estimatedUsersAffected,
+        estimated_budget: spec.estimatedBudget,
+        external_applications_count: spec.visibility === 'internal' ? 0 : 2,
+        sort_order: Object.keys(result).length,
+        task_status_id: statuses[spec.organization][spec.taskStatus],
+        created_at: this.isoDaysAgo(20),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await trx.from('tasks').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('tasks')
+          .insert({ id, ...payload })
+      }
+
+      result[spec.key] = {
+        id,
+        title: spec.title,
+        organizationId: organization.id,
+        projectId: project.id,
+      }
+    }
+
+    return result
+  }
+
+  private async seedTaskAssignments(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    tasks: Record<string, SeededTask>
+  ): Promise<Record<string, SeededAssignment>> {
+    const result: Record<string, SeededAssignment> = {}
+
+    for (const spec of SEEDED_TASK_SPECS.filter((item) => item.assignee)) {
+      const task = this.requireValue(tasks[spec.key], `task:${spec.key}`)
+      const assigneeKey = this.requireValue(spec.assignee, `task-assignee:${spec.key}`)
+      const assigneeId = users[assigneeKey].id
+      const existing = await trx
+        .from('task_assignments')
+        .where('task_id', task.id)
+        .where('assignee_id', assigneeId)
+        .first()
+      const id = existing?.id ?? this.uuid()
+
+      const completedAt =
+        typeof spec.assignmentCompletedDaysAgo === 'number'
+          ? this.isoDaysAgo(spec.assignmentCompletedDaysAgo)
+          : null
+
+      const payload = {
+        task_id: task.id,
+        assignee_id: assigneeId,
+        assigned_by: users[spec.creator].id,
+        assignment_type:
+          spec.visibility === 'internal'
+            ? 'member'
+            : spec.assignee?.startsWith('freelancer')
+              ? 'freelancer'
+              : 'member',
+        assignment_status: spec.status === 'done' ? 'completed' : 'active',
+        estimated_hours: spec.assignmentEstimatedHours ?? 8,
+        actual_hours:
+          spec.status === 'done'
+            ? (spec.assignmentActualHours ?? spec.assignmentEstimatedHours ?? 8)
+            : (spec.assignmentActualHours ?? null),
+        progress_percentage: spec.status === 'done' ? 100 : spec.status === 'in_review' ? 90 : 55,
+        completion_notes:
+          spec.status === 'done' ? 'Seeded completion note for local verification.' : null,
+        verified_by: spec.status === 'done' ? users.orgAdmin.id : null,
+        verified_at: completedAt,
+        assigned_at: this.isoDaysAgo(18),
+        completed_at: completedAt,
+      }
+
+      if (existing) {
+        await trx.from('task_assignments').where('id', id).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('task_assignments')
+          .insert({ id, ...payload })
+      }
+
+      result[spec.key] = { id, taskId: task.id, assigneeId }
+    }
+
+    return result
+  }
+
+  private async seedTaskApplications(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    tasks: Record<string, SeededTask>
+  ): Promise<void> {
+    const rows = [
+      {
+        taskKey: 'marketplace-content-pass',
+        applicant: 'freelancerOne',
+        status: 'pending',
+        source: 'public_listing',
+        message:
+          'Tôi có kinh nghiệm viết tài liệu kỹ thuật cho B2B SaaS và có thể bàn giao trong 3 ngày.',
+      },
+      {
+        taskKey: 'marketplace-content-pass',
+        applicant: 'freelancerTwo',
+        status: 'approved',
+        source: 'referral',
+        message: 'Đã từng triển khai content guide cho marketplace workflow tương tự.',
+      },
+      {
+        taskKey: 'marketplace-qa-pipeline',
+        applicant: 'freelancerOne',
+        status: 'pending',
+        source: 'public_listing',
+        message: 'Có thể hỗ trợ thiết kế QA checklist và checklist verify deliverables.',
+      },
+    ] as const
+
+    for (const row of rows) {
+      const task = this.requireValue(tasks[row.taskKey], `task-application:${row.taskKey}`)
+      const where = {
+        task_id: task.id,
+        applicant_id: users[row.applicant].id,
+      }
+      const existing = await this.findRow(trx, 'task_applications', where)
+      const payload = {
+        application_status: row.status,
+        application_source: row.source,
+        message: row.message,
+        expected_rate: row.applicant === 'freelancerOne' ? 600000 : 450000,
+        portfolio_links: this.toJson([
+          `https://portfolio.local/${users[row.applicant].username.toLowerCase()}`,
+          `https://github.com/${users[row.applicant].username.toLowerCase()}`,
+        ]),
+        applied_at: this.isoDaysAgo(2),
+        reviewed_by: row.status === 'approved' ? users.owner.id : null,
+        reviewed_at: row.status === 'approved' ? this.isoDaysAgo(1) : null,
+        rejection_reason: null,
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('task_applications'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('task_applications')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedTaskRequiredSkills(
+    trx: any,
+    tasks: Record<string, SeededTask>,
+    skills: Record<string, string>
+  ): Promise<void> {
+    for (const spec of SEEDED_TASK_SPECS) {
+      for (const code of spec.requiredSkills) {
+        const task = this.requireValue(tasks[spec.key], `task-required-skills:${spec.key}`)
+        const skillId = this.requireValue(skills[code], `skill:${code}`)
+        const where = {
+          task_id: task.id,
+          skill_id: skillId,
+        }
+        const existing = await this.findRow(trx, 'task_required_skills', where)
+        const payload = {
+          required_level_code:
+            code === 'leadership' || code === 'problem_solving'
+              ? 'senior'
+              : code === 'communication'
+                ? 'middle'
+                : 'junior',
+          is_mandatory: true,
+          created_at: this.isoDaysAgo(15),
+        }
+
+        if (existing) {
+          await this.applyWhere(trx.from('task_required_skills'), where).update(payload)
+        } else {
+          await trx
+            .insertQuery()
+            .table('task_required_skills')
+            .insert({ id: this.uuid(), ...where, ...payload })
+        }
+      }
+    }
+  }
+
+  private async seedReviewData(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    tasks: Record<string, SeededTask>,
+    assignments: Record<string, SeededAssignment>,
+    skills: Record<string, string>,
+    organizations: Record<OrgKey, SeededOrg>
+  ): Promise<void> {
+    const sessionSpecs = [
+      {
+        key: 'member-org-switch',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
+        overall: 5,
+        delivery: 'on_time',
+        requirement: 5,
+        communication: 4,
+        codeQuality: 5,
+        proactive: 4,
+        strengths:
+          'Nắm rất nhanh logic quyền theo organization và chủ động đề xuất checklist test.',
+        improvements: 'Có thể bổ sung thêm automation coverage cho đường dẫn redirect.',
+        selfSatisfaction: 4,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'typescript',
+            level: 'senior',
+            comment: 'Xử lý state và typing tốt, không để lọt case role mismatch.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'communication',
+            level: 'middle',
+            comment: 'Trao đổi rõ các case edge và báo tiến độ đều.',
+          },
+        ],
+      },
+      {
+        key: 'member-profile-proof',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
+        overall: 5,
+        delivery: 'slightly_late',
+        requirement: 5,
+        communication: 5,
+        codeQuality: 4,
+        proactive: 5,
+        strengths:
+          'Kết nối tốt dữ liệu từ review sang profile snapshot và tổng hợp đúng các proof cần hiển thị.',
+        improvements: 'Cần tinh gọn thêm luồng invalidate cache profile.',
+        selfSatisfaction: 5,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'postgresql',
+            level: 'middle',
+            comment: 'Dựng dữ liệu profile aggregate chắc tay, nắm rõ bảng review và snapshot.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'problem_solving',
+            level: 'senior',
+            comment: 'Biết lần theo dependency dữ liệu khi UI hiển thị tĩnh.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'testing',
+            level: 'middle',
+            comment: 'Có checklist verify profile proof và share link.',
+          },
+        ],
+      },
+      {
+        key: 'member-admin-regression',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
+        overall: 4,
+        delivery: 'on_time',
+        requirement: 4,
+        communication: 5,
+        codeQuality: 4,
+        proactive: 4,
+        strengths: 'Tài liệu kiểm thử rõ ràng, dễ dùng cho admin redirect regression.',
+        improvements: 'Nên thêm một case cho current_organization_id null.',
+        selfSatisfaction: 4,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'testing',
+            level: 'middle',
+            comment: 'Checklist hợp lý và bám sát bug report.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'communication',
+            level: 'senior',
+            comment: 'Tài liệu rõ và có giải thích được tình huống back button.',
+          },
+        ],
+      },
+      {
+        key: 'owner-seed-governance',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
+        overall: 4,
+        delivery: 'on_time',
+        requirement: 4,
+        communication: 4,
+        codeQuality: 4,
+        proactive: 4,
+        strengths: 'Điều phối tốt nhiều luồng seed khác nhau.',
+        improvements: 'Cần thêm dữ liệu analytics cho admin sau này.',
+        selfSatisfaction: 4,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'leadership',
+            level: 'lead',
+            comment: 'Quản lý tốt phạm vi seed đa vai trò.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'code_review',
+            level: 'middle',
+            comment: 'Có checklist review seed command rõ ràng.',
+          },
+        ],
+      },
+      {
+        key: 'orga-review-dispute-detail',
+        sessionStatus: 'disputed',
+        confirmationAction: 'disputed',
+        disputeReason:
+          'Reviewer và manager chưa thống nhất về mức assigned level cho nhóm kỹ năng moderation.',
+        overall: 3,
+        delivery: 'slightly_late',
+        requirement: 3,
+        communication: 4,
+        codeQuality: 3,
+        proactive: 3,
+        strengths: 'Có tổng hợp đủ evidence để admin kiểm tra nguồn tranh chấp.',
+        improvements: 'Cần làm rõ tiêu chí scoring cho reviewer trước khi xác nhận phiên review.',
+        selfSatisfaction: 3,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'testing',
+            level: 'middle',
+            comment: 'Đã có checklist moderation nhưng tiêu chí đánh giá chưa thống nhất.',
+          },
+          {
+            reviewer: 'owner' as UserKey,
+            reviewerType: 'peer',
+            skill: 'communication',
+            level: 'middle',
+            comment: 'Thông tin dispute đầy đủ nhưng cần chốt chuẩn rating giữa các reviewer.',
+          },
+        ],
+      },
+    ] as const
+
+    const flaggedReviewTargets: string[] = []
+
+    for (const spec of sessionSpecs) {
+      const assignment = this.requireValue(assignments[spec.key], `assignment:${spec.key}`)
+      const task = this.requireValue(tasks[spec.key], `task-review:${spec.key}`)
+      const existing = await trx
+        .from('review_sessions')
+        .where('task_assignment_id', assignment.id)
+        .where('reviewee_id', assignment.assigneeId)
+        .first()
+      const sessionId = existing?.id ?? this.uuid()
+      const payload = {
+        task_assignment_id: assignment.id,
+        reviewee_id: assignment.assigneeId,
+        status: spec.sessionStatus,
+        manager_review_completed: true,
+        peer_reviews_count: spec.skills.filter((item) => item.reviewerType === 'peer').length,
+        required_peer_reviews: 1,
+        completed_at: spec.sessionStatus === 'completed' ? this.isoDaysAgo(2) : null,
+        deadline: this.isoDaysAgo(1),
+        confirmations: this.toJson([
+          {
+            user_id: assignment.assigneeId,
+            action: spec.confirmationAction,
+            dispute_reason: spec.confirmationAction === 'disputed' ? spec.disputeReason : null,
+            created_at: this.isoDaysAgo(2),
+          },
+        ]),
+        overall_quality_score: spec.overall,
+        delivery_timeliness: spec.delivery,
+        requirement_adherence: spec.requirement,
+        communication_quality: spec.communication,
+        code_quality_score: spec.codeQuality,
+        proactiveness_score: spec.proactive,
+        would_work_with_again: true,
+        strengths_observed: spec.strengths,
+        areas_for_improvement: spec.improvements,
+        created_at: this.isoDaysAgo(3),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await trx.from('review_sessions').where('id', sessionId).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('review_sessions')
+          .insert({ id: sessionId, ...payload })
+      }
+
+      for (const skillReview of spec.skills) {
+        const where = {
+          review_session_id: sessionId,
+          reviewer_id: users[skillReview.reviewer].id,
+          skill_id: skills[skillReview.skill],
+        }
+        const existingSkillReview = await this.findRow(trx, 'skill_reviews', where)
+        const existingSkillReviewId = existingSkillReview?.id
+        const skillReviewId =
+          typeof existingSkillReviewId === 'string' ? existingSkillReviewId : this.uuid()
+        const skillPayload = {
+          reviewer_type: skillReview.reviewerType,
+          assigned_level_code: skillReview.level,
+          comment: skillReview.comment,
+          created_at: this.isoDaysAgo(2),
+          updated_at: this.isoDaysAgo(1),
+        }
+
+        if (existingSkillReview) {
+          await this.applyWhere(trx.from('skill_reviews'), where).update(skillPayload)
+        } else {
+          await trx
+            .insertQuery()
+            .table('skill_reviews')
+            .insert({ id: skillReviewId, ...where, ...skillPayload })
+        }
+
+        if (spec.key === 'member-profile-proof' && skillReview.skill === 'testing') {
+          flaggedReviewTargets.push(skillReviewId)
+        }
+      }
+
+      const assessmentWhere = {
+        task_assignment_id: assignment.id,
+        user_id: assignment.assigneeId,
+      }
+      const existingAssessment = await this.findRow(trx, 'task_self_assessments', assessmentWhere)
+      const assessmentPayload = {
+        overall_satisfaction: spec.selfSatisfaction,
+        difficulty_felt: 'as_expected',
+        confidence_level: 4,
+        what_went_well: spec.strengths,
+        what_would_do_different: spec.improvements,
+        blockers_encountered: this.toJson([
+          'Không có blocker nghiêm trọng trong môi trường seed local',
+        ]),
+        skills_felt_lacking: this.toJson(['automation']),
+        skills_felt_strong: this.toJson(['communication', 'problem solving']),
+        submitted_at: this.isoDaysAgo(2),
+        created_at: this.isoDaysAgo(2),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existingAssessment) {
+        await this.applyWhere(trx.from('task_self_assessments'), assessmentWhere).update(
+          assessmentPayload
+        )
+      } else {
+        await trx
+          .insertQuery()
+          .table('task_self_assessments')
+          .insert({ id: this.uuid(), ...assessmentWhere, ...assessmentPayload })
+      }
+
+      const evidenceRows = [
+        {
+          evidence_type: 'pull_request',
+          url: `https://github.com/suar/demo/pull/${Math.floor(Math.random() * 100 + 10)}`,
+          title: `${task.title} - Pull Request`,
+        },
+        {
+          evidence_type: 'demo_recording',
+          url: `https://demo.local/${spec.key}`,
+          title: `${task.title} - Demo`,
+        },
+      ] as const
+
+      for (const evidence of evidenceRows) {
+        const where = {
+          review_session_id: sessionId,
+          title: evidence.title,
+        }
+        const existingEvidence = await this.findRow(trx, 'review_evidences', where)
+        const payloadEvidence = {
+          evidence_type: evidence.evidence_type,
+          url: evidence.url,
+          description: `Seeded ${evidence.evidence_type} for ${task.title}`,
+          uploaded_by: users.orgAdmin.id,
+          created_at: this.isoDaysAgo(2),
+          updated_at: this.isoDaysAgo(1),
+        }
+
+        if (existingEvidence) {
+          await this.applyWhere(trx.from('review_evidences'), where).update(payloadEvidence)
+        } else {
+          await trx
+            .insertQuery()
+            .table('review_evidences')
+            .insert({
+              id: this.uuid(),
+              review_session_id: sessionId,
+              ...payloadEvidence,
+              title: evidence.title,
+            })
+        }
+      }
+
+      if (spec.key.startsWith('member-')) {
+        const reverseWhere = {
+          review_session_id: sessionId,
+          reviewer_id: assignment.assigneeId,
+          target_type: 'organization',
+          target_id: organizations.orgA.id,
+        }
+        const existingReverse = await this.findRow(trx, 'reverse_reviews', reverseWhere)
+        const reversePayload = {
+          rating: 4,
+          comment: 'Tổ chức hỗ trợ tốt, quy trình review rõ ràng và phản hồi nhanh.',
+          is_anonymous: false,
+          created_at: this.isoDaysAgo(1),
+        }
+
+        if (existingReverse) {
+          await this.applyWhere(trx.from('reverse_reviews'), reverseWhere).update(reversePayload)
+        } else {
+          await trx
+            .insertQuery()
+            .table('reverse_reviews')
+            .insert({ id: this.uuid(), ...reverseWhere, ...reversePayload })
+        }
+      }
+    }
+
+    for (const skillReviewId of flaggedReviewTargets) {
+      const where = {
+        skill_review_id: skillReviewId,
+        flag_type: 'frequency_anomaly',
+      }
+      const existing = await this.findRow(trx, 'flagged_reviews', where)
+      const payload = {
+        severity: 'high',
+        detected_at: this.isoDaysAgo(1),
+        status: 'pending',
+        reviewed_by: null,
+        reviewed_at: null,
+        notes: 'Seeded flagged review for admin moderation page.',
+        created_at: this.isoDaysAgo(1),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('flagged_reviews'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('flagged_reviews')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedUserSkills(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    skills: Record<string, string>
+  ): Promise<void> {
+    const rows: Array<{
+      user: UserKey
+      skill: string
+      level: string
+      totalReviews: number
+      avgPercentage: number
+      source: 'reviewed' | 'imported'
+    }> = [
+      {
+        user: 'member',
+        skill: 'typescript',
+        level: 'senior',
+        totalReviews: 4,
+        avgPercentage: 91,
+        source: 'reviewed',
+      },
+      {
+        user: 'member',
+        skill: 'postgresql',
+        level: 'middle',
+        totalReviews: 3,
+        avgPercentage: 84,
+        source: 'reviewed',
+      },
+      {
+        user: 'member',
+        skill: 'testing',
+        level: 'middle',
+        totalReviews: 3,
+        avgPercentage: 82,
+        source: 'reviewed',
+      },
+      {
+        user: 'member',
+        skill: 'communication',
+        level: 'senior',
+        totalReviews: 4,
+        avgPercentage: 88,
+        source: 'reviewed',
+      },
+      {
+        user: 'member',
+        skill: 'problem_solving',
+        level: 'senior',
+        totalReviews: 3,
+        avgPercentage: 90,
+        source: 'reviewed',
+      },
+      {
+        user: 'member',
+        skill: 'svelte',
+        level: 'middle',
+        totalReviews: 2,
+        avgPercentage: 79,
+        source: 'reviewed',
+      },
+      {
+        user: 'owner',
+        skill: 'leadership',
+        level: 'lead',
+        totalReviews: 2,
+        avgPercentage: 89,
+        source: 'reviewed',
+      },
+      {
+        user: 'owner',
+        skill: 'code_review',
+        level: 'middle',
+        totalReviews: 2,
+        avgPercentage: 81,
+        source: 'reviewed',
+      },
+      {
+        user: 'owner',
+        skill: 'communication',
+        level: 'senior',
+        totalReviews: 2,
+        avgPercentage: 86,
+        source: 'reviewed',
+      },
+      {
+        user: 'owner',
+        skill: 'devops',
+        level: 'middle',
+        totalReviews: 1,
+        avgPercentage: 75,
+        source: 'imported',
+      },
+      {
+        user: 'orgAdmin',
+        skill: 'testing',
+        level: 'senior',
+        totalReviews: 2,
+        avgPercentage: 87,
+        source: 'reviewed',
+      },
+      {
+        user: 'orgAdmin',
+        skill: 'leadership',
+        level: 'lead',
+        totalReviews: 2,
+        avgPercentage: 85,
+        source: 'reviewed',
+      },
+      {
+        user: 'peerReviewer',
+        skill: 'testing',
+        level: 'senior',
+        totalReviews: 1,
+        avgPercentage: 83,
+        source: 'reviewed',
