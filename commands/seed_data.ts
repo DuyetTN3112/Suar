@@ -2698,3 +2698,903 @@ export default class SeedData extends BaseCommand {
         totalReviews: 1,
         avgPercentage: 83,
         source: 'reviewed',
+      },
+      {
+        user: 'superadmin',
+        skill: 'leadership',
+        level: 'lead',
+        totalReviews: 1,
+        avgPercentage: 92,
+        source: 'imported',
+      },
+      {
+        user: 'superadmin',
+        skill: 'communication',
+        level: 'senior',
+        totalReviews: 1,
+        avgPercentage: 90,
+        source: 'imported',
+      },
+    ]
+
+    for (const row of rows) {
+      const where = {
+        user_id: users[row.user].id,
+        skill_id: skills[row.skill],
+      }
+      const existing = await this.findRow(trx, 'user_skills', where)
+      const payload = {
+        level_code: row.level,
+        total_reviews: row.totalReviews,
+        avg_score: Math.min(5, Math.round((row.avgPercentage / 20) * 100) / 100),
+        last_reviewed_at: row.source === 'reviewed' ? this.isoDaysAgo(1) : null,
+        avg_percentage: row.avgPercentage,
+        last_calculated_at: this.isoDaysAgo(1),
+        source: row.source,
+        created_at: this.isoDaysAgo(40),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('user_skills'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('user_skills')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedUserSubscriptions(trx: any, users: Record<UserKey, SeededUser>): Promise<void> {
+    const rows = [
+      {
+        user: 'owner' as UserKey,
+        plan: 'enterprise',
+        status: 'active',
+        startedAt: this.isoDaysAgo(25),
+        expiresAt: this.isoDaysAhead(335),
+        autoRenew: true,
+      },
+      {
+        user: 'member' as UserKey,
+        plan: 'pro',
+        status: 'active',
+        startedAt: this.isoDaysAgo(18),
+        expiresAt: this.isoDaysAhead(30),
+        autoRenew: true,
+      },
+      {
+        user: 'freelancerOne' as UserKey,
+        plan: 'enterprise',
+        status: 'active',
+        startedAt: this.isoDaysAgo(7),
+        expiresAt: this.isoDaysAhead(358),
+        autoRenew: false,
+      },
+      {
+        user: 'freelancerTwo' as UserKey,
+        plan: 'pro',
+        status: 'cancelled',
+        startedAt: this.isoDaysAgo(60),
+        expiresAt: this.isoDaysAhead(5),
+        autoRenew: false,
+      },
+    ] as const
+
+    for (const row of rows) {
+      const where = { user_id: users[row.user].id }
+      const existing = await this.findRow(trx, 'user_subscriptions', where)
+      const payload = {
+        plan: row.plan,
+        status: row.status,
+        started_at: row.startedAt,
+        expires_at: row.expiresAt,
+        auto_renew: row.autoRenew,
+        created_at: this.isoDaysAgo(20),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('user_subscriptions'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('user_subscriptions')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
+  private async seedProjectAttachments(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    projects: Record<ProjectKey, SeededProject>
+  ): Promise<void> {
+    const rows = [
+      {
+        project: 'orgAPlatform' as ProjectKey,
+        file_name: 'org-context-role-matrix.pdf',
+        mime_type: 'application/pdf',
+      },
+      {
+        project: 'orgAOperations' as ProjectKey,
+        file_name: 'admin-redirect-regression.md',
+        mime_type: 'text/markdown',
+      },
+    ]
+
+    for (const row of rows) {
+      const where = {
+        project_id: projects[row.project].id,
+        file_name: row.file_name,
+      }
+      const existing = await this.findRow(trx, 'project_attachments', where)
+      const payload = {
+        file_path: `/uploads/projects/${projects[row.project].id}/${row.file_name}`,
+        file_size: 4096,
+        mime_type: row.mime_type,
+        uploaded_by: users.owner.id,
+        created_at: this.isoDaysAgo(5),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('project_attachments'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('project_attachments')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
+  private async updateCurrentOrganizations(
+    trx: any,
+    users: Record<UserKey, SeededUser>,
+    organizations: Record<OrgKey, SeededOrg>
+  ): Promise<void> {
+    const updates: Array<[UserKey, string | null]> = [
+      ['owner', organizations.orgA.id],
+      ['member', organizations.orgA.id],
+      ['orgAdmin', organizations.orgA.id],
+      ['peerReviewer', organizations.orgA.id],
+      ['orgBOwner', organizations.orgB.id],
+      ['superadmin', null],
+      ['freelancerOne', null],
+      ['freelancerTwo', null],
+    ]
+
+    for (const [userKey, currentOrgId] of updates) {
+      await trx
+        .from('users')
+        .where('id', users[userKey].id)
+        .update({
+          current_organization_id: currentOrgId,
+          updated_at: this.isoDaysAgo(1),
+        })
+    }
+  }
+
+  private async seedProfileAggregates(context: SeedContext): Promise<SeedContext> {
+    await this.resetProfileAggregateScope([context.users.member.id, context.users.owner.id])
+    await this.seedUserWorkHistory(context)
+    await this.seedUserPerformanceStats(context)
+    await this.seedUserDomainExpertise(context)
+
+    await this.createProfileSnapshot(context.users.member.id, 'duyetlaaithe draft snapshot', false)
+    context.snapshots.member = await this.createProfileSnapshot(
+      context.users.member.id,
+      'duyetlaaithe profile proof',
+      true
+    )
+    context.snapshots.owner = await this.createProfileSnapshot(
+      context.users.owner.id,
+      'organization-owner profile snapshot',
+      true
+    )
+
+    return context
+  }
+
+  private async resetProfileAggregateScope(userIds: string[]): Promise<void> {
+    for (const table of [
+      'user_profile_snapshots',
+      'user_work_history',
+      'user_domain_expertise',
+      'user_performance_stats',
+    ]) {
+      await db.from(table).whereIn('user_id', userIds).delete()
+    }
+  }
+
+  private async seedUserWorkHistory(context: SeedContext): Promise<void> {
+    const rows = [
+      {
+        user: 'member',
+        taskKey: 'member-org-switch',
+        overallQualityScore: 5,
+        daysEarlyOrLate: 2,
+        skillScores: [
+          {
+            skillCode: 'typescript',
+            skillName: 'TypeScript',
+            reviewerType: 'manager',
+            assignedLevelCode: 'senior',
+            comment: 'Xử lý state và typing tốt, không để lọt case role mismatch.',
+          },
+          {
+            skillCode: 'communication',
+            skillName: 'Communication',
+            reviewerType: 'peer',
+            assignedLevelCode: 'middle',
+            comment: 'Trao đổi rõ các case edge và báo tiến độ đều.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content:
+              'Nắm rất nhanh logic quyền theo organization và chủ động đề xuất checklist test.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Có thể bổ sung thêm automation coverage cho đường dẫn redirect.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/90',
+            title: 'Hoàn thiện luồng chuyển organization theo role - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/member-org-switch',
+            title: 'Hoàn thiện luồng chuyển organization theo role - Demo',
+          },
+        ],
+      },
+      {
+        user: 'member',
+        taskKey: 'member-profile-proof',
+        overallQualityScore: 5,
+        daysEarlyOrLate: 2,
+        skillScores: [
+          {
+            skillCode: 'postgresql',
+            skillName: 'PostgreSQL',
+            reviewerType: 'manager',
+            assignedLevelCode: 'middle',
+            comment: 'Dựng dữ liệu profile aggregate chắc tay, nắm rõ bảng review và snapshot.',
+          },
+          {
+            skillCode: 'problem_solving',
+            skillName: 'Problem Solving',
+            reviewerType: 'peer',
+            assignedLevelCode: 'senior',
+            comment: 'Biết lần theo dependency dữ liệu khi UI hiển thị tĩnh.',
+          },
+          {
+            skillCode: 'testing',
+            skillName: 'Testing & QA',
+            reviewerType: 'peer',
+            assignedLevelCode: 'middle',
+            comment: 'Có checklist verify profile proof và share link.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content:
+              'Kết nối tốt dữ liệu từ review sang profile snapshot và tổng hợp đúng các proof cần hiển thị.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Cần tinh gọn thêm luồng invalidate cache profile.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/35',
+            title: 'Xuất profile proof và snapshot công khai - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/member-profile-proof',
+            title: 'Xuất profile proof và snapshot công khai - Demo',
+          },
+        ],
+      },
+      {
+        user: 'member',
+        taskKey: 'member-admin-regression',
+        overallQualityScore: 4,
+        daysEarlyOrLate: 1,
+        skillScores: [
+          {
+            skillCode: 'testing',
+            skillName: 'Testing & QA',
+            reviewerType: 'manager',
+            assignedLevelCode: 'middle',
+            comment: 'Checklist hợp lý và bám sát bug report.',
+          },
+          {
+            skillCode: 'communication',
+            skillName: 'Communication',
+            reviewerType: 'peer',
+            assignedLevelCode: 'senior',
+            comment: 'Tài liệu rõ và có giải thích được tình huống back button.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content: 'Tài liệu kiểm thử rõ ràng, dễ dùng cho admin redirect regression.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Nên thêm một case cho current_organization_id null.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/35',
+            title: 'Chuẩn bị regression pack cho admin redirect - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/member-admin-regression',
+            title: 'Chuẩn bị regression pack cho admin redirect - Demo',
+          },
+        ],
+      },
+      {
+        user: 'owner',
+        taskKey: 'owner-seed-governance',
+        overallQualityScore: 4,
+        daysEarlyOrLate: 1,
+        skillScores: [
+          {
+            skillCode: 'leadership',
+            skillName: 'Leadership',
+            reviewerType: 'manager',
+            assignedLevelCode: 'lead',
+            comment: 'Điều phối tốt phạm vi seed cho nhiều tổ chức và nhiều role.',
+          },
+          {
+            skillCode: 'code_review',
+            skillName: 'Code Review',
+            reviewerType: 'peer',
+            assignedLevelCode: 'middle',
+            comment: 'Checklist review seed data rõ ràng, dễ verify lại trên UI.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content: 'Giữ được dữ liệu seed ổn định để test context switching theo role.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Cần thêm automation cho clone/sync test datastore trước khi test full suite.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/112',
+            title: 'Hoàn thiện seed đa tổ chức cho context switching - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/owner-seed-governance',
+            title: 'Hoàn thiện seed đa tổ chức cho context switching - Demo',
+          },
+        ],
+      },
+    ] as const
+
+    for (const row of rows) {
+      const spec = this.getTaskSpec(row.taskKey)
+      const task = this.requireValue(context.tasks[row.taskKey], `work-history-task:${row.taskKey}`)
+      const assignment = this.requireValue(
+        context.assignments[row.taskKey],
+        `work-history-assignment:${row.taskKey}`
+      )
+
+      await db
+        .insertQuery()
+        .table('user_work_history')
+        .insert({
+          id: this.uuid(),
+          user_id: context.users[row.user].id,
+          task_id: task.id,
+          task_assignment_id: assignment.id,
+          organization_id: task.organizationId,
+          project_id: task.projectId,
+          task_title: task.title,
+          task_type: spec.taskType,
+          business_domain: spec.businessDomain,
+          problem_category: spec.problemCategory,
+          role_in_task: spec.roleInTask,
+          autonomy_level: spec.autonomyLevel,
+          collaboration_type: spec.collaborationType,
+          tech_stack: this.toJson(spec.techStack),
+          domain_tags: this.toJson(spec.domainTags),
+          difficulty: spec.difficulty,
+          estimated_hours: spec.assignmentEstimatedHours ?? null,
+          actual_hours: spec.assignmentActualHours ?? null,
+          was_on_time: false,
+          days_early_or_late: row.daysEarlyOrLate,
+          measurable_outcomes: this.toJson(spec.measurableOutcomes),
+          estimated_business_value: spec.impactScope,
+          knowledge_artifacts: this.toJson(row.knowledgeArtifacts),
+          overall_quality_score: row.overallQualityScore,
+          skill_scores: this.toJson(
+            row.skillScores.map((skill) => ({
+              skill_id: this.requireValue(
+                context.skills[skill.skillCode],
+                `skill:${skill.skillCode}`
+              ),
+              skill_name: skill.skillName,
+              reviewer_type: skill.reviewerType,
+              assigned_level_code: skill.assignedLevelCode,
+              comment: skill.comment,
+            }))
+          ),
+          evidence_links: this.toJson(row.evidenceLinks),
+          is_featured: false,
+          is_public: false,
+          completed_at: this.isoDaysAgo(spec.assignmentCompletedDaysAgo ?? 0),
+          created_at: this.isoDaysAgo(0),
+          updated_at: this.isoDaysAgo(0),
+        })
+    }
+  }
+
+  private async seedUserPerformanceStats(context: SeedContext): Promise<void> {
+    const rows = [
+      {
+        userId: context.users.owner.id,
+        totalTasksCompleted: 1,
+        totalHoursWorked: 10,
+        avgQualityScore: 4,
+        onTimeDeliveryRate: 0,
+        avgDaysEarlyOrLate: 1,
+        tasksByType: { feature_development: 1 },
+        tasksByDifficulty: { medium: 1 },
+        tasksByDomain: { internal_tooling: 1 },
+        tasksAsLead: 1,
+        tasksAsSoleContributor: 0,
+        tasksMentoringOthers: 0,
+        longestOnTimeStreak: 0,
+        currentOnTimeStreak: 0,
+        selfAssessmentAccuracy: 85,
+      },
+      {
+        userId: context.users.member.id,
+        totalTasksCompleted: 3,
+        totalHoursWorked: 49,
+        avgQualityScore: 4.67,
+        onTimeDeliveryRate: 0,
+        avgDaysEarlyOrLate: 1.67,
+        tasksByType: { technical_writing: 1, feature_development: 2 },
+        tasksByDifficulty: { hard: 1, medium: 2 },
+        tasksByDomain: { saas: 2, internal_tooling: 1 },
+        tasksAsLead: 0,
+        tasksAsSoleContributor: 0,
+        tasksMentoringOthers: 0,
+        longestOnTimeStreak: 0,
+        currentOnTimeStreak: 0,
+        selfAssessmentAccuracy: 91.67,
+      },
+    ] as const
+
+    for (const row of rows) {
+      await db
+        .insertQuery()
+        .table('user_performance_stats')
+        .insert({
+          id: this.uuid(),
+          user_id: row.userId,
+          period_start: null,
+          period_end: null,
+          total_tasks_completed: row.totalTasksCompleted,
+          total_hours_worked: row.totalHoursWorked,
+          avg_quality_score: row.avgQualityScore,
+          on_time_delivery_rate: row.onTimeDeliveryRate,
+          avg_days_early_or_late: row.avgDaysEarlyOrLate,
+          performance_score: null,
+          tasks_by_type: this.toJson(row.tasksByType),
+          tasks_by_difficulty: this.toJson(row.tasksByDifficulty),
+          tasks_by_domain: this.toJson(row.tasksByDomain),
+          tasks_as_lead: row.tasksAsLead,
+          tasks_as_sole_contributor: row.tasksAsSoleContributor,
+          tasks_mentoring_others: row.tasksMentoringOthers,
+          longest_on_time_streak: row.longestOnTimeStreak,
+          current_on_time_streak: row.currentOnTimeStreak,
+          self_assessment_accuracy: row.selfAssessmentAccuracy,
+          calculated_at: this.isoDaysAgo(0),
+          created_at: this.isoDaysAgo(0),
+          updated_at: this.isoDaysAgo(0),
+        })
+    }
+  }
+
+  private async seedUserDomainExpertise(context: SeedContext): Promise<void> {
+    const rows = [
+      {
+        userId: context.users.owner.id,
+        techStackFrequency: {
+          AdonisJS: 1,
+          PostgreSQL: 1,
+        },
+        domainFrequency: {
+          internal_tooling: 1,
+          admin: 1,
+          workflow: 1,
+          seed: 1,
+        },
+        problemCategoryFrequency: {
+          new_capability: 1,
+        },
+        topSkills: [
+          { skill_name: 'Leadership', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'Code Review', weighted_score: 1, review_mentions: 1 },
+        ],
+      },
+      {
+        userId: context.users.member.id,
+        techStackFrequency: {
+          Svelte: 3,
+          MongoDB: 1,
+          AdonisJS: 1,
+          PostgreSQL: 2,
+          Documentation: 1,
+        },
+        domainFrequency: {
+          qa: 1,
+          rbac: 1,
+          saas: 2,
+          admin: 1,
+          proof: 1,
+          review: 1,
+          profile: 1,
+          redirect: 1,
+          navigation: 1,
+          organization: 1,
+          internal_tooling: 1,
+        },
+        problemCategoryFrequency: {
+          new_capability: 2,
+          maintainability: 1,
+        },
+        topSkills: [
+          { skill_name: 'Testing & QA', weighted_score: 1, review_mentions: 2 },
+          { skill_name: 'Communication', weighted_score: 1, review_mentions: 2 },
+          { skill_name: 'TypeScript', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'PostgreSQL', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'Problem Solving', weighted_score: 1, review_mentions: 1 },
+        ],
+      },
+    ] as const
+
+    for (const row of rows) {
+      await db
+        .insertQuery()
+        .table('user_domain_expertise')
+        .insert({
+          id: this.uuid(),
+          user_id: row.userId,
+          tech_stack_frequency: this.toJson(row.techStackFrequency),
+          domain_frequency: this.toJson(row.domainFrequency),
+          problem_category_frequency: this.toJson(row.problemCategoryFrequency),
+          top_skills: this.toJson(row.topSkills),
+          calculated_at: this.isoDaysAgo(0),
+          created_at: this.isoDaysAgo(0),
+          updated_at: this.isoDaysAgo(0),
+        })
+    }
+  }
+
+  private async createProfileSnapshot(
+    userId: string,
+    snapshotName: string,
+    isPublic: boolean
+  ): Promise<string> {
+    const user = (await db.from('users').where('id', userId).first()) as {
+      username?: unknown
+      trust_data?: unknown
+    } | null
+    if (!user) {
+      throw new Error(`User ${userId} not found for snapshot seed`)
+    }
+
+    const lastSnapshot = await db
+      .from('user_profile_snapshots')
+      .where('user_id', userId)
+      .orderBy('version', 'desc')
+      .first()
+
+    const nextVersion = Number(lastSnapshot?.version ?? 0) + 1
+    const username = this.readNonEmptyString(user.username, userId)
+    const slugBase = username.toLowerCase().replace(/[^a-z0-9]+/g, '-')
+    const versionLabel = String(nextVersion)
+    const shareableSlug = isPublic
+      ? `${slugBase}-v${versionLabel}-${Date.now().toString(36)}`
+      : null
+    const shareableToken = isPublic ? randomUUID().replace(/-/g, '') : null
+
+    const skills = await db
+      .from('user_skills as us')
+      .join('skills as s', 's.id', 'us.skill_id')
+      .where('us.user_id', userId)
+      .orderBy('us.total_reviews', 'desc')
+      .select(
+        'us.skill_id',
+        's.skill_name',
+        'us.level_code',
+        'us.total_reviews',
+        'us.avg_percentage',
+        'us.avg_score',
+        'us.last_reviewed_at'
+      )
+
+    const performance = await db
+      .from('user_performance_stats')
+      .where('user_id', userId)
+      .whereNull('period_start')
+      .whereNull('period_end')
+      .orderBy('calculated_at', 'desc')
+      .first()
+
+    const domainExpertise = await db.from('user_domain_expertise').where('user_id', userId).first()
+    const highlights = await db
+      .from('user_work_history')
+      .where('user_id', userId)
+      .orderBy('completed_at', 'desc')
+      .limit(6)
+
+    await db
+      .from('user_profile_snapshots')
+      .where('user_id', userId)
+      .where('is_current', true)
+      .update({ is_current: false, updated_at: this.isoDaysAgo(0) })
+
+    const trustData =
+      typeof user.trust_data === 'string'
+        ? this.parseJsonRecord(user.trust_data)
+        : this.toRecord(user.trust_data)
+
+    const verifiedSkills = skills
+      .filter((skill) => Number(skill.total_reviews ?? 0) > 0)
+      .map((skill) => ({
+        skill_id: skill.skill_id,
+        skill_name: skill.skill_name,
+        level_code: skill.level_code,
+        total_reviews: Number(skill.total_reviews ?? 0),
+        avg_percentage: Number(skill.avg_percentage ?? 0),
+        avg_score: Number(skill.avg_score ?? 0),
+        last_reviewed_at: skill.last_reviewed_at,
+      }))
+
+    const summary = {
+      user_id: userId,
+      username,
+      total_verified_skills: verifiedSkills.length,
+      total_tasks_completed: Number(performance?.total_tasks_completed ?? highlights.length),
+      trust_score: Number(trustData.calculated_score ?? 0),
+      trust_tier: trustData.current_tier_code ?? null,
+      generated_at: new Date().toISOString(),
+    }
+
+    const performanceMetrics = {
+      total_tasks_completed: Number(performance?.total_tasks_completed ?? 0),
+      total_hours_worked: Number(performance?.total_hours_worked ?? 0),
+      avg_quality_score:
+        performance?.avg_quality_score !== null && performance?.avg_quality_score !== undefined
+          ? Number(performance.avg_quality_score)
+          : null,
+      on_time_delivery_rate:
+        performance?.on_time_delivery_rate !== null &&
+        performance?.on_time_delivery_rate !== undefined
+          ? Number(performance.on_time_delivery_rate)
+          : null,
+      performance_score:
+        performance?.performance_score !== null && performance?.performance_score !== undefined
+          ? Number(performance.performance_score)
+          : null,
+      tasks_by_type: performance?.tasks_by_type ?? {},
+      tasks_by_domain: performance?.tasks_by_domain ?? {},
+      tasks_by_difficulty: performance?.tasks_by_difficulty ?? {},
+    }
+
+    const trustMetrics = {
+      trust_data: trustData,
+      domain_expertise: {
+        tech_stack_frequency: domainExpertise?.tech_stack_frequency ?? {},
+        domain_frequency: domainExpertise?.domain_frequency ?? {},
+        problem_category_frequency: domainExpertise?.problem_category_frequency ?? {},
+        top_skills: domainExpertise?.top_skills ?? [],
+      },
+    }
+
+    const snapshotId = this.uuid()
+    await db
+      .insertQuery()
+      .table('user_profile_snapshots')
+      .insert({
+        id: snapshotId,
+        user_id: userId,
+        version: nextVersion,
+        snapshot_name: snapshotName,
+        is_current: true,
+        is_public: isPublic,
+        shareable_slug: shareableSlug,
+        shareable_token: shareableToken,
+        summary: this.toJson(summary),
+        skills_verified: this.toJson(verifiedSkills),
+        work_highlights: this.toJson(highlights),
+        performance_metrics: this.toJson(performanceMetrics),
+        trust_metrics: this.toJson(trustMetrics),
+        scoring_version: 'seed-v1',
+        created_at: this.isoDaysAgo(0),
+        updated_at: this.isoDaysAgo(0),
+      })
+
+    return snapshotId
+  }
+
+  private async seedMongo(context: SeedContext): Promise<void> {
+    if (!env.get('MONGODB_URL', '')) {
+      return
+    }
+
+    const userIds = Object.values(context.users).map((user) => user.id)
+    const entityIds = [
+      ...Object.values(context.organizations).map((org) => org.id),
+      ...Object.values(context.projects).map((project) => project.id),
+      ...Object.values(context.tasks).map((task) => task.id),
+      ...Object.values(context.snapshots),
+    ]
+
+    if (!this.fresh) {
+      await Promise.all([
+        MongoNotification.deleteMany({ user_id: { $in: userIds } }),
+        MongoUserActivityLog.deleteMany({ user_id: { $in: userIds } }),
+        MongoAuditLogModel.deleteMany({
+          $or: [{ user_id: { $in: userIds } }, { entity_id: { $in: entityIds } }],
+        }),
+      ])
+    }
+
+    const marketplaceTask = this.requireValue(
+      context.tasks['marketplace-content-pass'],
+      'mongo-task:marketplace-content-pass'
+    )
+
+    await MongoNotification.insertMany([
+      {
+        user_id: context.users.owner.id,
+        title: 'Đã có ứng viên mới cho task marketplace',
+        message: 'MaiFreelancer vừa apply vào task public của organization A.',
+        type: 'task_application_submitted',
+        related_entity_type: 'task',
+        related_entity_id: marketplaceTask.id,
+        metadata: { applicant: context.users.freelancerOne.username },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(1)),
+        updated_at: new Date(this.isoDaysAgo(1)),
+      },
+      {
+        user_id: context.users.owner.id,
+        title: 'Đã chuyển context mặc định về organization owner',
+        message:
+          'Tài khoản của bạn sẽ vào Suar Workspace Lab trước để test giao diện owner rõ hơn.',
+        type: 'organization_context_updated',
+        related_entity_type: 'organization',
+        related_entity_id: context.organizations.orgA.id,
+        metadata: { role: 'org_owner' },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(0)),
+        updated_at: new Date(this.isoDaysAgo(0)),
+      },
+      {
+        user_id: context.users.owner.id,
+        title: 'Org B đã giao thêm task cho bạn',
+        message: 'Bạn hiện có dữ liệu task khi chuyển sang org B với vai trò member.',
+        type: 'task_assigned',
+        related_entity_type: 'organization',
+        related_entity_id: context.organizations.orgB.id,
+        metadata: { role: 'org_member' },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(0)),
+        updated_at: new Date(this.isoDaysAgo(0)),
+      },
+      {
+        user_id: context.users.member.id,
+        title: 'Snapshot hồ sơ đã được publish',
+        message: 'Profile proof mới nhất của bạn đã có share link và lịch sử snapshot.',
+        type: 'profile_snapshot_published',
+        related_entity_type: 'user_profile_snapshot',
+        related_entity_id: context.snapshots.member,
+        metadata: { visibility: 'public' },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(1)),
+        updated_at: new Date(this.isoDaysAgo(1)),
+      },
+      {
+        user_id: context.users.member.id,
+        title: 'Bạn có task đang review',
+        message:
+          'Luồng profile động đang có một task ở trạng thái in_review để test widget realtime.',
+        type: 'task_review_pending',
+        related_entity_type: 'task',
+        related_entity_id: this.requireValue(
+          context.tasks['member-profile-live'],
+          'mongo-task:member-profile-live'
+        ).id,
+        metadata: { project: context.projects.orgAPlatform.name },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(0)),
+        updated_at: new Date(this.isoDaysAgo(0)),
+      },
+      {
+        user_id: context.users.superadmin.id,
+        title: 'Có review bị flag cần kiểm tra',
+        message: 'Trang admin hiện có 1 flagged review ở trạng thái pending.',
+        type: 'flagged_review_pending',
+        related_entity_type: 'flagged_review',
+        related_entity_id: null,
+        metadata: { source: 'seed:data' },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(1)),
+        updated_at: new Date(this.isoDaysAgo(1)),
+      },
+      {
+        user_id: context.users.superadmin.id,
+        title: 'Package usage đã được cập nhật',
+        message: 'Dashboard có dữ liệu gói Pro và ProMax để kiểm tra admin package management.',
+        type: 'subscription_metrics_ready',
+        related_entity_type: 'user_subscription',
+        related_entity_id: null,
+        metadata: { packages: ['pro', 'promax'] },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(0)),
+        updated_at: new Date(this.isoDaysAgo(0)),
+      },
+      {
+        user_id: context.users.orgAdmin.id,
+        title: 'Design system role states cần review',
+        message:
+          'Có task mới trong Workspace Design System để kiểm tra owner/member visual states.',
+        type: 'task_assigned',
+        related_entity_type: 'project',
+        related_entity_id: context.projects.orgADesignSystem.id,
+        metadata: {
+          task: this.requireValue(
+            context.tasks['orga-design-refresh'],
+            'mongo-task:orga-design-refresh'
+          ).id,
+        },
+        is_read: false,
+        created_at: new Date(this.isoDaysAgo(0)),
+        updated_at: new Date(this.isoDaysAgo(0)),
+      },
+    ])
+
+    await MongoAuditLogModel.insertMany([
+      {
+        user_id: context.users.owner.id,
