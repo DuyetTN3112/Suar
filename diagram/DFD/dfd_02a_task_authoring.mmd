@@ -1,0 +1,32 @@
+%% DFD 02a — Task Authoring
+%% Scope: Create/update task data, required skills, and version snapshots.
+
+flowchart TD
+    PM([Project Manager])
+    P1[[Create Task]]
+    P2[[Update Task]]
+    D1[(tasks)]
+    D2[(task_versions)]
+    D3[(task_required_skills)]
+    D4[(projects)]
+    D5[(skills)]
+
+    PM -->|"task form data"| P1
+    PM -->|"field changes"| P2
+
+    P1 -->|"validate project access"| D4
+    P1 -->|"insert new task"| D1
+    P1 -->|"store required skills"| D3
+
+    P2 -->|"read current task"| D1
+    P2 -->|"sync required skills"| D3
+    P2 -->|"lookup skill catalog"| D5
+    P2 -->|"update task fields"| D1
+    P2 -->|"insert snapshot"| D2
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class PM entity
+    class P1,P2 process
+    class D1,D2,D3,D4,D5 datastore
