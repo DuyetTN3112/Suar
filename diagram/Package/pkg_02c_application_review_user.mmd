@@ -1,0 +1,40 @@
+%% pkg_02c_application_review_user: Review, User, Auth, Shared Packages
+%% Scope: CQRS package split for review/account support.
+
+graph TD
+    subgraph reviews["reviews/"]
+        R_CMD["Commands"]
+        R_QRY["Queries"]
+        R_MAP["Mapper"]
+    end
+
+    subgraph users["users/"]
+        U_CMD["Commands"]
+        U_QRY["Queries"]
+        U_MAP["Mapper"]
+    end
+
+    subgraph auth["auth/"]
+        AUTH_CMD["Commands"]
+    end
+
+    SHARED["shared/ + common/"]
+    DTOS["dtos/"]
+    REPOS["repositories"]
+
+    R_CMD --> REPOS
+    R_QRY --> REPOS
+    R_MAP --> DTOS
+
+    U_CMD --> REPOS
+    U_QRY --> REPOS
+    U_MAP --> DTOS
+
+    AUTH_CMD --> SHARED
+    R_CMD --> SHARED
+    U_CMD --> SHARED
+
+    classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class R_CMD,R_QRY,R_MAP,U_CMD,U_QRY,U_MAP,AUTH_CMD pkg
+    class SHARED,DTOS,REPOS aux
