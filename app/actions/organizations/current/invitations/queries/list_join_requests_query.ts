@@ -1,4 +1,4 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/organizations/base_query'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 export interface ListJoinRequestsDTO {

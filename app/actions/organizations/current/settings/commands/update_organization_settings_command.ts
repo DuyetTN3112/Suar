@@ -1,7 +1,7 @@
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/organizations/base_command'
 import { canUpdateOrganization } from '#domain/organizations/org_permission_policy'
-import OrganizationSettingsRepository from '#infra/organizations/current/repositories/organization_settings_repository'
+import * as OrganizationSettingsMutations from '#infra/organizations/current/repositories/write/organization_settings_mutations'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { ExecutionContext } from '#types/execution_context'
 
@@ -21,7 +21,7 @@ export interface UpdateOrganizationSettingsDTO {
 export default class UpdateOrganizationSettingsCommand extends BaseCommand<UpdateOrganizationSettingsDTO> {
   constructor(
     execCtx: ExecutionContext,
-    private settingsRepo = new OrganizationSettingsRepository()
+    private settingsRepo = OrganizationSettingsMutations
   ) {
     super(execCtx)
   }

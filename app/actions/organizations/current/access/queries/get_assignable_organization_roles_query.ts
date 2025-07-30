@@ -1,7 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/organizations/base_query'
 import { getAssignableOrganizationRoles } from '#domain/organizations/org_access_rules'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import { formatRoleLabel } from '#libs/access_surface'
-import Organization from '#models/organization'
 
 export interface GetAssignableOrganizationRolesDTO {
   organizationId?: string
@@ -27,7 +27,7 @@ export default class GetAssignableOrganizationRolesQuery extends BaseQuery<
       throw new Error('Organization context required')
     }
 
-    const organization = await Organization.findOrFail(organizationId)
+    const organization = await OrganizationRepository.findActiveOrFailRecord(organizationId)
     const roleIds = [...new Set(getAssignableOrganizationRoles(organization.custom_roles ?? []))]
 
     return {

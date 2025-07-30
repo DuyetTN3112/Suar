@@ -1,18 +1,18 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
 
 import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { projectPublicApi } from '#actions/projects/public_api'
 import { EntityType } from '#constants/audit_constants'
 import { canDeleteOrganization } from '#domain/organizations/org_permission_policy'
-import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
+import * as OrganizationMutations from '#infra/organizations/repositories/write/organization_mutations'
 import { type ExecutionContext } from '#types/execution_context'
 
 /**
@@ -34,10 +34,10 @@ export default class DeleteOrganizationCommand {
 
     try {
       // ── FETCH ──────────────────────────────────────────────────────────
-      const organization = await OrganizationRepository.findById(dto.organizationId, trx)
-      if (!organization || organization.deleted_at) {
-        throw NotFoundException.resource('Tổ chức', dto.organizationId)
-      }
+      const organization = await OrganizationRepository.findActiveOrFailRecord(
+        dto.organizationId,
+        trx
+      )
 
       const actorMembership = await OrganizationUserRepository.getMembershipContext(
         organization.id,
@@ -45,7 +45,7 @@ export default class DeleteOrganizationCommand {
         trx
       )
       const orgRole = actorMembership?.role ?? null
-      const activeProjectCount = await OrganizationRepository.countActiveProjects(
+      const activeProjectCount = await projectPublicApi.countActiveByOrganization(
         organization.id,
         trx
       )
@@ -60,26 +60,27 @@ export default class DeleteOrganizationCommand {
       )
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const oldValues = organization.toJSON()
+      const oldValues = { ...organization }
 
-      if (dto.isPermanentDelete()) {
-        await OrganizationRepository.hardDelete(organization, trx)
-      } else {
-        organization.deleted_at = DateTime.now()
-        await OrganizationRepository.save(organization, trx)
-      }
+      const deletedOrganization = dto.isPermanentDelete()
+        ? await OrganizationMutations.hardDeleteByIdRecord(organization.id, trx)
+        : await OrganizationMutations.softDeleteByIdRecord(organization.id, trx)
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: organization.id,
-        old_values: oldValues,
-        new_values: {
-          deletion_type: dto.getDeletionType(),
-          reason: dto.getNormalizedReason(),
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: dto.isPermanentDelete() ? 'permanent_delete' : 'soft_delete',
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: organization.id,
+          old_values: oldValues,
+          new_values: {
+            deleted_at: deletedOrganization.deleted_at,
+            deletion_type: dto.getDeletionType(),
+            reason: dto.getNormalizedReason(),
+          },
         },
-      })
+        this.execCtx
+      )
 
       await trx.commit()
 

@@ -7,7 +7,7 @@ import SocialLoginPersistenceService, {
 } from '#infra/auth/social_login_persistence_service'
 import SingleFlightService from '#infra/cache/single_flight_service'
 import * as AuthLogger from '#infra/logger/auth_logger'
-import type User from '#models/user'
+import type User from '#infra/users/models/user'
 
 interface SocialUserData {
   id: string
@@ -111,7 +111,10 @@ export default class SocialLoginCommand {
     })
   }
 
-  private finalizeExistingUserLogin(user: User, provider: SupportedProvider): SocialLoginResult {
+  private finalizeExistingUserLogin(
+    user: User,
+    provider: SupportedProvider
+  ): SocialLoginResult {
     this.recordSuccessfulLogin(user, provider)
     return this.buildExistingUserResult(user)
   }

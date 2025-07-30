@@ -1,14 +1,13 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
+import { auditPublicApi } from '#actions/audit/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
 
 /**
  * Command: Create Join Request
@@ -47,17 +46,20 @@ export default class CreateJoinRequestCommand {
         )
       }
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.JOIN,
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: organizationId,
-        new_values: {
+      await auditPublicApi.log(
+        {
           user_id: userId,
-          organization_id: organizationId,
-          status: OrganizationUserStatus.PENDING,
+          action: AuditAction.JOIN,
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: organizationId,
+          new_values: {
+            user_id: userId,
+            organization_id: organizationId,
+            status: OrganizationUserStatus.PENDING,
+          },
         },
-      })
+        this.execCtx
+      )
 
       await trx.commit()
 

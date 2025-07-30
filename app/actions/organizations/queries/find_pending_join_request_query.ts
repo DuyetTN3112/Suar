@@ -1,7 +1,7 @@
 import NotFoundException from '#exceptions/not_found_exception'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type OrganizationUser from '#models/organization_user'
 import type { DatabaseId } from '#types/database'
+import type { OrganizationMembershipRecord } from '#types/organization_records'
 
 /**
  * Query: Find Pending Join Request
@@ -20,7 +20,10 @@ export default class FindPendingJoinRequestQuery {
   /**
    * Find a pending join request. Throws NotFoundException if not found.
    */
-  static async execute(organizationId: DatabaseId, userId: DatabaseId): Promise<OrganizationUser> {
+  static async execute(
+    organizationId: DatabaseId,
+    userId: DatabaseId
+  ): Promise<OrganizationMembershipRecord> {
     const membership = await OrganizationUserRepository.findPendingMembership(
       organizationId,
       userId
@@ -30,6 +33,14 @@ export default class FindPendingJoinRequestQuery {
       throw new NotFoundException('Không tìm thấy yêu cầu tham gia')
     }
 
-    return membership
+    return {
+      organization_id: membership.organization_id,
+      user_id: membership.user_id,
+      org_role: membership.org_role,
+      status: membership.status,
+      invited_by: membership.invited_by,
+      created_at: membership.created_at.toISO(),
+      updated_at: membership.updated_at.toISO(),
+    }
   }
 }

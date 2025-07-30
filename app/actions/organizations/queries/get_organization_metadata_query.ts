@@ -1,7 +1,5 @@
-import redis from '@adonisjs/redis/services/main'
-
-import { OrganizationRole } from '#constants'
-
+import { OrganizationRole } from '#constants/organization_constants'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 
 interface RoleRecord {
@@ -89,9 +87,9 @@ export default class GetOrganizationMetadataQuery {
    */
   private async getFromCache(key: string): Promise<MetadataResult | null> {
     try {
-      const cached = await redis.get(key)
+      const cached = await CacheService.get<MetadataResult>(key)
       if (cached) {
-        return JSON.parse(cached) as MetadataResult
+        return cached
       }
     } catch (error) {
       loggerService.error('[GetOrganizationMetadataQuery] Cache get error:', error)
@@ -104,7 +102,7 @@ export default class GetOrganizationMetadataQuery {
    */
   private async saveToCache(key: string, data: MetadataResult, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetOrganizationMetadataQuery] Cache set error:', error)
     }

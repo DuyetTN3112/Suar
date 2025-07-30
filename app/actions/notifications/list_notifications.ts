@@ -1,6 +1,6 @@
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import type { NotificationRecord } from '#infra/shared/repositories/interfaces'
-import RepositoryFactory from '#infra/shared/repositories/repository_factory'
+import type { NotificationRecord } from '#infra/notifications/repositories/notification_repository_interface'
+import { notificationRepositoryProvider } from '#infra/notifications/repositories/notification_repository_provider'
 import type { ExecutionContext } from '#types/execution_context'
 
 interface ListOptions {
@@ -32,7 +32,7 @@ export default class ListNotifications {
       throw new UnauthorizedException()
     }
 
-    const repo = await RepositoryFactory.getNotificationRepository()
+    const repo = notificationRepositoryProvider.getNotificationRepository()
     const { data, total } = await repo.findByUser(userId, {
       page,
       limit,
