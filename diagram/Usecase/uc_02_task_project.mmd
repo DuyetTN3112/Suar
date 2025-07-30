@@ -1,0 +1,38 @@
+%% uc_02_task_project.mmd — Project & Task Overview
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_02a_project_governance.mmd
+%%   - uc_02b_task_lifecycle.mmd
+
+flowchart LR
+    projectOwner["<<actor>> Project Owner"]
+    projectManager["<<actor>> Project Manager"]
+    projectMember["<<actor>> Project Member"]
+    projectViewer["<<actor>> Project Viewer"]
+    orgAdmin["<<actor>> Org Admin"]
+
+    subgraph system["Project & Task Workspace"]
+        projectGov([Manage project scope and roster])
+        taskAuthor([Author and maintain task details])
+        taskFlow([Execute task workflow])
+        taskViews([View boards, timeline, and audit history])
+        workflowSetup([Configure task statuses and transitions])
+    end
+
+    projectOwner --> projectGov
+    projectManager --> taskAuthor
+    projectManager --> taskFlow
+    projectMember --> taskFlow
+    projectMember --> taskViews
+    projectViewer --> taskViews
+    orgAdmin --> workflowSetup
+    projectOwner --> workflowSetup
+
+    projectOwner -.->|generalization| projectManager
+    projectManager -.->|generalization| projectMember
+    projectMember -.->|generalization| projectViewer
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class projectOwner,projectManager,projectMember,projectViewer,orgAdmin actor
+    class projectGov,taskAuthor,taskFlow,taskViews,workflowSetup usecase
