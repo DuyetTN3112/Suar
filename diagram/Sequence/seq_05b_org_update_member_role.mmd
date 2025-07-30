@@ -1,0 +1,38 @@
+%% seq_05b_org_update_member_role.mmd
+%% Scope: Update member role only.
+%% Backend refs:
+%%   - POST /organizations/:id/members/update-role/:userId
+%%   - PUT /org/members/:id/role
+%%   - UpdateMemberRoleCommand
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as UpdateMemberRoleCommand
+    participant Repo as OrganizationUserRepository
+    participant DB as PostgreSQL
+    participant Audit as Mongo AuditLog
+
+    Admin->>B: Select new role
+    B->>C: Submit role change
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: getMemberRoleName(actor)
+    Repo->>DB: SELECT actor role
+    DB-->>Repo: Actor role
+    Cmd->>Repo: getMemberRoleName(target)
+    Repo->>DB: SELECT target role
+    DB-->>Repo: Target role
+    Cmd->>Cmd: Enforce org permission policy
+
+    alt Policy denies change
+        Cmd-->>C: Forbidden / conflict error
+        C-->>B: Show error
+    else Change allowed
+        Cmd->>Repo: updateRole(orgId, userId, newRole)
+        Repo->>DB: UPDATE organization_users
+        Cmd->>Audit: create role-change audit log
+        Cmd-->>C: Success
+        C-->>B: Redirect with success flash
+    end
