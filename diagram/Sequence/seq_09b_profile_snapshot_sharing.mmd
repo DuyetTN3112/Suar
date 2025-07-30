@@ -1,0 +1,72 @@
+%% seq_09b_profile_snapshot_sharing.mmd
+%% Scope: Publish, list, expose, and rotate profile snapshots
+%% Runtime refs:
+%%   - POST /profile/snapshots/publish
+%%   - GET /profile/snapshots/current
+%%   - GET /profile/snapshots/history
+%%   - PATCH /profile/snapshots/:id/access
+%%   - POST /profile/snapshots/:id/rotate-link
+%%   - GET /profiles/:slug
+
+sequenceDiagram
+    autonumber
+    actor O as Profile Owner
+    actor G as Guest / External Viewer
+    participant UI as Browser / Profile UI
+    participant Pub as PublishProfileSnapshotController
+    participant Snap as Snapshot Controllers / Queries
+    participant Cmd as Snapshot Commands
+    participant Q as Snapshot Queries
+    participant Cache as CacheService
+    participant DB as PostgreSQL
+
+    O->>UI: Publish profile snapshot
+    UI->>Pub: POST /profile/snapshots/publish
+    Pub->>Cmd: PublishUserProfileSnapshotCommand
+    Cmd->>Cmd: RefreshUserProfileAggregatesCommand
+    Cmd->>DB: SELECT user + skills + performance + domain expertise + work history
+    DB-->>Cmd: Aggregate inputs
+    Cmd->>DB: unset previous current snapshot
+    Cmd->>DB: INSERT user_profile_snapshots<br/>(version, summary, skills_verified, work_highlights, metrics, shareable_slug/token?)
+    Cmd->>Cache: invalidate current/history/public snapshot cache
+    Pub-->>UI: 201 Created + snapshot metadata
+
+    O->>UI: Open snapshot controls
+    UI->>Snap: GET /profile/snapshots/current
+    Snap->>Q: GetCurrentProfileSnapshotQuery
+    Q->>DB: SELECT current snapshot
+    Snap-->>UI: Current snapshot
+
+    UI->>Snap: GET /profile/snapshots/history
+    Snap->>Q: GetProfileSnapshotHistoryQuery
+    Q->>DB: SELECT snapshot history
+    Snap-->>UI: Snapshot history list
+
+    O->>UI: Toggle public/private
+    UI->>Snap: PATCH /profile/snapshots/:id/access
+    Snap->>Cmd: UpdateProfileSnapshotAccessCommand
+    Cmd->>DB: SELECT owned snapshot
+    alt Set public
+        Cmd->>Cmd: ensure shareable_slug + shareable_token
+    else Set private
+        Cmd->>Cmd: clear shareable_slug + shareable_token
+    end
+    Cmd->>DB: UPDATE user_profile_snapshots
+    Cmd->>Cache: invalidate current/history/public snapshot cache
+    Snap-->>UI: Updated access state
+
+    O->>UI: Rotate share link
+    UI->>Snap: POST /profile/snapshots/:id/rotate-link
+    Snap->>Cmd: RotateProfileSnapshotShareLinkCommand
+    Cmd->>DB: SELECT owned snapshot + user
+    Cmd->>Cmd: generate new slug + token
+    Cmd->>DB: UPDATE user_profile_snapshots
+    Cmd->>Cache: invalidate old/new public snapshot cache
+    Snap-->>UI: New shareable link data
+
+    G->>UI: Open /profiles/:slug?token=...
+    UI->>Snap: GET public snapshot route
+    Snap->>Q: GetPublicProfileSnapshotQuery
+    Q->>DB: SELECT public snapshot by slug
+    Snap-->>UI: Public snapshot payload
+    UI-->>G: Render shareable profile view
