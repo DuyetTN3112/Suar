@@ -1,22 +1,21 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { ProjectRole } from '#constants'
-
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/projects/base_command'
+import { ProjectRole } from '#constants/project_constants'
 import { canCreateProject } from '#domain/projects/project_permission_policy'
 import { validateProjectStatus, validateProjectDates } from '#domain/projects/project_state_rules'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
+import * as projectMemberMutations from '#infra/projects/repositories/write/project_member_mutations'
+import * as projectMutations from '#infra/projects/repositories/write/project_mutations'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
-
-
+import type { ProjectDetailRecord } from '#types/project_records'
 
 /**
  * Command to create a new project
@@ -31,13 +30,13 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
  * - Manager mặc định là owner
  * - Creator tự động thành project_members với role owner (project_role_id = 1)
  *
- * @extends {BaseCommand<CreateProjectDTO, import('#models/project').default>}
+ * @extends {BaseCommand<CreateProjectDTO, ProjectDetailRecord>}
  */
 export default class CreateProjectCommand extends BaseCommand<
   CreateProjectDTO,
-  import('#models/project').default
+  ProjectDetailRecord
 > {
-  async handle(dto: CreateProjectDTO): Promise<import('#models/project').default> {
+  async handle(dto: CreateProjectDTO): Promise<ProjectDetailRecord> {
     const userId = this.getCurrentUserId()
 
     const createdProject = await this.executeInTransaction(async (trx) => {
@@ -90,7 +89,7 @@ export default class CreateProjectCommand extends BaseCommand<
       const managerId = dto.manager_id ?? ownerId
 
       // 6. Create the project
-      const project = await ProjectRepository.create(
+      const project = await projectMutations.createRecord(
         {
           name: dto.name,
           description: dto.description ?? null,
@@ -108,10 +107,19 @@ export default class CreateProjectCommand extends BaseCommand<
       )
 
       // 7. Add owner as project member (from trigger)
-      await ProjectMemberRepository.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
+      await projectMemberMutations.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
 
       // 8. Log audit trail
-      await this.logAudit('create', 'project', project.id, null, project.toJSON())
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create',
+          entity_type: 'project',
+          entity_id: project.id,
+          old_values: null,
+          new_values: project,
+        })
+      }
 
       return project
     })
@@ -126,9 +134,10 @@ export default class CreateProjectCommand extends BaseCommand<
 
     // Emit domain event (replaces after_project_insert trigger side-effects)
     void emitter.emit('project:created', {
-      project: result,
+      projectId: result.id,
       creatorId: userId,
       organizationId: result.organization_id,
+      name: result.name,
     })
 
     return result
@@ -139,7 +148,7 @@ export default class CreateProjectCommand extends BaseCommand<
    * Logic từ procedure: CALL create_notification(...)
    */
   private sendProjectCreatedNotification(
-    project: import('#models/project').default,
+    project: { name: string },
     userId: DatabaseId
   ): void {
     loggerService.info(
@@ -152,7 +161,7 @@ export default class CreateProjectCommand extends BaseCommand<
    */
   private async loadProjectWithRelations(
     projectId: DatabaseId
-  ): Promise<import('#models/project').default> {
-    return ProjectRepository.findDetailWithRelations(projectId)
+  ): Promise<ProjectDetailRecord> {
+    return projectModelQueries.findDetailWithRelationsRecord(projectId)
   }
 }
