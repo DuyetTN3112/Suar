@@ -4,7 +4,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import { writeAuditLog } from '#actions/audit/write_audit_log'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import type { DatabaseId } from '#types/database'
@@ -63,35 +62,6 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   }
 
   /**
-   * Log audit trail for this command
-   * Should be called for any state-changing operations
-   *
-   * @param action - Action name (e.g., 'create', 'update', 'delete')
-   * @param entityType - Type of entity (e.g., 'user', 'task', 'organization')
-   * @param entityId - ID of the affected entity
-   * @param oldValues - Previous values (for updates)
-   * @param newValues - New values
-   */
-  protected async logAudit(
-    action: string,
-    entityType: string,
-    entityId: DatabaseId,
-    oldValues?: object | null,
-    newValues?: object | null
-  ): Promise<void> {
-    if (!this.execCtx.userId) return
-
-    await writeAuditLog(this.execCtx, {
-      user_id: this.execCtx.userId,
-      action,
-      entity_type: entityType,
-      entity_id: entityId,
-      old_values: oldValues,
-      new_values: newValues,
-    })
-  }
-
-  /**
    * Get current authenticated user ID
    * Throws error if userId is 0 (unauthenticated)
    */
@@ -126,7 +96,7 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error) as Result<TOutput>
+      return Result.fail(error)
     }
   }
 }

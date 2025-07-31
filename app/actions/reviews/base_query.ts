@@ -112,7 +112,7 @@ export abstract class BaseQuery<TInput extends object, TOutput> implements Query
       const result = await this.handle(input)
       return Result.ok(result)
     } catch (error) {
-      return Result.fail(error) as Result<TOutput>
+      return Result.fail(error)
     }
   }
 }
