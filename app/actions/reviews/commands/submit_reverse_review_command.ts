@@ -75,6 +75,22 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
       )
 
       // Audit log
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'submit_reverse_review',
+          entity_type: 'reverse_review',
+          entity_id: reverseReview.id,
+          old_values: null,
+          new_values: {
+            review_session_id: dto.review_session_id,
+            target_type: dto.target_type,
+            target_id: dto.target_id,
+            rating: dto.rating,
+            is_anonymous: dto.is_anonymous,
+          },
+        })
+      }
 
       return {
         reverseReview,
