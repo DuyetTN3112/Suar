@@ -1,4 +1,3 @@
-import redis from '@adonisjs/redis/services/main'
 
 import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
@@ -6,6 +5,7 @@ import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_quer
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
@@ -145,24 +145,24 @@ export default class GetTasksListQuery {
     }
   } | null> {
     try {
-      const cached = await redis.get(key)
-      if (cached) {
-        return JSON.parse(cached) as {
-          data: TaskListQueryRecord[]
-          meta: {
-            total: number
-            per_page: number
-            current_page: number
-            last_page: number
-            first_page: number
-            next_page_url: string | null
-            previous_page_url: string | null
-          }
-          stats?: {
-            total: number
-            by_status: Record<string, number>
-          }
+      const cached = await CacheService.get<{
+        data: TaskListQueryRecord[]
+        meta: {
+          total: number
+          per_page: number
+          current_page: number
+          last_page: number
+          first_page: number
+          next_page_url: string | null
+          previous_page_url: string | null
         }
+        stats?: {
+          total: number
+          by_status: Record<string, number>
+        }
+      }>(key)
+      if (cached) {
+        return cached
       }
     } catch (error: unknown) {
       loggerService.error('[GetTasksListQuery] Cache get error:', error)
@@ -175,7 +175,7 @@ export default class GetTasksListQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error: unknown) {
       loggerService.error('[GetTasksListQuery] Cache set error:', error)
     }

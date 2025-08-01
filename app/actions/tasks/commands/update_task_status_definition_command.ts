@@ -2,16 +2,16 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canEditStatus } from '#domain/tasks/task_status_rules'
 import ConflictException from '#exceptions/conflict_exception'
 import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import type TaskStatus from '#models/task_status'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskStatusRecord } from '#types/task_records'
 
 /**
  * Command: Update an existing task status definition.
@@ -26,7 +26,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class UpdateTaskStatusDefinitionCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(dto: UpdateTaskStatusDTO): Promise<TaskStatus> {
+  async execute(dto: UpdateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -68,7 +68,7 @@ export default class UpdateTaskStatusDefinitionCommand {
       }
 
       // ── PERSIST ────────────────────────────────────────────────────────
-      const oldValues = status.toJSON()
+      const oldValues = { ...status }
 
       const updateData: Record<string, unknown> = {}
       if (dto.name !== undefined) updateData.name = dto.name
@@ -87,20 +87,27 @@ export default class UpdateTaskStatusDefinitionCommand {
         updateData.is_default = false
       }
 
-      status.merge(updateData)
-      await TaskStatusRepository.save(status, trx)
+      const updatedStatus = await TaskStatusRepository.update(
+        status.id,
+        status.organization_id,
+        updateData,
+        trx
+      )
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.UPDATE,
-        entity_type: EntityType.TASK_STATUS,
-        entity_id: status.id,
-        old_values: oldValues,
-        new_values: status.toJSON(),
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.UPDATE,
+          entity_type: EntityType.TASK_STATUS,
+          entity_id: status.id,
+          old_values: oldValues,
+          new_values: updatedStatus,
+        },
+        this.execCtx
+      )
 
       await trx.commit()
-      return status
+      return updatedStatus
     } catch (error) {
       await trx.rollback()
       throw error

@@ -3,10 +3,11 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
@@ -22,20 +23,14 @@ import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#infra/tasks/repositories/task_workflow_transition_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord, TaskDetailRecord, TaskStatusRecord } from '#types/task_records'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
-
-
-
-type ResolvedTaskStatus = NonNullable<
-  Awaited<ReturnType<typeof TaskStatusRepository.findByIdAndOrgActive>>
->
+type ResolvedTaskStatus = TaskStatusRecord
 
 interface PersistedTaskStatusUpdate {
-  task: Task
+  task: TaskRecord
   oldStatus: string
   oldTaskStatusId: DatabaseId
   newStatus: ResolvedTaskStatus
@@ -56,24 +51,24 @@ interface PersistedTaskStatusUpdate {
 export default class UpdateTaskStatusCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification = new CreateNotification()
+    private createNotification: NotificationCreator = notificationPublicApi
   ) {}
 
   /**
    * Execute command để update status
    */
-  async execute(dto: UpdateTaskStatusDTO): Promise<Task> {
+  async execute(dto: UpdateTaskStatusDTO): Promise<TaskDetailRecord> {
     const userId = this.requireUserId()
     const updateResult = await this.persistStatusUpdateInTransaction(dto, userId)
     await this.runPostCommitEffects(updateResult, userId, dto)
-    return await TaskRepository.findByIdWithStatusRelations(updateResult.task.id)
+    return await TaskRepository.findByIdWithDetailRecord(updateResult.task.id)
   }
 
   /**
    * Send notification
    */
   private async sendStatusChangeNotification(
-    task: Task,
+    task: TaskRecord,
     updaterId: DatabaseId,
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
@@ -108,12 +103,12 @@ export default class UpdateTaskStatusCommand {
   private async loadTaskForStatusUpdate(
     taskId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<Task> {
-    return TaskRepository.findActiveForUpdate(taskId, trx)
+  ): Promise<TaskRecord> {
+    return TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
   }
 
   private async resolveNewStatus(
-    task: Task,
+    task: TaskRecord,
     dto: UpdateTaskStatusDTO,
     trx: TransactionClientContract
   ): Promise<ResolvedTaskStatus> {
@@ -131,7 +126,7 @@ export default class UpdateTaskStatusCommand {
   }
 
   private async ensureStatusUpdatePermission(
-    task: Task,
+    task: TaskRecord,
     dto: UpdateTaskStatusDTO,
     userId: DatabaseId,
     trx: TransactionClientContract
@@ -167,7 +162,7 @@ export default class UpdateTaskStatusCommand {
   }
 
   private async persistStatusChange(
-    task: Task,
+    task: TaskRecord,
     dto: UpdateTaskStatusDTO,
     userId: DatabaseId,
     oldTaskStatusId: DatabaseId,
@@ -176,22 +171,30 @@ export default class UpdateTaskStatusCommand {
   ): Promise<PersistedTaskStatusUpdate> {
     const oldStatus = task.status
 
-    task.task_status_id = dto.task_status_id
-    task.status = newStatus.category
-    task.updated_by = userId
-    await TaskRepository.save(task, trx)
+    const updatedTask = await TaskRepository.updateTask(
+      task.id,
+      {
+        task_status_id: dto.task_status_id,
+        status: newStatus.category,
+        updated_by: userId,
+      },
+      trx
+    )
 
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: userId,
-      action: AuditAction.UPDATE_STATUS,
-      entity_type: EntityType.TASK,
-      entity_id: dto.task_id,
-      old_values: { status: oldStatus },
-      new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
-    })
+    await auditPublicApi.log(
+      {
+        user_id: userId,
+        action: AuditAction.UPDATE_STATUS,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: { status: oldStatus },
+        new_values: { status: newStatus.slug, task_status_id: dto.task_status_id },
+      },
+      this.execCtx
+    )
 
     return {
-      task,
+      task: updatedTask,
       oldStatus,
       oldTaskStatusId,
       newStatus,
@@ -231,7 +234,8 @@ export default class UpdateTaskStatusCommand {
   ): Promise<void> {
     if (updateResult.oldTaskStatusId !== dto.task_status_id) {
       void emitter.emit('task:status:changed', {
-        task: updateResult.task,
+        taskId: updateResult.task.id,
+        assignedTo: updateResult.task.assigned_to,
         oldStatus: updateResult.oldStatus,
         newStatusId: dto.task_status_id,
         newStatus: updateResult.newStatus.slug,

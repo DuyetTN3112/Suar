@@ -1,19 +1,21 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { ProficiencyLevel } from '#constants'
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import type { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
 import {
   buildUserProfileCacheKeys,
   buildUserSkillsCacheKeys,
 } from '#actions/users/support/user_query_cache_keys'
+import { ProficiencyLevel } from '#constants/user_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import { del as deleteCacheKey } from '#infra/cache/cache_service'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
-
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
+import * as userSkillMutations from '#infra/users/repositories/write/user_skill_mutations'
+import type { UserSkillRecord } from '#types/user_records'
 
 /**
  * Command to add a skill to user's profile
@@ -21,9 +23,9 @@ import { DefaultUserDependencies } from '../ports/user_external_dependencies_imp
  */
 export default class AddUserSkillCommand extends BaseCommand<
   AddUserSkillDTO,
-  import('#models/user_skill').default
+  UserSkillRecord
 > {
-  async handle(dto: AddUserSkillDTO): Promise<import('#models/user_skill').default> {
+  async handle(dto: AddUserSkillDTO): Promise<UserSkillRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -41,14 +43,14 @@ export default class AddUserSkillCommand extends BaseCommand<
       }
 
       // Check if user already has this skill
-      const existing = await UserSkillRepository.findByUserAndSkill(userId, dto.skill_id, trx)
+      const existing = await userSkillQueries.findByUserAndSkill(userId, dto.skill_id, trx)
 
       if (existing) {
         throw new ConflictException('User already has this skill')
       }
 
       // Create user skill (v3: level_code instead of proficiency_level_id)
-      const userSkill = await UserSkillRepository.create(
+      const userSkill = await userSkillMutations.create(
         {
           user_id: userId,
           skill_id: dto.skill_id,
@@ -60,14 +62,23 @@ export default class AddUserSkillCommand extends BaseCommand<
       )
 
       // Log audit
-      await this.logAudit('add_skill', 'user_skill', userSkill.id, null, {
-        skill_id: dto.skill_id,
-        skill_name: skill.skill_name,
-        level_code: dto.level_code,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'add_skill',
+          entity_type: 'user_skill',
+          entity_id: userSkill.id,
+          old_values: null,
+          new_values: {
+            skill_id: dto.skill_id,
+            skill_name: skill.skill_name,
+            level_code: dto.level_code,
+          },
+        })
+      }
 
       return {
-        userSkill,
+        userSkill: userSkillQueries.toRecord(userSkill),
         cacheKeys: [
           ...buildUserProfileCacheKeys(userId),
           ...buildUserSkillsCacheKeys(userId, [skill.category_code]),

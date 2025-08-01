@@ -1,12 +1,12 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { BaseCommand } from '../../shared/base_command.js'
+import { BaseCommand } from '../base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
-
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { canApproveUser } from '#domain/users/user_management_rules'
-
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { canApproveUser } from '#domain/users/user_management_rules'
 
 /**
  * ApproveUserCommand
@@ -27,41 +27,55 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
    * Main handler - approves a user in organization
    */
   async handle(dto: ApproveUserDTO): Promise<void> {
-    // 1-2. Verify permission and status via pure rule
-    const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
-      dto.approverId,
-      dto.organizationId,
-      'can_approve_members'
-    )
-    const membership = await DefaultUserDependencies.organizationMembership.findMembershipStatus(
-      dto.userId,
-      dto.organizationId
-    )
+    await this.executeInTransaction(async (trx) => {
+      // 1-2. Verify permission and status via pure rule
+      const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
+        dto.approverId,
+        dto.organizationId,
+        'can_approve_members',
+        trx
+      )
+      const membership = await DefaultUserDependencies.organizationMembership.findMembershipStatus(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
 
-    enforcePolicy(
-      canApproveUser({
-        hasApprovePermission: hasPermission,
-        targetMembershipStatus: membership?.status ?? null,
+      enforcePolicy(
+        canApproveUser({
+          hasApprovePermission: hasPermission,
+          targetMembershipStatus: membership?.status ?? null,
+        })
+      )
+
+      // 3. Update user status to approved
+      await DefaultUserDependencies.organizationMembership.approveMembership(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
+
+      // 4. Log the approval
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'approve',
+          entity_type: 'user',
+          entity_id: dto.userId,
+          old_values: undefined,
+          new_values: {
+            organization_id: dto.organizationId,
+            approved_by: dto.approverId,
+          },
+        })
+      }
+
+      // 5. Emit domain event
+      void emitter.emit('user:approved', {
+        userId: dto.userId,
+        approvedBy: dto.approverId,
+        organizationId: dto.organizationId,
       })
-    )
-
-    // 3. Update user status to approved
-    await DefaultUserDependencies.organizationMembership.approveMembership(
-      dto.userId,
-      dto.organizationId
-    )
-
-    // 4. Log the approval
-    await this.logAudit('approve', 'user', dto.userId, undefined, {
-      organization_id: dto.organizationId,
-      approved_by: dto.approverId,
-    })
-
-    // 5. Emit domain event
-    void emitter.emit('user:approved', {
-      userId: dto.userId,
-      approvedBy: dto.approverId,
-      organizationId: dto.organizationId,
     })
   }
 }
