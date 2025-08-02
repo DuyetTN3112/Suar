@@ -2,9 +2,9 @@ import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
 import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
 import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import type { DatabaseId } from '#types/database'
-
 
 export interface RefreshUserProfileAggregatesDTO {
   userId: DatabaseId
@@ -51,12 +51,21 @@ export default class RefreshUserProfileAggregatesCommand extends BaseCommand<
       userId: dto.userId,
     })
 
-    await this.logAudit('refresh_user_profile_aggregates', 'user', dto.userId, null, {
-      full_rebuild: dto.fullRebuild ?? false,
-      work_history_total: workHistoryResult.totalCompletedAssignments,
-      performance_score: performanceResult.performanceScore,
-      top_skills_count: domainExpertiseResult.topSkillsCount,
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'refresh_user_profile_aggregates',
+        entity_type: 'user',
+        entity_id: dto.userId,
+        old_values: null,
+        new_values: {
+          full_rebuild: dto.fullRebuild ?? false,
+          work_history_total: workHistoryResult.totalCompletedAssignments,
+          performance_score: performanceResult.performanceScore,
+          top_skills_count: domainExpertiseResult.topSkillsCount,
+        },
+      })
+    }
 
     return {
       userId: dto.userId,

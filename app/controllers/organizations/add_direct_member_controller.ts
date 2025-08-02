@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildAddDirectMemberDTO } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -16,7 +16,7 @@ export default class AddDirectMemberController {
     const { params, request, response, session } = ctx
 
     const dto = buildAddDirectMemberDTO(request, params.id as string)
-    await new AddMemberCommand(ExecutionContext.fromHttp(ctx), new CreateNotification()).execute(
+    await new AddMemberCommand(ExecutionContext.fromHttp(ctx), notificationPublicApi).execute(
       dto
     )
 

@@ -1,4 +1,4 @@
-export type ResponseRecord = Record<string, unknown>
+export type ResponseRecord = object
 
 export interface SerializableResponseRecord {
   serialize(): ResponseRecord

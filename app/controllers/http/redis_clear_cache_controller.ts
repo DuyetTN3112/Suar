@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ClearCacheKeyCommand from '#actions/common/commands/clear_cache_key_command'
+import { ClearCacheKeyCommand } from '#actions/http/cache/public_api'
 import { ExecutionContext } from '#types/execution_context'
 
 /**

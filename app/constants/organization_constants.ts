@@ -7,7 +7,7 @@
  * CLEANUP 2026-03-01:
  *   - XÓA OrganizationRoleName, OrganizationRoleNameType → duplicate OrganizationRole
  *   - XÓA organizationRoleOptions, getOrganizationRoleName, getOrganizationRoleNameVi → 0 usages
- *   - XÓA isOrganizationAdmin, isOrganizationManager → duplicate nhau, 0 usages (code dùng permission_helpers.ts)
+ *   - XÓA isOrganizationAdmin, isOrganizationManager → duplicate nhau, 0 usages
  *   - XÓA organizationUserStatusOptions, getOrganizationUserStatusName, getOrganizationUserStatusNameVi → 0 usages
  *   - XÓA organizationPlanOptions → 0 usages
  *   - THÊM PartnerType → DB v3 có partner_type CHECK ('gold','silver','bronze')
