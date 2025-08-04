@@ -1,38 +1,14 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import * as reverseReviewQueries from './read/reverse_review_queries.js'
+import * as reverseReviewMutations from './write/reverse_review_mutations.js'
 
-import ReverseReview from '#models/reverse_review'
-import type { DatabaseId } from '#types/database'
-
-export default class ReverseReviewRepository {
-  private readonly __instanceMarker = true
-
-  static {
-    void new ReverseReviewRepository().__instanceMarker
-  }
-
-  private static baseQuery(trx?: TransactionClientContract) {
-    return trx ? ReverseReview.query({ client: trx }) : ReverseReview.query()
-  }
-
-  static async findByUniqueScope(
-    reviewSessionId: DatabaseId,
-    reviewerId: DatabaseId,
-    targetType: string,
-    targetId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<ReverseReview | null> {
-    return this.baseQuery(trx)
-      .where('review_session_id', reviewSessionId)
-      .where('reviewer_id', reviewerId)
-      .where('target_type', targetType)
-      .where('target_id', targetId)
-      .first()
-  }
-
-  static async create(
-    data: Partial<ReverseReview>,
-    trx?: TransactionClientContract
-  ): Promise<ReverseReview> {
-    return ReverseReview.create(data, trx ? { client: trx } : undefined)
-  }
+/**
+ * ReverseReviewRepository - Barrel file
+ * Maintains backward compatibility with existing imports.
+ */
+const ReverseReviewRepository = {
+  ...reverseReviewQueries,
+  ...reverseReviewMutations,
 }
+
+export default ReverseReviewRepository
+export type { DatabaseId } from '#types/database'
