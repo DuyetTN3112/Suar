@@ -1,7 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserSkill from '#models/user_skill'
+import { UserInfraMapper } from '#infra/users/mapper/user_infra_mapper'
+import UserSkill from '#infra/users/models/user_skill'
 import type { DatabaseId } from '#types/database'
+import type { UserSkillRecord } from '#types/user_records'
 
 export default class UserSkillRepository {
   private readonly __instanceMarker = true
@@ -12,6 +14,10 @@ export default class UserSkillRepository {
 
   private static baseQuery(trx?: TransactionClientContract) {
     return trx ? UserSkill.query({ client: trx }) : UserSkill.query()
+  }
+
+  static toRecord(userSkill: UserSkill): UserSkillRecord {
+    return UserInfraMapper.toSkillRecord(userSkill)
   }
 
   static async findOwnedById(
@@ -45,11 +51,13 @@ export default class UserSkillRepository {
   static async listByUserWithSkill(
     userId: DatabaseId,
     trx?: TransactionClientContract
-  ): Promise<UserSkill[]> {
-    return this.baseQuery(trx)
+  ): Promise<UserSkillRecord[]> {
+    const rows = await this.baseQuery(trx)
       .where('user_id', userId)
       .preload('skill')
       .orderBy('total_reviews', 'desc')
+
+    return rows.map((row) => this.toRecord(row))
   }
 
   static async create(

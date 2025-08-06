@@ -1,13 +1,17 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { userPublicApi } from '#actions/users/public_api'
 import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#constants/error_constants'
+import type { MembershipContext } from '#domain/organizations/org_types'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type Organization from '#models/organization'
-import type User from '#models/user'
 import type { DatabaseId } from '#types/database'
+
+interface OrganizationSessionUser {
+  id: DatabaseId
+  current_organization_id: DatabaseId | null
+}
 
 /**
  * OrganizationResolver Middleware
@@ -61,7 +65,7 @@ export default class OrganizationResolverMiddleware {
 
       if (membership) {
         // Auto-assign org đầu tiên
-        await this.syncOrganization(ctx, user, membership.organization_id)
+        await this.syncOrganization(ctx, user, membership.organizationId)
       } else {
         // User chưa thuộc org nào — set flag cho frontend modal
         this.handleNoOrganization(ctx)
@@ -80,14 +84,10 @@ export default class OrganizationResolverMiddleware {
     }
 
     // === Validate access — 1 query duy nhất kiểm tra cả membership + org tồn tại ===
-    const validMembership = await OrganizationUserRepository.findApprovedMembershipWithOrganization(
-      targetOrgId,
-      user.id
-    )
+    const validMembership = await organizationPublicApi.findApprovedMembership(targetOrgId, user.id)
 
     if (validMembership) {
       ctx.currentOrganizationId = targetOrgId
-      ctx.currentOrganization = validMembership.organization
 
       // Membership hợp lệ + org tồn tại → sync nếu cần
       if (sessionOrgId !== dbOrgId || sessionOrgId !== targetOrgId) {
@@ -109,9 +109,8 @@ export default class OrganizationResolverMiddleware {
       // Thử tìm org khác
       const fallbackMembership = await this.findFirstApprovedMembership(user.id)
       if (fallbackMembership) {
-        await this.syncOrganization(ctx, user, fallbackMembership.organization_id)
-        ctx.currentOrganizationId = fallbackMembership.organization_id
-        ctx.currentOrganization = fallbackMembership.organization
+        await this.syncOrganization(ctx, user, fallbackMembership.organizationId)
+        ctx.currentOrganizationId = fallbackMembership.organizationId
       } else {
         this.handleNoOrganization(ctx)
       }
@@ -124,27 +123,25 @@ export default class OrganizationResolverMiddleware {
    * Tìm membership đầu tiên đã approved của user
    * Dùng 1 query duy nhất với join để validate org tồn tại
    */
-  private async findFirstApprovedMembership(
-    userId: DatabaseId
-  ): Promise<
-    Awaited<
-      ReturnType<typeof OrganizationUserRepository.findFirstApprovedMembershipWithOrganization>
-    >
-  > {
-    return OrganizationUserRepository.findFirstApprovedMembershipWithOrganization(userId)
+  private async findFirstApprovedMembership(userId: DatabaseId): Promise<MembershipContext> {
+    return organizationPublicApi.findFirstApprovedMembership(userId)
   }
 
   /**
    * Đồng bộ org ID vào cả session và DB (atomic)
    */
-  private async syncOrganization(ctx: HttpContext, user: User, orgId: DatabaseId): Promise<void> {
+  private async syncOrganization(
+    ctx: HttpContext,
+    user: OrganizationSessionUser,
+    orgId: DatabaseId
+  ): Promise<void> {
     // Update session
     ctx.session.put('current_organization_id', orgId)
 
     // Update DB chỉ khi cần (tránh unnecessary write)
     if (user.current_organization_id !== orgId) {
       try {
-        await UserRepository.updateCurrentOrganization(user.id, orgId)
+        await userPublicApi.updateCurrentOrganization(user.id, orgId)
         user.current_organization_id = orgId
       } catch (error) {
         loggerService.error('Failed to sync organization to DB', {
@@ -159,14 +156,13 @@ export default class OrganizationResolverMiddleware {
   /**
    * Xóa org ID khỏi session và DB
    */
-  private async clearOrganization(ctx: HttpContext, user: User): Promise<void> {
+  private async clearOrganization(ctx: HttpContext, user: OrganizationSessionUser): Promise<void> {
     ctx.session.forget('current_organization_id')
 
     try {
-      await UserRepository.updateCurrentOrganization(user.id, null)
+      await userPublicApi.updateCurrentOrganization(user.id, null)
       user.current_organization_id = null
       ctx.currentOrganizationId = undefined
-      ctx.currentOrganization = undefined
     } catch (error) {
       loggerService.error('Failed to clear organization from DB', {
         error: error instanceof Error ? error.message : String(error),
@@ -208,7 +204,5 @@ declare module '@adonisjs/core/http' {
   interface HttpContext {
     /** ID tổ chức hiện tại đã được resolve */
     currentOrganizationId?: DatabaseId
-    /** Organization model đã load (nếu cần) */
-    currentOrganization?: InstanceType<typeof Organization>
   }
 }
