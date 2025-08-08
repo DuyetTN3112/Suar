@@ -1,0 +1,39 @@
+%% Class Diagram: Platform Support Overview
+%% Scope: Notification, settings, and system admin support modules.
+%% Detail files:
+%%   - cls_04a_notification_settings.mmd
+%%   - cls_04b_system_admin_console.mmd
+
+classDiagram
+    class ListNotificationsController
+    class LatestNotificationsController
+    class MarkNotificationReadController
+    class DeleteNotificationController
+    class GetUserNotifications
+    class MarkNotificationAsRead
+    class DeleteNotification
+
+    class ShowSettingsController
+    class UpdateSettingsController
+    class UpdateUserSettings
+    class GetUserSettings
+
+    class AdminDashboardController
+    class ToggleAdminModeController
+    class ToggleAdminModeCommand
+    class UpdateUserSystemRoleCommand
+    class SuspendUserCommand
+    class ResolveFlaggedReviewCommand
+
+    ListNotificationsController --> GetUserNotifications
+    MarkNotificationReadController --> MarkNotificationAsRead
+    DeleteNotificationController --> DeleteNotification
+
+    ShowSettingsController --> GetUserSettings
+    UpdateSettingsController --> UpdateUserSettings
+
+    ToggleAdminModeController --> ToggleAdminModeCommand
+    AdminDashboardController --> ToggleAdminModeCommand : shares admin context
+    AdminDashboardController --> UpdateUserSystemRoleCommand : same bounded context
+    AdminDashboardController --> SuspendUserCommand : same bounded context
+    AdminDashboardController --> ResolveFlaggedReviewCommand : same bounded context

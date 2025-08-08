@@ -1,0 +1,60 @@
+%% pkg_02d_application_platform_support: Platform Support Action Packages
+%% Updated 2026-05-12.
+
+graph TD
+    subgraph admin["admin/"]
+        AD_CMD["Commands"]
+        AD_QRY["Queries"]
+        AD_SUB["users / organizations / reviews / packages"]
+    end
+
+    subgraph authorization["authorization/"]
+        AUTHZ_API["authorizationPublicApi"]
+        AUTHZ_QRY["AuthorizeSystemUserAdminAccessQuery"]
+    end
+
+    subgraph notifications["notifications/"]
+        NOTIF_API["notificationPublicApi"]
+        NOTIF_CREATE["CreateNotification\ninternal implementation"]
+    end
+
+    subgraph audit["audit/"]
+        AUDIT_API["auditPublicApi"]
+    end
+
+    subgraph user_activity["user_activity/"]
+        ACTIVITY_API["userActivityPublicApi"]
+    end
+
+    subgraph settings["settings/"]
+        S_CMD["Account/Profile commands"]
+        S_QRY["Settings queries/defaults"]
+    end
+
+    subgraph http_cache["http/cache/"]
+        CACHE_ACTIONS["Redis debug/cache commands + queries"]
+    end
+
+    USER_API["users/public_api.ts"]
+    ORG_API["organizations/public_api.ts"]
+    REPO_PROVIDERS["Repository providers"]
+
+    AUTHZ_QRY --> USER_API
+    AUTHZ_QRY --> ORG_API
+    AUTHZ_API --> AUTHZ_QRY
+
+    NOTIF_API --> NOTIF_CREATE
+    NOTIF_CREATE --> REPO_PROVIDERS
+    AUDIT_API --> REPO_PROVIDERS
+    ACTIVITY_API --> REPO_PROVIDERS
+
+    AD_CMD --> USER_API
+    AD_QRY --> AUDIT_API
+    S_CMD --> USER_API
+
+    classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class AD_CMD,AD_QRY,AD_SUB,AUTHZ_QRY,NOTIF_CREATE,S_CMD,S_QRY,CACHE_ACTIONS pkg
+    class AUTHZ_API,NOTIF_API,AUDIT_API,ACTIVITY_API,USER_API,ORG_API api
+    class REPO_PROVIDERS infra

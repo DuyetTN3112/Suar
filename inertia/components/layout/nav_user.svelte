@@ -58,7 +58,7 @@
   }
 
   const { user }: Props = $props()
-  const currentPage = $derived($page as { props: PageProps })
+  const currentPage = $derived(page as { props: PageProps })
   const sharedProps = $derived(currentPage.props)
   const authUser = $derived(sharedProps.auth?.user ?? sharedProps.user?.auth?.user ?? null)
   const interfaceContext = $derived(sharedProps.context ?? {})

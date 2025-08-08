@@ -1,30 +1,34 @@
 %% Architecture Diagram: Layered Architecture Overview
+%% Updated 2026-05-12.
 %% Detail files:
 %%   - arch_02a_request_flow.mmd
 %%   - arch_02b_runtime_support.mmd
 
 flowchart TD
-    Presentation["Presentation Layer
-    routes + middleware + controllers"]
-    Application["Application Layer
-    commands + queries + DTO mapping"]
-    Domain["Domain Layer
-    entities + policies + repository interfaces"]
-    Infrastructure["Infrastructure Layer
-    repository implementations + ORM mapping"]
-    Data["Data Layer
-    PostgreSQL + MongoDB + Redis"]
-    Runtime["Runtime Support
-    events + listeners + cache + realtime"]
+    Presentation["Presentation Layer\nroutes, middleware, controllers, Inertia pages"]
+    AppApi["Action Public API Boundary\napp/actions/*/public_api.ts"]
+    Application["Application Layer\ncommands, queries, DTOs, mappers, module services"]
+    Domain["Domain Layer\npure entities, formulas, policies, state rules"]
+    Infrastructure["Infrastructure Layer\nrepositories, ORM/Mongo/cache adapters, mappers"]
+    Data["Data Layer\nPostgreSQL, MongoDB, Redis"]
+    Runtime["Runtime Support\nevents, listeners, cache invalidation, inactive realtime"]
+    EmptyLegacy["Drained Legacy Boundaries\napp/actions/shared and app/services\nno active TS files"]
 
-    Presentation --> Application
+    Presentation --> AppApi
+    AppApi --> Application
     Application --> Domain
-    Domain --> Infrastructure
+    Application --> Infrastructure
     Infrastructure --> Data
     Application --> Runtime
-    Runtime --> Data
+    Runtime --> AppApi
+    Runtime --> Infrastructure
+    AppApi -.-> EmptyLegacy
 
     classDef layer fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef support fill:#F3E5F5,stroke:#7B1FA2,color:#333
+    classDef drained fill:#ECEFF1,stroke:#546E7A,color:#333,stroke-dasharray: 5 5
     class Presentation,Application,Domain,Infrastructure,Data layer
+    class AppApi boundary
     class Runtime support
+    class EmptyLegacy drained

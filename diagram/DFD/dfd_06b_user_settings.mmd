@@ -1,0 +1,28 @@
+%% DFD 06B - User Settings
+%% Scope: Server-rendered defaults + profile/account persistence + client-side preferences.
+
+flowchart TD
+    User([Authenticated User])
+
+    P1[["Render settings defaults"]]
+    P2[["Update profile/account fields"]]
+    P3[["Apply UI preferences"]]
+
+    D1[(users)]
+    D2[(settings defaults)]
+    D3[(client localStorage / cookies)]
+
+    User --> P1
+    User --> P2
+    User --> P3
+
+    P1 --> D2
+    P2 --> D1
+    P3 --> D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class User entity
+    class P1,P2,P3 process
+    class D1,D2,D3 datastore

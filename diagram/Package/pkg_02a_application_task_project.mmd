@@ -1,39 +1,54 @@
 %% pkg_02a_application_task_project: Tasks & Projects Action Packages
-%% Scope: CQRS package split for task/project work.
+%% Updated 2026-04-29.
 
 graph TD
     subgraph tasks["tasks/"]
+        T_API["tasks/public_api.ts"]
         T_CMD["Commands"]
         T_QRY["Queries"]
-        T_MAP["Mapper"]
+        T_SUPPORT["support/"]
     end
 
     subgraph projects["projects/"]
+        P_API["projects/public_api.ts"]
         P_CMD["Commands"]
         P_QRY["Queries"]
-        P_MAP["Mapper"]
+        P_SERVICE["services/project_public_api.ts"]
     end
 
-    RULES["task/project rules"]
+    ORG_API["organizations/public_api.ts"]
+    SKILL_API["skills/public_api.ts"]
+    AUDIT_API["audit/public_api.ts"]
+    INFRA["app/infra/tasks + app/infra/projects"]
+    DOMAIN["task/project domain rules"]
     DTOS["request + response DTOs"]
-    REPOS["repositories"]
 
-    T_CMD --> RULES
-    T_CMD --> REPOS
-    T_CMD --> T_MAP
-    T_QRY --> REPOS
-    T_QRY --> T_MAP
+    T_API --> T_CMD
+    T_API --> T_QRY
+    T_CMD --> T_SUPPORT
+    T_CMD --> DOMAIN
+    T_CMD --> INFRA
+    T_QRY --> INFRA
+    T_CMD --> ORG_API
+    T_CMD --> P_API
+    T_CMD --> SKILL_API
+    T_CMD --> AUDIT_API
 
-    P_CMD --> RULES
-    P_CMD --> REPOS
-    P_CMD --> P_MAP
-    P_QRY --> REPOS
-    P_QRY --> P_MAP
+    P_API --> P_SERVICE
+    P_SERVICE --> P_CMD
+    P_SERVICE --> P_QRY
+    P_CMD --> DOMAIN
+    P_CMD --> INFRA
+    P_QRY --> INFRA
+    P_CMD --> ORG_API
+    P_CMD --> AUDIT_API
 
-    T_MAP --> DTOS
-    P_MAP --> DTOS
+    T_QRY --> DTOS
+    P_QRY --> DTOS
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
-    class T_CMD,T_QRY,T_MAP,P_CMD,P_QRY,P_MAP pkg
-    class RULES,DTOS,REPOS aux
+    class T_CMD,T_QRY,T_SUPPORT,P_CMD,P_QRY,P_SERVICE pkg
+    class T_API,P_API,ORG_API,SKILL_API,AUDIT_API api
+    class INFRA,DOMAIN,DTOS aux

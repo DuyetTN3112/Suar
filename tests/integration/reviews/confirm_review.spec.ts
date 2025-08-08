@@ -3,8 +3,8 @@ import { test } from '@japa/runner'
 import ConfirmReviewCommand from '#actions/reviews/commands/confirm_review_command'
 import { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
 import { ReviewSessionStatus } from '#constants/review_constants'
-import ReviewSession from '#models/review_session'
-import User from '#models/user'
+import ReviewSession from '#infra/reviews/models/review_session'
+import User from '#infra/users/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

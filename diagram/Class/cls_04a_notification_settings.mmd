@@ -1,0 +1,51 @@
+%% Class Diagram: Notification and Settings Slice
+%% Scope: Controllers and actions for notification center and settings.
+
+classDiagram
+    class ListNotificationsController {
+        +handle(ctx)
+    }
+    class LatestNotificationsController {
+        +handle(ctx)
+    }
+    class MarkNotificationReadController {
+        +markOne(ctx)
+        +markAll(ctx)
+    }
+    class DeleteNotificationController {
+        +destroy(ctx)
+        +destroyAllRead(ctx)
+    }
+
+    class GetUserNotifications {
+        +handle(options)
+    }
+    class MarkNotificationAsRead {
+        +handle(dto)
+        +markAllAsRead()
+    }
+    class DeleteNotification {
+        +handle(dto)
+        +deleteAllRead()
+    }
+
+    class ShowSettingsController {
+        +handle(ctx)
+    }
+    class UpdateSettingsController {
+        +handle(ctx)
+    }
+    class UpdateUserSettings {
+        +handle({data})
+    }
+    class GetUserSettings {
+        +handle()
+    }
+
+    ListNotificationsController --> GetUserNotifications
+    LatestNotificationsController --> GetUserNotifications
+    MarkNotificationReadController --> MarkNotificationAsRead
+    DeleteNotificationController --> DeleteNotification
+
+    ShowSettingsController --> GetUserSettings
+    UpdateSettingsController --> UpdateUserSettings
