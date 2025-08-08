@@ -5,6 +5,7 @@
 %%   - act_05c_org_create.mmd
 %%   - act_05d_org_invite_member.mmd
 %%   - act_05e_org_join_request.mmd
+%%   - act_05f_org_update_member_role.mmd
 %%   - act_05g_org_remove_member.mmd
 
 flowchart TD
@@ -13,14 +14,16 @@ flowchart TD
     Module --> Create["Create organization"]
     Module --> Invite["Invite member"]
     Module --> Join["Approve / reject join request"]
+    Module --> Role["Update member role"]
     Module --> Direct["Direct add member"]
 
     Create --> End([End])
     Invite --> End
     Join --> End
+    Role --> End
     Direct --> End
 
     classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
     classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
     class Start,End startEnd
-    class Module,Create,Invite,Join,Direct process
+    class Module,Create,Invite,Join,Role,Direct process
