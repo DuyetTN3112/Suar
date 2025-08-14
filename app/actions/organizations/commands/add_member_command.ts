@@ -2,10 +2,11 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -19,8 +20,6 @@ import loggerService from '#infra/logger/logger_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Add Member to Organization
@@ -39,7 +38,7 @@ import { DefaultOrganizationDependencies } from '../ports/organization_external_
 export default class AddMemberCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
   /**
@@ -64,10 +63,7 @@ export default class AddMemberCommand {
 
     try {
       // 1. Validate user exists
-      const userToAdd = await DefaultOrganizationDependencies.user.findUserIdentity(
-        dto.userId,
-        trx
-      )
+      const userToAdd = await DefaultOrganizationDependencies.user.findUserIdentity(dto.userId, trx)
       if (!userToAdd) {
         throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
       }
@@ -103,18 +99,21 @@ export default class AddMemberCommand {
       )
 
       // 6. Create audit log
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: 'add_member',
-        entity_type: EntityType.ORGANIZATION,
-        entity_id: dto.organizationId,
-        new_values: {
-          ...dto.toObject(),
-          added_user_id: dto.userId,
-          role: dto.getRoleName(),
-          org_role: dto.roleId,
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: 'add_member',
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: dto.organizationId,
+          new_values: {
+            ...dto.toObject(),
+            added_user_id: dto.userId,
+            role: dto.getRoleName(),
+            org_role: dto.roleId,
+          },
         },
-      })
+        this.execCtx
+      )
 
       await trx.commit()
 
