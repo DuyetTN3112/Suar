@@ -1,5 +1,6 @@
-import type OrganizationUser from '#models/organization_user'
+import NotFoundException from '#exceptions/not_found_exception'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type OrganizationUser from '#models/organization_user'
 import type { DatabaseId } from '#types/database'
 import NotFoundException from '#exceptions/not_found_exception'
 

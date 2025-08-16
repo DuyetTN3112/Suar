@@ -1,6 +1,6 @@
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
 import { OrganizationUserStatus } from '#constants/organization_constants'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for processing a join request (approve or reject)
