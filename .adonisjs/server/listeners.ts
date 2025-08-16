@@ -3,12 +3,4 @@
  * DO NOT EDIT manually
  */
 
-export const listeners = {
-  ActivityListener: () => import('#listeners/activity_listener'),
-  AuditLogListener: () => import('#listeners/audit_log_listener'),
-  CacheInvalidationListener: () => import('#listeners/cache_invalidation_listener'),
-  CleanupListener: () => import('#listeners/cleanup_listener'),
-  LifecycleLogListener: () => import('#listeners/lifecycle_log_listener'),
-  NotificationListener: () => import('#listeners/notification_listener'),
-  ReviewListener: () => import('#listeners/review_listener'),
-}
+export const listeners = {}

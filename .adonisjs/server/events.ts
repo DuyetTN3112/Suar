@@ -3,8 +3,4 @@
  * DO NOT EDIT manually
  */
 
-import EventTypes from '#events/event_types'
-
-export const events = {
-  EventTypes: EventTypes,
-}
+export const events = {}
