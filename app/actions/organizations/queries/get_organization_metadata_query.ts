@@ -1,6 +1,8 @@
-import { OrganizationRole } from '#constants'
 import redis from '@adonisjs/redis/services/main'
-import loggerService from '#services/logger_service'
+
+import { OrganizationRole } from '#constants'
+
+import loggerService from '#infra/logger/logger_service'
 
 interface RoleRecord {
   name: string

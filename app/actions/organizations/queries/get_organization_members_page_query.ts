@@ -1,12 +1,16 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import GetOrganizationMembersQuery from './get_organization_members_query.js'
-import GetPendingRequestsQuery from './get_pending_requests_query.js'
-import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
-import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
-import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
 import { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+
+import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
+import GetOrganizationMembersQuery from './get_organization_members_query.js'
+import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
+import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
+import GetPendingRequestsQuery from './get_pending_requests_query.js'
+
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+
 
 export interface OrganizationMembersPageResult {
   organization: { id: DatabaseId; name: string } | null
@@ -14,6 +18,15 @@ export interface OrganizationMembersPageResult {
   roles: unknown[]
   userRole: string
   pendingRequests: unknown[]
+}
+
+export interface OrganizationMembersPageFilters {
+  page?: number
+  limit?: number
+  roleId?: string
+  search?: string
+  statusFilter?: 'active' | 'pending' | 'inactive'
+  include?: ('activity' | 'audit')[]
 }
 
 /**
@@ -27,14 +40,24 @@ export default class GetOrganizationMembersPageQuery {
 
   async execute(
     organizationId: DatabaseId,
-    userId: DatabaseId
+    userId: DatabaseId,
+    filters?: OrganizationMembersPageFilters
   ): Promise<OrganizationMembersPageResult> {
     const currentUserId = userId
     if (!currentUserId) {
       throw new UnauthorizedException()
     }
 
-    const membersDTO = new GetOrganizationMembersDTO(organizationId, 1, 100, undefined, undefined)
+    const membersDTO = GetOrganizationMembersDTO.fromFilters(organizationId, {
+      page: filters?.page ?? 1,
+      limit: filters?.limit ?? 100,
+      role_id: filters?.roleId,
+      search: filters?.search,
+      sort_by: 'joined_at',
+      sort_order: 'desc',
+      status_filter: filters?.statusFilter,
+      include: filters?.include,
+    })
 
     const [membersResult, pendingRequests, metadata, organization, showData] = await Promise.all([
       new GetOrganizationMembersQuery(this.execCtx).execute(membersDTO),

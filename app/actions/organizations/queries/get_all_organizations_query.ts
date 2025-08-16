@@ -1,7 +1,8 @@
 import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
 import type { DatabaseId } from '#types/database'
+
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface EnhancedOrganization {
   id: DatabaseId
@@ -43,7 +44,7 @@ export default class GetAllOrganizationsQuery {
 
     // Batch query: owner usernames
     const ownerIds = [...new Set(allOrganizations.map((org) => org.owner_id))]
-    const owners = await UserRepository.findByIds(ownerIds, ['id', 'username'])
+    const owners = await DefaultOrganizationDependencies.user.findOwnerNamesByIds(ownerIds)
     const ownerMap = new Map(owners.map((o) => [o.id, o.username]))
 
     // Batch query: member counts
@@ -56,8 +57,8 @@ export default class GetAllOrganizationsQuery {
       logo: org.logo,
       website: org.website,
       founded_date: '2023',
-      owner: ownerMap.get(org.owner_id) || 'Admin',
-      employee_count: memberCountMap.get(org.id) || 0,
+      owner: ownerMap.get(org.owner_id) ?? 'Admin',
+      employee_count: memberCountMap.get(org.id) ?? 0,
       project_count: null,
       industry: null,
       location: null,
@@ -91,13 +92,13 @@ export default class GetAllOrganizationsQuery {
    * Used by ApiListOrganizationsController.
    */
   async getBasicList(): Promise<
-    Array<{
+    {
       id: DatabaseId
       name: string
       description?: string | null
       logo?: string | null
       website?: string | null
-    }>
+    }[]
   > {
     const organizations = await OrganizationRepository.findAllActiveBasicList()
 
