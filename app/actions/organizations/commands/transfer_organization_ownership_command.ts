@@ -1,22 +1,25 @@
-import { type ExecutionContext } from '#types/execution_context'
+import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import { OrganizationRole } from '#constants'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
 import type CreateNotification from '#actions/common/create_notification'
 import { EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
 } from '#constants/notification_constants'
+import { OrganizationRole } from '#constants/organization_constants'
+import { canTransferOwnership } from '#domain/organizations/org_permission_policy'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import type Organization from '#models/organization'
+import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * DTO for transferring organization ownership
@@ -26,12 +29,25 @@ export interface TransferOrganizationOwnershipDTO {
   new_owner_id: DatabaseId
 }
 
+interface OwnershipTransferContext {
+  organization: Organization
+  oldOwnerId: DatabaseId
+  newOwnerRole: string | null
+  isNewOwnerApprovedMember: boolean
+}
+
+interface PersistedOwnershipTransfer {
+  organization: Organization
+  oldOwnerId: DatabaseId
+  newOwnerRole: string | null
+}
+
 /**
  * Command: Transfer Organization Ownership
  *
  * Migrate từ stored procedure: transfer_organization_ownership
  *
- * Pattern: FETCH → DECIDE → PERSIST
+ * Pattern: FETCH → DECIDE → PERSIST → POST-COMMIT
  */
 export default class TransferOrganizationOwnershipCommand {
   constructor(
@@ -39,9 +55,14 @@ export default class TransferOrganizationOwnershipCommand {
     private createNotification: CreateNotification
   ) {}
 
-  async execute(
-    dto: TransferOrganizationOwnershipDTO
-  ): Promise<import('#models/organization').default> {
+  async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
+    const actorId = this.requireActorId()
+    const transfer = await this.persistOwnershipTransferInTransaction(dto, actorId)
+    await this.runPostCommitEffects(transfer, actorId, dto)
+    return transfer.organization
+  }
+
+  private requireActorId(): DatabaseId {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()

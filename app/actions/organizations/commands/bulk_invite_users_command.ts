@@ -1,7 +1,9 @@
-import { type ExecutionContext } from '#types/execution_context'
-import InviteUserCommand from './invite_user_command.js'
 import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+
+import InviteUserCommand from './invite_user_command.js'
+
 import type { DatabaseId } from '#types/database'
+import { type ExecutionContext } from '#types/execution_context'
 
 /**
  * DTO for bulk inviting users
@@ -36,7 +38,12 @@ export default class BulkInviteUsersCommand {
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = new InviteUserDTO(dto.organization_id, email, dto.org_role, dto.message)
+        const inviteDto = InviteUserDTO.fromValidatedPayload({
+          organization_id: dto.organization_id,
+          email,
+          role_id: dto.org_role,
+          message: dto.message,
+        })
 
         await inviteCommand.execute(inviteDto)
         success.push(email)
