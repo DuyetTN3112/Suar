@@ -1,1 +1,4 @@
-pnpm test:unit && pnpm test:match
+export PG_TEST_DATABASE="${PG_TEST_DATABASE:-suar_test}"
+export MONGODB_TEST_URL="${MONGODB_TEST_URL:-mongodb://root:root@127.0.0.1:27017/suar_test?authSource=admin}"
+
+pnpm test:unit && pnpm test:match && pnpm test:integration:safe

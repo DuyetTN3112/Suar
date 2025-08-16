@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminUserReadOps } from '#infra/admin/repositories/read/admin_user_queries'
 import type { ExecutionContext } from '#types/execution_context'
-import AdminUserRepository from '#infra/admin/repositories/admin_user_repository'
 
 /**
  * ListUsersQuery (System Admin)
@@ -18,7 +18,7 @@ export interface ListUsersDTO {
 }
 
 export interface ListUsersResult {
-  data: Array<{
+  data: {
     id: string
     username: string
     email: string | null
@@ -27,7 +27,7 @@ export interface ListUsersResult {
     current_organization_id: string | null
     is_freelancer: boolean
     created_at: string
-  }>
+  }[]
   meta: {
     total: number
     perPage: number
@@ -39,14 +39,14 @@ export interface ListUsersResult {
 export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersResult> {
   constructor(
     execCtx: ExecutionContext,
-    private userRepo = new AdminUserRepository()
+    private userRepo = AdminUserReadOps
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListUsersDTO): Promise<ListUsersResult> {
-    const page = dto.page || 1
-    const perPage = dto.perPage || 50
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
 
     // Fetch from repository (Infrastructure layer)
     const result = await this.userRepo.listUsers(

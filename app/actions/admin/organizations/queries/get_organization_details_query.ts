@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/admin/base_query'
+import { AdminOrganizationReadOps } from '#infra/admin/repositories/read/admin_organization_queries'
 import type { ExecutionContext } from '#types/execution_context'
-import AdminOrganizationRepository from '#infra/admin/repositories/admin_organization_repository'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -59,7 +59,7 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: ExecutionContext,
-    private orgRepo = new AdminOrganizationRepository()
+    private orgRepo = AdminOrganizationReadOps
   ) {
     super(execCtx)
   }
@@ -77,8 +77,8 @@ export default class GetOrganizationDetailsQuery extends BaseQuery<
       slug: org.slug,
       description: org.description,
       partner_type: org.partner_type,
-      created_at: org.created_at.toISO() || new Date().toISOString(),
-      updated_at: org.updated_at.toISO() || new Date().toISOString(),
+      created_at: org.created_at.toISO() ?? new Date().toISOString(),
+      updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
       owner: {
         id: org.owner.id,
         username: org.owner.username,
