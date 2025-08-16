@@ -32,26 +32,33 @@ function makeTaskRecord(overrides: Record<string, unknown> = {}): TaskRecord {
   return {
     id: VALID_UUID_4,
     title: 'Refactor task creation flow',
+    description: 'Flow creates task and persists related records',
+    status: 'todo',
+    task_status_id: VALID_UUID_2,
+    priority: 'medium',
+    assigned_to: null,
+    creator_id: VALID_UUID_3,
+    organization_id: VALID_UUID,
+    project_id: VALID_UUID_3,
     ...overrides,
   }
-
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return state
 }
 
-function makeTaskStatus(overrides: Record<string, unknown> = {}): TaskStatus {
-  const taskStatus = {
+function makeTaskStatus(overrides: Record<string, unknown> = {}): TaskStatusRecord {
+  return {
     id: VALID_UUID_2,
     organization_id: VALID_UUID,
     name: 'Todo',
     slug: 'todo',
     color: '#000000',
     category: 'todo',
+    icon: null,
+    description: null,
+    sort_order: 0,
+    is_default: true,
+    is_system: true,
     ...overrides,
   }
-
-  // @ts-expect-error - partial Lucid model mock for unit tests
-  return taskStatus
 }
 
 function makeExecCtx(): ExecutionContext {
@@ -114,7 +121,19 @@ test.group('Task create persistence support', () => {
             }
             assert.equal(payload.due_date.toISO(), now.plus({ days: 7 }).toISO())
             await Promise.resolve()
-            return makeTask(payload)
+            const task = makeTaskRecord({
+              title: payload.title,
+              creator_id: payload.creator_id,
+              organization_id: payload.organization_id,
+              project_id: payload.project_id,
+            })
+            return {
+              task,
+              auditValues: {
+                id: task.id,
+                title: task.title,
+              },
+            }
           },
         },
         persistTaskRequiredSkills: async (taskId, requiredSkills) => {
@@ -148,6 +167,12 @@ test.group('Task create persistence support', () => {
       entity_type: 'task',
       entity_id: VALID_UUID_4,
     })
+    assert.deepInclude(auditCalls[0], {
+      new_values: {
+        id: VALID_UUID_4,
+        title: 'Refactor task creation flow',
+      },
+    })
   })
 
   test('respects an explicit due date instead of forcing the default window', async ({ assert }) => {
@@ -171,7 +196,19 @@ test.group('Task create persistence support', () => {
             if (DateTime.isDateTime(dueDate)) {
               persistedDueDateIso = dueDate.toISO()
             }
-            return Promise.resolve(makeTask(payload))
+            const task = makeTaskRecord({
+              title: payload.title,
+              creator_id: payload.creator_id,
+              organization_id: payload.organization_id,
+              project_id: payload.project_id,
+            })
+            return Promise.resolve({
+              task,
+              auditValues: {
+                id: task.id,
+                title: task.title,
+              },
+            })
           },
         },
         persistTaskRequiredSkills: () => Promise.resolve(),
