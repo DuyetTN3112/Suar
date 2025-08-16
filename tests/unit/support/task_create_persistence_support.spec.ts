@@ -2,11 +2,10 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import { persistTaskCreateWithinTransaction } from '#actions/tasks/support/task_create_persistence_support'
-import type Task from '#models/task'
-import type TaskStatus from '#models/task_status'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord, TaskStatusRecord } from '#types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -29,16 +28,10 @@ function makeCreateTaskDTO(overrides: Record<string, unknown> = {}): CreateTaskD
   )
 }
 
-function makeTask(overrides: Record<string, unknown> = {}): Task {
-  const state = {
+function makeTaskRecord(overrides: Record<string, unknown> = {}): TaskRecord {
+  return {
     id: VALID_UUID_4,
     title: 'Refactor task creation flow',
-    toJSON() {
-      return {
-        id: VALID_UUID_4,
-        title: 'Refactor task creation flow',
-      }
-    },
     ...overrides,
   }
 

@@ -3,13 +3,17 @@ import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import { throttle } from '#start/limiter'
 
-const ListProjectsController = () => import('#controllers/projects/list_projects_controller')
-const CreateProjectController = () => import('#controllers/projects/create_project_controller')
-const StoreProjectController = () => import('#controllers/projects/store_project_controller')
-const ShowProjectController = () => import('#controllers/projects/show_project_controller')
-const DeleteProjectController = () => import('#controllers/projects/delete_project_controller')
+const ListProjectsController = () =>
+  import('#modules/projects/controllers/list_projects_controller')
+const CreateProjectController = () =>
+  import('#modules/projects/controllers/create_project_controller')
+const StoreProjectController = () =>
+  import('#modules/projects/controllers/store_project_controller')
+const ShowProjectController = () => import('#modules/projects/controllers/show_project_controller')
+const DeleteProjectController = () =>
+  import('#modules/projects/controllers/delete_project_controller')
 const AddProjectMemberController = () =>
-  import('#controllers/projects/add_project_member_controller')
+  import('#modules/projects/controllers/add_project_member_controller')
 
 // Nhóm routes cho dự án, yêu cầu đăng nhập và có tổ chức hiện tại
 router

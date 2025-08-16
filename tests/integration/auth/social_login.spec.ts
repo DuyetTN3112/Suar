@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import SocialLoginCommand from '#actions/auth/commands/social_login_command'
-import User from '#infra/users/models/user'
-import UserOAuthProvider from '#infra/users/models/user_oauth_provider'
-import UserRepository from '#infra/users/repositories/user_repository'
+import SocialLoginCommand from '#modules/auth/actions/commands/social_login_command'
+import User from '#modules/users/infra/models/user'
+import UserOAuthProvider from '#modules/users/infra/models/user_oauth_provider'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'
 import { testEmail } from '#tests/helpers/test_utils'

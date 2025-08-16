@@ -2,11 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import PublishUserProfileSnapshotCommand from '#actions/users/commands/publish_user_profile_snapshot_command'
-import CacheService from '#infra/cache/cache_service'
-import TaskAssignment from '#models/task_assignment'
-import UserProfileSnapshot from '#models/user_profile_snapshot'
-import UserWorkHistory from '#models/user_work_history'
+import CacheService from '#modules/cache/infra/cache_service'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
+import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
+import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   SkillFactory,
@@ -175,7 +175,7 @@ test.group('Integration | Publish User Profile Snapshot', (group) => {
     assert.equal(performanceMetrics.total_tasks_completed, 1)
     assert.equal(workHighlights.length, 1)
     assert.equal(workHighlights[0]?.task_title, 'Delivered feature')
-    assert.include(trustMetrics.tech_stack as string[], 'ts')
+    assert.include(trustMetrics.tech_stack, 'ts')
   })
 
   test('publishes private snapshot with null share fields and invalidates cache after commit', async ({

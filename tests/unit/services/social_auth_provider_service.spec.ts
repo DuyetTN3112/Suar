@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import SocialAuthProviderService, {
   type SocialAuthDriver,
-} from '#infra/oauth/social_auth_provider_service'
+} from '#modules/oauth/infra/social_auth_provider_service'
 
 function fakeDriver(overrides: Partial<SocialAuthDriver> = {}): SocialAuthDriver {
   return {

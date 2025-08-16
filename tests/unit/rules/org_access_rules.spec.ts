@@ -5,7 +5,7 @@ import {
   buildOrganizationDepartmentCoverage,
   getAssignableOrganizationRoles,
   sanitizeCustomRoleDefinitions,
-} from '#domain/organizations/org_access_rules'
+} from '#modules/organizations/domain/org_access_rules'
 
 test.group('Organization access rules', () => {
   test('sanitize custom roles normalizes names, removes duplicates and built-ins, and trims payloads', ({

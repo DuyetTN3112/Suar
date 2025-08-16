@@ -5,28 +5,29 @@ import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
 
 const ListPendingReviewsController = () =>
-  import('#controllers/reviews/list_pending_reviews_controller')
-const ShowReviewController = () => import('#controllers/reviews/show_review_controller')
-const SubmitReviewController = () => import('#controllers/reviews/submit_review_controller')
-const ConfirmReviewController = () => import('#controllers/reviews/confirm_review_controller')
-const MyReviewsController = () => import('#controllers/reviews/my_reviews_controller')
-const UserReviewsController = () => import('#controllers/reviews/user_reviews_controller')
+  import('#modules/reviews/controllers/list_pending_reviews_controller')
+const ShowReviewController = () => import('#modules/reviews/controllers/show_review_controller')
+const SubmitReviewController = () => import('#modules/reviews/controllers/submit_review_controller')
+const ConfirmReviewController = () =>
+  import('#modules/reviews/controllers/confirm_review_controller')
+const MyReviewsController = () => import('#modules/reviews/controllers/my_reviews_controller')
+const UserReviewsController = () => import('#modules/reviews/controllers/user_reviews_controller')
 const CreateReviewSessionController = () =>
-  import('#controllers/reviews/create_review_session_controller')
+  import('#modules/reviews/controllers/create_review_session_controller')
 const SubmitReverseReviewController = () =>
-  import('#controllers/reviews/submit_reverse_review_controller')
+  import('#modules/reviews/controllers/submit_reverse_review_controller')
 const ListFlaggedReviewsController = () =>
-  import('#controllers/reviews/list_flagged_reviews_controller')
+  import('#modules/reviews/controllers/list_flagged_reviews_controller')
 const ResolveFlaggedReviewController = () =>
-  import('#controllers/reviews/resolve_flagged_review_controller')
+  import('#modules/reviews/controllers/resolve_flagged_review_controller')
 const AddReviewEvidenceController = () =>
-  import('#controllers/reviews/add_review_evidence_controller')
+  import('#modules/reviews/controllers/add_review_evidence_controller')
 const UpsertTaskSelfAssessmentController = () =>
-  import('#controllers/reviews/upsert_task_self_assessment_controller')
+  import('#modules/reviews/controllers/upsert_task_self_assessment_controller')
 const GetReviewEvidencesController = () =>
-  import('#controllers/reviews/get_review_evidences_controller')
+  import('#modules/reviews/controllers/get_review_evidences_controller')
 const GetTaskSelfAssessmentController = () =>
-  import('#controllers/reviews/get_task_self_assessment_controller')
+  import('#modules/reviews/controllers/get_task_self_assessment_controller')
 
 router
   .group(() => {

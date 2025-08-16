@@ -1,7 +1,6 @@
 import { test } from '@japa/runner'
 
-import { ReviewSessionStatus } from '#constants/review_constants'
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#constants/user_constants'
+import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import {
   calculateWeightedTrustScore,
   calculateCredibilityScore,
@@ -15,7 +14,8 @@ import {
   mapWeightedScoreToLevelCode,
   calculatePerformanceScore,
   calculateTrustScoreV2,
-} from '#domain/reviews/review_formulas'
+} from '#modules/reviews/domain/review_formulas'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/constants/user_constants'
 
 test.group('Review formulas', () => {
   test('trust, credibility, raw score, and tier math preserve canonical weighting contracts', ({

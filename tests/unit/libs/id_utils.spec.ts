@@ -32,7 +32,7 @@ test.group('ID utils', () => {
     assert,
   }) => {
     for (const value of [undefined, null, '', '123', 'not-a-uuid']) {
-      assert.throws(() => parseId(value as never))
+      assert.throws(() => parseId(value))
     }
     assert.isFalse(isValidId('invalid'))
     assert.isFalse(isValidId(42))

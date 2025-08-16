@@ -6,9 +6,9 @@ import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import env from '#start/env'
 import mongoose from 'mongoose'
-import { MongoAuditLogModel } from '#infra/audit/models/audit_log'
-import MongoNotification from '#infra/notifications/models/notification'
-import MongoUserActivityLog from '#infra/user_activity/models/user_activity_log'
+import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
+import MongoNotification from '#modules/notifications/infra/models/notification'
+import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
 
 type UserKey =
   | 'owner'

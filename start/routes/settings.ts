@@ -4,18 +4,18 @@ import { middleware } from '../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-const ShowSettingsController = () => import('#controllers/settings/show_settings_controller')
-const UpdateSettingsController = () => import('#controllers/settings/update_settings_controller')
+const ShowSettingsController = () => import('#modules/settings/controllers/show_settings_controller')
+const UpdateSettingsController = () => import('#modules/settings/controllers/update_settings_controller')
 const UpdateProfileSettingsController = () =>
-  import('#controllers/settings/update_profile_settings_controller')
+  import('#modules/settings/controllers/update_profile_settings_controller')
 const UpdateAccountSettingsController = () =>
-  import('#controllers/settings/update_account_settings_controller')
+  import('#modules/settings/controllers/update_account_settings_controller')
 const UpdateAppearanceSettingsController = () =>
-  import('#controllers/settings/update_appearance_settings_controller')
+  import('#modules/settings/controllers/update_appearance_settings_controller')
 const UpdateDisplaySettingsController = () =>
-  import('#controllers/settings/update_display_settings_controller')
+  import('#modules/settings/controllers/update_display_settings_controller')
 const UpdateNotificationSettingsController = () =>
-  import('#controllers/settings/update_notification_settings_controller')
+  import('#modules/settings/controllers/update_notification_settings_controller')
 
 router
   .group(() => {

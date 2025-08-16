@@ -6,46 +6,50 @@ import { middleware } from '../kernel.js'
 import { throttle } from '#start/limiter'
 
 // Users — use-case controllers
-const ListUsersController = () => import('#controllers/users/list_users_controller')
-const CreateUserController = () => import('#controllers/users/create_user_controller')
-const StoreUserController = () => import('#controllers/users/store_user_controller')
-const ShowUserController = () => import('#controllers/users/show_user_controller')
-const EditUserController = () => import('#controllers/users/edit_user_controller')
-const UpdateUserController = () => import('#controllers/users/update_user_controller')
-const DeleteUserController = () => import('#controllers/users/delete_user_controller')
-const ApproveUserController = () => import('#controllers/users/approve_user_controller')
-const UpdateUserRoleController = () => import('#controllers/users/update_user_role_controller')
+const ListUsersController = () => import('#modules/users/controllers/list_users_controller')
+const CreateUserController = () => import('#modules/users/controllers/create_user_controller')
+const StoreUserController = () => import('#modules/users/controllers/store_user_controller')
+const ShowUserController = () => import('#modules/users/controllers/show_user_controller')
+const EditUserController = () => import('#modules/users/controllers/edit_user_controller')
+const UpdateUserController = () => import('#modules/users/controllers/update_user_controller')
+const DeleteUserController = () => import('#modules/users/controllers/delete_user_controller')
+const ApproveUserController = () => import('#modules/users/controllers/approve_user_controller')
+const UpdateUserRoleController = () =>
+  import('#modules/users/controllers/update_user_role_controller')
 const PendingApprovalUsersController = () =>
-  import('#controllers/users/pending_approval_users_controller')
+  import('#modules/users/controllers/pending_approval_users_controller')
 const PendingApprovalUsersApiController = () =>
-  import('#controllers/users/pending_approval_users_api_controller')
+  import('#modules/users/controllers/pending_approval_users_api_controller')
 const PendingApprovalCountApiController = () =>
-  import('#controllers/users/pending_approval_count_api_controller')
-const SystemUsersApiController = () => import('#controllers/users/system_users_api_controller')
+  import('#modules/users/controllers/pending_approval_count_api_controller')
+const SystemUsersApiController = () =>
+  import('#modules/users/controllers/system_users_api_controller')
 
 // Profile — use-case controllers
-const ShowProfileController = () => import('#controllers/users/show_profile_controller')
-const EditProfileController = () => import('#controllers/users/edit_profile_controller')
+const ShowProfileController = () => import('#modules/users/controllers/show_profile_controller')
+const EditProfileController = () => import('#modules/users/controllers/edit_profile_controller')
 const UpdateProfileDetailsController = () =>
-  import('#controllers/users/update_profile_details_controller')
-const AddProfileSkillController = () => import('#controllers/users/add_profile_skill_controller')
+  import('#modules/users/controllers/update_profile_details_controller')
+const AddProfileSkillController = () =>
+  import('#modules/users/controllers/add_profile_skill_controller')
 const UpdateProfileSkillController = () =>
-  import('#controllers/users/update_profile_skill_controller')
+  import('#modules/users/controllers/update_profile_skill_controller')
 const RemoveProfileSkillController = () =>
-  import('#controllers/users/remove_profile_skill_controller')
-const ViewUserProfileController = () => import('#controllers/users/view_user_profile_controller')
+  import('#modules/users/controllers/remove_profile_skill_controller')
+const ViewUserProfileController = () =>
+  import('#modules/users/controllers/view_user_profile_controller')
 const PublishProfileSnapshotController = () =>
-  import('#controllers/users/publish_profile_snapshot_controller')
+  import('#modules/users/controllers/publish_profile_snapshot_controller')
 const GetPublicProfileSnapshotController = () =>
-  import('#controllers/users/get_public_profile_snapshot_controller')
+  import('#modules/users/controllers/get_public_profile_snapshot_controller')
 const GetCurrentProfileSnapshotController = () =>
-  import('#controllers/users/get_current_profile_snapshot_controller')
+  import('#modules/users/controllers/get_current_profile_snapshot_controller')
 const GetProfileSnapshotHistoryController = () =>
-  import('#controllers/users/get_profile_snapshot_history_controller')
+  import('#modules/users/controllers/get_profile_snapshot_history_controller')
 const UpdateProfileSnapshotAccessController = () =>
-  import('#controllers/users/update_profile_snapshot_access_controller')
+  import('#modules/users/controllers/update_profile_snapshot_access_controller')
 const RotateProfileSnapshotShareLinkController = () =>
-  import('#controllers/users/rotate_profile_snapshot_share_link_controller')
+  import('#modules/users/controllers/rotate_profile_snapshot_share_link_controller')
 
 router
   .group(() => {

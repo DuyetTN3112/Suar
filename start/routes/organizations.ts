@@ -6,32 +6,35 @@ import { throttle } from '#start/limiter'
 
 // Organization use-case controllers
 const ListOrganizationsController = () =>
-  import('#controllers/organizations/list_organizations_controller')
+  import('#modules/organizations/controllers/list_organizations_controller')
 const ShowOrganizationController = () =>
-  import('#controllers/organizations/show_organization_controller')
+  import('#modules/organizations/controllers/show_organization_controller')
 const CreateOrganizationController = () =>
-  import('#controllers/organizations/create_organization_controller')
+  import('#modules/organizations/controllers/create_organization_controller')
 const SwitchAndRedirectController = () =>
-  import('#controllers/organizations/switch_and_redirect_controller')
+  import('#modules/organizations/controllers/switch_and_redirect_controller')
 const AllOrganizationsController = () =>
-  import('#controllers/organizations/all_organizations_controller')
+  import('#modules/organizations/controllers/all_organizations_controller')
 const JoinOrganizationController = () =>
-  import('#controllers/organizations/join_organization_controller')
+  import('#modules/organizations/controllers/join_organization_controller')
 const ApiListOrganizationsController = () =>
-  import('#controllers/organizations/api_list_organizations_controller')
-const ListMembersController = () => import('#controllers/organizations/list_members_controller')
+  import('#modules/organizations/controllers/api_list_organizations_controller')
+const ListMembersController = () =>
+  import('#modules/organizations/controllers/list_members_controller')
 const PendingRequestsController = () =>
-  import('#controllers/organizations/pending_requests_controller')
-const AddMemberController = () => import('#controllers/organizations/add_member_controller')
-const InviteMemberController = () => import('#controllers/organizations/invite_member_controller')
+  import('#modules/organizations/controllers/pending_requests_controller')
+const AddMemberController = () => import('#modules/organizations/controllers/add_member_controller')
+const InviteMemberController = () =>
+  import('#modules/organizations/controllers/invite_member_controller')
 const ProcessJoinRequestController = () =>
-  import('#controllers/organizations/process_join_request_controller')
+  import('#modules/organizations/controllers/process_join_request_controller')
 const AddDirectMemberController = () =>
-  import('#controllers/organizations/add_direct_member_controller')
-const RemoveMemberController = () => import('#controllers/organizations/remove_member_controller')
+  import('#modules/organizations/controllers/add_direct_member_controller')
+const RemoveMemberController = () =>
+  import('#modules/organizations/controllers/remove_member_controller')
 const UpdateMemberRoleController = () =>
-  import('#controllers/organizations/update_member_role_controller')
-const AddUsersController = () => import('#controllers/organizations/add_users_controller')
+  import('#modules/organizations/controllers/update_member_role_controller')
+const AddUsersController = () => import('#modules/organizations/controllers/add_users_controller')
 
 // Route hiển thị tất cả tổ chức (không phụ thuộc vào người dùng)
 router
@@ -125,7 +128,7 @@ router
   .use([middleware.auth(), throttle])
 
 const SwitchOrganizationController = () =>
-  import('#controllers/organizations/switch_organization_controller')
+  import('#modules/organizations/controllers/switch_organization_controller')
 
 // API chuyển tổ chức
 router

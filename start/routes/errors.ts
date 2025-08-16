@@ -1,6 +1,6 @@
 import router from '@adonisjs/core/services/router'
 
-const ErrorController = () => import('#controllers/errors/error_controller')
+const ErrorController = () => import('#modules/errors/controllers/error_controller')
 
 /**
  * Routes cho các trang lỗi hoặc thông báo
