@@ -1,11 +1,16 @@
-import { BaseCommand } from '#actions/shared/base_command'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
+
+import { BaseCommand } from '#actions/shared/base_command'
+import {
+  calculateTrustScoreV2,
+  determineTier,
+  mapLevelCodeToNumber,
+} from '#domain/reviews/review_formulas'
+import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
 import type { DatabaseId } from '#types/database'
-import { calculateTrustScoreV2, determineTier } from '#domain/reviews/review_formulas'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for CalculateTrustScore
@@ -39,16 +44,6 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
 > {
   private static readonly TRUST_SCORING_VERSION = 'trust_v2'
 
-  private mapLevelCodeToNumber(levelCode: string): number {
-    const map: Record<string, number> = {
-      beginner: 1,
-      elementary: 2,
-      junior: 3,
-      middle: 4,
-      senior: 5,
-      lead: 6,
-      principal: 7,
-      master: 8,
     }
 
     return map[levelCode] ?? 1

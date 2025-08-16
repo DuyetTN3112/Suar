@@ -1,6 +1,6 @@
 import { ProjectRole } from '#constants/project_constants'
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO for adding a member to a project
@@ -25,7 +25,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
 
     this.project_id = data.project_id
     this.user_id = data.user_id
-    this.project_role = data.project_role || ProjectRole.MEMBER
+    this.project_role = data.project_role ?? ProjectRole.MEMBER
   }
 
   /**
@@ -87,8 +87,8 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
    * Get audit log message
    */
   public getAuditMessage(userName?: string, roleName?: string): string {
-    const userInfo = userName || `User ID ${this.user_id}`
-    const roleInfo = roleName || this.project_role
+    const userInfo = userName ?? `User ID ${this.user_id}`
+    const roleInfo = roleName ?? this.project_role
     return `Thêm ${userInfo} vào dự án với vai trò ${roleInfo}`
   }
 }

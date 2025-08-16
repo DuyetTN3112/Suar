@@ -86,12 +86,19 @@ export default class UpdateProjectCommand extends BaseCommand<
 
       return {
         project,
-
-      // 8. Invalidate project caches after commit
-      void CacheService.deleteByPattern(`organization:tasks:*`)
-
-      return project
+        projectUpdatedEvent: {
+          project,
+          updatedBy: userId,
+          changes: updateData,
+        },
+      }
     })
+
+    // Side-effects are post-commit to avoid firing on rollback.
+    void emitter.emit('project:updated', result.projectUpdatedEvent)
+    void CacheService.deleteByPattern(`organization:tasks:*`)
+
+    return result.project
   }
 
   /**

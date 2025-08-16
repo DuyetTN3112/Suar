@@ -8,13 +8,14 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
 import {
   ProjectDetailResponseDTO,
   ProjectListItemResponseDTO,
   ProjectSummaryResponseDTO,
 } from '../dtos/response/project_response_dtos.js'
+
+import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 
 export class ProjectApplicationMapper {
   private readonly __instanceMarker = true
@@ -54,50 +55,20 @@ export class ProjectApplicationMapper {
    * Domain Entity → ProjectDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: ProjectEntity): ProjectDetailResponseDTO {
-    return new ProjectDetailResponseDTO(
-      entity.id,
-      entity.creatorId,
-      entity.name,
-      entity.description,
-      entity.organizationId,
-      entity.startDate,
-      entity.endDate,
-      entity.status,
-      entity.budget,
-      entity.managerId,
-      entity.ownerId,
-      entity.visibility,
-      entity.allowFreelancer,
-      entity.approvalRequiredForMembers,
-      entity.tags,
-      entity.customRoles,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return ProjectDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → ProjectListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: ProjectEntity): ProjectListItemResponseDTO {
-    return new ProjectListItemResponseDTO(
-      entity.id,
-      entity.name,
-      entity.description,
-      entity.status,
-      entity.visibility,
-      entity.allowFreelancer,
-      entity.budget,
-      entity.startDate,
-      entity.endDate,
-      entity.createdAt
-    )
+    return ProjectListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → ProjectSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: ProjectEntity): ProjectSummaryResponseDTO {
-    return new ProjectSummaryResponseDTO(entity.id, entity.name, entity.status, entity.visibility)
+    return ProjectSummaryResponseDTO.fromEntity(entity)
   }
 }
