@@ -288,62 +288,9 @@ export default class GetTasksListDTO {
   }
 
   public getCacheKey(): string {
-    const filterParts: string[] = [
-      `org:${this.organization_id}`,
-      `page:${this.page}`,
-      `limit:${this.limit}`,
-    ]
-
-    if (this.hasStatusFilter() && this.task_status_id !== undefined) {
-      filterParts.push(`task_status_id:${this.task_status_id}`)
-    }
-
-    if (this.hasPriorityFilter() && this.priority !== undefined) {
-      filterParts.push(`priority:${this.priority}`)
-    }
-
-    if (this.hasLabelFilter() && this.label !== undefined) {
-      filterParts.push(`label:${this.label}`)
-    }
-
-    if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
-      filterParts.push(`assignee:${this.assigned_to}`)
-    }
-
-    if (this.hasParentFilter() && this.parent_task_id !== undefined) {
-      filterParts.push(`parent:${this.parent_task_id ?? 'none'}`)
-    }
-
-    if (this.hasProjectFilter() && this.project_id !== undefined) {
-      filterParts.push(`project:${this.project_id}`)
-    }
-
-    if (this.hasSearch() && this.search) {
-      // Hash search term để tránh cache key quá dài
-      filterParts.push(`search:${this.hashString(this.search)}`)
-    }
-
-    filterParts.push(`sort:${this.sort_by ?? 'due_date'}:${this.sort_order ?? 'asc'}`)
-
-    return `tasks:list:${filterParts.join(':')}`
+    return buildTasksListCacheKey(this)
   }
 
-  /**
-   * Simple hash function cho string
-   */
-  private hashString(str: string): string {
-    let hash = 0
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i)
-      hash = (hash << 5) - hash + char
-      hash = hash & hash // Convert to 32bit integer
-    }
-    return Math.abs(hash).toString(36)
-  }
-
-  /**
-   * Convert DTO thành object để log hoặc debug
-   */
   public toObject(): Record<string, unknown> {
     return {
       page: this.page,
@@ -362,52 +309,7 @@ export default class GetTasksListDTO {
     }
   }
 
-  /**
-   * Lấy tóm tắt filters đang apply
-   */
   public getFiltersSummary(): string {
-    if (!this.hasFilters()) {
-      return 'Không có filter'
-    }
-
-    const filters: string[] = []
-
-    if (this.hasStatusFilter() && this.task_status_id !== undefined) {
-      filters.push(`Task status: ${this.task_status_id}`)
-    }
-
-    if (this.hasPriorityFilter() && this.priority !== undefined) {
-      filters.push(`Priority: ${this.priority}`)
-    }
-
-    if (this.hasLabelFilter() && this.label !== undefined) {
-      filters.push(`Label: ${this.label}`)
-    }
-
-    if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
-      filters.push(`Assignee: ${this.assigned_to}`)
-    }
-
-    if (
-      this.isSubtasksOnly() &&
-      this.parent_task_id !== undefined &&
-      this.parent_task_id !== null
-    ) {
-      filters.push(`Subtasks of: ${this.parent_task_id}`)
-    }
-
-    if (this.isRootTasksOnly()) {
-      filters.push('Root tasks only')
-    }
-
-    if (this.hasProjectFilter() && this.project_id !== undefined) {
-      filters.push(`Project: ${this.project_id}`)
-    }
-
-    if (this.hasSearch() && this.search) {
-      filters.push(`Search: "${this.search}"`)
-    }
-
-    return filters.join(', ')
+    return buildTaskFilterSummary(this)
   }
 }

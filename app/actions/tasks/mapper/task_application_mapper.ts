@@ -8,7 +8,6 @@
  *   Read:  Domain Entity → Response DTO
  */
 
-import { type TaskEntity } from '#domain/tasks/entities/task_entity'
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
 import {
@@ -16,6 +15,8 @@ import {
   TaskListItemResponseDTO,
   TaskSummaryResponseDTO,
 } from '../dtos/response/task_response_dtos.js'
+
+import { type TaskEntity } from '#domain/tasks/entities/task_entity'
 
 export class TaskApplicationMapper {
   private readonly __instanceMarker = true
@@ -104,58 +105,20 @@ export class TaskApplicationMapper {
    * Domain Entity → TaskDetailResponseDTO (full detail view)
    */
   static toDetailResponse(entity: TaskEntity): TaskDetailResponseDTO {
-    return new TaskDetailResponseDTO(
-      entity.id,
-      entity.title,
-      entity.description,
-      entity.status,
-      entity.taskStatusId,
-      entity.label,
-      entity.priority,
-      entity.difficulty,
-      entity.assignedTo,
-      entity.creatorId,
-      entity.updatedBy,
-      entity.dueDate,
-      entity.parentTaskId,
-      entity.estimatedTime,
-      entity.actualTime,
-      entity.organizationId,
-      entity.projectId,
-      entity.taskVisibility,
-      entity.applicationDeadline,
-      entity.estimatedBudget,
-      entity.externalApplicationsCount,
-      entity.sortOrder,
-      entity.createdAt,
-      entity.updatedAt
-    )
+    return TaskDetailResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → TaskListItemResponseDTO (list view)
    */
   static toListItemResponse(entity: TaskEntity): TaskListItemResponseDTO {
-    return new TaskListItemResponseDTO(
-      entity.id,
-      entity.title,
-      entity.status,
-      entity.label,
-      entity.priority,
-      entity.difficulty,
-      entity.assignedTo,
-      entity.dueDate,
-      entity.organizationId,
-      entity.projectId,
-      entity.sortOrder,
-      entity.createdAt
-    )
+    return TaskListItemResponseDTO.fromEntity(entity)
   }
 
   /**
    * Domain Entity → TaskSummaryResponseDTO (minimal reference)
    */
   static toSummaryResponse(entity: TaskEntity): TaskSummaryResponseDTO {
-    return new TaskSummaryResponseDTO(entity.id, entity.title, entity.status, entity.priority)
+    return TaskSummaryResponseDTO.fromEntity(entity)
   }
 }
