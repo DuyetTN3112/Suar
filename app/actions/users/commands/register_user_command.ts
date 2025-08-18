@@ -8,10 +8,8 @@ import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
 import { SystemRoleName } from '#constants/user_constants'
 import UserRepository from '#infra/users/repositories/user_repository'
 import type User from '#models/user'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { SystemRoleName } from '#constants/user_constants'
-import emitter from '@adonisjs/core/services/emitter'
-import UserRepository from '#infra/users/repositories/user_repository'
+
+
 
 /**
  * RegisterUserCommand
@@ -34,24 +32,28 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
    * Uses transaction to ensure data consistency
    */
   async handle(dto: RegisterUserDTO): Promise<User> {
-    return await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       // Create user account
       const user = await this.createUserAccount(dto, trx)
 
       // Log audit trail
       await this.logAudit('create', 'user', user.id, undefined, user.toJSON())
 
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId: user.id,
-        action: 'create',
-        entityType: 'user',
-        entityId: user.id,
-        newValues: { username: dto.username, email: dto.email },
-      })
-
-      return user
+      return {
+        user,
+        auditEvent: {
+          userId: user.id,
+          action: 'create',
+          entityType: 'user',
+          entityId: user.id,
+          newValues: { username: dto.username, email: dto.email },
+        },
+      }
     })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.user
   }
 
   /**
