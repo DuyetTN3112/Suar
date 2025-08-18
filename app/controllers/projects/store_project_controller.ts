@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import { DateTime } from 'luxon'
+
+import { buildCreateProjectDTO } from './mappers/request/project_request_mapper.js'
+
 import CreateProjectCommand from '#actions/projects/commands/create_project_command'
-import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
-import { ProjectVisibility } from '#constants/project_constants'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /projects → Store new project
@@ -11,7 +11,7 @@ import { ProjectVisibility } from '#constants/project_constants'
 export default class StoreProjectController {
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const dto = this.buildCreateDTO(request)
+    const dto = buildCreateProjectDTO(request, request.input('organization_id') as string)
     const command = new CreateProjectCommand(ExecutionContext.fromHttp(ctx))
     const project = await command.handle(dto)
 

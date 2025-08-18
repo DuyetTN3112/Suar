@@ -1,9 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildBulkAddMembersDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+
 import BulkAddMembersCommand from '#actions/organizations/commands/bulk_add_members_command'
-import { BulkAddMembersDTO } from '#actions/organizations/dtos/request/bulk_add_members_dto'
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#constants/error_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/users/add
@@ -19,21 +22,18 @@ export default class AddUsersController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const userIds = request.input('user_ids', []) as string[]
-
-    // Build DTO (validates inside constructor)
-    const dto = new BulkAddMembersDTO(organizationId, userIds, user.id)
+    const dto = buildBulkAddMembersDTO(request, organizationId, user.id)
 
     // Execute command (permission check + bulk add inside)
     const command = new BulkAddMembersCommand(ExecutionContext.fromHttp(ctx))
     const { results, addedCount } = await command.execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
-      response.json({
-        success: true,
-        message: `Đã thêm ${addedCount} người dùng vào tổ chức thành công`,
-        results,
-      })
+      response.json(
+        mapOrganizationSuccessApiBody(`Đã thêm ${addedCount} người dùng vào tổ chức thành công`, {
+          results,
+        })
+      )
       return
     }
 

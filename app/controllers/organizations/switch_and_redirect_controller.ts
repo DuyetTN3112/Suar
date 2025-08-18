@@ -1,8 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+
 import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
 import { PageRoutes } from '#constants/route_constants'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * POST /organizations/:id/switch — switch current organization

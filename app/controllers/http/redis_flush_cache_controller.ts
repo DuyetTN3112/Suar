@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import FlushCacheCommand from '#actions/common/commands/flush_cache_command'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * DELETE /api/redis/flush → Flush all cache

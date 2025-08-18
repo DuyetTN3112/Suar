@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
 import ListUsersQuery from '#actions/admin/users/queries/list_users_query'
+import { ExecutionContext } from '#types/execution_context'
+
+const ADMIN_USERS_PER_PAGE = 50
 
 /**
  * ListUsersController
@@ -39,7 +42,7 @@ export default class ListUsersController {
 
     const result = await query.handle({
       page,
-      perPage: 50,
+      perPage: ADMIN_USERS_PER_PAGE,
       search,
       systemRole,
       status,
