@@ -18,31 +18,4 @@ export default class StoreProjectController {
     session.flash('success', 'Dự án đã được tạo thành công')
     response.redirect().toRoute('projects.show', { id: project.id })
   }
-
-  private buildCreateDTO(request: HttpContext['request']): CreateProjectDTO {
-    const visibilityInput = request.input('visibility') as string | undefined
-
-    const validVisibilities = Object.values(ProjectVisibility) as string[]
-    const visibility: ProjectVisibility | undefined = validVisibilities.includes(
-      visibilityInput as string
-    )
-      ? (visibilityInput as ProjectVisibility)
-      : undefined
-
-    return new CreateProjectDTO({
-      name: request.input('name') as string,
-      description: request.input('description') as string | undefined,
-      organization_id: request.input('organization_id') as string,
-      status: request.input('status') as string | undefined,
-      start_date: request.input('start_date')
-        ? DateTime.fromISO(String(request.input('start_date')))
-        : null,
-      end_date: request.input('end_date')
-        ? DateTime.fromISO(String(request.input('end_date')))
-        : null,
-      manager_id: request.input('manager_id') as string | undefined,
-      visibility,
-      budget: request.input('budget') as number | undefined,
-    })
-  }
 }

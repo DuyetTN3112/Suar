@@ -1,6 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { ExecutionContext } from '#types/execution_context'
+
+import { buildPendingReviewsInput } from './mappers/request/review_request_mapper.js'
+import { mapPendingReviewsPageProps } from './mappers/response/review_response_mapper.js'
+
 import GetPendingReviewsQuery from '#actions/reviews/queries/get_pending_reviews_query'
+import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /reviews/pending → List pending reviews for current user
@@ -10,14 +14,8 @@ export default class ListPendingReviewsController {
     const { request, inertia } = ctx
 
     const query = new GetPendingReviewsQuery(ExecutionContext.fromHttp(ctx))
-    const result = await query.handle({
-      page: request.input('page', 1) as number,
-      per_page: request.input('per_page', 20) as number,
-    })
+    const result = await query.handle(buildPendingReviewsInput(request))
 
-    return inertia.render('reviews/pending', {
-      reviews: result.data.map((r) => r.serialize()),
-      meta: result.meta,
-    })
+    return inertia.render('reviews/pending', mapPendingReviewsPageProps(result))
   }
 }
