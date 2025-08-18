@@ -73,4 +73,70 @@ export default class UpdateTaskTimeCommand {
       throw error
     }
   }
+
+  private async ensureTimeUpdatePermission(
+    task: Task,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    enforcePolicy(canUpdateTaskTime(permissionContext))
+  }
+
+  private async persistTaskTimeUpdate(
+    task: Task,
+    dto: UpdateTaskTimeDTO,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<PersistedTaskTimeUpdate> {
+    const oldValues = {
+      estimated_time: task.estimated_time,
+      actual_time: task.actual_time,
+    }
+
+    task.merge(dto.toObject())
+    task.updated_by = userId
+    await TaskRepository.save(task, trx)
+    await this.recordTaskTimeUpdatedAudit(task, oldValues, userId)
+
+    return {
+      task,
+      oldValues,
+    }
+  }
+
+  private async recordTaskTimeUpdatedAudit(
+    task: Task,
+    oldValues: PersistedTaskTimeUpdate['oldValues'],
+    userId: DatabaseId
+  ): Promise<void> {
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: userId,
+      action: AuditAction.UPDATE_TIME,
+      entity_type: EntityType.TASK,
+      entity_id: task.id,
+      old_values: oldValues,
+      new_values: {
+        estimated_time: task.estimated_time,
+        actual_time: task.actual_time,
+      },
+    })
+  }
+
+  private async runPostCommitEffects(
+    updateResult: PersistedTaskTimeUpdate,
+    userId: DatabaseId
+  ): Promise<void> {
+    await CacheService.deleteByPattern(`task:${updateResult.task.id}:*`)
+
+    void emitter.emit('task:updated', {
+      task: updateResult.task,
+      updatedBy: userId,
+      changes: {
+        estimated_time: updateResult.task.estimated_time,
+        actual_time: updateResult.task.actual_time,
+      },
+      previousValues: updateResult.oldValues,
+    })
+  }
 }

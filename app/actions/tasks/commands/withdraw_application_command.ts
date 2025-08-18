@@ -1,11 +1,12 @@
+import emitter from '@adonisjs/core/services/emitter'
+
 import { BaseCommand } from '#actions/shared/base_command'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
-import CacheService from '#services/cache_service'
-import emitter from '@adonisjs/core/services/emitter'
 import { ApplicationStatus } from '#constants/task_constants'
+import NotFoundException from '#exceptions/not_found_exception'
+import CacheService from '#infra/cache/cache_service'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import NotFoundException from '#exceptions/not_found_exception'
 
 /**
  * WithdrawApplicationCommand
@@ -15,7 +16,7 @@ import NotFoundException from '#exceptions/not_found_exception'
  */
 export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
-    await this.executeInTransaction(async (trx) => {
+    const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Get application
@@ -29,7 +30,7 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         throw new NotFoundException('Application không tồn tại hoặc không thể rút')
       }
 
-      const task = application.task
+      const task = await TaskRepository.findActiveOrFail(application.task_id, trx)
 
       // Update status
       application.application_status = ApplicationStatus.WITHDRAWN
@@ -47,17 +48,19 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
         task_title: task.title,
       })
 
-      // Invalidate cache
-      await CacheService.deleteByPattern(`task:${task.id}:*`)
-
-      // Emit audit event
-      void emitter.emit('audit:log', {
-        userId,
-        action: 'withdraw_application',
-        entityType: 'task_application',
-        entityId: application.id,
-        newValues: { task_id: task.id },
-      })
+      return {
+        cachePattern: `task:${task.id}:*`,
+        auditEvent: {
+          userId,
+          action: 'withdraw_application',
+          entityType: 'task_application',
+          entityId: application.id,
+          newValues: { task_id: task.id },
+        },
+      }
     })
+
+    await CacheService.deleteByPattern(result.cachePattern)
+    void emitter.emit('audit:log', result.auditEvent)
   }
 }

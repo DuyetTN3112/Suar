@@ -1,5 +1,5 @@
-import type { DatabaseId } from '#types/database'
 import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * DTO cho việc xóa task
@@ -79,7 +79,7 @@ export default class DeleteTaskDTO {
   public toObject(): Record<string, unknown> {
     return {
       task_id: this.task_id,
-      reason: this.reason || null,
+      reason: this.reason ?? null,
       permanent: this.permanent,
       delete_type: this.getDeleteType(),
     }
