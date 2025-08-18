@@ -1,6 +1,12 @@
 import { inject } from '@adonisjs/core'
+import emitter from '@adonisjs/core/services/emitter'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
 import { BaseCommand } from '../../shared/base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
+
+import { SystemRoleName } from '#constants/user_constants'
+import UserRepository from '#infra/users/repositories/user_repository'
 import type User from '#models/user'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { SystemRoleName } from '#constants/user_constants'
