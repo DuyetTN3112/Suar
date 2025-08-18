@@ -1,6 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import { baseQuery } from './shared.js'
+
+import type { DatabaseId } from '#types/database'
 
 export const paginatePublicTasks = async (
   filters: {

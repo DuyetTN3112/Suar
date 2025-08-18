@@ -6,13 +6,15 @@
  * Maps ORM entities to domain entities using UserInfraMapper.
  */
 
-import type { UserRepository } from '#domain/users/repositories/user_repository_interface'
-import type { UserEntity } from '#domain/users/entities/user_entity'
-import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
-import User from '#models/user'
 import { SystemRoleName } from '#constants'
-import type { DatabaseId } from '#types/database'
+
+import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
+
+import type { UserEntity } from '#domain/users/entities/user_entity'
+import type { UserRepository } from '#domain/users/repositories/user_repository_interface'
 import NotFoundException from '#exceptions/not_found_exception'
+import User from '#models/user'
+import type { DatabaseId } from '#types/database'
 
 export class UserRepositoryImpl implements UserRepository {
   async findById(id: DatabaseId): Promise<UserEntity | null> {

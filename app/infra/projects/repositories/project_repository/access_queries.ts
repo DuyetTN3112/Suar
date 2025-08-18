@@ -1,8 +1,11 @@
 import db from '@adonisjs/lucid/services/db'
-import type { DatabaseId } from '#types/database'
+
 import { ProjectStatus } from '#constants'
-import { PAGINATION } from '#constants/common_constants'
+
 import { getCountValue, isRawRecord } from './shared.js'
+
+import { PAGINATION } from '#constants/common_constants'
+import type { DatabaseId } from '#types/database'
 
 export const paginateByUserAccess = async (
   userId: DatabaseId,
@@ -19,11 +22,11 @@ export const paginateByUserAccess = async (
     sort_order?: 'asc' | 'desc'
   }
 ): Promise<{ data: Record<string, unknown>[]; total: number }> => {
-  const page = filters.page || 1
-  const limit = filters.limit || PAGINATION.DEFAULT_PER_PAGE
+  const page = filters.page ?? 1
+  const limit = filters.limit ?? PAGINATION.DEFAULT_PER_PAGE
   const offset = (page - 1) * limit
-  const sortBy = filters.sort_by || 'created_at'
-  const sortOrder = filters.sort_order || 'desc'
+  const sortBy = filters.sort_by ?? 'created_at'
+  const sortOrder = filters.sort_order ?? 'desc'
 
   let query = db
     .from('projects as p')

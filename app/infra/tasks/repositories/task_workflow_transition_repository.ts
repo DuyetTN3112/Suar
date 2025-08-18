@@ -1,6 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
+
 import TaskWorkflowTransition from '#models/task_workflow_transition'
+import type { DatabaseId } from '#types/database'
 
 /**
  * TaskWorkflowTransitionRepository

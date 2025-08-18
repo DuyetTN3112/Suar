@@ -101,3 +101,39 @@ export function resolveConfirmationCounters(
     total: newTotal,
   }
 }
+
+/**
+ * Check whether review session exists for authorization-sensitive flows.
+ */
+export function canAccessReviewSession(ctx: { sessionExists: boolean }): PolicyResult {
+  if (ctx.sessionExists) return PR.allow()
+
+  return PR.deny('Review session không tồn tại')
+}
+
+/**
+ * Check whether actor can submit/update self assessment in a review session.
+ */
+export function canUpsertTaskSelfAssessment(ctx: {
+  actorId: DatabaseId
+  sessionRevieweeId: DatabaseId
+}): PolicyResult {
+  if (isSameId(ctx.actorId, ctx.sessionRevieweeId)) return PR.allow()
+
+  return PR.deny('Chỉ reviewee mới được tự đánh giá')
+}
+
+/**
+ * Check whether actor can attach evidence to a review session.
+ */
+export function canAddReviewEvidence(ctx: {
+  actorId: DatabaseId
+  sessionRevieweeId: DatabaseId
+  hasSubmittedReview: boolean
+}): PolicyResult {
+  if (isSameId(ctx.actorId, ctx.sessionRevieweeId) || ctx.hasSubmittedReview) {
+    return PR.allow()
+  }
+
+  return PR.deny('Bạn không có quyền thêm evidence cho review này')
+}
