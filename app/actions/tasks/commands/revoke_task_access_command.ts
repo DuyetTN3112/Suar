@@ -196,87 +196,14 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
         plan.revokerId
       )
 
-      const permissionContext = await buildTaskPermissionContext(userId, assignmentRecord.task, trx)
-      enforcePolicy(canRevokeTaskAccess(permissionContext))
-
-      // 4. Update assignment status → delegate to Model
-      await TaskAssignmentRepository.cancelAssignment(
-        dto.assignment_id,
-        `REVOKED - Lý do: ${dto.reason} | Revoked by user_id: ${userId} | Revoked at: ${new Date().toISOString()}`,
-        trx
-      )
-
-      // 5. Log audit
-      await this.logAudit(
-        AuditAction.REVOKE_ACCESS,
-        EntityType.TASK_ASSIGNMENT,
-        dto.assignment_id,
-        {
-          status: AssignmentStatus.ACTIVE,
-          assignee_id: assignmentRecord.assignee_id,
-          assignment_type: assignmentRecord.assignment_type,
-        },
-        {
-          status: AssignmentStatus.CANCELLED,
-          reason: dto.reason,
-        }
-      )
-
-      // 6. Notifications (after transaction)
-      if (assignmentRecord.task.project_id) {
-        await this.sendNotifications(
-          assignmentRecord.task_id,
-          assignmentRecord.assignee_id,
-          assignmentRecord.task.project_id,
-          assignmentRecord.assignee.username,
-          dto.reason,
-          userId
-        )
-      }
-    })
-
-    // Invalidate task-related caches after transaction
-    await CacheService.deleteByPattern(`task:${dto.assignment_id}:*`)
-    await CacheService.deleteByPattern(`task:user:*`)
-
-    // Emit domain event
-    void emitter.emit('task:access:revoked', {
-      taskId: dto.assignment_id,
-      userId: dto.assignment_id, // assignment_id used as entity reference
-      revokedBy: this.getCurrentUserId(),
-      reason: dto.reason,
-    })
-  }
-  private async sendNotifications(
-    taskId: DatabaseId,
-    assigneeId: DatabaseId,
-    projectId: DatabaseId,
-    assigneeName: string,
-    reason: string,
-    revokerId: DatabaseId
-  ): Promise<void> {
-    try {
-      // Notify assignee
-      await this.notificationService.handle({
-        user_id: assigneeId,
-        title: 'Quyền truy cập task đã bị thu hồi',
-        message: `Quyền truy cập của bạn vào task đã bị thu hồi. Lý do: ${reason}`,
-        type: 'task_access_revoked',
-        related_entity_type: 'task',
-        related_entity_id: taskId,
-      })
-
-      // Notify project managers → delegate to Model
-      const managerIds = await TaskAssignmentRepository.findProjectManagerIds(projectId, revokerId)
-
       for (const managerId of managerIds) {
         await this.notificationService.handle({
           user_id: managerId,
           title: 'Task assignment đã bị revoke',
-          message: `Assignment của ${assigneeName} đã bị revoke. Task cần được reassign.`,
-          type: 'assignment_revoked_need_action',
-          related_entity_type: 'task',
-          related_entity_id: taskId,
+          message: `Assignment của ${plan.assigneeName} đã bị revoke. Task cần được reassign.`,
+          type: BACKEND_NOTIFICATION_TYPES.ASSIGNMENT_REVOKED_NEED_ACTION,
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+          related_entity_id: plan.taskId,
         })
       }
     } catch (error) {
