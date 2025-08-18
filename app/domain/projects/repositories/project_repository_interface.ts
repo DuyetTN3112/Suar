@@ -7,6 +7,7 @@
  */
 
 import type { ProjectEntity } from '../entities/project_entity.js'
+
 import type { DatabaseId } from '#types/database'
 
 export interface ProjectRepository {
