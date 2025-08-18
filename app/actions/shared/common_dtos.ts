@@ -4,9 +4,10 @@
  */
 
 import type { Query } from './interfaces.js'
-import type { DatabaseId } from '#types/database'
-import ValidationException from '#exceptions/validation_exception'
+
 import { PAGINATION } from '#constants/common_constants'
+import ValidationException from '#exceptions/validation_exception'
+import type { DatabaseId } from '#types/database'
 
 /**
  * Pagination DTO
@@ -14,8 +15,8 @@ import { PAGINATION } from '#constants/common_constants'
  */
 export class PaginationDTO implements Query {
   constructor(
-    public readonly page: number = 1,
-    public readonly limit: number = 10
+    public readonly page = 1,
+    public readonly limit = 10
   ) {
     if (page < 1) throw ValidationException.field('page', 'Page must be greater than 0')
     if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE)

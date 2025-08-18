@@ -155,6 +155,117 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     }
   }
 
+  private async loadSkillReviews(
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<LoadedSkillReviews> {
+    const reviews = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
+      userId,
+      trx
+    )) as unknown as ReviewSkillRow[]
+
+    if (reviews.length === 0) {
+      return { reviews, evidenceBySkill: new Map<string, number>() }
+    }
+
+    const evidenceRows = (await ReviewMetricsRepository.listEvidenceCountsBySkill(
+      userId,
+      trx
+    )) as unknown as EvidenceCountRow[]
+
+    const evidenceBySkill = new Map<string, number>()
+    for (const row of evidenceRows) {
+      evidenceBySkill.set(row.skill_id, Number(row.total))
+    }
+
+    return { reviews, evidenceBySkill }
+  }
+
+  private groupReviewsBySkill(reviews: ReviewSkillRow[]): Map<string, ReviewSkillRow[]> {
+    const grouped = new Map<string, ReviewSkillRow[]>()
+
+    for (const review of reviews) {
+      const list = grouped.get(review.skill_id) ?? []
+      list.push(review)
+      grouped.set(review.skill_id, list)
+    }
+
+    return grouped
+  }
+
+  private computeSkillScore(reviews: ReviewSkillRow[], evidenceCount: number): ComputedSkillScore {
+    const weightedScore = calculateSkillWeightedScore(
+      reviews.map((review) => ({
+        levelCode: review.assigned_level_code,
+        reviewerType: review.reviewer_type,
+        reviewerCredibilityScore: this.toCredibilityScore(review.reviewer_credibility_score),
+        monthsAgo: this.toMonthsAgo(review.created_at),
+      }))
+    )
+
+    const levelCode = mapWeightedScoreToLevelCode(weightedScore)
+    const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 7) * 100))
+    const confidence = calculateSkillConfidence({
+      reviewCount: reviews.length,
+      hasManager: reviews.some((review) => review.reviewer_type === 'manager'),
+      hasPeer: reviews.some((review) => review.reviewer_type === 'peer'),
+      evidenceCount,
+      reviewerCredibilityAverage:
+        reviews.reduce(
+          (sum, review) => sum + this.toCredibilityScore(review.reviewer_credibility_score),
+          0
+        ) / reviews.length,
+    })
+
+    const mostRecentReviewAt =
+      reviews
+        .map((review) => this.toDateTime(review.created_at))
+        .sort((a, b) => b.toMillis() - a.toMillis())[0] ?? null
+
+    return {
+      weightedScore,
+      levelCode,
+      avgPercentage: Math.round(avgPercentage * 10) / 10,
+      confidence,
+      mostRecentReviewAt,
+    }
+  }
+
+  private async persistUserSkill(
+    userId: DatabaseId,
+    skillId: string,
+    reviews: ReviewSkillRow[],
+    computed: ComputedSkillScore,
+    trx: TransactionClientContract
+  ): Promise<PersistedUserSkillResult> {
+    const roundedAverage = computed.avgPercentage
+
+    return DefaultReviewDependencies.userSkill.upsertReviewedSkillScore(
+      userId,
+      skillId,
+      {
+        levelCode: computed.levelCode,
+        totalReviews: reviews.length,
+        avgScore: roundedAverage,
+        avgPercentage: roundedAverage,
+        lastReviewedAt: computed.mostRecentReviewAt,
+      },
+      trx
+    )
+  }
+
+  private async logSkillRecalculationAudit(
+    userId: DatabaseId,
+    skillId: string,
+    totalReviews: number,
+    computed: ComputedSkillScore
+  ): Promise<void> {
+    await this.logAudit('recalculate_user_skill_score', 'user_skill', userId, null, {
+      skill_id: skillId,
+      weighted_score: Math.round(computed.weightedScore * 100) / 100,
+      avg_percentage: computed.avgPercentage,
+      confidence_score: computed.confidence,
+      total_reviews: totalReviews,
     })
   }
 }

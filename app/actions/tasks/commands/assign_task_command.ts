@@ -1,23 +1,35 @@
-import type Task from '#models/task'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import CreateAuditLog from '#actions/common/create_audit_log'
-import UserRepository from '#infra/users/repositories/user_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import db from '@adonisjs/lucid/services/db'
-import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
-import type CreateNotification from '#actions/common/create_notification'
-import type { ExecutionContext } from '#types/execution_context'
-import { AuditAction, EntityType } from '#constants/audit_constants'
-import CacheService from '#services/cache_service'
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import NotFoundException from '#exceptions/not_found_exception'
 import emitter from '@adonisjs/core/services/emitter'
-import loggerService from '#services/logger_service'
-import type { DatabaseId } from '#types/database'
-import { enforcePolicy } from '#actions/shared/enforce_policy'
-import { canAssignTask } from '#domain/tasks/task_permission_policy'
-import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
+
+import CreateAuditLog from '#actions/audit/create_audit_log'
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import type CreateNotification from '#actions/common/create_notification'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
+import { AuditAction, EntityType } from '#constants/audit_constants'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#constants/notification_constants'
+import { validateAssignee } from '#domain/tasks/task_assignment_rules'
+import { canAssignTask } from '#domain/tasks/task_permission_policy'
+import NotFoundException from '#exceptions/not_found_exception'
+import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
+import loggerService from '#infra/logger/logger_service'
+import TaskRepository from '#infra/tasks/repositories/task_repository'
+import type Task from '#models/task'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
+interface PersistedTaskAssignment {
+  task: Task
+  oldAssignedTo: DatabaseId | null
+}
 
 /**
  * Command để giao task cho người dùng
@@ -28,7 +40,7 @@ import { buildTaskPermissionContext } from '#actions/tasks/support/task_permissi
  * - Notification gửi cho assignee mới (và có thể old assignee)
  * - Audit log đầy đủ
  *
- * Pattern: FETCH → DECIDE → PERSIST
+ * Pattern: FETCH → DECIDE → PERSIST → POST-COMMIT
  */
 export default class AssignTaskCommand {
   constructor(
@@ -36,16 +48,19 @@ export default class AssignTaskCommand {
     private createNotification: CreateNotification
   ) {}
 
-  /**
-   * Execute command để assign task
-   */
   async execute(dto: AssignTaskDTO): Promise<Task> {
+    const userId = this.requireUserId()
+    const assignmentResult = await this.persistAssignmentInTransaction(dto, userId)
+    await this.runPostCommitEffects(assignmentResult, dto, userId)
+    return await TaskRepository.findByIdWithDetailRelations(assignmentResult.task.id)
+  }
+
+  private requireUserId(): DatabaseId {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
     }
 
-    // Start transaction
     const trx = await db.transaction()
 
     try {
