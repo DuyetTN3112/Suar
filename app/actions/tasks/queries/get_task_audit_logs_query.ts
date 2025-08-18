@@ -67,11 +67,12 @@ export default class GetTaskAuditLogsQuery {
         user: user
           ? {
               id: user.id,
+              name: user.username ?? 'Unknown',
               email: user.email ?? '',
             }
           : null,
         timestamp: log.created_at,
-        changes: this.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
+        changes: formatAuditChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
 
@@ -82,50 +83,27 @@ export default class GetTaskAuditLogsQuery {
   }
 
   /**
-   * Format changes from old/new values
-   */
-  private formatChanges(
-    oldValues: Record<string, unknown>,
-    newValues: Record<string, unknown>
-  ): Array<{ field: string; oldValue: unknown; newValue: unknown }> {
-    const changes: Array<{ field: string; oldValue: unknown; newValue: unknown }> = []
-
-    // Compare all fields in newValues
-    for (const key in newValues) {
-      if (JSON.stringify(oldValues[key]) !== JSON.stringify(newValues[key])) {
-        changes.push({
-          field: key,
-          oldValue: oldValues[key] ?? null,
-          newValue: newValues[key] ?? null,
-        })
-      }
-    }
-
-    return changes
-  }
-
-  /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<Array<{
+  private async getFromCache(key: string): Promise<{
     id: DatabaseId
     action: string
     user: { id: DatabaseId; name: string; email: string } | null
     timestamp: Date
-    changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
-  }> | null> {
+    changes: { field: string; oldValue: unknown; newValue: unknown }[]
+  }[] | null> {
     try {
       const cached = await redis.get(key)
       if (cached) {
         const parsed: unknown = JSON.parse(cached)
         if (Array.isArray(parsed)) {
-          return parsed as Array<{
+          return parsed as {
             id: DatabaseId
             action: string
             user: { id: DatabaseId; name: string; email: string } | null
             timestamp: Date
-            changes: Array<{ field: string; oldValue: unknown; newValue: unknown }>
-          }>
+            changes: { field: string; oldValue: unknown; newValue: unknown }[]
+          }[]
         }
       }
     } catch (error) {

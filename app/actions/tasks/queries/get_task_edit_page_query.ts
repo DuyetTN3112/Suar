@@ -1,30 +1,30 @@
-import type { ExecutionContext } from '#types/execution_context'
-import type { DatabaseId } from '#types/database'
-import type Task from '#models/task'
+import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+
 import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
-import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+
+import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { canAccessTaskEditPage } from '#domain/tasks/task_permission_policy'
+import type { DatabaseId } from '#types/database'
+import type { ExecutionContext } from '#types/execution_context'
 
 export interface TaskEditPageResult {
-  task: Task
-  taskData: {
-    task: Task
-    permissions: {
-      isCreator: boolean
-      isAssignee: boolean
-      canEdit: boolean
-      canDelete: boolean
-      canAssign: boolean
-    }
-    auditLogs?: unknown[]
+  task: TaskQueryRecord
+  permissions: {
+    isCreator: boolean
+    isAssignee: boolean
+    canEdit: boolean
+    canDelete: boolean
+    canAssign: boolean
   }
   metadata: {
-    statuses: Array<{ value: string; label: string }>
-    labels: Array<{ value: string; label: string }>
-    priorities: Array<{ value: string; label: string }>
-    users: Array<{ id: DatabaseId; username: string; email: string }>
-    parentTasks: Array<{ id: DatabaseId; title: string; task_status_id: string | null }>
-    projects: Array<{ id: DatabaseId; name: string }>
+    statuses: { value: string; label: string }[]
+    labels: { value: string; label: string }[]
+    priorities: { value: string; label: string }[]
+    users: { id: DatabaseId; username: string; email: string }[]
+    parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+    projects: { id: DatabaseId; name: string }[]
   }
 }
 
@@ -45,9 +45,11 @@ export default class GetTaskEditPageQuery {
       new GetTaskMetadataQuery(this.execCtx).execute(organizationId),
     ])
 
+    enforcePolicy(canAccessTaskEditPage({ canEdit: taskData.permissions.canEdit }))
+
     return {
       task: taskData.task,
-      taskData,
+      permissions: taskData.permissions,
       metadata,
     }
   }
