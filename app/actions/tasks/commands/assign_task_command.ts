@@ -61,87 +61,118 @@ export default class AssignTaskCommand {
       throw new UnauthorizedException()
     }
 
+    return userId
+  }
+
+  private async loadTaskForAssignment(
+    taskId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<Task> {
+    return TaskRepository.findActiveForUpdate(taskId, trx)
+  }
+
+  private async ensureAssignmentPreconditions(
+    userId: DatabaseId,
+    dto: AssignTaskDTO,
+    task: Task,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const permissionContext = await buildTaskPermissionContext(userId, task, trx)
+    enforcePolicy(canAssignTask(permissionContext))
+
+    if (!dto.isAssigning() || dto.assigned_to === null) {
+      return
+    }
+
+    const assignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to, trx)
+    if (!assignee) {
+      throw new NotFoundException('Người được giao không tồn tại')
+    }
+
+    const isMember = await DefaultTaskDependencies.org.isApprovedMember(
+      dto.assigned_to,
+      task.organization_id,
+      trx
+    )
+    const isFreelancer = await DefaultTaskDependencies.user.isFreelancer(dto.assigned_to, trx)
+
+    enforcePolicy(
+      validateAssignee({
+        isOrgMember: isMember,
+        isFreelancer,
+        taskVisibility: task.task_visibility,
+      })
+    )
+  }
+
+  private async persistAssignment(
+    task: Task,
+    dto: AssignTaskDTO,
+    userId: DatabaseId,
+    trx: TransactionClientContract
+  ): Promise<PersistedTaskAssignment> {
+    const oldAssignedTo = task.assigned_to
+    const oldValues = task.toJSON()
+
+    task.assigned_to = dto.assigned_to
+    task.updated_by = userId
+    await TaskRepository.save(task, trx)
+
+    await new CreateAuditLog(this.execCtx).handle({
+      user_id: userId,
+      action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
+      entity_type: EntityType.TASK,
+      entity_id: dto.task_id,
+      old_values: oldValues,
+      new_values: task.toJSON(),
+    })
+
+    return {
+      task,
+      oldAssignedTo,
+    }
+  }
+
+  private async persistAssignmentInTransaction(
+    dto: AssignTaskDTO,
+    userId: DatabaseId
+  ): Promise<PersistedTaskAssignment> {
     const trx = await db.transaction()
 
     try {
-      // ── FETCH ──────────────────────────────────────────────────────────
-      const existingTask = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
-
-      // ── DECIDE (pure, sync) ────────────────────────────────────────────
-      const permissionContext = await buildTaskPermissionContext(userId, existingTask, trx)
-      enforcePolicy(canAssignTask(permissionContext))
-
-      // If assigning (not unassigning), validate assignee
-      if (dto.isAssigning() && dto.assigned_to !== null) {
-        const assignee = await UserRepository.findById(dto.assigned_to)
-        if (!assignee) {
-          throw new NotFoundException('Người được giao không tồn tại')
-        }
-
-        const [isMember, isFreelancer] = await Promise.all([
-          OrganizationUserRepository.isApprovedMember(
-            dto.assigned_to,
-            existingTask.organization_id,
-            trx
-          ),
-          UserRepository.isFreelancer(dto.assigned_to, trx),
-        ])
-
-        enforcePolicy(
-          validateAssignee({
-            isOrgMember: isMember,
-            isFreelancer,
-            taskVisibility: existingTask.task_visibility,
-          })
-        )
-      }
-
-      // ── PERSIST ────────────────────────────────────────────────────────
-      const oldAssignedTo = existingTask.assigned_to
-      const oldValues = existingTask.toJSON()
-
-      existingTask.assigned_to = dto.assigned_to
-      existingTask.updated_by = userId
-      await TaskRepository.save(existingTask, trx)
-
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
-        entity_type: EntityType.TASK,
-        entity_id: dto.task_id,
-        old_values: oldValues,
-        new_values: existingTask.toJSON(),
-      })
-
+      const task = await this.loadTaskForAssignment(dto.task_id, trx)
+      await this.ensureAssignmentPreconditions(userId, dto, task, trx)
+      const result = await this.persistAssignment(task, dto, userId, trx)
       await trx.commit()
-
-      // Emit domain event
-      if (dto.isAssigning() && dto.assigned_to !== null) {
-        void emitter.emit('task:assigned', {
-          taskId: dto.task_id,
-          assigneeId: dto.assigned_to,
-          assignedBy: userId,
-          assignmentType: dto.isUnassigning() ? 'unassign' : 'assign',
-        })
-      }
-
-      // Invalidate task-related caches
-      await CacheService.deleteByPattern(`task:${dto.task_id}:*`)
-      await CacheService.deleteByPattern(`task:user:*`)
-      await CacheService.deleteByPattern(`task:applications:*`)
-
-      // Store old value for notifications (after commit)
-      existingTask.$extras.oldAssignedTo = oldAssignedTo
-
-      // Send notifications (outside transaction)
-      if (dto.shouldNotify()) {
-        await this.sendAssignmentNotifications(existingTask, userId, dto)
-      }
-
-      return await TaskRepository.findByIdWithDetailRelations(existingTask.id)
+      return result
     } catch (error) {
       await trx.rollback()
       throw error
+    }
+  }
+
+  private async runPostCommitEffects(
+    result: PersistedTaskAssignment,
+    dto: AssignTaskDTO,
+    userId: DatabaseId
+  ): Promise<void> {
+    if (dto.isAssigning() && dto.assigned_to !== null) {
+      void emitter.emit('task:assigned', {
+        taskId: dto.task_id,
+        assigneeId: dto.assigned_to,
+        assignedBy: userId,
+        assignmentType: 'assign',
+      })
+    }
+
+    await Promise.all([
+      CacheService.deleteByPattern(`task:${dto.task_id}:*`),
+      CacheService.deleteByPattern('task:user:*'),
+      CacheService.deleteByPattern('task:applications:*'),
+    ])
+
+    if (dto.shouldNotify()) {
+      await this.sendAssignmentNotifications(result.task, userId, dto, result.oldAssignedTo)
     }
   }
 
@@ -151,66 +182,57 @@ export default class AssignTaskCommand {
   private async sendAssignmentNotifications(
     task: Task,
     assignerId: DatabaseId,
-    dto: AssignTaskDTO
+    dto: AssignTaskDTO,
+    oldAssignedTo: DatabaseId | null
   ): Promise<void> {
     try {
-      const assigner = await UserRepository.findById(assignerId)
+      const assigner = await DefaultTaskDependencies.user.findUserIdentity(assignerId)
       if (!assigner) return
 
-      const oldAssignedTo = task.$extras.oldAssignedTo as string | null | undefined
+      const assignerName = assigner.username
 
-      // Unassign: Notify old assignee
       if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
-        const oldAssignee = await UserRepository.findById(oldAssignedTo)
+        const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
         if (oldAssignee) {
           await this.createNotification.handle({
             user_id: oldAssignee.id,
             title: 'Cập nhật nhiệm vụ',
-            message: dto.getNotificationMessage(
-              task.title,
-              assigner.username || assigner.email || 'Unknown'
-            ),
-            type: 'task_unassigned',
-            related_entity_type: 'task',
+            message: dto.getNotificationMessage(task.title, assignerName),
+            type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
             related_entity_id: task.id,
           })
         }
       }
 
-      // Assign/Reassign: Notify new assignee
       if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
-        const newAssignee = await UserRepository.findById(dto.assigned_to)
+        const newAssignee = await DefaultTaskDependencies.user.findUserIdentity(dto.assigned_to)
         if (newAssignee) {
           await this.createNotification.handle({
             user_id: newAssignee.id,
             title: 'Bạn có nhiệm vụ mới',
-            message: dto.getNotificationMessage(
-              task.title,
-              assigner.username || assigner.email || 'Unknown'
-            ),
-            type: 'task_assigned',
-            related_entity_type: 'task',
+            message: dto.getNotificationMessage(task.title, assignerName),
+            type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
             related_entity_id: task.id,
           })
         }
 
-        // If reassigning, also notify old assignee (if different from new and assigner)
         if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
-          const oldAssignee = await UserRepository.findById(oldAssignedTo)
+          const oldAssignee = await DefaultTaskDependencies.user.findUserIdentity(oldAssignedTo)
           if (oldAssignee) {
             await this.createNotification.handle({
               user_id: oldAssignee.id,
               title: 'Cập nhật nhiệm vụ',
-              message: `${assigner.username || assigner.email || 'Unknown'} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
-              type: 'task_reassigned',
-              related_entity_type: 'task',
+              message: `${assignerName} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
+              type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
+              related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
               related_entity_id: task.id,
             })
           }
         }
       }
     } catch (error) {
-      // Don't fail assignment if notification fails
       this.logError('Failed to send assignment notifications', error)
     }
   }
