@@ -1,61 +1,44 @@
-/**
- * PermissionService (v3)
- *
- * Centralized permission checking service.
- * v3: All roles are inline VARCHAR strings on their respective tables.
- * No more preloading system_role/organization_role/project_role relationships.
- * Permission maps are defined in app/constants/permissions.ts.
- *
- * System level:
- *   - is_system_superadmin(user_id)
- *   - check_system_permission(user_id, permission_name)
- *
- * Organization level:
- *   - is_org_owner(user_id, org_id)
- *   - is_org_admin_or_owner(user_id, org_id)
- *   - check_organization_permission(user_id, org_id, permission_name)
- *   - get_user_org_role_level(user_id, org_id)
- *
- * Project level:
- *   - is_project_owner(user_id, project_id)
- *   - is_project_manager_or_owner(user_id, project_id)
- *   - check_project_permission(user_id, project_id, permission_name)
- *   - get_user_project_role_level(user_id, project_id)
- *
- * Task level:
- *   - can_user_update_task(user_id, task_id)
- *   - can_user_view_task(user_id, task_id)
- *
- * This service is STATELESS — no HttpContext dependency.
- *
- * @module PermissionService
- */
-
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import type { DatabaseId } from '#types/database'
-import { OrganizationUserStatus } from '#constants/organization_constants'
+import { canManageProject } from './permission_service/composite_scope.js'
 import {
-  hasSystemPermission,
-  hasOrgPermission,
-  hasProjectPermission,
-  getOrgRoleLevel,
-  getProjectRoleLevel,
-  SYSTEM_ROLE_PERMISSIONS,
-  ORG_ROLE_PERMISSIONS,
-  PROJECT_ROLE_PERMISSIONS,
-} from '#constants/permissions'
-import User from '#models/user'
-import OrganizationUser from '#models/organization_user'
-import ProjectMember from '#models/project_member'
-import Project from '#models/project'
-import Task from '#models/task'
-import TaskAssignment from '#models/task_assignment'
+  checkOrgPermission,
+  getOrgMembership,
+  getUserOrgRoleLevel,
+  isOrgAdminOrOwner,
+  isOrgOwner,
+} from './permission_service/organization_scope.js'
+import {
+  checkProjectPermission,
+  getProjectMembership,
+  getUserProjectRoleLevel,
+  isProjectManagerOrOwner,
+  isProjectOwner,
+} from './permission_service/project_scope.js'
+import {
+  checkSystemPermission,
+  getSystemRoleInfo,
+  isSystemAdmin,
+  isSystemSuperadmin,
+} from './permission_service/system_scope.js'
+import { canUserUpdateTask, canUserViewTask } from './permission_service/task_scope.js'
 
-// ─── Types ───────────────────────────────────────────────
-
-interface OrgMembershipInfo {
-  org_role: string
-  permissions: string[]
+export {
+  canManageProject,
+  checkOrgPermission,
+  checkProjectPermission,
+  checkSystemPermission,
+  getOrgMembership,
+  getProjectMembership,
+  getSystemRoleInfo,
+  getUserOrgRoleLevel,
+  getUserProjectRoleLevel,
+  isOrgAdminOrOwner,
+  isOrgOwner,
+  isProjectManagerOrOwner,
+  isProjectOwner,
+  isSystemAdmin,
+  isSystemSuperadmin,
+  canUserUpdateTask,
+  canUserViewTask,
 }
 
 interface ProjectMembershipInfo {
