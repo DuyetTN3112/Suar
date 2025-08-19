@@ -1,0 +1,58 @@
+import { checkJoinEligibility } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import { type OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+
+interface JoinEligibilityResult {
+  eligible: boolean
+  organization: { id: string; name: string } | null
+  message?: string
+  existingMembership?: { status: OrganizationUserStatus } | null
+}
+
+/**
+ * Query: Check Join Eligibility
+ *
+ * Checks if a user is eligible to join an organization.
+ * Returns the organization info and membership status.
+ */
+export default class CheckJoinEligibilityQuery {
+  private readonly __instanceMarker = true
+
+  static {
+    void new CheckJoinEligibilityQuery().__instanceMarker
+  }
+
+  static async execute(
+    organizationId: string,
+    userId: string
+  ): Promise<JoinEligibilityResult> {
+    const organization = await OrganizationRepository.findById(organizationId)
+    if (!organization) {
+      return { eligible: false, organization: null, message: 'Tổ chức không tồn tại' }
+    }
+
+    const orgJson = { id: organization.id, name: organization.name }
+
+    const existingMembership = (await membershipQueries.findMembership(
+      organizationId,
+      userId
+    )) as {
+      status: OrganizationUserStatus
+    } | null
+
+    const membershipStatus = existingMembership?.status ?? null
+    const eligibility = checkJoinEligibility(membershipStatus)
+
+    if (!eligibility.eligible) {
+      return {
+        eligible: false,
+        organization: orgJson,
+        message: eligibility.message,
+        existingMembership,
+      }
+    }
+
+    return { eligible: true, organization: orgJson }
+  }
+}
