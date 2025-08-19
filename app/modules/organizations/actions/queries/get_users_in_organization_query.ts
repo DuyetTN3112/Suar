@@ -1,0 +1,30 @@
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+
+interface FormattedUser {
+  id: string
+  username: string
+  email: string | null
+}
+
+/**
+ * Query: Get Users In Organization
+ *
+ * Returns users in the given organization, excluding the current user.
+ * Sorted by username.
+ */
+export default class GetUsersInOrganizationQuery {
+  async execute(organizationId: string, excludeUserId: string): Promise<FormattedUser[]> {
+    const orgMembers = await listingQueries.findMembersExcludingUser(
+      organizationId,
+      excludeUserId
+    )
+
+    return orgMembers
+      .map((m) => ({
+        id: m.user.id,
+        username: m.user.username,
+        email: m.user.email,
+      }))
+      .sort((a, b) => a.username.localeCompare(b.username))
+  }
+}
