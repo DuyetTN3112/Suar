@@ -1,8 +1,11 @@
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
-import { configure, processCLIArgs, run } from '@japa/runner'
 import { assert } from '@japa/assert'
-import { SpecReporter } from '@japa/spec-reporter'
 import { fileSystem } from '@japa/file-system'
+import { configure, processCLIArgs, run } from '@japa/runner'
+import { SpecReporter } from '@japa/spec-reporter'
+
+process.env.NODE_ENV = 'test'
+process.env.LOG_LEVEL = 'silent'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -27,6 +30,118 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
   reporter.boot(...args)
 }
 
+const KNOWN_SUITES = new Set(['unit', 'integration', 'match'])
+
+const parseRequestedSuites = (argv: string[]): Set<string> | null => {
+  const requestedSuites = new Set<string>()
+
+  for (const arg of argv) {
+    if (arg.startsWith('--suites=')) {
+      const suites = arg
+        .slice('--suites='.length)
+        .split(',')
+        .map((suite) => suite.trim())
+        .filter((suite) => suite.length > 0)
+
+      for (const suite of suites) {
+        if (KNOWN_SUITES.has(suite)) {
+          requestedSuites.add(suite)
+        }
+      }
+      continue
+    }
+
+    if (KNOWN_SUITES.has(arg)) {
+      requestedSuites.add(arg)
+    }
+  }
+
+  return requestedSuites.size > 0 ? requestedSuites : null
+}
+
+let reportedPgTerminationRejection = false
+
+const normalizeThrownError = (error: unknown): Error => {
+  if (error instanceof Error) {
+    return error
+  }
+
+  return new Error(String(error))
+}
+
+const isIgnorablePgTerminationError = (error: unknown): error is Error => {
+  return Boolean(
+    error instanceof Error &&
+    error.message === 'Connection terminated' &&
+    error.stack?.includes('/node_modules/.pnpm/pg@')
+  )
+}
+
+process.on('unhandledRejection', (error) => {
+  if (isIgnorablePgTerminationError(error)) {
+    if (!reportedPgTerminationRejection) {
+      reportedPgTerminationRejection = true
+      console.warn('[test-runner] Ignoring pg shutdown rejection during teardown')
+    }
+    return
+  }
+
+  throw normalizeThrownError(error)
+})
+
+process.on('uncaughtException', (error) => {
+  if (isIgnorablePgTerminationError(error)) {
+    if (!reportedPgTerminationRejection) {
+      reportedPgTerminationRejection = true
+      console.warn('[test-runner] Ignoring pg shutdown error during teardown')
+    }
+    return
+  }
+
+  throw normalizeThrownError(error)
+})
+
+const closeTestRuntimeConnections = async () => {
+  const [{ default: db }, { default: redis }] = await Promise.all([
+    import('@adonisjs/lucid/services/db'),
+    import('@adonisjs/redis/services/main'),
+  ])
+
+  await Promise.allSettled([db.manager.closeAll(), redis.quit()])
+}
+
+const runWithFilteredJapaProcessListeners = async <T>(callback: () => Promise<T>): Promise<T> => {
+  const originalProcessOn = process.on.bind(process)
+  type ProcessOnEventName = Parameters<typeof process.on>[0]
+  type ProcessOnListener = Parameters<typeof process.on>[1]
+
+  process.on = ((eventName: ProcessOnEventName, listener: ProcessOnListener) => {
+    if (eventName === 'unhandledRejection' || eventName === 'uncaughtException') {
+      const wrappedListener = ((error: unknown, ...args: unknown[]) => {
+        if (isIgnorablePgTerminationError(error)) {
+          if (!reportedPgTerminationRejection) {
+            reportedPgTerminationRejection = true
+            console.warn('[test-runner] Ignoring pg shutdown rejection during teardown')
+          }
+          return
+        }
+
+        return (listener as (...listenerArgs: unknown[]) => unknown)(error, ...args)
+      }) as ProcessOnListener
+
+      return originalProcessOn(eventName, wrappedListener)
+    }
+
+    return originalProcessOn(eventName, listener)
+  }) as typeof process.on
+
+  try {
+    return await callback()
+  } finally {
+    process.on = originalProcessOn
+  }
+}
+
 try {
   const ignitor = new Ignitor(APP_ROOT, { importer: IMPORTER })
 
@@ -45,7 +160,17 @@ try {
   await app.init()
   await app.boot()
 
-  await app.start(async () => {
+  const cliArgs = process.argv.slice(2)
+  const requestedSuites = parseRequestedSuites(cliArgs)
+  const shouldStartRuntimeProviders = requestedSuites === null || requestedSuites.has('integration')
+
+  let runtimeStarted = false
+  if (shouldStartRuntimeProviders) {
+    await app.start(() => undefined)
+    runtimeStarted = true
+  }
+
+  try {
     /**
      * Parse CLI args first so configure() can use them for suite filtering.
      * Example: --suites=unit will only run the unit suite.
@@ -86,15 +211,21 @@ try {
           },
         ],
       },
-      forceExit: true,
+      forceExit: false,
       importer: IMPORTER,
     })
 
     /**
      * Run tests
      */
-    await run()
-  })
+    await runWithFilteredJapaProcessListeners(() => run())
+  } finally {
+    if (runtimeStarted) {
+      await closeTestRuntimeConnections()
+    }
+
+    await app.terminate()
+  }
 } catch (error) {
   void prettyPrintError(error as Error)
   process.exitCode = 1

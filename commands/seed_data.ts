@@ -1,6 +1,7 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-enum-comparison */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-argument */
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import db from '@adonisjs/lucid/services/db'
 import { randomUUID } from 'node:crypto'
 import env from '#start/env'
@@ -19,7 +20,7 @@ type UserKey =
   | 'freelancerOne'
   | 'freelancerTwo'
 
-type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD'
+type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD' | 'orgE'
 type ProjectKey =
   | 'orgAPlatform'
   | 'orgAOperations'
@@ -29,9 +30,17 @@ type ProjectKey =
   | 'orgBCurriculumOps'
   | 'orgCMarketplaceLab'
   | 'orgDTalentShowcase'
+  | 'orgEDataOps'
+  | 'orgEInsightEngine'
 type StatusSlug = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
 
-type SeededUser = { id: string; username: string; email: string }
+type SeededUser = {
+  id: string
+  username: string
+  email: string
+  authMethod: 'google' | 'github'
+  systemRole: 'superadmin' | 'registered_user'
+}
 type SeededOrg = { id: string; name: string; slug: string }
 type SeededProject = { id: string; name: string; organizationId: string }
 type SeededTask = { id: string; title: string; organizationId: string; projectId: string | null }
@@ -46,6 +55,10 @@ type SeedContext = {
   assignments: Record<string, SeededAssignment>
   snapshots: Record<string, string>
 }
+
+type SeedWhereValue = string | number | boolean | Date | null
+type SeedRow = Record<string, unknown> & { id: string }
+type SeedQuery = ReturnType<TransactionClientContract['from']>
 
 type TaskSpec = {
   key: string
@@ -343,7 +356,7 @@ const TASK_SPECS: TaskSpec[] = [
     organization: 'orgA',
     project: 'orgAOperations',
     creator: 'owner',
-    assignee: 'orgAdmin',
+    assignee: 'owner',
     title: 'Điều phối seed data đa vai trò cho demo local',
     description:
       'Seed dữ liệu đủ cho ba giao diện: system admin, organization admin/owner và user thường.',
@@ -807,15 +820,16 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
     title: 'So sánh package Pro và ProMax trong ranking của marketplace',
     description:
       'Task ở org C để seed thêm ngữ cảnh cross-org cho account owner và dữ liệu liên quan package management.',
-    status: 'in_progress',
-    taskStatus: 'in_progress',
+    status: 'done',
+    taskStatus: 'done',
     label: 'feature',
     priority: 'high',
     difficulty: 'hard',
     visibility: 'internal',
-    dueDaysOffset: 9,
+    dueDaysOffset: -3,
+    assignmentCompletedDaysAgo: 2,
     assignmentEstimatedHours: 16,
-    assignmentActualHours: 6,
+    assignmentActualHours: 15,
     taskType: 'feature_development',
     acceptanceCriteria: [
       'Có bảng so sánh package Pro/ProMax',
@@ -876,6 +890,97 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
     businessDomain: 'saas',
     estimatedUsersAffected: 20,
     estimatedBudget: 8000000,
+    requiredSkills: ['typescript', 'testing'],
+  },
+  {
+    key: 'owner-profile-scoring-loop',
+    organization: 'orgA',
+    project: 'orgAAnalytics',
+    creator: 'orgAdmin',
+    assignee: 'owner',
+    title: 'Đồng bộ profile scoring sau khi review được xác nhận',
+    description:
+      'Bổ sung task đã hoàn tất để tài khoản tranngocduyet31@gmail.com có thêm dữ liệu work history/review xác nhận trong org A.',
+    status: 'done',
+    taskStatus: 'done',
+    label: 'feature',
+    priority: 'high',
+    difficulty: 'hard',
+    visibility: 'internal',
+    dueDaysOffset: -4,
+    assignmentCompletedDaysAgo: 2,
+    assignmentEstimatedHours: 12,
+    assignmentActualHours: 11,
+    taskType: 'feature_development',
+    acceptanceCriteria: [
+      'Profile aggregate cập nhật trust/performance ngay sau review confirmed',
+      'User snapshot hiển thị thêm highlight task mới hoàn thành',
+    ],
+    verificationMethod: 'code_review',
+    expectedDeliverables: ['Profile aggregate patch', 'Snapshot refresh validation note'],
+    contextBackground:
+      'Task này tăng độ dày dữ liệu cho owner account để test profile scoring pipeline từ đầu tới cuối.',
+    impactScope: 'organization',
+    techStack: ['AdonisJS', 'PostgreSQL', 'Redis'],
+    environment: 'staging',
+    collaborationType: 'small_team',
+    complexityNotes:
+      'Phụ thuộc review_sessions, user_performance_stats và snapshot publication flow.',
+    measurableOutcomes: [
+      { metric: 'owner_profile_score_recompute_latency_seconds', target: '< 5' },
+    ],
+    learningObjectives: ['Profile aggregate orchestration', 'Review confirmation pipeline'],
+    domainTags: ['profile', 'review', 'aggregate'],
+    roleInTask: 'architect',
+    autonomyLevel: 'autonomous',
+    problemCategory: 'new_capability',
+    businessDomain: 'saas',
+    estimatedUsersAffected: 26,
+    estimatedBudget: 14000000,
+    requiredSkills: ['postgresql', 'typescript', 'problem_solving'],
+  },
+  {
+    key: 'member-cache-hardening',
+    organization: 'orgA',
+    project: 'orgAPlatform',
+    creator: 'orgAdmin',
+    assignee: 'member',
+    title: 'Khóa cache invalidation cho profile widgets theo organization context',
+    description:
+      'Tạo thêm task done cho tài khoản member để profile có thêm lịch sử completed + reviewed trong org A.',
+    status: 'done',
+    taskStatus: 'done',
+    label: 'enhancement',
+    priority: 'medium',
+    difficulty: 'medium',
+    visibility: 'internal',
+    dueDaysOffset: -8,
+    assignmentCompletedDaysAgo: 5,
+    assignmentEstimatedHours: 9,
+    assignmentActualHours: 8,
+    taskType: 'bug_fix',
+    acceptanceCriteria: [
+      'Profile widgets không hiển thị stale metrics sau khi đổi organization',
+      'Task completed xuất hiện đúng trong work history timeline',
+    ],
+    verificationMethod: 'manual_qa',
+    expectedDeliverables: ['Cache invalidation checklist', 'Profile widget verification clip'],
+    contextBackground:
+      'Task này giúp tăng độ phong phú của completed tasks cho member account khi QA profile page.',
+    impactScope: 'project',
+    techStack: ['Svelte', 'Redis', 'TypeScript'],
+    environment: 'staging',
+    collaborationType: 'pair_programming',
+    complexityNotes: 'Cần đồng bộ cache keys giữa user profile và organization context.',
+    measurableOutcomes: [{ metric: 'profile_widget_stale_reads', target: 0 }],
+    learningObjectives: ['Cache invalidation strategies'],
+    domainTags: ['profile', 'cache', 'organization-context'],
+    roleInTask: 'contributor',
+    autonomyLevel: 'autonomous',
+    problemCategory: 'ux_improvement',
+    businessDomain: 'saas',
+    estimatedUsersAffected: 40,
+    estimatedBudget: 7000000,
     requiredSkills: ['typescript', 'testing'],
   },
   {
@@ -957,7 +1062,6 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
   },
 ]
 
-const SEEDED_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
 
 export default class SeedData extends BaseCommand {
   static override commandName = 'seed:data'
