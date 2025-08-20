@@ -1062,6 +1062,321 @@ const EXTRA_TASK_SPECS: TaskSpec[] = [
   },
 ]
 
+const BULK_STATUS_SEQUENCE: TaskSpec['status'][] = ['todo', 'in_progress', 'in_review', 'done']
+const BULK_LABEL_SEQUENCE: TaskSpec['label'][] = [
+  'feature',
+  'enhancement',
+  'documentation',
+  'bug',
+]
+const BULK_PRIORITY_SEQUENCE: TaskSpec['priority'][] = ['medium', 'high', 'low', 'urgent']
+const BULK_DIFFICULTY_SEQUENCE: TaskSpec['difficulty'][] = ['easy', 'medium', 'hard', 'expert']
+const BULK_TASK_TYPE_SEQUENCE: TaskSpec['taskType'][] = [
+  'feature_development',
+  'technical_writing',
+  'qa_testing',
+  'bug_fix',
+  'code_review',
+  'ui_ux_design',
+]
+const BULK_COLLABORATION_SEQUENCE: TaskSpec['collaborationType'][] = [
+  'solo',
+  'small_team',
+  'pair_programming',
+  'cross_team',
+]
+const BULK_AUTONOMY_SEQUENCE: TaskSpec['autonomyLevel'][] = [
+  'supervised',
+  'autonomous',
+  'led_others',
+]
+const BULK_ROLE_SEQUENCE: TaskSpec['roleInTask'][] = [
+  'contributor',
+  'lead',
+  'reviewer',
+  'architect',
+]
+const BULK_ENVIRONMENT_SEQUENCE: TaskSpec['environment'][] = [
+  'development',
+  'staging',
+  'mixed',
+  'production',
+]
+const BULK_IMPACT_SEQUENCE: TaskSpec['impactScope'][] = [
+  'team',
+  'project',
+  'organization',
+  'end_users',
+]
+const BULK_VERIFICATION_SEQUENCE: TaskSpec['verificationMethod'][] = [
+  'code_review',
+  'manual_qa',
+  'documentation_review',
+  'manager_approval',
+]
+
+type GeneratedProjectTaskSeedConfig = {
+  organization: OrgKey
+  targetTaskCount: number
+  creators: UserKey[]
+  assignees: UserKey[]
+  titlePrefix: string
+  businessDomain: TaskSpec['businessDomain']
+  problemCategories: TaskSpec['problemCategory'][]
+  techStack: string[]
+  requiredSkills: string[]
+}
+
+const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeedConfig> = {
+  orgAPlatform: {
+    organization: 'orgA',
+    targetTaskCount: 8,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'member', 'orgAdmin', 'peerReviewer'],
+    titlePrefix: 'Org A platform backlog',
+    businessDomain: 'saas',
+    problemCategories: ['new_capability', 'maintainability', 'automation', 'ux_improvement'],
+    techStack: ['AdonisJS', 'Svelte', 'PostgreSQL', 'Redis'],
+    requiredSkills: ['typescript', 'testing', 'postgresql', 'communication'],
+  },
+  orgAOperations: {
+    organization: 'orgA',
+    targetTaskCount: 4,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org A admin quality backlog',
+    businessDomain: 'internal_tooling',
+    problemCategories: ['maintainability', 'automation', 'new_capability', 'ux_improvement'],
+    techStack: ['AdonisJS', 'PostgreSQL', 'MongoDB'],
+    requiredSkills: ['testing', 'communication', 'problem_solving'],
+  },
+  orgADesignSystem: {
+    organization: 'orgA',
+    targetTaskCount: 3,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['orgAdmin', 'member'],
+    titlePrefix: 'Org A design system backlog',
+    businessDomain: 'saas',
+    problemCategories: ['ux_improvement', 'new_capability', 'maintainability'],
+    techStack: ['Svelte', 'TypeScript', 'Design System'],
+    requiredSkills: ['svelte', 'communication', 'testing'],
+  },
+  orgAAnalytics: {
+    organization: 'orgA',
+    targetTaskCount: 5,
+    creators: ['owner', 'orgAdmin'],
+    assignees: ['owner', 'peerReviewer', 'orgAdmin'],
+    titlePrefix: 'Org A analytics backlog',
+    businessDomain: 'saas',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'Charts'],
+    requiredSkills: ['postgresql', 'problem_solving', 'testing'],
+  },
+  orgBKnowledgeBase: {
+    organization: 'orgB',
+    targetTaskCount: 10,
+    creators: ['orgBOwner'],
+    assignees: ['orgBOwner', 'owner', 'member'],
+    titlePrefix: 'Org B knowledge backlog',
+    businessDomain: 'edtech',
+    problemCategories: ['maintainability', 'automation', 'ux_improvement', 'new_capability'],
+    techStack: ['Documentation', 'Svelte', 'PostgreSQL'],
+    requiredSkills: ['communication', 'testing', 'problem_solving'],
+  },
+  orgBCurriculumOps: {
+    organization: 'orgB',
+    targetTaskCount: 10,
+    creators: ['orgBOwner'],
+    assignees: ['orgBOwner', 'owner', 'member'],
+    titlePrefix: 'Org B curriculum backlog',
+    businessDomain: 'edtech',
+    problemCategories: ['automation', 'maintainability', 'new_capability', 'ux_improvement'],
+    techStack: ['Documentation', 'PostgreSQL', 'Svelte'],
+    requiredSkills: ['communication', 'testing', 'problem_solving'],
+  },
+  orgCMarketplaceLab: {
+    organization: 'orgC',
+    targetTaskCount: 20,
+    creators: ['peerReviewer', 'orgAdmin'],
+    assignees: ['peerReviewer', 'owner', 'orgAdmin'],
+    titlePrefix: 'Org C marketplace backlog',
+    businessDomain: 'saas',
+    problemCategories: ['automation', 'new_capability', 'maintainability', 'performance'],
+    techStack: ['AdonisJS', 'Charts', 'PostgreSQL', 'MongoDB'],
+    requiredSkills: ['postgresql', 'problem_solving', 'testing', 'communication'],
+  },
+  orgDTalentShowcase: {
+    organization: 'orgD',
+    targetTaskCount: 20,
+    creators: ['freelancerOne'],
+    assignees: ['freelancerOne', 'owner', 'freelancerTwo'],
+    titlePrefix: 'Org D talent backlog',
+    businessDomain: 'saas',
+    problemCategories: ['new_capability', 'ux_improvement', 'automation', 'technical_debt'],
+    techStack: ['Svelte', 'TypeScript', 'MongoDB'],
+    requiredSkills: ['svelte', 'communication', 'testing'],
+  },
+  orgEDataOps: {
+    organization: 'orgE',
+    targetTaskCount: 10,
+    creators: ['freelancerTwo', 'orgAdmin'],
+    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org E data ops backlog',
+    businessDomain: 'data_platform',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
+    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+  },
+  orgEInsightEngine: {
+    organization: 'orgE',
+    targetTaskCount: 10,
+    creators: ['freelancerTwo', 'orgAdmin'],
+    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    titlePrefix: 'Org E insight backlog',
+    businessDomain: 'data_platform',
+    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
+    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
+    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+  },
+}
+
+function pickCycled<T>(items: readonly T[], index: number, label: string): T {
+  const item = items[index % items.length]
+  if (item === undefined) {
+    throw new Error(`Missing generated seed item for ${label}`)
+  }
+
+  return item
+}
+
+function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
+  const currentCounts = existingSpecs.reduce(
+    (counts, spec) => {
+      counts[spec.project] = (counts[spec.project] ?? 0) + 1
+      return counts
+    },
+    {} as Partial<Record<ProjectKey, number>>
+  )
+
+  const generated: TaskSpec[] = []
+
+  for (const [project, config] of Object.entries(GENERATED_PROJECT_TASK_CONFIG) as Array<
+    [ProjectKey, GeneratedProjectTaskSeedConfig]
+  >) {
+    const currentCount = currentCounts[project] ?? 0
+
+    for (
+      let targetIndex = currentCount;
+      targetIndex < config.targetTaskCount;
+      targetIndex += 1
+    ) {
+      const ordinal = targetIndex - currentCount + 1
+      const status = pickCycled(BULK_STATUS_SEQUENCE, targetIndex, `${project}:status`)
+      const taskStatus: TaskSpec['taskStatus'] = status
+      const creator = pickCycled(config.creators, targetIndex, `${project}:creator`)
+      const assignee =
+        status === 'todo' && ordinal % 3 === 0
+          ? undefined
+          : pickCycled(config.assignees, targetIndex, `${project}:assignee`)
+      const visibility: TaskSpec['visibility'] =
+        status === 'todo' && ordinal % 6 === 0
+          ? 'all'
+          : status === 'todo' && ordinal % 4 === 0
+            ? 'external'
+            : 'internal'
+      const estimatedHours = 6 + (ordinal % 5) * 2
+      const actualHours =
+        status === 'done'
+          ? Math.max(estimatedHours - 1, estimatedHours + ((ordinal % 3) - 1))
+          : Math.max(2, estimatedHours - 3)
+      const dueDaysOffset =
+        status === 'done' ? -(ordinal % 9) - 1 : (ordinal % 10) + 2
+      const requiredSkills = config.requiredSkills
+        .slice(ordinal % config.requiredSkills.length)
+        .concat(config.requiredSkills.slice(0, ordinal % config.requiredSkills.length))
+        .slice(0, 2)
+
+      generated.push({
+        key: `${project}-bulk-${String(ordinal).padStart(2, '0')}`,
+        organization: config.organization,
+        project,
+        creator,
+        assignee,
+        title: `${config.titlePrefix} ${String(targetIndex + 1).padStart(2, '0')}`,
+        description:
+          `Seed thêm dữ liệu dày cho project ${project} để dashboard, board và analytics không còn thưa.` +
+          ` Mục này dùng cho QA local nhiều trạng thái hơn.`,
+        status,
+        taskStatus,
+        label: pickCycled(BULK_LABEL_SEQUENCE, targetIndex, `${project}:label`),
+        priority: pickCycled(BULK_PRIORITY_SEQUENCE, targetIndex, `${project}:priority`),
+        difficulty: pickCycled(BULK_DIFFICULTY_SEQUENCE, targetIndex, `${project}:difficulty`),
+        visibility,
+        dueDaysOffset,
+        assignmentCompletedDaysAgo: status === 'done' ? (ordinal % 7) + 1 : undefined,
+        assignmentEstimatedHours: estimatedHours,
+        assignmentActualHours: actualHours,
+        taskType: pickCycled(BULK_TASK_TYPE_SEQUENCE, targetIndex, `${project}:taskType`),
+        acceptanceCriteria: [
+          `Board của project ${project} có thêm dữ liệu trạng thái ${status}`,
+          'Project detail và dashboard đọc được số liệu seeded mới',
+        ],
+        verificationMethod: pickCycled(
+          BULK_VERIFICATION_SEQUENCE,
+          targetIndex,
+          `${project}:verificationMethod`
+        ),
+        expectedDeliverables: [
+          'Updated seeded task record',
+          'Board card with realistic metadata',
+        ],
+        contextBackground:
+          `Generated filler task cho project ${project} trong ${config.organization} để project này có đủ task seed cho QA local.`,
+        impactScope: pickCycled(BULK_IMPACT_SEQUENCE, targetIndex, `${project}:impactScope`),
+        techStack: config.techStack,
+        environment: pickCycled(BULK_ENVIRONMENT_SEQUENCE, targetIndex, `${project}:environment`),
+        collaborationType: pickCycled(
+          BULK_COLLABORATION_SEQUENCE,
+          targetIndex,
+          `${project}:collaborationType`
+        ),
+        complexityNotes:
+          'Generated seed task giữ metadata thật nhưng không gắn thêm review scenario chuyên biệt.',
+        measurableOutcomes: [
+          { metric: 'seeded_project_task_density', target: config.targetTaskCount },
+          { metric: 'status_bucket', value: status },
+        ],
+        learningObjectives: [
+          'High-density local QA',
+          'Cross-organization navigation verification',
+        ],
+        domainTags: [config.organization, project, 'seed-density', 'task-board'],
+        roleInTask: pickCycled(BULK_ROLE_SEQUENCE, targetIndex, `${project}:roleInTask`),
+        autonomyLevel: pickCycled(
+          BULK_AUTONOMY_SEQUENCE,
+          targetIndex,
+          `${project}:autonomyLevel`
+        ),
+        problemCategory: pickCycled(
+          config.problemCategories,
+          targetIndex,
+          `${project}:problemCategory`
+        ),
+        businessDomain: config.businessDomain,
+        estimatedUsersAffected: 12 + ordinal * 3,
+        estimatedBudget: 3_000_000 + ordinal * 350_000,
+        applicationDeadlineDaysAhead: visibility === 'internal' ? undefined : (ordinal % 6) + 3,
+        requiredSkills,
+      })
+    }
+  }
+
+  return generated
+}
+
+const CORE_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
+const GENERATED_TASK_SPECS = buildGeneratedTaskSpecs(CORE_TASK_SPECS)
+const SEEDED_TASK_SPECS = [...CORE_TASK_SPECS, ...GENERATED_TASK_SPECS]
 
 export default class SeedData extends BaseCommand {
   static override commandName = 'seed:data'
@@ -1109,6 +1424,7 @@ export default class SeedData extends BaseCommand {
 
       const skills = await this.seedSkills(trx)
       const users = await this.seedUsers(trx)
+      await this.seedUserOAuthProviders(trx, users)
       const organizations = await this.seedOrganizations(trx, users)
       await this.seedOrganizationMemberships(trx, users, organizations)
       const projects = await this.seedProjects(trx, users, organizations)
@@ -1169,6 +1485,10 @@ export default class SeedData extends BaseCommand {
     return value.toISOString()
   }
 
+  private seedPullRequestUrl(seedKey: string): string {
+    return `https://github.com/suar/demo/pull/${seedKey}`
+  }
+
   private toJson(value: unknown): string {
     return JSON.stringify(value)
   }
@@ -1207,23 +1527,32 @@ export default class SeedData extends BaseCommand {
     return value
   }
 
-  private applyWhere(query: any, where: Record<string, unknown>) {
+  private applyWhere(query: SeedQuery, where: Record<string, SeedWhereValue>) {
     for (const [key, value] of Object.entries(where)) {
-      query.where(key, value)
+      if (value === null) {
+        void query.whereNull(key)
+        continue
+      }
+
+      void query.where(key, value)
     }
     return query
   }
 
-  private async findRow(trx: any, table: string, where: Record<string, unknown>) {
-    return await this.applyWhere(trx.from(table), where).first()
+  private async findRow<T extends SeedRow = SeedRow>(
+    trx: TransactionClientContract,
+    table: string,
+    where: Record<string, SeedWhereValue>
+  ): Promise<T | null> {
+    return (await this.applyWhere(trx.from(table), where).first()) as T | null
   }
 
-  private async deleteTableIfExists(trx: any, table: string): Promise<void> {
-    const exists = await trx
+  private async deleteTableIfExists(trx: TransactionClientContract, table: string): Promise<void> {
+    const exists = (await trx
       .from('information_schema.tables')
       .where('table_schema', 'public')
       .where('table_name', table)
-      .first()
+      .first()) as SeedRow | null
 
     if (!exists) {
       return
@@ -1259,7 +1588,7 @@ export default class SeedData extends BaseCommand {
     await db.manager.closeAll()
   }
 
-  private async resetPostgres(trx: any): Promise<void> {
+  private async resetPostgres(trx: TransactionClientContract): Promise<void> {
     const tables = [
       'flagged_reviews',
       'reverse_reviews',
@@ -1312,7 +1641,7 @@ export default class SeedData extends BaseCommand {
     ])
   }
 
-  private async seedSkills(trx: any): Promise<Record<string, string>> {
+  private async seedSkills(trx: TransactionClientContract): Promise<Record<string, string>> {
     const skillSpecs = [
       ['typescript', 'TypeScript', 'technical'],
       ['svelte', 'Svelte', 'technical'],
@@ -1359,7 +1688,7 @@ export default class SeedData extends BaseCommand {
     return result
   }
 
-  private async seedUsers(trx: any): Promise<Record<UserKey, SeededUser>> {
+  private async seedUsers(trx: TransactionClientContract): Promise<Record<UserKey, SeededUser>> {
     const specs: Record<
       UserKey,
       {
@@ -1383,7 +1712,7 @@ export default class SeedData extends BaseCommand {
         bio: 'Chủ organization A, có dự án đang quản lý và đồng thời là thành viên thường của organization B để test context switching.',
         is_freelancer: false,
         rating: 4.7,
-        completedTasks: 2,
+        completedTasks: 3,
         headline: 'Organization owner testing multi-org workspace',
         preferredJobTypes: ['full-time', 'project-based'],
       },
@@ -1516,13 +1845,22 @@ export default class SeedData extends BaseCommand {
           calculated_score: spec.system_role === 'superadmin' ? 99 : 82,
           raw_score: spec.system_role === 'superadmin' ? 120 : 94,
           total_verified_reviews: spec.completedTasks,
+          performance_score:
+            key === 'owner'
+              ? 86.5
+              : key === 'member'
+                ? 81.75
+                : spec.system_role === 'superadmin'
+                  ? 98
+                  : null,
+          scoring_version: key === 'owner' || key === 'member' ? 'seed-performance-v1' : null,
           last_calculated_at: this.isoDaysAgo(1),
         }),
         credibility_data: this.toJson({
           credibility_score: spec.system_role === 'superadmin' ? 98 : 84,
           total_reviews_given: spec.completedTasks + 2,
           accurate_reviews: spec.completedTasks + 1,
-          disputed_reviews: key === 'peerReviewer' ? 1 : 0,
+          disputed_reviews: key === 'peerReviewer' || key === 'owner' ? 1 : 0,
           last_calculated_at: this.isoDaysAgo(1),
         }),
         created_at: this.isoDaysAgo(120),
@@ -1542,14 +1880,52 @@ export default class SeedData extends BaseCommand {
         id,
         username: spec.username,
         email: spec.email,
+        authMethod: spec.auth_method,
+        systemRole: spec.system_role,
       }
     }
 
     return seeded as Record<UserKey, SeededUser>
   }
 
+  private async seedUserOAuthProviders(
+    trx: TransactionClientContract,
+    users: Record<UserKey, SeededUser>
+  ): Promise<void> {
+    for (const [key, user] of Object.entries(users) as Array<[UserKey, SeededUser]>) {
+      await trx
+        .from('user_oauth_providers')
+        .where('user_id', user.id)
+        .whereNot('provider', user.authMethod)
+        .delete()
+
+      const where = {
+        user_id: user.id,
+        provider: user.authMethod,
+      }
+      const existing = await this.findRow(trx, 'user_oauth_providers', where)
+      const payload = {
+        provider_id: `seed-${user.authMethod}-${key}`,
+        email: user.email,
+        access_token: `seed-access-token-${key}`,
+        refresh_token: `seed-refresh-token-${key}`,
+        created_at: this.isoDaysAgo(90),
+        updated_at: this.isoDaysAgo(1),
+      }
+
+      if (existing) {
+        await this.applyWhere(trx.from('user_oauth_providers'), where).update(payload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('user_oauth_providers')
+          .insert({ id: this.uuid(), ...where, ...payload })
+      }
+    }
+  }
+
   private async seedOrganizations(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>
   ): Promise<Record<OrgKey, SeededOrg>> {
     const specs: Record<
@@ -1593,6 +1969,14 @@ export default class SeedData extends BaseCommand {
         plan: 'professional',
         description:
           'Organization thiên về external contributors, dùng để seed package adoption và public task nhiều hơn.',
+      },
+      orgE: {
+        name: 'Data Ops Research Guild',
+        slug: 'data-ops-research-guild',
+        owner: 'freelancerTwo',
+        plan: 'professional',
+        description:
+          'Organization thứ năm để tăng mật độ dữ liệu đa tenant, tập trung vào data ops, analytics và insight workflow.',
       },
     }
 
@@ -1643,7 +2027,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedOrganizationMemberships(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     organizations: Record<OrgKey, SeededOrg>
   ): Promise<void> {
@@ -1728,6 +2112,28 @@ export default class SeedData extends BaseCommand {
         status: 'approved',
         invitedBy: 'freelancerOne',
       },
+      { organization: 'orgE', user: 'freelancerTwo', role: 'org_owner', status: 'approved' },
+      {
+        organization: 'orgE',
+        user: 'owner',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
+      {
+        organization: 'orgE',
+        user: 'member',
+        role: 'org_member',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
+      {
+        organization: 'orgE',
+        user: 'orgAdmin',
+        role: 'org_admin',
+        status: 'approved',
+        invitedBy: 'freelancerTwo',
+      },
     ]
 
     for (const item of memberships) {
@@ -1756,7 +2162,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedProjects(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     organizations: Record<OrgKey, SeededOrg>
   ): Promise<Record<ProjectKey, SeededProject>> {
@@ -1844,6 +2250,24 @@ export default class SeedData extends BaseCommand {
         status: 'in_progress',
         visibility: 'team',
       },
+      orgEDataOps: {
+        name: 'Data Ops Command Center',
+        organization: 'orgE',
+        creator: 'freelancerTwo',
+        owner: 'freelancerTwo',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'team',
+      },
+      orgEInsightEngine: {
+        name: 'Insight Engine Studio',
+        organization: 'orgE',
+        creator: 'freelancerTwo',
+        owner: 'freelancerTwo',
+        manager: 'orgAdmin',
+        status: 'in_progress',
+        visibility: 'private',
+      },
     }
 
     const seeded: Partial<Record<ProjectKey, SeededProject>> = {}
@@ -1896,7 +2320,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedProjectMembers(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     projects: Record<ProjectKey, SeededProject>
   ): Promise<void> {
@@ -1925,6 +2349,13 @@ export default class SeedData extends BaseCommand {
       { project: 'orgDTalentShowcase', user: 'freelancerOne', role: 'project_owner' },
       { project: 'orgDTalentShowcase', user: 'owner', role: 'project_member' },
       { project: 'orgDTalentShowcase', user: 'freelancerTwo', role: 'project_member' },
+      { project: 'orgEDataOps', user: 'freelancerTwo', role: 'project_owner' },
+      { project: 'orgEDataOps', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgEDataOps', user: 'owner', role: 'project_member' },
+      { project: 'orgEDataOps', user: 'member', role: 'project_member' },
+      { project: 'orgEInsightEngine', user: 'freelancerTwo', role: 'project_owner' },
+      { project: 'orgEInsightEngine', user: 'orgAdmin', role: 'project_manager' },
+      { project: 'orgEInsightEngine', user: 'owner', role: 'project_member' },
     ]
 
     for (const row of rows) {
@@ -1950,7 +2381,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedTaskStatuses(
-    trx: any,
+    trx: TransactionClientContract,
     organizations: Record<OrgKey, SeededOrg>
   ): Promise<Record<OrgKey, Record<StatusSlug, string>>> {
     const definitions = [
@@ -2047,7 +2478,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedTasks(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     projects: Record<ProjectKey, SeededProject>,
     organizations: Record<OrgKey, SeededOrg>,
@@ -2141,7 +2572,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedTaskAssignments(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     tasks: Record<string, SeededTask>
   ): Promise<Record<string, SeededAssignment>> {
@@ -2204,7 +2635,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedTaskApplications(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     tasks: Record<string, SeededTask>
   ): Promise<void> {
@@ -2267,7 +2698,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedTaskRequiredSkills(
-    trx: any,
+    trx: TransactionClientContract,
     tasks: Record<string, SeededTask>,
     skills: Record<string, string>
   ): Promise<void> {
@@ -2304,7 +2735,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedReviewData(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     tasks: Record<string, SeededTask>,
     assignments: Record<string, SeededAssignment>,
@@ -2335,7 +2766,7 @@ export default class SeedData extends BaseCommand {
             comment: 'Xử lý state và typing tốt, không để lọt case role mismatch.',
           },
           {
-            reviewer: 'peerReviewer' as UserKey,
+            reviewer: 'owner' as UserKey,
             reviewerType: 'peer',
             skill: 'communication',
             level: 'middle',
@@ -2412,6 +2843,72 @@ export default class SeedData extends BaseCommand {
         ],
       },
       {
+        key: 'orgc-marketplace-ranking',
+        sessionStatus: 'disputed',
+        confirmationAction: 'disputed',
+        disputeReason:
+          'Chưa thống nhất cách chấm trọng số package adoption metrics giữa reviewer peer và manager.',
+        overall: 4,
+        delivery: 'slightly_late',
+        requirement: 4,
+        communication: 4,
+        codeQuality: 4,
+        proactive: 5,
+        strengths:
+          'So sánh package và marketplace analytics khá tốt, tạo được dữ liệu đúng nhu cầu admin dashboard.',
+        improvements: 'Cần chốt rubric review cho phần subscription analytics trước khi confirm.',
+        selfSatisfaction: 4,
+        skills: [
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'manager',
+            skill: 'postgresql',
+            level: 'senior',
+            comment:
+              'Thiết kế truy vấn package adoption tốt nhưng đang còn tranh luận về độ tối ưu cuối cùng.',
+          },
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'peer',
+            skill: 'problem_solving',
+            level: 'senior',
+            comment:
+              'Giải quyết đúng bài toán so sánh package, nhưng reviewer cần thêm tiêu chí thống nhất.',
+          },
+        ],
+      },
+      {
+        key: 'owner-profile-scoring-loop',
+        sessionStatus: 'completed',
+        confirmationAction: 'confirmed',
+        overall: 5,
+        delivery: 'on_time',
+        requirement: 5,
+        communication: 5,
+        codeQuality: 5,
+        proactive: 4,
+        strengths:
+          'Đóng vòng đầy đủ review-confirmed -> aggregate refresh -> snapshot update cho owner profile.',
+        improvements: 'Cần thêm monitor cho cache miss spikes khi traffic tăng.',
+        selfSatisfaction: 5,
+        skills: [
+          {
+            reviewer: 'orgAdmin' as UserKey,
+            reviewerType: 'manager',
+            skill: 'postgresql',
+            level: 'senior',
+            comment: 'Thiết kế truy vấn aggregate ổn định và giữ đúng transaction boundary.',
+          },
+          {
+            reviewer: 'peerReviewer' as UserKey,
+            reviewerType: 'peer',
+            skill: 'problem_solving',
+            level: 'senior',
+            comment: 'Bóc tách nguyên nhân chậm score refresh rõ ràng và có hướng xử lý cụ thể.',
+          },
+        ],
+      },
+      {
         key: 'owner-seed-governance',
         sessionStatus: 'completed',
         confirmationAction: 'confirmed',
@@ -2465,7 +2962,7 @@ export default class SeedData extends BaseCommand {
             comment: 'Đã có checklist moderation nhưng tiêu chí đánh giá chưa thống nhất.',
           },
           {
-            reviewer: 'owner' as UserKey,
+            reviewer: 'peerReviewer' as UserKey,
             reviewerType: 'peer',
             skill: 'communication',
             level: 'middle',
@@ -2526,10 +3023,14 @@ export default class SeedData extends BaseCommand {
       }
 
       for (const skillReview of spec.skills) {
+        const skillId = this.requireValue(
+          skills[skillReview.skill],
+          `review-skill:${skillReview.skill}`
+        )
         const where = {
           review_session_id: sessionId,
           reviewer_id: users[skillReview.reviewer].id,
-          skill_id: skills[skillReview.skill],
+          skill_id: skillId,
         }
         const existingSkillReview = await this.findRow(trx, 'skill_reviews', where)
         const existingSkillReviewId = existingSkillReview?.id
@@ -2552,7 +3053,10 @@ export default class SeedData extends BaseCommand {
             .insert({ id: skillReviewId, ...where, ...skillPayload })
         }
 
-        if (spec.key === 'member-profile-proof' && skillReview.skill === 'testing') {
+        if (
+          (spec.key === 'member-profile-proof' && skillReview.skill === 'testing') ||
+          (spec.key === 'orgc-marketplace-ranking' && skillReview.skill === 'postgresql')
+        ) {
           flaggedReviewTargets.push(skillReviewId)
         }
       }
@@ -2592,7 +3096,7 @@ export default class SeedData extends BaseCommand {
       const evidenceRows = [
         {
           evidence_type: 'pull_request',
-          url: `https://github.com/suar/demo/pull/${Math.floor(Math.random() * 100 + 10)}`,
+          url: this.seedPullRequestUrl(spec.key),
           title: `${task.title} - Pull Request`,
         },
         {
@@ -2658,19 +3162,22 @@ export default class SeedData extends BaseCommand {
       }
     }
 
-    for (const skillReviewId of flaggedReviewTargets) {
+    for (const [index, skillReviewId] of flaggedReviewTargets.entries()) {
       const where = {
         skill_review_id: skillReviewId,
         flag_type: 'frequency_anomaly',
       }
       const existing = await this.findRow(trx, 'flagged_reviews', where)
+      const isReviewedScenario = index === 1
       const payload = {
         severity: 'high',
         detected_at: this.isoDaysAgo(1),
-        status: 'pending',
-        reviewed_by: null,
-        reviewed_at: null,
-        notes: 'Seeded flagged review for admin moderation page.',
+        status: isReviewedScenario ? 'dismissed' : 'pending',
+        reviewed_by: isReviewedScenario ? users.superadmin.id : null,
+        reviewed_at: isReviewedScenario ? this.isoDaysAgo(0) : null,
+        notes: isReviewedScenario
+          ? 'Seeded moderated review case already resolved by superadmin.'
+          : 'Seeded flagged review for admin moderation page.',
         created_at: this.isoDaysAgo(1),
         updated_at: this.isoDaysAgo(1),
       }
@@ -2687,7 +3194,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedUserSkills(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     skills: Record<string, string>
   ): Promise<void> {
@@ -2749,18 +3256,10 @@ export default class SeedData extends BaseCommand {
       },
       {
         user: 'owner',
-        skill: 'leadership',
-        level: 'lead',
+        skill: 'testing',
+        level: 'senior',
         totalReviews: 2,
-        avgPercentage: 89,
-        source: 'reviewed',
-      },
-      {
-        user: 'owner',
-        skill: 'code_review',
-        level: 'middle',
-        totalReviews: 2,
-        avgPercentage: 81,
+        avgPercentage: 88,
         source: 'reviewed',
       },
       {
@@ -2773,11 +3272,19 @@ export default class SeedData extends BaseCommand {
       },
       {
         user: 'owner',
-        skill: 'devops',
-        level: 'middle',
-        totalReviews: 1,
-        avgPercentage: 75,
-        source: 'imported',
+        skill: 'postgresql',
+        level: 'senior',
+        totalReviews: 2,
+        avgPercentage: 86,
+        source: 'reviewed',
+      },
+      {
+        user: 'owner',
+        skill: 'problem_solving',
+        level: 'senior',
+        totalReviews: 2,
+        avgPercentage: 84,
+        source: 'reviewed',
       },
       {
         user: 'orgAdmin',
@@ -2822,9 +3329,10 @@ export default class SeedData extends BaseCommand {
     ]
 
     for (const row of rows) {
+      const skillId = this.requireValue(skills[row.skill], `user-skill:${row.skill}`)
       const where = {
         user_id: users[row.user].id,
-        skill_id: skills[row.skill],
+        skill_id: skillId,
       }
       const existing = await this.findRow(trx, 'user_skills', where)
       const payload = {
@@ -2850,14 +3358,17 @@ export default class SeedData extends BaseCommand {
     }
   }
 
-  private async seedUserSubscriptions(trx: any, users: Record<UserKey, SeededUser>): Promise<void> {
+  private async seedUserSubscriptions(
+    trx: TransactionClientContract,
+    users: Record<UserKey, SeededUser>
+  ): Promise<void> {
     const rows = [
       {
         user: 'owner' as UserKey,
-        plan: 'enterprise',
+        plan: 'pro',
         status: 'active',
         startedAt: this.isoDaysAgo(25),
-        expiresAt: this.isoDaysAhead(335),
+        expiresAt: this.isoDaysAhead(30),
         autoRenew: true,
       },
       {
@@ -2911,7 +3422,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async seedProjectAttachments(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     projects: Record<ProjectKey, SeededProject>
   ): Promise<void> {
@@ -2955,7 +3466,7 @@ export default class SeedData extends BaseCommand {
   }
 
   private async updateCurrentOrganizations(
-    trx: any,
+    trx: TransactionClientContract,
     users: Record<UserKey, SeededUser>,
     organizations: Record<OrgKey, SeededOrg>
   ): Promise<void> {
@@ -2967,7 +3478,7 @@ export default class SeedData extends BaseCommand {
       ['orgBOwner', organizations.orgB.id],
       ['superadmin', null],
       ['freelancerOne', null],
-      ['freelancerTwo', null],
+      ['freelancerTwo', organizations.orgE.id],
     ]
 
     for (const [userKey, currentOrgId] of updates) {
@@ -3164,47 +3675,197 @@ export default class SeedData extends BaseCommand {
       },
       {
         user: 'owner',
-        taskKey: 'owner-seed-governance',
+        taskKey: 'orgb-navigation-qa',
         overallQualityScore: 4,
-        daysEarlyOrLate: 1,
+        daysEarlyOrLate: 0,
+        wasOnTime: true,
         skillScores: [
           {
-            skillCode: 'leadership',
-            skillName: 'Leadership',
+            skillCode: 'testing',
+            skillName: 'Testing & QA',
             reviewerType: 'manager',
-            assignedLevelCode: 'lead',
-            comment: 'Điều phối tốt phạm vi seed cho nhiều tổ chức và nhiều role.',
+            assignedLevelCode: 'senior',
+            comment:
+              'Giữ được browser history và current organization ổn định sau khi chuyển admin mode.',
           },
           {
-            skillCode: 'code_review',
-            skillName: 'Code Review',
+            skillCode: 'communication',
+            skillName: 'Communication',
             reviewerType: 'peer',
-            assignedLevelCode: 'middle',
-            comment: 'Checklist review seed data rõ ràng, dễ verify lại trên UI.',
+            assignedLevelCode: 'senior',
+            comment: 'Mô tả rõ được các case context owner/member ở org B cho team cùng verify.',
           },
         ],
         knowledgeArtifacts: [
           {
             type: 'retrospective_success',
-            content: 'Giữ được dữ liệu seed ổn định để test context switching theo role.',
+            content:
+              'Giữ được browser history và current organization ổn định trong case member-only của org B.',
           },
           {
             type: 'retrospective_improvement',
-            content: 'Cần thêm automation cho clone/sync test datastore trước khi test full suite.',
+            content: 'Cần thêm automation cho browser back/forward để khóa regression navigation.',
           },
         ],
         evidenceLinks: [
           {
             evidence_id: this.uuid(),
             evidence_type: 'pull_request',
-            url: 'https://github.com/suar/demo/pull/112',
-            title: 'Hoàn thiện seed đa tổ chức cho context switching - Pull Request',
+            url: 'https://github.com/suar/demo/pull/orgb-navigation-qa',
+            title: 'Kiểm thử navigation sau khi quay lại từ admin mode - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/orgb-navigation-qa',
+            title: 'Kiểm thử navigation sau khi quay lại từ admin mode - Demo',
+          },
+        ],
+      },
+      {
+        user: 'owner',
+        taskKey: 'owner-profile-scoring-loop',
+        overallQualityScore: 5,
+        daysEarlyOrLate: 1,
+        wasOnTime: true,
+        skillScores: [
+          {
+            skillCode: 'postgresql',
+            skillName: 'PostgreSQL',
+            reviewerType: 'manager',
+            assignedLevelCode: 'senior',
+            comment: 'Thiết kế truy vấn aggregate ổn định và giữ đúng transaction boundary.',
+          },
+          {
+            skillCode: 'problem_solving',
+            skillName: 'Problem Solving',
+            reviewerType: 'peer',
+            assignedLevelCode: 'senior',
+            comment: 'Bóc tách nguyên nhân chậm score refresh rõ ràng và có hướng xử lý cụ thể.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content:
+              'Đóng vòng đầy đủ review-confirmed -> aggregate refresh -> snapshot update cho owner profile.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Cần thêm monitor cho cache miss spikes khi traffic tăng.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/owner-profile-scoring-loop',
+            title: 'Đồng bộ profile scoring sau khi review được xác nhận - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/owner-profile-scoring-loop',
+            title: 'Đồng bộ profile scoring sau khi review được xác nhận - Demo',
+          },
+        ],
+      },
+      {
+        user: 'owner',
+        taskKey: 'owner-seed-governance',
+        overallQualityScore: 4,
+        daysEarlyOrLate: 0,
+        wasOnTime: true,
+        skillScores: [
+          {
+            skillCode: 'leadership',
+            skillName: 'Leadership',
+            reviewerType: 'manager',
+            assignedLevelCode: 'lead',
+            comment: 'Điều phối tốt phạm vi seed dữ liệu nhiều role và nhiều organization.',
+          },
+          {
+            skillCode: 'code_review',
+            skillName: 'Code Review',
+            reviewerType: 'peer',
+            assignedLevelCode: 'middle',
+            comment: 'Checklist review seed command rõ ràng và dễ verify lại trên UI.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content:
+              'Điều phối được seed data đa vai trò đủ cho owner, member và superadmin cùng dùng.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content: 'Cần thêm automation cho reset/sync datastore để full verify ổn định hơn.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/owner-seed-governance',
+            title: 'Điều phối seed data đa vai trò cho demo local - Pull Request',
           },
           {
             evidence_id: this.uuid(),
             evidence_type: 'demo_recording',
             url: 'https://demo.local/owner-seed-governance',
-            title: 'Hoàn thiện seed đa tổ chức cho context switching - Demo',
+            title: 'Điều phối seed data đa vai trò cho demo local - Demo',
+          },
+        ],
+      },
+      {
+        user: 'owner',
+        taskKey: 'orgc-marketplace-ranking',
+        overallQualityScore: 4,
+        daysEarlyOrLate: -1,
+        wasOnTime: false,
+        skillScores: [
+          {
+            skillCode: 'postgresql',
+            skillName: 'PostgreSQL',
+            reviewerType: 'manager',
+            assignedLevelCode: 'senior',
+            comment:
+              'Điều phối tốt dữ liệu package analytics và giữ được logic so sánh adoption theo gói.',
+          },
+          {
+            skillCode: 'problem_solving',
+            skillName: 'Problem Solving',
+            reviewerType: 'peer',
+            assignedLevelCode: 'senior',
+            comment:
+              'Xử lý tốt bài toán package ranking dù phiên review đi vào trạng thái disputed.',
+          },
+        ],
+        knowledgeArtifacts: [
+          {
+            type: 'retrospective_success',
+            content:
+              'Mở rộng được dataset package adoption và ranking cho admin dashboard đa organization.',
+          },
+          {
+            type: 'retrospective_improvement',
+            content:
+              'Cần chốt rubric review cho package analytics sớm hơn để tránh dispute ở vòng xác nhận.',
+          },
+        ],
+        evidenceLinks: [
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'pull_request',
+            url: 'https://github.com/suar/demo/pull/orgc-marketplace-ranking',
+            title: 'So sánh package Pro và ProMax trong ranking của marketplace - Pull Request',
+          },
+          {
+            evidence_id: this.uuid(),
+            evidence_type: 'demo_recording',
+            url: 'https://demo.local/orgc-marketplace-ranking',
+            title: 'So sánh package Pro và ProMax trong ranking của marketplace - Demo',
           },
         ],
       },
@@ -3240,7 +3901,7 @@ export default class SeedData extends BaseCommand {
           difficulty: spec.difficulty,
           estimated_hours: spec.assignmentEstimatedHours ?? null,
           actual_hours: spec.assignmentActualHours ?? null,
-          was_on_time: false,
+          was_on_time: 'wasOnTime' in row ? row.wasOnTime : false,
           days_early_or_late: row.daysEarlyOrLate,
           measurable_outcomes: this.toJson(spec.measurableOutcomes),
           estimated_business_value: spec.impactScope,
@@ -3272,20 +3933,21 @@ export default class SeedData extends BaseCommand {
     const rows = [
       {
         userId: context.users.owner.id,
-        totalTasksCompleted: 1,
-        totalHoursWorked: 10,
+        totalTasksCompleted: 3,
+        totalHoursWorked: 35,
         avgQualityScore: 4,
-        onTimeDeliveryRate: 0,
-        avgDaysEarlyOrLate: 1,
-        tasksByType: { feature_development: 1 },
-        tasksByDifficulty: { medium: 1 },
-        tasksByDomain: { internal_tooling: 1 },
+        onTimeDeliveryRate: 66.67,
+        avgDaysEarlyOrLate: -0.33,
+        tasksByType: { feature_development: 2, qa_testing: 1 },
+        tasksByDifficulty: { medium: 2, hard: 1 },
+        tasksByDomain: { edtech: 1, internal_tooling: 1, saas: 1 },
         tasksAsLead: 1,
         tasksAsSoleContributor: 0,
         tasksMentoringOthers: 0,
-        longestOnTimeStreak: 0,
+        longestOnTimeStreak: 2,
         currentOnTimeStreak: 0,
-        selfAssessmentAccuracy: 85,
+        selfAssessmentAccuracy: 86.33,
+        performanceScore: 86.5,
       },
       {
         userId: context.users.member.id,
@@ -3303,6 +3965,7 @@ export default class SeedData extends BaseCommand {
         longestOnTimeStreak: 0,
         currentOnTimeStreak: 0,
         selfAssessmentAccuracy: 91.67,
+        performanceScore: 81.75,
       },
     ] as const
 
@@ -3320,7 +3983,7 @@ export default class SeedData extends BaseCommand {
           avg_quality_score: row.avgQualityScore,
           on_time_delivery_rate: row.onTimeDeliveryRate,
           avg_days_early_or_late: row.avgDaysEarlyOrLate,
-          performance_score: null,
+          performance_score: row.performanceScore,
           tasks_by_type: this.toJson(row.tasksByType),
           tasks_by_difficulty: this.toJson(row.tasksByDifficulty),
           tasks_by_domain: this.toJson(row.tasksByDomain),
@@ -3343,20 +4006,34 @@ export default class SeedData extends BaseCommand {
         userId: context.users.owner.id,
         techStackFrequency: {
           AdonisJS: 1,
-          PostgreSQL: 1,
+          Browser: 1,
+          MongoDB: 1,
+          PostgreSQL: 2,
+          Svelte: 2,
+          TypeScript: 1,
         },
         domainFrequency: {
+          edtech: 1,
           internal_tooling: 1,
+          saas: 1,
+          navigation: 1,
+          marketplace: 1,
+          subscription: 1,
           admin: 1,
-          workflow: 1,
           seed: 1,
+          session: 1,
         },
         problemCategoryFrequency: {
+          automation: 1,
+          maintainability: 1,
           new_capability: 1,
         },
         topSkills: [
           { skill_name: 'Leadership', weighted_score: 1, review_mentions: 1 },
           { skill_name: 'Code Review', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'Testing & QA', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'Communication', weighted_score: 1, review_mentions: 1 },
+          { skill_name: 'PostgreSQL', weighted_score: 1, review_mentions: 1 },
         ],
       },
       {
@@ -3426,22 +4103,20 @@ export default class SeedData extends BaseCommand {
       throw new Error(`User ${userId} not found for snapshot seed`)
     }
 
-    const lastSnapshot = await db
+    const lastSnapshot = (await db
       .from('user_profile_snapshots')
       .where('user_id', userId)
       .orderBy('version', 'desc')
-      .first()
+      .first()) as { version?: string | number } | null
 
     const nextVersion = Number(lastSnapshot?.version ?? 0) + 1
     const username = this.readNonEmptyString(user.username, userId)
     const slugBase = username.toLowerCase().replace(/[^a-z0-9]+/g, '-')
     const versionLabel = String(nextVersion)
-    const shareableSlug = isPublic
-      ? `${slugBase}-v${versionLabel}-${Date.now().toString(36)}`
-      : null
-    const shareableToken = isPublic ? randomUUID().replace(/-/g, '') : null
+    const shareableSlug = isPublic ? `${slugBase}-v${versionLabel}` : null
+    const shareableToken = isPublic ? `${slugBase.replace(/-/g, '')}${versionLabel}` : null
 
-    const skills = await db
+    const skills = (await db
       .from('user_skills as us')
       .join('skills as s', 's.id', 'us.skill_id')
       .where('us.user_id', userId)
@@ -3454,22 +4129,48 @@ export default class SeedData extends BaseCommand {
         'us.avg_percentage',
         'us.avg_score',
         'us.last_reviewed_at'
-      )
+      )) as Array<{
+      skill_id: string
+      skill_name: string
+      level_code: string
+      total_reviews: string | number | null
+      avg_percentage: string | number | null
+      avg_score: string | number | null
+      last_reviewed_at: string | null
+    }>
 
-    const performance = await db
+    const performance = (await db
       .from('user_performance_stats')
       .where('user_id', userId)
       .whereNull('period_start')
       .whereNull('period_end')
       .orderBy('calculated_at', 'desc')
-      .first()
+      .first()) as {
+      total_tasks_completed?: string | number | null
+      total_hours_worked?: string | number | null
+      avg_quality_score?: string | number | null
+      on_time_delivery_rate?: string | number | null
+      performance_score?: string | number | null
+      tasks_by_type?: Record<string, unknown>
+      tasks_by_domain?: Record<string, unknown>
+      tasks_by_difficulty?: Record<string, unknown>
+    } | null
 
-    const domainExpertise = await db.from('user_domain_expertise').where('user_id', userId).first()
-    const highlights = await db
+    const domainExpertise = (await db
+      .from('user_domain_expertise')
+      .where('user_id', userId)
+      .first()) as {
+      tech_stack_frequency?: Record<string, unknown>
+      domain_frequency?: Record<string, unknown>
+      problem_category_frequency?: Record<string, unknown>
+      top_skills?: Array<Record<string, unknown>>
+    } | null
+
+    const highlights = (await db
       .from('user_work_history')
       .where('user_id', userId)
       .orderBy('completed_at', 'desc')
-      .limit(6)
+      .limit(6)) as Array<Record<string, unknown>>
 
     await db
       .from('user_profile_snapshots')
@@ -3819,8 +4520,10 @@ export default class SeedData extends BaseCommand {
 
   private async logSummary(context: SeedContext): Promise<void> {
     const count = async (table: string) => {
-      const row = await db.from(table).count('* as total').first()
-      return Number((row?.total as string | number | undefined) ?? 0)
+      const row = (await db.from(table).count('* as total').first()) as {
+        total?: string | number
+      } | null
+      return Number(row?.total ?? 0)
     }
 
     const [
