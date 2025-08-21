@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page, router, Link } from '@inertiajs/svelte'
+
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
   import AvatarImage from '@/components/ui/avatar_image.svelte'
@@ -12,29 +13,17 @@
   import DropdownMenuSeparator from '@/components/ui/dropdown_menu_separator.svelte'
   import DropdownMenuShortcut from '@/components/ui/dropdown_menu_shortcut.svelte'
   import DropdownMenuTrigger from '@/components/ui/dropdown_menu_trigger.svelte'
+  import type { SharedData } from '@/types/shared_data'
 
-  interface AuthUser {
-    id?: string
-    username?: string
-    email?: string
-    avatar_url?: string | null
-  }
-
-  interface PageProps {
-    auth?: {
-      user?: AuthUser
-    }
-    [key: string]: unknown
-  }
-
-  const props = $derived($page.props as unknown as PageProps)
+  // WHITELIST: shell component reads $page.props for authenticated user menu during transition period.
+  const props = $derived($page.props as unknown as SharedData)
   const user = $derived(props.auth?.user)
 
   // Tạo tên hiển thị từ thông tin người dùng
-  const displayName = $derived(user ? (user.username || user.email || 'User') : '')
-  const userEmail = $derived(user?.email || '')
-  const avatarUrl = $derived(user?.avatar_url || '')
-  const initials = $derived(user ? (user.username?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U') : '!')
+  const displayName = $derived(user ? ((user.username ?? user.email) ?? 'User') : '')
+  const userEmail = $derived(user?.email ?? '')
+  const avatarUrl = $derived(user?.avatar_url ?? '')
+  const initials = $derived(user ? ((user.username?.[0]?.toUpperCase() ?? user.email?.[0]?.toUpperCase()) ?? 'U') : '!')
 
   // Di chuyển console.error vào effect
   $effect(() => {

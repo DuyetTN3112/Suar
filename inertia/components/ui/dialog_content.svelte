@@ -3,12 +3,13 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Dialog as DialogPrimitive } from 'bits-ui'
   import X from 'lucide-svelte/icons/x'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     children?: Snippet
   }

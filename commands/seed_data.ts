@@ -4551,6 +4551,32 @@ export default class SeedData extends BaseCommand {
     this.logger.info(
       `Users=${userCount}, organizations=${orgCount}, projects=${projectCount}, tasks=${taskCount}, review_sessions=${reviewCount}, user_subscriptions=${subscriptionCount}, mongo_notifications=${notificationCount}, mongo_audit_logs=${auditLogCount}, mongo_user_activity_logs=${userActivityCount}`
     )
+
+    const taskCountRows = (await db
+      .from('tasks as t')
+      .join('organizations as o', 'o.id', 't.organization_id')
+      .select('o.slug')
+      .count('* as total')
+      .groupBy('o.slug')
+      .orderBy('o.slug')) as Array<{ slug: string; total: string | number }>
+
+    this.logger.info(
+      `Task counts by org: ${taskCountRows.map((row) => `${row.slug}=${Number(row.total)}`).join(', ')}`
+    )
+
+    const projectTaskCountRows = (await db
+      .from('tasks as t')
+      .join('projects as p', 'p.id', 't.project_id')
+      .join('organizations as o', 'o.id', 'p.organization_id')
+      .select('o.slug', 'p.name')
+      .count('* as total')
+      .groupBy('o.slug', 'p.name')
+      .orderBy('o.slug')
+      .orderBy('p.name')) as Array<{ slug: string; name: string; total: string | number }>
+
+    this.logger.info(
+      `Task counts by project: ${projectTaskCountRows.map((row) => `${row.slug}/${row.name}=${Number(row.total)}`).join(', ')}`
+    )
     this.logger.info(
       `Owner account: ${context.users.owner.email} | Superadmin: ${context.users.superadmin.username} | Member account: ${context.users.member.username}`
     )

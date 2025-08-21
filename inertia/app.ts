@@ -15,14 +15,15 @@ import '@fontsource/jetbrains-mono/500.css'
 import '@fontsource/jetbrains-mono/700.css'
 import '@/css/app.css'
 
-import type { AxiosError } from 'axios'
-import type { InertiaPageModule, PageComponentRecord } from '@/types/inertia'
 
 import { createInertiaApp } from '@inertiajs/svelte'
+import type { AxiosError } from 'axios'
 import axios from 'axios'
 import { hydrate, mount } from 'svelte'
+
 import AdminLayout from '@/layouts/admin_layout.svelte'
 import { initTheme } from '@/stores/theme.svelte'
+import type { InertiaPageModule, PageComponentRecord } from '@/types/inertia'
 
 const pages: PageComponentRecord = import.meta.glob<InertiaPageModule>('./pages/**/*.svelte')
 
@@ -101,6 +102,6 @@ void createInertiaApp({
 
 // Debug info cho development
 if (import.meta.env.DEV) {
-  console.info('🚀 Svelte 5 + Inertia.js initialized')
-  console.info('📁 Pages directory: ../pages/')
+  console.warn('🚀 Svelte 5 + Inertia.js initialized')
+  console.warn('📁 Pages directory: ../pages/')
 }

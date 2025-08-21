@@ -6,7 +6,7 @@
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  interface Props {
     class?: string
     value?: string
     onValueChange?: (value: string) => void
