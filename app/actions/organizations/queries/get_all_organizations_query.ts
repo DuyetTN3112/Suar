@@ -1,8 +1,9 @@
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface EnhancedOrganization {
   id: DatabaseId
