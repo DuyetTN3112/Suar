@@ -3,12 +3,13 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { DropdownMenu as DropdownMenuPrimitive } from 'bits-ui'
   import ChevronRight from 'lucide-svelte/icons/chevron-right'
   import type { Snippet } from 'svelte'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     inset?: boolean
     children?: Snippet

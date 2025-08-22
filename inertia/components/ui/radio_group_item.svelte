@@ -3,11 +3,12 @@
 -->
 
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { RadioGroup as RadioGroupPrimitive } from 'bits-ui'
   import Circle from 'lucide-svelte/icons/circle'
 
-  type Props = {
+  import { cn } from '$lib/utils-svelte'
+
+  interface Props {
     class?: string
     value: string
     disabled?: boolean

@@ -4,7 +4,7 @@
 -->
 
 <script lang="ts">
-  type Props = {
+  interface Props {
     placeholder?: string
     class?: string
   }
@@ -13,5 +13,5 @@
 </script>
 
 <span data-slot="select-value" class={className}>
-  {placeholder || ''}
+  {placeholder ?? ''}
 </span>

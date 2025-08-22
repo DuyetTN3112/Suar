@@ -1,8 +1,9 @@
 <script lang="ts">
   import { cn } from '$lib/utils-svelte'
+
   import Separator from '../separator.svelte'
 
-  type Props = {
+  interface Props {
     class?: string
     [key: string]: unknown
   }

@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import type { Snippet } from 'svelte'
   import type { HTMLAttributes } from 'svelte/elements'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = HTMLAttributes<HTMLLIElement> & {
     class?: string

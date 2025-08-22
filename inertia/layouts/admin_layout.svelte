@@ -1,11 +1,12 @@
 <script lang="ts">
   import type { Snippet } from 'svelte'
-  import NavBar from '@/components/layout/nav_bar.svelte'
-  import AdminSidebar from '@/components/layout/admin_sidebar.svelte'
-  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
-  import NotificationDialog from '@/components/notification_dialog.svelte'
 
-  type Props = {
+  import AdminSidebar from '@/components/layout/admin_sidebar.svelte'
+  import NavBar from '@/components/layout/nav_bar.svelte'
+  import NotificationDialog from '@/components/notification_dialog.svelte'
+  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
+
+  interface Props {
     title?: string
     children: Snippet
   }

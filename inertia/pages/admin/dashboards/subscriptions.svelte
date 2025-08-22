@@ -164,7 +164,7 @@
             <tr>
               <td>
                 <p class="font-medium text-foreground">{item.username}</p>
-                <p class="text-xs text-muted-foreground">{item.email || 'No email'}</p>
+                <p class="text-xs text-muted-foreground">{item.email ?? 'No email'}</p>
               </td>
               <td>{item.plan}</td>
               <td>{item.status}</td>

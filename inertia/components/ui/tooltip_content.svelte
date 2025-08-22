@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { cn } from '$lib/utils-svelte'
   import { Tooltip as TooltipPrimitive, type TooltipContentProps } from 'bits-ui'
+
+  import { cn } from '$lib/utils-svelte'
 
   type Props = TooltipContentProps
 
