@@ -270,29 +270,13 @@
         {/each}
       </div>
 
-      {#if hasPreviousPage || hasNextPage}
-        <div class="flex items-center justify-center gap-3 pt-4">
-          <Button
-            variant="outline"
-            class="font-bold"
-            disabled={!hasPreviousPage}
-            onclick={() => { goToPage(currentPage - 1) }}
-          >
-            Trang trước
-          </Button>
-          <span class="text-sm text-muted-foreground">
-            Trang {currentPage}{#if paginationMeta} / {paginationMeta.last_page}{/if}
-          </span>
-          <Button
-            variant="outline"
-            class="font-bold"
-            disabled={!hasNextPage}
-            onclick={() => { goToPage(currentPage + 1) }}
-          >
-            Trang sau
-          </Button>
-        </div>
-      {/if}
+      <NotificationPagination
+        {hasPreviousPage}
+        {hasNextPage}
+        {currentPage}
+        {paginationMeta}
+        onPageChange={goToPage}
+      />
     {/if}
   </div>
 </AppLayout>
