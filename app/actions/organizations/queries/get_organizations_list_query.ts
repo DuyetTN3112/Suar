@@ -1,14 +1,14 @@
-import redis from '@adonisjs/redis/services/main'
 
 import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface OrganizationRecord {
   id: DatabaseId
@@ -68,9 +68,9 @@ export default class GetOrganizationsListQuery {
 
     // 1. Try cache first
     const cacheKey = dto.getCacheKey(userId)
-    const cached = await redis.get(cacheKey)
+    const cached = await CacheService.get<PaginatedResult>(cacheKey)
     if (cached) {
-      return JSON.parse(cached) as PaginatedResult
+      return cached
     }
 
     // 2. Paginate organizations → delegate to Model
@@ -95,7 +95,7 @@ export default class GetOrganizationsListQuery {
     }
 
     // 5. Cache result (5 minutes)
-    await redis.setex(cacheKey, 300, JSON.stringify(result))
+    await CacheService.set(cacheKey, result, 300)
 
     return result
   }
