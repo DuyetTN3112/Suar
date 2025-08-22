@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
 import { vi } from 'date-fns/locale'
+
 import type { Task } from '../types.svelte'
 
 /**
@@ -88,7 +89,7 @@ export const getPermissions = (currentUser: CurrentUser | null | undefined, task
  */
 function checkIsSuperadmin(currentUser: CurrentUser | null | undefined): boolean {
   if (!currentUser) return false
-  const role = currentUser.role || currentUser.system_role || ''
+  const role = (currentUser.role ?? currentUser.system_role) ?? ''
   return role.toLowerCase() === 'superadmin'
 }
 
@@ -97,6 +98,6 @@ function checkIsSuperadmin(currentUser: CurrentUser | null | undefined): boolean
  */
 function checkIsAdmin(currentUser: CurrentUser | null | undefined): boolean {
   if (!currentUser) return false
-  const role = (currentUser.role || currentUser.system_role || '').toLowerCase()
+  const role = ((currentUser.role ?? currentUser.system_role) ?? '').toLowerCase()
   return role === 'admin' || role === 'superadmin' || currentUser.isAdmin === true
 }

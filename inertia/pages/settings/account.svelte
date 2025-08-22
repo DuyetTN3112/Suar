@@ -1,13 +1,14 @@
 <script lang="ts">
   import { page, Link } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Badge from '@/components/ui/badge.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
 
   interface AuthUser {
     username?: string
@@ -26,6 +27,9 @@
 
   function authMethodLabel(authMethod?: string | null): string {
     switch (authMethod) {
+      case undefined:
+      case null:
+        return 'OAuth'
       case 'google':
         return 'Google'
       case 'github':
@@ -58,7 +62,7 @@
           <div class="flex items-center gap-2">
             <Badge variant="outline">{authMethodLabel(authUser?.auth_method)}</Badge>
             <span class="text-sm text-muted-foreground">
-              {authUser?.email || 'Email chưa được đồng bộ lên giao diện này'}
+              {authUser?.email ?? 'Email chưa được đồng bộ lên giao diện này'}
             </span>
           </div>
           <p class="text-sm text-muted-foreground">

@@ -1,10 +1,11 @@
 <script lang="ts">
+  import { X } from 'lucide-svelte'
+
+  import Button from '@/components/ui/button.svelte'
   import Select from '@/components/ui/select.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import SelectContent from '@/components/ui/select_content.svelte'
   import SelectItem from '@/components/ui/select_item.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import { X } from 'lucide-svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
 
   interface Skill {
     id: string
@@ -16,8 +17,8 @@
     requiredSkills: Skill[]
     onAddSkill: (skill: Skill) => void
     onRemoveSkill: (skillId: string) => void
-    availableSkills?: Array<{ id: string; name: string }>
-    proficiencyLevels?: Array<{ value: string; label: string }>
+    availableSkills?: { id: string; name: string }[]
+    proficiencyLevels?: { value: string; label: string }[]
     error?: string
   }
 
@@ -84,7 +85,7 @@
 
         <Select value={selectedLevel} onValueChange={(val) => { selectedLevel = String(val) }}>
           <SelectTrigger class="w-32">
-            <span>{proficiencyLevels.find(l => l.value === selectedLevel)?.label || selectedLevel}</span>
+            <span>{proficiencyLevels.find(l => l.value === selectedLevel)?.label ?? selectedLevel}</span>
           </SelectTrigger>
           <SelectContent>
             {#each proficiencyLevels as level (level.value)}

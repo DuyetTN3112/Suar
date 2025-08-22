@@ -7,6 +7,7 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
+
   import type { ProfileTabProps } from './types'
 
   const { form, onSubmit, processing }: ProfileTabProps = $props()
