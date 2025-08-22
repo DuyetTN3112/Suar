@@ -1,17 +1,15 @@
-import redis from '@adonisjs/redis/services/main'
 
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { canViewOrganization } from '#domain/organizations/org_permission_policy'
-import NotFoundException from '#exceptions/not_found_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
+import CacheService from '#infra/cache/cache_service'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface OwnerRecord {
   id: DatabaseId
@@ -78,18 +76,15 @@ export default class GetOrganizationDetailQuery {
 
     // 2. Try cache first
     const cacheKey = dto.getCacheKey()
-    const cached = await redis.get(cacheKey)
+    const cached = await CacheService.get<OrganizationDetail>(cacheKey)
     if (cached) {
-      return JSON.parse(cached) as OrganizationDetail
+      return cached
     }
 
     // 3. Get organization
-    const organization = await OrganizationRepository.findById(dto.organizationId)
-    if (!organization) {
-      throw NotFoundException.resource('Tổ chức', dto.organizationId)
-    }
+    const organization = await OrganizationRepository.findActiveOrFailRecord(dto.organizationId)
 
-    const result: OrganizationDetail = organization.toJSON() as OrganizationDetail
+    const result: OrganizationDetail = { ...organization }
 
     // 4. Load optional includes
     if (dto.includeOwner) {
@@ -109,7 +104,7 @@ export default class GetOrganizationDetailQuery {
 
     // 5. Cache result with dynamic TTL
     const cacheTTL = dto.getCacheTTL()
-    await redis.setex(cacheKey, cacheTTL, JSON.stringify(result))
+    await CacheService.set(cacheKey, result, cacheTTL)
 
     return result
   }
