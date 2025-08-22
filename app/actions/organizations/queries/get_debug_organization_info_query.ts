@@ -1,6 +1,7 @@
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
 import type { DatabaseId } from '#types/database'
 
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 interface DebugOrgInfo {
   user_id: DatabaseId
