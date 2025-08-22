@@ -31,11 +31,12 @@
       "@/*": ["./*"],
       "@lib/*": ["./lib/*"],
       "$lib/*": ["./lib/*"],
-      "$lib": ["./lib"]
+      "$lib": ["./lib"],
+      "~/generated/*": ["./generated/*"]
     },
     "types": ["vite/client"]
   },
-  "include": ["./**/*.ts", "./**/*.svelte"],
+  "include": ["./**/*.ts", "./**/*.svelte", "./**/*.d.ts", "../types/**/*.d.ts"],
   "exclude": [
     "node_modules",
     "build"

@@ -1,11 +1,13 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+
   import Button from '@/components/ui/button.svelte'
-  import UserSearchForm from './components/UserSearchForm.svelte'
+  import AppLayout from '@/layouts/app_layout.svelte'
+
   import PendingApprovalTable from './components/PendingApprovalTable.svelte'
-  import type { PendingApprovalProps } from './types'
+  import UserSearchForm from './components/UserSearchForm.svelte'
   import { createPendingApproval } from './hooks/use_pending_approval.svelte'
+  import type { PendingApprovalProps } from './types'
 
   const { users, filters }: PendingApprovalProps = $props()
 

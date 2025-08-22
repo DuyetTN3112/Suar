@@ -35,47 +35,34 @@
   let deleteDialogOpen = $state(false)
   let deleting = $state(false)
 
-  const statusColors: Record<string, string> = {
-    todo: 'bg-slate-100 text-slate-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    in_review: 'bg-fuchsia-100 text-fuchsia-800',
-    done: 'bg-orange-100 text-orange-800',
-    cancelled: 'bg-red-100 text-red-800',
-  }
-
-  const priorityColors: Record<string, string> = {
-    low: 'bg-slate-100 text-slate-800',
-    medium: 'bg-blue-100 text-blue-800',
-    high: 'bg-orange-100 text-orange-800',
-    urgent: 'bg-red-100 text-red-800',
-  }
-
-  const labelColors: Record<string, string> = {
-    bug: 'bg-red-100 text-red-800',
-    feature: 'bg-blue-100 text-blue-800',
-    enhancement: 'bg-fuchsia-100 text-fuchsia-800',
-    documentation: 'bg-orange-100 text-orange-800',
-  }
-
   const statusLabel = $derived(t(`task.status_${task.status}`, {}, task.status))
   const priorityLabel = $derived(t(`task.priority_${task.priority}`, {}, task.priority))
   const labelLabel = $derived(t(`task.label_${task.label}`, {}, task.label))
 
   function handleBack() {
-    router.visit('/tasks')
+    router.visit(FRONTEND_ROUTES.TASKS)
   }
 
   function handleEdit() {
-    router.visit(`/tasks/${task.id}/edit`)
+    router.visit(`${getTaskDetailRoute(task.id)}/edit`)
   }
 
   function handleApply() {
-    router.post(`/tasks/${task.id}/apply`)
+    router.post(
+      `${getTaskDetailRoute(task.id)}/apply`,
+      {},
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
   }
 
   function confirmDelete() {
     deleting = true
-    router.delete(`/tasks/${task.id}`, {
+    router.delete(getTaskDetailRoute(task.id), {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         deleteDialogOpen = false
         deleting = false
@@ -86,25 +73,6 @@
     })
   }
 
-  function formatChangeValue(value: unknown): string {
-    if (value === null || value === undefined) return '—'
-    if (typeof value === 'boolean') return value ? 'Yes' : 'No'
-    if (
-      typeof value === 'string' ||
-      typeof value === 'number' ||
-      typeof value === 'bigint'
-    ) {
-      return String(value)
-    }
-    if (Array.isArray(value)) {
-      return value.length > 0 ? value.map((item) => formatChangeValue(item)).join(', ') : '[]'
-    }
-    if (typeof value === 'function' || typeof value === 'symbol') {
-      return value.toString()
-    }
-
-    return JSON.stringify(value)
-  }
 </script>
 
 <svelte:head>
@@ -252,7 +220,7 @@
                     <div class="flex flex-col gap-1">
                       <div class="flex items-center gap-2 flex-wrap">
                         <span class="font-bold text-sm">
-                          {log.user?.username || t('task.system', {}, 'Hệ thống')}
+                          {log.user?.username ?? t('task.system', {}, 'Hệ thống')}
                         </span>
                         <Badge variant="outline" class="text-xs">{log.action}</Badge>
                         <span class="text-xs text-muted-foreground">
@@ -264,9 +232,9 @@
                           {#each Object.entries(log.changes) as [field, change]}
                             <div class="text-xs text-muted-foreground">
                               <span class="font-bold">{field}:</span>
-                              <span class="line-through text-red-500">{formatChangeValue(change.old)}</span>
+                              <span class="line-through text-red-500">{formatAuditChangeValue(change.old)}</span>
                               →
-                              <span class="text-blue-600 font-bold">{formatChangeValue(change.new)}</span>
+                              <span class="text-blue-600 font-bold">{formatAuditChangeValue(change.new)}</span>
                             </div>
                           {/each}
                         </div>
@@ -280,194 +248,16 @@
         {/if}
       </div>
 
-      <!-- Right sidebar -->
-      <div class="space-y-6">
-        <!-- Details Card -->
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('task.details', {}, 'Chi tiết')}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-4">
-              <!-- Assignee -->
-              <div class="flex items-start gap-3">
-                <User class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('task.assigned_to', {}, 'Người thực hiện')}
-                  </p>
-                  <p class="font-bold">
-                    {task.assignee?.username || t('task.unassigned', {}, 'Chưa phân công')}
-                  </p>
-                  {#if task.assignee?.email}
-                    <p class="text-xs text-muted-foreground">{task.assignee.email}</p>
-                  {/if}
-                </div>
-              </div>
-
-              <Separator />
-
-              <!-- Creator -->
-              <div class="flex items-start gap-3">
-                <User class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('task.creator', {}, 'Người tạo')}
-                  </p>
-                  <p class="font-bold">
-                    {task.creator?.username || '—'}
-                  </p>
-                  {#if task.creator?.email}
-                    <p class="text-xs text-muted-foreground">{task.creator.email}</p>
-                  {/if}
-                </div>
-              </div>
-
-              <Separator />
-
-              <!-- Organization -->
-              {#if task.organization}
-                <div class="flex items-start gap-3">
-                  <Building class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p class="text-xs font-bold uppercase text-muted-foreground">
-                      {t('task.organization', {}, 'Tổ chức')}
-                    </p>
-                    <p class="font-bold">{task.organization.name}</p>
-                  </div>
-                </div>
-                <Separator />
-              {/if}
-
-              <!-- Due Date -->
-              <div class="flex items-start gap-3">
-                <Calendar class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('task.due_date', {}, 'Hạn hoàn thành')}
-                  </p>
-                  <p class="font-bold">
-                    {task.due_date ? formatDate(task.due_date) : '—'}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <!-- Estimated Time -->
-              <div class="flex items-start gap-3">
-                <Clock class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('task.estimated_time', {}, 'Thời gian ước tính')}
-                  </p>
-                  <p class="font-bold">
-                    {task.estimated_time ? formatEstimatedTime(task.estimated_time) : '—'}
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              <!-- Actual Time -->
-              <div class="flex items-start gap-3">
-                <Clock class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('task.actual_time', {}, 'Thời gian thực tế')}
-                  </p>
-                  <p class="font-bold">
-                    {task.actual_time ? formatEstimatedTime(task.actual_time) : '—'}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Visibility -->
-              {#if task.task_visibility}
-                <Separator />
-                <div class="flex items-start gap-3">
-                  <Eye class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p class="text-xs font-bold uppercase text-muted-foreground">
-                      {t('task.visibility', {}, 'Hiển thị')}
-                    </p>
-                    <p class="font-bold">{task.task_visibility}</p>
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Estimated Budget -->
-              {#if task.estimated_budget != null}
-                <Separator />
-                <div class="flex items-start gap-3">
-                  <DollarSign class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p class="text-xs font-bold uppercase text-muted-foreground">
-                      {t('task.estimated_budget', {}, 'Ngân sách ước tính')}
-                    </p>
-                    <p class="font-bold">
-                      {task.estimated_budget.toLocaleString('vi-VN')} ₫
-                    </p>
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Application Deadline -->
-              {#if task.application_deadline}
-                <Separator />
-                <div class="flex items-start gap-3">
-                  <Calendar class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                  <div>
-                    <p class="text-xs font-bold uppercase text-muted-foreground">
-                      {t('task.application_deadline', {}, 'Hạn ứng tuyển')}
-                    </p>
-                    <p class="font-bold">{formatDate(task.application_deadline)}</p>
-                  </div>
-                </div>
-              {/if}
-
-              <Separator />
-
-              <!-- Created / Updated -->
-              <div class="flex items-start gap-3">
-                <Calendar class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-                <div>
-                  <p class="text-xs font-bold uppercase text-muted-foreground">
-                    {t('common.created_at', {}, 'Ngày tạo')}
-                  </p>
-                  <p class="font-bold">{formatDateTime(task.created_at)}</p>
-                  <p class="text-xs text-muted-foreground mt-1">
-                    {t('common.updated_at', {}, 'Cập nhật')}: {formatDateTime(task.updated_at)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <TaskDetailsSidebar {task} />
     </div>
   </div>
-
-  <!-- Delete Confirmation Dialog -->
-  <AlertDialogRoot bind:open={deleteDialogOpen}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>
-          {t('task.confirm_delete', {}, 'Xác nhận xóa nhiệm vụ')}
-        </AlertDialogTitle>
-        <AlertDialogDescription>
-          {t('task.confirm_delete_description', {}, 'Bạn có chắc chắn muốn xóa nhiệm vụ')} "{task.title}"?
-          {t('task.action_irreversible', {}, 'Hành động này không thể hoàn tác.')}
-        </AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>{t('common.cancel', {}, 'Hủy')}</AlertDialogCancel>
-        <AlertDialogAction class="bg-red-500 hover:bg-red-600">
-          <button onclick={confirmDelete} disabled={deleting} class="w-full h-full">
-            {deleting ? t('common.deleting', {}, 'Đang xóa...') : t('common.delete', {}, 'Xóa')}
-          </button>
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialogRoot>
+  <TaskDeleteDialog
+    open={deleteDialogOpen}
+    {deleting}
+    taskTitle={task.title}
+    onConfirmDelete={confirmDelete}
+    onOpenChange={(open: boolean) => {
+      deleteDialogOpen = open
+    }}
+  />
 </AppLayout>

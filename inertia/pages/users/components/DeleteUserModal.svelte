@@ -1,12 +1,13 @@
 <script lang="ts">
+  import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
   import DialogDescription from '@/components/ui/dialog_description.svelte'
   import DialogFooter from '@/components/ui/dialog_footer.svelte'
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
-  import Button from '@/components/ui/button.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
+
   import type { User } from '../types'
   import { getUserDisplayName } from '../utils/user_utils'
 
