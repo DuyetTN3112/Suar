@@ -1,56 +1,35 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
-  import Button from '@/components/ui/button.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import Badge from '@/components/ui/badge.svelte'
-  import Separator from '@/components/ui/separator.svelte'
-  import AlertDialogRoot from '@/components/ui/alert_dialog.svelte'
-  import AlertDialogContent from '@/components/ui/alert_dialog_content.svelte'
-  import AlertDialogHeader from '@/components/ui/alert_dialog_header.svelte'
-  import AlertDialogTitle from '@/components/ui/alert_dialog_title.svelte'
-  import AlertDialogDescription from '@/components/ui/alert_dialog_description.svelte'
-  import AlertDialogFooter from '@/components/ui/alert_dialog_footer.svelte'
-  import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
-  import AlertDialogAction from '@/components/ui/alert_dialog_action.svelte'
   import ArrowLeft from 'lucide-svelte/icons/arrow-left'
-  import Edit from 'lucide-svelte/icons/pencil'
-  import Trash2 from 'lucide-svelte/icons/trash-2'
-  import Calendar from 'lucide-svelte/icons/calendar'
-  import Clock from 'lucide-svelte/icons/clock'
-  import User from 'lucide-svelte/icons/user'
-  import Building from 'lucide-svelte/icons/building'
-  import Eye from 'lucide-svelte/icons/eye'
+  import History from 'lucide-svelte/icons/history'
   import LinkIcon from 'lucide-svelte/icons/link'
   import ListTodo from 'lucide-svelte/icons/list-todo'
-  import History from 'lucide-svelte/icons/history'
-  import DollarSign from 'lucide-svelte/icons/dollar-sign'
-  import type { Task } from './types.svelte'
-  import { formatDate, formatDateTime, formatEstimatedTime } from './utils/task_formatter.svelte'
+  import Edit from 'lucide-svelte/icons/pencil'
+  import Trash2 from 'lucide-svelte/icons/trash-2'
+
+  import Badge from '@/components/ui/badge.svelte'
+  import Button from '@/components/ui/button.svelte'
+  import Card from '@/components/ui/card.svelte'
+  import CardContent from '@/components/ui/card_content.svelte'
+  import CardHeader from '@/components/ui/card_header.svelte'
+  import CardTitle from '@/components/ui/card_title.svelte'
+  import { FRONTEND_ROUTES, getTaskDetailRoute } from '@/constants'
+  import AppLayout from '@/layouts/app_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
-  interface Props {
-    task: Task
-    permissions: {
-      canEdit: boolean
-      canDelete: boolean
-      canAssign: boolean
-      canChangeStatus: boolean
-      canApply: boolean
-    }
-    auditLogs: Array<{
-      id: string
-      action: string
-      changes: Record<string, { old: unknown; new: unknown }>
-      created_at: string
-      user?: { id: string; username: string }
-    }>
-  }
+  import TaskDeleteDialog from './components/detail/task_delete_dialog.svelte'
+  import TaskDetailsSidebar from './components/detail/task_details_sidebar.svelte'
+  import {
+    formatAuditChangeValue,
+    labelColors,
+    priorityColors,
+    statusColors,
+    type TaskShowProps,
+  } from './show_helpers'
+  import { formatDateTime } from './utils/task_formatter.svelte'
 
-  const { task, permissions, auditLogs }: Props = $props()
+
+  const { task, permissions, auditLogs }: TaskShowProps = $props()
   const { t } = useTranslation()
 
   let deleteDialogOpen = $state(false)
