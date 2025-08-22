@@ -301,77 +301,14 @@
   />
 
   {#if isSuperAdmin}
-    <Dialog bind:open={showPendingRequestsDialog}>
-      <DialogContent class="max-w-4xl">
-        <DialogHeader>
-          <DialogTitle class="flex items-center">
-            <UserCheck class="h-5 w-5 mr-2 text-destructive" />
-            Phê duyệt yêu cầu tham gia tổ chức
-          </DialogTitle>
-          <DialogDescription>
-            Duyệt hoặc từ chối các yêu cầu tham gia tổ chức {organization.name}
-          </DialogDescription>
-        </DialogHeader>
-
-        {#if pendingRequests.length === 0}
-          <div class="text-center py-6">
-            <p class="text-muted-foreground">Không có yêu cầu tham gia tổ chức nào đang chờ duyệt</p>
-          </div>
-        {:else}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Người dùng</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Được mời bởi</TableHead>
-                <TableHead>Thời gian yêu cầu</TableHead>
-                <TableHead class="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {#each pendingRequests as request (request.user_id)}
-                <TableRow>
-                  <TableCell class="font-medium">{request.username || request.email}</TableCell>
-                  <TableCell>{request.email}</TableCell>
-                  <TableCell>
-                    {#if request.invited_by}
-                      {request.inviter_name}
-                    {:else}
-                      <Badge variant="outline">Tự yêu cầu</Badge>
-                    {/if}
-                  </TableCell>
-                  <TableCell>{formatDateTime(request.created_at)}</TableCell>
-                  <TableCell class="text-right">
-                    <div class="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onclick={() => { handleProcessRequest(request.user_id, 'reject'); }}
-                      >
-                        <CircleX class="w-4 h-4 mr-2" />
-                        Từ chối
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="default"
-                        class="bg-green-600 hover:bg-green-700"
-                        onclick={() => { handleProcessRequest(request.user_id, 'approve'); }}
-                      >
-                        <CircleCheckBig class="w-4 h-4 mr-2" />
-                        Phê duyệt
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              {/each}
-            </TableBody>
-          </Table>
-        {/if}
-
-        <DialogFooter>
-          <Button variant="outline" onclick={() => { showPendingRequestsDialog = false; }}>Đóng</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <PendingRequestsDialog
+      open={showPendingRequestsDialog}
+      organizationName={organization.name}
+      {pendingRequests}
+      onProcessRequest={handleProcessRequest}
+      onOpenChange={(open: boolean) => {
+        showPendingRequestsDialog = open
+      }}
+    />
   {/if}
 </AppLayout>

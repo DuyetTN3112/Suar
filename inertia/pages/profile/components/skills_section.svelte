@@ -2,8 +2,9 @@
   /**
    * SkillsSection — grouped display of user skills by category.
    */
-  import SkillCard from './skill_card.svelte'
   import type { UserSkillResult, ProficiencyLevelOption } from '../types.svelte'
+
+  import SkillCard from './skill_card.svelte'
 
   interface Props {
     skills: UserSkillResult[]
