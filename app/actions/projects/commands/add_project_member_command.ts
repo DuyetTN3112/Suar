@@ -1,16 +1,16 @@
 import emitter from '@adonisjs/core/services/emitter'
 
 import type { AddProjectMemberDTO } from '../dtos/request/add_project_member_dto.js'
-
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
-import { canAddProjectMember } from '#domain/projects/project_permission_policy'
-import CacheService from '#infra/cache/cache_service'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-
 import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/projects/base_command'
+import { canAddProjectMember } from '#domain/projects/project_permission_policy'
+import CacheService from '#infra/cache/cache_service'
+import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
+import * as projectModelQueries from '#infra/projects/repositories/read/project_model_queries'
+import * as projectMemberMutations from '#infra/projects/repositories/write/project_member_mutations'
 
 /**
  * Command to add a member to a project
@@ -35,7 +35,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
 
     await this.executeInTransaction(async (trx) => {
       // 1. Load project
-      const project = await ProjectRepository.findActiveOrFail(dto.project_id, trx)
+      const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
 
       // 2-6. Validate via pure rule
       const actor = await DefaultProjectDependencies.user.findActorInfo(userId, trx)
@@ -49,7 +49,7 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
         dto.user_id,
         trx
       )
-      const existingMember = await ProjectMemberRepository.findMember(
+      const existingMember = await projectMemberQueries.findMember(
         dto.project_id,
         dto.user_id,
         trx
@@ -72,14 +72,23 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       const userToAdd = await DefaultProjectDependencies.user.findActorInfo(dto.user_id, trx)
 
       // 7. Add user as member
-      await ProjectMemberRepository.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
+      await projectMemberMutations.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
 
       // 8. Log audit trail
-      await this.logAudit('add_member', 'project', project.id, null, {
-        user_id: dto.user_id,
-        username: userToAdd.username,
-        project_role: dto.project_role,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'add_member',
+          entity_type: 'project',
+          entity_id: project.id,
+          old_values: null,
+          new_values: {
+            user_id: dto.user_id,
+            username: userToAdd.username,
+            project_role: dto.project_role,
+          },
+        })
+      }
     })
 
     // Emit domain event
