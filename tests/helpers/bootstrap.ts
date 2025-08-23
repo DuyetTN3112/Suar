@@ -24,9 +24,19 @@
  */
 
 import type { ApplicationService } from '@adonisjs/core/types'
+
 import { applyTestDatastoreOverrides, assertSafeTestDatastores } from './test_datastore_guard.js'
 
 let app: ApplicationService | null = null
+
+async function closeTestRuntimeConnections(): Promise<void> {
+  const [{ default: db }, { default: redis }] = await Promise.all([
+    import('@adonisjs/lucid/services/db'),
+    import('@adonisjs/redis/services/main'),
+  ])
+
+  await Promise.allSettled([db.manager.closeAll(), redis.quit()])
+}
 
 /**
  * Boot the AdonisJS application for integration testing.
@@ -63,7 +73,7 @@ export async function setupApp(): Promise<ApplicationService> {
   await app.boot()
 
   // Start providers (including MongooseProvider for MongoDB connection)
-  await app.start(async () => {})
+  await app.start(() => undefined)
 
   return app
 }
@@ -74,6 +84,7 @@ export async function setupApp(): Promise<ApplicationService> {
  */
 export async function teardownApp(): Promise<void> {
   if (app) {
+    await closeTestRuntimeConnections()
     await app.terminate()
     app = null
   }

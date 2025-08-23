@@ -1,5 +1,7 @@
 import router from '@adonisjs/core/services/router'
+
 import { middleware } from '../kernel.js'
+
 import { throttle } from '#start/limiter'
 
 const ShowSettingsController = () => import('#controllers/settings/show_settings_controller')
