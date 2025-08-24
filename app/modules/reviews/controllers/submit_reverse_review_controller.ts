@@ -1,0 +1,24 @@
+import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
+
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
+
+/**
+ * POST /reviews/:id/reverse → Submit reverse review (reviewee rating reviewer)
+ */
+export default class SubmitReverseReviewController {
+  async handle(ctx: HttpContext) {
+    const { request, response, params, session } = ctx
+
+    const dto = buildSubmitReverseReviewDTO(request, params.id as string)
+
+    const command = new SubmitReverseReviewCommand(actionContextFromHttp(ctx))
+    await command.handle(dto)
+
+    session.flash('success', 'Đánh giá ngược đã được gửi thành công')
+
+    response.redirect().back()
+  }
+}
