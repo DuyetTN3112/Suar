@@ -1,0 +1,24 @@
+
+export interface ReviewSubmittedEvent {
+  reviewSessionId: string
+  reviewerId: string
+  revieweeId: string
+  taskId: string
+  scores: Record<string, number>
+}
+
+export interface ReviewConfirmedEvent {
+  confirmationId: string
+  reviewSessionId: string
+  revieweeId: string
+  reviewerIds: string[]
+  confirmedBy: string
+  action: 'confirmed' | 'disputed'
+}
+
+declare module '@adonisjs/core/types' {
+  interface EventsList {
+    'review:submitted': ReviewSubmittedEvent
+    'review:confirmed': ReviewConfirmedEvent
+  }
+}
