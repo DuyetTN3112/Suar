@@ -1,27 +1,16 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
-import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
-import {
-  UserFactory,
-  OrganizationFactory,
-  OrganizationUserFactory,
-  ProjectFactory,
-  ProjectMemberFactory,
-  TaskFactory,
-  SkillFactory,
-  cleanupTestData,
-} from '#tests/helpers/factories'
-import CreateTaskCommand from '#actions/tasks/commands/create_task_command'
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import CreateNotification from '#actions/common/create_notification'
+
+import { TaskStatus } from '#constants/task_constants'
+import BusinessLogicException from '#exceptions/business_logic_exception'
+import ForbiddenException from '#exceptions/forbidden_exception'
+import NotFoundException from '#exceptions/not_found_exception'
+import { MongoAuditLogModel } from '#models/mongo/audit_log'
 import Project from '#models/project'
 import Task from '#models/task'
-import { MongoAuditLogModel } from '#models/mongo/audit_log'
-import TaskStatusModel from '#models/task_status'
-import { ExecutionContext } from '#types/execution_context'
-import { TaskStatus } from '#constants/task_constants'
-import { seedDefaultTaskStatuses } from '#actions/tasks/commands/seed_default_task_statuses'
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import db from '@adonisjs/lucid/services/db'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import { cleanupTestData } from '#tests/helpers/factories'
+import CreateTaskScenario from '#tests/integration/tasks/support/create_task_scenario'
 
 async function checkTaskV5Schema(): Promise<boolean> {
   const rawResult: unknown = await db
@@ -34,63 +23,6 @@ async function checkTaskV5Schema(): Promise<boolean> {
   const result = rawResult as { total?: number | string } | null
   const total = Number(result?.total ?? 0)
   return total >= 2
-}
-
-async function getTodoStatusId(organizationId: string): Promise<string> {
-  const trx = await db.transaction()
-  try {
-    await seedDefaultTaskStatuses(organizationId, trx)
-    await trx.commit()
-  } catch (error) {
-    await trx.rollback()
-    throw error
-  }
-
-  const todo = await TaskStatusModel.query()
-    .where('organization_id', organizationId)
-    .where('slug', 'todo')
-    .whereNull('deleted_at')
-    .firstOrFail()
-
-  return todo.id
-}
-
-function buildCreateTaskDTO(input: {
-  organizationId: string
-  taskStatusId: string
-  requiredSkillId: string
-  projectId: string
-  title?: string
-  description?: string
-  assigned_to?: string
-  parent_task_id?: string
-}): CreateTaskDTO {
-  return new CreateTaskDTO({
-    title: input.title ?? 'Test Task Title',
-    description: input.description ?? 'Test description',
-    task_status_id: input.taskStatusId,
-    organization_id: input.organizationId,
-    project_id: input.projectId,
-    acceptance_criteria: 'Task is accepted when all checks pass',
-    required_skills: [{ id: input.requiredSkillId, level: 'middle' }],
-    assigned_to: input.assigned_to,
-    parent_task_id: input.parent_task_id,
-  })
-}
-
-async function createRequiredSkillId(): Promise<string> {
-  const skill = await SkillFactory.create()
-  return skill.id
-}
-
-async function createTaskProject(organizationId: string, ownerId: string): Promise<string> {
-  const project = await ProjectFactory.create({
-    organization_id: organizationId,
-    creator_id: ownerId,
-    owner_id: ownerId,
-  })
-
-  return project.id
 }
 
 test.group('Integration | Create Task', (group) => {
@@ -107,30 +39,17 @@ test.group('Integration | Create Task', (group) => {
   group.each.teardown(() => cleanupTestData())
 
   test('creates task successfully with valid data', async ({ assert }) => {
-    const { org, owner } = await OrganizationFactory.createWithOwner()
-    const todoStatusId = await getTodoStatusId(org.id)
-    const requiredSkillId = await createRequiredSkillId()
-    const projectId = await createTaskProject(org.id, owner.id)
-
-    const ctx = ExecutionContext.system(owner.id)
-    const command = new CreateTaskCommand(ctx, new CreateNotification())
-
-    const dto = buildCreateTaskDTO({
-      organizationId: org.id,
-      taskStatusId: todoStatusId,
-      requiredSkillId,
-      projectId,
+    const scenario = await CreateTaskScenario.build()
+    const task = await scenario.create({
       title: 'Test Task Title',
       description: 'Test description',
     })
 
-    const task = await command.execute(dto)
-
     assert.isNotNull(task)
     assert.equal(task.title, 'Test Task Title')
     assert.equal(task.status, TaskStatus.TODO)
-    assert.equal(task.task_status_id, todoStatusId)
-    assert.equal(task.creator_id, owner.id)
+    assert.equal(task.task_status_id, scenario.todoStatusId)
+    assert.equal(task.creator_id, scenario.ownerId)
 
     const dbTask = await Task.find(task.id)
     assert.isNotNull(dbTask)
