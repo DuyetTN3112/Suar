@@ -1,7 +1,7 @@
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **Suar** (14744 symbols, 33460 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **Suar** (15415 symbols, 35251 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
@@ -41,3 +41,62 @@ This project is indexed by GitNexus as **Suar** (14744 symbols, 33460 relationsh
 | Index, status, clean, wiki CLI commands | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
 
 <!-- gitnexus:end -->
+
+<!-- caveman:start -->
+# Caveman — Token Compression
+
+Caveman makes AI coding agents respond in compressed caveman-style prose — cuts ~65-75% output tokens, full technical accuracy. Ships as Claude Code skills, agents, and commands.
+
+## Always Do
+
+- **MUST use caveman style for all responses when activated.** Drop articles, filler, pleasantries, hedging. Fragments OK. Technical terms exact. Code blocks unchanged.
+- **MUST persist caveman mode across the entire session.** No filler drift. Still active after many turns. Off only: "stop caveman" / "normal mode".
+- **MUST use cavecrew subagents for delegation when token efficiency matters.** `cavecrew-investigator` for locate, `cavecrew-builder` for 1-2 file edits, `cavecrew-reviewer` for diff review. Output is ~60% smaller than vanilla.
+- **MUST drop caveman for security warnings, irreversible action confirmations, and when user is confused.** Resume after the clear part.
+
+## Never Do
+
+- NEVER use filler words (just, really, basically, actually, simply) in caveman mode.
+- NEVER wrap caveman output in unnecessary prose or pleasantries.
+- NEVER edit code or write commits in caveman style — code/commits/PRs stay normal.
+- NEVER use `cavecrew-builder` for 3+ file scope — it will refuse. Use main thread.
+
+## Intensity Levels
+
+| Level | Trigger | What |
+|-------|---------|------|
+| **lite** | `/caveman lite` | Drop filler. Keep sentence structure. |
+| **full** | `/caveman` | Drop articles, fragments OK. Default. |
+| **ultra** | `/caveman ultra` | Extreme compression. Bare fragments. |
+| **wenyan** | `/caveman wenyan` | Classical Chinese. Maximum terseness. |
+
+## Skills
+
+| Skill | Trigger | What |
+|-------|---------|------|
+| `caveman` | `/caveman [level]` | Compress every reply. Levels stick until session end. |
+| `caveman-commit` | `/caveman-commit` | Conventional Commit messages, ≤50 char subject. Why over what. |
+| `caveman-review` | `/caveman-review` | One-line PR comments: `L42: 🔴 bug: user null. Add guard.` |
+| `caveman-compress` | `/caveman-compress <file>` | Rewrite memory file into caveman-speak. Cuts ~46% input tokens. |
+| `caveman-help` | `/caveman-help` | Quick-reference card. One-shot display. |
+| `caveman-stats` | `/caveman-stats` | Session token usage + lifetime savings. |
+| `cavecrew` | "delegate to subagent" | Decision guide for caveman subagents. |
+
+## Subagents
+
+| Agent | Model | Use for |
+|-------|-------|---------|
+| `cavecrew-investigator` | haiku | Locate code. Read-only. `path:line — symbol — note`. |
+| `cavecrew-builder` | default | Surgical 1-2 file edit. Refuses 3+ files. |
+| `cavecrew-reviewer` | haiku | Diff/file review. One-line findings with severity emoji. |
+
+## Resources
+
+- Skills: `.claude/skills/caveman*/SKILL.md`
+- Agents: `.claude/agents/cavecrew-*.md`
+- Commands: `.claude/commands/caveman*.toml`
+- Rules: `.claude/rules/caveman-activate.md`
+- Compress scripts: `.claude/skills/caveman-compress/scripts/`
+- Upstream: https://github.com/JuliusBrussee/caveman
+
+<!-- caveman:end -->
