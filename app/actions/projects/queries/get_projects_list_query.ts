@@ -1,12 +1,13 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+
+import { BaseQuery } from '#actions/projects/base_query'
 import { PAGINATION } from '#constants/common_constants'
 import type { ProjectVisibility } from '#constants/project_constants'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
+import * as accessQueries from '#infra/projects/repositories/read/access_queries'
+import * as projectMemberQueries from '#infra/projects/repositories/read/project_member_queries'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 /**
  * DTO for GetProjectsListQuery input
@@ -97,7 +98,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
 
     // 1. Paginate projects → delegate to Project model
-    const { data: projects, total } = await ProjectRepository.paginateByUserAccess(userId, {
+    const { data: projects, total } = await accessQueries.paginateByUserAccess(userId, {
       page,
       limit,
       organization_id: dto.organization_id,
@@ -114,7 +115,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     const projectsWithStats = await this.enrichWithStats(projects as unknown as ProjectRow[])
 
     // 3. Get stats → delegate to Project model
-    const stats = await ProjectRepository.getStatsByUserAccess(userId, {
+    const stats = await accessQueries.getStatsByUserAccess(userId, {
       organization_id: dto.organization_id,
     })
 
@@ -144,7 +145,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     // Get task counts and member counts in parallel → delegate to Model
     const [taskCountMap, memberCountMap] = await Promise.all([
       DefaultProjectDependencies.task.countByProjectIds(projectIds),
-      ProjectMemberRepository.countByProjectIds(projectIds),
+      projectMemberQueries.countByProjectIds(projectIds),
     ])
 
     return projects.map((project) => ({
