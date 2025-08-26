@@ -1,0 +1,24 @@
+import type { HttpContext } from '@adonisjs/core/http'
+
+import { buildUpdateTaskTimeDTO } from './mappers/request/task_request_mapper.js'
+
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeUpdateTaskTimeCommand } from '#modules/tasks/bootstrap/task_action_factory'
+
+/**
+ * PATCH /tasks/:id/time
+ * Update task time tracking
+ */
+export default class UpdateTaskTimeController {
+  async handle(ctx: HttpContext) {
+    const { params, request, response, session } = ctx
+    const dto = buildUpdateTaskTimeDTO(request, params.id as string)
+
+    const command = makeUpdateTaskTimeCommand(actionContextFromHttp(ctx))
+    await command.execute(dto)
+
+    session.flash('success', 'Thời gian đã được cập nhật')
+    response.redirect().back()
+    return
+  }
+}
