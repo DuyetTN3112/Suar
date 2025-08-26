@@ -1,6 +1,13 @@
 #!/usr/bin/env sh
 set -eu
 
+# Load environment variables from .env file
+if [ -f .env ]; then
+  set -a
+  . ./.env
+  set +a
+fi
+
 : "${PG_TEST_DATABASE:?PG_TEST_DATABASE is required}"
 : "${MONGODB_TEST_URL:?MONGODB_TEST_URL is required}"
 

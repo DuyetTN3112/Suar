@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#constants/organization_constants'
 import {
   ORG_ROLE_LEVEL,
   ORG_ROLE_PERMISSIONS,
@@ -12,9 +11,15 @@ import {
   hasOrgPermission,
   hasProjectPermission,
   hasSystemPermission,
-} from '#constants/permissions'
-import { ProjectRole } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
+} from '#modules/authorization/constants/permissions'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
+
+function hasNoDuplicatePermissions(permissions: readonly string[]): boolean {
+  const uniquePermissions = new Set(permissions)
+  return uniquePermissions.size === permissions.length
+}
 
 test.group('Permission contracts', () => {
   test('permission maps and role levels cover every builtin role while least-privilege stays intentionally narrow', ({
@@ -66,5 +71,22 @@ test.group('Permission contracts', () => {
     assert.isFalse(hasProjectPermission(ProjectRole.MEMBER, 'can_assign_task'))
     assert.isTrue(hasProjectPermission(ProjectRole.VIEWER, 'can_view_all_tasks'))
     assert.isFalse(hasProjectPermission(ProjectRole.VIEWER, 'can_create_task'))
+  })
+
+  test('permission arrays stay internally consistent without any database dependency', ({ assert }) => {
+    for (const role of [OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.MEMBER]) {
+      const permissions = ORG_ROLE_PERMISSIONS[role] ?? []
+      assert.isTrue(hasNoDuplicatePermissions(permissions))
+    }
+
+    for (const role of [
+      ProjectRole.OWNER,
+      ProjectRole.MANAGER,
+      ProjectRole.MEMBER,
+      ProjectRole.VIEWER,
+    ]) {
+      const permissions = PROJECT_ROLE_PERMISSIONS[role] ?? []
+      assert.isTrue(hasNoDuplicatePermissions(permissions))
+    }
   })
 })

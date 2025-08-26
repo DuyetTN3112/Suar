@@ -16,7 +16,7 @@ import './projects.js'
 import './reviews.js'
 
 // Health checks controller
-const HealthChecksController = () => import('#controllers/health_checks_controller')
+const HealthChecksController = () => import('#modules/http/controllers/health_checks_controller')
 
 // Route test đơn giản
 router.get('/test', async ({ inertia }) => {
@@ -40,7 +40,7 @@ router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
 
 // Thêm routes cho dev tools
 if (process.env.NODE_ENV === 'development') {
-  const DevController = () => import('#controllers/http/dev_controller')
+  const DevController = () => import('#modules/http/controllers/dev_controller')
   router.post('/api/dev/restart', [DevController, 'restart'])
 }
 

@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
-import { buildCreateTaskPersistencePayload } from '#actions/tasks/support/task_create_payload_builder'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import { buildCreateTaskPersistencePayload } from '#modules/tasks/actions/support/task_create_payload_builder'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
