@@ -1,0 +1,160 @@
+
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+
+/**
+ * Query để lấy tasks của một user cụ thể
+ *
+ * Use cases:
+ * - Load tasks assigned to user
+ * - Load tasks created by user
+ * - Load both (default)
+ *
+ * Features:
+ * - Filter: assigned, created, or both
+ * - Filter by status, priority
+ * - Pagination
+ * - Redis caching (3 minutes)
+ * - Preload relations
+ *
+ * Returns: Tasks với pagination
+ */
+export default class GetUserTasksQuery {
+  /**
+   * Execute query
+   */
+  async execute(options: {
+    userId: string
+    organizationId: string
+    filterType?: 'assigned' | 'created' | 'both' // default: 'both'
+    statusId?: string
+    priorityId?: string
+    page?: number
+    limit?: number
+  }): Promise<{
+    data: TaskDetailRecord[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+    }
+  }> {
+    const {
+      userId,
+      organizationId,
+      filterType = 'both',
+      statusId,
+      priorityId,
+      page = 1,
+      limit = 10,
+    } = options
+
+    // Validate
+    if (limit < 1 || limit > PAGINATION.MAX_PER_PAGE) {
+      throw new ValidationException('Limit phải từ 1 đến 100')
+    }
+
+    // Try cache first
+    const cacheKey = this.buildCacheKey(options)
+    const cached = await this.getFromCache(cacheKey)
+    if (cached) {
+      return cached
+    }
+
+    // Execute via repository
+    const result = await listQueries.paginateByUserAsRecords({
+      userId,
+      organizationId,
+      filterType,
+      status: statusId,
+      priority: priorityId,
+      page,
+      limit,
+    })
+
+    // Cache result
+    await this.saveToCache(cacheKey, result, 180) // 3 minutes
+
+    return result
+  }
+
+  /**
+   * Build cache key
+   */
+  private buildCacheKey(options: {
+    userId: string
+    organizationId: string
+    filterType?: 'assigned' | 'created' | 'both'
+    statusId?: string
+    priorityId?: string
+    page?: number
+    limit?: number
+  }): string {
+    const parts = [
+      'task:user',
+      `user:${options.userId}`,
+      `org:${options.organizationId}`,
+      `filter:${options.filterType ?? 'both'}`,
+    ]
+
+    if (options.statusId) {
+      parts.push(`status:${options.statusId}`)
+    }
+
+    if (options.priorityId) {
+      parts.push(`priority:${options.priorityId}`)
+    }
+
+    parts.push(`page:${options.page ?? 1}`)
+    parts.push(`limit:${options.limit ?? 10}`)
+
+    return parts.join(':')
+  }
+
+  /**
+   * Get from Redis cache
+   */
+  private async getFromCache(key: string): Promise<{
+    data: TaskDetailRecord[]
+    meta: {
+      total: number
+      per_page: number
+      current_page: number
+      last_page: number
+    }
+  } | null> {
+    try {
+      const cached = await cacheStore.get<{
+        data: TaskDetailRecord[]
+        meta: {
+          total: number
+          per_page: number
+          current_page: number
+          last_page: number
+        }
+      }>(key)
+      if (cached) {
+        return cached
+      }
+    } catch (error: unknown) {
+      loggerService.error('[GetUserTasksQuery] Cache get error:', error)
+    }
+    return null
+  }
+
+  /**
+   * Save to Redis cache
+   */
+  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
+    try {
+      await cacheStore.set(key, data, ttl)
+    } catch (error: unknown) {
+      loggerService.error('[GetUserTasksQuery] Cache set error:', error)
+    }
+  }
+}
