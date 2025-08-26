@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import inertia from '@adonisjs/inertia/vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import adonisjs from '@adonisjs/vite/client'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
 const dirname = import.meta.dirname
@@ -13,6 +14,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
+      tailwindcss(),
       inertia({
         ssr: { enabled: false },
       }),
@@ -50,14 +52,6 @@ export default defineConfig(({ mode }) => {
               const pagePath = normalizedId.split('/inertia/pages/')[1] ?? ''
               const [section = 'shared'] = pagePath.split('/')
               return `pages-${section}`
-            }
-
-            if (normalizedId.includes('/inertia/components/ui/')) {
-              return 'components-ui'
-            }
-
-            if (normalizedId.includes('/inertia/components/layout/')) {
-              return 'components-layout'
             }
 
             if (!normalizedId.includes('/node_modules/')) {

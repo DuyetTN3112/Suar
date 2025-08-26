@@ -1,4 +1,6 @@
 import { test } from '@japa/runner'
+
+import { REVIEW_DEFAULTS } from '#constants/review_constants'
 import {
   DEFAULT_TASK_STATUSES,
   DEFAULT_WORKFLOW_TRANSITIONS,
@@ -13,7 +15,6 @@ import {
   SkillCategoryCode,
   skillCategoryOptions,
 } from '#constants/user_constants'
-import { REVIEW_DEFAULTS } from '#constants/review_constants'
 
 test.group('Domain invariants | Constants', () => {
   test('auth and review defaults stay aligned with supported identity and scoring bounds', ({

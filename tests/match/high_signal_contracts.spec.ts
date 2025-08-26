@@ -249,6 +249,66 @@ test.group('Match | High-signal contracts', () => {
     assert.notMatch(organizationRoutes, /\/billing\b/)
   })
 
+  test('controllers outside mapper directories do not construct DTOs or serialize models inline', ({
+    assert,
+  }) => {
+    const controllerFiles = listFiles('app/controllers').filter(
+      (file) => file.endsWith('.ts') && !file.includes('/mappers/')
+    )
+
+    for (const file of controllerFiles) {
+      const content = readFile(file)
+      assert.notMatch(content, /new [A-Za-z0-9_]+DTO\(/)
+      assert.notMatch(content, /\.serialize\(/)
+    }
+
+    assert.isTrue(
+      fs.existsSync(
+        path.join(WORKSPACE_ROOT, 'app/controllers/auth/mappers/request/auth_request_mapper.ts')
+      )
+    )
+    assert.isTrue(
+      fs.existsSync(
+        path.join(
+          WORKSPACE_ROOT,
+          'app/controllers/settings/mappers/request/settings_request_mapper.ts'
+        )
+      )
+    )
+    assert.isTrue(
+      fs.existsSync(
+        path.join(
+          WORKSPACE_ROOT,
+          'app/controllers/organizations/mappers/request/organization_request_mapper.ts'
+        )
+      )
+    )
+    assert.isTrue(
+      fs.existsSync(
+        path.join(
+          WORKSPACE_ROOT,
+          'app/controllers/organizations/mappers/response/organization_response_mapper.ts'
+        )
+      )
+    )
+    assert.isTrue(
+      fs.existsSync(
+        path.join(
+          WORKSPACE_ROOT,
+          'app/controllers/tasks/mappers/request/task_status_request_mapper.ts'
+        )
+      )
+    )
+    assert.isTrue(
+      fs.existsSync(
+        path.join(
+          WORKSPACE_ROOT,
+          'app/controllers/tasks/mappers/response/task_status_response_mapper.ts'
+        )
+      )
+    )
+  })
+
   test('task and marketplace UI guardrails stay aligned with permission and layout rules', ({
     assert,
   }) => {
@@ -258,11 +318,28 @@ test.group('Match | High-signal contracts', () => {
     )
     const appSidebarContent = readFile('inertia/components/layout/app_sidebar.svelte')
 
-    assert.match(tasksIndexContent, /Bạn không đủ quyền tạo nhiệm vụ/)
-    assert.match(tasksIndexContent, /canCreateTask=\{createTaskPermission\.allowed\}/)
+    assert.match(tasksIndexContent, /createTaskPermission=\{vm\.createTaskPermission\}/)
+    assert.match(tasksIndexContent, /canCreateTask=\{vm\.createTaskPermission\.allowed\}/)
     assert.notMatch(appSidebarContent, /Quản Trị Tổ Chức/)
     assert.notMatch(appSidebarContent, /\/org\/tasks/)
     assert.notMatch(applyModalContent, /Mức giá đề xuất/)
     assert.notMatch(applyModalContent, /expected_rate/)
+  })
+
+  test('task version snapshots stay owned by commands and task:updated stays cache-only', ({
+    assert,
+  }) => {
+    const updateTaskCommandContent = readFile('app/actions/tasks/commands/update_task_command.ts')
+    const updateTaskPersistenceSupportContent = readFile(
+      'app/actions/tasks/support/update_task_persistence_support.ts'
+    )
+    const triggerListenersContent = readFile('app/listeners/trigger_listeners.ts')
+    const cacheInvalidationContent = readFile('app/listeners/cache_invalidation_listener.ts')
+
+    assert.match(updateTaskCommandContent, /persistTaskUpdateWithinTransaction/)
+    assert.match(updateTaskPersistenceSupportContent, /createTaskVersionIfNeeded\(/)
+    assert.notMatch(triggerListenersContent, /emitter\.on\('task:updated'/)
+    assert.notMatch(triggerListenersContent, /task_versions/)
+    assert.match(cacheInvalidationContent, /emitter\.on\('task:updated'/)
   })
 })

@@ -2,7 +2,10 @@
   "extends": "./inertia/tsconfig.json",
   "compilerOptions": {
     "rootDir": "./inertia",
-    "composite": true
+    "composite": true,
+    "paths": {
+      "~/generated/*": ["./inertia/generated/*"]
+    }
   },
   "include": ["./inertia/**/*.ts", "./inertia/**/*.svelte"]
 }

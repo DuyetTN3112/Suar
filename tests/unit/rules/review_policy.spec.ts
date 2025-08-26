@@ -1,11 +1,12 @@
 import { test } from '@japa/runner'
+
+import { ReviewSessionStatus } from '#constants/review_constants'
+import { AssignmentStatus } from '#constants/task_constants'
 import {
   canCreateReviewSession,
   canConfirmReview,
   resolveConfirmationCounters,
 } from '#domain/reviews/review_policy'
-import { AssignmentStatus } from '#constants/task_constants'
-import { ReviewSessionStatus } from '#constants/review_constants'
 
 test.group('Review policy', () => {
   test('review sessions only open for completed assignments and completion check wins over duplicate state', ({
