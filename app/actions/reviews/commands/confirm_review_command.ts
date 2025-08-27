@@ -1,8 +1,9 @@
 import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import type { ConfirmReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { BaseCommand } from '#actions/shared/base_command'
 import ConflictException from '#exceptions/conflict_exception'
 import CacheService from '#infra/cache/cache_service'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
@@ -64,11 +65,20 @@ export default class ConfirmReviewCommand extends BaseCommand<
       const reviewerIds = [...new Set(skillReviews.map((review) => review.reviewer_id))]
 
       // Log audit
-      await this.logAudit('confirm_review', 'review_session', session.id, null, {
-        review_session_id: dto.review_session_id,
-        action: dto.action,
-        dispute_reason: dto.dispute_reason,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'confirm_review',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            review_session_id: dto.review_session_id,
+            action: dto.action,
+            dispute_reason: dto.dispute_reason,
+          },
+        })
+      }
 
       return {
         confirmation: newConfirmation,
