@@ -1,12 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import { calculatePerformanceScore } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 export interface CalculatePerformanceScoreDTO {
   userId: DatabaseId
@@ -73,15 +74,24 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
 
       await this.persistUserTrustData(dto.userId, metrics, trx)
       await this.persistUserPerformanceStats(dto.userId, metrics, trx)
-      await this.logAudit('calculate_performance_score', 'user', dto.userId, null, {
-        performance_score: metrics.performanceScore,
-        quality_score: metrics.qualityScore,
-        delivery_score: metrics.deliveryScore,
-        difficulty_bonus: metrics.difficultyBonus,
-        consistency_score: metrics.consistencyScore,
-        total_completed_assignments: metrics.totalCompletedAssignments,
-        scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'calculate_performance_score',
+          entity_type: 'user',
+          entity_id: dto.userId,
+          old_values: null,
+          new_values: {
+            performance_score: metrics.performanceScore,
+            quality_score: metrics.qualityScore,
+            delivery_score: metrics.deliveryScore,
+            difficulty_bonus: metrics.difficultyBonus,
+            consistency_score: metrics.consistencyScore,
+            total_completed_assignments: metrics.totalCompletedAssignments,
+            scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+          },
+        })
+      }
 
       return this.buildResult(dto.userId, metrics)
     })
@@ -253,5 +263,4 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
   private roundToTenth(value: number): number {
     return Math.round(value * 10) / 10
   }
-
 }
