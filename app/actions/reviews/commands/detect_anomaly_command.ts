@@ -1,14 +1,14 @@
-import { BaseCommand } from '#actions/shared/base_command'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { BaseCommand } from '#actions/reviews/base_command'
 import { AnomalyFlagType, AnomalySeverity } from '#constants/review_constants'
 import loggerService from '#infra/logger/logger_service'
 import FlaggedReviewRepository from '#infra/reviews/repositories/flagged_review_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import type FlaggedReview from '#models/flagged_review'
-import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
+import type { FlaggedReviewRecord, SkillReviewRecord } from '#types/review_records'
 
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * Anomaly detection result
@@ -23,7 +23,7 @@ interface AnomalyDetection {
 interface DetectionContext {
   reviewSessionId: DatabaseId
   reviewerId: DatabaseId
-  skillReviews: SkillReview[]
+  skillReviews: SkillReviewRecord[]
   session: { reviewee_id: DatabaseId } | null
   reviewee: { createdAtMillis: number } | null
 }
@@ -42,13 +42,13 @@ interface DetectionContext {
  */
 export default class DetectAnomalyCommand extends BaseCommand<
   { reviewSessionId: DatabaseId; reviewerId: DatabaseId },
-  FlaggedReview[]
+  FlaggedReviewRecord[]
 > {
   async handle(input: {
     reviewSessionId: DatabaseId
     reviewerId: DatabaseId
-  }): Promise<FlaggedReview[]> {
-    let flaggedReviews: FlaggedReview[] = []
+  }): Promise<FlaggedReviewRecord[]> {
+    let flaggedReviews: FlaggedReviewRecord[] = []
 
     try {
       const detectionContext = await this.loadDetectionContext(
@@ -133,7 +133,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
   /**
    * Pattern 3: bulk_same_level — Reviewer assigns same level to >80% of skills
    */
-  private checkBulkSameLevel(skillReviews: SkillReview[]): AnomalyDetection[] {
+  private checkBulkSameLevel(skillReviews: SkillReviewRecord[]): AnomalyDetection[] {
     if (skillReviews.length < 3) return []
 
     const levelCounts: Record<string, number> = {}
@@ -228,8 +228,8 @@ export default class DetectAnomalyCommand extends BaseCommand<
     return anomalies
   }
 
-  private async persistFlags(anomalies: AnomalyDetection[]): Promise<FlaggedReview[]> {
-    const flaggedReviews: FlaggedReview[] = []
+  private async persistFlags(anomalies: AnomalyDetection[]): Promise<FlaggedReviewRecord[]> {
+    const flaggedReviews: FlaggedReviewRecord[] = []
 
     for (const anomaly of anomalies) {
       const flagged = await FlaggedReviewRepository.create({
