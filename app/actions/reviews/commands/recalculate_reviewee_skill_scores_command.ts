@@ -2,7 +2,10 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import {
   calculateSkillConfidence,
   calculateSkillWeightedScore,
@@ -10,8 +13,6 @@ import {
 } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 export interface RecalculateRevieweeSkillScoresDTO {
   userId: DatabaseId
@@ -260,12 +261,21 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     totalReviews: number,
     computed: ComputedSkillScore
   ): Promise<void> {
-    await this.logAudit('recalculate_user_skill_score', 'user_skill', userId, null, {
-      skill_id: skillId,
-      weighted_score: Math.round(computed.weightedScore * 100) / 100,
-      avg_percentage: computed.avgPercentage,
-      confidence_score: computed.confidence,
-      total_reviews: totalReviews,
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'recalculate_user_skill_score',
+        entity_type: 'user_skill',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          skill_id: skillId,
+          weighted_score: Math.round(computed.weightedScore * 100) / 100,
+          avg_percentage: computed.avgPercentage,
+          confidence_score: computed.confidence,
+          total_reviews: totalReviews,
+        },
+      })
+    }
   }
 }
