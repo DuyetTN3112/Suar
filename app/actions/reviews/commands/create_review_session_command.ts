@@ -1,12 +1,14 @@
 import emitter from '@adonisjs/core/services/emitter'
 
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import type { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { BaseCommand } from '#actions/shared/base_command'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+import type { ReviewSessionRecord } from '#types/review_records'
 
 /**
  * CreateReviewSessionCommand
@@ -16,9 +18,9 @@ import { DefaultReviewDependencies } from '../ports/review_external_dependencies
  */
 export default class CreateReviewSessionCommand extends BaseCommand<
   CreateReviewSessionDTO,
-  import('#models/review_session').default
+  ReviewSessionRecord
 > {
-  async handle(dto: CreateReviewSessionDTO): Promise<import('#models/review_session').default> {
+  async handle(dto: CreateReviewSessionDTO): Promise<ReviewSessionRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       // Verify task assignment exists and is completed
       const assignment = await DefaultReviewDependencies.taskAssignment.findCompletedAssignment(
@@ -58,10 +60,19 @@ export default class CreateReviewSessionCommand extends BaseCommand<
       )
 
       // Log audit
-      await this.logAudit('create', 'review_session', session.id, null, {
-        task_assignment_id: dto.task_assignment_id,
-        reviewee_id: dto.reviewee_id,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            task_assignment_id: dto.task_assignment_id,
+            reviewee_id: dto.reviewee_id,
+          },
+        })
+      }
 
       return {
         session,
