@@ -1,11 +1,10 @@
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
-import {
-  canAccessReviewSession,
-  canUpsertTaskSelfAssessment,
-} from '#domain/reviews/review_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
+import { canAccessReviewSession, canUpsertTaskSelfAssessment } from '#domain/reviews/review_policy'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import TaskSelfAssessmentRepository from '#infra/reviews/repositories/task_self_assessment_repository'
+import type { TaskSelfAssessmentRecord } from '#types/review_records'
 
 interface UpsertTaskSelfAssessmentInput {
   review_session_id: string
@@ -26,11 +25,9 @@ interface UpsertTaskSelfAssessmentInput {
  */
 export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
   UpsertTaskSelfAssessmentInput,
-  import('#models/task_self_assessment').default
+  TaskSelfAssessmentRecord
 > {
-  async handle(
-    dto: UpsertTaskSelfAssessmentInput
-  ): Promise<import('#models/task_self_assessment').default> {
+  async handle(dto: UpsertTaskSelfAssessmentInput): Promise<TaskSelfAssessmentRecord> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -67,9 +64,18 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
         existing.merge(payload)
         await TaskSelfAssessmentRepository.save(existing, trx)
 
-        await this.logAudit('update_task_self_assessment', 'review_session', session.id, null, {
-          self_assessment_id: existing.id,
-        })
+        if (this.execCtx.userId) {
+          await auditPublicApi.write(this.execCtx, {
+            user_id: this.execCtx.userId,
+            action: 'update_task_self_assessment',
+            entity_type: 'review_session',
+            entity_id: session.id,
+            old_values: null,
+            new_values: {
+              self_assessment_id: existing.id,
+            },
+          })
+        }
 
         return existing
       }
@@ -83,9 +89,18 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
         trx
       )
 
-      await this.logAudit('create_task_self_assessment', 'review_session', session.id, null, {
-        self_assessment_id: created.id,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create_task_self_assessment',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            self_assessment_id: created.id,
+          },
+        })
+      }
 
       return created
     })
