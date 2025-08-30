@@ -2,11 +2,13 @@ import emitter from '@adonisjs/core/services/emitter'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { ProficiencyLevel } from '#constants'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/request/review_dtos'
-import { BaseCommand } from '#actions/shared/base_command'
 import { ReviewSessionStatus } from '#constants/review_constants'
+import { ProficiencyLevel } from '#constants/user_constants'
 import { determineSessionStatus } from '#domain/reviews/review_formulas'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import ConflictException from '#exceptions/conflict_exception'
@@ -14,10 +16,8 @@ import NotFoundException from '#exceptions/not_found_exception'
 import CacheService from '#infra/cache/cache_service'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
-import type SkillReview from '#models/skill_review'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+import type { SkillReviewRecord } from '#types/review_records'
 
 /**
  * SubmitSkillReviewCommand
@@ -27,9 +27,9 @@ import { DefaultReviewDependencies } from '../ports/review_external_dependencies
  */
 export default class SubmitSkillReviewCommand extends BaseCommand<
   SubmitSkillReviewDTO,
-  SkillReview[]
+  SkillReviewRecord[]
 > {
-  async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
+  async handle(dto: SubmitSkillReviewDTO): Promise<SkillReviewRecord[]> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
       const session = await this.loadReviewSession(dto.review_session_id, trx)
@@ -45,11 +45,20 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       this.applySubmissionToSession(session, dto)
       await ReviewSessionRepository.save(session, trx)
 
-      await this.logAudit('submit_review', 'review_session', session.id, null, {
-        reviewer_id: userId,
-        reviewer_type: dto.reviewer_type,
-        skills_reviewed: dto.skill_ratings.length,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'submit_review',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            reviewer_id: userId,
+            reviewer_type: dto.reviewer_type,
+            skills_reviewed: dto.skill_ratings.length,
+          },
+        })
+      }
 
       return this.buildSubmissionResult(dto, userId, session, skillReviews)
     })
@@ -170,9 +179,9 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       task_assignment_id: DatabaseId
       id: DatabaseId
     },
-    skillReviews: SkillReview[]
+    skillReviews: SkillReviewRecord[]
   ): {
-    skillReviews: SkillReview[]
+    skillReviews: SkillReviewRecord[]
     revieweeCachePattern: string
     reviewSessionCachePattern: string
     reviewSubmittedEvent: {
