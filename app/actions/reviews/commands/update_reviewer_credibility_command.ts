@@ -1,12 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { BaseCommand } from '#actions/reviews/base_command'
 import { calculateCredibilityScore } from '#domain/reviews/review_formulas'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for updating reviewer credibility
