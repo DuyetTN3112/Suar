@@ -1,14 +1,4 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { DateTime } from 'luxon'
-
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
-import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
 
 import type {
   CompletedAssignmentInfo,
@@ -26,12 +16,18 @@ import type {
   SpiderChartSkillPayload,
 } from './review_external_dependencies.js'
 
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { skillPublicApi } from '#actions/skills/public_api'
+import { taskPublicApi } from '#actions/tasks/public_api'
+import { userPublicApi } from '#actions/users/public_api'
+import type { DatabaseId, UserCredibilityData, UserTrustData } from '#types/database'
+
 export class InfraReviewTaskAssignmentReader implements ReviewTaskAssignmentReader {
   async findCompletedAssignment(
     assignmentId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<CompletedAssignmentInfo | null> {
-    const assignment = await TaskAssignmentRepository.findCompletedById(assignmentId, trx)
+    const assignment = await taskPublicApi.findCompletedAssignment(assignmentId, trx)
     if (!assignment) {
       return null
     }
@@ -49,7 +45,7 @@ export class InfraReviewOrganizationReader implements ReviewOrganizationReader {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<DatabaseId[]> {
-    const memberships = await OrganizationUserRepository.listMembershipsByUser(userId, trx)
+    const memberships = await organizationPublicApi.listMembershipsByUser(userId, trx)
     return memberships.map((membership) => membership.organization_id)
   }
 
@@ -57,7 +53,7 @@ export class InfraReviewOrganizationReader implements ReviewOrganizationReader {
     organizationIds: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return OrganizationRepository.hasAnyActivePartnerByIds(organizationIds, trx)
+    return organizationPublicApi.hasAnyActivePartnerByIds(organizationIds, trx)
   }
 }
 
@@ -66,15 +62,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<ReviewUserAccountInfo | null> {
-    const user = await UserRepository.findById(userId, trx)
-    if (!user) {
-      return null
-    }
-
-    return {
-      id: user.id,
-      createdAtMillis: user.created_at.toMillis(),
-    }
+    return userPublicApi.findReviewAccountInfo(userId, trx)
   }
 
   async mergeTrustData(
@@ -82,18 +70,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
     trustData: Partial<UserTrustData>,
     trx?: TransactionClientContract
   ): Promise<void> {
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
-    user.trust_data = {
-      ...(user.trust_data ?? {
-        current_tier_code: null,
-        calculated_score: 0,
-        raw_score: 0,
-        total_verified_reviews: 0,
-        last_calculated_at: null,
-      }),
-      ...trustData,
-    }
-    await UserRepository.save(user, trx)
+    await userPublicApi.mergeTrustData(userId, trustData, trx)
   }
 
   async updateCredibilityData(
@@ -101,9 +78,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
     credibilityData: UserCredibilityData,
     trx?: TransactionClientContract
   ): Promise<void> {
-    const user = await UserRepository.findNotDeletedOrFail(userId, trx)
-    user.credibility_data = credibilityData
-    await UserRepository.save(user, trx)
+    await userPublicApi.updateCredibilityData(userId, credibilityData, trx)
   }
 
   async upsertLifetimePerformanceStats(
@@ -111,36 +86,7 @@ export class InfraReviewUserReaderWriter implements ReviewUserReaderWriter {
     payload: LifetimePerformanceStatsPayload,
     trx?: TransactionClientContract
   ): Promise<void> {
-    const latestStats = await UserPerformanceStatRepository.findLatestLifetimeByUser(userId, trx)
-    const data = {
-      user_id: userId,
-      period_start: null,
-      period_end: null,
-      total_tasks_completed: payload.totalCompletedAssignments,
-      total_hours_worked: Math.round(payload.totalHoursWorked * 100) / 100,
-      avg_quality_score: Math.round(payload.qualityMean * 100) / 100,
-      on_time_delivery_rate: Math.round(payload.deliveryScore * 100) / 100,
-      avg_days_early_or_late: null,
-      performance_score: payload.performanceScore,
-      tasks_by_type: latestStats?.tasks_by_type ?? {},
-      tasks_by_difficulty: latestStats?.tasks_by_difficulty ?? {},
-      tasks_by_domain: latestStats?.tasks_by_domain ?? {},
-      tasks_as_lead: latestStats?.tasks_as_lead ?? 0,
-      tasks_as_sole_contributor: latestStats?.tasks_as_sole_contributor ?? 0,
-      tasks_mentoring_others: latestStats?.tasks_mentoring_others ?? 0,
-      longest_on_time_streak: latestStats?.longest_on_time_streak ?? 0,
-      current_on_time_streak: latestStats?.current_on_time_streak ?? 0,
-      self_assessment_accuracy: latestStats?.self_assessment_accuracy ?? null,
-      calculated_at: payload.calculatedAt,
-    }
-
-    if (latestStats) {
-      latestStats.merge(data)
-      await UserPerformanceStatRepository.save(latestStats, trx)
-      return
-    }
-
-    await UserPerformanceStatRepository.create(data, trx)
+    await userPublicApi.upsertLifetimePerformanceStats(userId, payload, trx)
   }
 }
 
@@ -151,37 +97,7 @@ export class InfraReviewUserSkillWriter implements ReviewUserSkillWriter {
     payload: ReviewedSkillScorePayload,
     trx?: TransactionClientContract
   ): Promise<PersistedSkillScoreResult> {
-    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
-    const oldScore = existing?.avg_percentage ?? null
-
-    if (existing) {
-      existing.level_code = payload.levelCode
-      existing.total_reviews = payload.totalReviews
-      existing.avg_score = payload.avgScore
-      existing.avg_percentage = payload.avgPercentage
-      existing.last_calculated_at = DateTime.now()
-      existing.last_reviewed_at = payload.lastReviewedAt
-      existing.source = 'reviewed'
-      await UserSkillRepository.save(existing, trx)
-      return { oldScore }
-    }
-
-    await UserSkillRepository.create(
-      {
-        user_id: userId,
-        skill_id: skillId,
-        level_code: payload.levelCode,
-        total_reviews: payload.totalReviews,
-        avg_score: payload.avgScore,
-        avg_percentage: payload.avgPercentage,
-        last_calculated_at: DateTime.now(),
-        last_reviewed_at: payload.lastReviewedAt,
-        source: 'reviewed',
-      },
-      trx
-    )
-
-    return { oldScore }
+    return userPublicApi.upsertReviewedSkillScore(userId, skillId, payload, trx)
   }
 
   async upsertSpiderChartSkillData(
@@ -190,43 +106,20 @@ export class InfraReviewUserSkillWriter implements ReviewUserSkillWriter {
     payload: SpiderChartSkillPayload,
     trx?: TransactionClientContract
   ): Promise<void> {
-    const existing = await UserSkillRepository.findByUserAndSkill(userId, skillId, trx)
-
-    if (existing) {
-      existing.avg_percentage = payload.avgPercentage
-      existing.level_code = payload.levelCode
-      existing.last_calculated_at = DateTime.now()
-      await UserSkillRepository.save(existing, trx)
-      return
-    }
-
-    await UserSkillRepository.create(
-      {
-        user_id: userId,
-        skill_id: skillId,
-        level_code: payload.levelCode,
-        avg_percentage: payload.avgPercentage,
-        last_calculated_at: DateTime.now(),
-        total_reviews: 0,
-        avg_score: null,
-      },
-      trx
-    )
+    await userPublicApi.upsertSpiderChartSkillData(userId, skillId, payload, trx)
   }
 }
 
 export class InfraReviewSkillReader implements ReviewSkillReader {
-  async listSpiderChartSkillIds(
-    trx?: TransactionClientContract
-  ): Promise<{ id: DatabaseId }[]> {
-    return SkillRepository.getSpiderChartSkillIds(trx)
+  async listSpiderChartSkillIds(_trx?: TransactionClientContract): Promise<{ id: DatabaseId }[]> {
+    return skillPublicApi.getSpiderChartSkillIds()
   }
 
   async findSkillsByIds(
     skillIds: DatabaseId[],
-    trx?: TransactionClientContract
+    _trx?: TransactionClientContract
   ): Promise<ReviewSkillInfo[]> {
-    const skills = await SkillRepository.findByIds(skillIds, trx)
+    const skills = await skillPublicApi.findByIds(skillIds)
 
     return skills.map((skill) => ({
       id: skill.id,
