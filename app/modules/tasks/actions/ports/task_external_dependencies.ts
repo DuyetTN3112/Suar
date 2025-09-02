@@ -23,6 +23,11 @@ export interface TaskSkillOption {
   name: string
 }
 
+export interface TaskProficiencyLevelOption {
+  value: string
+  label: string
+}
+
 export interface TaskOrgReader {
   ensureActiveOrganization(
     organizationId: string,
@@ -76,6 +81,8 @@ export interface TaskReviewReader {
 
 export interface TaskSkillReader {
   listActiveSkills(): Promise<TaskSkillOption[]>
+
+  listActiveProficiencyLevels(): Promise<TaskProficiencyLevelOption[]>
 
   findActiveSkillIds(
     skillIds: string[],

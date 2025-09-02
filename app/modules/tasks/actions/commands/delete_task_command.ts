@@ -8,6 +8,7 @@ import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_c
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { getErrorMessage } from '#modules/http/errors/error_utils'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -27,6 +28,8 @@ import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mut
  * Business Rules:
  * - Soft delete mặc định (set deleted_at)
  * - Hard delete chỉ dành cho Superadmin (optional feature)
+ * - Không thể xóa task đã có actual hours (cần revoke trước)
+ * - Không thể xóa task đã có review session
  * - Notify assignee và creator
  * - Audit log đầy đủ
  *
@@ -75,6 +78,24 @@ export default class DeleteTaskCommand {
       if (dto.isPermanentDelete()) {
         enforcePolicy(
           canPermanentDeleteTask({ actorSystemRole: permissionContext.actorSystemRole })
+        )
+      }
+
+      // ── Business rule: không thể xóa task đã có actual hours ──────────
+      if (task.actual_time && task.actual_time > 0) {
+        throw new BusinessLogicException(
+          'Không thể xóa task đã có actual hours. Cần revoke task trước khi xóa.'
+        )
+      }
+
+      // ── Business rule: không thể xóa task đã có review session ────────
+      const hasReviewSession = await this.taskExternalDependencies.review.hasAnyReviewForTask(
+        task.id,
+        trx
+      )
+      if (hasReviewSession) {
+        throw new BusinessLogicException(
+          'Không thể xóa task đã có review session. Cần xử lý review trước khi xóa.'
         )
       }
 

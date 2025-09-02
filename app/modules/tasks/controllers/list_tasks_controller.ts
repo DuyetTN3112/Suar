@@ -21,9 +21,10 @@ export default class ListTasksController {
       throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
     }
 
-    const pageData = await makeGetTasksIndexPageQuery(actionContextFromHttp(ctx)).execute(
-      buildGetTasksIndexPageInput(request, organizationId, TASKS_DEFAULT_LIMIT)
-    )
+    const pageInput = buildGetTasksIndexPageInput(request, organizationId, TASKS_DEFAULT_LIMIT)
+    pageInput.requested_project_id ??= session.get('current_project_id') as string | undefined
+
+    const pageData = await makeGetTasksIndexPageQuery(actionContextFromHttp(ctx)).execute(pageInput)
 
     return await inertia.render('tasks/index', pageData)
   }

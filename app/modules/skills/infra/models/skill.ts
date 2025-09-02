@@ -2,7 +2,11 @@ import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import UserSkill from '#modules/users/infra/models/user_skill'
+import UserSkill from '../../../users/infra/models/user_skill.js'
+
+import ProjectSkill from './project_skill.js'
+import SkillAlias from './skill_alias.js'
+import SkillRubricVersion from './skill_rubric_version.js'
 
 /**
  * Skill Model
@@ -56,6 +60,21 @@ export default class Skill extends BaseModel {
     foreignKey: 'skill_id',
   })
   declare user_skills: HasMany<typeof UserSkill>
+
+  @hasMany(() => SkillAlias, {
+    foreignKey: 'skill_id',
+  })
+  declare aliases: HasMany<typeof SkillAlias>
+
+  @hasMany(() => SkillRubricVersion, {
+    foreignKey: 'skill_id',
+  })
+  declare rubric_versions: HasMany<typeof SkillRubricVersion>
+
+  @hasMany(() => ProjectSkill, {
+    foreignKey: 'skill_id',
+  })
+  declare project_skills: HasMany<typeof ProjectSkill>
 
   // All query methods/scopes have been moved to app/repositories/skill_repository.ts.
 }

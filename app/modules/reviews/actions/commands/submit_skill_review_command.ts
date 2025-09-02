@@ -143,28 +143,6 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       throw new ConflictException('You have already submitted a review for this session')
     }
   }
-
-  private buildSkillReviewRows(
-    dto: SubmitSkillReviewDTO,
-    reviewerId: string
-  ): {
-    review_session_id: string
-    reviewer_id: string
-    reviewer_type: 'manager' | 'peer'
-    skill_id: string
-    assigned_level_code: string
-    comment: string | null
-  }[] {
-    return dto.skill_ratings.map((rating) => ({
-      review_session_id: dto.review_session_id,
-      reviewer_id: reviewerId,
-      reviewer_type: dto.reviewer_type,
-      skill_id: rating.skill_id,
-      assigned_level_code: rating.assigned_level_code,
-      comment: rating.comment ?? null,
-    }))
-  }
-
   private applySubmissionToSession(
     session: {
       manager_review_completed: boolean
@@ -245,6 +223,26 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         taskId: session.task_assignment_id,
         scores: Object.fromEntries(skillReviews.map((review) => [review.skill_id, 0])),
       },
+    }
+  }
+
+  private async linkEvidenceToSkillReviews(
+    skillReviews: SkillReviewRecord[],
+    dto: SubmitSkillReviewDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const rows = skillReviews.flatMap((review, index) => {
+      const rating = dto.skill_ratings[index]
+      return (rating?.evidence_ids ?? []).map((evidenceId) => ({
+        skill_review_id: review.id,
+        review_evidence_id: evidenceId,
+        relevance_type: 'direct_observation',
+        reviewer_note: rating?.rationale ?? rating?.comment ?? null,
+      }))
+    })
+
+    if (rows.length > 0) {
+      await trx.table('skill_review_evidence_links').insert(rows)
     }
   }
 

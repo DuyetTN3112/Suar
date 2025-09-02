@@ -15,6 +15,24 @@ export interface UpdateTaskDTOInput {
   actual_time?: number
   project_id?: string
   updated_by?: string
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  expected_deliverables?: Record<string, unknown>[]
+  context_background?: string
+  impact_scope?: string
+  tech_stack?: string[]
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  measurable_outcomes?: Record<string, unknown>[]
+  learning_objectives?: string[]
+  domain_tags?: string[]
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
 }
 
 export interface UpdateTaskValidatedPayload extends Omit<UpdateTaskDTOInput, 'updated_by'> {
@@ -33,6 +51,24 @@ export interface UpdateTaskNormalizedPayload {
   actual_time?: number
   project_id?: string
   updated_by?: string
+  task_type?: string
+  acceptance_criteria?: string
+  verification_method?: string
+  expected_deliverables?: Record<string, unknown>[]
+  context_background?: string
+  impact_scope?: string
+  tech_stack?: string[]
+  environment?: string
+  collaboration_type?: string
+  complexity_notes?: string
+  measurable_outcomes?: Record<string, unknown>[]
+  learning_objectives?: string[]
+  domain_tags?: string[]
+  role_in_task?: string
+  autonomy_level?: string
+  problem_category?: string
+  business_domain?: string
+  estimated_users_affected?: number
   providedFields: Set<string>
 }
 
@@ -128,6 +164,11 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
     providedFields: new Set(),
   }
 
+  const assignRichField = <K extends RichFieldName>(field: K, value: UpdateTaskDTOInput[K]) => {
+    payload[field] = value as UpdateTaskNormalizedPayload[K]
+    payload.providedFields.add(field)
+  }
+
   if (data.title !== undefined) {
     payload.title = normalizeOptionalTitle(data.title)
     payload.providedFields.add('title')
@@ -209,6 +250,35 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
 
     payload.updated_by = data.updated_by
     payload.providedFields.add('updated_by')
+  }
+
+  // Map rich metadata fields
+  const richFields = [
+    'task_type',
+    'acceptance_criteria',
+    'verification_method',
+    'expected_deliverables',
+    'context_background',
+    'impact_scope',
+    'tech_stack',
+    'environment',
+    'collaboration_type',
+    'complexity_notes',
+    'measurable_outcomes',
+    'learning_objectives',
+    'domain_tags',
+    'role_in_task',
+    'autonomy_level',
+    'problem_category',
+    'business_domain',
+    'estimated_users_affected',
+  ] as const
+  type RichFieldName = (typeof richFields)[number]
+
+  for (const field of richFields) {
+    if (data[field] !== undefined) {
+      assignRichField(field, data[field])
+    }
   }
 
   return payload

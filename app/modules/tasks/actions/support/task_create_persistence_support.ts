@@ -73,6 +73,7 @@ const nullTaskExternalDependencies: TaskExternalDependencies = {
   },
   skill: {
     listActiveSkills: () => Promise.resolve([]),
+    listActiveProficiencyLevels: () => Promise.resolve([]),
     findActiveSkillIds: () => Promise.resolve([]),
   },
   permission: {

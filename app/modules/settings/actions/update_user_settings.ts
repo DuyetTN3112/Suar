@@ -1,28 +1,21 @@
-interface SettingsData {
-  theme?: 'light' | 'dark' | 'system'
-  notifications_enabled?: boolean
-  display_mode?: 'grid' | 'list'
-  font?: string
-  layout?: string
-  density?: string
-  animations_enabled?: boolean
-  custom_scrollbars?: boolean
-}
+import type { UserSettingUpdate } from '../types/user_setting.js'
+import { mergeUserSetting } from '../types/user_setting.js'
 
-/**
- * Update user settings
- * Note: Settings are now stored client-side (localStorage/cookies)
- * This is a no-op for backwards compatibility
- */
+import {
+  getUserSettingRecord,
+  updateUserSettingRecord,
+} from '#modules/settings/infra/repositories/user_settings_repository'
+
 export default class UpdateUserSettings {
-  handle({ data }: { data: SettingsData }) {
-    // Settings are managed client-side
-    // This method exists for backwards compatibility but does nothing
-    // Frontend will handle persistence via localStorage/cookies
+  async handle({ userId, data }: { userId: string; data: UserSettingUpdate }) {
+    const user = await getUserSettingRecord(userId)
+    const merged = mergeUserSetting(user.user_setting, data)
+    await updateUserSettingRecord(userId, merged)
+
     return {
       success: true,
-      message: 'Settings updated (client-side)',
-      data,
+      message: 'Settings updated',
+      data: merged,
     }
   }
 }

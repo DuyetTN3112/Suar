@@ -6,6 +6,7 @@ import { enforcePolicy } from '#modules/authorization/public_contracts/policy_en
 import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { ApplyForTaskDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
@@ -27,6 +28,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
 > {
   constructor(
     execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
     private cache: TaskCachePort
   ) {
     super(execCtx)
@@ -35,6 +37,7 @@ export default class ApplyForTaskCommand extends BaseCommand<
   async handle(dto: ApplyForTaskDTO): Promise<TaskApplicationRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
+      await this.taskExternalDependencies.user.ensureActiveUser(userId, trx)
 
       // ── FETCH ──────────────────────────────────────────────────────────
       const task = await detailQueries.findActiveOrFailAsRecord(dto.task_id, trx)

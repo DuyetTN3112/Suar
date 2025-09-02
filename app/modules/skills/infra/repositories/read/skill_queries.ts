@@ -6,6 +6,12 @@ export const activeSkills = () => {
   return Skill.query().where('is_active', true).orderBy('sort_order', 'asc')
 }
 
+export const activeSkillsWithPublishedRubrics = () => {
+  return activeSkills().preload('rubric_versions', (query) => {
+    void query.where('status', 'published').orderBy('version', 'desc')
+  })
+}
+
 export const byCategory = (categoryCode: string) => {
   return Skill.query()
     .where('category_code', categoryCode)

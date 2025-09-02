@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserSkill from '#modules/users/infra/models/user_skill'
+import UserSkill from '../../../../users/infra/models/user_skill.js'
 
 export const findByUserAndSkill = async (userId: string, skillId: string) => {
   return await UserSkill.query().where('user_id', userId).where('skill_id', skillId).first()

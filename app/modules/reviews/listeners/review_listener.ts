@@ -3,7 +3,12 @@ import emitter from '@adonisjs/core/services/emitter'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import { reviewCachePortImpl } from '#modules/reviews/actions/ports/review_cache_port_impl'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import type { ReviewSubmittedEvent, ReviewConfirmedEvent } from '#modules/reviews/events/review_events'
+import { PROFILE_UPDATE_ACTION, REVIEWER_CREDIBILITY_ACTION } from '#modules/reviews/constants/review_constants'
+import type {
+  DisputeResolvedEvent,
+  ReviewConfirmedEvent,
+  ReviewSubmittedEvent,
+} from '#modules/reviews/events/review_events'
 import type { SkillScoreUpdatedEvent } from '#modules/skills/events/skill_events'
 
 /**
@@ -111,6 +116,73 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
   } catch (error) {
     loggerService.error('ReviewListener: review confirmed failed', {
       confirmationId: event.confirmationId,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+})
+
+// === Dispute Resolved ===
+emitter.on('dispute:resolved', async (event: DisputeResolvedEvent) => {
+  try {
+    const { default: UpdateReviewerCredibilityCommand } =
+      await import('#modules/reviews/actions/commands/update_reviewer_credibility_command')
+    const { default: RecalculateRevieweeSkillScoresCommand } =
+      await import('#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command')
+    const { default: CalculateTrustScoreCommand } =
+      await import('#modules/reviews/actions/commands/calculate_trust_score_command')
+    const { default: CalculatePerformanceScoreCommand } =
+      await import('#modules/reviews/actions/commands/calculate_performance_score_command')
+    const { default: RefreshUserProfileAggregatesCommand } =
+      await import('#modules/users/actions/commands/refresh_user_profile_aggregates_command')
+
+    // 1) Recompute reviewer credibility if requested
+    if (event.reviewerCredibilityAction === REVIEWER_CREDIBILITY_ACTION.MARK_DISPUTED) {
+      for (const reviewerId of event.reviewerIds) {
+        const command = new UpdateReviewerCredibilityCommand(
+          makeSystemReviewActionContext(event.resolvedBy)
+        )
+        await command.handle({ user_id: reviewerId })
+      }
+    }
+
+    // 2) Recompute reviewee scores if profile update action requested
+    if (event.profileUpdateAction === PROFILE_UPDATE_ACTION.RECALCULATE) {
+      const recalculateSkillScores = new RecalculateRevieweeSkillScoresCommand(
+        makeSystemReviewActionContext(event.resolvedBy)
+      )
+      await recalculateSkillScores.handle({ userId: event.revieweeId })
+
+      const calculatePerformanceScore = new CalculatePerformanceScoreCommand(
+        makeSystemReviewActionContext(event.resolvedBy)
+      )
+      await calculatePerformanceScore.handle({ userId: event.revieweeId })
+
+      const calculateTrustScore = new CalculateTrustScoreCommand(
+        makeSystemReviewActionContext(event.resolvedBy)
+      )
+      await calculateTrustScore.handle({ userId: event.revieweeId })
+
+      const refreshAggregates = new RefreshUserProfileAggregatesCommand(
+        makeSystemReviewActionContext(event.resolvedBy)
+      )
+      await refreshAggregates.handle({
+        userId: event.revieweeId,
+        fullRebuild: false,
+      })
+    }
+
+    // 3) Invalidate reviewee profile cache
+    await reviewCachePortImpl.invalidateUserProfileReviewData(event.revieweeId)
+
+    loggerService.debug('Dispute resolved pipeline executed', {
+      disputeId: event.disputeId,
+      revieweeId: event.revieweeId,
+      reviewerCount: event.reviewerIds.length,
+      finalDecision: event.finalDecision,
+    })
+  } catch (error) {
+    loggerService.error('ReviewListener: dispute resolved failed', {
+      disputeId: event.disputeId,
       error: error instanceof Error ? error.message : String(error),
     })
   }

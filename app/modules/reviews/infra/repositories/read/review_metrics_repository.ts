@@ -25,7 +25,16 @@ export default class ReviewMetricsRepository {
     return trx
       .from('review_sessions')
       .where('reviewee_id', userId)
-      .where('status', 'completed')
+      .where((builder) =>
+        builder.where('status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = review_sessions.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .whereNotNull('overall_quality_score')
       .select('overall_quality_score')
   }
@@ -34,7 +43,16 @@ export default class ReviewMetricsRepository {
     return trx
       .from('review_sessions as rs')
       .where('rs.reviewee_id', userId)
-      .where('rs.status', 'completed')
+      .where((builder) =>
+        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = rs.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .select('rs.id', 'rs.created_at')
   }
 
@@ -47,6 +65,7 @@ export default class ReviewMetricsRepository {
       .from('skill_reviews as sr')
       .leftJoin('users as reviewer', 'reviewer.id', 'sr.reviewer_id')
       .whereIn('sr.review_session_id', sessionIds)
+      .where('sr.is_fraud', false)
       .select(
         'sr.review_session_id',
         'sr.reviewer_type',
@@ -77,7 +96,17 @@ export default class ReviewMetricsRepository {
       .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .leftJoin('users as reviewer', 'reviewer.id', 'sr.reviewer_id')
       .where('rs.reviewee_id', userId)
-      .where('rs.status', 'completed')
+      .where('sr.is_fraud', false)
+      .where((builder) =>
+        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = rs.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .select(
         'sr.skill_id',
         'sr.review_session_id',
@@ -92,13 +121,23 @@ export default class ReviewMetricsRepository {
 
   static async listEvidenceCountsBySkill(userId: string, trx: TransactionClientContract) {
     return trx
-      .from('review_evidences as re')
-      .join('review_sessions as rs', 'rs.id', 're.review_session_id')
-      .join('skill_reviews as sr', 'sr.review_session_id', 'rs.id')
+      .from('skill_review_evidence_links as srel')
+      .join('skill_reviews as sr', 'sr.id', 'srel.skill_review_id')
+      .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
       .where('rs.reviewee_id', userId)
-      .where('rs.status', 'completed')
+      .where('sr.is_fraud', false)
+      .where((builder) =>
+        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
+          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+            subBuilder
+              .from('review_disputes')
+              .whereRaw('review_disputes.review_session_id = rs.id')
+              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+          )
+        )
+      )
       .groupBy('sr.skill_id')
       .select('sr.skill_id')
-      .countDistinct('re.id as total')
+      .countDistinct('srel.review_evidence_id as total')
   }
 }

@@ -1,9 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import type TaskSelfAssessment from '../../../tasks/infra/models/task_self_assessment.js'
+
 import * as taskSelfAssessmentQueries from './read/task_self_assessment_queries.js'
 import * as taskSelfAssessmentMutations from './write/task_self_assessment_mutations.js'
 
-import type TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
 
 export default class TaskSelfAssessmentRepository {
   private readonly __instanceMarker = true

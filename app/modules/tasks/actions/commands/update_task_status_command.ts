@@ -229,6 +229,7 @@ export default class UpdateTaskStatusCommand {
       const task = await this.loadTaskForStatusUpdate(dto.task_id, trx)
       const newStatus = await this.resolveNewStatus(task, dto, trx)
       const oldTaskStatusId = await this.ensureStatusUpdatePermission(task, dto, userId, trx)
+      await this.ensureSubmissionIfDone(task, newStatus, trx)
       const updateResult = await this.persistStatusChange(
         task,
         dto,
@@ -242,6 +243,40 @@ export default class UpdateTaskStatusCommand {
     } catch (error) {
       await trx.rollback()
       throw error
+    }
+  }
+
+  private async ensureSubmissionIfDone(
+    task: TaskRecord,
+    newStatus: ResolvedTaskStatus,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    if (newStatus.category === 'done') {
+      const bypassTypes = [
+        'research_spike',
+        'poc',
+        'prototype',
+        'technical_writing',
+        'documentation',
+        'knowledge_transfer',
+        'mentoring',
+        'product_management',
+      ]
+      if (task.task_type && bypassTypes.includes(task.task_type)) {
+        return
+      }
+
+      const submission = (await trx
+        .from('task_submissions')
+        .where('task_id', task.id)
+        .whereIn('status', ['submitted', 'accepted_for_review', 'locked'])
+        .first()) as Record<string, unknown> | null | undefined
+
+      if (!submission) {
+        throw new BusinessLogicException(
+          'Task cannot move to DONE without a valid submission (submitted, accepted_for_review, or locked)'
+        )
+      }
     }
   }
 

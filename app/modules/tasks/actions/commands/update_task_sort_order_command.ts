@@ -9,9 +9,12 @@ import ValidationException from '#modules/http/exceptions/validation_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import {
+  buildTaskCollectionAccessContext,
+  buildTaskPermissionContext,
+} from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { canReorderTask } from '#modules/tasks/domain/task_permission_policy'
+import { canReorderTask, canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
@@ -26,7 +29,7 @@ import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
  *
  * v4: Accepts newTaskStatusId (UUID).
  * When dragging between Kanban columns, validates against DB workflow transitions.
- * Permission check: user must be org member.
+ * Permission check: status changes require project membership; same-column reorder requires org membership.
  *
  * Used by: Kanban board drag-within-column, List view reorder
  */
@@ -39,6 +42,13 @@ export default class UpdateTaskSortOrderCommand {
 
   async execute(taskId: string, newSortOrder: number, newTaskStatusId?: string): Promise<TaskDetailRecord> {
     const userId = this.execCtx.userId
+    loggerService.info('[UpdateTaskSortOrderCommand] execute started', {
+      taskId,
+      newSortOrder,
+      newTaskStatusId,
+      userId,
+    })
+
     if (!userId) {
       throw new UnauthorizedException()
     }
@@ -51,15 +61,6 @@ export default class UpdateTaskSortOrderCommand {
 
     try {
       const task = await taskMutations.findActiveForUpdateAsRecord(taskId, trx)
-
-      const accessContext = await buildTaskCollectionAccessContext(
-        userId,
-        task.organization_id,
-        'none',
-        trx,
-        this.taskExternalDependencies.permission
-      )
-      enforcePolicy(canReorderTask(accessContext))
 
       const updateData: Record<string, unknown> = {
         sort_order: newSortOrder,
@@ -79,6 +80,11 @@ export default class UpdateTaskSortOrderCommand {
         const newStatus = resolvedStatus
 
         if (!newStatus) {
+          loggerService.info('[UpdateTaskSortOrderCommand] status rejected: not found', {
+            taskId,
+            newTaskStatusId,
+            organizationId: task.organization_id,
+          })
           throw new BusinessLogicException(
             'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
           )
@@ -94,7 +100,23 @@ export default class UpdateTaskSortOrderCommand {
 
         const shouldChangeStatus = task.task_status_id !== resolvedNewTaskStatusId
 
+        loggerService.info('[UpdateTaskSortOrderCommand] status resolution', {
+          taskId,
+          currentStatusId,
+          resolvedNewTaskStatusId,
+          shouldChangeStatus,
+          newSortOrder,
+        })
+
         if (shouldChangeStatus) {
+          const permissionContext = await buildTaskPermissionContext(
+            userId,
+            task,
+            trx,
+            this.taskExternalDependencies.permission
+          )
+          enforcePolicy(canUpdateTaskStatus(permissionContext))
+
           const currentStatusDef = await TaskStatusRepository.findByIdAndOrgActive(
             currentStatusId,
             task.organization_id,
@@ -125,6 +147,17 @@ export default class UpdateTaskSortOrderCommand {
             (transition) => transition.to_status_id === resolvedNewTaskStatusId
           )
 
+          loggerService.info('[UpdateTaskSortOrderCommand] workflow validation', {
+            taskId,
+            currentStatusId,
+            resolvedNewTaskStatusId,
+            directTransitionCount: transitions.length,
+            organizationTransitionCount: organizationTransitions.length,
+            workflowConfigured,
+            matchingTransitionId: matchingTransition?.id,
+            isAssigned: task.assigned_to !== null,
+          })
+
           enforcePolicy(
             validateWorkflowTransition({
               currentStatusId,
@@ -135,6 +168,32 @@ export default class UpdateTaskSortOrderCommand {
               isAssigned: task.assigned_to !== null,
             })
           )
+
+          if (newStatus.category === 'done') {
+            const bypassTypes = [
+              'research_spike',
+              'poc',
+              'prototype',
+              'technical_writing',
+              'documentation',
+              'knowledge_transfer',
+              'mentoring',
+              'product_management',
+            ]
+            if (!(task.task_type && bypassTypes.includes(task.task_type))) {
+              const submission = (await trx
+                .from('task_submissions')
+                .where('task_id', task.id)
+                .whereIn('status', ['submitted', 'accepted_for_review', 'locked'])
+                .first()) as Record<string, unknown> | null | undefined
+
+              if (!submission) {
+                throw new BusinessLogicException(
+                  'Task cannot move to DONE without a valid submission (submitted, accepted_for_review, or locked)'
+                )
+              }
+            }
+          }
 
           const oldStatus = task.status
           updateData.task_status_id = resolvedNewTaskStatusId
@@ -152,7 +211,25 @@ export default class UpdateTaskSortOrderCommand {
               changedBy: userId,
             })
           })
+        } else {
+          const accessContext = await buildTaskCollectionAccessContext(
+            userId,
+            task.organization_id,
+            'none',
+            trx,
+            this.taskExternalDependencies.permission
+          )
+          enforcePolicy(canReorderTask(accessContext))
         }
+      } else {
+        const accessContext = await buildTaskCollectionAccessContext(
+          userId,
+          task.organization_id,
+          'none',
+          trx,
+          this.taskExternalDependencies.permission
+        )
+        enforcePolicy(canReorderTask(accessContext))
       }
 
       const updatedTask = await taskMutations.updateTask(task.id, updateData, trx)
@@ -160,7 +237,15 @@ export default class UpdateTaskSortOrderCommand {
 
       await this.cache.invalidateAfterTaskUpdated(task.id)
 
-      return await detailQueries.findByIdWithDetailRecord(updatedTask.id)
+      const detail = await detailQueries.findByIdWithDetailRecord(updatedTask.id)
+      loggerService.info('[UpdateTaskSortOrderCommand] execute completed', {
+        taskId: detail.id,
+        sortOrder: detail.sort_order,
+        taskStatusId: detail.task_status_id,
+        status: detail.status,
+      })
+
+      return detail
     } catch (error) {
       await trx.rollback()
       loggerService.error('[UpdateTaskSortOrderCommand] Error:', error)

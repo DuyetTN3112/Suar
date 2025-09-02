@@ -13,6 +13,11 @@ export interface TaskDetailPageResult {
   auditLogs?: unknown[]
 }
 
+interface TaskDetailPageOptions {
+  shellMode?: 'app' | 'organization'
+  baseRoute?: string
+}
+
 export interface TaskEditPageResult {
   task: SerializableResponseRecord | ResponseRecord
   permissions: {
@@ -64,11 +69,29 @@ export function mapTaskSortOrderApiBody(task: SerializableResponseRecord | Respo
   }
 }
 
+export function mapTaskDetailApiBody(task: SerializableResponseRecord | ResponseRecord) {
+  return {
+    success: true,
+    data: serializeForResponse(task),
+  }
+}
+
 export function mapTaskDetailPageProps(result: TaskDetailPageResult) {
   return {
     task: serializeForResponse(result.task),
     permissions: result.permissions,
     auditLogs: result.auditLogs,
+  }
+}
+
+export function mapScopedTaskDetailPageProps(
+  result: TaskDetailPageResult,
+  options?: TaskDetailPageOptions
+) {
+  return {
+    ...mapTaskDetailPageProps(result),
+    shellMode: options?.shellMode ?? 'app',
+    baseRoute: options?.baseRoute ?? '/tasks',
   }
 }
 

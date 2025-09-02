@@ -65,16 +65,20 @@ export function canUpdateTask(ctx: TaskPermissionContext): PolicyResult {
   if (ctx.isActiveAssignee) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
+  if (ctx.actorProjectRole === TaskProjectRole.MEMBER) return PR.allow()
 
   return PR.deny('Bạn không có quyền cập nhật task này')
 }
 
 /**
  * Check if actor can update task status.
- * Same rules as canUpdateTask.
+ * Project membership owns status movement. Org membership alone is not enough.
  */
 export function canUpdateTaskStatus(ctx: TaskPermissionContext): PolicyResult {
-  return canUpdateTask(ctx)
+  if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
+  if (ctx.actorProjectRole) return PR.allow()
+
+  return PR.deny('Bạn không có quyền cập nhật trạng thái task này')
 }
 
 /**
@@ -128,6 +132,7 @@ export function canDeleteTask(
   }
   if (isSameId(ctx.taskCreatorId, ctx.actorId)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
+  if (ctx.actorProjectRole === TaskProjectRole.MEMBER) return PR.allow()
 
   return PR.deny('Bạn không có quyền xoá task này')
 }
@@ -205,6 +210,11 @@ export function canUpdateTaskFields(
     return { allowed: true, fieldRestrictions: null }
   }
 
+  // Project member — no restrictions (they can edit tasks)
+  if (ctx.actorProjectRole === TaskProjectRole.MEMBER) {
+    return { allowed: true, fieldRestrictions: null }
+  }
+
   return {
     allowed: false,
     reason: 'Bạn không có quyền cập nhật task này',
@@ -241,6 +251,7 @@ export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
   if (ctx.isActiveAssignee) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
+  if (ctx.actorProjectRole === TaskProjectRole.MEMBER || ctx.actorProjectRole === TaskProjectRole.VIEWER) return PR.allow()
 
   return PR.deny('Bạn không có quyền xem task này')
 }
@@ -308,10 +319,13 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
 export function canCreateTask(ctx: TaskCreatePermissionContext): PolicyResult {
   if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
-  if (ctx.projectId && isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
+  if (ctx.projectId && (
+    isProjectManagerOrOwner(ctx.actorProjectRole) ||
+    ctx.actorProjectRole === TaskProjectRole.MEMBER
+  )) return PR.allow()
 
   return PR.deny(
-    'Chỉ org_admin, org_owner hoặc project_manager mới có thể tạo task. org_member không có quyền này.'
+    'Chỉ thành viên dự án, Quản lý dự án hoặc Chủ sở hữu/Quản trị viên tổ chức mới có thể tạo nhiệm vụ.'
   )
 }
 
