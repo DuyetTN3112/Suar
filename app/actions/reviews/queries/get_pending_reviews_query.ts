@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/reviews/base_query'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import type ReviewSession from '#models/review_session'
+import type { ReviewSessionRecord } from '#types/review_records'
 
 interface PendingReviewsDTO {
   page: number
@@ -8,7 +8,7 @@ interface PendingReviewsDTO {
 }
 
 interface PendingReviewsResult {
-  data: ReviewSession[]
+  data: ReviewSessionRecord[]
   meta: {
     total: number
     per_page: number
