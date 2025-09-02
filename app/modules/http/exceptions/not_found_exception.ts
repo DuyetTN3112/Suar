@@ -1,6 +1,5 @@
-import { Exception } from '@adonisjs/core/exceptions'
-
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * NotFoundException
@@ -15,12 +14,12 @@ import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
  * throw NotFoundException.resource('Dự án', 123)
  * ```
  */
-export default class NotFoundException extends Exception {
+export default class NotFoundException extends AppException {
   static override status = 404
   static override code = 'E_NOT_FOUND'
 
-  constructor(message: string = ErrorMessages.NOT_FOUND) {
-    super(message)
+  constructor(message: string = ErrorMessages.NOT_FOUND, details?: Record<string, unknown>) {
+    super(message, { details })
   }
 
   /**
@@ -30,7 +29,10 @@ export default class NotFoundException extends Exception {
     const message = id
       ? `${resourceName} với ID ${id} không tồn tại`
       : `${resourceName} không tồn tại`
-    return new NotFoundException(message)
+    return new NotFoundException(message, {
+      resource: resourceName,
+      id: id ?? null,
+    })
   }
 
   // --- Convenience factories cho các resource phổ biến ---

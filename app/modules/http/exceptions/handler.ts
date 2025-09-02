@@ -4,8 +4,12 @@ import app from '@adonisjs/core/services/app'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { Youch } from 'youch'
 
+import { createApiV1ProblemDetails } from '../../../contracts/api/v1/errors.js'
+
 import { isPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
 import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#modules/errors/public_contracts/error_constants'
+import { createErrorEvent } from '#modules/errors/public_contracts/error_event_repository'
+import AppException from '#modules/http/exceptions/app_exception'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import RateLimitException from '#modules/http/exceptions/rate_limit_exception'
@@ -20,6 +24,10 @@ interface HttpError {
   messages?: unknown
 }
 
+interface ErrorWithDefaultHeaders {
+  getDefaultHeaders(): Record<string, unknown>
+}
+
 /**
  * Kiểm tra xem error có phải là HTTP error (có status code)
  */
@@ -32,6 +40,25 @@ const isHttpError = (err: unknown): err is HttpError => {
   )
 }
 
+const hasDefaultHeaders = (error: unknown): error is ErrorWithDefaultHeaders => {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'getDefaultHeaders' in error &&
+    typeof error.getDefaultHeaders === 'function'
+  )
+}
+
+const applyDefaultHeaders = (
+  response: HttpContext['response'],
+  error: ErrorWithDefaultHeaders
+): void => {
+  const headers = error.getDefaultHeaders()
+  for (const [key, value] of Object.entries(headers)) {
+    response.header(key, String(value))
+  }
+}
+
 /**
  * Kiểm tra xem request có phải là API request không
  * - URL bắt đầu bằng /api/
@@ -41,6 +68,10 @@ const isApiRequest = (request: HttpContext['request']): boolean => {
   if (request.url().startsWith('/api/')) return true
   if (request.header('X-Inertia')) return false
   return request.accepts(['json', 'html']) === 'json'
+}
+
+const isApiV1Request = (request: HttpContext['request']): boolean => {
+  return request.url().startsWith('/api/v1')
 }
 
 /**
@@ -63,12 +94,13 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   override async handle(error: unknown, ctx: HttpContext): Promise<void> {
     const { request, response, session, inertia } = ctx
     const handledError = this.mapDomainException(error)
+    const apiMeta = this.getApiErrorMeta(ctx)
 
     // ----------------------------------------------------------------
     // Dev mode: Youch HTML cho non-Inertia requests
     // ----------------------------------------------------------------
     if (!app.inProduction && handledError instanceof Error) {
-      if (!isInertiaRequest(request) || isApiRequest(request)) {
+      if (!isInertiaRequest(request) && !isApiRequest(request)) {
         const youch = new Youch()
         const html = await youch.toHTML(handledError)
         response
@@ -82,27 +114,75 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // ----------------------------------------------------------------
     // API requests: Luôn trả JSON chuẩn
     // ----------------------------------------------------------------
-    if (isApiRequest(request) && isHttpError(handledError)) {
-      const code = handledError.code ?? this.getErrorCodeFromStatus(handledError.status)
-      const message = handledError.message ?? ErrorMessages.GENERIC_ERROR
+    if (isApiRequest(request)) {
+      const status = isHttpError(handledError)
+        ? handledError.status
+        : HttpStatus.INTERNAL_SERVER_ERROR
+      const code = isHttpError(handledError)
+        ? (handledError.code ?? this.getErrorCodeFromStatus(handledError.status))
+        : ErrorCode.INTERNAL
+      const message = isHttpError(handledError)
+        ? (handledError.message ?? ErrorMessages.GENERIC_ERROR)
+        : ErrorMessages.INTERNAL_ERROR
 
       // Custom ValidationException (từ DTOs/Actions) — có .errors field
-      if (handledError instanceof ValidationException && Object.keys(handledError.errors).length > 0) {
+      if (handledError instanceof AppException && Object.keys(handledError.errors).length > 0) {
+        if (isApiV1Request(request)) {
+          response
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .header('content-type', 'application/problem+json')
+            .json(
+              createApiV1ProblemDetails({
+                status: HttpStatus.UNPROCESSABLE_ENTITY,
+                code,
+                detail: message,
+                errors: handledError.errors,
+                requestId: ctx.requestContext.requestId,
+                correlationId: ctx.requestContext.correlationId,
+              })
+            )
+          return
+        }
+
         response
           .status(HttpStatus.UNPROCESSABLE_ENTITY)
-          .json(createApiError(ErrorCode.VALIDATION, message, handledError.errors))
+          .json(createApiError(code, message, handledError.errors, apiMeta))
         return
       }
 
       // VineJS validation errors — có .messages field
-      if (handledError.status === HttpStatus.UNPROCESSABLE_ENTITY && 'messages' in handledError) {
+      if (
+        isHttpError(handledError) &&
+        handledError.status === HttpStatus.UNPROCESSABLE_ENTITY &&
+        'messages' in handledError
+      ) {
+        const errors = this.flattenValidationErrors(handledError.messages)
+
+        if (isApiV1Request(request)) {
+          response
+            .status(HttpStatus.UNPROCESSABLE_ENTITY)
+            .header('content-type', 'application/problem+json')
+            .json(
+              createApiV1ProblemDetails({
+                status: HttpStatus.UNPROCESSABLE_ENTITY,
+                code: ErrorCode.VALIDATION,
+                detail: ErrorMessages.INVALID_INPUT,
+                errors,
+                requestId: ctx.requestContext.requestId,
+                correlationId: ctx.requestContext.correlationId,
+              })
+            )
+          return
+        }
+
         response
           .status(HttpStatus.UNPROCESSABLE_ENTITY)
           .json(
             createApiError(
               ErrorCode.VALIDATION,
               ErrorMessages.INVALID_INPUT,
-              this.flattenValidationErrors(handledError.messages)
+              errors,
+              apiMeta
             )
           )
         return
@@ -111,9 +191,27 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       // RateLimitException — thêm Retry-After header
       if (handledError instanceof RateLimitException && handledError.retryAfter) {
         response.header('Retry-After', String(handledError.retryAfter))
+      } else if (hasDefaultHeaders(handledError)) {
+        applyDefaultHeaders(response, handledError)
       }
 
-      response.status(handledError.status).json(createApiError(code, message))
+      if (isApiV1Request(request)) {
+        response
+          .status(status)
+          .header('content-type', 'application/problem+json')
+          .json(
+            createApiV1ProblemDetails({
+              status,
+              code,
+              detail: message,
+              requestId: ctx.requestContext.requestId,
+              correlationId: ctx.requestContext.correlationId,
+            })
+          )
+        return
+      }
+
+      response.status(status).json(createApiError(code, message, undefined, apiMeta))
       return
     }
 
@@ -216,6 +314,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
       if (retryAfter) {
         response.header('Retry-After', String(retryAfter))
+      } else if (hasDefaultHeaders(handledError)) {
+        applyDefaultHeaders(response, handledError)
       }
 
       session.flash('error', message)
@@ -237,9 +337,10 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     if (error instanceof Error) {
       const statusCode = isHttpError(error) ? error.status : 500
       const errorCode = isHttpError(error) ? (error as HttpError).code : undefined
+      const shouldReport = error instanceof AppException ? error.shouldReport : statusCode >= 500
 
       // Không log 4xx errors (client errors) ở mức error, chỉ log 5xx
-      if (statusCode >= 500) {
+      if (shouldReport) {
         loggerService.error(`[HttpException] ${error.message}`, {
           code: errorCode,
           status: statusCode,
@@ -255,6 +356,10 @@ export default class HttpExceptionHandler extends ExceptionHandler {
           url: ctx.request.url(),
           method: ctx.request.method(),
         })
+      }
+
+      if (this.shouldPersistErrorEvent(error, statusCode)) {
+        await this.persistErrorEvent(error, ctx, statusCode, errorCode ?? ErrorCode.INTERNAL)
       }
     }
 
@@ -286,6 +391,56 @@ export default class HttpExceptionHandler extends ExceptionHandler {
         return ErrorCode.RATE_LIMIT
       default:
         return ErrorCode.INTERNAL
+    }
+  }
+
+  private getApiErrorMeta(ctx: HttpContext): { request_id?: string; correlation_id?: string } {
+    return {
+      request_id: ctx.requestContext.requestId,
+      correlation_id: ctx.requestContext.correlationId,
+    }
+  }
+
+  private shouldPersistErrorEvent(error: Error, status: number): boolean {
+    if (error instanceof AppException) {
+      return error.shouldReport
+    }
+
+    return status >= 500 || status === HttpStatus.RATE_LIMIT
+  }
+
+  private async persistErrorEvent(
+    error: Error,
+    ctx: HttpContext,
+    statusCode: number,
+    errorCode: string
+  ): Promise<void> {
+    try {
+      await createErrorEvent({
+        code: errorCode,
+        status: statusCode,
+        severity: statusCode >= 500 ? 'error' : 'warning',
+        message: error.message,
+        safe_message: statusCode >= 500 ? ErrorMessages.INTERNAL_ERROR : error.message,
+        details: {
+          stack: error.stack ?? null,
+          ...(error instanceof AppException && error.details ? error.details : {}),
+        },
+        request_id: ctx.requestContext.requestId,
+        correlation_id: ctx.requestContext.correlationId,
+        actor_user_id: ctx.auth.user?.id ?? null,
+        actor_org_id: (ctx.session.get('current_organization_id') as string | undefined) ?? null,
+        method: ctx.request.method(),
+        url: ctx.request.url(),
+        ip_address: ctx.request.ip(),
+        user_agent: ctx.request.header('user-agent') ?? null,
+      })
+    } catch (persistError) {
+      loggerService.warn('[HttpException] Failed to persist error event', {
+        originalCode: errorCode,
+        originalStatus: statusCode,
+        persistError: persistError instanceof Error ? persistError.message : String(persistError),
+      })
     }
   }
 

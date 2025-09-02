@@ -4,6 +4,10 @@ import BusinessLogicException from '#modules/http/exceptions/business_logic_exce
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitReverseReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import {
+  isAllowedReverseReviewTarget,
+  loadReviewSessionActorAccessContext,
+} from '#modules/reviews/actions/support/review_session_actor_access'
 import { REVIEW_DEFAULTS } from '#modules/reviews/constants/review_constants'
 import ReverseReviewRepository from '#modules/reviews/infra/repositories/reverse_review_repository'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
@@ -58,6 +62,14 @@ export default class SubmitReverseReviewCommand extends BaseCommand<
 
       if (existing) {
         throw new ConflictException('You have already submitted a reverse review for this target')
+      }
+
+      const access = await loadReviewSessionActorAccessContext(dto.review_session_id, userId, trx)
+      if (
+        !access ||
+        !isAllowedReverseReviewTarget(access, dto.target_type, dto.target_id)
+      ) {
+        throw new BusinessLogicException('Reverse review target không thuộc review session này')
       }
 
       // Create reverse review

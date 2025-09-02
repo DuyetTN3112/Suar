@@ -5,17 +5,21 @@ import { DateTime } from 'luxon'
 import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { loadReviewSessionActorAccessContext } from '#modules/reviews/actions/support/review_session_actor_access'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import { determineSessionStatus } from '#modules/reviews/domain/review_formulas'
+import { canSubmitReview } from '#modules/reviews/domain/review_policy'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { SkillReviewRecord } from '#modules/reviews/types/review_records'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
 import { ProficiencyLevel } from '#modules/users/public_contracts/user_constants'
 
 /**
@@ -32,14 +36,53 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
       const session = await this.loadReviewSession(dto.review_session_id, trx)
+      const access = await loadReviewSessionActorAccessContext(dto.review_session_id, userId, trx)
+
+      enforcePolicy(
+        canSubmitReview({
+          actorId: userId,
+          actorSystemRole: access?.actorSystemRole ?? null,
+          sessionRevieweeId: access?.sessionRevieweeId ?? session.reviewee_id,
+          sessionTaskOrgId: access?.sessionTaskOrgId ?? '',
+          managerReviewerIds: access?.managerReviewerIds ?? [],
+          peerReviewerIds: access?.peerReviewerIds ?? [],
+          isOrgAdminOrOwner: access?.isOrgAdminOrOwner ?? false,
+          reviewerType: dto.reviewer_type,
+        })
+      )
 
       await this.ensureReviewHasNotBeenSubmitted(dto.review_session_id, userId, trx)
       await this.validateForeignKeys(dto.skill_ratings, trx)
 
-      const skillReviews = await SkillReviewRepository.createMany(
-        this.buildSkillReviewRows(dto, userId),
-        trx
-      )
+      const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
+      const levelMap: Record<string, string> = {}
+      if (activeScale) {
+        for (const lvl of activeScale.levels) {
+          levelMap[lvl.code] = lvl.id
+        }
+      }
+
+      const skillReviewRows = dto.skill_ratings.map((rating) => ({
+        review_session_id: dto.review_session_id,
+        reviewer_id: userId,
+        reviewer_type: dto.reviewer_type,
+        skill_id: rating.skill_id,
+        assigned_level_code: rating.assigned_level_code,
+        proficiency_level_id: levelMap[rating.assigned_level_code] ?? null,
+        observed_level_id: rating.insufficient_evidence
+          ? null
+          : (rating.observed_level_id ?? levelMap[rating.assigned_level_code] ?? null),
+        rubric_version_id: rating.rubric_version_id ?? null,
+        confidence: rating.confidence ?? null,
+        rationale: rating.rationale ?? null,
+        observable_behaviors: rating.observable_behaviors ?? [],
+        review_status: 'submitted' as const,
+        submitted_at: DateTime.now(),
+        comment: rating.comment ?? null,
+      }))
+
+      const skillReviews = await SkillReviewRepository.createMany(skillReviewRows, trx)
+      await this.linkEvidenceToSkillReviews(skillReviews, dto, trx)
 
       this.applySubmissionToSession(session, dto)
       await ReviewSessionRepository.save(session, trx)

@@ -1,6 +1,5 @@
-import { Exception } from '@adonisjs/core/exceptions'
-
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * RateLimitException
@@ -16,7 +15,7 @@ import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
  * throw RateLimitException.withRetry(60)
  * ```
  */
-export default class RateLimitException extends Exception {
+export default class RateLimitException extends AppException {
   static override status = 429
   static override code = 'E_RATE_LIMIT'
 
@@ -26,7 +25,9 @@ export default class RateLimitException extends Exception {
   public readonly retryAfter?: number
 
   constructor(message: string = ErrorMessages.RATE_LIMIT, retryAfter?: number) {
-    super(message)
+    super(message, {
+      details: retryAfter ? { retry_after: retryAfter } : undefined,
+    })
     this.retryAfter = retryAfter
   }
 

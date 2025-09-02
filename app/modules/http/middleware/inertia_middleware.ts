@@ -5,6 +5,8 @@ import BaseInertiaMiddleware from '@adonisjs/inertia/inertia_middleware'
 import type { PageProps } from '@adonisjs/inertia/types'
 
 import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
+import { mergeUserSetting } from '#modules/settings/types/user_setting'
 
 type JsonObject = Record<string, JSONDataTypes>
 
@@ -25,7 +27,10 @@ type AuthUser = JsonObject & {
   isAdmin: boolean
   current_organization_id: string | null
   current_organization_role: string | null
+  user_setting: JsonObject
   organizations: SimpleOrganization[]
+  current_project: { id: string; name: string } | null
+  projects: { id: string; name: string }[]
 }
 
 type InterfaceContext = JsonObject & {
@@ -93,6 +98,33 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             ? membershipByOrganizationId.get(currentOrganizationId)
             : undefined
 
+          let userProjects: { id: string; name: string }[] = []
+          let currentProject: { id: string; name: string } | null = null
+
+          if (currentOrganizationId) {
+            userProjects = await projectPublicApi.listSimpleByOrganization(currentOrganizationId)
+            const currentProjectId: string | null =
+              (session?.get('current_project_id') as string | undefined) ?? null
+
+            if (currentProjectId) {
+              const matchedProj = userProjects.find((p) => p.id === currentProjectId)
+              if (matchedProj) {
+                currentProject = { id: matchedProj.id, name: matchedProj.name }
+              }
+            }
+
+            if (!currentProject && userProjects.length > 0) {
+              const firstProj = userProjects[0]
+              if (firstProj) {
+                currentProject = { id: firstProj.id, name: firstProj.name }
+                if (session) {
+                  session.put('current_project_id', firstProj.id)
+                  await session.commit()
+                }
+              }
+            }
+          }
+
           authUser = {
             id: user.id,
             email: user.email,
@@ -102,7 +134,10 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
             isAdmin,
             current_organization_id: currentOrganizationId,
             current_organization_role: currentMembership?.org_role ?? null,
+            user_setting: mergeUserSetting(user.user_setting) as unknown as JsonObject,
             organizations,
+            current_project: currentProject,
+            projects: userProjects,
           }
 
           interfaceContext = {

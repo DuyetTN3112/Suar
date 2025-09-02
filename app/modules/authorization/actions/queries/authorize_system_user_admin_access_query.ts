@@ -2,10 +2,10 @@ import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
 } from '#modules/authorization/domain/system_user_access_policy'
+import { userIdentityReader } from '#modules/authorization/infra/adapters/user_identity_reader'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
-import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 /**
  * Authorization Query: system-user administration surface.
@@ -19,7 +19,7 @@ export default class AuthorizeSystemUserAdminAccessQuery {
 
   static async evaluate(userId: string, organizationId: string): Promise<PolicyResult> {
     const [actorSystemRole, membershipContext] = await Promise.all([
-      userPublicApi.getSystemRoleName(userId),
+      userIdentityReader.getSystemRoleName(userId),
       organizationPublicApi.getMembershipContext(organizationId, userId, undefined, true),
     ])
 

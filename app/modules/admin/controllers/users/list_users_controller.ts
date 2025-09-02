@@ -1,10 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import ListUsersQuery from '#modules/admin/actions/users/queries/list_users_query'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 
-const ADMIN_USERS_PER_PAGE = 50
+const ADMIN_USERS_PER_PAGE = 20
 
 /**
  * ListUsersController
@@ -14,8 +15,8 @@ const ADMIN_USERS_PER_PAGE = 50
  * GET /admin/users
  */
 export default class ListUsersController {
-  async handle(ctx: HttpContext) {
-    const { inertia, request } = ctx
+  private buildListInput(ctx: HttpContext) {
+    const { request } = ctx
 
     const toPageNumber = (value: unknown): number => {
       if (typeof value === 'number' && Number.isFinite(value)) {
@@ -38,6 +39,11 @@ export default class ListUsersController {
     const systemRole = toOptionalString(qs.system_role)
     const status = toOptionalString(qs.status)
 
+    return { page, search, systemRole, status }
+  }
+
+  private async list(ctx: HttpContext) {
+    const { page, search, systemRole, status } = this.buildListInput(ctx)
     const execCtx = actionContextFromHttp(ctx)
     const query = new ListUsersQuery(execCtx)
 
@@ -49,14 +55,36 @@ export default class ListUsersController {
       status,
     })
 
+    return { result, filters: { search, systemRole, status } }
+  }
+
+  async handle(ctx: HttpContext) {
+    const { inertia } = ctx
+    const { result, filters } = await this.list(ctx)
+
     return inertia.render('admin/users/index', {
       users: result.data,
       meta: result.meta,
       filters: {
-        search: search ?? '',
-        systemRole: systemRole ?? null,
-        status: status ?? null,
+        search: filters.search ?? '',
+        systemRole: filters.systemRole ?? null,
+        status: filters.status ?? null,
       },
     })
+  }
+
+  async apiIndex(ctx: HttpContext) {
+    const { result, filters } = await this.list(ctx)
+
+    ctx.response.status(HttpStatus.OK).json({
+      success: true,
+      data: result.data,
+      meta: result.meta,
+      filters: {
+        search: filters.search ?? '',
+        systemRole: filters.systemRole ?? null,
+        status: filters.status ?? null,
+      },
+    });
   }
 }

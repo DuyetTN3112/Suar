@@ -1,6 +1,5 @@
-import { Exception } from '@adonisjs/core/exceptions'
-
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * BusinessLogicException
@@ -17,12 +16,12 @@ import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
  * throw BusinessLogicException.invalidState('Yêu cầu đã được xử lý')
  * ```
  */
-export default class BusinessLogicException extends Exception {
+export default class BusinessLogicException extends AppException {
   static override status = 400
   static override code = 'E_BUSINESS_LOGIC'
 
-  constructor(message: string = ErrorMessages.GENERIC_ERROR) {
-    super(message)
+  constructor(message: string = ErrorMessages.GENERIC_ERROR, details?: Record<string, unknown>) {
+    super(message, { details })
   }
 
   /**
