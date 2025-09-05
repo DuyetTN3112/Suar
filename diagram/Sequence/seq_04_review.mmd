@@ -1,4 +1,5 @@
 %% seq_04_review.mmd
+%% Updated 2026-05-18.
 %% Scope: Submit review only.
 %% Backend refs:
 %%   - GET /reviews/:id
@@ -15,6 +16,7 @@ sequenceDiagram
     participant Repo as ReviewRepository
     participant DB as PostgreSQL
     participant Listener as review_listener
+    participant Anomaly as DetectAnomalyCommand
 
     Reviewer->>B: Open review form
     B->>C: GET /reviews/:id
@@ -27,11 +29,13 @@ sequenceDiagram
     Reviewer->>B: Submit skill ratings
     B->>C: POST /reviews/:id/submit
     C->>Cmd: handle(dto)
+    Cmd->>Cmd: Validate via ReviewPolicy (pure functions)
     Cmd->>Repo: persist skill reviews
     Repo->>DB: INSERT skill_reviews
     Cmd->>Repo: update session counters/status
     Repo->>DB: UPDATE review_sessions
     Cmd-->>Listener: emit review:submitted
     Listener->>Listener: Invalidate skill/spider cache
-    Listener->>Listener: Run DetectAnomalyCommand
+    Listener->>Anomaly: Run DetectAnomalyCommand
+    Anomaly->>Anomaly: Check fraud patterns
     C-->>B: Redirect with success flash

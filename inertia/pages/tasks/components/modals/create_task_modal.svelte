@@ -1,5 +1,4 @@
 <script lang="ts">
-  /* eslint-disable prefer-const */
   import axios from 'axios'
 
   import Button from '@/components/ui/button.svelte'
@@ -13,6 +12,7 @@
   import { notificationStore } from '@/stores/notification_store.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
+  import { normalizeTaskMutationError } from '../../task_mutation_errors'
   import type { Task } from '../../types.svelte'
 
   import CreateTaskForm from './create_task_form.svelte'
@@ -33,8 +33,8 @@
     initialProjectId?: string
   }
 
-  let {
-    open = $bindable(false),
+  const {
+    open = false,
     onOpenChange,
     initialStatus = '',
     onCreated,
@@ -72,6 +72,7 @@
   })
 
   let errors = $state<Record<string, string>>({})
+  let formError = $state('')
   let submitting = $state(false)
   let wasOpen = $state(false)
 
@@ -154,10 +155,13 @@
 
     if (Object.keys(newErrors).length > 0) {
       errors = newErrors
+      formError = ''
       return
     }
 
     submitting = true
+    errors = {}
+    formError = ''
 
     try {
       const response = await axios.post<{ success: boolean; data: Task }>(FRONTEND_ROUTES.TASKS, buildPayload(), {
@@ -172,23 +176,16 @@
       onOpenChange(false)
       resetForm()
     } catch (error: unknown) {
-      const errorResponse = (error as {
-        response?: {
-          status?: number
-          data?: { errors?: Record<string, string>; message?: string }
-        }
-      }).response
-      const errorPayload = errorResponse?.data
+      const normalizedError = normalizeTaskMutationError(error)
+      errors = normalizedError.fieldErrors
+      formError = normalizedError.message
 
-      errors = errorResponse?.data?.errors ?? {}
-      if (!errorPayload?.errors) {
-        notificationStore.error(
-          errorResponse?.status === 403
-            ? 'Bạn không đủ quyền tạo nhiệm vụ'
-            : t('task.create_failed', {}, 'Không thể tạo nhiệm vụ'),
-          errorResponse?.data?.message ?? t('common.please_try_again', {}, 'Vui lòng thử lại')
-        )
-      }
+      notificationStore.error(
+        normalizedError.isPermission
+          ? 'Bạn không đủ quyền tạo nhiệm vụ'
+          : t('task.create_failed', {}, 'Không thể tạo nhiệm vụ'),
+        normalizedError.message || t('common.please_try_again', {}, 'Vui lòng thử lại')
+      )
     } finally {
       submitting = false
     }
@@ -216,6 +213,7 @@
       domain_tags_text: '',
     }
     errors = {}
+    formError = ''
   }
 
   const handleClose = () => {
@@ -226,6 +224,7 @@
   const setFormData = (updater: (prev: typeof formData) => typeof formData) => {
     formData = updater(formData)
     const nextErrors = { ...errors }
+    const previousErrorCount = Object.keys(nextErrors).length
     if (errors.required_skills && formData.required_skills.length > 0) {
       delete nextErrors.required_skills
     }
@@ -239,10 +238,13 @@
       delete nextErrors.acceptance_criteria
     }
     errors = nextErrors
+    if (formError && Object.keys(nextErrors).length < previousErrorCount) {
+      formError = ''
+    }
   }
 </script>
 
-<Dialog bind:open onOpenChange={onOpenChange}>
+<Dialog {open} onOpenChange={onOpenChange}>
   <DialogContent class="w-[96vw] sm:max-w-6xl max-h-[92vh] overflow-y-auto">
     <DialogHeader>
       <DialogTitle>{t('task.new_task', {}, 'Tạo nhiệm vụ mới')}</DialogTitle>
@@ -262,6 +264,7 @@
       {users}
       {parentTasks}
       {availableSkills}
+      {formError}
     />
 
     <DialogFooter>

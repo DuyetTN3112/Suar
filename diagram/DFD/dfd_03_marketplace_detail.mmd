@@ -1,35 +1,24 @@
 %% DFD 03 — Marketplace Detail (Level 2)
-%% Cross-referenced with actual backend code 2024
+%% Updated 2026-05-18.
 %% ❌ Removed: skill_match_percentage (no matching algorithm exists)
-%% ❌ Removed: skill matching flows (P51→D8 "Match user skills")
-%% ❌ Removed: deadline check in P53 (application_deadline NOT enforced)
+%% ❌ Removed: skill matching flows
 %% ❌ Fixed: Only task CREATOR can approve (not PM/manager)
 %% ❌ Fixed: Approve does NOT change status to in_progress
-%% ✅ Merged: P54+P55 into single P54 (ProcessApplicationCommand handles both approve+assign)
-%% ⚠️ Note: external_applications_count NOT updated on approve/reject (only on withdraw)
-%% ✅ Architecture: Clean Architecture + DDD
-%%    Sub-processes (Actions) access data stores via Repository Interfaces
-%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
+%% ✅ Merged: ProcessApplicationCommand handles both approve+assign
+%% ⚠️ Note: external_applications_count updated on apply/withdraw
+%% ✅ Architecture: Modular monolith with app/modules/tasks structure
+%%    Actions → Bootstrap → Application → Domain → Infrastructure → DB
 flowchart TD
     %% External Entities
     FL([👷 Freelancer])
     CR([👤 Task Creator])
-    P4([Process 4.0
-    Task Management])
+    P4([Process 4.0\nTask Management])
 
-    %% Sub-processes of 5.0 Job Marketplace
-    P51[["5.1
-    Browse & Search
-    Tasks"]]
-    P52[["5.2
-    View Task
-    Details"]]
-    P53[["5.3
-    Submit
-    Application"]]
-    P54[["5.4
-    Process Application
-    (approve/reject/assign)"]]
+    %% Sub-processes of 3.0 Job Marketplace
+    P51[["3.1\nBrowse &\nSearch Tasks"]]
+    P52[["3.2\nView Task\nDetails"]]
+    P53[["3.3\nSubmit\nApplication"]]
+    P54[["3.4\nProcess Application\n(approve/reject/assign)"]]
 
     %% Data Stores
     D4[(D4: tasks)]
@@ -43,10 +32,8 @@ flowchart TD
     %% ═══════════════════════════════════════════
     subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
         direction TB
-        R_TASK[["TaskRepository
-        + TaskMapper"]]
-        R_APP[["ApplicationRepository
-        + ApplicationMapper"]]
+        R_TASK[["TaskRepository\n+ TaskMapper"]]
+        R_APP[["ApplicationRepository\n+ ApplicationMapper"]]
     end
 
     %% Repository → Data Store connections (Lucid ORM)
@@ -55,62 +42,39 @@ flowchart TD
     R_APP <-->|"Lucid ORM"| D5a
     R_APP <-->|"Lucid ORM"| D5b
 
-    %% 5.1 Browse & Search Tasks (NO skill matching)
-    FL -->|"Search: skills, difficulty,
-    deadline, duration"| P51
-    P51 -->|"Task list
-    (⚠️ no skill_match_percentage)"| FL
-    P51 -->|"SELECT tasks WHERE
-    task_visibility IN
-    ('external','all')"| R_TASK
+    %% 3.1 Browse & Search Tasks (NO skill matching)
+    FL -->|"Search: skills, difficulty,\ndeadline, duration"| P51
+    P51 -->|"Task list\n(⚠️ no skill_match_percentage)"| FL
+    P51 -->|"SELECT tasks WHERE\ntask_visibility IN\n('external','all')"| R_TASK
     R_TASK -->|"Public tasks"| P51
-    P51 -->|"Required skills list
-    (display only)"| R_APP
+    P51 -->|"Required skills list\n(display only)"| R_APP
     R_APP -->|"Task required skills"| P51
 
-    %% 5.2 View Task Details
+    %% 3.2 View Task Details
     FL -->|"Click task card"| P52
-    P52 -->|"Task details:
-    org name, required skills,
-    applicant count"| FL
+    P52 -->|"Task details:\norg name, required skills,\napplicant count"| FL
     P52 -->|"Read task details"| R_TASK
     R_TASK -->|"Task record"| P52
-    P52 -->|"Count pending
-    applications"| R_APP
+    P52 -->|"Count pending\napplications"| R_APP
     R_APP -->|"Application count"| P52
     P52 -->|"Required skills list"| R_APP
 
-    %% 5.3 Submit Application (NO deadline check)
-    FL -->|"1-click apply
-    (profile auto-attached)"| P53
-    P53 -->|"Application status
-    (pending / duplicate)"| FL
-    P53 -->|"Check existing
-    application"| R_APP
-    P53 -->|"INSERT application
-    (status = pending)"| R_APP
-    P53 -->|"Increment
-    external_applications_count"| R_TASK
+    %% 3.3 Submit Application
+    FL -->|"1-click apply\n(profile auto-attached)"| P53
+    P53 -->|"Application status\n(pending / duplicate)"| FL
+    P53 -->|"Check existing\napplication"| R_APP
+    P53 -->|"INSERT application\n(status = pending)"| R_APP
+    P53 -->|"Increment\nexternal_applications_count"| R_TASK
 
-    %% 5.4 Process Application (approve/reject + auto-assign on approve)
+    %% 3.4 Process Application (approve/reject + auto-assign on approve)
     %% ONLY task creator can do this (not PM/manager)
-    CR -->|"View applicants,
-    approve / reject"| P54
-    P54 -->|"Applications list
-    + freelancer profiles"| CR
-    P54 -->|"Read applications
-    with user profiles"| R_APP
-    P54 -->|"UPDATE application_status
-    (approved / rejected)"| R_APP
-    P54 -->|"On approve:
-    INSERT task_assignment
-    + UPDATE task.assigned_to"| R_TASK
-    P54 -->|"On approve:
-    UPDATE assigned_to"| R_TASK
-    P54 -->|"⚠️ Does NOT change
-    status to in_progress"| R_TASK
-    P54 -->|"Task assigned
-    → update Kanban"| P4
+    CR -->|"View applicants,\napprove / reject"| P54
+    P54 -->|"Applications list\n+ freelancer profiles"| CR
+    P54 -->|"Read applications\nwith user profiles"| R_APP
+    P54 -->|"UPDATE application_status\n(approved / rejected)"| R_APP
+    P54 -->|"On approve:\nINSERT task_assignment\n+ UPDATE task.assigned_to"| R_TASK
+    P54 -->|"⚠️ Does NOT change\nstatus to in_progress"| R_TASK
+    P54 -->|"Task assigned\n→ update Kanban"| P4
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
@@ -123,5 +87,3 @@ flowchart TD
     class P4 extProcess
     class R_TASK,R_APP repo
     style infra fill:#FFF1F2,stroke:#FECACA,stroke-width:1.5px,color:#991B1B
-
-

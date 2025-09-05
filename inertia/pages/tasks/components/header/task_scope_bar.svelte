@@ -28,6 +28,7 @@
     projectContext?: ProjectContext | null
     projectOptions: ProjectOption[]
     createTaskPermission: CreateTaskPermission
+    isBoardMutationLocked?: boolean
     onProjectScopeChange: (projectId: string) => void
   }
 
@@ -36,19 +37,21 @@
     projectContext,
     projectOptions,
     createTaskPermission,
+    isBoardMutationLocked = false,
     onProjectScopeChange,
   }: Props = $props()
 </script>
 
 <div class="rounded-lg border bg-card p-3">
-  <div class="w-full sm:w-[320px]">
+  <div class="w-full sm:w-[320px]" aria-disabled={isBoardMutationLocked}>
     <Select
       value={(filters.project_id ?? projectContext?.selectedProject?.id) ?? '__all__'}
       onValueChange={(value: string) => {
+        if (isBoardMutationLocked) return
         onProjectScopeChange(value)
       }}
     >
-      <SelectTrigger>
+      <SelectTrigger class={isBoardMutationLocked ? 'pointer-events-none opacity-60' : ''}>
         <span>
           {projectContext?.selectedProject?.name ?? 'Tất cả project'}
         </span>
@@ -68,7 +71,12 @@
 
   {#if projectOptions.length === 0}
     <p class="mt-2 text-sm text-muted-foreground">
-      Chưa có project trong tổ chức hiện tại để hiển thị task.
+      Bạn cần tạo project trước khi tạo task.
+    </p>
+  {/if}
+  {#if isBoardMutationLocked}
+    <p class="mt-2 text-sm text-muted-foreground">
+      Board đang đồng bộ. Vui lòng đợi trước khi đổi project.
     </p>
   {/if}
 </div>

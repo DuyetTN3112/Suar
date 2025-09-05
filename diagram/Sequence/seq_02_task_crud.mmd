@@ -1,4 +1,5 @@
 %% seq_02_task_crud.mmd
+%% Updated 2026-05-18.
 %% Scope: Task interaction overview only.
 %% Detail files:
 %%   - seq_02a_task_create_update.mmd
@@ -10,6 +11,7 @@ sequenceDiagram
     actor U as User
     participant B as Browser
     participant C as Controller
+    participant Factory as Action Factory
     participant Cmd as Command
     participant Repo as Repository
     participant Evt as Event Bus
@@ -17,7 +19,8 @@ sequenceDiagram
     Note over U, Evt: CREATE OR UPDATE TASK
     U->>B: Submit task form
     B->>C: POST/PUT /tasks
-    C->>Cmd: CreateTaskCommand or UpdateTaskCommand
+    C->>Factory: makeCreateTaskCommand(externalDeps, notificationPublicApi)
+    Factory->>Cmd: CreateTaskCommand(execCtx, extDeps, notifApi, cache)
     Cmd->>Repo: Persist task aggregate
     Cmd->>Evt: Emit task:created or task:updated
     C-->>B: Redirect to task page
@@ -25,7 +28,8 @@ sequenceDiagram
     Note over U, Evt: EXECUTE TASK WORKFLOW
     U->>B: Change status or assign assignee
     B->>C: PUT /tasks/:id or /tasks/:id/status
-    C->>Cmd: UpdateTaskCommand / UpdateTaskStatusCommand
+    C->>Factory: makeUpdateTaskStatusCommand(extDeps, notificationPublicApi)
+    Factory->>Cmd: UpdateTaskStatusCommand(execCtx, extDeps, notifApi, cache)
     Cmd->>Repo: Save task state
     Cmd->>Evt: Emit task:assigned or task:status:changed
     C-->>B: Return updated task
@@ -33,7 +37,8 @@ sequenceDiagram
     Note over U, Evt: DELETE TASK
     U->>B: Delete task
     B->>C: DELETE /tasks/:id
-    C->>Cmd: DeleteTaskCommand
+    C->>Factory: makeDeleteTaskCommand(extDeps, notificationPublicApi)
+    Factory->>Cmd: DeleteTaskCommand(execCtx, extDeps, notifApi, cache)
     Cmd->>Repo: Soft delete task
     Cmd->>Evt: Emit task:deleted
     C-->>B: Redirect to list

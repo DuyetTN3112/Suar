@@ -8,26 +8,21 @@
  * khi được import — không cần gọi thêm hàm nào.
  */
 
-// Cross-cutting listeners live in app/listeners; module-owned listeners live in app/modules/<module>/actions/listeners.
-import '#listeners/lifecycle_log_listener'
+// Listener registration bootstrap only. Business listeners live with the consuming module.
+import '#modules/logger/listeners/lifecycle_log_listener'
 
-// Audit log — async, non-blocking, uses auditRepositoryProvider
-import '#listeners/audit_log_listener'
+import '#modules/audit/listeners/audit_log_listener'
+import '#modules/audit/listeners/on_user_login'
 
-// Cache invalidation — auto-invalidate khi data thay đổi + permission cache (Sprint 6)
-import '#listeners/cache_invalidation_listener'
+import '#modules/cache/listeners/cache_invalidation_listener'
 
-// Sprint 7: User activity — login/logout audit + last_login_at update
-import '#listeners/activity_listener'
+import '#modules/user_activity/listeners/on_user_login'
 
-// Sprint 7: Notifications — task application submitted/reviewed
-import '#listeners/notification_listener'
+import '#modules/notifications/listeners/notification_listener'
 
-// Sprint 7: Reviews — spider chart cache invalidation, reviewer credibility
-import '#listeners/review_listener'
+import '#modules/reviews/listeners/review_listener'
 
-// Sprint 7: Cleanup — remove user from projects/conversations when removed from org
-import '#listeners/cleanup_listener'
+import '#modules/projects/listeners/organization_member_removed_listener'
 
 // Module-owned task completion side effects
 import '#modules/tasks/actions/listeners/task_completion_listener'

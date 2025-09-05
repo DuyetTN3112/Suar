@@ -1,44 +1,45 @@
 %% pkg_03_business_rules: Business Rules Packages
-%% Updated 2026-04-29.
+%% Updated 2026-05-18.
 %% Scope: pure domain rules, formulas, and policy results.
 
 graph TD
-    subgraph policies["app/domain/policies/"]
+    subgraph policies["app/modules/authorization/"]
         POLICY_RESULT["policy_result.ts\nPolicyResult allow/deny"]
     end
 
-    subgraph authz["app/domain/authorization/"]
+    subgraph authz["app/modules/authorization/"]
         SYS_ACCESS["system_user_access_policy.ts"]
     end
 
-    subgraph tasks["app/domain/tasks/"]
-        TASK_STATE["task_state_machine.ts"]
+    subgraph tasks["app/modules/tasks/domain/"]
+        TASK_STATE["task_state_machine.ts\n@deprecated legacy transitions"]
+        TASK_STATUS_RULES["task_status_rules.ts\nDB-driven workflow validation"]
         TASK_ASSIGN["task_assignment_rules.ts"]
         TASK_PERMISSION["task_permission_policy.ts"]
-        TASK_STATUS["task_status_rules.ts"]
+        TASK_STATUS_MIRROR["task_status_mirror.ts"]
         TASK_TYPES["task_types.ts"]
     end
 
-    subgraph projects["app/domain/projects/"]
+    subgraph projects["app/modules/projects/domain/"]
         PROJECT_PERMISSION["project_permission_policy.ts"]
         PROJECT_STATE["project_state_rules.ts"]
         PROJECT_TYPES["project_types.ts"]
     end
 
-    subgraph organizations["app/domain/organizations/"]
+    subgraph organizations["app/modules/organizations/domain/"]
         ORG_PERMISSION["org_permission_policy.ts"]
         ORG_ACCESS["org_access_rules.ts"]
         ORG_RULES["organization_rules.ts"]
         ORG_TYPES["org_types.ts"]
     end
 
-    subgraph reviews["app/domain/reviews/"]
+    subgraph reviews["app/modules/reviews/domain/"]
         REVIEW_POLICY["review_policy.ts"]
         REVIEW_FORMULAS["review_formulas.ts\nincludes getLevelCodeFromPercentage"]
         REVIEW_TYPES["review_types.ts"]
     end
 
-    subgraph users["app/domain/users/"]
+    subgraph users["app/modules/users/domain/"]
         USER_MANAGEMENT["user_management_rules.ts"]
         SUBSCRIPTION["subscription_rules.ts"]
         PROFILE_METRICS["profile_metrics_rules.ts"]
@@ -47,19 +48,15 @@ graph TD
         USER_TYPES["user_types.ts"]
     end
 
-    subgraph audit["app/domain/audit/"]
-        CHANGE_FORMATTER["audit_change_formatter.ts"]
-    end
-
-    subgraph identifiers["app/domain/identifiers/"]
+    subgraph identifiers["app/modules/identifiers/"]
         ID_UTILS["id_utils.ts"]
     end
 
     SYS_ACCESS --> POLICY_RESULT
     TASK_STATE --> POLICY_RESULT
+    TASK_STATUS_RULES --> POLICY_RESULT
     TASK_ASSIGN --> POLICY_RESULT
     TASK_PERMISSION --> POLICY_RESULT
-    TASK_STATUS --> POLICY_RESULT
     PROJECT_PERMISSION --> POLICY_RESULT
     PROJECT_STATE --> POLICY_RESULT
     ORG_PERMISSION --> POLICY_RESULT
@@ -77,5 +74,5 @@ graph TD
     classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
     classDef util fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
     class POLICY_RESULT policy
-    class SYS_ACCESS,TASK_STATE,TASK_ASSIGN,TASK_PERMISSION,TASK_STATUS,TASK_TYPES,PROJECT_PERMISSION,PROJECT_STATE,PROJECT_TYPES,ORG_PERMISSION,ORG_ACCESS,ORG_RULES,ORG_TYPES,REVIEW_POLICY,REVIEW_FORMULAS,REVIEW_TYPES,USER_MANAGEMENT,SUBSCRIPTION,PROFILE_METRICS,PROFILE_AGGREGATE,PROFILE_SNAPSHOT,USER_TYPES,CHANGE_FORMATTER rule
+    class SYS_ACCESS,TASK_STATE,TASK_STATUS_RULES,TASK_ASSIGN,TASK_PERMISSION,TASK_STATUS_MIRROR,TASK_TYPES,PROJECT_PERMISSION,PROJECT_STATE,PROJECT_TYPES,ORG_PERMISSION,ORG_ACCESS,ORG_RULES,ORG_TYPES,REVIEW_POLICY,REVIEW_FORMULAS,REVIEW_TYPES,USER_MANAGEMENT,SUBSCRIPTION,PROFILE_METRICS,PROFILE_AGGREGATE,PROFILE_SNAPSHOT,USER_TYPES rule
     class ID_UTILS util

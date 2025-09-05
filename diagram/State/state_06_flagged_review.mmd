@@ -1,6 +1,7 @@
 %% state_06_flagged_review.mmd — FlaggedReview Status
+%% Updated 2026-05-18.
 %% Ref: flagged_review model (status: pending/reviewed/dismissed/confirmed)
-%% 6 flag_type patterns, 3 severity levels
+%% 6 flag_type patterns declared, only 3 implemented
 %% Auto-created by DetectAnomalyCommand
 
 stateDiagram-v2
@@ -16,15 +17,15 @@ stateDiagram-v2
     confirmed --> [*]
 
     note right of pending
-        6 flag_type patterns:
+        6 flag_type patterns declared:
         ✅ bulk_same_level — same level for many skills
         ✅ new_account_high — new account rates too high
         ✅ mutual_high — 2 users rate each other high
-        ⚠️ self_review — not implemented
-        ⚠️ timing_anomaly — not implemented
-        ⚠️ cross_org — not implemented
+        ❌ sudden_spike — not implemented
+        ❌ frequency_anomaly — not implemented
+        ❌ ip_collusion — not implemented
         ──────────────────
-        3 severity levels: low, medium, high
+        4 severity levels: low, medium, high, critical
     end note
 
     note left of confirmed

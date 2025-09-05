@@ -1,15 +1,16 @@
 %% Package Diagram: Suar Platform - Domain & Infrastructure Layers
-%% Updated 2026-05-12.
+%% Updated 2026-05-18.
 %% Domain remains framework-free; infra owns persistence access.
 
 graph TD
     subgraph app_boundary["Application Boundary"]
-        PUBLIC_API["Module public APIs\napp/actions/*/public_api.ts"]
-        ACTIONS["Commands + Queries\nexplicit cross-module imports"]
+        PUBLIC_API["Module public APIs\napp/modules/*/actions/public_api.ts"]
+        BOOTSTRAP["Bootstrap\ncomposition root + action factory\nmonolith adapters"]
+        ACTIONS["Commands + Queries\nexplicit cross-module imports via ports"]
     end
 
     subgraph domain["Domain Layer"]
-        ENTITIES["Entities + value props"]
+        ENTITIES["Entities + value props\ntask_entity, project_entity\nreview_session_entity, skill_review_entity\nuser_entity"]
         FORMULAS["Formulas\nreview_formulas.ts"]
         POLICIES["Policies + state rules\nPolicyResult pattern"]
         REPO_IFACE["Repository interfaces"]
@@ -17,9 +18,9 @@ graph TD
     end
 
     subgraph infra["Infrastructure Layer"]
-        REPO_IMPL["Repository implementations\napp/infra/*/repositories"]
+        REPO_IMPL["Repository implementations\napp/modules/*/infra/repositories"]
         INFRA_MAPPER["Infra mappers"]
-        CACHE_LOGGER["Cache + logger adapters\napp/infra/cache, app/infra/logger"]
+        CACHE_LOGGER["Cache + logger adapters\napp/modules/cache, app/modules/http"]
         REPO_PROVIDERS["Repository providers + barrels\nMongo providers, Lucid read/write repositories"]
     end
 
@@ -39,7 +40,8 @@ graph TD
         SHARED["app/actions/shared\nno active TS files"]
     end
 
-    PUBLIC_API --> ACTIONS
+    PUBLIC_API --> BOOTSTRAP
+    BOOTSTRAP --> ACTIONS
     ACTIONS --> ENTITIES
     ACTIONS --> FORMULAS
     ACTIONS --> POLICIES
@@ -60,12 +62,14 @@ graph TD
     PUBLIC_API -.-> SHARED
 
     classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
-    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#333
-    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
-    classDef modelStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
-    classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    classDef bootstrapStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#333
+    classDef domStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
+    classDef infraStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef modelStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    classDef dataStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#333
     classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#333,stroke-dasharray: 5 5
     class PUBLIC_API,ACTIONS appStyle
+    class BOOTSTRAP bootstrapStyle
     class ENTITIES,FORMULAS,POLICIES,REPO_IFACE,DOMAIN_MAPPER domStyle
     class REPO_IMPL,INFRA_MAPPER,CACHE_LOGGER,REPO_PROVIDERS infraStyle
     class LUCID_MODELS,MONGO_MODELS modelStyle

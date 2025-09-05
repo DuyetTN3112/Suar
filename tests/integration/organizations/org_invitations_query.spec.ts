@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#exceptions/forbidden_exception'
 import AuditLog from '#modules/audit/infra/models/audit_log'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
 import ListInvitationsQuery from '#modules/organizations/actions/current/invitations/queries/list_invitations_query'
 import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'

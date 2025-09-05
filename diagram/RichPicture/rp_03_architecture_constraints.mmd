@@ -1,7 +1,7 @@
 mindmap
   root((SUAR Platform
   Architecture & Constraints
-  2026-05-12))
+  2026-05-18))
 
     Product surfaces
       User workspace
@@ -15,6 +15,7 @@ mindmap
         Organizations
         Audit logs
         Flagged reviews
+        Subscriptions
       Organization Admin
         Members
         Join requests
@@ -31,6 +32,14 @@ mindmap
         CQRS commands and queries
         Module public APIs
         app/actions/shared drained
+      Bootstrap layer
+        Composition root
+        Action factory
+        Monolith cross-module adapters
+      Application layer
+        Actor contexts
+        Ports (interfaces)
+        DTOs and mappers
       Domain
         Pure formulas
         Policies
@@ -68,17 +77,25 @@ mindmap
         organizationPublicApi
         projectPublicApi
       Skills reads
-        skillPublicApi
+        skill events (no dedicated public API)
+      Cross-module pattern
+        Monolith* adapters in bootstrap layer
+        Port interfaces in application/ports
       Physical module move
-        Not performed yet
+        app/modules/* structure active
 
     Business constraints
       Task workflow
         task_status_id is canonical
-        status is legacy mirror
+        status is legacy mirror (task_status_mirror.ts)
+        DB-driven transitions via task_workflow_transitions
       Work hierarchy
         Organization to Project to Task
         Task belongs to one project
       Subscription
         User account plans
         Pro and Pro Max
+      Review flow
+        Auto-created on task completion
+        Mandatory for all tasks
+        Parallel manager + peer reviews

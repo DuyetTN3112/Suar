@@ -21,10 +21,11 @@
     onTaskClick?: (task: Task) => void
     onDropTask: (taskId: string, newStatus: string, sortOrder: number) => void
     onCreateTask?: (status: string) => void
-    onEditStatus?: (status: string, newLabel: string) => void
     onDeleteStatus?: (status: string, label: string, taskCount: number) => void
     onColumnDragStart?: (event: DragEvent, status: string) => void
     onColumnDragEnd?: () => void
+    isBoardMutationLocked?: boolean
+    isTaskMutating?: (taskId: string) => boolean
     canDelete?: boolean
     canCreateTask?: boolean
     canManageStatus?: boolean
@@ -44,24 +45,17 @@
     onTaskClick,
     onDropTask,
     onCreateTask,
-    onEditStatus,
     onDeleteStatus,
     onColumnDragStart,
     onColumnDragEnd,
+    isBoardMutationLocked = false,
+    isTaskMutating = () => false,
     canDelete = false,
     canCreateTask = false,
     canManageStatus = false,
   }: Props = $props()
 
   let isDragOver = $state(false)
-  let isEditingLabel = $state(false)
-  let editedLabel = $state('')
-
-  $effect(() => {
-    if (!isEditingLabel) {
-      editedLabel = label
-    }
-  })
 
   const statusColors: Record<string, string> = {
     todo: 'border-t-slate-400',
@@ -80,6 +74,11 @@
   }
 
   function handleDragStart(e: DragEvent, task: Task) {
+    if (isTaskMutating(task.id) || isBoardMutationLocked) {
+      e.preventDefault()
+      return
+    }
+
     if (e.dataTransfer) {
       e.dataTransfer.effectAllowed = 'move'
       e.dataTransfer.setData('application/x-kanban-task', JSON.stringify({
@@ -90,6 +89,10 @@
   }
 
   function handleDragOver(e: DragEvent) {
+    if (isBoardMutationLocked) {
+      return
+    }
+
     e.preventDefault()
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'move'
@@ -116,6 +119,9 @@
       }
 
       const { taskId, fromStatus } = data
+      if (isTaskMutating(taskId) || isBoardMutationLocked) {
+        return
+      }
 
       if (fromStatus === status) return // Same column, no status change
 
@@ -124,22 +130,6 @@
       onDropTask(taskId, status, maxSortOrder + 1000)
     } catch {
       // Ignore invalid drop data
-    }
-  }
-
-  function handleLabelEdit() {
-    if (editedLabel.trim() && editedLabel !== label) {
-      onEditStatus?.(status, editedLabel.trim())
-    }
-    isEditingLabel = false
-  }
-
-  function handleLabelKeydown(e: KeyboardEvent) {
-    if (e.key === 'Enter') {
-      handleLabelEdit()
-    } else if (e.key === 'Escape') {
-      editedLabel = label
-      isEditingLabel = false
     }
   }
 
@@ -178,26 +168,7 @@
         </button>
       {/if}
 
-      {#if isEditingLabel}
-        <input
-          type="text"
-          bind:value={editedLabel}
-          onblur={handleLabelEdit}
-          onkeydown={handleLabelKeydown}
-          class="text-sm font-semibold bg-transparent border-b border-primary focus:outline-none w-32"
-        />
-      {:else if canManageStatus}
-        <button
-          type="button"
-          class="text-sm font-semibold text-left hover:text-primary transition-colors"
-          onclick={() => { isEditingLabel = true; }}
-          title="Click để đổi tên"
-        >
-          {label}
-        </button>
-      {:else}
-        <p class="text-sm font-semibold text-left">{label}</p>
-      {/if}
+      <p class="text-sm font-semibold text-left">{label}</p>
       <Badge variant="secondary" class="h-5 min-w-[20px] px-1.5 text-[10px]">
         {tasks.length}
       </Badge>
@@ -229,6 +200,7 @@
           {displayProperties}
           {metadata}
           {onTaskClick}
+          isMutating={isTaskMutating(task.id)}
           ondragstart={(e: DragEvent) => {
             handleDragStart(e, task)
           }}

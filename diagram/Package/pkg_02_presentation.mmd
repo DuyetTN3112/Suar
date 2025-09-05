@@ -1,6 +1,7 @@
 %% Package Diagram: Suar Platform — Presentation Layer (Detail)
+%% Updated 2026-05-18.
 %% Shows routes, controllers, middleware, and frontend components.
-%% Dependencies: calls Application Layer (pkg_03) via DTOs.
+%% Dependencies: calls Application Layer via action public APIs.
 
 graph TD
     subgraph external["📦 External Dependencies"]
@@ -13,12 +14,12 @@ graph TD
     subgraph presentation["📦 Presentation Layer"]
         direction TB
         subgraph routes_pkg["start/routes/"]
-            ROUTES["Routes\n(12 route files)"]
+            ROUTES["Routes\n(route files)"]
         end
-        subgraph controllers_pkg["app/controllers/"]
-            CONTROLLERS["116 Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
+        subgraph controllers_pkg["app/modules/*/controllers/"]
+            CONTROLLERS["Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
         end
-        subgraph middleware_pkg["app/middleware/"]
+        subgraph middleware_pkg["app/modules/*/middleware/\n+ app/middleware/"]
             MIDDLEWARE["Auth · Guest\nAuthorizeRole ·\nRequireOrganization ·\nThrottle · AuditLog"]
         end
         subgraph frontend_pkg["inertia/"]

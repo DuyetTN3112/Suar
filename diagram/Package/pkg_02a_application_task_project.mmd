@@ -1,9 +1,11 @@
 %% pkg_02a_application_task_project: Tasks & Projects Action Packages
-%% Updated 2026-04-29.
+%% Updated 2026-05-18.
 
 graph TD
     subgraph tasks["tasks/"]
         T_API["tasks/public_api.ts"]
+        T_BOOTSTRAP["bootstrap/\ncomposition root\naction factory\nmonolith adapters"]
+        T_APP["application/\nactor context\nports (interfaces)\nDTOs"]
         T_CMD["Commands"]
         T_QRY["Queries"]
         T_SUPPORT["support/"]
@@ -11,6 +13,8 @@ graph TD
 
     subgraph projects["projects/"]
         P_API["projects/public_api.ts"]
+        P_BOOTSTRAP["bootstrap/\npublic API factory"]
+        P_APP["application/\nactor context\nports (interfaces)\nDTOs"]
         P_CMD["Commands"]
         P_QRY["Queries"]
         P_SERVICE["services/project_public_api.ts"]
@@ -19,12 +23,15 @@ graph TD
     ORG_API["organizations/public_api.ts"]
     SKILL_API["skills/public_api.ts"]
     AUDIT_API["audit/public_api.ts"]
-    INFRA["app/infra/tasks + app/infra/projects"]
-    DOMAIN["task/project domain rules"]
+    NOTIF_API["notifications/public_api.ts"]
+    INFRA["app/modules/tasks/infra\n+ app/modules/projects/infra"]
+    DOMAIN["task/project domain rules\n+ entities + mappers"]
     DTOS["request + response DTOs"]
 
-    T_API --> T_CMD
-    T_API --> T_QRY
+    T_API --> T_BOOTSTRAP
+    T_BOOTSTRAP --> T_APP
+    T_APP --> T_CMD
+    T_APP --> T_QRY
     T_CMD --> T_SUPPORT
     T_CMD --> DOMAIN
     T_CMD --> INFRA
@@ -33,8 +40,11 @@ graph TD
     T_CMD --> P_API
     T_CMD --> SKILL_API
     T_CMD --> AUDIT_API
+    T_CMD --> NOTIF_API
 
-    P_API --> P_SERVICE
+    P_API --> P_BOOTSTRAP
+    P_BOOTSTRAP --> P_APP
+    P_APP --> P_SERVICE
     P_SERVICE --> P_CMD
     P_SERVICE --> P_QRY
     P_CMD --> DOMAIN
@@ -48,7 +58,9 @@ graph TD
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
     class T_CMD,T_QRY,T_SUPPORT,P_CMD,P_QRY,P_SERVICE pkg
-    class T_API,P_API,ORG_API,SKILL_API,AUDIT_API api
+    class T_BOOTSTRAP,P_BOOTSTRAP,T_APP,P_APP bootstrap
+    class T_API,P_API,ORG_API,SKILL_API,AUDIT_API,NOTIF_API api
     class INFRA,DOMAIN,DTOS aux

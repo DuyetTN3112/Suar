@@ -1,4 +1,5 @@
 %% state_02_review_session.mmd — ReviewSession Status
+%% Updated 2026-05-18.
 %% Ref: review_session model (status: pending/in_progress/completed/disputed)
 %% Reviews are PARALLEL (manager + peers independently)
 %% Timeout: deadline column, force-close overdue sessions
@@ -39,4 +40,5 @@ stateDiagram-v2
         • Score calculation triggered (manual)
         • Spider chart + Trust score updated
         • Anomaly detection (DetectAnomalyCommand)
+        • Credibility scores recalculated
     end note

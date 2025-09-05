@@ -1,8 +1,9 @@
 %% pkg_02d_application_platform_support: Platform Support Action Packages
-%% Updated 2026-05-12.
+%% Updated 2026-05-18.
 
 graph TD
     subgraph admin["admin/"]
+        AD_APP["application/\nDTOs"]
         AD_CMD["Commands"]
         AD_QRY["Queries"]
         AD_SUB["users / organizations / reviews / packages"]
@@ -48,13 +49,17 @@ graph TD
     AUDIT_API --> REPO_PROVIDERS
     ACTIVITY_API --> REPO_PROVIDERS
 
+    AD_APP --> AD_CMD
+    AD_APP --> AD_QRY
     AD_CMD --> USER_API
     AD_QRY --> AUDIT_API
     S_CMD --> USER_API
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
     classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#333
     class AD_CMD,AD_QRY,AD_SUB,AUTHZ_QRY,NOTIF_CREATE,S_CMD,S_QRY,CACHE_ACTIONS pkg
+    class AD_APP bootstrap
     class AUTHZ_API,NOTIF_API,AUDIT_API,ACTIVITY_API,USER_API,ORG_API api
     class REPO_PROVIDERS infra

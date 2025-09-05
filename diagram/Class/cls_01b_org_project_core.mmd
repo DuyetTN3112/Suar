@@ -1,4 +1,5 @@
 %% Class Diagram: Organization & Project Core
+%% Updated 2026-05-18.
 %% Scope: Organization membership, project ownership, and core repositories.
 
 classDiagram
@@ -11,6 +12,8 @@ classDiagram
         +website
         +owner_id
         +custom_roles
+        +partner_type
+        +partner_is_active
         +deleted_at
     }
 
@@ -33,6 +36,11 @@ classDiagram
         +visibility
         +allow_freelancer
         +approval_required_for_members
+        +budget
+        +start_date
+        +end_date
+        +tags
+        +custom_roles
     }
 
     class ProjectMember {
@@ -61,8 +69,16 @@ classDiagram
         +status
         +ownerId
         +managerId
+        +visibility
+        +allowFreelancer
+        +budget
+        +startDate
+        +endDate
         +isPublic()
         +allowsFreelancers()
+        +isActive
+        +isCompleted
+        +isDeleted
     }
 
     class OrganizationRepository {

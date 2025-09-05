@@ -49,6 +49,7 @@
         size="sm"
         variant={showFilters ? 'secondary' : 'outline'}
         onclick={() => { showFilters = !showFilters }}
+        aria-label="Mo bo loc task"
       >
         <SlidersHorizontal class="h-4 w-4 mr-1" />
         {t('common.filter', {}, 'Lọc')}
@@ -64,6 +65,7 @@
         size="sm"
         variant={showDisplayProperties ? 'secondary' : 'outline'}
         onclick={() => { showDisplayProperties = !showDisplayProperties }}
+        aria-label="Tuy chinh hien thi task"
       >
         <SlidersHorizontal class="h-4 w-4" />
       </Button>
@@ -78,7 +80,9 @@
         <Badge variant="outline" class="gap-1">
           {status}
           <button
+            type="button"
             class="ml-1 hover:text-destructive"
+            aria-label="Xoa bo loc trang thai"
             onclick={() => { store.setFilters({ statuses: store.filters.statuses.filter(s => s !== status) }); }}
           >
             <X class="h-3 w-3" />
@@ -89,7 +93,9 @@
         <Badge variant="outline" class="gap-1">
           {priority}
           <button
+            type="button"
             class="ml-1 hover:text-destructive"
+            aria-label="Xoa bo loc uu tien"
             onclick={() => { store.setFilters({ priorities: store.filters.priorities.filter(p => p !== priority) }); }}
           >
             <X class="h-3 w-3" />
@@ -100,14 +106,20 @@
         <Badge variant="outline" class="gap-1">
           {label}
           <button
+            type="button"
             class="ml-1 hover:text-destructive"
+            aria-label="Xoa bo loc nhan"
             onclick={() => { store.setFilters({ labels: store.filters.labels.filter(l => l !== label) }); }}
           >
             <X class="h-3 w-3" />
           </button>
         </Badge>
       {/each}
-      <button class="text-xs text-muted-foreground hover:text-foreground" onclick={() => { store.clearFilters(); }}>
+      <button
+        type="button"
+        class="text-xs text-muted-foreground hover:text-foreground"
+        onclick={() => { store.clearFilters(); }}
+      >
         {t('common.clear_all', {}, 'Xóa tất cả')}
       </button>
     </div>

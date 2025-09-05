@@ -1,19 +1,21 @@
 %% Package Diagram: Suar Platform - High-Level Layer Overview
-%% Updated 2026-05-12.
+%% Updated 2026-05-18.
 
 graph TD
     external["External Dependencies\nAdonisJS, Lucid, VineJS, Svelte, Inertia, Mongoose, Ally"]
     presentation["Presentation Layer\nroutes, controllers, middleware\nSvelte pages, stores, components"]
     application["Application Layer\nCQRS commands/queries\nmodule public APIs\nDTOs, mappers, module services"]
+    bootstrap["Bootstrap Layer\ncomposition root + action factory\nmonolith cross-module adapters"]
     domain["Domain Layer\nentities, formulas, policies\nstate rules, repository interfaces"]
-    infra["Infrastructure Layer\napp/infra repositories\nLucid/Mongo/cache/logger adapters\nrepository providers + barrels"]
+    infra["Infrastructure Layer\napp/modules/*/infra repositories\nLucid/Mongo/cache/logger adapters\nrepository providers + barrels"]
     data["Data Layer\nPostgreSQL, MongoDB, Redis"]
     crosscutting["Cross-Cutting Runtime\nevents, listeners, cache invalidation\nrealtime configured but inactive"]
     drained["Drained legacy boundaries\napp/actions/shared + app/services\nno active TS files"]
 
     presentation --> application
-    application --> domain
-    application --> infra
+    application --> bootstrap
+    bootstrap --> domain
+    bootstrap --> infra
     infra --> data
     application --> crosscutting
     crosscutting --> application
@@ -23,6 +25,8 @@ graph TD
     application -.-> drained
 
     classDef layerStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef bootstrapStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#B71C1C
     classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238,stroke-dasharray: 5 5
     class external,presentation,application,domain,infra,data,crosscutting layerStyle
+    class bootstrap bootstrapStyle
     class drained drainedStyle

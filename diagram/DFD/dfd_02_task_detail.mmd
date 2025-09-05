@@ -1,4 +1,5 @@
 %% DFD 02 — Task Management Overview
+%% Updated 2026-05-18.
 %% Detail files:
 %%   - dfd_02a_task_authoring.mmd
 %%   - dfd_02b_task_execution.mmd
@@ -17,6 +18,8 @@ flowchart TD
     D2[(task_versions)]
     D3[(task_assignments)]
     D4[(task_required_skills)]
+    D5[(task_statuses)]
+    D6[(task_workflow_transitions)]
 
     PM --> P1
     PM --> P2
@@ -27,8 +30,10 @@ flowchart TD
     P1 --> D1
     P1 --> D2
     P1 --> D4
+    P1 --> D5
     P2 --> D1
     P2 --> D3
+    P2 --> D6
     P2 --> REV
     P2 --> MKT
     P3 --> D1
@@ -41,5 +46,5 @@ flowchart TD
     classDef external fill:#F3E5F5,stroke:#7B1FA2,color:#333
     class PM,MEM entity
     class P1,P2,P3 process
-    class D1,D2,D3,D4 datastore
+    class D1,D2,D3,D4,D5,D6 datastore
     class MKT,REV external

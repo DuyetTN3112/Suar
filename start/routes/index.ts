@@ -31,7 +31,7 @@ router.get('/.well-known/appspecific/com.chrome.devtools.json', ({ response }) =
 // Health check route
 // FIX BẢO MẬT: Dùng ApiKeyMiddleware (timing-safe comparison, validate env)
 // thay vì inline check dùng process.env (không validate, không timing-safe)
-const ApiKeyMiddleware = () => import('#middleware/api_key_middleware')
+const ApiKeyMiddleware = () => import('#modules/http/middleware/api_key_middleware')
 router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
   const { default: Middleware } = await ApiKeyMiddleware()
   const instance = new Middleware()

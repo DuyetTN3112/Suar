@@ -1,4 +1,5 @@
 %% Architecture Diagram: Request-to-Persistence Flow
+%% Updated 2026-05-18.
 %% Scope: Synchronous request path through the layered architecture.
 
 flowchart LR
@@ -8,7 +9,9 @@ flowchart LR
     Controller["Thin Controller"]
     Validator["Validator"]
     Action["Command / Query"]
+    Bootstrap["Action Factory\n+ Composition Root"]
     AppMapper["Application Mapper"]
+    ActorCtx["Actor Context\nmodule-specific exec context"]
     Rules["Policy + Rule Functions"]
     Entity["Domain Entity"]
     Contract["Repository Interface"]
@@ -20,7 +23,9 @@ flowchart LR
     Request --> Routes --> Middleware --> Controller
     Controller --> Validator
     Controller --> Action
-    Action --> AppMapper
+    Action --> Bootstrap
+    Bootstrap --> AppMapper
+    Bootstrap --> ActorCtx
     Action --> Rules
     Action --> Entity
     Action --> Contract
@@ -29,10 +34,12 @@ flowchart LR
     Repo --> Orm --> Pg
 
     classDef step fill:#E3F2FD,stroke:#1565C0,color:#333
-    classDef domain fill:#FCE4EC,stroke:#C62828,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#333
     classDef data fill:#F3E5F5,stroke:#7B1FA2,color:#333
     class Request,Routes,Middleware,Controller,Validator,Action,AppMapper step
+    class Bootstrap,ActorCtx bootstrap
     class Rules,Entity,Contract domain
     class Repo,InfraMapper,Orm infra
     class Pg data
