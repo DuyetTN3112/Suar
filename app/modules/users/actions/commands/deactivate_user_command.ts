@@ -3,28 +3,27 @@ import db from '@adonisjs/lucid/services/db'
 
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import loggerService from '#modules/logger/infra/logger_service'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/constants/notification_constants'
-import { UserStatusName } from '#modules/users/constants/user_constants'
-import { canDeactivateUser } from '#modules/users/domain/user_management_rules'
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
-import type { UserRecord } from '#types/user_records'
+import { UserStatusName } from '#modules/users/public_contracts/user_constants'
+import { canDeactivateUser } from '#modules/users/public_contracts/user_management_rules'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
  * DTO for deactivating a user
  */
 export interface DeactivateUserDTO {
-  user_id: DatabaseId
+  user_id: string
   reason?: string
 }
 
@@ -41,7 +40,7 @@ export interface DeactivateUserDTO {
  */
 export default class DeactivateUserCommand {
   constructor(
-    protected execCtx: ExecutionContext,
+    protected execCtx: UserActionContext,
     private createNotification: NotificationCreator
   ) {}
 
@@ -110,7 +109,7 @@ export default class DeactivateUserCommand {
     }
   }
 
-  private async sendNotification(userId: DatabaseId, reason?: string): Promise<void> {
+  private async sendNotification(userId: string, reason?: string): Promise<void> {
     try {
       await this.createNotification.handle({
         user_id: userId,

@@ -1,7 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   buildKnowledgeArtifacts,
@@ -11,15 +11,14 @@ import {
 import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
 import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
 import * as workHistoryMutations from '#modules/users/infra/repositories/write/user_work_history_mutations'
-import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {
-  userId: DatabaseId
+  userId: string
   fullRebuild?: boolean
 }
 
 export interface BuildUserWorkHistoryResult {
-  userId: DatabaseId
+  userId: string
   totalCompletedAssignments: number
   inserted: number
   updated: number
@@ -209,7 +208,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
   }
 
   private async loadAssignmentSnapshots(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<AssignmentSnapshotRow[]> {
     return (await UserAnalyticsRepository.listCompletedAssignmentSnapshots(
@@ -219,14 +218,14 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
   }
 
   private async deleteExistingWorkHistory(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     await workHistoryMutations.deleteByUser(userId, trx)
   }
 
   private async loadAssignmentAnalytics(
-    userId: DatabaseId,
+    userId: string,
     assignment: AssignmentSnapshotRow,
     trx: TransactionClientContract
   ): Promise<AssignmentAnalytics> {
@@ -338,7 +337,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
   }
 
   private async upsertWorkHistoryRow(
-    userId: DatabaseId,
+    userId: string,
     payload: WorkHistoryPayload,
     trx: TransactionClientContract
   ): Promise<'inserted' | 'updated'> {
@@ -365,7 +364,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
   }
 
   private async materializeWorkHistory(
-    userId: DatabaseId,
+    userId: string,
     assignmentRows: AssignmentSnapshotRow[],
     trx: TransactionClientContract
   ): Promise<MaterializedWorkHistoryBatch> {
@@ -388,7 +387,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
   }
 
   private async auditBuildSummary(
-    userId: DatabaseId,
+    userId: string,
     fullRebuild: boolean,
     totalCompletedAssignments: number,
     inserted: number,

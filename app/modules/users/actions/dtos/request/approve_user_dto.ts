@@ -1,7 +1,6 @@
 import type { Command } from '../../interfaces.js'
 
-import ValidationException from '#exceptions/validation_exception'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
 
 /**
  * ApproveUserDTO
@@ -11,9 +10,9 @@ import type { DatabaseId } from '#types/database'
  */
 export class ApproveUserDTO implements Command {
   constructor(
-    public readonly userId: DatabaseId,
-    public readonly organizationId: DatabaseId,
-    public readonly approverId: DatabaseId
+    public readonly userId: string,
+    public readonly organizationId: string,
+    public readonly approverId: string
   ) {
     this.validate()
   }

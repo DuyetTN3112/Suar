@@ -2,9 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapProfileShowPageProps } from './mappers/response/user_response_mapper.js'
 
-import UnauthorizedException from '#exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
-import { ExecutionContext } from '#types/execution_context'
 
 /**
  * GET /profile → Display user's own profile
@@ -15,7 +15,7 @@ export default class ShowProfileController {
     if (!currentUser) {
       throw new UnauthorizedException()
     }
-    const page = await new GetProfileShowPageQuery(ExecutionContext.fromHttp(ctx)).execute({
+    const page = await new GetProfileShowPageQuery(actionContextFromHttp(ctx)).execute({
       userId: currentUser.id,
     })
 

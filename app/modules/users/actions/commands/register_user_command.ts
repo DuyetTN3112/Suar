@@ -5,10 +5,10 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '../base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
-import type { UserRecord } from '#types/user_records'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
  * RegisterUserCommand

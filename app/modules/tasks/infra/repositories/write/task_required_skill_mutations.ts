@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskRequiredSkill from '#modules/tasks/infra/models/task_required_skill'
-import type { DatabaseId } from '#types/database'
 
 export async function createMany(
   data: Partial<TaskRequiredSkill>[],
@@ -18,7 +17,7 @@ export async function createMany(
 }
 
 export async function deleteByTask(
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<void> {
   const query = trx ? TaskRequiredSkill.query({ client: trx }) : TaskRequiredSkill.query()

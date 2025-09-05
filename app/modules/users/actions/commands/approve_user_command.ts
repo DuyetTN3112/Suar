@@ -4,9 +4,9 @@ import { BaseCommand } from '../base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { canApproveUser } from '#modules/users/domain/user_management_rules'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { canApproveUser } from '#modules/users/public_contracts/user_management_rules'
 
 /**
  * ApproveUserCommand

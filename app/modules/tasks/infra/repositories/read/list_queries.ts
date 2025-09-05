@@ -86,6 +86,12 @@ export const findTasksForTimelineAsRecords = async (
 export const paginateByOrganization = async (
   organizationId: string,
   filters: {
+    status?: string
+    priority?: string
+    label?: string
+    assigned_to?: string
+    parent_task_id?: string | null
+    project_id?: string
     search?: string
     sort_by: string
     sort_order: 'asc' | 'desc'
@@ -158,7 +164,7 @@ export const paginateByOrganization = async (
 }
 
 export const getListStatsByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<{ total: number; by_status: Record<string, number> }> => {
@@ -191,11 +197,11 @@ export const getListStatsByOrganization = async (
 
 export const paginateByUser = async (
   options: {
-    userId: DatabaseId
-    organizationId: DatabaseId
+    userId: string
+    organizationId: string
     filterType: 'assigned' | 'created' | 'both'
-    status?: DatabaseId
-    priority?: DatabaseId
+    status?: string
+    priority?: string
     page: number
     limit: number
   },
@@ -248,7 +254,7 @@ export const paginateByUserAsRecords = async (
 }
 
 export const findRootTasksByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   limit = 100,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
@@ -262,12 +268,12 @@ export const findRootTasksByOrganization = async (
 }
 
 export const paginateOrganizationTasks = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   filters: {
-    statusId?: DatabaseId
-    priorityId?: DatabaseId
-    projectId?: DatabaseId
-    assignedTo?: DatabaseId
+    statusId?: string
+    priorityId?: string
+    projectId?: string
+    assignedTo?: string
     search?: string
     sortField: string
     sortOrder: 'asc' | 'desc'

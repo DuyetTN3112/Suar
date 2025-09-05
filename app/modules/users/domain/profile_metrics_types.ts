@@ -7,15 +7,14 @@
  * @module ProfileMetricsTypes
  */
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Raw task assignment data for metrics calculation
  */
 export interface TaskAssignmentData {
-  id: DatabaseId
-  task_id: DatabaseId
-  assignee_id: DatabaseId
+  id: string
+  task_id: string
+  assignee_id: string
   assignment_status: 'active' | 'completed' | 'cancelled'
   estimated_hours: number | null
   actual_hours: number | null
@@ -28,7 +27,7 @@ export interface TaskAssignmentData {
  * User skill data for metrics calculation
  */
 export interface UserSkillData {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   level_code: string
   avg_percentage: number | null

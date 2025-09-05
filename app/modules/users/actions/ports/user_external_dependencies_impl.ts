@@ -11,15 +11,14 @@ import type {
   UserSkillReader,
 } from './user_external_dependencies.js'
 
-import { organizationPublicApi } from '#modules/organizations/actions/public_api'
-import { skillPublicApi } from '#modules/skills/actions/public_api'
-import { userPublicApi } from '#modules/users/actions/public_api'
-import type { DatabaseId } from '#types/database'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export class InfraUserOrganizationMembershipReaderWriter implements UserOrganizationMembershipReaderWriter {
   async findMembershipStatus(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<UserOrganizationMembershipInfo | null> {
     const membership = await organizationPublicApi.findMembership(organizationId, userId, trx)
@@ -33,15 +32,15 @@ export class InfraUserOrganizationMembershipReaderWriter implements UserOrganiza
   }
 
   async approveMembership(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await organizationPublicApi.approveMembership(organizationId, userId, trx)
   }
 
   async listPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<PendingApprovalUser[]> {
     const pendingMemberships = await organizationPublicApi.listPendingMembershipsWithUserInfo(
@@ -61,7 +60,7 @@ export class InfraUserOrganizationMembershipReaderWriter implements UserOrganiza
   }
 
   async countPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number> {
     return organizationPublicApi.countPendingMembers(organizationId, trx)
@@ -70,7 +69,7 @@ export class InfraUserOrganizationMembershipReaderWriter implements UserOrganiza
 
 export class InfraUserSkillReader implements UserSkillReader {
   async findActiveSkillById(
-    skillId: DatabaseId,
+    skillId: string,
     _trx?: TransactionClientContract
   ): Promise<UserActiveSkillInfo | null> {
     const [skill] = await skillPublicApi.findActiveByIds([skillId])
@@ -87,7 +86,7 @@ export class InfraUserSkillReader implements UserSkillReader {
   }
 
   async listUserSkillDetails(
-    userId: DatabaseId,
+    userId: string,
     _trx?: TransactionClientContract
   ): Promise<UserSkillDetail[]> {
     const userSkills = await skillPublicApi.findUserSkillsWithSkill(userId)
@@ -112,8 +111,8 @@ export class InfraUserSkillReader implements UserSkillReader {
 
 export class InfraUserPermissionReader implements UserPermissionReader {
   async checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
@@ -122,7 +121,7 @@ export class InfraUserPermissionReader implements UserPermissionReader {
     return organizationPublicApi.checkOrgPermission(userId, organizationId, permission, trx)
   }
 
-  async isSystemSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+  async isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean> {
     return userPublicApi.isSystemSuperadmin(userId, trx)
   }
 }

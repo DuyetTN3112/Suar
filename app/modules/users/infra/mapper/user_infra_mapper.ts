@@ -12,7 +12,7 @@ import { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserEntityProps } from '#modules/users/domain/entities/user_entity'
 import type User from '#modules/users/infra/models/user'
 import type UserSkill from '#modules/users/infra/models/user_skill'
-import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#types/user_records'
+import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#modules/users/types/user_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
@@ -47,6 +47,7 @@ export class UserInfraMapper {
       freelancerRating: model.freelancer_rating,
       freelancerCompletedTasksCount: model.freelancer_completed_tasks_count,
       profileSettings: model.profile_settings,
+      userSetting: model.user_setting,
       trustData: model.trust_data,
       credibilityData: model.credibility_data,
       deletedAt: model.deleted_at?.toJSDate() ?? null,
@@ -75,6 +76,7 @@ export class UserInfraMapper {
       freelancer_rating: model.freelancer_rating,
       freelancer_completed_tasks_count: model.freelancer_completed_tasks_count,
       profile_settings: model.profile_settings,
+      user_setting: model.user_setting,
       trust_data: model.trust_data,
       credibility_data: model.credibility_data,
       deleted_at: serializeDateTime(model.deleted_at),
@@ -148,6 +150,7 @@ export class UserInfraMapper {
     if (entity.freelancerCompletedTasksCount !== undefined)
       result.freelancer_completed_tasks_count = entity.freelancerCompletedTasksCount
     if (entity.profileSettings !== undefined) result.profile_settings = entity.profileSettings
+    if ('userSetting' in entity && entity.userSetting !== undefined) result.user_setting = entity.userSetting
     if (entity.trustData !== undefined) result.trust_data = entity.trustData
     if (entity.credibilityData !== undefined) result.credibility_data = entity.credibilityData
 

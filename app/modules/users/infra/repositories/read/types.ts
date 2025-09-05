@@ -1,9 +1,8 @@
-import type { DatabaseId } from '#types/database'
 
 export interface TaskAssignmentMetricsRow {
-  id: DatabaseId
-  task_id: DatabaseId
-  assignee_id: DatabaseId
+  id: string
+  task_id: string
+  assignee_id: string
   assignment_status: 'active' | 'completed' | 'cancelled'
   estimated_hours: number | string | null
   actual_hours: number | string | null
@@ -13,7 +12,7 @@ export interface TaskAssignmentMetricsRow {
 }
 
 export interface UserSkillAggregationRow {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   level_code: string
   avg_percentage: number | string | null
@@ -22,7 +21,7 @@ export interface UserSkillAggregationRow {
 }
 
 export interface TopReviewedSkillRow {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   level_code: string
   avg_percentage: number | string | null
@@ -34,7 +33,7 @@ export interface FeaturedSkillReviewRow {
   reviewer_role: string | null
   rating: number | null
   comment: string | null
-  task_id: DatabaseId | null
+  task_id: string | null
 }
 
 export interface UserCreatedAtRow {

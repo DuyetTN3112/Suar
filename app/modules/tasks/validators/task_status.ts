@@ -1,6 +1,6 @@
 import vine from '@vinejs/vine'
 
-import { TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 
 const TASK_STATUS_CATEGORIES = Object.values(TaskStatusCategory) as string[]
 

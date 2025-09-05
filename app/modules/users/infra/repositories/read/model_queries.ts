@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
 import User from '#modules/users/infra/models/user'
-import type { DatabaseId } from '#types/database'
-import type { UserProfileRecord, UserRecord } from '#types/user_records'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import type { UserProfileRecord, UserRecord } from '#modules/users/types/user_records'
 
-export const findActiveOrFail = async (userId: DatabaseId, trx?: TransactionClientContract) => {
+export const findActiveOrFail = async (userId: string, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()
   const user = await query
     .where('id', userId)
@@ -23,7 +22,7 @@ export const findActiveOrFail = async (userId: DatabaseId, trx?: TransactionClie
 }
 
 export const isActive = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   try {
@@ -35,7 +34,7 @@ export const isActive = async (
 }
 
 export const isFreelancer = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -44,7 +43,7 @@ export const isFreelancer = async (
 }
 
 export const isSuperadmin = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -52,13 +51,13 @@ export const isSuperadmin = async (
   return user?.system_role === SystemRoleName.SUPERADMIN
 }
 
-export const findNotDeletedOrFail = async (userId: DatabaseId, trx?: TransactionClientContract) => {
+export const findNotDeletedOrFail = async (userId: string, trx?: TransactionClientContract) => {
   const query = trx ? User.query({ client: trx }) : User.query()
   return query.where('id', userId).whereNull('deleted_at').firstOrFail()
 }
 
 export const findNotDeletedOrFailRecord = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserRecord> => {
   const user = await findNotDeletedOrFail(userId, trx)
@@ -66,7 +65,7 @@ export const findNotDeletedOrFailRecord = async (
 }
 
 export const getSystemRoleName = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<string | null> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -75,7 +74,7 @@ export const getSystemRoleName = async (
 }
 
 export const isSystemAdmin = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const roleName = await getSystemRoleName(userId, trx)
@@ -85,7 +84,7 @@ export const isSystemAdmin = async (
 }
 
 export const findByIds = async (
-  userIds: DatabaseId[],
+  userIds: string[],
   selectColumns: string[] = ['id', 'username', 'email'],
   trx?: TransactionClientContract
 ): Promise<User[]> => {
@@ -95,7 +94,7 @@ export const findByIds = async (
 }
 
 export const findByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   trx?: TransactionClientContract
 ): Promise<User[]> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -108,7 +107,7 @@ export const findByOrganization = async (
 }
 
 export const findById = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<User | null> => {
   if (trx) {
@@ -126,7 +125,7 @@ export const findByEmail = async (
 }
 
 export const findWithOrganizations = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<User> => {
   const query = trx ? User.query({ client: trx }) : User.query()
@@ -141,7 +140,7 @@ export const queryNotDeleted = (
 }
 
 export const findProfileWithRelations = async (
-  userId: DatabaseId,
+  userId: string,
   options: { includeSkills?: boolean },
   trx?: TransactionClientContract
 ): Promise<User> => {
@@ -158,7 +157,7 @@ export const findProfileWithRelations = async (
 }
 
 export const findProfileWithRelationsRecord = async (
-  userId: DatabaseId,
+  userId: string,
   options: { includeSkills?: boolean },
   trx?: TransactionClientContract
 ): Promise<UserProfileRecord> => {
@@ -170,7 +169,7 @@ export const paginateUsersList = async (
   options: {
     page: number
     limit: number
-    organizationId?: DatabaseId
+    organizationId?: string
     search?: string
     roleId?: string | number | null
     statusId?: string | number | null

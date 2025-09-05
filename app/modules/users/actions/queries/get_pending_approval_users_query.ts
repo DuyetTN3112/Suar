@@ -1,10 +1,9 @@
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
-import type { DatabaseId } from '#types/database'
 
 
 interface PendingUser {
-  id: DatabaseId
+  id: string
   email: string
   username: string
   system_role: string
@@ -23,14 +22,14 @@ export default class GetPendingApprovalUsersQuery {
   /**
    * Get list of pending approval users in the organization.
    */
-  async getList(organizationId: DatabaseId): Promise<PendingUser[]> {
+  async getList(organizationId: string): Promise<PendingUser[]> {
     return DefaultUserDependencies.organizationMembership.listPendingApprovalUsers(organizationId)
   }
 
   /**
    * Get count of pending approval users in the organization.
    */
-  async getCount(organizationId: DatabaseId): Promise<number> {
+  async getCount(organizationId: string): Promise<number> {
     return DefaultUserDependencies.organizationMembership.countPendingApprovalUsers(organizationId)
   }
 }

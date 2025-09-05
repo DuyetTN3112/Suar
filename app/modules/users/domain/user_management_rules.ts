@@ -13,11 +13,12 @@ import type {
   UserDeactivationContext,
 } from './user_types.js'
 
-import { isSameId } from '#modules/identifiers/domain/id_utils'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import type { PolicyResult } from '#modules/policies/domain/policy_result'
-import { PolicyResult as PR } from '#modules/policies/domain/policy_result'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+
+const isSameId = (a: string, b: string): boolean => a === b
 
 const SYSTEM_ADMIN_ROLES = new Set<string>([SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN])
 

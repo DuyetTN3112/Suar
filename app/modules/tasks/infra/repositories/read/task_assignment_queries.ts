@@ -1,11 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { AssignmentStatus } from '#modules/tasks/constants/task_constants'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import type { DatabaseId } from '#types/database'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export async function findActiveWithDetails(
-  assignmentId: DatabaseId,
+  assignmentId: string,
   trx?: TransactionClientContract
 ) {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
@@ -13,7 +12,7 @@ export async function findActiveWithDetails(
 }
 
 export async function findCompletedById(
-  assignmentId: DatabaseId,
+  assignmentId: string,
   trx?: TransactionClientContract
 ): Promise<TaskAssignment | null> {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
@@ -24,7 +23,7 @@ export async function findCompletedById(
 }
 
 export async function findActiveByTask(
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<TaskAssignment | null> {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
@@ -35,7 +34,7 @@ export async function findActiveByTask(
 }
 
 export async function findActiveAssignmentsByTask(
-  taskId: DatabaseId,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<TaskAssignment[]> {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()
@@ -46,8 +45,8 @@ export async function findActiveAssignmentsByTask(
 }
 
 export async function findActiveByUserAndTask(
-  userId: DatabaseId,
-  taskId: DatabaseId,
+  userId: string,
+  taskId: string,
   trx?: TransactionClientContract
 ): Promise<TaskAssignment | null> {
   const query = trx ? TaskAssignment.query({ client: trx }) : TaskAssignment.query()

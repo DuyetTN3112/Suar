@@ -5,8 +5,9 @@ import { DateTime } from 'luxon'
 
 import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import CacheService from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import {
   buildProfileSnapshotSlug,
@@ -19,7 +20,6 @@ import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/
 import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
 import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
 import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
-import type { DatabaseId } from '#types/database'
 import type {
   UserDomainExpertiseRecord,
   UserPerformanceStatRecord,
@@ -27,7 +27,7 @@ import type {
   UserRecord,
   UserSkillRecord,
   UserWorkHistoryRecord,
-} from '#types/user_records'
+} from '#modules/users/types/user_records'
 
 export interface PublishUserProfileSnapshotDTO {
   snapshotName?: string
@@ -36,7 +36,7 @@ export interface PublishUserProfileSnapshotDTO {
 }
 
 export interface PublishUserProfileSnapshotResult {
-  snapshotId: DatabaseId
+  snapshotId: string
   version: number
   shareableSlug: string | null
   shareableToken: string | null
@@ -74,7 +74,7 @@ interface PersistedUserProfileSnapshot {
 }
 
 interface SnapshotSummary extends Record<string, unknown> {
-  user_id: DatabaseId
+  user_id: string
   username: string
   total_verified_skills: number
   total_tasks_completed: number
@@ -119,7 +119,7 @@ interface SnapshotTrustMetrics extends Record<string, unknown> {
 }
 
 interface SnapshotVerifiedSkill extends Record<string, unknown> {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   level_code: string
   total_reviews: number
@@ -129,8 +129,8 @@ interface SnapshotVerifiedSkill extends Record<string, unknown> {
 }
 
 interface SnapshotWorkHighlight extends Record<string, unknown> {
-  task_assignment_id: DatabaseId
-  task_id: DatabaseId
+  task_assignment_id: string
+  task_id: string
   task_title: string
   task_type: string | null
   business_domain: string | null
@@ -150,12 +150,32 @@ type VerifiedSkillSource = UserSkillRecord & {
   }
 }
 
+/**
+ * Rate limit: max 3 snapshots per user per 24 hours
+ */
+const SNAPSHOT_RATE_LIMIT_MAX = 3
+const SNAPSHOT_RATE_LIMIT_WINDOW_HOURS = 24
+
 export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   PublishUserProfileSnapshotDTO,
   PublishUserProfileSnapshotResult
 > {
   async handle(dto: PublishUserProfileSnapshotDTO): Promise<PublishUserProfileSnapshotResult> {
     const userId = this.getCurrentUserId()
+
+    // Guard: user phải active và không suspended
+    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    if (user.status === 'suspended') {
+      throw new BusinessLogicException('Tài khoản bị suspended không thể publish profile snapshot')
+    }
+    const userIsActive = await userModelQueries.isActive(userId)
+    if (!userIsActive) {
+      throw new BusinessLogicException('Tài khoản không active nên không thể publish profile snapshot')
+    }
+
+    // Guard: rate limit - max 3 snapshots per 24 hours
+    await this.enforceRateLimit(userId)
+
     await this.refreshAggregates(userId)
     const readModel = await this.loadSnapshotReadModel(userId)
 
@@ -171,14 +191,27 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
     })
   }
 
-  private async refreshAggregates(userId: DatabaseId): Promise<void> {
+  /**
+   * Rate limit: kiểm tra số lượng snapshot trong 24h qua
+   */
+  private async enforceRateLimit(userId: string): Promise<void> {
+    const since = DateTime.now().minus({ hours: SNAPSHOT_RATE_LIMIT_WINDOW_HOURS })
+    const recentCount = await profileSnapshotQueries.countByUserSince(userId, since)
+    if (recentCount >= SNAPSHOT_RATE_LIMIT_MAX) {
+      throw new BusinessLogicException(
+        `Đã vượt quá giới hạn publish snapshot (${SNAPSHOT_RATE_LIMIT_MAX} lần/${SNAPSHOT_RATE_LIMIT_WINDOW_HOURS}h). Vui lòng thử lại sau.`
+      )
+    }
+  }
+
+  private async refreshAggregates(userId: string): Promise<void> {
     await new RefreshUserProfileAggregatesCommand(this.execCtx).handle({
       userId,
       fullRebuild: false,
     })
   }
 
-  private async loadSnapshotReadModel(userId: DatabaseId): Promise<LoadedSnapshotReadModel> {
+  private async loadSnapshotReadModel(userId: string): Promise<LoadedSnapshotReadModel> {
     const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
     const skills = await userSkillQueries.listByUserWithSkill(userId)
     const performanceStatsRow = await performanceStatQueries.findLatestLifetimeByUser(userId)
@@ -195,14 +228,14 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private async loadLastSnapshot(
-    userId: DatabaseId,
+    userId: string,
     trx: TransactionClientContract
   ): Promise<UserProfileSnapshotRecord | null> {
     return profileSnapshotQueries.findLatestByUser(userId, trx)
   }
 
   private buildSnapshotContent(
-    userId: DatabaseId,
+    userId: string,
     dto: PublishUserProfileSnapshotDTO,
     inputs: LoadedSnapshotInputs
   ): BuiltSnapshotContent {
@@ -259,7 +292,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private buildSummary(
-    userId: DatabaseId,
+    userId: string,
     user: UserRecord,
     totalVerifiedSkills: number,
     inputs: LoadedSnapshotInputs,
@@ -350,7 +383,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private async persistSnapshot(
-    userId: DatabaseId,
+    userId: string,
     dto: PublishUserProfileSnapshotDTO,
     user: UserRecord,
     content: BuiltSnapshotContent,
@@ -401,15 +434,15 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
 
   private registerPostCommitCacheInvalidation(
     trx: TransactionClientContract,
-    userId: DatabaseId,
+    userId: string,
     shareableSlug: string | null
   ): void {
     void trx.on('commit', () => {
-      void CacheService.deleteByPattern(`*profile:snapshot:current*${userId}*`)
-      void CacheService.deleteByPattern(`*profile:snapshot:history*${userId}*`)
+      void cacheStore.deleteByPattern(`*profile:snapshot:current*${userId}*`)
+      void cacheStore.deleteByPattern(`*profile:snapshot:history*${userId}*`)
 
       if (shareableSlug) {
-        void CacheService.deleteByPattern(`*profile:snapshot:public*${shareableSlug}*`)
+        void cacheStore.deleteByPattern(`*profile:snapshot:public*${shareableSlug}*`)
       }
     })
   }
