@@ -1,8 +1,7 @@
 import vine from '@vinejs/vine'
 
-import { SystemRoleName, UserStatusName } from '#modules/users/constants/user_constants'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import { newEmailRule, newUsernameRule } from '#modules/users/validators/rules/identity'
-import type { DatabaseId } from '#types/database'
 
 export const createUserValidator = vine.create(
   vine.object({
@@ -18,7 +17,7 @@ export const createUserValidator = vine.create(
 /**
  * Validator cho cập nhật người dùng
  */
-export const updateUserValidator = (userId: DatabaseId) =>
+export const updateUserValidator = (userId: string) =>
   vine.create(
     vine.object({
       firstName: vine.string().maxLength(100),

@@ -8,20 +8,19 @@
 
 import { UserInfraMapper } from '../mapper/user_infra_mapper.js'
 
-import NotFoundException from '#exceptions/not_found_exception'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserRepository } from '#modules/users/domain/repositories/user_repository_interface'
 import User from '#modules/users/infra/models/user'
-import type { DatabaseId } from '#types/database'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 export class UserRepositoryImpl implements UserRepository {
-  async findById(id: DatabaseId): Promise<UserEntity | null> {
+  async findById(id: string): Promise<UserEntity | null> {
     const model = await User.find(id)
     return model ? UserInfraMapper.toDomain(model) : null
   }
 
-  async findActiveOrFail(id: DatabaseId): Promise<UserEntity> {
+  async findActiveOrFail(id: string): Promise<UserEntity> {
     const model = await User.query()
       .where('id', id)
       .whereNull('deleted_at')
@@ -34,19 +33,19 @@ export class UserRepositoryImpl implements UserRepository {
     return UserInfraMapper.toDomain(model)
   }
 
-  async findNotDeletedOrFail(id: DatabaseId): Promise<UserEntity> {
+  async findNotDeletedOrFail(id: string): Promise<UserEntity> {
     const model = await User.query().where('id', id).whereNull('deleted_at').firstOrFail()
     return UserInfraMapper.toDomain(model)
   }
 
-  async findByIds(ids: DatabaseId[], selectFields?: string[]): Promise<UserEntity[]> {
+  async findByIds(ids: string[], selectFields?: string[]): Promise<UserEntity[]> {
     if (ids.length === 0) return []
     const cols = selectFields ?? ['id', 'username', 'email']
     const models = await User.query().whereIn('id', ids).select(cols)
     return models.map((m) => UserInfraMapper.toDomain(m))
   }
 
-  async findByOrganization(organizationId: DatabaseId): Promise<UserEntity[]> {
+  async findByOrganization(organizationId: string): Promise<UserEntity[]> {
     const models = await User.query()
       .select(['users.id', 'users.username', 'users.email'])
       .join('organization_users', 'users.id', 'organization_users.user_id')
@@ -56,12 +55,12 @@ export class UserRepositoryImpl implements UserRepository {
     return models.map((m) => UserInfraMapper.toDomain(m))
   }
 
-  async findWithOrganizations(id: DatabaseId): Promise<UserEntity> {
+  async findWithOrganizations(id: string): Promise<UserEntity> {
     const model = await User.query().where('id', id).preload('organizations').firstOrFail()
     return UserInfraMapper.toDomain(model)
   }
 
-  async isActive(id: DatabaseId): Promise<boolean> {
+  async isActive(id: string): Promise<boolean> {
     try {
       await this.findActiveOrFail(id)
       return true
@@ -70,24 +69,24 @@ export class UserRepositoryImpl implements UserRepository {
     }
   }
 
-  async isFreelancer(id: DatabaseId): Promise<boolean> {
+  async isFreelancer(id: string): Promise<boolean> {
     const model = await User.query().where('id', id).whereNull('deleted_at').first()
     return !!model?.is_freelancer
   }
 
-  async isSuperadmin(id: DatabaseId): Promise<boolean> {
+  async isSuperadmin(id: string): Promise<boolean> {
     const model = await User.query().where('id', id).whereNull('deleted_at').first()
     return model?.system_role === SystemRoleName.SUPERADMIN
   }
 
-  async isSystemAdmin(id: DatabaseId): Promise<boolean> {
+  async isSystemAdmin(id: string): Promise<boolean> {
     const roleName = await this.getSystemRoleName(id)
     return [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN].includes(
       roleName as SystemRoleName
     )
   }
 
-  async getSystemRoleName(id: DatabaseId): Promise<string | null> {
+  async getSystemRoleName(id: string): Promise<string | null> {
     const model = await User.query().where('id', id).whereNull('deleted_at').first()
     return model?.system_role ?? null
   }

@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
-import type { DatabaseId } from '#types/database'
 
 export default class UserProfileSnapshotRepository {
   private readonly __instanceMarker = true
@@ -15,7 +14,7 @@ export default class UserProfileSnapshotRepository {
   }
 
   static async findCurrentByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserProfileSnapshot | null> {
     return this.baseQuery(trx)
@@ -26,7 +25,7 @@ export default class UserProfileSnapshotRepository {
   }
 
   static async listByUser(
-    userId: DatabaseId,
+    userId: string,
     limit: number,
     trx?: TransactionClientContract
   ): Promise<UserProfileSnapshot[]> {
@@ -51,7 +50,7 @@ export default class UserProfileSnapshotRepository {
 
   static async slugExists(
     slug: string,
-    excludeSnapshotId?: DatabaseId,
+    excludeSnapshotId?: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     const query = this.baseQuery(trx).where('shareable_slug', slug)
@@ -64,22 +63,22 @@ export default class UserProfileSnapshotRepository {
   }
 
   static async findOwnedById(
-    snapshotId: DatabaseId,
-    userId: DatabaseId,
+    snapshotId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserProfileSnapshot | null> {
     return this.baseQuery(trx).where('id', snapshotId).where('user_id', userId).first()
   }
 
   static async findLatestByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserProfileSnapshot | null> {
     return this.baseQuery(trx).where('user_id', userId).orderBy('version', 'desc').first()
   }
 
   static async unsetCurrentByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     await this.baseQuery(trx).where('user_id', userId).where('is_current', true).update({

@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
-import type { DatabaseId } from '#types/database'
 
 export default class UserWorkHistoryRepository {
   private readonly __instanceMarker = true
@@ -15,7 +14,7 @@ export default class UserWorkHistoryRepository {
   }
 
   static async listRecentByUser(
-    userId: DatabaseId,
+    userId: string,
     limit: number,
     trx?: TransactionClientContract
   ): Promise<UserWorkHistory[]> {
@@ -40,13 +39,13 @@ export default class UserWorkHistoryRepository {
     return workHistory
   }
 
-  static async deleteByUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<void> {
+  static async deleteByUser(userId: string, trx?: TransactionClientContract): Promise<void> {
     await this.baseQuery(trx).where('user_id', userId).delete()
   }
 
   static async findByUserAndAssignment(
-    userId: DatabaseId,
-    taskAssignmentId: DatabaseId,
+    userId: string,
+    taskAssignmentId: string,
     trx?: TransactionClientContract
   ): Promise<UserWorkHistory | null> {
     return this.baseQuery(trx)
@@ -56,7 +55,7 @@ export default class UserWorkHistoryRepository {
   }
 
   static async listByUser(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserWorkHistory[]> {
     return this.baseQuery(trx).where('user_id', userId).orderBy('completed_at', 'asc')

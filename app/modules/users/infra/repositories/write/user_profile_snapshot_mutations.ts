@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserProfileSnapshot.query({ client: trx }) : UserProfileSnapshot.query()
 }
 
 export const unsetCurrentByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
   await baseQuery(trx).where('user_id', userId).where('is_current', true).update({
