@@ -4,10 +4,10 @@ import { test } from '@japa/runner'
 import GetPublicProfileSnapshotQuery, {
   GetPublicProfileSnapshotDTO,
 } from '#modules/users/actions/queries/get_public_profile_snapshot_query'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import UserProfileSnapshot from '#modules/users/infra/models/user_profile_snapshot'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 async function checkProfileSnapshotTable(): Promise<boolean> {
   const rawResult: unknown = await db
@@ -51,7 +51,7 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
       trust_metrics: {},
       scoring_version: 'v1',
     })
-    const query = new GetPublicProfileSnapshotQuery(ExecutionContext.system(user.id))
+    const query = new GetPublicProfileSnapshotQuery(makeSystemUserActionContext(user.id))
     const result = await query.handle(new GetPublicProfileSnapshotDTO(slug))
 
     assert.equal(result.snapshot.id, snapshot.id)
@@ -75,7 +75,7 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
       trust_metrics: {},
       scoring_version: 'v1',
     })
-    const query = new GetPublicProfileSnapshotQuery(ExecutionContext.system(user.id))
+    const query = new GetPublicProfileSnapshotQuery(makeSystemUserActionContext(user.id))
     const result = await query.handle(new GetPublicProfileSnapshotDTO(slug, 'token-private'))
 
     assert.equal(result.snapshot.id, snapshot.id)
@@ -99,7 +99,7 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
       scoring_version: 'v1',
     })
 
-    const query = new GetPublicProfileSnapshotQuery(ExecutionContext.system(user.id))
+    const query = new GetPublicProfileSnapshotQuery(makeSystemUserActionContext(user.id))
 
     await assert.rejects(() =>
       query.handle(new GetPublicProfileSnapshotDTO('private-no-token-slug'))
@@ -124,7 +124,7 @@ test.group('Integration | Public Profile Snapshot Query', (group) => {
       scoring_version: 'v1',
     })
 
-    const query = new GetPublicProfileSnapshotQuery(ExecutionContext.system(user.id))
+    const query = new GetPublicProfileSnapshotQuery(makeSystemUserActionContext(user.id))
 
     await assert.rejects(() =>
       query.handle(new GetPublicProfileSnapshotDTO('wrong-token-snapshot-slug', 'wrong-token'))

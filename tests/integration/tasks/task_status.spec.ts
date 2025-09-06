@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import ConflictException from '#exceptions/conflict_exception'
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'

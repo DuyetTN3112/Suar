@@ -3,6 +3,8 @@ import { DateTime } from 'luxon'
 
 import GetTasksListDTO from '#modules/tasks/actions/dtos/request/get_tasks_list_dto'
 import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
+import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -11,7 +13,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | List Tasks', (group) => {
   group.setup(async () => {
@@ -59,7 +60,7 @@ test.group('Integration | List Tasks', (group) => {
       title: 'Other org login issue',
     })
 
-    const adminQuery = new GetTasksListQuery(ExecutionContext.system(owner.id))
+    const adminQuery = new GetTasksListQuery(makeSystemTaskActionContext(owner.id), taskExternalDeps)
     const page = await adminQuery.execute(
       new GetTasksListDTO({
         organization_id: org.id,
@@ -128,7 +129,7 @@ test.group('Integration | List Tasks', (group) => {
       title: 'Owner backlog',
     })
 
-    const result = await new GetTasksListQuery(ExecutionContext.system(member.id)).execute(
+    const result = await new GetTasksListQuery(makeSystemTaskActionContext(member.id), taskExternalDeps).execute(
       new GetTasksListDTO({
         organization_id: org.id,
         page: 1,
@@ -160,7 +161,10 @@ test.group('Integration | List Tasks', (group) => {
       title: 'Visible only after approval',
     })
 
-    const result = await new GetTasksListQuery(ExecutionContext.system(pendingUser.id)).execute(
+    const result = await new GetTasksListQuery(
+      makeSystemTaskActionContext(pendingUser.id),
+      taskExternalDeps
+    ).execute(
       new GetTasksListDTO({
         organization_id: org.id,
         page: 1,

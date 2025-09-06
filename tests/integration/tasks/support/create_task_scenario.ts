@@ -1,12 +1,16 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { notificationPublicApi } from '#modules/notifications/actions/public_api'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import type Project from '#modules/projects/infra/models/project'
 import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
 import { seedDefaultTaskStatuses } from '#modules/tasks/actions/commands/seed_default_task_statuses'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import type Task from '#modules/tasks/infra/models/task'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -16,8 +20,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
-import type { TaskDetailRecord } from '#types/task_records'
 
 type CreatedUser = Awaited<ReturnType<typeof UserFactory.create>>
 type CreateTaskScenarioInput = Partial<{
@@ -121,7 +123,12 @@ export default class CreateTaskScenario {
   }
 
   private commandFor(actorId: string): CreateTaskCommand {
-    return new CreateTaskCommand(ExecutionContext.system(actorId), notificationPublicApi)
+    return new CreateTaskCommand(
+      makeSystemTaskActionContext(actorId),
+      taskExternalDeps,
+      notificationPublicApi,
+      new TaskCacheInvalidator()
+    )
   }
 
   public async create(overrides: CreateTaskScenarioInput = {}): Promise<TaskDetailRecord> {

@@ -1,6 +1,7 @@
 import { test } from '@japa/runner'
 
 import RecalculateRevieweeSkillScoresCommand from '#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import UserSkill from '#modules/users/infra/models/user_skill'
@@ -16,7 +17,6 @@ import {
   UserFactory,
   UserSkillFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Review Skill Recalculation', (group) => {
   group.setup(async () => {
@@ -66,7 +66,7 @@ test.group('Integration | Review Skill Recalculation', (group) => {
     assert,
   }) => {
     const { reviewee, skill } = await createReviewSignal()
-    const command = new RecalculateRevieweeSkillScoresCommand(ExecutionContext.system(reviewee.id))
+    const command = new RecalculateRevieweeSkillScoresCommand(makeSystemReviewActionContext(reviewee.id))
 
     const result = await command.handle({ userId: reviewee.id })
     const userSkill = await UserSkill.query()
@@ -103,7 +103,7 @@ test.group('Integration | Review Skill Recalculation', (group) => {
     })
 
     const command = new RecalculateRevieweeSkillScoresCommand(
-      ExecutionContext.system(completed.reviewee.id)
+      makeSystemReviewActionContext(completed.reviewee.id)
     )
 
     const result = await command.handle({ userId: completed.reviewee.id })

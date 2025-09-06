@@ -3,6 +3,9 @@ import { test } from '@japa/runner'
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
 import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
+import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -12,7 +15,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 async function countUpdateTimeAuditLogs(taskId: string): Promise<number> {
   const auditLogs = await MongoAuditLogModel.find({
@@ -48,7 +50,11 @@ test.group('Integration | Update Task Time', (group) => {
       actual_time: 1,
     })
 
-    const command = new UpdateTaskTimeCommand(ExecutionContext.system(owner.id))
+    const command = new UpdateTaskTimeCommand(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps,
+      new TaskCacheInvalidator()
+    )
     const dto = new UpdateTaskTimeDTO({
       task_id: task.id,
       estimated_time: 5,
@@ -83,7 +89,11 @@ test.group('Integration | Update Task Time', (group) => {
       actual_time: 1,
     })
 
-    const command = new UpdateTaskTimeCommand(ExecutionContext.system(outsider.id))
+    const command = new UpdateTaskTimeCommand(
+      makeSystemTaskActionContext(outsider.id),
+      taskExternalDeps,
+      new TaskCacheInvalidator()
+    )
     const dto = new UpdateTaskTimeDTO({
       task_id: task.id,
       estimated_time: 9,

@@ -3,7 +3,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
 import { BaseCommand } from '#modules/tasks/actions/base_command'
-import type { ExecutionContext } from '#types/execution_context'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -28,7 +28,7 @@ class TestCommand extends BaseCommand<{ fail?: boolean }, string> {
   }
 }
 
-function makeExecCtx(userId: string | null = VALID_UUID): ExecutionContext {
+function makeExecCtx(userId: string | null = VALID_UUID): TaskActionContext {
   return {
     userId,
     ip: '127.0.0.1',

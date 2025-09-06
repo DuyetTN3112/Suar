@@ -1,8 +1,11 @@
 import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import TransferOrganizationOwnershipCommand from '#modules/organizations/actions/commands/transfer_organization_ownership_command'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import Organization from '#modules/organizations/infra/models/organization'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
@@ -13,7 +16,6 @@ import {
   OrganizationUserFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -62,7 +64,7 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
 
     const notificationSpy = new NotificationSpy()
     const command = new TransferOrganizationOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemOrganizationActionContext(owner.id),
       notificationSpy
     )
 
@@ -111,7 +113,7 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
 
     const notificationSpy = new NotificationSpy()
     const command = new TransferOrganizationOwnershipCommand(
-      ExecutionContext.system(actor.id),
+      makeSystemOrganizationActionContext(actor.id),
       notificationSpy
     )
 
@@ -152,7 +154,7 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
 
     const notificationSpy = new NotificationSpy()
     const command = new TransferOrganizationOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemOrganizationActionContext(owner.id),
       notificationSpy
     )
 
@@ -192,7 +194,7 @@ test.group('Integration | Transfer Organization Ownership', (group) => {
     })
 
     const command = new TransferOrganizationOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemOrganizationActionContext(owner.id),
       new FailingNotification()
     )
 
