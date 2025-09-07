@@ -1,0 +1,32 @@
+import type { HttpContext } from '@adonisjs/core/http'
+
+
+import { buildCreateTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
+
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import CreateTaskStatusCommand from '#modules/tasks/actions/commands/create_task_status_command'
+
+/**
+ * POST /api/task-statuses
+ * Create a new task status for current organization.
+ */
+export default class CreateTaskStatusController {
+  async handle(ctx: HttpContext) {
+    const { request, response, session } = ctx
+    const organizationId = session.get('current_organization_id') as string | undefined
+
+    if (!organizationId) {
+      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
+    }
+
+    const dto = buildCreateTaskStatusDTO(request, organizationId)
+
+    const command = new CreateTaskStatusCommand(actionContextFromHttp(ctx))
+    const status = await command.execute(dto)
+
+    response.status(201).json(mapTaskStatusMutationApiBody(status))
+  }
+}
