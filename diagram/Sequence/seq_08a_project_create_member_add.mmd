@@ -1,11 +1,12 @@
 %% seq_08a_project_create_member_add.mmd
-%% Updated 2026-05-18.
-%% Scope: Create project and add project member.
+%% Updated 2026-06-16.
+%% Scope: Create project and add project member from user/org project surfaces.
 
 sequenceDiagram
     autonumber
     actor U as Org Member
     participant B as Browser
+    participant UI as Inertia Project UI
     participant C as Controller
     participant Cmd as Command
     participant Rules as ProjectRules
@@ -14,20 +15,24 @@ sequenceDiagram
     participant Evt as Event Bus
 
     Note over U, Evt: CREATE PROJECT
-    U->>B: Fill project form
-    B->>C: POST /projects
-    C->>Cmd: CreateProjectCommand
+    U->>UI: Fill org project form
+    UI->>C: POST /org/projects
+    C->>Cmd: CreateCurrentOrganizationProjectCommand
     Cmd->>Rules: Validate dates and project status
     Cmd->>Repo: save(project)
     Repo->>DB: INSERT projects
     Cmd->>Repo: save owner membership
     Repo->>DB: INSERT project_members
     Cmd->>Evt: emit(project:created)
-    C-->>B: Redirect to project page
+    C-->>B: Redirect or reload org project list
+
+    Note over U, Evt: USER SURFACE CREATE ENTRY
+    U->>UI: Click create on /projects
+    UI-->>B: Route to /org/projects when current organization exists
 
     Note over U, Evt: ADD PROJECT MEMBER
-    U->>B: Add member to project
-    B->>C: POST /projects/members
+    U->>UI: Add member from shared project detail
+    UI->>C: POST /projects/members
     C->>Cmd: AddProjectMemberCommand
     Cmd->>Repo: Check organization membership
     Repo->>DB: SELECT organization_users

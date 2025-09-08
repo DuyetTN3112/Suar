@@ -15,109 +15,170 @@
     height?: number
   }
 
-  const { title, subtitle = '', unit = '', data, height = 220 }: Props = $props()
+  const { title, subtitle = '', unit = '', data, height = 250 }: Props = $props()
 
-  const chartPadding = { top: 16, right: 12, bottom: 42, left: 40 }
-  const chartWidth = 520
-  const innerWidth = chartWidth - chartPadding.left - chartPadding.right
-  const innerHeight = $derived(height - chartPadding.top - chartPadding.bottom)
-
-  const maxValue = $derived(Math.max(1, ...data.map((item) => item.value)))
-  const columns = $derived(
-    data.map((item, index) => {
-      const barCount = data.length
-      const slotWidth = innerWidth / Math.max(1, barCount)
-      const barWidth = Math.min(42, slotWidth * 0.56)
-      const x = chartPadding.left + index * slotWidth + (slotWidth - barWidth) / 2
-      const barHeight = (Math.max(0, item.value) / maxValue) * innerHeight
-      const y = chartPadding.top + (innerHeight - barHeight)
-
-      return {
-        ...item,
-        x,
-        y,
-        barWidth,
-        barHeight,
-      }
-    })
-  )
-
-  const ticks = $derived([0, 0.25, 0.5, 0.75, 1].map((factor) => Math.round(maxValue * factor)))
-
-  function yForValue(value: number): number {
-    const normalized = maxValue === 0 ? 0 : value / maxValue
-    return chartPadding.top + (innerHeight - normalized * innerHeight)
-  }
+  const maxValue = $derived(Math.max(1, ...data.map((item) => Math.max(0, item.value))))
+  const barMaxHeight = $derived(Math.max(120, height - 72))
 
   function fillForRole(role: IBCSRole = 'neutral'): string {
-    if (role === 'actual') return '#334155'
-    if (role === 'plan') return '#94A3B8'
-    if (role === 'highlight') return '#2563EB'
-    if (role === 'risk') return '#DC2626'
-    if (role === 'positive') return '#16A34A'
-    return '#64748B'
+    if (role === 'actual') return 'var(--suar-ink-56)'
+    if (role === 'plan') return '#9aa7c0'
+    if (role === 'highlight') return 'var(--suar-black)'
+    if (role === 'risk') return 'var(--suar-orange)'
+    if (role === 'positive') return '#2fbf71'
+    return 'var(--suar-ink-36)'
+  }
+
+  function barHeight(value: number): string {
+    const normalized = Math.max(0, value) / maxValue
+    const pixels = normalized * barMaxHeight
+
+    return `${Math.max(value > 0 ? 12 : 4, Math.round(pixels))}px`
   }
 </script>
 
-<div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-  <div class="mb-3">
-    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">{title}</h3>
+<article class="admin-chart-panel">
+  <div class="admin-chart-head">
+    <div class="admin-chart-kicker">{title}</div>
     {#if subtitle}
-      <p class="text-xs text-slate-500">{subtitle}</p>
+      <p>{subtitle}</p>
     {/if}
   </div>
 
-  <svg viewBox={`0 0 ${chartWidth} ${height}`} class="w-full" role="img" aria-label={title}>
-    {#each ticks as tick}
-      <line
-        x1={chartPadding.left}
-        y1={yForValue(tick)}
-        x2={chartWidth - chartPadding.right}
-        y2={yForValue(tick)}
-        stroke="#E2E8F0"
-        stroke-width="1"
-      />
-      <text x={chartPadding.left - 6} y={yForValue(tick) + 4} text-anchor="end" font-size="11" fill="#64748B">
-        {tick}{unit}
-      </text>
-    {/each}
+  <div class="admin-chart-wrap" style={`height: ${height}px`} role="img" aria-label={title}>
+    <div class="admin-bars" style={`--count: ${Math.max(1, data.length)}`}>
+      {#each data as item}
+        <div class="admin-bar-item">
+          <div
+            class="admin-bar"
+            style={`height: ${barHeight(item.value)}; --bar-color: ${fillForRole(item.role)}`}
+            title={`${item.label}: ${item.value}${unit}`}
+          >
+            <span>{item.value}{unit}</span>
+          </div>
+          <div class="admin-bar-label">{item.label}</div>
+        </div>
+      {/each}
+    </div>
+  </div>
+</article>
 
-    {#each columns as col}
-      <rect
-        x={col.x}
-        y={col.y}
-        width={col.barWidth}
-        height={Math.max(0, col.barHeight)}
-        rx="4"
-        fill={fillForRole(col.role)}
-      />
-      <text
-        x={col.x + col.barWidth / 2}
-        y={col.y - 6}
-        text-anchor="middle"
-        font-size="11"
-        fill="#0F172A"
-      >
-        {col.value}{unit}
-      </text>
-      <text
-        x={col.x + col.barWidth / 2}
-        y={height - 18}
-        text-anchor="middle"
-        font-size="11"
-        fill="#475569"
-      >
-        {col.label}
-      </text>
-    {/each}
+<style>
+  .admin-chart-panel {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255, 61, 22, .08), transparent 15rem),
+      rgba(255, 253, 248, .86);
+    padding: 18px;
+    box-shadow: 8px 8px 0 rgba(22, 19, 15, .1);
+  }
 
-    <line
-      x1={chartPadding.left}
-      y1={chartPadding.top + innerHeight}
-      x2={chartWidth - chartPadding.right}
-      y2={chartPadding.top + innerHeight}
-      stroke="#94A3B8"
-      stroke-width="1.2"
-    />
-  </svg>
-</div>
+  .admin-chart-head {
+    margin-bottom: 18px;
+  }
+
+  .admin-chart-kicker {
+    color: color-mix(in srgb, var(--suar-orange) 80%, var(--suar-black));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .admin-chart-head p {
+    margin: 6px 0 0;
+    color: var(--suar-ink-56);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .admin-chart-wrap {
+    position: relative;
+    margin-top: 8px;
+    border-left: 2px solid rgba(22, 19, 15, .18);
+    border-bottom: 2px solid rgba(22, 19, 15, .18);
+    background: linear-gradient(rgba(22, 19, 15, .08) 1px, transparent 1px);
+    background-size: 100% 25%;
+    padding: 0 34px;
+  }
+
+  .admin-bars {
+    position: absolute;
+    inset: 0 22px;
+    display: grid;
+    grid-template-columns: repeat(var(--count), minmax(0, 1fr));
+    align-items: end;
+    gap: clamp(16px, 4vw, 38px);
+    padding: 0 24px 0 40px;
+  }
+
+  .admin-bar-item {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .admin-bar {
+    position: relative;
+    width: min(76px, 55%);
+    min-height: 4px;
+    border: 2px solid var(--suar-black);
+    border-radius: 14px 14px 7px 7px;
+    background: var(--bar-color);
+    box-shadow: 5px 5px 0 rgba(22, 19, 15, .1);
+    transform-origin: bottom;
+    animation: admin-grow .8s var(--ease-suar) both;
+  }
+
+  .admin-bar span {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--suar-black);
+    font-size: 18px;
+    font-weight: 950;
+    white-space: nowrap;
+  }
+
+  .admin-bar-label {
+    min-height: 32px;
+    color: var(--suar-ink-56);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 13px;
+    font-weight: 900;
+    line-height: 1.2;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  @keyframes admin-grow {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @media (max-width: 680px) {
+    .admin-chart-wrap {
+      padding: 0 18px;
+    }
+
+    .admin-bars {
+      gap: 18px;
+      padding: 0 12px 0 18px;
+    }
+
+    .admin-bar {
+      width: min(54px, 65%);
+    }
+
+    .admin-bar-label {
+      font-size: 11px;
+    }
+  }
+</style>

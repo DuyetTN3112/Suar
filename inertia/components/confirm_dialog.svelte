@@ -1,4 +1,6 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte'
+
   import AlertDialog from '@/components/ui/alert_dialog.svelte'
   import AlertDialogCancel from '@/components/ui/alert_dialog_cancel.svelte'
   import AlertDialogContent from '@/components/ui/alert_dialog_content.svelte'
@@ -10,19 +12,35 @@
 
   import { cn } from '$lib/utils-svelte'
 
-  let className = ''
-  export { className as class }
+  interface Props {
+    class?: string
+    open: boolean
+    onOpenChange?: (open: boolean) => void
+    title: string
+    disabled?: boolean
+    desc: string
+    cancelBtnText?: string
+    confirmText?: string
+    destructive?: boolean
+    handleConfirm: () => void
+    isLoading?: boolean
+    children?: Snippet
+  }
 
-  export let open = false
-  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
-  export let title: string
-  export let disabled = false
-  export let desc: string
-  export let cancelBtnText = 'Cancel'
-  export let confirmText = 'Continue'
-  export let destructive = false
-  export let handleConfirm: () => void
-  export let isLoading = false
+  let {
+    class: className = '',
+    open = $bindable(false),
+    onOpenChange,
+    title,
+    disabled = false,
+    desc,
+    cancelBtnText = 'Cancel',
+    confirmText = 'Continue',
+    destructive = false,
+    handleConfirm,
+    isLoading = false,
+    children,
+  }: Props = $props()
 </script>
 
 <AlertDialog bind:open {onOpenChange}>
@@ -33,7 +51,7 @@
         {desc}
       </AlertDialogDescription>
     </AlertDialogHeader>
-    <slot></slot>
+    {@render children?.()}
     <AlertDialogFooter>
       <AlertDialogCancel disabled={isLoading}>
         {cancelBtnText}

@@ -1,5 +1,5 @@
 %% Architecture Diagram: Runtime Support & Cross-Cutting Services
-%% Updated 2026-05-18.
+%% Updated 2026-06-12.
 
 flowchart LR
     Commands["Commands / Queries"]
@@ -7,9 +7,9 @@ flowchart LR
     Listeners["Listeners"]
     PublicApis["Action Public APIs"]
     Cache["Redis Cache"]
-    RepoProviders["Repository Providers\nMongo-backed audit/notification/activity"]
+    RepoProviders["Repository Providers\nPostgreSQL-backed audit/notification/activity"]
     Logger["Logger"]
-    Mongo[("MongoDB")]
+    Postgres[("PostgreSQL")]
     Redis[("Redis")]
     Realtime["Transmit / Realtime\ntransport=null"]
 
@@ -21,7 +21,7 @@ flowchart LR
     PublicApis --> Cache
     Cache --> Redis
     PublicApis --> RepoProviders
-    RepoProviders --> Mongo
+    RepoProviders --> Postgres
 
     Listeners -.-> Realtime
 
@@ -32,4 +32,4 @@ flowchart LR
     class Commands,EventBus,Listeners,Realtime runtime
     class PublicApis boundary
     class Cache,RepoProviders,Logger infra
-    class Mongo,Redis data
+    class Postgres,Redis data

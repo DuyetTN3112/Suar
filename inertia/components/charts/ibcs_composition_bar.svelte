@@ -22,43 +22,139 @@
   }
 
   function fillForRole(role: IBCSRole = 'neutral'): string {
-    if (role === 'actual') return '#334155'
-    if (role === 'plan') return '#94A3B8'
-    if (role === 'highlight') return '#2563EB'
-    if (role === 'risk') return '#DC2626'
-    if (role === 'positive') return '#16A34A'
-    return '#64748B'
+    if (role === 'actual') return 'var(--suar-ink-56)'
+    if (role === 'plan') return '#9aa7c0'
+    if (role === 'highlight') return 'var(--suar-black)'
+    if (role === 'risk') return 'var(--suar-orange)'
+    if (role === 'positive') return '#2fbf71'
+    return 'var(--suar-ink-36)'
   }
 </script>
 
-<div class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-  <div class="mb-3">
-    <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-600">{title}</h3>
+<article class="admin-composition-panel">
+  <div class="admin-composition-head">
+    <div class="admin-composition-kicker">{title}</div>
     {#if subtitle}
-      <p class="text-xs text-slate-500">{subtitle}</p>
+      <p>{subtitle}</p>
     {/if}
   </div>
 
-  <div class="h-6 w-full overflow-hidden rounded bg-slate-100">
-    <div class="flex h-full w-full">
-      {#each segments as segment}
-        <div
-          style={`width:${widthPercent(segment.value)}%;background:${fillForRole(segment.role)}`}
-          title={`${segment.label}: ${segment.value}`}
-        ></div>
-      {/each}
-    </div>
+  <div class="admin-stack">
+    {#each segments as segment}
+      <div
+        class="admin-stack-segment"
+        style={`width: ${widthPercent(segment.value)}%; --segment-color: ${fillForRole(segment.role)}`}
+        title={`${segment.label}: ${segment.value}`}
+      ></div>
+    {/each}
   </div>
 
-  <div class="mt-3 space-y-1">
+  <div class="admin-legend">
     {#each segments as segment}
-      <div class="flex items-center justify-between text-xs text-slate-600">
-        <div class="flex items-center gap-2">
-            <span class="inline-block h-2.5 w-2.5 rounded-sm" style={`background:${fillForRole(segment.role)}`}></span>
-          <span>{segment.label}</span>
-        </div>
-        <span>{segment.value} ({Math.round(widthPercent(segment.value))}%)</span>
+      <div class="admin-legend-row">
+        <span class="admin-dot" style={`--dot-color: ${fillForRole(segment.role)}`}></span>
+        <span>{segment.label}</span>
+        <strong>{segment.value} · {Math.round(widthPercent(segment.value))}%</strong>
       </div>
     {/each}
   </div>
-</div>
+</article>
+
+<style>
+  .admin-composition-panel {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 30px;
+    background:
+      radial-gradient(circle at 12% 0%, rgba(255, 61, 22, .08), transparent 15rem),
+      rgba(255, 253, 248, .86);
+    padding: 18px;
+    box-shadow: 8px 8px 0 rgba(22, 19, 15, .1);
+  }
+
+  .admin-composition-head {
+    margin-bottom: 18px;
+  }
+
+  .admin-composition-kicker {
+    color: color-mix(in srgb, var(--suar-orange) 80%, var(--suar-black));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .admin-composition-head p {
+    margin: 6px 0 0;
+    color: var(--suar-ink-56);
+    font-size: 12px;
+    font-weight: 650;
+  }
+
+  .admin-stack {
+    display: flex;
+    height: 38px;
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 999px;
+    background: rgba(22, 19, 15, .06);
+    box-shadow: 4px 4px 0 rgba(22, 19, 15, .1);
+  }
+
+  .admin-stack-segment {
+    height: 100%;
+    min-width: 0;
+    background: var(--segment-color);
+    animation: admin-reveal 1s var(--ease-suar) both;
+  }
+
+  .admin-stack-segment:first-child {
+    border-radius: 999px 0 0 999px;
+  }
+
+  .admin-stack-segment:last-child {
+    border-radius: 0 999px 999px 0;
+  }
+
+  .admin-legend {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .admin-legend-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    color: var(--suar-ink-56);
+    font-size: 13px;
+    font-weight: 800;
+  }
+
+  .admin-legend-row span:nth-child(2) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-legend-row strong {
+    color: var(--suar-black);
+    white-space: nowrap;
+  }
+
+  .admin-dot {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(22, 19, 15, .18);
+    border-radius: 999px;
+    background: var(--dot-color);
+  }
+
+  @keyframes admin-reveal {
+    from {
+      transform: scaleX(0);
+    }
+  }
+</style>

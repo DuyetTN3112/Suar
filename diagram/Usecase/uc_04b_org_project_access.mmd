@@ -1,5 +1,5 @@
 %% uc_04b_org_project_access.mmd — Organization & Project Access
-%% Updated 2026-05-18.
+%% Updated 2026-06-16.
 %% Mermaid approximation of a UML use case diagram.
 
 flowchart LR
@@ -9,12 +9,17 @@ flowchart LR
     projectManager["<<actor>> Project Manager"]
     projectMember["<<actor>> Project Member"]
     projectViewer["<<actor>> Project Viewer"]
+    userWorkspaceMember["<<actor>> User Workspace Member"]
 
     subgraph system["Organization & Project Access"]
         orgSettings([Manage org settings])
         orgMembers([Manage org members and requests])
         orgWorkflow([Customize task workflow])
-        orgProjects([List and create org projects])
+        userProjects([View my current-org projects])
+        switchOrg([Switch current organization])
+        orgProjects([List, search, and create org projects])
+        sharedProjectDetail([Open shared project detail])
+        projectMutations([Edit, delete, and add members])
         taskWorkspace([Manage tasks and assignments])
         taskReadOnly([View task boards and detail])
     end
@@ -29,9 +34,19 @@ flowchart LR
     orgAdmin --> orgWorkflow
     orgAdmin --> orgProjects
 
+    userWorkspaceMember --> userProjects
+    userWorkspaceMember --> switchOrg
+    userWorkspaceMember --> sharedProjectDetail
+
+    orgProjects --> sharedProjectDetail
+    sharedProjectDetail --> projectMutations
+
+    projectOwner --> projectMutations
     projectOwner --> taskWorkspace
+    projectManager --> projectMutations
     projectManager --> taskWorkspace
     projectMember --> taskWorkspace
+    projectMember --> sharedProjectDetail
     projectMember --> taskReadOnly
     projectViewer --> taskReadOnly
 
@@ -42,5 +57,5 @@ flowchart LR
 
     classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
-    class orgOwner,orgAdmin,projectOwner,projectManager,projectMember,projectViewer actor
-    class orgSettings,orgMembers,orgWorkflow,orgProjects,taskWorkspace,taskReadOnly usecase
+    class orgOwner,orgAdmin,projectOwner,projectManager,projectMember,projectViewer,userWorkspaceMember actor
+    class orgSettings,orgMembers,orgWorkflow,userProjects,switchOrg,orgProjects,sharedProjectDetail,projectMutations,taskWorkspace,taskReadOnly usecase
