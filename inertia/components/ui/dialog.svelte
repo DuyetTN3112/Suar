@@ -1,30 +1,55 @@
-<!--
-  Dialog Component - Svelte 5
-
-  Port từ shadcn/ui React dialog.
-  Uses Bits UI Dialog primitive.
--->
-
-<script lang="ts" module>
-  export { default as Dialog } from './dialog.svelte'
-  export { default as DialogTrigger } from './dialog_trigger.svelte'
-  export { default as DialogContent } from './dialog_content.svelte'
-  export { default as DialogHeader } from './dialog_header.svelte'
-  export { default as DialogFooter } from './dialog_footer.svelte'
-  export { default as DialogTitle } from './dialog_title.svelte'
-  export { default as DialogDescription } from './dialog_description.svelte'
-  export { default as DialogClose } from './dialog_close.svelte'
-</script>
-
 <script lang="ts">
-  import { Dialog as DialogPrimitive } from 'bits-ui'
-  export let open = false
-  export let onOpenChange: ((open: boolean) => void) | undefined = undefined
+  import { setContext } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
+
+  import { cn } from "$lib/utils-svelte"
+
+  type Props = HTMLAttributes<HTMLDivElement> & {
+    class?: string
+    children?: Snippet
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+  }
+
+  let { open = $bindable(false), ...props }: Props = $props()
+
+  const getRestProps = () => {
+    const { class: _className, children: _children, onOpenChange: _onOpenChange, ...restProps } = props
+    return restProps
+  }
+
+  const dialogState = $state({
+    contentClass: ''
+  })
+  setContext('dialog', dialogState)
 </script>
 
-<DialogPrimitive.Root
-  bind:open
-  {onOpenChange}
+{#if open}
+<div
+  class="fixed inset-0 z-50 bg-black/40"
+  data-state="open"
+  onclick={() => { open = false; props.onOpenChange?.(false) }}
+  onkeydown={(event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      open = false
+      props.onOpenChange?.(false)
+    }
+  }}
+  role="button"
+  tabindex="0"
 >
-  <slot></slot>
-</DialogPrimitive.Root>
+  <div
+    class={cn(
+      "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-background p-6 shadow-strong duration-200 sm:rounded-lg",
+      dialogState.contentClass,
+      props.class
+    )}
+    onclick={(e) => { e.stopPropagation(); }}
+    {...getRestProps()}
+  >
+    {@render props.children?.()}
+  </div>
+</div>
+{/if}

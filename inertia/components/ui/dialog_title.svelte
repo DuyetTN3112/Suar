@@ -1,25 +1,12 @@
-<!--
-  DialogTitle Component - Svelte 5
--->
-
 <script lang="ts">
-  import { Dialog as DialogPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  interface Props {
-    class?: string
-    children?: Snippet
-  }
-
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLHeadingElement> & { class?: string; children?: Snippet }
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<DialogPrimitive.Title
-  data-slot="dialog-title"
-  class={cn('text-lg leading-none font-semibold', className)}
-  {...restProps}
->
+<h2 class={cn("text-lg font-semibold leading-none tracking-tight", className)} {...restProps}>
   {@render children?.()}
-</DialogPrimitive.Title>
+</h2>

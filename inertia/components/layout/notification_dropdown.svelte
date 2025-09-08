@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { Link, router } from '@inertiajs/svelte'
   import { format } from 'date-fns'
   import { vi } from 'date-fns/locale'
   import { Bell, Check, Trash2 } from 'lucide-svelte'
@@ -6,7 +7,6 @@
   import Button from '@/components/ui/button.svelte'
   import DropdownMenu from '@/components/ui/dropdown_menu.svelte'
   import DropdownMenuContent from '@/components/ui/dropdown_menu_content.svelte'
-  import DropdownMenuGroup from '@/components/ui/dropdown_menu_group.svelte'
   import DropdownMenuItem from '@/components/ui/dropdown_menu_item.svelte'
   import DropdownMenuLabel from '@/components/ui/dropdown_menu_label.svelte'
   import DropdownMenuSeparator from '@/components/ui/dropdown_menu_separator.svelte'
@@ -73,6 +73,36 @@
       return t('common.unknown_time', {}, 'Không xác định')
     }
   }
+
+  function getNotificationUrl(notification: typeof notificationState.notifications[number]): string | null {
+    const entityType = notification.related_entity_type
+    const entityId = notification.related_entity_id
+
+    if (entityType === 'task' && entityId) {
+      return `/tasks/${entityId}`
+    }
+    if (entityType === 'project' && entityId) {
+      return `/projects/${entityId}`
+    }
+    if (entityType === 'organization' && entityId) {
+      return `/organizations`
+    }
+    if (notification.type.startsWith('task') && entityId) {
+      return `/tasks/${entityId}`
+    }
+    return null
+  }
+
+  function handleNotificationClick(notification: typeof notificationState.notifications[number]) {
+    if (!notification.is_read) {
+      void notificationState.markAsRead(notification.id)
+    }
+    const url = getNotificationUrl(notification)
+    if (url) {
+      open = false
+      router.visit(url)
+    }
+  }
 </script>
 
 <DropdownMenu
@@ -92,8 +122,8 @@
       {/if}
     </div>
   </DropdownMenuTrigger>
-  <DropdownMenuContent class="w-80" align="end">
-    <DropdownMenuLabel class="flex items-center justify-between">
+  <DropdownMenuContent class="w-80 max-h-[480px] flex flex-col p-0 overflow-hidden" align="end">
+    <DropdownMenuLabel class="flex items-center justify-between p-4 pb-2">
       <span>{t('notifications.title', {}, 'Thông báo')}</span>
       {#if notificationState.unreadCount > 0}
         <span class="bg-primary text-primary-foreground text-xs font-medium px-2 py-1 rounded-full">
@@ -104,78 +134,85 @@
 
     <DropdownMenuSeparator />
 
-    {#if notificationState.loading}
-      <DropdownMenuItem class="flex items-center justify-center py-6">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-      </DropdownMenuItem>
-    {:else if notificationState.error}
-      <DropdownMenuItem class="py-4 text-center text-destructive">
-        {notificationState.error}
-      </DropdownMenuItem>
-    {:else if notificationState.notifications.length === 0}
-      <DropdownMenuItem class="py-6 text-center text-muted-foreground">
-        {t('notifications.no_notifications', {}, 'Không có thông báo nào')}
-      </DropdownMenuItem>
-    {:else}
-      <DropdownMenuGroup class="max-h-96 overflow-y-auto">
-        {#each notificationState.notifications as notification}
-          <DropdownMenuItem
-            class="flex flex-col items-start p-4 focus:bg-muted/50 {notification.is_read ? 'bg-muted/50' : 'bg-background'}"
-          >
-            <div class="w-full">
-              <div class="flex justify-between items-start">
-                <div class="flex-1">
-                  <!-- Hiển thị nội dung thông báo -->
-                  {#if notification.type === FRONTEND_NOTIFICATION_TYPES.TASK_OVERDUE}
-                    <div>
-                      <p class="font-medium text-red-500">{notification.title || t('notifications.no_title', {}, 'Không có tiêu đề')}</p>
-                      <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'Không có nội dung')}</p>
-                    </div>
-                  {:else}
-                    <div>
-                      <p class="font-medium">{notification.title || t('notifications.no_title', {}, 'Không có tiêu đề')}</p>
-                      <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'Không có nội dung')}</p>
-                    </div>
-                  {/if}
-                </div>
-                <div class="flex gap-1 ml-2">
-                  {#if !notification.is_read}
+    <!-- Scrollable Notification List Container -->
+    <div class="flex-1 overflow-y-auto max-h-[280px]">
+      {#if notificationState.loading}
+        <div class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+        </div>
+      {:else if notificationState.error}
+        <div class="py-6 text-center text-destructive text-sm px-4">
+          {notificationState.error}
+        </div>
+      {:else if notificationState.notifications.length === 0}
+        <div class="py-8 text-center text-muted-foreground text-sm px-4">
+          {t('notifications.no_notifications', {}, 'Không có thông báo nào')}
+        </div>
+      {:else}
+        <div class="divide-y divide-border/40">
+          {#each notificationState.notifications as notification}
+            <DropdownMenuItem
+              class="flex flex-col items-start p-4 cursor-pointer focus:bg-muted/50 {notification.is_read ? 'bg-muted/50' : 'bg-background'}"
+              onclick={() => { handleNotificationClick(notification) }}
+            >
+              <div class="w-full">
+                <div class="flex justify-between items-start">
+                  <div class="flex-1">
+                    <!-- Hiển thị nội dung thông báo -->
+                    {#if notification.type === FRONTEND_NOTIFICATION_TYPES.TASK_OVERDUE}
+                      <div>
+                        <p class="font-medium text-red-500">{notification.title || t('notifications.no_title', {}, 'Không có tiêu đề')}</p>
+                        <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'Không có nội dung')}</p>
+                      </div>
+                    {:else}
+                      <div>
+                        <p class="font-medium">{notification.title || t('notifications.no_title', {}, 'Không có tiêu đề')}</p>
+                        <p class="text-sm text-muted-foreground mt-1">{notification.message || t('notifications.no_message', {}, 'Không có nội dung')}</p>
+                      </div>
+                    {/if}
+                  </div>
+                  <div class="flex gap-1 ml-2">
+                    {#if !notification.is_read}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        class="h-6 w-6"
+                        onclick={(e: MouseEvent) => {
+                          e.stopPropagation()
+                          void notificationState.markAsRead(notification.id)
+                        }}
+                      >
+                        <Check class="h-3 w-3" />
+                      </Button>
+                    {/if}
                     <Button
                       variant="ghost"
                       size="icon"
                       class="h-6 w-6"
                       onclick={(e: MouseEvent) => {
                         e.stopPropagation()
-                        void notificationState.markAsRead(notification.id)
+                        void notificationState.deleteNotification(notification.id)
                       }}
                     >
-                      <Check class="h-3 w-3" />
+                      <Trash2 class="h-3 w-3" />
                     </Button>
-                  {/if}
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="h-6 w-6"
-                    onclick={(e: MouseEvent) => {
-                      e.stopPropagation()
-                      void notificationState.deleteNotification(notification.id)
-                    }}
-                  >
-                    <Trash2 class="h-3 w-3" />
-                  </Button>
+                  </div>
+                </div>
+                <div class="text-xs text-muted-foreground mt-2">
+                  {formatTime(notification.created_at)}
                 </div>
               </div>
-              <div class="text-xs text-muted-foreground mt-2">
-                {formatTime(notification.created_at)}
-              </div>
-            </div>
-          </DropdownMenuItem>
-        {/each}
-      </DropdownMenuGroup>
+            </DropdownMenuItem>
+          {/each}
+        </div>
+      {/if}
+    </div>
 
+    <!-- Actions / View All Footer (always visible unless loading or error) -->
+    {#if !notificationState.loading && !notificationState.error}
       <DropdownMenuSeparator />
 
-      <div class="flex justify-between p-2">
+      <div class="flex justify-between p-2 bg-muted/10">
         <Button
           variant="ghost"
           size="sm"
@@ -197,6 +234,17 @@
         >
           {t('common.refresh', {}, 'Làm mới')}
         </Button>
+      </div>
+
+      <DropdownMenuSeparator />
+      <div class="p-2 text-center bg-accent/40 border-t border-border">
+        <Link
+          href="/notifications"
+          class="inline-flex w-full items-center justify-center text-xs font-bold text-primary hover:underline py-1.5"
+          onclick={() => { open = false }}
+        >
+          {t('notifications.view_all', {}, 'Xem tất cả thông báo')} →
+        </Link>
       </div>
     {/if}
   </DropdownMenuContent>
