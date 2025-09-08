@@ -5,7 +5,7 @@ import type { CommandOptions } from '@adonisjs/core/types/ace'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { seedMongo, logSummary } from '../app/seed/demo_data/mongo_seed.js'
+import { seedOperationalEvents, logSummary } from '../app/seed/demo_data/mongo_seed.js'
 import {
   seedOrganizations,
   seedOrganizationMemberships,
@@ -20,11 +20,14 @@ import {
   applyWhere,
   findRow,
   resetPostgres,
-  resetMongo,
-  ensureMongoConnection,
   closeSeedConnections,
 } from '../app/seed/demo_data/seed_utils.js'
-import { seedSkills } from '../app/seed/demo_data/skill_seeder.js'
+import {
+  seedSkills,
+  seedProfessionalRoleTemplates,
+  seedProjectSkillCatalog,
+  seedProjectProfessionalRoles,
+} from '../app/seed/demo_data/skill_seeder.js'
 import {
   seedTasks,
   seedTaskAssignments,
@@ -32,11 +35,7 @@ import {
   seedTaskRequiredSkills,
 } from '../app/seed/demo_data/task_seeder.js'
 import { seedTaskStatuses } from '../app/seed/demo_data/task_status_seeder.js'
-import type {
-  SeedContext,
-  SeedRow,
-  SeedWhereValue,
-} from '../app/seed/demo_data/types.js'
+import type { SeedContext, SeedRow, SeedWhereValue } from '../app/seed/demo_data/types.js'
 import { seedUsers, seedUserOAuthProviders } from '../app/seed/demo_data/user_seeder.js'
 import { seedUserSkills } from '../app/seed/demo_data/user_skill_seeder.js'
 import { seedUserSubscriptions } from '../app/seed/demo_data/user_subscription_seeder.js'
@@ -114,10 +113,7 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
     return findRow<T>(trx, table, where)
   }
 
-  applyWhere(
-    query: SeedQuery,
-    where: Record<string, SeedWhereValue>
-  ): SeedQuery {
+  applyWhere(query: SeedQuery, where: Record<string, SeedWhereValue>): SeedQuery {
     return applyWhere(query, where)
   }
 
@@ -152,11 +148,23 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
       }
 
       const skills = await seedSkills(this, trx)
+
+      const dbLevels = (await trx.from('proficiency_levels').select('id', 'code')) as {
+        id: string
+        code: string
+      }[]
+      const levelMap: Record<string, string> = {}
+      for (const level of dbLevels) {
+        levelMap[level.code] = level.id
+      }
+      await seedProfessionalRoleTemplates(this, trx, skills, levelMap)
       const users = await seedUsers(this, trx)
       await seedUserOAuthProviders(this, trx, users)
       const organizations = await seedOrganizations(this, trx, users)
       await seedOrganizationMemberships(this, trx, users, organizations)
       const projects = await seedProjects(this, trx, users, organizations)
+      const projectSkills = await seedProjectSkillCatalog(this, trx, users, projects, skills)
+      await seedProjectProfessionalRoles(this, trx, users, projects, projectSkills, levelMap)
       await seedProjectMembers(this, trx, users, projects)
       const statuses = await seedTaskStatuses(this, trx, organizations)
       const tasks = await seedTasks(this, trx, users, projects, organizations, statuses)
@@ -180,15 +188,8 @@ export default class SeedData extends BaseCommand implements SeedRuntime {
       }
     })
 
-    await ensureMongoConnection()
-
-    if (this.fresh) {
-      this.logger.warning('Clearing MongoDB seed scope...')
-      await resetMongo()
-    }
-
     context = await seedProfileAggregates(this, context)
-    await seedMongo(this, context)
+    await seedOperationalEvents(this, context)
     await logSummary(context)
 
     this.seedCompleted = true

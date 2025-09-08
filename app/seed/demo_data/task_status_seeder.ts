@@ -3,46 +3,43 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { SeedRuntime } from './seed_runtime.js'
 import type { OrgKey, SeededOrg, StatusSlug } from './types.js'
 
+export const SEED_TASK_STATUS_DEFINITIONS = [
+  { slug: 'todo', name: 'To Do', category: 'todo', color: '#94A3B8', sort: 0 },
+  {
+    slug: 'in_progress',
+    name: 'In Progress',
+    category: 'in_progress',
+    color: '#3B82F6',
+    sort: 1,
+  },
+  {
+    slug: 'in_review',
+    name: 'In Review',
+    category: 'in_progress',
+    color: '#F59E0B',
+    sort: 2,
+  },
+  { slug: 'done', name: 'Done', category: 'done', color: '#10B981', sort: 3 },
+  { slug: 'cancelled', name: 'Cancelled', category: 'cancelled', color: '#64748B', sort: 4 },
+] as const
+
+export const SEED_TASK_WORKFLOW_TRANSITIONS = SEED_TASK_STATUS_DEFINITIONS.flatMap((from) =>
+  SEED_TASK_STATUS_DEFINITIONS.filter((to) => to.slug !== from.slug).map(
+    (to) => [from.slug, to.slug] as [StatusSlug, StatusSlug]
+  )
+)
+
 export async function seedTaskStatuses(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
   organizations: Record<OrgKey, SeededOrg>
 ): Promise<Record<OrgKey, Record<StatusSlug, string>>> {
-  const definitions = [
-    { slug: 'todo', name: 'Backlog', category: 'todo', color: '#94A3B8', sort: 0 },
-    {
-      slug: 'in_progress',
-      name: 'In Progress',
-      category: 'in_progress',
-      color: '#3B82F6',
-      sort: 1,
-    },
-    {
-      slug: 'in_review',
-      name: 'Ready for Review',
-      category: 'in_progress',
-      color: '#F59E0B',
-      sort: 2,
-    },
-    { slug: 'done', name: 'Done', category: 'done', color: '#10B981', sort: 3 },
-    { slug: 'cancelled', name: 'Cancelled', category: 'cancelled', color: '#64748B', sort: 4 },
-  ] as const
-
-  const transitions: [StatusSlug, StatusSlug][] = [
-    ['todo', 'in_progress'],
-    ['in_progress', 'in_review'],
-    ['in_review', 'done'],
-    ['in_progress', 'cancelled'],
-    ['todo', 'cancelled'],
-    ['in_review', 'in_progress'],
-  ]
-
   const result: Partial<Record<OrgKey, Record<StatusSlug, string>>> = {}
 
   for (const [orgKey, org] of Object.entries(organizations) as [OrgKey, SeededOrg][]) {
     const statusMap: Partial<Record<StatusSlug, string>> = {}
 
-    for (const def of definitions) {
+    for (const def of SEED_TASK_STATUS_DEFINITIONS) {
       const existing = (await trx
         .from('task_statuses')
         .where('organization_id', org.id)
@@ -79,7 +76,7 @@ export async function seedTaskStatuses(
 
     await trx.from('task_workflow_transitions').where('organization_id', org.id).delete()
 
-    for (const [from, to] of transitions) {
+    for (const [from, to] of SEED_TASK_WORKFLOW_TRANSITIONS) {
       const fromId = statusMap[from]
       const toId = statusMap[to]
       if (!fromId || !toId) {
@@ -93,9 +90,7 @@ export async function seedTaskStatuses(
           organization_id: org.id,
           from_status_id: fromId,
           to_status_id: toId,
-          conditions: runtime.toJson(
-            from === 'todo' && to === 'in_progress' ? { requires_assignee: true } : {}
-          ),
+          conditions: runtime.toJson({}),
           created_at: runtime.isoDaysAgo(15),
         })
     }

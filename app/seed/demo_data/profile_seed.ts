@@ -100,8 +100,8 @@ async function seedUserWorkHistory(
           }))
         ),
         evidence_links: runtime.toJson(row.evidenceLinks),
-        is_featured: false,
-        is_public: false,
+        is_featured: 'isFeatured' in row ? row.isFeatured : false,
+        is_public: 'isPublic' in row ? row.isPublic : false,
         completed_at: runtime.isoDaysAgo(spec.assignmentCompletedDaysAgo ?? 0),
         created_at: runtime.isoDaysAgo(0),
         updated_at: runtime.isoDaysAgo(0),
