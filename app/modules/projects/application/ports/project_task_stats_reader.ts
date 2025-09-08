@@ -5,6 +5,7 @@ export interface ProjectTaskStats {
   totalTasks: number
   incompleteTasks: number
   completedTasks: number
+  pendingReviewSessions: number
 }
 
 export interface ProjectTaskStatsReader {

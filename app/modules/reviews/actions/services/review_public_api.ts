@@ -8,6 +8,13 @@ export class ReviewPublicApi {
     return ReviewSessionRepository.hasAnyForTask(taskId, trx)
   }
 
+  async countPendingForProject(
+    projectId: string,
+    trx?: TransactionClientContract
+  ): Promise<number> {
+    return ReviewSessionRepository.countPendingForProject(projectId, trx)
+  }
+
   async hasAnyForTasksWithStatus(
     taskStatusId: string,
     trx?: TransactionClientContract

@@ -36,6 +36,13 @@ export class SubmitSkillReviewDTO {
     skill_id: string
     assigned_level_code: string
     comment?: string
+    insufficient_evidence?: boolean
+    observed_level_id?: string | null
+    rubric_version_id?: string | null
+    confidence?: 'low' | 'medium' | 'high' | null
+    rationale?: string | null
+    observable_behaviors?: string[]
+    evidence_ids?: string[]
   }[]
   declare quality_metrics: {
     overall_quality_score: number | null

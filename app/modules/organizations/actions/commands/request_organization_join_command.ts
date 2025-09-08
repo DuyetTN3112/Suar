@@ -1,3 +1,5 @@
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
 import CreateJoinRequestCommand from './create_join_request_command.js'
 
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
@@ -20,6 +22,11 @@ export default class RequestOrganizationJoinCommand {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
+    }
+
+    const actorIsActive = await DefaultOrganizationDependencies.user.isActiveUser(userId)
+    if (!actorIsActive) {
+      throw new BusinessLogicException('Tài khoản không active nên không thể gửi yêu cầu tham gia')
     }
 
     const eligibility = await CheckJoinEligibilityQuery.execute(organizationId, userId)

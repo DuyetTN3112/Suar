@@ -56,6 +56,8 @@ export interface ProjectDeletionContext {
   projectCreatorId: string
   /** Number of incomplete (non-done, non-cancelled) tasks */
   incompleteTaskCount: number
+  /** Number of pending or in-progress review sessions tied to tasks in this project */
+  pendingReviewSessionCount: number
 }
 
 /**

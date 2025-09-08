@@ -12,7 +12,7 @@ const ORG_TASKS_DEFAULT_LIMIT = 10
  */
 export default class ListTasksController {
   async handle(ctx: HttpContext) {
-    const { request, inertia, auth } = ctx
+    const { request, inertia, auth, session } = ctx
     const user = auth.user
 
     if (!user) {
@@ -24,13 +24,14 @@ export default class ListTasksController {
       return inertia.render('org/no_org', {})
     }
 
+    const pageInput = buildCurrentOrganizationTasksIndexPageInput(request, organizationId, ORG_TASKS_DEFAULT_LIMIT)
+    pageInput.requested_project_id ??= session.get('current_project_id') as string | undefined
+
     const pageData = await new GetOrganizationTasksIndexPageQuery(
       actionContextFromHttp(ctx)
-    ).execute(
-      buildCurrentOrganizationTasksIndexPageInput(request, organizationId, ORG_TASKS_DEFAULT_LIMIT)
-    )
+    ).execute(pageInput)
 
-    return await inertia.render('tasks/index', {
+    return inertia.render('tasks/index', {
       shellMode: 'organization',
       baseRoute: '/org/tasks',
       ...pageData,

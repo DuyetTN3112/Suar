@@ -133,6 +133,14 @@ export default class CreateProjectCommand extends BaseCommand<
       name: result.name,
     })
 
+    // Invalidate task metadata cache to reflect the new project on task forms immediately
+    try {
+      const { cacheStore } = await import('#modules/cache/public_contracts/cache_store')
+      await cacheStore.delete(`task:metadata:v2:org:${result.organization_id}`)
+    } catch (_error) {
+      // ignore
+    }
+
     return result
   }
 

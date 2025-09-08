@@ -4,7 +4,7 @@ export const SEED_USER_DOMAIN_EXPERTISE_ROWS = [
     techStackFrequency: {
       AdonisJS: 1,
       Browser: 1,
-      MongoDB: 1,
+      Redis: 1,
       PostgreSQL: 2,
       Svelte: 2,
       TypeScript: 1,
@@ -24,6 +24,7 @@ export const SEED_USER_DOMAIN_EXPERTISE_ROWS = [
       automation: 1,
       maintainability: 1,
       new_capability: 1,
+      compliance: 1,
     },
     topSkills: [
       { skill_name: 'Leadership', weighted_score: 1, review_mentions: 1 },
@@ -37,7 +38,7 @@ export const SEED_USER_DOMAIN_EXPERTISE_ROWS = [
     userKey: 'member',
     techStackFrequency: {
       Svelte: 3,
-      MongoDB: 1,
+      Redis: 1,
       AdonisJS: 1,
       PostgreSQL: 2,
       Documentation: 1,

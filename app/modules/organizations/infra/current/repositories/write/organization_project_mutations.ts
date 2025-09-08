@@ -1,4 +1,4 @@
-import Project from '#modules/projects/infra/models/project'
+import Project from '../../../../../projects/infra/models/project.js'
 
 export interface CreateProjectData {
   name: string

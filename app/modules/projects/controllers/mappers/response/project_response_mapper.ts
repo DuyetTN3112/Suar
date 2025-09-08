@@ -53,3 +53,22 @@ export function mapDeleteProjectApiBody(message: string) {
 export function mapOrganizationProjectsPageProps<T extends object>(result: T): T {
   return result
 }
+
+interface ProjectDetailPageOptions {
+  shellMode?: 'app' | 'organization'
+  baseRoute?: string
+}
+
+export function mapScopedProjectDetailPageProps<T extends object>(
+  result: T,
+  options?: ProjectDetailPageOptions
+): T & {
+  shellMode: 'app' | 'organization'
+  baseRoute: string
+} {
+  return {
+    ...result,
+    shellMode: options?.shellMode ?? 'app',
+    baseRoute: options?.baseRoute ?? '/projects',
+  }
+}

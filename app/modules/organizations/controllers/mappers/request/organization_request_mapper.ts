@@ -3,9 +3,11 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
 import { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
 import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
+import { DeleteOrganizationDTO } from '#modules/organizations/actions/dtos/request/delete_organization_dto'
 import { GetOrganizationsListDTO } from '#modules/organizations/actions/dtos/request/get_organizations_list_dto'
 import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
 import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
+import { UpdateOrganizationDTO } from '#modules/organizations/actions/dtos/request/update_organization_dto'
 import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import { processJoinRequestValidator } from '#modules/organizations/validators/organization'
@@ -15,6 +17,19 @@ const VALID_SORT_BY = new Set(['created_at', 'name', 'updated_at'])
 
 function toOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function toBoolean(value: unknown, fallback = false): boolean {
+  if (typeof value === 'boolean') {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    if (value === 'true') return true
+    if (value === 'false') return false
+  }
+
+  return fallback
 }
 
 function toPositiveNumber(value: unknown, fallback: number): number {
@@ -80,6 +95,31 @@ export function buildCreateOrganizationDTO(request: HttpContext['request']): Cre
     toOptionalString(request.input('description') as unknown),
     toOptionalString(request.input('logo') as unknown),
     toOptionalString(request.input('website') as unknown)
+  )
+}
+
+export function buildUpdateOrganizationDTO(
+  request: HttpContext['request'],
+  organizationId: string
+): UpdateOrganizationDTO {
+  return new UpdateOrganizationDTO(
+    organizationId,
+    toOptionalString(request.input('name') as unknown),
+    toOptionalString(request.input('slug') as unknown),
+    toOptionalString(request.input('description') as unknown),
+    toOptionalString(request.input('logo') as unknown),
+    toOptionalString(request.input('website') as unknown)
+  )
+}
+
+export function buildDeleteOrganizationDTO(
+  request: HttpContext['request'],
+  organizationId: string
+): DeleteOrganizationDTO {
+  return new DeleteOrganizationDTO(
+    organizationId,
+    toBoolean(request.input('permanent', false) as unknown),
+    toOptionalString(request.input('reason') as unknown)
   )
 }
 

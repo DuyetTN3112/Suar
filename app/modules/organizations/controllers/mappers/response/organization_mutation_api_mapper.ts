@@ -15,3 +15,10 @@ export function mapOrganizationSuccessApiBody(
 ) {
   return mapOrganizationMutationApiBody(message, extra)
 }
+
+export function mapOrganizationDetailApiBody<T extends object>(data: T) {
+  return {
+    success: true,
+    data,
+  }
+}

@@ -4,7 +4,7 @@ import type { ProjectActionContext } from '#modules/projects/actions/project_act
 
 export interface GetProjectCreatePageResult {
   organizations: Awaited<ReturnType<typeof organizationPublicApi.listUserOwnedOrganizations>>
-  statuses: { id: string; name: string }[]
+  statuses: { id: string; name: string; value: string; label: string }[]
 }
 
 export default class GetProjectCreatePageQuery {
@@ -18,9 +18,16 @@ export default class GetProjectCreatePageQuery {
 
     const organizations = await organizationPublicApi.listUserOwnedOrganizations(userId)
 
+    const statuses = [
+      { id: 'pending', name: 'Pending', value: 'pending', label: 'Chờ duyệt' },
+      { id: 'in_progress', name: 'In Progress', value: 'in_progress', label: 'Đang thực hiện' },
+      { id: 'completed', name: 'Completed', value: 'completed', label: 'Hoàn thành' },
+      { id: 'cancelled', name: 'Cancelled', value: 'cancelled', label: 'Đã hủy' },
+    ]
+
     return {
       organizations,
-      statuses: [],
+      statuses,
     }
   }
 }

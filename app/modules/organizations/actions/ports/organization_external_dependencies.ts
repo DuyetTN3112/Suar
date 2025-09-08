@@ -38,6 +38,8 @@ export interface OrganizationUserReaderWriter {
 
   isActiveUser(userId: string, trx?: TransactionClientContract): Promise<boolean>
 
+  isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean>
+
   updateCurrentOrganization(
     userId: string,
     organizationId: string | null,
