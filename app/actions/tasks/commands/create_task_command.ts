@@ -1,23 +1,24 @@
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
 
-import CreateNotification from '#actions/common/create_notification'
-import { BaseCommand } from '#actions/shared/base_command'
+import { notificationPublicApi, type NotificationCreator } from '#actions/notifications/public_api'
+import { BaseCommand } from '#actions/tasks/base_command'
+import type { TaskDetailQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
 import { persistTaskCreateWithinTransaction } from '#actions/tasks/support/task_create_persistence_support'
 import { runTaskCreatedPostCommitEffects } from '#actions/tasks/support/task_create_post_commit'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
+import { taskDetailQueryRepository } from '#infra/tasks/repositories/read/task_detail_query_repository'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskDetailRecord } from '#types/task_records'
 
 interface CreateTaskCommandDependencies {
   persistTaskCreateWithinTransaction: typeof persistTaskCreateWithinTransaction
   runTaskCreatedPostCommitEffects: typeof runTaskCreatedPostCommitEffects
-  taskRepository: Pick<typeof TaskRepository, 'findByIdWithDetailRelations'>
+  taskRepository: TaskDetailQueryRepositoryPort
 }
 
 const defaultDependencies: CreateTaskCommandDependencies = {
   persistTaskCreateWithinTransaction,
   runTaskCreatedPostCommitEffects,
-  taskRepository: TaskRepository,
+  taskRepository: taskDetailQueryRepository,
 }
 
 /**
@@ -35,10 +36,10 @@ const defaultDependencies: CreateTaskCommandDependencies = {
  * - User phải thuộc organization
  * - Có thể thêm permission check (admin/member) nếu cần
  */
-export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, Task> {
+export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, TaskDetailRecord> {
   constructor(
     execCtx: ExecutionContext,
-    private createNotification: CreateNotification = new CreateNotification(),
+    private createNotification: NotificationCreator = notificationPublicApi,
     private dependencies: CreateTaskCommandDependencies = defaultDependencies
   ) {
     super(execCtx)
@@ -55,7 +56,7 @@ export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, Task> 
    * 5. Validate status/label/priority exists
    * 6. Validate due_date not past
    */
-  async handle(dto: CreateTaskDTO): Promise<Task> {
+  async handle(dto: CreateTaskDTO): Promise<TaskDetailRecord> {
     const userId = this.getCurrentUserId()
     const newTask = await this.executeInTransaction((trx) =>
       this.dependencies.persistTaskCreateWithinTransaction({
@@ -71,10 +72,10 @@ export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, Task> 
       userId,
       this.createNotification
     )
-    return await this.dependencies.taskRepository.findByIdWithDetailRelations(newTask.id)
+    return await this.dependencies.taskRepository.findByIdWithDetailRecord(newTask.id)
   }
 
-  async execute(dto: CreateTaskDTO): Promise<Task> {
+  async execute(dto: CreateTaskDTO): Promise<TaskDetailRecord> {
     return await this.handle(dto)
   }
 }
