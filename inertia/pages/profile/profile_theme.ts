@@ -3,32 +3,52 @@ interface ProfileGroupStyle {
   badgeClass: string
   dotClass: string
   textClass: string
+  surfaceClass: string
+  borderClass: string
+  strokeColor: string
+  fillColor: string
 }
 
 const PROFILE_GROUP_STYLES: Record<string, ProfileGroupStyle> = {
   technical: {
     title: 'Kỹ thuật (Technical)',
-    badgeClass: 'neo-pill-magenta',
-    dotClass: 'neo-dot-magenta',
-    textClass: 'neo-text-magenta',
+    badgeClass: 'border border-black bg-black text-white shadow-[3px_3px_0_#ff7a1a]',
+    dotClass: 'rounded-full bg-orange',
+    textClass: 'text-foreground',
+    surfaceClass: 'bg-white',
+    borderClass: 'border-border',
+    strokeColor: '#ff7a1a',
+    fillColor: 'rgba(255, 122, 26, 0.14)',
   },
   soft_skill: {
     title: 'Kỹ năng mềm (Soft Skills)',
-    badgeClass: 'neo-pill-blue',
-    dotClass: 'neo-dot-blue',
-    textClass: 'neo-text-blue',
+    badgeClass: 'border border-black bg-accent text-foreground',
+    dotClass: 'rounded-full bg-black',
+    textClass: 'text-foreground',
+    surfaceClass: 'bg-[color-mix(in_srgb,var(--color-orange)_4%,white)]',
+    borderClass: 'border-border',
+    strokeColor: '#ff7a1a',
+    fillColor: 'rgba(255, 122, 26, 0.12)',
   },
   delivery: {
     title: 'Delivery',
-    badgeClass: 'neo-pill-orange',
-    dotClass: 'neo-dot-orange',
-    textClass: 'neo-text-orange',
+    badgeClass: 'border border-black bg-white text-foreground',
+    dotClass: 'rounded-full bg-orange',
+    textClass: 'text-foreground',
+    surfaceClass: 'bg-[color-mix(in_srgb,var(--color-black)_2%,white)]',
+    borderClass: 'border-border',
+    strokeColor: '#ff7a1a',
+    fillColor: 'rgba(255, 122, 26, 0.10)',
   },
   other: {
     title: 'Khác',
-    badgeClass: 'neo-pill-ink',
-    dotClass: 'neo-dot-ink',
-    textClass: 'neo-text-ink',
+    badgeClass: 'rounded-full px-3 py-1 text-xs font-medium bg-black text-white',
+    dotClass: 'rounded-full bg-black',
+    textClass: 'text-foreground',
+    surfaceClass: 'bg-white',
+    borderClass: 'border-border',
+    strokeColor: '#18181b',
+    fillColor: 'rgba(24, 24, 27, 0.14)',
   },
 }
 
@@ -70,26 +90,26 @@ export function getProfileLevelClass(levelCode?: string | null): string {
   const code = normalizeLevelCode(levelCode)
 
   if (code.includes('begin')) {
-    return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100'
+    return 'bg-background text-foreground'
   }
   if (code.includes('jun')) {
-    return 'bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-100'
+    return 'bg-accent text-foreground'
   }
   if (code.includes('mid')) {
-    return 'bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-100'
+    return 'bg-[color-mix(in_srgb,var(--color-orange)_10%,white)] text-foreground'
   }
   if (code.includes('sen')) {
-    return 'bg-fuchsia-100 text-fuchsia-900 dark:bg-fuchsia-950/60 dark:text-fuchsia-100'
+    return 'bg-black text-white'
   }
   if (code.includes('lead')) {
-    return 'bg-black text-white dark:bg-white dark:text-black'
+    return 'bg-black text-white shadow-[3px_3px_0_#ff7a1a]'
   }
   if (code.includes('prin')) {
-    return 'bg-rose-100 text-rose-900 dark:bg-rose-950/60 dark:text-rose-100'
+    return 'bg-white text-foreground ring-1 ring-black'
   }
   if (code.includes('mas')) {
-    return 'bg-orange-500 text-white dark:bg-orange-500 dark:text-white'
+    return 'bg-orange text-black'
   }
 
-  return 'bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-100'
+  return 'bg-background text-foreground'
 }

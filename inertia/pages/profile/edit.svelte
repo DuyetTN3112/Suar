@@ -14,7 +14,8 @@
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import AddSkillModal from './components/add_skill_modal.svelte'
@@ -25,6 +26,8 @@
   import type { ProfileEditProps, UserSkillResult } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     user: ProfileEditProps['user']
     completeness: ProfileEditProps['completeness']
     availableSkills: ProfileEditProps['availableSkills']
@@ -33,6 +36,8 @@
   }
 
   const { user, completeness, availableSkills, proficiencyLevels, userSkills }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
   void page
 
@@ -100,16 +105,16 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-6 max-w-4xl mx-auto">
     <!-- Flash messages -->
     {#if flash?.success}
-      <div class="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
+      <div class="rounded-lg border border-blue-200 bg-ink-04 px-4 py-3 text-sm text-foreground dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200">
         {flash.success}
       </div>
     {/if}
     {#if flash?.error}
-      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+      <div class="rounded-lg border border-border bg-orange-03 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
         {flash.error}
       </div>
     {/if}
@@ -212,4 +217,4 @@
     skill={editingSkill}
     {proficiencyLevels}
   />
-</AppLayout>
+</Layout>

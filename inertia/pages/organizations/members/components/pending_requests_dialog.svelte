@@ -97,7 +97,7 @@
                   <Button
                     size="sm"
                     variant="default"
-                    class="bg-green-600 hover:bg-green-700"
+                    class="bg-black hover:bg-black/80"
                     onclick={() => { onProcessRequest(request.user_id, 'approve') }}
                   >
                     <CircleCheckBig class="w-4 h-4 mr-2" />

@@ -97,7 +97,7 @@
           required
         />
         {#if addMemberErrors.email}
-          <div class="text-red-500 text-sm">{addMemberErrors.email}</div>
+          <div class="text-destructive text-sm">{addMemberErrors.email}</div>
         {/if}
       </div>
 
@@ -119,7 +119,7 @@
           </SelectContent>
         </Select>
         {#if addMemberErrors.roleId}
-          <div class="text-red-500 text-sm">{addMemberErrors.roleId}</div>
+          <div class="text-destructive text-sm">{addMemberErrors.roleId}</div>
         {/if}
       </div>
 
@@ -152,7 +152,7 @@
           required
         />
         {#if inviteUserErrors.email}
-          <div class="text-red-500 text-sm">{inviteUserErrors.email}</div>
+          <div class="text-destructive text-sm">{inviteUserErrors.email}</div>
         {/if}
       </div>
 
@@ -174,7 +174,7 @@
           </SelectContent>
         </Select>
         {#if inviteUserErrors.roleId}
-          <div class="text-red-500 text-sm">{inviteUserErrors.roleId}</div>
+          <div class="text-destructive text-sm">{inviteUserErrors.roleId}</div>
         {/if}
       </div>
 

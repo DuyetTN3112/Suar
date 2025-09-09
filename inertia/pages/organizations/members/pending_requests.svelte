@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import { UserCheck, UserX, ArrowLeft } from 'lucide-svelte'
 
   import Badge from '@/components/ui/badge.svelte'
@@ -16,6 +16,7 @@
   import TableHeader from '@/components/ui/table_header.svelte'
   import TableRow from '@/components/ui/table_row.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
   // Định nghĩa các kiểu dữ liệu
@@ -37,11 +38,15 @@
   }
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     organization: Organization
     pendingRequests: PendingRequest[]
   }
 
   const { organization, pendingRequests }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 
   // Xử lý duyệt/từ chối yêu cầu
   function handleProcessRequest(userId: string, action: 'approve' | 'reject') {
@@ -81,7 +86,7 @@
   <title>Yêu cầu chờ duyệt - {organization.name}</title>
 </svelte:head>
 
-<AppLayout title={`Yêu cầu chờ duyệt - ${organization.name}`}>
+<Layout title={`Yêu cầu chờ duyệt - ${organization.name}`}>
   <div class="container mx-auto py-6 space-y-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold">Yêu cầu tham gia tổ chức chờ duyệt</h1>
@@ -155,4 +160,4 @@
       </CardContent>
     </Card>
   </div>
-</AppLayout>
+</Layout>
