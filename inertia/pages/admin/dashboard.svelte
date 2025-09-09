@@ -84,17 +84,17 @@
 <div class="space-y-6">
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="neo-kicker">Admin / Overview</p>
+      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Overview</p>
       <h1 class="text-4xl font-bold tracking-tight">Bảng điều khiển hệ thống</h1>
       <p class="mt-2 max-w-3xl text-sm text-muted-foreground">Tổng quan nhanh toàn nền tảng với biểu đồ ngắn gọn để nhận diện tín hiệu vận hành.</p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <a href="/admin/dashboards/users" class="neo-surface-soft px-3 py-2 text-sm font-bold">Dashboard người dùng</a>
-      <a href="/admin/dashboards/operations" class="neo-surface-soft px-3 py-2 text-sm font-bold">Dashboard vận hành</a>
-      <a href="/admin/dashboards/subscriptions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Dashboard gói đăng ký</a>
-      <a href="/admin/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò và quyền</a>
-      <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
-      <a href="/admin/audit-logs" class="neo-surface-soft px-3 py-2 text-sm font-bold">Audit log</a>
+      <a href="/admin/dashboards/users" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Dashboard người dùng</a>
+      <a href="/admin/dashboards/operations" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Dashboard vận hành</a>
+      <a href="/admin/dashboards/subscriptions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Dashboard gói đăng ký</a>
+      <a href="/admin/permissions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Vai trò và quyền</a>
+      <a href="/admin/qr-codes" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">QR gói cá nhân</a>
+      <a href="/admin/audit-logs" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Audit log</a>
     </div>
   </div>
 
@@ -130,18 +130,18 @@
       subtitle="Cơ cấu active subscriptions theo plan"
       segments={subscriptionMix}
     />
-    <div class="neo-surface-soft p-4">
-      <h3 class="neo-kicker">IBCS notation</h3>
+    <div class="border border-border rounded-lg p-4 bg-white">
+      <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">IBCS notation</h2>
       <ul class="mt-3 space-y-2 text-sm text-muted-foreground">
         <li><span class="font-semibold text-foreground">Dark gray</span>: Actual</li>
         <li><span class="font-semibold text-foreground">Light gray</span>: Baseline/plan</li>
-        <li><span class="font-semibold neo-text-blue">Blue</span>: Focus item</li>
-        <li><span class="font-semibold neo-text-orange">Orange red</span>: Adverse/risk</li>
+        <li><span class="font-semibold text-foreground">Blue</span>: Focus item</li>
+        <li><span class="font-semibold text-primary">Orange red</span>: Adverse/risk</li>
       </ul>
-      <a href="/admin/reviews" class="mt-4 inline-flex text-sm font-bold neo-text-blue hover:underline">Mở moderation queue</a>
+      <a href="/admin/reviews" class="mt-4 inline-flex text-sm font-bold text-foreground hover:underline">Mở moderation queue</a>
       <div class="mt-4 flex flex-wrap gap-2">
-        <a href="/admin/permissions" class="text-sm font-bold neo-text-blue hover:underline">Xem permission matrix</a>
-        <a href="/admin/qr-codes" class="text-sm font-bold neo-text-blue hover:underline">Mở QR gói cá nhân</a>
+        <a href="/admin/permissions" class="text-sm font-bold text-foreground hover:underline">Xem permission matrix</a>
+        <a href="/admin/qr-codes" class="text-sm font-bold text-foreground hover:underline">Mở QR gói cá nhân</a>
       </div>
     </div>
   </div>

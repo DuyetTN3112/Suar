@@ -4,7 +4,6 @@
   import AdminSidebar from '@/components/layout/admin_sidebar.svelte'
   import NavBar from '@/components/layout/nav_bar.svelte'
   import NotificationDialog from '@/components/notification_dialog.svelte'
-  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
 
   interface Props {
     title?: string
@@ -12,6 +11,16 @@
   }
 
   const { title = 'System Admin - Suar', children }: Props = $props()
+
+  let sidebarOpen = $state(false)
+
+  function openSidebar() {
+    sidebarOpen = true
+  }
+
+  function closeSidebar() {
+    sidebarOpen = false
+  }
 </script>
 
 <svelte:head>
@@ -23,19 +32,13 @@
 
 <NotificationDialog />
 
-<SidebarProvider defaultOpen={true}>
-  <div class="relative flex min-h-screen w-full bg-background text-foreground">
-    <AdminSidebar />
+<div class="flex min-h-screen bg-background">
+  <AdminSidebar open={sidebarOpen} onClose={closeSidebar} />
 
-    <div class="neo-shell-main flex min-h-screen min-w-0 flex-1 flex-col">
-      <NavBar />
-      <main class="flex-1 p-6">
-        {@render children()}
-      </main>
-
-      <footer class="border-t-2 border-border bg-card/95 px-6 py-4 text-center text-xs uppercase tracking-[0.18em] text-muted-foreground">
-        <p>System Admin Panel - Suar Platform</p>
-      </footer>
-    </div>
+  <div class="flex-1 flex flex-col min-w-0">
+    <NavBar onMenuClick={openSidebar} />
+    <main class="flex-1 p-6 lg:p-8">
+      {@render children()}
+    </main>
   </div>
-</SidebarProvider>
+</div>
