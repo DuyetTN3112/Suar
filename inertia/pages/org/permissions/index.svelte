@@ -71,16 +71,16 @@
   <div class="space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="neo-kicker">Organization / Permissions</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Permissions</p>
         <h1 class="text-4xl font-bold tracking-tight">Ma trận quyền hạn</h1>
         <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
           Màn hình để owner/admin kiểm tra role nào đang có quyền gì ở organization và project, tránh nhầm lẫn khi phân quyền cho team.
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/org/roles" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò</a>
-        <a href="/org/departments" class="neo-surface-soft px-3 py-2 text-sm font-bold">Phòng ban</a>
-        <a href="/org/settings" class="neo-surface-soft px-3 py-2 text-sm font-bold">Cài đặt</a>
+        <a href="/org/roles" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Vai trò</a>
+        <a href="/org/departments" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Phòng ban</a>
+        <a href="/org/settings" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Cài đặt</a>
       </div>
     </div>
 

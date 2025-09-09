@@ -247,32 +247,32 @@
           </Table>
         </Card>
 
-      <!-- Pagination -->
-      {#if meta.last_page > 1}
-        <div class="flex justify-center items-center gap-3 pt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            class="h-8 font-bold"
-            onclick={() => { goToPage(meta.current_page - 1); }}
-            disabled={meta.current_page === 1}
-          >
-            <ChevronLeft class="h-4 w-4 mr-1" />
-            Trước
-          </Button>
-          <span class="text-sm font-bold">{meta.current_page} / {meta.last_page}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            class="h-8 font-bold"
-            onclick={() => { goToPage(meta.current_page + 1); }}
-            disabled={meta.current_page === meta.last_page}
-          >
-            Sau
-            <ChevronRight class="h-4 w-4 ml-1" />
-          </Button>
-        </div>
+        {#if meta.last_page > 1}
+          <div class="flex items-center justify-center gap-2 mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 font-bold"
+              onclick={() => { goToPage(meta.current_page - 1); }}
+              disabled={meta.current_page === 1}
+            >
+              <ChevronLeft class="h-4 w-4 mr-1" />
+              Trước
+            </Button>
+            <span class="text-sm font-bold">{meta.current_page} / {meta.last_page}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 font-bold"
+              onclick={() => { goToPage(meta.current_page + 1); }}
+              disabled={meta.current_page === meta.last_page}
+            >
+              Sau
+              <ChevronRight class="h-4 w-4 ml-1" />
+            </Button>
+          </div>
+        {/if}
       {/if}
-    {/if}
+    </section>
   </div>
-</AppLayout>
+</Layout>

@@ -17,10 +17,10 @@
 <div class="flex min-h-screen flex-col items-center justify-center bg-slate-50 dark:bg-slate-900">
   <div class="mx-auto flex max-w-lg flex-col items-center space-y-6 text-center px-4">
     <div
-      class="w-full rounded-lg border border-red-200 bg-red-50 p-6 text-left dark:border-red-800 dark:bg-red-950"
+      class="w-full rounded-lg border border-border bg-orange-03 p-6 text-left dark:border-red-800 dark:bg-red-950"
     >
       <h2 class="text-xl font-bold text-red-800 dark:text-red-200">{title}</h2>
-      <p class="mt-2 text-red-700 dark:text-red-300">{message}</p>
+      <p class="mt-2 text-destructive dark:text-red-300">{message}</p>
 
       {#if stack}
         <pre

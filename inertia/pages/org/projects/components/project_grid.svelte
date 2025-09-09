@@ -11,18 +11,20 @@
   import CardTitle from '@/components/ui/card_title.svelte'
 
 
-  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
+  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'pending' | 'warning'
 
   interface ProjectItem {
     id: string
     name: string
     description: string | null
-    status: 'active' | 'archived' | 'on_hold'
+    status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
     _count: {
       members: number
       tasks: number
     }
   }
+
+  type ProjectStatus = ProjectItem['status']
 
   interface Pagination {
     total: number
@@ -33,44 +35,46 @@
   interface Props {
     projects: ProjectItem[]
     pagination: Pagination
-    getStatusBadge: (status: string) => BadgeVariant
-    statusLabel: (status: string) => string
+    getStatusBadge: (status: ProjectStatus) => BadgeVariant
+    statusLabel: (status: ProjectStatus) => string
     onCreateProject: () => void
   }
 
   const { projects, pagination, getStatusBadge, statusLabel, onCreateProject }: Props = $props()
 </script>
 
-<div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+<div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
   {#each projects as project}
-    <Card class="transition-shadow hover:shadow-lg">
-      <CardHeader>
+    <Card class="group overflow-hidden transition-[box-shadow,transform] hover:-translate-y-0.5 hover:shadow-suar-strong">
+      <CardHeader class="pb-4">
         <div class="flex items-start justify-between gap-3">
           <div class="flex min-w-0 flex-1 items-center gap-3">
-            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-black/10 bg-primary/10">
               <FolderKanban class="h-5 w-5 text-primary" />
             </div>
             <div class="min-w-0 flex-1">
-              <CardTitle class="truncate text-lg">{project.name}</CardTitle>
-              <Badge variant={getStatusBadge(project.status)} class="mt-1">
+              <CardTitle class="truncate text-lg leading-tight">{project.name}</CardTitle>
+              <Badge variant={getStatusBadge(project.status)} class="mt-2">
                 {statusLabel(project.status)}
               </Badge>
             </div>
           </div>
         </div>
         {#if project.description}
-          <CardDescription class="mt-2 line-clamp-2">{project.description}</CardDescription>
+          <CardDescription class="mt-3 line-clamp-2 leading-6">{project.description}</CardDescription>
+        {:else}
+          <CardDescription class="mt-3 leading-6">Chưa có mô tả project.</CardDescription>
         {/if}
       </CardHeader>
       <CardContent class="space-y-4">
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex items-center gap-2 text-sm">
-            <Users class="h-4 w-4 neo-text-blue" />
+        <div class="grid grid-cols-2 gap-3 rounded-2xl border border-border bg-secondary/40 p-3">
+          <div class="flex min-w-0 items-center gap-2 text-sm">
+            <Users class="h-4 w-4 text-foreground" />
             <span class="font-medium">{project._count.members}</span>
             <span class="text-muted-foreground">thành viên</span>
           </div>
-          <div class="flex items-center gap-2 text-sm">
-            <SquareCheckBig class="h-4 w-4 neo-text-magenta" />
+          <div class="flex min-w-0 items-center gap-2 text-sm">
+            <SquareCheckBig class="h-4 w-4 text-primary" />
             <span class="font-medium">{project._count.tasks}</span>
             <span class="text-muted-foreground">task</span>
           </div>
@@ -78,13 +82,13 @@
 
         <Button
           variant="outline"
-          class="w-full"
+          class="w-full justify-between"
           onclick={() => {
-            router.visit(`/projects/${project.id}`)
+            router.visit(`/org/projects/${project.id}`)
           }}
         >
-          <ArrowUpRight class="mr-2 h-4 w-4" />
-          Mở chi tiết dự án
+          <span>Mở chi tiết dự án</span>
+          <ArrowUpRight class="h-4 w-4" />
         </Button>
       </CardContent>
     </Card>
@@ -96,7 +100,7 @@
     <CardContent class="py-12 text-center">
       <FolderKanban class="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
       <h3 class="mb-2 text-lg font-semibold">Chưa có dự án nào</h3>
-      <p class="mb-4 text-muted-foreground">
+      <p class="mx-auto mb-4 max-w-md text-muted-foreground">
         Tạo dự án đầu tiên để tổ chức bắt đầu gom task, thành viên và workflow theo ngữ cảnh rõ ràng.
       </p>
       <Button onclick={onCreateProject}>

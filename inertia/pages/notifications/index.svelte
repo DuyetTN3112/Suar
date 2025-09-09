@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import { formatDistanceToNow } from 'date-fns'
   import { vi } from 'date-fns/locale'
   import {
@@ -25,6 +25,7 @@
     type FrontendNotificationType,
   } from '@/constants/notifications'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import NotificationCard from './components/notification_card.svelte'
@@ -39,12 +40,16 @@
     type: FrontendNotificationType
     title: string
     message: string
+    related_entity_type: string | null
+    related_entity_id: string | null
     data?: Record<string, unknown>
     read_at: string | null
     created_at: string
   }
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     notifications:
       | NotificationItem[]
       | {
@@ -61,6 +66,8 @@
   }
 
   const { notifications, unread_count: initialUnreadCount, filters }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const initialItems = $derived(Array.isArray(notifications) ? notifications : notifications.data)
@@ -195,9 +202,32 @@
     })
   }
 
+  function getNotificationUrl(notification: NotificationItem): string | null {
+    const entityType = notification.related_entity_type
+    const entityId = notification.related_entity_id
+
+    if (entityType === 'task' && entityId) {
+      return `/tasks/${entityId}`
+    }
+    if (entityType === 'project' && entityId) {
+      return `/projects/${entityId}`
+    }
+    if (entityType === 'organization' && entityId) {
+      return `/organizations`
+    }
+    if (notification.type.startsWith('task') && entityId) {
+      return `/tasks/${entityId}`
+    }
+    return null
+  }
+
   function handleNotificationClick(notification: NotificationItem) {
     if (!notification.read_at) {
       void markAsRead(notification.id)
+    }
+    const url = getNotificationUrl(notification)
+    if (url) {
+      router.visit(url)
     }
   }
 
@@ -208,14 +238,14 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="container max-w-3xl py-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <h1 class="text-3xl font-black tracking-tight">{pageTitle}</h1>
         {#if unreadCount > 0}
-          <Badge class="border-2 border-border bg-neo-orange text-foreground font-black text-sm px-3 py-1 shadow-neo-sm">
+          <Badge class="border border-border bg-orange-50 text-foreground font-medium text-sm px-2.5 py-1 rounded-md">
             {unreadCount}
           </Badge>
         {/if}
@@ -244,7 +274,7 @@
       <!-- Empty state -->
       <Card class="py-16">
         <CardContent class="flex flex-col items-center justify-center text-center pt-6">
-          <div class="rounded-full border-2 border-border bg-muted p-6 shadow-neo-sm mb-4">
+          <div class="rounded-full border-2 border-border bg-muted p-6 shadow-xs mb-4">
             <Inbox class="h-12 w-12 text-muted-foreground" />
           </div>
           <h3 class="text-xl font-bold mb-2">
@@ -279,4 +309,4 @@
       />
     {/if}
   </div>
-</AppLayout>
+</Layout>

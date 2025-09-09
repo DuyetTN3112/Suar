@@ -85,7 +85,7 @@
       <div
         class="flex h-24 w-24 items-center justify-center rounded-full bg-slate-200 dark:bg-slate-800"
       >
-        <Building class="h-12 w-12 text-slate-500 dark:text-slate-400" />
+        <Building class="h-12 w-12 text-muted-foreground dark:text-muted-foreground" />
       </div>
     </div>
 
@@ -93,7 +93,7 @@
     <h2 class="mt-4 text-xl font-medium text-slate-800 dark:text-slate-200">
       Bạn cần tham gia hoặc tạo một tổ chức để truy cập tính năng này
     </h2>
-    <p class="mt-4 text-lg text-slate-600 dark:text-slate-400">
+    <p class="mt-4 text-lg text-slate-600 dark:text-muted-foreground">
       Để sử dụng đầy đủ tính năng của hệ thống, bạn cần phải là thành viên của ít nhất một tổ chức.
     </p>
 
@@ -105,7 +105,7 @@
         </h3>
         <div class="relative w-64">
           <Search
-            class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400"
+            class="absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground"
           />
           <Input
             type="text"
@@ -124,11 +124,11 @@
           ></div>
         </div>
       {:else if error}
-        <div class="py-8 text-red-500">{error}</div>
+        <div class="py-8 text-destructive">{error}</div>
       {:else if filteredOrganizations.length === 0}
         <Card class="mb-4 shadow-sm">
           <CardContent class="pb-6 pt-6">
-            <p class="text-slate-600 dark:text-slate-400">
+            <p class="text-slate-600 dark:text-muted-foreground">
               Không có tổ chức nào phù hợp với tìm kiếm của bạn.
             </p>
           </CardContent>
@@ -146,7 +146,7 @@
                   {#if org.logo}
                     <img src={org.logo} alt={org.name} class="h-6 w-6 rounded-md" />
                   {:else}
-                    <Building class="h-5 w-5 text-slate-500 dark:text-slate-400" />
+                    <Building class="h-5 w-5 text-muted-foreground dark:text-muted-foreground" />
                   {/if}
                   {org.name}
                 </CardTitle>
@@ -156,12 +156,12 @@
               </CardHeader>
               <CardContent class="py-4">
                 {#if org.website}
-                  <p class="truncate text-sm text-slate-500 dark:text-slate-400">
+                  <p class="truncate text-sm text-muted-foreground dark:text-muted-foreground">
                     Website: <a
                       href={org.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      class="text-blue-500 hover:underline">{org.website}</a
+                      class="text-foreground hover:underline">{org.website}</a
                     >
                   </p>
                 {/if}

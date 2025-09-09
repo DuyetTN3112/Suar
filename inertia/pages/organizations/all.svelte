@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import { Building, Search, Users, ChevronLeft, ChevronRight } from 'lucide-svelte'
 
   import Badge from '@/components/ui/badge.svelte'
@@ -14,6 +14,7 @@
   import { FRONTEND_PAGINATION } from '@/constants/pagination'
   import { FRONTEND_ROUTES } from '@/constants/routes'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
   interface Organization {
@@ -29,6 +30,8 @@
   }
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     organizations: Organization[]
     currentOrganizationId: string | null
   }
@@ -45,6 +48,8 @@
   }
 
   const { organizations, currentOrganizationId }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 
   let searchTerm = $state('')
   let currentPage = $state(1)
@@ -151,7 +156,7 @@
   <title>Tất cả tổ chức</title>
 </svelte:head>
 
-<AppLayout title="Tất cả tổ chức">
+<Layout title="Tất cả tổ chức">
   <div class="container py-4 space-y-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Tất cả tổ chức</h1>
@@ -255,4 +260,4 @@
       {/if}
     {/if}
   </div>
-</AppLayout>
+</Layout>

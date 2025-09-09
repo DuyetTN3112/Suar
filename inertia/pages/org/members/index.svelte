@@ -72,21 +72,21 @@
   function roleClass(role: string): string {
     switch (role) {
       case 'org_owner':
-        return 'neo-pill-magenta'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-fuchsia-600 text-white'
       case 'org_admin':
-        return 'neo-pill-blue'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground'
       case 'hr':
       case 'cto':
       case 'project_manager':
       case 'pm':
-        return 'neo-pill-orange'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-white'
       default:
-        return 'neo-pill-soft'
+        return 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground'
     }
   }
 
   function statusClass(status: string): string {
-    return MEMBERSHIP_STATUS_PILL_CLASSES[status as MembershipStatus] || 'neo-pill-soft'
+    return MEMBERSHIP_STATUS_PILL_CLASSES[status as MembershipStatus] || 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground'
   }
 
   function selectedRole(member: Member): string {
@@ -157,7 +157,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Organization / Members</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Members</p>
         <h1 class="text-4xl font-bold tracking-tight">Thành viên tổ chức</h1>
         <p class="mt-2 max-w-3xl text-sm text-muted-foreground">Danh sách thành viên trong ngữ cảnh tổ chức hiện tại. Flow mời người và duyệt yêu cầu đã tách riêng sang các màn chuyên biệt.</p>
       </div>
@@ -180,7 +180,7 @@
       </div>
     </div>
 
-    <Card class="neo-panel">
+    <Card class="border border-border rounded-lg bg-white shadow-xs">
       <CardHeader>
         <CardTitle>Tất cả thành viên ({meta.total.toLocaleString()})</CardTitle>
       </CardHeader>
@@ -192,7 +192,7 @@
           <p class="mb-4 text-sm text-emerald-700">{roleMessage}</p>
         {/if}
         <div class="overflow-x-auto">
-          <table class="neo-data-table">
+          <table class="w-full border-collapse">
             <thead>
               <tr>
                 <th>Thành viên</th>
@@ -268,7 +268,7 @@
         </div>
 
         {#if members.length === 0}
-          <div class="neo-empty-state">
+          <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
             Chưa có thành viên nào trong tổ chức này.
           </div>
         {/if}

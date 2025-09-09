@@ -42,13 +42,14 @@
 <OrganizationLayout title="Điều phối tổ chức">
   <div class="space-y-6">
     <div>
-      <p class="neo-kicker">Organization / Overview</p>
+      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Overview</p>
       <h1 class="text-4xl font-bold tracking-tight">Điều phối tổ chức</h1>
       <p class="mt-2 max-w-3xl text-sm text-muted-foreground">Tổng quan nhanh về team, dự án, task và các flow quản trị đang hoạt động trong tổ chức hiện tại.</p>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <section aria-labelledby="org-stats-heading" class="space-y-4">
+      <h2 id="org-stats-heading" class="sr-only">Chỉ số tổ chức</h2>
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Thành viên</CardTitle>
@@ -97,16 +98,17 @@
       <Card>
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-sm font-medium">Task quá hạn</CardTitle>
-          <svg class="h-4 w-4 neo-text-orange" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="h-4 w-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         </CardHeader>
         <CardContent>
-          <div class="text-2xl font-bold neo-text-orange">{stats.tasks.overdue.toLocaleString()}</div>
-          <p class="mt-1 text-xs neo-text-orange">Cần ưu tiên xử lý</p>
+          <div class="text-2xl font-bold text-primary">{stats.tasks.overdue.toLocaleString()}</div>
+          <p class="mt-1 text-xs text-primary">Cần ưu tiên xử lý</p>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </section>
 
     <Card>
       <CardHeader>
@@ -147,15 +149,15 @@
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">Đang thực hiện</span>
-            <span class="font-semibold neo-text-blue">{stats.tasks.in_progress.toLocaleString()}</span>
+            <span class="font-semibold text-foreground">{stats.tasks.in_progress.toLocaleString()}</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">Hoàn thành</span>
-            <span class="font-semibold neo-text-magenta">{stats.tasks.completed.toLocaleString()}</span>
+            <span class="font-semibold text-fuchsia-600">{stats.tasks.completed.toLocaleString()}</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">Quá hạn</span>
-            <span class="font-semibold neo-text-orange">{stats.tasks.overdue.toLocaleString()}</span>
+            <span class="font-semibold text-primary">{stats.tasks.overdue.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
@@ -172,11 +174,11 @@
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">Đang chạy</span>
-            <span class="font-semibold neo-text-blue">{stats.projects.active.toLocaleString()}</span>
+            <span class="font-semibold text-foreground">{stats.projects.active.toLocaleString()}</span>
           </div>
           <div class="flex items-center justify-between">
             <span class="text-sm text-muted-foreground">Hoàn thành</span>
-            <span class="font-semibold neo-text-magenta">{stats.projects.completed.toLocaleString()}</span>
+            <span class="font-semibold text-fuchsia-600">{stats.projects.completed.toLocaleString()}</span>
           </div>
         </CardContent>
       </Card>
@@ -200,7 +202,7 @@
         <Link href="/org/permissions">
           <Button variant="outline">Quyền hạn</Button>
         </Link>
-        <Link href="/org/invitations/invitations">
+        <Link href="/org/invitations">
           <Button variant="outline">Mời thành viên</Button>
         </Link>
         <Link href="/org/invitations/requests">
