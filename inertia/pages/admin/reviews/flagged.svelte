@@ -56,7 +56,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Admin / Flagged Reviews</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Flagged Reviews</p>
         <h1 class="text-4xl font-bold tracking-tight">Review bị gắn cờ</h1>
         <p class="mt-2 text-sm text-muted-foreground">Kiểm tra và xử lý các review bị phát hiện bất thường.</p>
       </div>
@@ -76,7 +76,7 @@
             <div class="text-center max-w-md">
               <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
                 <svg
-                  class="h-8 w-8 neo-text-blue"
+                  class="h-8 w-8 text-foreground"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -97,7 +97,7 @@
           </div>
         {:else}
           <div class="overflow-x-auto">
-            <table class="neo-data-table">
+            <table class="w-full border-collapse">
               <thead>
                 <tr>
                   <th>Review</th>
