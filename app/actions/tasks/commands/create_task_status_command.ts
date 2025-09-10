@@ -2,13 +2,13 @@ import db from '@adonisjs/lucid/services/db'
 
 import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
+import { auditPublicApi } from '#actions/audit/public_api'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import ConflictException from '#exceptions/conflict_exception'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
-import type TaskStatus from '#models/task_status'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskStatusRecord } from '#types/task_records'
 
 /**
  * Command: Create a new task status for an organization.
@@ -22,7 +22,7 @@ import type { ExecutionContext } from '#types/execution_context'
 export default class CreateTaskStatusCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async execute(dto: CreateTaskStatusDTO): Promise<TaskStatus> {
+  async execute(dto: CreateTaskStatusDTO): Promise<TaskStatusRecord> {
     const userId = this.execCtx.userId
     if (!userId) {
       throw new UnauthorizedException()
@@ -61,13 +61,16 @@ export default class CreateTaskStatusCommand {
         trx
       )
 
-      await new CreateAuditLog(this.execCtx).handle({
-        user_id: userId,
-        action: AuditAction.CREATE,
-        entity_type: EntityType.TASK_STATUS,
-        entity_id: status.id,
-        new_values: status.toJSON(),
-      })
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.CREATE,
+          entity_type: EntityType.TASK_STATUS,
+          entity_id: status.id,
+          new_values: status,
+        },
+        this.execCtx
+      )
 
       await trx.commit()
       return status
