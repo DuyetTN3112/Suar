@@ -68,9 +68,9 @@ export default class GetOrganizationsListQuery {
 
     // 1. Try cache first
     const cacheKey = dto.getCacheKey(userId)
-    const cached = await redis.get(cacheKey)
+    const cached = await CacheService.get<PaginatedResult>(cacheKey)
     if (cached) {
-      return JSON.parse(cached) as PaginatedResult
+      return cached
     }
 
     // 2. Paginate organizations → delegate to Model
@@ -95,7 +95,7 @@ export default class GetOrganizationsListQuery {
     }
 
     // 5. Cache result (5 minutes)
-    await redis.setex(cacheKey, 300, JSON.stringify(result))
+    await CacheService.set(cacheKey, result, 300)
 
     return result
   }
