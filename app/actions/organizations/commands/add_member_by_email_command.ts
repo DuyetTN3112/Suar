@@ -1,11 +1,11 @@
-import CreateNotification from '#actions/common/create_notification'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import AddMemberCommand from '#actions/organizations/commands/add_member_command'
 import { AddMemberDTO } from '#actions/organizations/dtos/request/add_member_dto'
 import NotFoundException from '#exceptions/not_found_exception'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 /**
  * Command: Add Member By Email
@@ -22,7 +22,7 @@ export default class AddMemberByEmailCommand {
       throw new NotFoundException('Không tìm thấy người dùng với email này')
     }
 
-    const addMember = new AddMemberCommand(this.execCtx, new CreateNotification())
+    const addMember = new AddMemberCommand(this.execCtx, notificationPublicApi)
     const dto = new AddMemberDTO(organizationId, user.id, roleId)
     await addMember.execute(dto)
   }

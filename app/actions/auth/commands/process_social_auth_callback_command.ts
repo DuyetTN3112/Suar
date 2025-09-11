@@ -5,7 +5,7 @@ import SocialAuthProviderService, {
   type SocialAuthFailureResult,
   type SupportedSocialAuthProvider,
 } from '#infra/oauth/social_auth_provider_service'
-import type User from '#models/user'
+import type User from '#infra/users/models/user'
 
 interface SocialAuthSuccessResult {
   type: 'success'

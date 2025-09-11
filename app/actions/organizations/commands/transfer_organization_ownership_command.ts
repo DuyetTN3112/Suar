@@ -2,9 +2,9 @@ import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { EntityType } from '#constants/audit_constants'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
@@ -15,11 +15,11 @@ import { canTransferOwnership } from '#domain/organizations/org_permission_polic
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import type Organization from '#models/organization'
+import * as OrganizationMutations from '#infra/organizations/repositories/write/organization_mutations'
 import type { DatabaseId } from '#types/database'
 import { type ExecutionContext } from '#types/execution_context'
+import type { OrganizationRecord } from '#types/organization_records'
 
 /**
  * DTO for transferring organization ownership
@@ -30,14 +30,14 @@ export interface TransferOrganizationOwnershipDTO {
 }
 
 interface OwnershipTransferContext {
-  organization: Organization
+  organization: OrganizationRecord
   oldOwnerId: DatabaseId
   newOwnerRole: string | null
   isNewOwnerApprovedMember: boolean
 }
 
 interface PersistedOwnershipTransfer {
-  organization: Organization
+  organization: OrganizationRecord
   oldOwnerId: DatabaseId
   newOwnerRole: string | null
 }
@@ -52,10 +52,10 @@ interface PersistedOwnershipTransfer {
 export default class TransferOrganizationOwnershipCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
-  async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
+  async execute(dto: TransferOrganizationOwnershipDTO): Promise<OrganizationRecord> {
     const actorId = this.requireActorId()
     const transfer = await this.persistOwnershipTransferInTransaction(dto, actorId)
     await this.runPostCommitEffects(transfer, actorId, dto)
@@ -75,7 +75,10 @@ export default class TransferOrganizationOwnershipCommand {
     dto: TransferOrganizationOwnershipDTO,
     trx: TransactionClientContract
   ): Promise<OwnershipTransferContext> {
-    const organization = await OrganizationRepository.findActiveForUpdate(dto.organization_id, trx)
+    const organization = await OrganizationMutations.findActiveForUpdateRecord(
+      dto.organization_id,
+      trx
+    )
     const oldOwnerId = organization.owner_id
 
     const isNewOwnerApprovedMember = await OrganizationUserRepository.isApprovedMember(
@@ -120,8 +123,11 @@ export default class TransferOrganizationOwnershipCommand {
     context: OwnershipTransferContext,
     trx: TransactionClientContract
   ): Promise<PersistedOwnershipTransfer> {
-    context.organization.owner_id = dto.new_owner_id
-    await OrganizationRepository.save(context.organization, trx)
+    const updatedOrganization = await OrganizationMutations.updateOwnerRecord(
+      context.organization.id,
+      dto.new_owner_id,
+      trx
+    )
 
     await OrganizationUserRepository.updateRole(
       dto.organization_id,
@@ -137,17 +143,20 @@ export default class TransferOrganizationOwnershipCommand {
       trx
     )
 
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: actorId,
-      action: 'transfer_ownership',
-      entity_type: EntityType.ORGANIZATION,
-      entity_id: dto.organization_id,
-      old_values: { owner_id: context.oldOwnerId },
-      new_values: { owner_id: dto.new_owner_id },
-    })
+    await auditPublicApi.log(
+      {
+        user_id: actorId,
+        action: 'transfer_ownership',
+        entity_type: EntityType.ORGANIZATION,
+        entity_id: dto.organization_id,
+        old_values: { owner_id: context.oldOwnerId },
+        new_values: { owner_id: dto.new_owner_id },
+      },
+      this.execCtx
+    )
 
     return {
-      organization: context.organization,
+      organization: updatedOrganization,
       oldOwnerId: context.oldOwnerId,
       newOwnerRole: context.newOwnerRole,
     }
@@ -177,7 +186,7 @@ export default class TransferOrganizationOwnershipCommand {
     dto: TransferOrganizationOwnershipDTO
   ): Promise<void> {
     void emitter.emit('organization:updated', {
-      organization: transfer.organization,
+      organizationId: transfer.organization.id,
       updatedBy: actorId,
       changes: { owner_id: dto.new_owner_id, old_owner_id: transfer.oldOwnerId },
     })
@@ -210,7 +219,7 @@ export default class TransferOrganizationOwnershipCommand {
    * Send notifications to both old and new owners
    */
   private async sendNotifications(
-    organization: Organization,
+    organization: OrganizationRecord,
     oldOwnerId: DatabaseId,
     newOwnerId: DatabaseId
   ): Promise<void> {

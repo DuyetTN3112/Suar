@@ -1,10 +1,11 @@
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { userPublicApi } from '#actions/users/public_api'
 import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
 } from '#domain/authorization/system_user_access_policy'
 import type { PolicyResult } from '#domain/policies/policy_result'
-import { getUserAdministrationAccessContext } from '#infra/authorization/repositories/user_administration_access_repository'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -18,10 +19,15 @@ export default class AuthorizeSystemUserAdminAccessQuery {
   }
 
   static async evaluate(userId: DatabaseId, organizationId: DatabaseId): Promise<PolicyResult> {
-    const accessContext: SystemUserAccessContext = await getUserAdministrationAccessContext(
-      userId,
-      organizationId
-    )
+    const [actorSystemRole, membershipContext] = await Promise.all([
+      userPublicApi.getSystemRoleName(userId),
+      organizationPublicApi.getMembershipContext(organizationId, userId, undefined, true),
+    ])
+
+    const accessContext: SystemUserAccessContext = {
+      actorSystemRole,
+      actorOrgRole: membershipContext?.role ?? null,
+    }
 
     return canAccessSystemUserAdministration(accessContext)
   }

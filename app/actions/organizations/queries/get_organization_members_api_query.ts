@@ -1,6 +1,6 @@
 import NotFoundException from '#exceptions/not_found_exception'
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
+import OrganizationRepository from '#infra/organizations/repositories/read/organization_repository'
 import { parseId } from '#libs/id_utils'
 import type { DatabaseId } from '#types/database'
 
