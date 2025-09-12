@@ -167,6 +167,10 @@ export interface ApiErrorResponse {
     message: string
     errors?: Record<string, string>
   }
+  meta?: {
+    request_id?: string
+    correlation_id?: string
+  }
 }
 
 /**
@@ -184,7 +188,11 @@ export interface ApiErrorResponse {
 export function createApiError(
   code: string,
   message: string,
-  errors?: Record<string, string>
+  errors?: Record<string, string>,
+  meta?: {
+    request_id?: string
+    correlation_id?: string
+  }
 ): ApiErrorResponse {
   const response: ApiErrorResponse = {
     success: false,
@@ -192,6 +200,9 @@ export function createApiError(
   }
   if (errors && Object.keys(errors).length > 0) {
     response.error.errors = errors
+  }
+  if (meta && (meta.request_id || meta.correlation_id)) {
+    response.meta = meta
   }
   return response
 }
