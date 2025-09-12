@@ -1,7 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import {
   calculateTrustScoreV2,
   determineTier,
@@ -9,8 +12,6 @@ import {
 } from '#domain/reviews/review_formulas'
 import ReviewMetricsRepository from '#infra/reviews/repositories/review_metrics_repository'
 import type { DatabaseId } from '#types/database'
-
-import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
 
 /**
  * DTO for CalculateTrustScore
@@ -96,8 +97,10 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
 
     let belongsToPartnerOrg = false
     if (organizationIds.length > 0) {
-      belongsToPartnerOrg =
-        await DefaultReviewDependencies.organization.hasAnyActivePartnerByIds(organizationIds, trx)
+      belongsToPartnerOrg = await DefaultReviewDependencies.organization.hasAnyActivePartnerByIds(
+        organizationIds,
+        trx
+      )
     }
 
     return {
@@ -236,12 +239,12 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     await DefaultReviewDependencies.user.mergeTrustData(
       userId,
       {
-      current_tier_code: computed.tierCode,
-      calculated_score: computed.calculatedScore,
-      raw_score: computed.rawScore,
-      total_verified_reviews: computed.totalVerifiedReviews,
-      last_calculated_at: DateTime.now().toISO(),
-      scoring_version: computed.scoringVersion,
+        current_tier_code: computed.tierCode,
+        calculated_score: computed.calculatedScore,
+        raw_score: computed.rawScore,
+        total_verified_reviews: computed.totalVerifiedReviews,
+        last_calculated_at: DateTime.now().toISO(),
+        scoring_version: computed.scoringVersion,
       },
       trx
     )
@@ -251,22 +254,31 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     userId: DatabaseId,
     computed: TrustScoreComputationResult
   ): Promise<void> {
-    await this.logAudit('calculate_trust_score', 'user', userId, null, {
-      raw_score: computed.rawScore,
-      calculated_score: computed.calculatedScore,
-      tier_code: computed.tierCode,
-      tier_name: computed.tierName,
-      total_reviews: computed.totalVerifiedReviews,
-      v2_signals: {
-        review_consistency: Math.round(computed.signals.reviewConsistency * 10) / 10,
-        reviewer_credibility: Math.round(computed.signals.reviewerCredibility * 10) / 10,
-        evidence_coverage: Math.round(computed.signals.evidenceCoverage * 10) / 10,
-        org_partner_weight: computed.signals.orgPartnerWeight,
-        volume_recency: Math.round(computed.signals.volumeRecency * 10) / 10,
-        tier_weight: computed.tierWeight,
-        scoring_version: computed.scoringVersion,
-      },
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'calculate_trust_score',
+        entity_type: 'user',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          raw_score: computed.rawScore,
+          calculated_score: computed.calculatedScore,
+          tier_code: computed.tierCode,
+          tier_name: computed.tierName,
+          total_reviews: computed.totalVerifiedReviews,
+          v2_signals: {
+            review_consistency: Math.round(computed.signals.reviewConsistency * 10) / 10,
+            reviewer_credibility: Math.round(computed.signals.reviewerCredibility * 10) / 10,
+            evidence_coverage: Math.round(computed.signals.evidenceCoverage * 10) / 10,
+            org_partner_weight: computed.signals.orgPartnerWeight,
+            volume_recency: Math.round(computed.signals.volumeRecency * 10) / 10,
+            tier_weight: computed.tierWeight,
+            scoring_version: computed.scoringVersion,
+          },
+        },
+      })
+    }
   }
 }
 

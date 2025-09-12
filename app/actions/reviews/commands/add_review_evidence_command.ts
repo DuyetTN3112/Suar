@@ -1,9 +1,11 @@
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import { BaseCommand } from '#actions/reviews/base_command'
 import { canAccessReviewSession, canAddReviewEvidence } from '#domain/reviews/review_policy'
 import ReviewEvidenceRepository from '#infra/reviews/repositories/review_evidence_repository'
 import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
 import SkillReviewRepository from '#infra/reviews/repositories/skill_review_repository'
+import type { ReviewEvidenceRecord } from '#types/review_records'
 
 interface AddReviewEvidenceInput {
   review_session_id: string
@@ -20,9 +22,9 @@ interface AddReviewEvidenceInput {
  */
 export default class AddReviewEvidenceCommand extends BaseCommand<
   AddReviewEvidenceInput,
-  import('#models/review_evidence').default
+  ReviewEvidenceRecord
 > {
-  async handle(dto: AddReviewEvidenceInput): Promise<import('#models/review_evidence').default> {
+  async handle(dto: AddReviewEvidenceInput): Promise<ReviewEvidenceRecord> {
     return await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
@@ -57,10 +59,19 @@ export default class AddReviewEvidenceCommand extends BaseCommand<
         trx
       )
 
-      await this.logAudit('add_review_evidence', 'review_session', session.id, null, {
-        evidence_id: evidence.id,
-        evidence_type: evidence.evidence_type,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'add_review_evidence',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            evidence_id: evidence.id,
+            evidence_type: evidence.evidence_type,
+          },
+        })
+      }
 
       return evidence
     })
