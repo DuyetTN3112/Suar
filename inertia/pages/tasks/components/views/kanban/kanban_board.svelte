@@ -50,6 +50,7 @@
   }: Props = $props()
   const { t } = useTranslation()
   const STATUS_ORDER_STORAGE_KEY = 'tasks:kanban:status-order'
+  const COLUMN_DRAG_DATA_TYPE = 'application/x-kanban-column'
 
   let orderedColumnKeys = $state<string[]>([])
   let draggingColumnKey = $state<string | null>(null)
@@ -103,6 +104,19 @@
     return ''
   })
 
+  function isKanbanDebugEnabled(): boolean {
+    if (import.meta.env.DEV) return true
+    if (typeof window === 'undefined') return false
+
+    return window.localStorage.getItem('tasks:kanban:debug') === '1'
+  }
+
+  function debugKanbanBoard(message: string, payload?: Record<string, unknown>) {
+    if (!isKanbanDebugEnabled()) return
+
+    console.warn(`[KanbanBoard] ${message}`, payload ?? {})
+  }
+
   $effect(() => {
     if (typeof window === 'undefined') return
 
@@ -140,13 +154,19 @@
 
   function handleColumnDragStart(event: DragEvent, columnKey: string) {
     draggingColumnKey = columnKey
+    event.stopPropagation()
+
     if (event.dataTransfer) {
       event.dataTransfer.effectAllowed = 'move'
-      event.dataTransfer.setData('application/x-kanban-column', columnKey)
+      event.dataTransfer.setData(COLUMN_DRAG_DATA_TYPE, columnKey)
     }
   }
 
   function handleColumnDragOver(event: DragEvent) {
+    if (!isColumnDrag(event)) {
+      return
+    }
+
     event.preventDefault()
     if (event.dataTransfer) {
       event.dataTransfer.dropEffect = 'move'
@@ -154,9 +174,13 @@
   }
 
   function handleColumnDrop(event: DragEvent, targetKey: string) {
+    if (!isColumnDrag(event)) {
+      return
+    }
+
     event.preventDefault()
 
-    const draggedColumnKey = event.dataTransfer?.getData('application/x-kanban-column')
+    const draggedColumnKey = event.dataTransfer?.getData(COLUMN_DRAG_DATA_TYPE)
     if (!draggedColumnKey && !draggingColumnKey) {
       return
     }
@@ -181,7 +205,16 @@
     draggingColumnKey = null
   }
 
+  function isColumnDrag(event: DragEvent): boolean {
+    if (draggingColumnKey) {
+      return true
+    }
+
+    return Array.from(event.dataTransfer?.types ?? []).includes(COLUMN_DRAG_DATA_TYPE)
+  }
+
   function handleDropTask(taskId: string, newStatus: string, sortOrder: number) {
+    debugKanbanBoard('move task requested', { taskId, newStatus, sortOrder })
     void store.moveTaskStatus(taskId, newStatus, sortOrder)
   }
 
@@ -237,34 +270,31 @@
   }
 </script>
 
-<div class="w-full overflow-x-auto pb-4">
+<div class="kanban-stage">
   {#if store.isLoading}
-    <div class="flex items-center justify-center h-64 text-muted-foreground">
-      <div class="flex flex-col items-center gap-2">
-        <div class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-        <span class="text-sm">{t('common.loading', {}, 'Đang tải...')}</span>
+    <div class="kanban-loading" role="status" aria-live="polite">
+      <div class="kanban-loading-grid">
+        {#each Array(5) as _, index}
+          <div class="kanban-skeleton" style={`--i: ${index}`}></div>
+        {/each}
       </div>
+      <span>{t('common.loading', {}, 'Đang tải...')}</span>
     </div>
   {:else}
     {#if store.isOptimisticActive}
-      <div
-        class="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100"
-        role="status"
-        aria-live="polite"
-      >
+      <div class="kanban-sync-notice" role="status" aria-live="polite">
         Board đang đồng bộ thay đổi. Một số thao tác quản lý trạng thái tạm thời bị khóa.
       </div>
     {/if}
 
     {#if emptyStateMessage}
-      <div class="mb-3 rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
-        <div class="flex flex-wrap items-center justify-between gap-3">
+      <div class="kanban-empty-state" role="status">
+        <div>
           <span>{emptyStateMessage}</span>
-          <div class="flex items-center gap-2">
+          <div class="kanban-empty-actions">
             {#if showFilteredEmptyState}
               <button
                 type="button"
-                class="rounded-md border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
                 onclick={() => { store.clearFilters() }}
               >
                 Xóa bộ lọc
@@ -272,7 +302,6 @@
             {:else if canCreateTask && hasProjectOptions}
               <button
                 type="button"
-                class="rounded-md border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
                 onclick={() => { onCreateTask?.() }}
               >
                 Tạo task
@@ -283,11 +312,11 @@
       </div>
     {/if}
 
-    <div class="flex items-start gap-4 px-1">
+    <div class="kanban-board" role="list">
       {#each orderedColumns as column (column.key)}
         <div
           role="listitem"
-          class="transition-opacity {draggingColumnKey === column.key ? 'opacity-60' : ''}"
+          class="kanban-column-shell {draggingColumnKey === column.key ? 'is-dragging' : ''}"
           ondragover={handleColumnDragOver}
           ondrop={(event) => { handleColumnDrop(event, column.key) }}
         >
@@ -315,7 +344,7 @@
       <!-- Add Status Button -->
       {#if canManageStatuses}
         <button
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/10 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
+          class="kanban-add-status"
           onclick={handleCreateStatus}
           disabled={store.isOptimisticActive}
           type="button"

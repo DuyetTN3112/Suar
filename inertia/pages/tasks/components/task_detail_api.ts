@@ -1,11 +1,16 @@
 import axios from 'axios'
 
-import type { Task } from '../types.svelte'
+import type { Task } from '../types.svelte.js'
 
-import type { AuditLog } from './task_detail_types'
+import type { AuditLog } from './task_detail_types.js'
 
 interface AuditLogsResponse {
   data?: AuditLog[]
+}
+
+interface TaskDetailResponse {
+  success?: boolean
+  data?: Task
 }
 
 interface TaskCompletionStatus {
@@ -24,6 +29,19 @@ export const loadAuditLogs = async (taskId: string): Promise<AuditLog[]> => {
   } catch (error: unknown) {
     console.error('Không thể tải lịch sử thay đổi:', error)
     return []
+  }
+}
+
+/**
+ * Tải chi tiết đầy đủ của task để hydrate detail panel.
+ */
+export const loadTaskDetail = async (taskId: string): Promise<Task | null> => {
+  try {
+    const response = await axios.get<TaskDetailResponse>(`/api/tasks/${taskId}`)
+    return response.data.data ?? null
+  } catch (error: unknown) {
+    console.error('Không thể tải chi tiết task:', error)
+    return null
   }
 }
 

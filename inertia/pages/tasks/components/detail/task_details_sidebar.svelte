@@ -2,7 +2,6 @@
   import Building from 'lucide-svelte/icons/building'
   import Calendar from 'lucide-svelte/icons/calendar'
   import Clock from 'lucide-svelte/icons/clock'
-  import DollarSign from 'lucide-svelte/icons/dollar-sign'
   import Eye from 'lucide-svelte/icons/eye'
   import User from 'lucide-svelte/icons/user'
 
@@ -126,25 +125,22 @@
               <p class="text-xs font-bold uppercase text-muted-foreground">
                 {t('task.visibility', {}, 'Hiển thị')}
               </p>
-              <p class="font-bold">{task.task_visibility}</p>
+              <p class="font-bold">
+                {#if task.task_visibility === 'all'}
+                  Công khai cho nội bộ và bên ngoài (All)
+                {:else if task.task_visibility === 'external'}
+                  Mở cho người ngoài dự án (External)
+                {:else if task.task_visibility === 'internal'}
+                  Chỉ thành viên nội bộ (Internal)
+                {:else}
+                  {task.task_visibility}
+                {/if}
+              </p>
             </div>
           </div>
         {/if}
 
-        {#if task.estimated_budget != null}
-          <Separator />
-          <div class="flex items-start gap-3">
-            <DollarSign class="size-4 mt-0.5 text-muted-foreground shrink-0" />
-            <div>
-              <p class="text-xs font-bold uppercase text-muted-foreground">
-                {t('task.estimated_budget', {}, 'Ngân sách ước tính')}
-              </p>
-              <p class="font-bold">
-                {task.estimated_budget.toLocaleString('vi-VN')} ₫
-              </p>
-            </div>
-          </div>
-        {/if}
+
 
         {#if task.application_deadline}
           <Separator />

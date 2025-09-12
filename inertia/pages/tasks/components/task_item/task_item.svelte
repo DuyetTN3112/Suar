@@ -95,7 +95,7 @@
       onclick={openDeleteConfirm}
       title="Xóa nhiệm vụ"
     >
-      <Trash2 class="h-3 w-3 text-red-500" />
+      <Trash2 class="h-3 w-3 text-destructive" />
     </Button>
   {/if}
 </div>
@@ -124,7 +124,7 @@
       <AlertDialogCancel>Hủy</AlertDialogCancel>
       <AlertDialogAction
         onclick={confirmDeleteTask}
-        class="bg-red-500 hover:bg-red-600"
+        class="bg-red-500 hover:bg-orange"
       >
         Xóa
       </AlertDialogAction>

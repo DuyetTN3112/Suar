@@ -44,10 +44,11 @@
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
     availableSkills?: { id: string; name: string }[]
     projects?: { id: string; name: string }[]
+    proficiencyLevels?: { value: string; label: string }[]
     formError?: string
   }
 
-  const { formData, setFormData, errors, statuses, priorities, labels, users, parentTasks, availableSkills, projects, formError }: Props = $props()
+  const { formData, setFormData, errors, statuses, priorities, labels, users, parentTasks, availableSkills, projects, proficiencyLevels, formError }: Props = $props()
 
   function fieldError(...keys: string[]): string | undefined {
     for (const key of keys) {
@@ -105,7 +106,7 @@
 <div class="space-y-4 py-4">
   {#if formError}
     <div
-      class="whitespace-pre-line rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
+      class="whitespace-pre-line rounded-md border border-border bg-orange-03 px-3 py-2 text-sm text-destructive dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
       role="alert"
     >
       {formError}
@@ -135,6 +136,7 @@
     onAddSkill={handleAddSkill}
     onRemoveSkill={handleRemoveSkill}
     availableSkills={availableSkills ?? []}
+    proficiencyLevels={proficiencyLevels ?? []}
     error={fieldError('required_skills', 'required_skills.0.id', 'required_skills.0.skill_id', 'required_skills.0.level')}
   />
 
@@ -148,7 +150,7 @@
 
     <div class="grid gap-2">
       <Label for="acceptance_criteria">
-        Acceptance criteria<span class="ml-1 text-red-500">*</span>
+        Acceptance criteria<span class="ml-1 text-destructive">*</span>
       </Label>
       <Textarea
         id="acceptance_criteria"
@@ -163,7 +165,7 @@
         }}
       />
       {#if errors.acceptance_criteria}
-        <p class="text-xs text-red-500">{errors.acceptance_criteria}</p>
+        <p class="text-xs text-destructive">{errors.acceptance_criteria}</p>
       {/if}
     </div>
 
@@ -182,7 +184,7 @@
         }}
       />
       {#if errors.context_background}
-        <p class="text-xs text-red-500">{errors.context_background}</p>
+        <p class="text-xs text-destructive">{errors.context_background}</p>
       {/if}
     </div>
 
@@ -202,7 +204,7 @@
         />
         <p class="text-[11px] text-muted-foreground">Ngăn cách bằng dấu phẩy hoặc xuống dòng.</p>
         {#if fieldError('tech_stack', 'tech_stack.0')}
-          <p class="text-xs text-red-500">{fieldError('tech_stack', 'tech_stack.0')}</p>
+          <p class="text-xs text-destructive">{fieldError('tech_stack', 'tech_stack.0')}</p>
         {/if}
       </div>
 
@@ -221,7 +223,7 @@
         />
         <p class="text-[11px] text-muted-foreground">Giúp nhóm lọc task và đọc profile sau này.</p>
         {#if fieldError('domain_tags', 'domain_tags.0')}
-          <p class="text-xs text-red-500">{fieldError('domain_tags', 'domain_tags.0')}</p>
+          <p class="text-xs text-destructive">{fieldError('domain_tags', 'domain_tags.0')}</p>
         {/if}
       </div>
     </div>
@@ -241,7 +243,7 @@
         }}
       />
       {#if fieldError('learning_objectives', 'learning_objectives.0')}
-        <p class="text-xs text-red-500">{fieldError('learning_objectives', 'learning_objectives.0')}</p>
+        <p class="text-xs text-destructive">{fieldError('learning_objectives', 'learning_objectives.0')}</p>
       {/if}
     </div>
   </div>

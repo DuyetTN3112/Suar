@@ -43,6 +43,12 @@
   let selectedSkillId = $state('')
   let selectedLevel = $state('junior')
 
+  $effect(() => {
+    if (proficiencyLevels.length > 0 && !proficiencyLevels.some(l => l.value === selectedLevel)) {
+      selectedLevel = proficiencyLevels[0].value
+    }
+  })
+
   function handleAddSkill() {
     if (!selectedSkillId) return
     if (requiredSkills.some((skill) => skill.id === selectedSkillId)) {
@@ -58,15 +64,19 @@
       level: selectedLevel
     })
 
+    if (proficiencyLevels.length > 0) {
+      selectedLevel = proficiencyLevels[0].value
+    } else {
+      selectedLevel = 'junior'
+    }
     selectedSkillId = ''
-    selectedLevel = 'junior'
   }
 </script>
 
 <div class="space-y-4">
   <div>
     <div class="text-sm font-medium text-gray-700 mb-2 block">
-      Kĩ năng bắt buộc<span class="ml-1 text-red-500">*</span>
+      Kĩ năng bắt buộc<span class="ml-1 text-destructive">*</span>
     </div>
     <div class="space-y-2">
       <div class="flex gap-2">
@@ -102,7 +112,7 @@
       </div>
     </div>
     {#if error}
-      <p class="text-xs text-red-500">{error}</p>
+      <p class="text-xs text-destructive">{error}</p>
     {/if}
   </div>
 

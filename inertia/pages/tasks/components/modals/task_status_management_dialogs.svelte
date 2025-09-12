@@ -53,14 +53,14 @@
     onDeleteOpenChange: (open: boolean) => void
   }
 
-  const {
-    createOpen,
-    createStatusName,
-    createStatusCategory,
-    createStatusDescription,
-    createStatusColor,
-    createStatusError,
-    createStatusSubmitting,
+  let {
+    createOpen = $bindable(),
+    createStatusName = $bindable(),
+    createStatusCategory = $bindable(),
+    createStatusDescription = $bindable(),
+    createStatusColor = $bindable(),
+    createStatusError = $bindable(),
+    createStatusSubmitting = $bindable(),
     onCreateSubmit,
     onCreateClose,
     onCreateOpenChange,
@@ -68,12 +68,12 @@
     onCreateStatusCategoryChange,
     onCreateStatusDescriptionChange,
     onCreateStatusColorChange,
-    deleteOpen,
-    deleteStatusError,
-    deleteStatusSubmitting,
-    deleteStatusTarget,
-    hasDeleteTargetTasks,
-    isStatusMutationLocked,
+    deleteOpen = $bindable(),
+    deleteStatusError = $bindable(),
+    deleteStatusSubmitting = $bindable(),
+    deleteStatusTarget = $bindable(),
+    hasDeleteTargetTasks = $bindable(),
+    isStatusMutationLocked = $bindable(),
     onDeleteConfirm,
     onDeleteClose,
     onDeleteOpenChange,
@@ -117,7 +117,7 @@
         </div>
 
         {#if deleteStatusError}
-          <p class="text-red-500">{deleteStatusError}</p>
+          <p class="text-destructive">{deleteStatusError}</p>
         {/if}
 
         {#if deleteStatusTarget.isSystem}
@@ -248,7 +248,7 @@
       </div>
 
       {#if createStatusError}
-        <p class="text-sm text-red-500">{createStatusError}</p>
+        <p class="text-sm text-destructive">{createStatusError}</p>
       {/if}
     </div>
 

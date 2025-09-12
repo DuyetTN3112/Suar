@@ -127,7 +127,7 @@
         variant="outline"
         onclick={handleMarkCompleted}
         disabled={submitting}
-        class="border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/30"
+        class="border-blue-600 text-foreground hover:bg-ink-04 dark:hover:bg-blue-950/30"
       >
         <CircleCheckBig class="h-4 w-4 mr-1" />
         Hoàn thành
