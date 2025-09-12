@@ -3,10 +3,11 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
-import type CreateNotification from '#actions/common/create_notification'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import {
@@ -20,14 +21,12 @@ import UnauthorizedException from '#exceptions/unauthorized_exception'
 import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
-
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
 
 interface PersistedTaskAssignment {
-  task: Task
+  task: TaskRecord
   oldAssignedTo: DatabaseId | null
 }
 
@@ -45,14 +44,14 @@ interface PersistedTaskAssignment {
 export default class AssignTaskCommand {
   constructor(
     protected execCtx: ExecutionContext,
-    private createNotification: CreateNotification
+    private createNotification: NotificationCreator
   ) {}
 
-  async execute(dto: AssignTaskDTO): Promise<Task> {
+  async execute(dto: AssignTaskDTO): Promise<TaskDetailRecord> {
     const userId = this.requireUserId()
     const assignmentResult = await this.persistAssignmentInTransaction(dto, userId)
     await this.runPostCommitEffects(assignmentResult, dto, userId)
-    return await TaskRepository.findByIdWithDetailRelations(assignmentResult.task.id)
+    return await TaskRepository.findByIdWithDetailRecord(assignmentResult.task.id)
   }
 
   private requireUserId(): DatabaseId {
@@ -67,14 +66,14 @@ export default class AssignTaskCommand {
   private async loadTaskForAssignment(
     taskId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<Task> {
-    return TaskRepository.findActiveForUpdate(taskId, trx)
+  ): Promise<TaskRecord> {
+    return TaskRepository.findActiveForUpdateAsRecord(taskId, trx)
   }
 
   private async ensureAssignmentPreconditions(
     userId: DatabaseId,
     dto: AssignTaskDTO,
-    task: Task,
+    task: TaskRecord,
     trx: TransactionClientContract
   ): Promise<void> {
     const permissionContext = await buildTaskPermissionContext(userId, task, trx)
@@ -100,35 +99,43 @@ export default class AssignTaskCommand {
       validateAssignee({
         isOrgMember: isMember,
         isFreelancer,
-        taskVisibility: task.task_visibility,
+        taskVisibility: task.task_visibility ?? 'public',
       })
     )
   }
 
   private async persistAssignment(
-    task: Task,
+    task: TaskRecord,
     dto: AssignTaskDTO,
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<PersistedTaskAssignment> {
     const oldAssignedTo = task.assigned_to
-    const oldValues = task.toJSON()
+    const oldValues = { ...task }
 
-    task.assigned_to = dto.assigned_to
-    task.updated_by = userId
-    await TaskRepository.save(task, trx)
+    const updatedTask = await TaskRepository.updateTask(
+      task.id,
+      {
+        assigned_to: dto.assigned_to,
+        updated_by: userId,
+      },
+      trx
+    )
 
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: userId,
-      action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
-      entity_type: EntityType.TASK,
-      entity_id: dto.task_id,
-      old_values: oldValues,
-      new_values: task.toJSON(),
-    })
+    await auditPublicApi.log(
+      {
+        user_id: userId,
+        action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: oldValues,
+        new_values: { ...updatedTask },
+      },
+      this.execCtx
+    )
 
     return {
-      task,
+      task: updatedTask,
       oldAssignedTo,
     }
   }
@@ -180,7 +187,7 @@ export default class AssignTaskCommand {
    * Send notifications cho assignment
    */
   private async sendAssignmentNotifications(
-    task: Task,
+    task: TaskRecord,
     assignerId: DatabaseId,
     dto: AssignTaskDTO,
     oldAssignedTo: DatabaseId | null
