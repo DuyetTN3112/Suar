@@ -1,11 +1,11 @@
-import redis from '@adonisjs/redis/services/main'
 
 import { PAGINATION } from '#constants/common_constants'
 import ValidationException from '#exceptions/validation_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
+import type { TaskDetailRecord } from '#types/task_records'
 
 /**
  * Query để lấy tasks của một user cụ thể
@@ -37,7 +37,7 @@ export default class GetUserTasksQuery {
     page?: number
     limit?: number
   }): Promise<{
-    data: Task[]
+    data: TaskDetailRecord[]
     meta: {
       total: number
       per_page: number
@@ -68,7 +68,7 @@ export default class GetUserTasksQuery {
     }
 
     // Execute via repository
-    const paginator = await TaskRepository.paginateByUser({
+    const result = await TaskRepository.paginateByUserAsRecords({
       userId,
       organizationId,
       filterType,
@@ -77,16 +77,6 @@ export default class GetUserTasksQuery {
       page,
       limit,
     })
-
-    const result = {
-      data: paginator.all(),
-      meta: {
-        total: paginator.total,
-        per_page: paginator.perPage,
-        current_page: paginator.currentPage,
-        last_page: paginator.lastPage,
-      },
-    }
 
     // Cache result
     await this.saveToCache(cacheKey, result, 180) // 3 minutes
@@ -131,7 +121,7 @@ export default class GetUserTasksQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<{
-    data: Task[]
+    data: TaskDetailRecord[]
     meta: {
       total: number
       per_page: number
@@ -140,17 +130,17 @@ export default class GetUserTasksQuery {
     }
   } | null> {
     try {
-      const cached = await redis.get(key)
-      if (cached) {
-        return JSON.parse(cached) as {
-          data: Task[]
-          meta: {
-            total: number
-            per_page: number
-            current_page: number
-            last_page: number
-          }
+      const cached = await CacheService.get<{
+        data: TaskDetailRecord[]
+        meta: {
+          total: number
+          per_page: number
+          current_page: number
+          last_page: number
         }
+      }>(key)
+      if (cached) {
+        return cached
       }
     } catch (error: unknown) {
       loggerService.error('[GetUserTasksQuery] Cache get error:', error)
@@ -163,7 +153,7 @@ export default class GetUserTasksQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error: unknown) {
       loggerService.error('[GetUserTasksQuery] Cache set error:', error)
     }

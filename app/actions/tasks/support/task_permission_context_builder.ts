@@ -1,5 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
 import type {
   TaskCollectionAccessContext,
   TaskCollectionScopeFallback,
@@ -7,16 +9,15 @@ import type {
   TaskPermissionContext,
 } from '#domain/tasks/task_types'
 import TaskAssignmentRepository from '#infra/tasks/repositories/task_assignment_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
-
-
-type TaskPermissionSource = Pick<
-  Task,
-  'id' | 'creator_id' | 'assigned_to' | 'organization_id' | 'project_id'
->
+interface TaskPermissionSource {
+  id: DatabaseId
+  creator_id: DatabaseId
+  assigned_to: DatabaseId | null
+  organization_id: DatabaseId
+  project_id: DatabaseId | null
+}
 
 const normalizeProjectRole = (role: string): string | null => {
   return role === 'unknown' ? null : role

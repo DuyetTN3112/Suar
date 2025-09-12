@@ -37,16 +37,6 @@ export default class GetMyApplicationsQuery extends BaseQuery<
         page: dto.page,
         perPage: dto.per_page,
       })
-
-      return {
-        data: result.all(),
-        meta: {
-          total: result.total,
-          per_page: result.perPage,
-          current_page: result.currentPage,
-          last_page: result.lastPage,
-        },
-      }
     })
   }
 }
