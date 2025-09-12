@@ -77,7 +77,7 @@ export class UserApplicationMapper {
     if (dto.timezone !== undefined) result.timezone = dto.timezone
     if (dto.language !== undefined) result.language = dto.language
     if (dto.is_freelancer !== undefined) result.isFreelancer = dto.is_freelancer
-    return result as ReturnType<typeof UserApplicationMapper.fromUpdateDetailsDTO>
+    return result
   }
 
   /**

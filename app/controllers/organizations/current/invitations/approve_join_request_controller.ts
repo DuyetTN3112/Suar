@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import { ErrorMessages } from '#constants/error_constants'
 import { buildCurrentOrganizationProcessJoinRequestInput } from '#controllers/organizations/current/mappers/request/current_organization_mutation_request_mapper'
@@ -30,7 +30,7 @@ export default class ApproveJoinRequestController {
       organizationId,
       params.id as string
     )
-    await new ProcessJoinRequestCommand(execCtx, new CreateNotification()).execute(dto)
+    await new ProcessJoinRequestCommand(execCtx, notificationPublicApi).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
       response.json(mapCurrentOrganizationSuccessApiBody(successMessage))

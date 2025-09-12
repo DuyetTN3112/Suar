@@ -1,7 +1,8 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { BaseQuery } from '#actions/users/base_query'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 /**
  * GetSpiderChartDataDTO

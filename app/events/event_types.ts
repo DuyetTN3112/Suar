@@ -1,7 +1,3 @@
-import type Organization from '#models/organization'
-import type OrganizationUser from '#models/organization_user'
-import type Project from '#models/project'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -22,14 +18,16 @@ import type { DatabaseId } from '#types/database'
 // Thay thế: before_organization_insert trigger (auto-generate slug)
 
 export interface OrganizationCreatedEvent {
-  organization: Organization
+  organizationId: DatabaseId
   ownerId: DatabaseId
+  name: string
+  slug: string
   /** IP address của người tạo */
   ip?: string
 }
 
 export interface OrganizationUpdatedEvent {
-  organization: Organization
+  organizationId: DatabaseId
   updatedBy: DatabaseId
   changes: Record<string, unknown>
 }
@@ -65,7 +63,9 @@ export interface OrganizationMemberRoleChangedEvent {
 }
 
 export interface OrganizationMemberApprovedEvent {
-  membership: OrganizationUser
+  organizationId: DatabaseId
+  userId: DatabaseId
+  orgRole: string
   approvedBy: DatabaseId
 }
 
@@ -74,13 +74,14 @@ export interface OrganizationMemberApprovedEvent {
 // Thay thế: before_insert_project trigger (validate permission + set defaults)
 
 export interface ProjectCreatedEvent {
-  project: Project
+  projectId: DatabaseId
   creatorId: DatabaseId
   organizationId: DatabaseId
+  name: string
 }
 
 export interface ProjectUpdatedEvent {
-  project: Project
+  projectId: DatabaseId
   updatedBy: DatabaseId
   changes: Record<string, unknown>
 }
@@ -117,7 +118,7 @@ export interface ProjectOwnershipTransferredEvent {
 // Thay thế: before_task_project_insert/update triggers
 
 export interface TaskCreatedEvent {
-  task: Task
+  taskId: DatabaseId
   creatorId: DatabaseId
   organizationId: DatabaseId
   projectId: DatabaseId | null
@@ -130,7 +131,7 @@ export interface TaskFieldChange {
 }
 
 export interface TaskUpdatedEvent {
-  task: Task
+  taskId: DatabaseId
   updatedBy: DatabaseId
   changes: Record<string, unknown> | TaskFieldChange[]
   /** Snapshot trước khi update — cho listeners/query side-effects can diff context */
@@ -138,13 +139,20 @@ export interface TaskUpdatedEvent {
 }
 
 export interface TaskStatusChangedEvent {
-  task: Task
+  taskId: DatabaseId
+  assignedTo: DatabaseId | null
   oldStatus: string
   newStatusId: DatabaseId
   newStatus: string
   /** Category of the new status (todo, in_progress, done, cancelled) */
   newStatusCategory: string
   changedBy: DatabaseId
+}
+
+export interface TaskAssignmentCompletedEvent {
+  taskId: DatabaseId
+  assignmentId: DatabaseId
+  assigneeId: DatabaseId
 }
 
 export interface TaskAssignedEvent {
@@ -307,6 +315,7 @@ declare module '@adonisjs/core/types' {
     'task:created': TaskCreatedEvent
     'task:updated': TaskUpdatedEvent
     'task:status:changed': TaskStatusChangedEvent
+    'task:assignment:completed': TaskAssignmentCompletedEvent
     'task:assigned': TaskAssignedEvent
     'task:access:revoked': TaskAccessRevokedEvent
 
