@@ -9,7 +9,8 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Label from '@/components/ui/label.svelte'
   import { FRONTEND_ROUTES } from '@/constants'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTheme, type Theme } from '@/stores/theme.svelte'
 
   interface AppearanceUserData {
@@ -93,24 +94,27 @@
       }
     })
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Giao diện</title>
 </svelte:head>
 
-<AppLayout title="Giao diện">
+<Layout title="Giao diện">
   <div class="container py-8">
     <div class="mx-auto max-w-5xl space-y-6">
       <div class="space-y-2">
-        <p class="neo-kicker">Settings / Appearance</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Settings / Appearance</p>
         <h1 class="text-4xl font-bold tracking-tight">Giao diện hệ thống</h1>
         <p class="max-w-3xl text-sm text-muted-foreground">
           Font toàn bộ dashboard đã chốt theo bộ nhận diện mới: heading dùng Space Grotesk, body dùng JetBrains Mono. Phần dưới chỉ còn điều khiển theme sáng tối.
         </p>
       </div>
 
-      <Card class="neo-panel">
+      <Card class="border border-border rounded-lg bg-white shadow-xs>">
         <CardHeader>
           <CardTitle>Bộ font chuẩn</CardTitle>
           <CardDescription>
@@ -118,15 +122,15 @@
           </CardDescription>
         </CardHeader>
         <CardContent class="grid gap-4 md:grid-cols-2">
-          <div class="neo-surface-soft p-4">
-            <p class="neo-kicker">Heading</p>
+          <div class="border border-border rounded-lg p-4 bg-white">
+            <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Heading</p>
             <p class="mt-3 text-3xl font-bold [font-family:var(--font-heading)]">Space Grotesk</p>
             <p class="mt-2 text-sm text-muted-foreground">
               Dùng cho title, button, menu và các nhãn quan trọng.
             </p>
           </div>
-          <div class="neo-surface-soft p-4">
-            <p class="neo-kicker">Body</p>
+          <div class="border border-border rounded-lg p-4 bg-white">
+            <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Body</p>
             <p class="mt-3 text-2xl font-medium [font-family:var(--font-body)]">JetBrains Mono</p>
             <p class="mt-2 text-sm text-muted-foreground">
               Dùng cho nội dung, bảng dữ liệu và các form field.
@@ -135,7 +139,7 @@
         </CardContent>
       </Card>
 
-      <Card class="neo-panel">
+      <Card class="border border-border rounded-lg bg-white shadow-xs>">
         <CardHeader>
           <CardTitle>Theme</CardTitle>
           <CardDescription>
@@ -150,7 +154,7 @@
                 {#each themeOptions as option}
                   <button
                     type="button"
-                    class="neo-surface-soft flex h-full flex-col gap-3 p-4 text-left transition-transform hover:-translate-y-0.5 {theme === option.value ? 'ring-2 ring-primary' : ''}"
+                    class="border border-border rounded-lg flex h-full flex-col gap-3 p-4 text-left bg-white transition-transform hover:-translate-y-0.5 {theme === option.value ? 'ring-2 ring-primary' : ''}"
                     onclick={() => {
                       theme = option.value
                     }}
@@ -181,4 +185,4 @@
       </Card>
     </div>
   </div>
-</AppLayout>
+</Layout>

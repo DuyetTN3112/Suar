@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from '@inertiajs/svelte'
+  import { Link, page  } from '@inertiajs/svelte'
 
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -8,13 +8,17 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import { SETTINGS_CARDS as settingsCards } from '@/constants/settings'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Cài đặt</title>
 </svelte:head>
 
-<AppLayout title="Cài đặt">
+<Layout title="Cài đặt">
   <div class="container py-8">
     <div class="mx-auto max-w-5xl space-y-6">
       <div class="space-y-2">

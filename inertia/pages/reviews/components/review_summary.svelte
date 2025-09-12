@@ -4,7 +4,7 @@
    */
   import Badge from '@/components/ui/badge.svelte'
 
-  import type { SerializedSkillReview, ProficiencyLevelOption } from '../types.svelte'
+  import type { SerializedSkillReview, ProficiencyLevelOption, ReviewerType } from '../types.svelte'
   import { REVIEWER_TYPE_CONFIG } from '../types.svelte'
 
   interface Props {
@@ -16,6 +16,12 @@
 
   function getLevelInfo(code: string) {
     return proficiencyLevels.find((l) => l.value === code)
+  }
+
+  function getReviewerTypeLabel(reviewerType: ReviewerType | null | undefined) {
+    if (!reviewerType) return 'Người đánh giá'
+
+    return REVIEWER_TYPE_CONFIG[reviewerType].labelVi
   }
 
   // Group by reviewer
@@ -30,12 +36,17 @@
         map.set(key, [sr])
       }
     }
-    return Array.from(map.entries()).map(([reviewerId, reviews]) => ({
-      reviewerId,
-      reviewerName: reviews[0].reviewer?.username ?? 'Ẩn danh',
-      reviewerType: reviews[0].reviewer_type,
-      reviews,
-    }))
+    return Array.from(map.entries()).map(([reviewerId, reviews]) => {
+      const firstReview = reviews[0]
+      const reviewerName = firstReview.reviewer?.username ?? 'Ẩn danh'
+
+      return {
+        reviewerId,
+        reviewerName,
+        reviewerType: firstReview.reviewer_type,
+        reviews,
+      }
+    })
   })
 </script>
 
@@ -50,7 +61,7 @@
         <div class="flex items-center gap-2">
           <span class="text-sm font-medium">{group.reviewerName}</span>
           <Badge variant="outline" class="text-[10px]">
-            {REVIEWER_TYPE_CONFIG[group.reviewerType].labelVi}
+            {getReviewerTypeLabel(group.reviewerType)}
           </Badge>
         </div>
         <div class="rounded-lg border overflow-hidden">

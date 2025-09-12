@@ -29,7 +29,7 @@
   </div>
 {/if}
 {#if flash?.error}
-  <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+  <div class="rounded-lg border border-border bg-orange-03 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
     {flash.error}
   </div>
 {/if}

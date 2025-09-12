@@ -17,7 +17,7 @@
   }
 
   const { user, reviewerType, class: className = '' }: Props = $props()
-  const displayName = $derived(user.username || user.email)
+  const displayName = $derived(user.username)
 
   const initials = $derived(
     displayName
