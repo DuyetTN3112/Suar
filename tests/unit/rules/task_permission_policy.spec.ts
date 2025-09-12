@@ -48,8 +48,7 @@ test.group('Task permission policy', () => {
   test('edit-like permissions share privileged paths while unrelated actors stay denied', ({
     assert,
   }) => {
-    const evaluators = [canUpdateTask, canUpdateTaskStatus, canUpdateTaskTime, canViewTask]
-    const allowedContexts = [
+    const broadAccessContexts = [
       baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
       baseCtx({ actorSystemRole: SystemRoleName.SYSTEM_ADMIN }),
       baseCtx({ actorId: 'creator-001' }),
@@ -57,19 +56,40 @@ test.group('Task permission policy', () => {
       baseCtx({ isActiveAssignee: true }),
       baseCtx({ actorOrgRole: OrganizationRole.ADMIN }),
       baseCtx({ actorProjectRole: ProjectRole.MANAGER }),
+      baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
+    ]
+    const statusAccessContexts = [
+      baseCtx({ actorSystemRole: SystemRoleName.SUPERADMIN }),
+      baseCtx({ actorSystemRole: SystemRoleName.SYSTEM_ADMIN }),
+      baseCtx({ actorProjectRole: ProjectRole.MANAGER }),
+      baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
     ]
     const denied = baseCtx({
       actorSystemRole: null,
       actorOrgRole: OrganizationRole.MEMBER,
-      actorProjectRole: ProjectRole.MEMBER,
+      actorProjectRole: null,
     })
 
-    for (const evaluate of evaluators) {
-      for (const ctx of allowedContexts) {
+    for (const evaluate of [canUpdateTask, canUpdateTaskTime, canViewTask]) {
+      for (const ctx of broadAccessContexts) {
         assert.isTrue(evaluate(ctx).allowed)
       }
       assertDenied(assert, evaluate(denied), 'FORBIDDEN')
     }
+
+    for (const ctx of statusAccessContexts) {
+      assert.isTrue(canUpdateTaskStatus(ctx).allowed)
+    }
+    assertDenied(
+      assert,
+      canUpdateTaskStatus(baseCtx({ actorOrgRole: OrganizationRole.ADMIN, actorProjectRole: null })),
+      'FORBIDDEN'
+    )
+    assertDenied(
+      assert,
+      canUpdateTaskStatus(baseCtx({ actorId: 'creator-001', actorProjectRole: null })),
+      'FORBIDDEN'
+    )
   })
 
   test('assignment and revoke access require stronger authority than active-assignee-only access', ({
@@ -139,6 +159,12 @@ test.group('Task permission policy', () => {
       }),
       'FORBIDDEN'
     )
+    assert.isTrue(
+      canDeleteTask({
+        ...baseCtx({ actorProjectRole: ProjectRole.MEMBER }),
+        isActorOrgMember: true,
+      }).allowed
+    )
     assert.isTrue(canPermanentDeleteTask({ actorSystemRole: SystemRoleName.SUPERADMIN }).allowed)
     assertDenied(
       assert,
@@ -158,6 +184,14 @@ test.group('Task permission policy', () => {
         actorSystemRole: SystemRoleName.REGISTERED_USER,
         actorOrgRole: OrganizationRole.MEMBER,
         actorProjectRole: ProjectRole.MANAGER,
+        projectId: 'project-001',
+      }).allowed
+    )
+    assert.isTrue(
+      canCreateTask({
+        actorSystemRole: SystemRoleName.REGISTERED_USER,
+        actorOrgRole: OrganizationRole.MEMBER,
+        actorProjectRole: ProjectRole.MEMBER,
         projectId: 'project-001',
       }).allowed
     )
@@ -205,6 +239,10 @@ test.group('Task permission policy', () => {
         'priority',
       ]),
       canUpdateTaskFields(baseCtx({ actorProjectRole: ProjectRole.MANAGER }), [
+        'title',
+        'assigned_to',
+      ]),
+      canUpdateTaskFields(baseCtx({ actorProjectRole: ProjectRole.MEMBER }), [
         'title',
         'assigned_to',
       ]),

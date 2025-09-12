@@ -82,6 +82,37 @@ test.group('SocialAuthProviderService', () => {
     })
   })
 
+  test('normalizes GitHub callback payloads with flat token fields', async ({ assert }) => {
+    const service = new SocialAuthProviderService()
+
+    const result = await service.readCallback(
+      'github',
+      fakeDriver({
+        user: () =>
+          Promise.resolve({
+            id: 'github-42',
+            email: 'github@example.com',
+            name: 'GitHub User',
+            nickName: 'github-user',
+            accessToken: 'flat-access-token',
+            refreshToken: 'flat-refresh-token',
+          }),
+      })
+    )
+
+    assert.deepEqual(result, {
+      type: 'success',
+      socialUser: {
+        id: 'github-42',
+        email: 'github@example.com',
+        name: 'GitHub User',
+        nickName: 'github-user',
+        token: 'flat-access-token',
+        refreshToken: 'flat-refresh-token',
+      },
+    })
+  })
+
   test('returns a validation error when provider payload has no email', async ({ assert }) => {
     const service = new SocialAuthProviderService()
 

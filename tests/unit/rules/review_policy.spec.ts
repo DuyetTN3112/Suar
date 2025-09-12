@@ -5,6 +5,8 @@ import {
   canCreateReviewSession,
   canConfirmReview,
   resolveConfirmationCounters,
+  canAccessReviewSessionAsActor,
+  canSubmitReview,
 } from '#modules/reviews/domain/review_policy'
 import { AssignmentStatus } from '#modules/tasks/constants/task_constants'
 
@@ -113,5 +115,177 @@ test.group('Review policy', () => {
       }),
       { accurate: 0, disputed: 1, total: 1 }
     )
+  })
+})
+
+test.group('Review policy — actor-aware session access', () => {
+  test('system admin can access any review session', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'admin-001',
+      actorSystemRole: 'system_admin',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('reviewee can access their own review session', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'user-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('manager reviewer can access review session', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'manager-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: ['manager-001'],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('peer reviewer can access review session', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'peer-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: ['peer-001'],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('org admin can access review session in their org', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'org-admin-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: true,
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('unrelated user cannot access review session', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: true,
+      actorId: 'outsider-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isFalse(result.allowed)
+  })
+
+  test('non-existent session is denied for everyone', ({ assert }) => {
+    const result = canAccessReviewSessionAsActor({
+      sessionExists: false,
+      actorId: 'admin-001',
+      actorSystemRole: 'system_admin',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+    })
+    assert.isFalse(result.allowed)
+  })
+})
+
+test.group('Review policy — submit review authorization', () => {
+  test('manager can submit as manager reviewer type', ({ assert }) => {
+    const result = canSubmitReview({
+      actorId: 'manager-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: ['manager-001'],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+      reviewerType: 'manager',
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('peer can submit as peer reviewer type', ({ assert }) => {
+    const result = canSubmitReview({
+      actorId: 'peer-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: ['peer-001'],
+      isOrgAdminOrOwner: false,
+      reviewerType: 'peer',
+    })
+    assert.isTrue(result.allowed)
+  })
+
+  test('unrelated user cannot submit review', ({ assert }) => {
+    const result = canSubmitReview({
+      actorId: 'outsider-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+      reviewerType: 'peer',
+    })
+    assert.isFalse(result.allowed)
+  })
+
+  test('peer cannot spoof manager reviewer type', ({ assert }) => {
+    const result = canSubmitReview({
+      actorId: 'peer-001',
+      actorSystemRole: 'registered_user',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: ['peer-001'],
+      isOrgAdminOrOwner: false,
+      reviewerType: 'manager',
+    })
+    assert.isFalse(result.allowed)
+  })
+
+  test('system admin can submit review', ({ assert }) => {
+    const result = canSubmitReview({
+      actorId: 'admin-001',
+      actorSystemRole: 'system_admin',
+      sessionRevieweeId: 'user-001',
+      sessionTaskOrgId: 'org-001',
+      managerReviewerIds: [],
+      peerReviewerIds: [],
+      isOrgAdminOrOwner: false,
+      reviewerType: 'manager',
+    })
+    assert.isTrue(result.allowed)
   })
 })

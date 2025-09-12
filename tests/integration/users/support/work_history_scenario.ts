@@ -1,7 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
 import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
 import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/build_user_work_history_command'
@@ -54,11 +53,24 @@ interface WorkHistoryRow {
 }
 
 interface AuditLogSummary {
+  action?: string
+  entityType?: string
+  entityId?: string
+  createdAt?: string | Date
   new_values?: {
     full_rebuild?: boolean
+    total_completed_assignments?: number
     inserted?: number
     updated?: number
   } | null
+}
+
+interface AuditLogRow {
+  action?: string
+  entity_type?: string
+  entity_id?: string
+  created_at?: string | Date
+  new_values?: AuditLogSummary['new_values']
 }
 
 interface EvidenceSeed {
@@ -231,14 +243,19 @@ export default class WorkHistoryScenario {
   }
 
   public async getAuditLogs(): Promise<AuditLogSummary[]> {
-    return (await MongoAuditLogModel.find({
-      action: 'build_user_work_history',
-      entity_type: 'user_work_history',
-      entity_id: this.reviewee.id,
-    })
-      .sort({ created_at: -1 })
-      .lean()
-      .exec())
+    const rows = (await db
+      .from('audit_events')
+      .where('action', 'build_user_work_history')
+      .where('entity_type', 'user_work_history')
+      .where('entity_id', this.reviewee.id)
+      .orderBy('created_at', 'desc')) as AuditLogRow[]
+    return rows.map((r) => ({
+      action: r.action,
+      entityType: r.entity_type,
+      entityId: r.entity_id,
+      createdAt: r.created_at,
+      new_values: r.new_values ?? null,
+    }))
   }
 
   public async updateSessionQuality(overallQualityScore: number): Promise<void> {
