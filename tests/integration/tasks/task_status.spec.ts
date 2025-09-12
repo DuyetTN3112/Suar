@@ -1,3 +1,4 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
@@ -7,6 +8,7 @@ import { TaskStatus } from '#modules/tasks/constants/task_constants'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
+import { testId } from '#tests/helpers/test_utils'
 import TaskStatusScenario from '#tests/integration/tasks/support/task_status_scenario'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]

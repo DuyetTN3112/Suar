@@ -104,7 +104,7 @@
               </TableHeader>
               <TableBody>
                 {#each allSystemUsers as user (user.id)}
-                  <TableRow class={selectedUserIds.includes(user.id) ? "bg-blue-50" : ""}>
+                  <TableRow class={selectedUserIds.includes(user.id) ? "bg-ink-04" : ""}>
                     <TableCell>
                       <input
                         type="checkbox"

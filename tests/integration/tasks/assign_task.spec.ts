@@ -1,6 +1,6 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
@@ -41,11 +41,12 @@ function buildActionContext(userId: string, organizationId: string): TaskActionC
 }
 
 async function countTaskAuditLogs(taskId: string, action: string): Promise<number> {
-  return await MongoAuditLogModel.countDocuments({
-    entity_type: 'task',
-    entity_id: taskId,
-    action,
-  })
+  const result = (await db.from('audit_events')
+    .where('entity_type', 'task')
+    .where('entity_id', taskId)
+    .where('action', action)
+    .count('* as count')) as { count: number | string }[]
+  return Number(result[0]?.count ?? 0)
 }
 
 test.group('Integration | Assign Task', (group) => {

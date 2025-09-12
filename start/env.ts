@@ -38,13 +38,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   PG_DATABASE: Env.schema.string.optional(),
   PG_TEST_DATABASE: Env.schema.string.optional(),
 
-  /*
-  |----------------------------------------------------------
-  | Variables for MongoDB connection
-  |----------------------------------------------------------
-  */
-  MONGODB_URL: Env.schema.string.optional(),
-  MONGODB_TEST_URL: Env.schema.string.optional(),
+  AUDIT_STORE: Env.schema.string.optional(),
+  NOTIFICATION_STORE: Env.schema.string.optional(),
+  USER_ACTIVITY_STORE: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

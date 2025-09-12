@@ -35,6 +35,7 @@ server.errorHandler(() => import('#modules/http/exceptions/handler'))
  * the request URL.
  */
 server.use([
+  () => import('#modules/http/middleware/request_context_middleware'),
   () => import('#modules/http/middleware/container_bindings_middleware'),
   () => import('@adonisjs/static/static_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),

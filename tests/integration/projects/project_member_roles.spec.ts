@@ -30,7 +30,7 @@ test.group('Integration | Project Member Role Management', (group) => {
 
     const updated = await ProjectMemberRepository.findMember(project.id, member.id)
     assert.isNotNull(updated)
-    assert.equal(updated!.project_role, ProjectRole.MANAGER)
+    assert.equal(updated?.project_role, ProjectRole.MANAGER)
   })
 
   test('owner can remove member via service layer', async ({ assert }) => {
@@ -56,12 +56,12 @@ test.group('Integration | Project Member Role Management', (group) => {
     // Update role
     await ProjectMemberRepository.updateRole(project.id, member.id, ProjectRole.MANAGER)
     const afterUpdate = await ProjectMemberRepository.findMember(project.id, member.id)
-    assert.equal(afterUpdate!.project_role, ProjectRole.MANAGER)
+    assert.equal(afterUpdate?.project_role, ProjectRole.MANAGER)
 
     // Update again
     await ProjectMemberRepository.updateRole(project.id, member.id, ProjectRole.VIEWER)
     const afterSecondUpdate = await ProjectMemberRepository.findMember(project.id, member.id)
-    assert.equal(afterSecondUpdate!.project_role, ProjectRole.VIEWER)
+    assert.equal(afterSecondUpdate?.project_role, ProjectRole.VIEWER)
   })
 
   test('remove member then verify re-add works', async ({ assert }) => {
@@ -79,7 +79,7 @@ test.group('Integration | Project Member Role Management', (group) => {
     await ProjectMemberRepository.addMember(project.id, member.id, ProjectRole.VIEWER)
     const readded = await ProjectMemberRepository.findMember(project.id, member.id)
     assert.isNotNull(readded)
-    assert.equal(readded!.project_role, ProjectRole.VIEWER)
+    assert.equal(readded?.project_role, ProjectRole.VIEWER)
   })
 
   test('update member role via repository — owner can update', async ({ assert }) => {
@@ -94,6 +94,6 @@ test.group('Integration | Project Member Role Management', (group) => {
 
     const updated = await ProjectMemberRepository.findMember(project.id, member.id)
     assert.isNotNull(updated)
-    assert.equal(updated!.project_role, ProjectRole.MANAGER)
+    assert.equal(updated?.project_role, ProjectRole.MANAGER)
   })
 })

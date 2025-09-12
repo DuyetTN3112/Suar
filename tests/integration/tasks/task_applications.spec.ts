@@ -11,6 +11,7 @@ import {
   WithdrawApplicationDTO,
 } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
@@ -77,7 +78,7 @@ test.group('Integration | Task Applications', (group) => {
     }> = {}
   ) {
     const ctx = makeSystemTaskActionContext(applicantId)
-    const command = new ApplyForTaskCommand(ctx, new TaskCacheInvalidator())
+    const command = new ApplyForTaskCommand(ctx, taskExternalDeps, new TaskCacheInvalidator())
     const dto = new ApplyForTaskDTO({
       task_id: taskId,
       message: overrides.message ?? null,
@@ -189,6 +190,8 @@ test.group('Integration | Task Applications', (group) => {
     assert.equal(approved.application_status, 'approved')
     assert.equal(approved.reviewed_by, owner.id)
     assert.equal(assignment.assignee_id, selectedApplicant.id)
+    assert.equal(assignment.assignment_status, 'active')
+    assert.equal(assignment.assignment_type, 'freelancer')
     assert.equal(updatedTask.assigned_to, selectedApplicant.id)
     assert.equal(rejected.application_status, 'rejected')
     assert.equal(rejected.rejection_reason, 'Another applicant was selected')

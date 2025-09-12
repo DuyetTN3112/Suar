@@ -14,6 +14,7 @@ export interface SharedAuthUser {
   current_organization_id?: string | null
   current_organization_role?: string | null
   organizations?: SharedAuthOrganization[]
+  isAdmin?: boolean
   current_project?: {
     id?: string
     name: string

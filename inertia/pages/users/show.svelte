@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import ArrowLeft from 'lucide-svelte/icons/arrow-left'
   import Building from 'lucide-svelte/icons/building'
   import Calendar from 'lucide-svelte/icons/calendar'
@@ -16,11 +16,14 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Separator from '@/components/ui/separator.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import type { User } from './types'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     user: User & {
       bio?: string
       phone?: string
@@ -33,6 +36,8 @@
   }
 
   const { user, permissions }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
   const statusColors: Record<string, string> = {
@@ -45,7 +50,7 @@
   const roleColors: Record<string, string> = {
     admin: 'bg-violet-100 text-violet-800',
     super_admin: 'bg-red-100 text-red-800',
-    user: 'bg-blue-100 text-blue-800',
+    user: 'bg-ink-06 text-foreground',
     moderator: 'bg-orange-100 text-orange-800',
   }
 
@@ -74,7 +79,7 @@
   <title>{user.username} — {pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 max-w-4xl mx-auto space-y-6">
     <!-- Header -->
     <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -89,17 +94,17 @@
             <img
               src={user.avatar_url}
               alt={user.username}
-              class="size-14 rounded-full border-2 border-border shadow-neo-sm object-cover"
+              class="size-14 rounded-full border-2 border-border shadow-xs object-cover"
             />
           {:else}
-            <div class="size-14 rounded-full border-2 border-border shadow-neo-sm bg-muted flex items-center justify-center">
+            <div class="size-14 rounded-full border-2 border-border shadow-xs bg-muted flex items-center justify-center">
               <UserIcon class="size-6 text-muted-foreground" />
             </div>
           {/if}
           <div>
             <h1 class="text-3xl font-black tracking-tight">{user.username}</h1>
             <div class="flex flex-wrap items-center gap-2 mt-1">
-              <Badge class={roleColors[user.system_role] || 'bg-blue-100 text-blue-800'}>
+              <Badge class={roleColors[user.system_role] || 'bg-ink-06 text-foreground'}>
                 {user.system_role}
               </Badge>
               <Badge class={statusColors[user.status] || 'bg-slate-100 text-slate-800'}>
@@ -124,7 +129,7 @@
     </div>
 
     <!-- User Info Card -->
-    <Card class="border-2 shadow-neo">
+    <Card class="border-2 shadow-none">
       <CardHeader>
         <CardTitle>{t('user.user_info', {}, 'Thông tin người dùng')}</CardTitle>
       </CardHeader>
@@ -230,7 +235,7 @@
 
     <!-- Organization Memberships -->
     {#if user.organization_users && user.organization_users.length > 0}
-      <Card class="border-2 shadow-neo">
+      <Card class="border-2 shadow-none">
         <CardHeader>
           <CardTitle class="flex items-center gap-2">
             <Building class="size-4" />
@@ -240,7 +245,7 @@
         <CardContent>
           <div class="space-y-2">
             {#each user.organization_users as orgUser (orgUser.organization_id)}
-              <div class="flex items-center justify-between rounded-md border-2 border-border p-3 shadow-neo-sm">
+              <div class="flex items-center justify-between rounded-md border-2 border-border p-3 rounded-md px-2 py-1">
                 <span class="font-bold">{orgUser.organization_id}</span>
                 <Badge variant="outline">{orgUser.org_role}</Badge>
               </div>
@@ -250,4 +255,4 @@
       </Card>
     {/if}
   </div>
-</AppLayout>
+</Layout>

@@ -13,6 +13,12 @@ const GetUsersInOrganizationApiController = () =>
   import('#modules/http/controllers/get_users_in_organization_api_controller')
 const DebugOrganizationInfoApiController = () =>
   import('#modules/http/controllers/debug_organization_info_api_controller')
+const ShowOrganizationApiController = () =>
+  import('#modules/organizations/controllers/show_organization_api_controller')
+const UpdateOrganizationApiController = () =>
+  import('#modules/organizations/controllers/update_organization_api_controller')
+const DeleteOrganizationApiController = () =>
+  import('#modules/organizations/controllers/delete_organization_api_controller')
 
 // Redis use-case controllers
 const RedisListKeysController = () => import('#modules/http/controllers/redis_list_keys_controller')
@@ -67,6 +73,15 @@ router
       .use(middleware.authorizeRole(['superadmin', 'system_admin']))
 
     // ─── Organization & User APIs (Lucid Models) ──────────────
+    router
+      .get('/organizations/:id', [ShowOrganizationApiController, 'handle'])
+      .as('api.organizations.show')
+    router
+      .put('/organizations/:id', [UpdateOrganizationApiController, 'handle'])
+      .as('api.organizations.update')
+    router
+      .delete('/organizations/:id', [DeleteOrganizationApiController, 'handle'])
+      .as('api.organizations.destroy')
     router.get('/organization-members/:id', [GetOrganizationMembersApiController, 'handle'])
     router.get('/me', [GetMeApiController, 'handle'])
     router.get('/users-in-organization', [GetUsersInOrganizationApiController, 'handle'])
