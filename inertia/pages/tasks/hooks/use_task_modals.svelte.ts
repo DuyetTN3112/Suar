@@ -33,7 +33,7 @@ export function createTaskModalsStore() {
         notificationStore.error(
           'Bạn không đủ quyền tạo nhiệm vụ',
           response.data.reason ??
-            'Chỉ org_owner, org_admin hoặc project_manager của project đã chọn mới được tạo nhiệm vụ.'
+            'Chỉ Chủ sở hữu tổ chức, Quản trị viên tổ chức hoặc Quản lý dự án của dự án đã chọn mới được tạo nhiệm vụ.'
         )
       }
     } catch (error) {

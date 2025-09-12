@@ -212,19 +212,6 @@ export function createStatusManagementController({
   }
 
   return {
-    createStatusModalOpen,
-    createStatusName,
-    createStatusCategory,
-    createStatusDescription,
-    createStatusColor,
-    createStatusError,
-    createStatusSubmitting,
-    deleteStatusModalOpen,
-    deleteStatusError,
-    deleteStatusSubmitting,
-    statusDeleteTarget,
-    hasDeleteTargetTasks,
-    isStatusMutationLocked,
     handleCreateStatusClick,
     handleCreateStatusSubmit,
     canDeleteStatus,
