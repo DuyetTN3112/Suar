@@ -1,12 +1,11 @@
-import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
-import type { UpdateUserProfileDTO } from '#actions/users/dtos/request/update_user_profile_dto'
-import type User from '#models/user'
+import { userPublicApi, type UpdateUserProfileDTO } from '#actions/users/public_api'
 import type { ExecutionContext } from '#types/execution_context'
+import type { UserRecord } from '#types/user_records'
 
 export default class UpdateProfileSettingsCommand {
   constructor(protected execCtx: ExecutionContext) {}
 
-  async handle(dto: UpdateUserProfileDTO): Promise<User> {
-    return new UpdateUserProfileCommand(this.execCtx).handle(dto)
+  async handle(dto: UpdateUserProfileDTO): Promise<UserRecord> {
+    return userPublicApi.updateUserProfile(dto, this.execCtx)
   }
 }
