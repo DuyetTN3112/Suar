@@ -2,8 +2,7 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
 import UserSkill from '#modules/users/infra/models/user_skill'
-import type { DatabaseId } from '#types/database'
-import type { UserSkillRecord } from '#types/user_records'
+import type { UserSkillRecord } from '#modules/users/types/user_records'
 
 export default class UserSkillRepository {
   private readonly __instanceMarker = true
@@ -21,16 +20,16 @@ export default class UserSkillRepository {
   }
 
   static async findOwnedById(
-    userSkillId: DatabaseId,
-    userId: DatabaseId,
+    userSkillId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkill | null> {
     return this.baseQuery(trx).where('id', userSkillId).where('user_id', userId).first()
   }
 
   static async findOwnedByIdWithSkill(
-    userSkillId: DatabaseId,
-    userId: DatabaseId,
+    userSkillId: string,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkill | null> {
     return this.baseQuery(trx)
@@ -41,15 +40,15 @@ export default class UserSkillRepository {
   }
 
   static async findByUserAndSkill(
-    userId: DatabaseId,
-    skillId: DatabaseId,
+    userId: string,
+    skillId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkill | null> {
     return this.baseQuery(trx).where('user_id', userId).where('skill_id', skillId).first()
   }
 
   static async listByUserWithSkill(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkillRecord[]> {
     const rows = await this.baseQuery(trx)

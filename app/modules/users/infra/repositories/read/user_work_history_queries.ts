@@ -1,14 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserWorkHistory.query({ client: trx }) : UserWorkHistory.query()
 }
 
 export const listRecentByUser = async (
-  userId: DatabaseId,
+  userId: string,
   limit: number,
   trx?: TransactionClientContract
 ): Promise<UserWorkHistory[]> => {
@@ -16,8 +15,8 @@ export const listRecentByUser = async (
 }
 
 export const findByUserAndAssignment = async (
-  userId: DatabaseId,
-  taskAssignmentId: DatabaseId,
+  userId: string,
+  taskAssignmentId: string,
   trx?: TransactionClientContract
 ): Promise<UserWorkHistory | null> => {
   return baseQuery(trx)
@@ -27,7 +26,7 @@ export const findByUserAndAssignment = async (
 }
 
 export const listByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserWorkHistory[]> => {
   return baseQuery(trx).where('user_id', userId).orderBy('completed_at', 'asc')
