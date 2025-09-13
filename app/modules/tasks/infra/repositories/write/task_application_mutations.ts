@@ -1,9 +1,8 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ApplicationStatus } from '#modules/tasks/constants/task_constants'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
-import type { DatabaseId } from '#types/database'
-import type { TaskApplicationRecord } from '#types/task_records'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 
 function toTaskApplicationRecord(model: TaskApplication): TaskApplicationRecord {
   return model.serialize() as TaskApplicationRecord
@@ -29,10 +28,10 @@ export async function save(
 }
 
 export async function updateStatus(
-  applicationId: DatabaseId,
+  applicationId: string,
   data: {
     application_status: TaskApplication['application_status']
-    reviewed_by?: DatabaseId | null
+    reviewed_by?: string | null
     reviewed_at?: TaskApplication['reviewed_at']
     rejection_reason?: string | null
   },
@@ -48,9 +47,9 @@ export async function updateStatus(
 }
 
 export async function rejectOtherPendingByTask(
-  taskId: DatabaseId,
-  excludedApplicationId: DatabaseId,
-  reviewedBy: DatabaseId,
+  taskId: string,
+  excludedApplicationId: string,
+  reviewedBy: string,
   rejectionReason: string,
   trx?: TransactionClientContract
 ): Promise<void> {

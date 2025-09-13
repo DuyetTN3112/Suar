@@ -1,20 +1,19 @@
 import { DateTime } from 'luxon'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import { calculateDomainExpertiseMetrics } from '#modules/users/domain/profile_aggregate_rules'
 import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
 import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
 import * as domainExpertiseMutations from '#modules/users/infra/repositories/write/user_domain_expertise_mutations'
-import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserDomainExpertiseDTO {
-  userId: DatabaseId
+  userId: string
 }
 
 export interface UpsertUserDomainExpertiseResult {
-  userId: DatabaseId
-  expertiseId: DatabaseId
+  userId: string
+  expertiseId: string
   topSkillsCount: number
 }
 
@@ -103,7 +102,7 @@ export default class UpsertUserDomainExpertiseCommand extends BaseCommand<
 
       const existing = await domainExpertiseQueries.findByUser(dto.userId, trx)
 
-      let expertiseId: DatabaseId
+      let expertiseId: string
       if (existing) {
         existing.merge(payload)
         await domainExpertiseMutations.save(existing, trx)

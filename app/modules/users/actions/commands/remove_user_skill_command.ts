@@ -1,8 +1,8 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import { auditPublicApi } from '#modules/audit/actions/public_api'
-import { del as deleteCacheKey } from '#modules/cache/infra/cache_service'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { RemoveUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import {

@@ -1,8 +1,7 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskStatus from '#modules/tasks/infra/models/task_status'
-import type { DatabaseId } from '#types/database'
-import type { TaskStatusRecord } from '#types/task_records'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
 
 function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
   return value?.toISO() ?? null
@@ -44,7 +43,7 @@ export default class TaskStatusRepository {
    * Find all active (non-deleted) statuses for an organization, ordered by sort_order.
    */
   static async findByOrganization(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskStatusRecord[]> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -59,7 +58,7 @@ export default class TaskStatusRepository {
    * Find the default status for an organization (is_default = true).
    */
   static async findDefault(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -75,7 +74,7 @@ export default class TaskStatusRepository {
    * Find status by slug within an organization.
    */
   static async findBySlug(
-    organizationId: DatabaseId,
+    organizationId: string,
     slug: string,
     trx?: TransactionClientContract
   ): Promise<TaskStatusRecord | null> {
@@ -92,9 +91,9 @@ export default class TaskStatusRepository {
    * Check if a slug is already in use within an organization.
    */
   static async slugExists(
-    organizationId: DatabaseId,
+    organizationId: string,
     slug: string,
-    excludeId?: DatabaseId,
+    excludeId?: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -115,8 +114,8 @@ export default class TaskStatusRepository {
    * Find a status by ID within a specific organization (validates ownership).
    */
   static async findByIdAndOrg(
-    statusId: DatabaseId,
-    organizationId: DatabaseId,
+    statusId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -132,8 +131,8 @@ export default class TaskStatusRepository {
    * Find a status by ID within a specific organization, locking for update.
    */
   static async findByIdAndOrgForUpdate(
-    statusId: DatabaseId,
-    organizationId: DatabaseId,
+    statusId: string,
+    organizationId: string,
     trx: TransactionClientContract
   ): Promise<TaskStatusRecord | null> {
     const model = await TaskStatus.query({ client: trx })
@@ -150,8 +149,8 @@ export default class TaskStatusRepository {
    * Used when loading status by ID for update operations.
    */
   static async findByIdAndOrgActive(
-    statusId: DatabaseId,
-    organizationId: DatabaseId,
+    statusId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<TaskStatusRecord | null> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -169,7 +168,7 @@ export default class TaskStatusRepository {
    * Used before setting a new default.
    */
   static async unsetDefaults(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void> {
     const query = trx ? TaskStatus.query({ client: trx }) : TaskStatus.query()
@@ -197,8 +196,8 @@ export default class TaskStatusRepository {
   }
 
   static async update(
-    statusId: DatabaseId,
-    organizationId: DatabaseId,
+    statusId: string,
+    organizationId: string,
     data: Record<string, unknown>,
     trx: TransactionClientContract
   ): Promise<TaskStatusRecord> {
@@ -215,8 +214,8 @@ export default class TaskStatusRepository {
   }
 
   static async softDelete(
-    statusId: DatabaseId,
-    organizationId: DatabaseId,
+    statusId: string,
+    organizationId: string,
     trx: TransactionClientContract
   ): Promise<void> {
     const { DateTime } = await import('luxon')

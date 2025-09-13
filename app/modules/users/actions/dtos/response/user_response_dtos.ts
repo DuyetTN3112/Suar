@@ -6,7 +6,7 @@
  */
 
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
-import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
+import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#modules/users/types/user_profile_data'
 
 export interface UserDetailResponseDTOProps {
   id: string

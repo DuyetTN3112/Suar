@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DateTime } from 'luxon'
 
-import type { DatabaseId } from '#types/database'
 
 export interface PendingApprovalUser {
-  id: DatabaseId
+  id: string
   email: string
   username: string
   system_role: string
@@ -18,14 +17,14 @@ export interface UserOrganizationMembershipInfo {
 }
 
 export interface UserActiveSkillInfo {
-  id: DatabaseId
+  id: string
   skill_name: string
   category_code: string
 }
 
 export interface UserSkillDetail {
-  id: DatabaseId
-  skill_id: DatabaseId
+  id: string
+  skill_id: string
   level_code: string
   total_reviews: number
   avg_score: number | null
@@ -41,49 +40,49 @@ export interface UserSkillDetail {
 
 export interface UserOrganizationMembershipReaderWriter {
   findMembershipStatus(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<UserOrganizationMembershipInfo | null>
 
   approveMembership(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   listPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<PendingApprovalUser[]>
 
   countPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number>
 }
 
 export interface UserSkillReader {
   findActiveSkillById(
-    skillId: DatabaseId,
+    skillId: string,
     trx?: TransactionClientContract
   ): Promise<UserActiveSkillInfo | null>
 
   listUserSkillDetails(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkillDetail[]>
 }
 
 export interface UserPermissionReader {
   checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 
-  isSystemSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean>
 }
 
 export interface UserExternalDependencies {

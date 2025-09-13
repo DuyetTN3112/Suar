@@ -1,11 +1,10 @@
-import type { DatabaseId } from '#types/database'
 
 export interface UserActivityLogCreateData {
-  user_id: DatabaseId
+  user_id: string
   action_type: string
   action_data?: Record<string, unknown> | null
   related_entity_type?: string | null
-  related_entity_id?: DatabaseId | null
+  related_entity_id?: string | null
   ip_address?: string | null
   user_agent?: string | null
 }
@@ -25,7 +24,7 @@ export interface UserActivityLogRecord {
 export interface UserActivityLogRepository {
   create(data: UserActivityLogCreateData): Promise<void>
   findByUser(
-    userId: DatabaseId,
+    userId: string,
     options?: { actionType?: string; limit?: number; page?: number }
   ): Promise<{ data: UserActivityLogRecord[]; total: number }>
 }

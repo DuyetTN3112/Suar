@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { isRecord, toNullableDatabaseId, toNullableNumber, toNullableString } from './shared.js'
+import { isRecord, toNullableId, toNullableNumber, toNullableString } from './shared.js'
 import type {
   FeaturedSkillReviewRow,
   TaskAssignmentMetricsRow,
@@ -9,10 +9,25 @@ import type {
   UserSkillAggregationRow,
 } from './types.js'
 
-import type { DatabaseId } from '#types/database'
+export interface OrgMembershipRow {
+  org_name: string
+  org_role: string
+  joined_at: Date | string
+  status: string
+}
+
+export interface ProjectMembershipRow {
+  project_name: string
+  org_name: string | null
+  project_role: string
+  start_date: Date | string | null
+  end_date: Date | string | null
+  visibility: string
+}
+
 
 export const findTaskAssignmentsForMetrics = async (
-  userId: DatabaseId
+  userId: string
 ): Promise<TaskAssignmentMetricsRow[]> => {
   return db
     .from('task_assignments as ta')
@@ -33,7 +48,7 @@ export const findTaskAssignmentsForMetrics = async (
 }
 
 export const findUserSkillsForAggregation = async (
-  userId: DatabaseId
+  userId: string
 ): Promise<UserSkillAggregationRow[]> => {
   return db
     .from('user_skills as us')
@@ -50,7 +65,7 @@ export const findUserSkillsForAggregation = async (
 }
 
 export const findTopReviewedSkills = async (
-  userId: DatabaseId,
+  userId: string,
   limit = 2
 ): Promise<TopReviewedSkillRow[]> => {
   return db
@@ -65,8 +80,8 @@ export const findTopReviewedSkills = async (
 }
 
 export const findReviewForSkill = async (
-  revieweeId: DatabaseId,
-  skillId: DatabaseId
+  revieweeId: string,
+  skillId: string
 ): Promise<FeaturedSkillReviewRow | null> => {
   const reviewRaw = (await db
     .from('skill_reviews as sr')
@@ -94,11 +109,11 @@ export const findReviewForSkill = async (
     reviewer_role: toNullableString(reviewRaw.reviewer_role),
     rating: toNullableNumber(reviewRaw.rating),
     comment: toNullableString(reviewRaw.comment),
-    task_id: toNullableDatabaseId(reviewRaw.task_id),
+    task_id: toNullableId(reviewRaw.task_id),
   }
 }
 
-export const findTaskTitleById = async (taskId: DatabaseId): Promise<string | null> => {
+export const findTaskTitleById = async (taskId: string): Promise<string | null> => {
   const taskRaw = (await db.from('tasks').where('id', taskId).select('title').first()) as unknown
 
   if (!isRecord(taskRaw)) {
@@ -108,7 +123,7 @@ export const findTaskTitleById = async (taskId: DatabaseId): Promise<string | nu
   return toNullableString(taskRaw.title)
 }
 
-export const findUserCreatedAt = async (userId: DatabaseId): Promise<UserCreatedAtRow | null> => {
+export const findUserCreatedAt = async (userId: string): Promise<UserCreatedAtRow | null> => {
   const rowRaw = (await db
     .from('users')
     .where('id', userId)
@@ -132,4 +147,41 @@ export const findUserCreatedAt = async (userId: DatabaseId): Promise<UserCreated
   }
 
   return null
+}
+
+export const findUserOrgMemberships = async (
+  userId: string
+): Promise<OrgMembershipRow[]> => {
+  return db
+    .from('organization_users as ou')
+    .join('organizations as o', 'o.id', 'ou.organization_id')
+    .where('ou.user_id', userId)
+    .whereNull('o.deleted_at')
+    .select(
+      'o.name as org_name',
+      'ou.org_role',
+      'ou.created_at as joined_at',
+      'ou.status'
+    )
+    .orderBy('ou.created_at', 'desc')
+}
+
+export const findUserProjectMemberships = async (
+  userId: string
+): Promise<ProjectMembershipRow[]> => {
+  return db
+    .from('project_members as pm')
+    .join('projects as p', 'p.id', 'pm.project_id')
+    .leftJoin('organizations as o', 'o.id', 'p.organization_id')
+    .where('pm.user_id', userId)
+    .whereNull('p.deleted_at')
+    .select(
+      'p.name as project_name',
+      'o.name as org_name',
+      'pm.project_role',
+      'p.start_date as start_date',
+      'p.end_date as end_date',
+      'p.visibility'
+    )
+    .orderBy('pm.created_at', 'desc')
 }

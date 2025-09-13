@@ -2,7 +2,6 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from '../read/shared.js'
 
-import type { DatabaseId } from '#types/database'
 
 /**
  * Bulk write operations on tasks within a project context.
@@ -10,9 +9,9 @@ import type { DatabaseId } from '#types/database'
  */
 
 export const reassignByUser = async (
-  projectId: DatabaseId,
-  fromUserId: DatabaseId,
-  toUserId: DatabaseId,
+  projectId: string,
+  fromUserId: string,
+  toUserId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
   await baseQuery(trx)
@@ -26,8 +25,8 @@ export const reassignByUser = async (
 }
 
 export const unassignByUserInProjects = async (
-  projectIds: DatabaseId[],
-  userId: DatabaseId,
+  projectIds: string[],
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
   if (projectIds.length === 0) {

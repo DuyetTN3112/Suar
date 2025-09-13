@@ -1,8 +1,7 @@
 import type { Command } from '../../interfaces.js'
 
-import ValidationException from '#exceptions/validation_exception'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
-import type { DatabaseId } from '#types/database'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 /**
  * ChangeUserRoleDTO
@@ -13,9 +12,9 @@ import type { DatabaseId } from '#types/database'
  */
 export class ChangeUserRoleDTO implements Command {
   constructor(
-    public readonly targetUserId: DatabaseId,
+    public readonly targetUserId: string,
     public readonly newRoleId: string,
-    public readonly changerId: DatabaseId
+    public readonly changerId: string
   ) {
     this.validate()
   }
