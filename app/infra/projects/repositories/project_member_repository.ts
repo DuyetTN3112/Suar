@@ -1,58 +1,18 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
-import { ProjectRole } from '#constants'
-
-import { PAGINATION } from '#constants/common_constants'
-import ProjectMember from '#models/project_member'
-import type { DatabaseId } from '#types/database'
-
-const isRecord = (value: unknown): value is Record<string, unknown> => {
-  return typeof value === 'object' && value !== null
-}
-
-const toNumberValue = (value: unknown): number => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-  return 0
-}
-
-const toDateValue = (value: unknown): Date => {
-  if (value instanceof Date) {
-    return value
-  }
-  if (typeof value === 'string' || typeof value === 'number') {
-    const date = new Date(value)
-    return Number.isNaN(date.getTime()) ? new Date(0) : date
-  }
-  return new Date(0)
-}
+import * as projectMemberQueries from './read/project_member_queries.js'
+import * as projectMemberMutations from './write/project_member_mutations.js'
 
 /**
  * ProjectMemberRepository
  *
- * Data access for project membership (CRUD, role checks, access control).
- * Extracted from ProjectMember model static methods.
+ * Barrel file that combines read and write operations for project members.
+ * This maintains backward compatibility with existing imports.
  */
-export default class ProjectMemberRepository {
-  // Keep one instance member so this is not a static-only utility class.
-  isReady(): true {
-    return true
-  }
+const ProjectMemberRepository = {
+  ...projectMemberQueries,
+  ...projectMemberMutations,
+}
 
-  static async findMember(
-    projectId: DatabaseId,
-    userId: DatabaseId,
-    trx?: TransactionClientContract
-  ) {
-    const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
-    return query.where('project_id', projectId).where('user_id', userId).first()
-  }
+export default ProjectMemberRepository
 
   static async findMemberOrFail(
     projectId: DatabaseId,

@@ -10,7 +10,12 @@
 
 import { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
 import type { OrganizationEntityProps } from '#domain/organizations/entities/organization_entity'
-import type Organization from '#models/organization'
+import type Organization from '#infra/organizations/models/organization'
+import type { OrganizationRecord } from '#types/organization_records'
+
+function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
+  return value?.toISO() ?? null
+}
 
 export class OrganizationInfraMapper {
   private readonly __instanceMarker = true
@@ -43,6 +48,29 @@ export class OrganizationInfraMapper {
       updatedAt: model.updated_at.toJSDate(),
     }
     return new OrganizationEntity(props)
+  }
+
+  static toRecord(model: Organization): OrganizationRecord {
+    return {
+      id: model.id,
+      name: model.name,
+      slug: model.slug,
+      description: model.description,
+      logo: model.logo,
+      website: model.website,
+      plan: model.plan,
+      owner_id: model.owner_id,
+      custom_roles: model.custom_roles,
+      partner_type: model.partner_type,
+      partner_verified_at: serializeDateTime(model.partner_verified_at),
+      partner_verified_by: model.partner_verified_by,
+      partner_verification_proof: model.partner_verification_proof,
+      partner_expires_at: serializeDateTime(model.partner_expires_at),
+      partner_is_active: model.partner_is_active,
+      deleted_at: serializeDateTime(model.deleted_at),
+      created_at: serializeDateTime(model.created_at),
+      updated_at: serializeDateTime(model.updated_at),
+    }
   }
 
   /**

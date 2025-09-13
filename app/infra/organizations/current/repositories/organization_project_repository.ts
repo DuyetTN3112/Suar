@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-import Project from '#models/project'
+import Project from '#infra/projects/models/project'
 import type { DatabaseId } from '#types/database'
 
 interface CountRow {
@@ -76,11 +76,6 @@ export interface ListProjectsResult {
     }
   }[]
   total: number
-}
-
-export interface CreateProjectData {
-  name: string
-  description?: string
 }
 
 export default class OrganizationProjectRepository {
@@ -172,29 +167,6 @@ export default class OrganizationProjectRepository {
       projects,
       total: result.total,
     }
-  }
-
-  /**
-   * Create a new project
-   */
-  async createProject(
-    organizationId: DatabaseId,
-    creatorId: DatabaseId,
-    data: CreateProjectData
-  ): Promise<Project> {
-    const project = await Project.create({
-      organization_id: organizationId,
-      creator_id: creatorId,
-      name: data.name,
-      description: data.description ?? null,
-      status: 'pending',
-      budget: 0,
-      visibility: 'team',
-      allow_freelancer: false,
-      approval_required_for_members: false,
-    })
-
-    return project
   }
 
   /**
