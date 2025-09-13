@@ -12,7 +12,12 @@ import {
 } from './shared.js'
 
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import type { CreateReviewDisputeDTO } from '#modules/reviews/actions/commands/create_review_dispute_command'
+import type { CreateReviewDisputeCommentDTO } from '#modules/reviews/actions/commands/create_review_dispute_comment_command'
 import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
+import type { ResolveReviewDisputeDTO } from '#modules/reviews/actions/commands/resolve_review_dispute_command'
+import type { RespondToReviewDisputeDTO } from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
+import type { StartAiDisputeEvaluationDTO } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
 import {
   AddReviewEvidenceDTO,
   ConfirmReviewDTO,
@@ -107,15 +112,41 @@ export function buildSubmitSkillReviewDTO(
     const record = rating as Record<string, unknown>
     const skillId = record.skill_id
     const levelCode = record.level_code
+    const confidence = record.confidence
 
     if (typeof skillId !== 'string' || typeof levelCode !== 'string') {
       throwInvalidInput()
     }
 
+    if (
+      confidence !== undefined &&
+      confidence !== null &&
+      confidence !== 'low' &&
+      confidence !== 'medium' &&
+      confidence !== 'high'
+    ) {
+      throwInvalidInput()
+    }
+    const normalizedConfidence: 'low' | 'medium' | 'high' | null =
+      confidence === 'low' || confidence === 'medium' || confidence === 'high'
+        ? confidence
+        : null
+
     return {
       skill_id: skillId,
       assigned_level_code: levelCode,
       comment: toOptionalString(record.comment),
+      insufficient_evidence: toBoolean(record.insufficient_evidence ?? false),
+      observed_level_id: toOptionalString(record.observed_level_id),
+      rubric_version_id: toOptionalString(record.rubric_version_id),
+      confidence: normalizedConfidence,
+      rationale: toOptionalString(record.rationale),
+      observable_behaviors: Array.isArray(record.observable_behaviors)
+        ? record.observable_behaviors.filter((item): item is string => typeof item === 'string')
+        : [],
+      evidence_ids: Array.isArray(record.evidence_ids)
+        ? record.evidence_ids.filter((item): item is string => typeof item === 'string')
+        : [],
     }
   })
 
@@ -158,6 +189,95 @@ export function buildConfirmReviewDTO(
     ),
     dispute_reason: toOptionalString(request.input('dispute_reason') as unknown),
   })
+}
+
+export function buildCreateReviewDisputeCommentDTO(
+  request: HttpContext['request'],
+  disputeId: string
+): CreateReviewDisputeCommentDTO {
+  return {
+    dispute_id: disputeId,
+    body: String(request.input('body') ?? ''),
+    visibility: requireEnumValue(
+      request.input('visibility', 'all_parties'),
+      ['all_parties', 'admin_only'] as const,
+      ErrorMessages.INVALID_INPUT
+    ),
+  }
+}
+
+export function buildCreateReviewDisputeDTO(
+  request: HttpContext['request']
+): CreateReviewDisputeDTO {
+  const disputedDimensions = request.input('disputed_dimensions') as unknown
+  const disputedSkillReviews = request.input('disputed_skill_reviews') as unknown
+
+  return {
+    review_session_id: String(request.input('review_session_id') ?? ''),
+    dispute_reason: String(request.input('dispute_reason') ?? ''),
+    disputed_dimensions:
+      disputedDimensions && typeof disputedDimensions === 'object' && !Array.isArray(disputedDimensions)
+        ? (disputedDimensions as Record<string, unknown>)
+        : null,
+    disputed_skill_reviews: Array.isArray(disputedSkillReviews)
+      ? (disputedSkillReviews as Record<string, unknown>[])
+      : null,
+    requested_outcome: requireEnumValue(
+      request.input('requested_outcome'),
+      ['adjust_score', 'remove_review', 'request_re_review', 'add_context', 'other'] as const,
+      ErrorMessages.INVALID_INPUT
+    ),
+  }
+}
+
+export function buildRespondToReviewDisputeDTO(
+  request: HttpContext['request'],
+  disputeId: string
+): RespondToReviewDisputeDTO {
+  return {
+    dispute_id: disputeId,
+    body: String(request.input('body') ?? ''),
+    visibility: requireEnumValue(
+      request.input('visibility', 'all_parties'),
+      ['all_parties', 'admin_only'] as const,
+      ErrorMessages.INVALID_INPUT
+    ),
+  }
+}
+
+export function buildResolveReviewDisputeDTO(
+  request: HttpContext['request'],
+  disputeId: string
+): ResolveReviewDisputeDTO {
+  return {
+    dispute_id: disputeId,
+    final_decision: requireEnumValue(
+      request.input('final_decision'),
+      [
+        'uphold_review',
+        'adjust_score',
+        'request_re_review',
+        'dismiss_dispute',
+        'partially_accept',
+      ] as const,
+      ErrorMessages.INVALID_INPUT
+    ),
+    final_rationale: String(request.input('final_rationale') ?? ''),
+    profile_update_action: toOptionalString(request.input('profile_update_action') as unknown),
+    reviewer_credibility_action: toOptionalString(
+      request.input('reviewer_credibility_action') as unknown
+    ),
+  }
+}
+
+export function buildStartAiDisputeEvaluationDTO(
+  request: HttpContext['request'],
+  disputeId: string
+): StartAiDisputeEvaluationDTO {
+  return {
+    dispute_id: disputeId,
+    provider: String(request.input('provider') ?? 'ai_council'),
+  }
 }
 
 export function buildAddReviewEvidenceDTO(

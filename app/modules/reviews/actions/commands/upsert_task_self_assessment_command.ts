@@ -40,6 +40,9 @@ export default class UpsertTaskSelfAssessmentCommand extends BaseCommand<
         canUpsertTaskSelfAssessment({
           actorId: userId,
           sessionRevieweeId: session.reviewee_id,
+          hasRevieweeOutcome: (session.confirmations ?? []).some(
+            (confirmation) => confirmation.user_id === userId
+          ),
         })
       )
 

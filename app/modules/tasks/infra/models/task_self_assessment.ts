@@ -2,9 +2,10 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import User from '../../../users/infra/models/user.js'
+
 import TaskAssignment from './task_assignment.js'
 
-import User from '#modules/users/infra/models/user'
 
 export default class TaskSelfAssessment extends BaseModel {
   static override table = 'task_self_assessments'
@@ -33,13 +34,25 @@ export default class TaskSelfAssessment extends BaseModel {
   @column()
   declare what_would_do_different: string | null
 
-  @column()
+  @column({
+    prepare: (value: string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | string[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as string[]) : (value ?? []),
+  })
   declare blockers_encountered: string[]
 
-  @column()
+  @column({
+    prepare: (value: string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | string[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as string[]) : (value ?? []),
+  })
   declare skills_felt_lacking: string[]
 
-  @column()
+  @column({
+    prepare: (value: string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | string[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as string[]) : (value ?? []),
+  })
   declare skills_felt_strong: string[]
 
   @column.dateTime()

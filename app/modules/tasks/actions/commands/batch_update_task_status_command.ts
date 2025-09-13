@@ -122,6 +122,32 @@ export default class BatchUpdateTaskStatusCommand {
           )
         }
 
+        if (newStatus.category === 'done') {
+          const bypassTypes = [
+            'research_spike',
+            'poc',
+            'prototype',
+            'technical_writing',
+            'documentation',
+            'knowledge_transfer',
+            'mentoring',
+            'product_management',
+          ]
+          if (!(task.task_type && bypassTypes.includes(task.task_type))) {
+            const submission = (await trx
+              .from('task_submissions')
+              .where('task_id', task.id)
+              .whereIn('status', ['submitted', 'accepted_for_review', 'locked'])
+              .first()) as Record<string, unknown> | null | undefined
+
+            if (!submission) {
+              throw new ConflictException(
+                `Không thể chuyển trạng thái task ${task.id} sang DONE vì thiếu submission hợp lệ`
+              )
+            }
+          }
+        }
+
         const oldStatus = task.status
         const oldTaskStatusId = task.task_status_id
         

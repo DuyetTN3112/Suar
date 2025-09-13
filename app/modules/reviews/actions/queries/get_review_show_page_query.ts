@@ -1,3 +1,5 @@
+import db from '@adonisjs/lucid/services/db'
+
 import GetReviewSessionQuery from './get_review_session_query.js'
 
 import { GetReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
@@ -9,6 +11,7 @@ export interface GetReviewShowPageResult {
   session: Awaited<ReturnType<GetReviewSessionQuery['handle']>>
   skills: Awaited<ReturnType<typeof skillPublicApi.listActive>>
   proficiencyLevels: typeof proficiencyLevelOptions
+  disputeId: string | null
 }
 
 export default class GetReviewShowPageQuery {
@@ -20,10 +23,24 @@ export default class GetReviewShowPageQuery {
       skillPublicApi.listActive(),
     ])
 
+    let disputeId: string | null = null
+    if (session.status === 'disputed') {
+      const dispute = (await db
+        .from('review_disputes')
+        .where('review_session_id', reviewSessionId)
+        .select('id')
+        .first()) as { id: string } | null
+      if (dispute) {
+        disputeId = dispute.id
+      }
+    }
+
     return {
       session,
       skills,
       proficiencyLevels: proficiencyLevelOptions,
+      disputeId,
     }
   }
 }
+

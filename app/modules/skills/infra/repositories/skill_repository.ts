@@ -1,10 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import type UserSkill from '../../../users/infra/models/user_skill.js'
+
 import * as skillQueries from './read/skill_queries.js'
 import * as userSkillQueries from './read/user_skill_queries.js'
 
 import type Skill from '#modules/skills/infra/models/skill'
-import type UserSkill from '#modules/users/infra/models/user_skill'
 
 /**
  * SkillRepository
@@ -23,6 +24,10 @@ export default class SkillRepository {
 
   static activeSkills() {
     return skillQueries.activeSkills()
+  }
+
+  static activeSkillsWithPublishedRubrics() {
+    return skillQueries.activeSkillsWithPublishedRubrics()
   }
 
   static byCategory(categoryCode: string) {

@@ -2,16 +2,18 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-import ReviewSession from './review_session.js'
 
-import Skill from '#modules/skills/infra/models/skill'
-import User from '#modules/users/infra/models/user'
+import Skill from '../../../skills/infra/models/skill.js'
+import User from '../../../users/infra/models/user.js'
+
+import ReviewSession from './review_session.js'
 
 /**
  * SkillReview Model (v3)
  *
  * Individual skill rating within a review session.
  * assigned_level_code: inline proficiency level string (replaces assigned_level_id FK)
+ * is_fraud: đánh dấu review bị confirm fraud (flagged review confirmed)
  */
 export default class SkillReview extends BaseModel {
   static override table = 'skill_reviews'
@@ -36,7 +38,42 @@ export default class SkillReview extends BaseModel {
   declare assigned_level_code: string
 
   @column()
+  declare proficiency_level_id: string | null
+
+  @column()
+  declare observed_level_id: string | null
+
+  @column()
+  declare rubric_version_id: string | null
+
+  @column()
+  declare confidence: 'low' | 'medium' | 'high' | null
+
+  @column()
+  declare rationale: string | null
+
+  @column({
+    prepare: (value: string[] | null) => JSON.stringify(value ?? []),
+    consume: (value: string | string[] | null) =>
+      typeof value === 'string' ? (JSON.parse(value) as string[]) : (value ?? []),
+  })
+  declare observable_behaviors: string[]
+
+  @column()
+  declare review_status: 'draft' | 'submitted' | 'superseded' | 'invalidated'
+
+  @column()
   declare comment: string | null
+
+  @column.dateTime()
+  declare submitted_at: DateTime | null
+
+  @column()
+  declare superseded_by: string | null
+
+  // v3.1: đánh dấu review bị confirm fraud (flagged review confirmed by admin)
+  @column()
+  declare is_fraud: boolean
 
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime

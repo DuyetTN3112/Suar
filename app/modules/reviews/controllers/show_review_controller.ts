@@ -17,7 +17,7 @@ export default class ShowReviewController {
 
     return inertia.render(
       'reviews/show',
-      mapShowReviewPageProps(pageData.session, pageData.skills, pageData.proficiencyLevels)
+      mapShowReviewPageProps(pageData.session, pageData.skills, pageData.proficiencyLevels, pageData.disputeId)
     )
   }
 }

@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
+import TaskSelfAssessment from '../../../../tasks/infra/models/task_self_assessment.js'
 
 export const create = (
   data: Partial<TaskSelfAssessment>,

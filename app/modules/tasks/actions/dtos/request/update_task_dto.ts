@@ -23,6 +23,25 @@ export default class UpdateTaskDTO {
   public readonly project_id?: string
   public readonly updated_by?: string
 
+  public readonly task_type?: string
+  public readonly acceptance_criteria?: string
+  public readonly verification_method?: string
+  public readonly expected_deliverables?: Record<string, unknown>[]
+  public readonly context_background?: string
+  public readonly impact_scope?: string
+  public readonly tech_stack?: string[]
+  public readonly environment?: string
+  public readonly collaboration_type?: string
+  public readonly complexity_notes?: string
+  public readonly measurable_outcomes?: Record<string, unknown>[]
+  public readonly learning_objectives?: string[]
+  public readonly domain_tags?: string[]
+  public readonly role_in_task?: string
+  public readonly autonomy_level?: string
+  public readonly problem_category?: string
+  public readonly business_domain?: string
+  public readonly estimated_users_affected?: number
+
   private readonly providedFields: Set<string>
 
   static fromPartialUpdate(data: UpdateTaskDTOInput): UpdateTaskDTO {
@@ -53,6 +72,26 @@ export default class UpdateTaskDTO {
     this.actual_time = payload.actual_time
     this.project_id = payload.project_id
     this.updated_by = payload.updated_by
+    
+    this.task_type = payload.task_type
+    this.acceptance_criteria = payload.acceptance_criteria
+    this.verification_method = payload.verification_method
+    this.expected_deliverables = payload.expected_deliverables
+    this.context_background = payload.context_background
+    this.impact_scope = payload.impact_scope
+    this.tech_stack = payload.tech_stack
+    this.environment = payload.environment
+    this.collaboration_type = payload.collaboration_type
+    this.complexity_notes = payload.complexity_notes
+    this.measurable_outcomes = payload.measurable_outcomes
+    this.learning_objectives = payload.learning_objectives
+    this.domain_tags = payload.domain_tags
+    this.role_in_task = payload.role_in_task
+    this.autonomy_level = payload.autonomy_level
+    this.problem_category = payload.problem_category
+    this.business_domain = payload.business_domain
+    this.estimated_users_affected = payload.estimated_users_affected
+
     this.providedFields = payload.providedFields
   }
 
@@ -142,6 +181,33 @@ export default class UpdateTaskDTO {
 
     if (this.providedFields.has('updated_by')) {
       updates.updated_by = this.updated_by
+    }
+
+    const richFields = [
+      'task_type',
+      'acceptance_criteria',
+      'verification_method',
+      'expected_deliverables',
+      'context_background',
+      'impact_scope',
+      'tech_stack',
+      'environment',
+      'collaboration_type',
+      'complexity_notes',
+      'measurable_outcomes',
+      'learning_objectives',
+      'domain_tags',
+      'role_in_task',
+      'autonomy_level',
+      'problem_category',
+      'business_domain',
+      'estimated_users_affected',
+    ] as const
+
+    for (const field of richFields) {
+      if (this.providedFields.has(field)) {
+        updates[field] = this[field]
+      }
     }
 
     return updates
