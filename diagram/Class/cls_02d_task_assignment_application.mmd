@@ -1,4 +1,5 @@
 %% Class Diagram: Task Assignment and Application Detail
+%% Updated 2026-05-18.
 %% Scope: Assignment, external application, and version snapshot only.
 
 classDiagram
@@ -50,6 +51,7 @@ classDiagram
         +String status
         +String label
         +String priority
+        +String difficulty
         +UUID assigned_to
         +UUID changed_by
         +DateTime changed_at
@@ -60,8 +62,9 @@ classDiagram
     Task "1" --> "*" TaskVersion : snapshots
 
     note for TaskAssignment "Assignment lifecycle is separate from task status.
-    Completing assignment does not itself decide workflow status."
+    Completing assignment triggers review session creation.
+    verified_by/verified_at exist but are NEVER SET in current code."
     note for TaskApplication "Used by marketplace/external hiring flow.
-    application_deadline enforcement must be handled in command/query logic."
+    Only task creator can approve/reject applications."
     note for TaskVersion "Stores task snapshots for audit/versioning,
-    not workflow policy."
+    not workflow policy. Created on update, not on create/status change."

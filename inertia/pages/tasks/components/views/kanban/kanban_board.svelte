@@ -25,12 +25,14 @@
       users: { id: string; username: string; email: string }[]
     }
     onTaskClick?: (task: Task) => void
-    onCreateTask?: (status: string) => void
+    onCreateTask?: (status?: string) => void
     onCreateStatus?: () => void
     onDeleteStatus?: (payload: { status: string; label: string; taskCount: number }) => void
     canDeleteStatus?: (status: string) => boolean
     canCreateTask?: boolean
     canManageStatuses?: boolean
+    createTaskDisabledReason?: string | null
+    hasProjectOptions?: boolean
   }
 
   const {
@@ -43,6 +45,8 @@
     canDeleteStatus,
     canCreateTask = false,
     canManageStatuses = false,
+    createTaskDisabledReason = null,
+    hasProjectOptions = true,
   }: Props = $props()
   const { t } = useTranslation()
   const STATUS_ORDER_STORAGE_KEY = 'tasks:kanban:status-order'
@@ -85,6 +89,18 @@
 
     const missing = columns.filter((column) => !orderedColumnKeys.includes(column.key))
     return [...sorted, ...missing]
+  })
+  const showNoProjectsState = $derived(!hasProjectOptions)
+  const showNoTasksState = $derived(!showNoProjectsState && store.totalCount === 0)
+  const showFilteredEmptyState = $derived(
+    !showNoProjectsState && store.totalCount > 0 && store.filteredCount === 0
+  )
+  const emptyStateMessage = $derived.by(() => {
+    if (showNoProjectsState) return 'Bạn cần tạo project trước khi tạo task.'
+    if (showFilteredEmptyState) return 'Không có task phù hợp bộ lọc.'
+    if (showNoTasksState) return 'Chưa có task.'
+    if (createTaskDisabledReason) return createTaskDisabledReason
+    return ''
   })
 
   $effect(() => {
@@ -170,12 +186,11 @@
   }
 
   function handleCreateTask(status: string) {
-    onCreateTask?.(status)
-  }
+    if (!canCreateTask) {
+      return
+    }
 
-  function handleEditStatus(status: string, newLabel: string) {
-    // TODO: Update status label
-    console.warn('Edit status not implemented yet:', status, 'to', newLabel)
+    onCreateTask?.(status)
   }
 
   function handleCreateStatus() {
@@ -231,6 +246,43 @@
       </div>
     </div>
   {:else}
+    {#if store.isOptimisticActive}
+      <div
+        class="mb-3 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-100"
+        role="status"
+        aria-live="polite"
+      >
+        Board đang đồng bộ thay đổi. Một số thao tác quản lý trạng thái tạm thời bị khóa.
+      </div>
+    {/if}
+
+    {#if emptyStateMessage}
+      <div class="mb-3 rounded-md border bg-card px-4 py-3 text-sm text-muted-foreground" role="status">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <span>{emptyStateMessage}</span>
+          <div class="flex items-center gap-2">
+            {#if showFilteredEmptyState}
+              <button
+                type="button"
+                class="rounded-md border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+                onclick={() => { store.clearFilters() }}
+              >
+                Xóa bộ lọc
+              </button>
+            {:else if canCreateTask && hasProjectOptions}
+              <button
+                type="button"
+                class="rounded-md border px-3 py-1.5 text-xs text-foreground hover:bg-muted"
+                onclick={() => { onCreateTask?.() }}
+              >
+                Tạo task
+              </button>
+            {/if}
+          </div>
+        </div>
+      </div>
+    {/if}
+
     <div class="flex items-start gap-4 px-1">
       {#each orderedColumns as column (column.key)}
         <div
@@ -248,11 +300,12 @@
             {onTaskClick}
             onDropTask={handleDropTask}
             onCreateTask={handleCreateTask}
-            onEditStatus={handleEditStatus}
             onDeleteStatus={handleDeleteStatus}
+            isBoardMutationLocked={store.isOptimisticActive}
+            isTaskMutating={store.isTaskMutating}
             {canCreateTask}
-            canManageStatus={canManageStatuses}
-            canDelete={canDeleteStatus?.(column.key) ?? false}
+            canManageStatus={canManageStatuses && !store.isOptimisticActive}
+            canDelete={(canDeleteStatus?.(column.key) ?? false) && !store.isOptimisticActive}
             onColumnDragStart={handleColumnDragStart}
             onColumnDragEnd={handleColumnDragEnd}
           />
@@ -264,6 +317,7 @@
         <button
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border-2 border-dashed border-muted-foreground/30 bg-muted/10 text-muted-foreground transition-colors hover:bg-muted/30 hover:text-foreground"
           onclick={handleCreateStatus}
+          disabled={store.isOptimisticActive}
           type="button"
           aria-label="Thêm trạng thái mới"
           title="Thêm trạng thái mới"

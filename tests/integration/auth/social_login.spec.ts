@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
 import SocialLoginCommand from '#modules/auth/actions/commands/social_login_command'
+import UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
 import User from '#modules/users/infra/models/user'
-import UserOAuthProvider from '#modules/users/infra/models/user_oauth_provider'
 import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, UserFactory } from '#tests/helpers/factories'

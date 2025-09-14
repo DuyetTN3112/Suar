@@ -1,16 +1,10 @@
-/**
- * Test Utilities for Integration Tests
- *
- * Common helpers for database operations, assertions, and test data.
- */
-
-import { generateUUIDv7 } from '#libs/uuid_v7'
+import { randomUUID } from 'node:crypto'
 
 /**
- * Generate a unique test ID (UUIDv7)
+ * Generate a unique test ID.
  */
 export function testId(): string {
-  return generateUUIDv7()
+  return randomUUID()
 }
 
 /**

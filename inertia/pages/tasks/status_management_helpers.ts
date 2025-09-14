@@ -1,3 +1,5 @@
+import { normalizeTaskMutationError } from './task_mutation_errors'
+
 export interface TaskStatusDefinition {
   id: string
   slug: string
@@ -24,9 +26,7 @@ export function buildStatusDefinitions(
 }
 
 export function getStatusMutationErrorMessage(error: unknown, fallback: string): string {
-  return (
-    (error as { response?: { data?: { message?: string } } }).response?.data?.message ?? fallback
-  )
+  return normalizeTaskMutationError(error, fallback).message
 }
 
 export function slugifyStatusName(raw: string): string {

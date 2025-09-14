@@ -1,4 +1,5 @@
 %% Class Diagram: Task Workflow Status Detail
+%% Updated 2026-05-18.
 %% Scope: Custom task statuses and workflow transitions only.
 
 classDiagram
@@ -6,7 +7,7 @@ classDiagram
         +UUID id
         +UUID organization_id
         +UUID task_status_id
-        +String status : legacy
+        +String status : legacy mirror
     }
 
     class TaskStatus {
@@ -40,4 +41,5 @@ classDiagram
     note for TaskStatus "Organization-specific workflow definition.
     category normalizes business meaning: todo / in_progress / done / cancelled."
     note for TaskWorkflowTransition "Used to control allowed status movement.
-    conditions lives in JSONB for org-level customization."
+    conditions lives in JSONB for org-level customization.
+    Empty transitions = permissive default (all moves allowed)."

@@ -27,7 +27,7 @@ Settings.defaultLocale = env.get('APP_LOCALE', 'vi-VN')
  * The error handler is used to convert an exception
  * to a HTTP response.
  */
-server.errorHandler(() => import('#exceptions/handler'))
+server.errorHandler(() => import('#modules/http/exceptions/handler'))
 
 /**
  * The server middleware stack runs middleware on all the HTTP
@@ -35,12 +35,12 @@ server.errorHandler(() => import('#exceptions/handler'))
  * the request URL.
  */
 server.use([
-  () => import('#middleware/container_bindings_middleware'),
+  () => import('#modules/http/middleware/container_bindings_middleware'),
   () => import('@adonisjs/static/static_middleware'),
   () => import('@adonisjs/cors/cors_middleware'),
-  () => import('#middleware/lang_static_middleware'),
+  () => import('#modules/http/middleware/lang_static_middleware'),
   () => import('@adonisjs/vite/vite_middleware'),
-  () => import('#middleware/inertia_middleware'),
+  () => import('#modules/http/middleware/inertia_middleware'),
 ])
 
 /**
@@ -56,8 +56,8 @@ router.use([
   () => import('@adonisjs/auth/initialize_auth_middleware'),
   () => import('@adonisjs/shield/shield_middleware'),
   () => import('@adonisjs/core/bodyparser_middleware'),
-  () => import('#middleware/organization_resolver_middleware'),
-  () => import('#middleware/detect_user_locale_middleware'),
+  () => import('#modules/organizations/middleware/organization_resolver_middleware'),
+  () => import('#modules/http/middleware/detect_user_locale_middleware'),
 ])
 
 /**
@@ -79,19 +79,19 @@ router.use([
  * đã chạy trong router.use() global. Giữ lại cho routes cần strict check.
  */
 export const middleware = router.named({
-  guest: () => import('#middleware/guest_middleware'),
-  auth: () => import('#middleware/auth_middleware'),
-  cache: () => import('#middleware/cache_middleware'),
-  authorizeRole: () => import('#middleware/authorize_role'),
-  requireOrg: () => import('#middleware/require_organization_middleware'),
-  auditLog: () => import('#middleware/audit_log_middleware'),
+  guest: () => import('#modules/auth/middleware/guest_middleware'),
+  auth: () => import('#modules/auth/middleware/auth_middleware'),
+  cache: () => import('#modules/http/middleware/cache_middleware'),
+  authorizeRole: () => import('#modules/authorization/middleware/authorize_role'),
+  requireOrg: () => import('#modules/organizations/middleware/require_organization_middleware'),
+  auditLog: () => import('#modules/audit/middleware/audit_log_middleware'),
   // System Admin middleware
-  requireSystemAdmin: () => import('#middleware/require_system_admin_middleware'),
-  systemAdminContext: () => import('#middleware/system_admin_context_middleware'),
+  requireSystemAdmin: () => import('#modules/authorization/middleware/require_system_admin_middleware'),
+  systemAdminContext: () => import('#modules/authorization/middleware/system_admin_context_middleware'),
   // Organization Admin middleware
-  requireOrgAdmin: () => import('#middleware/require_org_admin_middleware'),
-  requireOrgOwner: () => import('#middleware/require_org_owner_middleware'),
-  orgAdminContext: () => import('#middleware/organization_admin_context_middleware'),
+  requireOrgAdmin: () => import('#modules/organizations/middleware/require_org_admin_middleware'),
+  requireOrgOwner: () => import('#modules/organizations/middleware/require_org_owner_middleware'),
+  orgAdminContext: () => import('#modules/organizations/middleware/organization_admin_context_middleware'),
 })
 
 /**

@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
-
   import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
@@ -22,6 +20,8 @@
   let uploading = $state(false)
   let error = $state<string | null>(null)
   let fileInputKey = $state(0)
+
+  // TODO: Re-enable only after the backend CSV import route and schema exist.
 
   const handleFileChange = (e: Event) => {
     const target = e.target as HTMLInputElement
@@ -52,25 +52,8 @@
       return
     }
 
-    uploading = true
-
-    const formData = new FormData()
-    formData.append('csv_file', file)
-
-    router.post('/tasks/import', formData, {
-      preserveState: true,
-      preserveScroll: true,
-      onSuccess: () => {
-        uploading = false
-        props.onOpenChange(false)
-        file = null
-        resetFileInput()
-      },
-      onError: (errors) => {
-        uploading = false
-        error = errors.csv_file || 'Đã xảy ra lỗi khi import tasks'
-      }
-    })
+    uploading = false
+    error = 'Import CSV chưa được bật cho task.'
   }
 
   const handleClose = () => {

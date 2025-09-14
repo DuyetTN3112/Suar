@@ -21,9 +21,17 @@
     }
     onTaskClick?: (task: Task) => void
     ondragstart?: (e: DragEvent) => void
+    isMutating?: boolean
   }
 
-  const { task, displayProperties, metadata, onTaskClick, ondragstart }: Props = $props()
+  const {
+    task,
+    displayProperties,
+    metadata,
+    onTaskClick,
+    ondragstart,
+    isMutating = false,
+  }: Props = $props()
 
   const priorityColors: Record<string, string> = {
     urgent: 'border border-red-300 bg-red-100 text-red-900',
@@ -72,13 +80,20 @@
 </script>
 
 <div
-  class="group rounded-lg border bg-card p-3 shadow-sm hover:shadow-md transition-all cursor-pointer select-none"
-  draggable="true"
+  class="group rounded-lg border bg-card p-3 shadow-sm transition-all select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary {isMutating ? 'cursor-wait opacity-60' : 'cursor-pointer hover:shadow-md'}"
+  draggable={!isMutating}
   {ondragstart}
   onclick={() => onTaskClick?.(task)}
-  onkeydown={(e) => { if (e.key === 'Enter') onTaskClick?.(task) }}
+  onkeydown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      onTaskClick?.(task)
+    }
+  }}
   role="button"
   tabindex="0"
+  aria-disabled={isMutating}
+  title={isMutating ? 'Task đang đồng bộ' : task.title}
 >
   <!-- Drag Handle + Title -->
   <div class="flex items-start gap-2">
