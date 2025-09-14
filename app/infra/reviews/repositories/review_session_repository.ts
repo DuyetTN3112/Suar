@@ -1,7 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ReviewSessionStatus } from '#constants/review_constants'
-import ReviewSession from '#models/review_session'
+import * as reviewSessionQueries from './read/review_session_queries.js'
+import * as reviewSessionMutations from './write/review_session_mutations.js'
+
+import type ReviewSession from '#infra/reviews/models/review_session'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -16,52 +18,20 @@ export default class ReviewSessionRepository {
     void new ReviewSessionRepository().__instanceMarker
   }
 
-  private static baseQuery(trx?: TransactionClientContract) {
-    return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
-  }
-
   static async paginatePendingForReviewer(
     userId: DatabaseId,
     page: number,
     perPage: number,
     trx?: TransactionClientContract
   ) {
-    return this.baseQuery(trx)
-      .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
-      .whereDoesntHave('skill_reviews', (subQuery) => {
-        void subQuery.where('reviewer_id', userId)
-      })
-      .preload('reviewee', (userQuery) => {
-        void userQuery.select(['id', 'username', 'email'])
-      })
-      .preload('task_assignment', (assignmentQuery) => {
-        void assignmentQuery.preload('task', (taskQuery) => {
-          void taskQuery.select(['id', 'title', 'project_id'])
-          void taskQuery.preload('project')
-        })
-      })
-      .orderBy('created_at', 'asc')
-      .paginate(page, perPage)
+    return reviewSessionQueries.paginatePendingForReviewer(userId, page, perPage, trx)
   }
 
   static async findByIdWithRelations(
     sessionId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<ReviewSession> {
-    return this.baseQuery(trx)
-      .where('id', sessionId)
-      .preload('reviewee')
-      .preload('task_assignment', (assignmentQuery) => {
-        void assignmentQuery.preload('task')
-      })
-      .preload('skill_reviews', (reviewQuery) => {
-        void reviewQuery.preload('skill')
-        void reviewQuery.preload(
-          'reviewer',
-          (userQuery) => void userQuery.select(['id', 'username', 'email'])
-        )
-      })
-      .firstOrFail()
+    return reviewSessionQueries.findByIdWithRelations(sessionId, trx)
   }
 
   static async paginateByReviewee(
@@ -70,31 +40,14 @@ export default class ReviewSessionRepository {
     perPage: number,
     trx?: TransactionClientContract
   ) {
-    return this.baseQuery(trx)
-      .where('reviewee_id', userId)
-      .whereIn('status', [
-        ReviewSessionStatus.PENDING,
-        ReviewSessionStatus.IN_PROGRESS,
-        ReviewSessionStatus.COMPLETED,
-        ReviewSessionStatus.DISPUTED,
-      ])
-      .preload('task_assignment', (assignmentQuery) => {
-        void assignmentQuery.preload('task', (taskQuery) => {
-          void taskQuery.select(['id', 'title'])
-        })
-      })
-      .preload('skill_reviews', (reviewQuery) => {
-        void reviewQuery.preload('skill')
-      })
-      .orderBy('updated_at', 'desc')
-      .paginate(page, perPage)
+    return reviewSessionQueries.paginateByReviewee(userId, page, perPage, trx)
   }
 
   static async findById(
     sessionId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
-    return this.baseQuery(trx).where('id', sessionId).first()
+    return reviewSessionQueries.findById(sessionId, trx)
   }
 
   static async findByIdWithAllowedStatuses(
@@ -102,14 +55,14 @@ export default class ReviewSessionRepository {
     statuses: string[],
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
-    return this.baseQuery(trx).where('id', sessionId).whereIn('status', statuses).first()
+    return reviewSessionQueries.findByIdWithAllowedStatuses(sessionId, statuses, trx)
   }
 
   static async findByTaskAssignment(
     taskAssignmentId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
-    return this.baseQuery(trx).where('task_assignment_id', taskAssignmentId).first()
+    return reviewSessionQueries.findByTaskAssignment(taskAssignmentId, trx)
   }
 
   static async findCompletedForRevieweeForUpdate(
@@ -117,57 +70,44 @@ export default class ReviewSessionRepository {
     revieweeId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<ReviewSession | null> {
-    return this.baseQuery(trx)
-      .where('id', sessionId)
-      .where('reviewee_id', revieweeId)
-      .where('status', ReviewSessionStatus.COMPLETED)
-      .forUpdate()
-      .first()
+    return reviewSessionMutations.findCompletedForRevieweeForUpdate(sessionId, revieweeId, trx)
   }
 
   static async create(
     data: Partial<ReviewSession>,
     trx?: TransactionClientContract
   ): Promise<ReviewSession> {
-    return ReviewSession.create(data, trx ? { client: trx } : undefined)
+    return reviewSessionMutations.create(data, trx)
+  }
+
+  static async createForCompletedAssignmentIfMissing(
+    input: {
+      assignmentId: DatabaseId
+      assigneeId: DatabaseId
+    },
+    trx?: TransactionClientContract
+  ): Promise<boolean> {
+    return reviewSessionMutations.createForCompletedAssignmentIfMissing(input, trx)
   }
 
   static async save(
     session: ReviewSession,
     trx?: TransactionClientContract
   ): Promise<ReviewSession> {
-    if (trx) {
-      session.useTransaction(trx)
-    }
-    await session.save()
-    return session
+    return reviewSessionMutations.save(session, trx)
   }
 
   static async hasAnyForTask(
     taskId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    const session = await this.baseQuery(trx)
-      .whereHas('task_assignment', (assignmentQuery) => {
-        void assignmentQuery.where('task_id', taskId)
-      })
-      .first()
-
-    return !!session
+    return reviewSessionQueries.hasAnyForTask(taskId, trx)
   }
 
   static async hasAnyForTasksWithStatus(
     taskStatusId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    const session = await this.baseQuery(trx)
-      .whereHas('task_assignment', (assignmentQuery) => {
-        void assignmentQuery.whereHas('task', (taskQuery) => {
-          void taskQuery.where('task_status_id', taskStatusId).whereNull('deleted_at')
-        })
-      })
-      .first()
-
-    return !!session
+    return reviewSessionQueries.hasAnyForTasksWithStatus(taskStatusId, trx)
   }
 }
