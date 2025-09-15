@@ -1,11 +1,14 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import NotFoundException from '#exceptions/not_found_exception'
 import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import AssignTaskCommand from '#modules/tasks/actions/commands/assign_task_command'
 import AssignTaskDTO from '#modules/tasks/actions/dtos/request/assign_task_dto'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -16,7 +19,6 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
-import type { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -29,7 +31,7 @@ class NotificationSpy implements NotificationCreator {
   }
 }
 
-function buildExecutionContext(userId: string, organizationId: string): ExecutionContext {
+function buildActionContext(userId: string, organizationId: string): TaskActionContext {
   return {
     userId,
     ip: '127.0.0.1',
@@ -70,7 +72,12 @@ test.group('Integration | Assign Task', (group) => {
       assigned_to: null,
     })
     const notificationSpy = new NotificationSpy()
-    const command = new AssignTaskCommand(buildExecutionContext(owner.id, org.id), notificationSpy)
+    const command = new AssignTaskCommand(
+      buildActionContext(owner.id, org.id),
+      notificationSpy,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
+    )
     const dto = new AssignTaskDTO({
       task_id: task.id,
       assigned_to: assignee.id,
@@ -116,7 +123,12 @@ test.group('Integration | Assign Task', (group) => {
     })
 
     const notificationSpy = new NotificationSpy()
-    const command = new AssignTaskCommand(buildExecutionContext(owner.id, org.id), notificationSpy)
+    const command = new AssignTaskCommand(
+      buildActionContext(owner.id, org.id),
+      notificationSpy,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
+    )
     const dto = new AssignTaskDTO({
       task_id: task.id,
       assigned_to: newAssignee.id,
@@ -154,7 +166,12 @@ test.group('Integration | Assign Task', (group) => {
     })
 
     const notificationSpy = new NotificationSpy()
-    const command = new AssignTaskCommand(buildExecutionContext(owner.id, org.id), notificationSpy)
+    const command = new AssignTaskCommand(
+      buildActionContext(owner.id, org.id),
+      notificationSpy,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
+    )
     const dto = new AssignTaskDTO({
       task_id: task.id,
       assigned_to: null,
@@ -180,8 +197,10 @@ test.group('Integration | Assign Task', (group) => {
     })
 
     const command = new AssignTaskCommand(
-      buildExecutionContext(owner.id, org.id),
-      notificationPublicApi
+      buildActionContext(owner.id, org.id),
+      notificationPublicApi,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
     )
     const dto = new AssignTaskDTO({
       task_id: task.id,
@@ -207,8 +226,10 @@ test.group('Integration | Assign Task', (group) => {
     })
 
     const command = new AssignTaskCommand(
-      buildExecutionContext(owner.id, org.id),
-      notificationPublicApi
+      buildActionContext(owner.id, org.id),
+      notificationPublicApi,
+      taskExternalDeps,
+      new TaskCacheInvalidator()
     )
     const dto = new AssignTaskDTO({
       task_id: task.id,

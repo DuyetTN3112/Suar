@@ -1,9 +1,10 @@
 import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
 import TransferProjectOwnershipCommand from '#modules/projects/actions/commands/transfer_project_ownership_command'
+import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 import { ProjectRole } from '#modules/projects/constants/project_constants'
 import Project from '#modules/projects/infra/models/project'
 import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
@@ -16,7 +17,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -68,7 +68,7 @@ test.group('Integration | Transfer Project Ownership', (group) => {
     })
 
     const command = new TransferProjectOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemProjectActionContext(owner.id),
       notificationStub
     )
 
@@ -121,7 +121,7 @@ test.group('Integration | Transfer Project Ownership', (group) => {
 
     const notificationSpy = new NotificationSpy()
     const command = new TransferProjectOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemProjectActionContext(owner.id),
       notificationSpy
     )
 
@@ -170,7 +170,7 @@ test.group('Integration | Transfer Project Ownership', (group) => {
     })
 
     const command = new TransferProjectOwnershipCommand(
-      ExecutionContext.system(member.id),
+      makeSystemProjectActionContext(member.id),
       notificationStub
     )
 
@@ -206,7 +206,7 @@ test.group('Integration | Transfer Project Ownership', (group) => {
     })
 
     const command = new TransferProjectOwnershipCommand(
-      ExecutionContext.system(owner.id),
+      makeSystemProjectActionContext(owner.id),
       notificationStub
     )
 

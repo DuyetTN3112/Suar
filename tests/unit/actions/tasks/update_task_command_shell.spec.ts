@@ -1,12 +1,14 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import UpdateTaskCommand from '#modules/tasks/actions/commands/update_task_command'
 import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskRecord } from '#types/task_records'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -18,14 +20,42 @@ class NotificationStub implements NotificationCreator {
   }
 }
 
+function resolvedVoid(): Promise<void> {
+  return Promise.resolve()
+}
+
+class TaskCacheStub implements TaskCachePort {
+  invalidateAfterTaskCreated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskUpdated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskDeleted() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskAssigned() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskAccessChanged() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskApplicationChanged() {
+    return resolvedVoid()
+  }
+  invalidateTaskDetail() {
+    return resolvedVoid()
+  }
+}
+
 class TestableUpdateTaskCommand extends UpdateTaskCommand {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: TaskActionContext,
     createNotification: NotificationCreator,
-    dependencies: ConstructorParameters<typeof UpdateTaskCommand>[2],
+    dependencies: ConstructorParameters<typeof UpdateTaskCommand>[4],
     private trx: TransactionClientContract
   ) {
-    super(execCtx, createNotification, dependencies)
+    super(execCtx, taskExternalDeps, createNotification, new TaskCacheStub(), dependencies)
   }
 
   protected override async executeInTransaction<T>(
@@ -35,7 +65,7 @@ class TestableUpdateTaskCommand extends UpdateTaskCommand {
   }
 }
 
-function makeExecCtx(userId: string | null = VALID_UUID): ExecutionContext {
+function makeExecCtx(userId: string | null = VALID_UUID): TaskActionContext {
   return {
     userId,
     ip: '127.0.0.1',
@@ -68,14 +98,24 @@ function makeTransaction(): TransactionClientContract {
 
 test.group('UpdateTaskCommand shell orchestration', () => {
   test('requires an authenticated user before updating a task', async ({ assert }) => {
-    const command = new UpdateTaskCommand(makeExecCtx(null), new NotificationStub())
+    const command = new UpdateTaskCommand(
+      makeExecCtx(null),
+      taskExternalDeps,
+      new NotificationStub(),
+      new TaskCacheStub()
+    )
     const dto = UpdateTaskDTO.fromPartialUpdate({ title: 'Renamed task' })
 
     await assert.rejects(() => command.execute(VALID_UUID_3, dto))
   })
 
   test('rejects empty update payloads before transaction work starts', async ({ assert }) => {
-    const command = new UpdateTaskCommand(makeExecCtx(), new NotificationStub())
+    const command = new UpdateTaskCommand(
+      makeExecCtx(),
+      taskExternalDeps,
+      new NotificationStub(),
+      new TaskCacheStub()
+    )
     const dto = UpdateTaskDTO.fromPartialUpdate({ updated_by: VALID_UUID })
 
     await assert.rejects(

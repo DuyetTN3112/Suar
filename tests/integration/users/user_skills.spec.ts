@@ -10,10 +10,10 @@ import {
   UpdateUserSkillDTO,
 } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
 import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { SkillFactory, UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | User Skills', (group) => {
   group.setup(async () => {
@@ -30,11 +30,11 @@ test.group('Integration | User Skills', (group) => {
       skill_name: 'TypeScript',
       category_code: 'technical',
     })
-    const command = new AddUserSkillCommand(ExecutionContext.system(user.id))
+    const command = new AddUserSkillCommand(makeSystemUserActionContext(user.id))
 
     await command.handle(new AddUserSkillDTO(skill.id, ProficiencyLevel.JUNIOR))
 
-    const skills = await new GetUserSkillsQuery(ExecutionContext.system(user.id)).handle(
+    const skills = await new GetUserSkillsQuery(makeSystemUserActionContext(user.id)).handle(
       new GetUserSkillsDTO(user.id)
     )
     const stored = await SkillRepository.findByUserAndSkill(user.id, skill.id)
@@ -53,8 +53,8 @@ test.group('Integration | User Skills', (group) => {
     const user = await UserFactory.create()
     const activeSkill = await SkillFactory.create()
     const inactiveSkill = await SkillFactory.create({ is_active: false })
-    const command = new AddUserSkillCommand(ExecutionContext.system(user.id))
-    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+    const command = new AddUserSkillCommand(makeSystemUserActionContext(user.id))
+    const query = new GetUserSkillsQuery(makeSystemUserActionContext(user.id))
 
     const cachedEmpty = await query.handle(new GetUserSkillsDTO(user.id))
     assert.lengthOf(cachedEmpty, 0)
@@ -84,7 +84,7 @@ test.group('Integration | User Skills', (group) => {
       skill_name: 'Communication',
       category_code: 'soft_skill',
     })
-    const addCommand = new AddUserSkillCommand(ExecutionContext.system(user.id))
+    const addCommand = new AddUserSkillCommand(makeSystemUserActionContext(user.id))
 
     await addCommand.handle(new AddUserSkillDTO(technicalSkill.id, ProficiencyLevel.MIDDLE))
     await addCommand.handle(new AddUserSkillDTO(softSkill.id, ProficiencyLevel.JUNIOR))
@@ -98,15 +98,15 @@ test.group('Integration | User Skills', (group) => {
       return
     }
 
-    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+    const query = new GetUserSkillsQuery(makeSystemUserActionContext(user.id))
     const cachedTechnicalOnly = await query.handle(new GetUserSkillsDTO(user.id, 'technical'))
     assert.equal(cachedTechnicalOnly[0]?.level_code, ProficiencyLevel.MIDDLE)
 
-    await new UpdateUserSkillCommand(ExecutionContext.system(user.id)).handle(
+    await new UpdateUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
       new UpdateUserSkillDTO(storedTechnicalSkill.id, ProficiencyLevel.LEAD)
     )
     await assert.rejects(() =>
-      new UpdateUserSkillCommand(ExecutionContext.system(outsider.id)).handle(
+      new UpdateUserSkillCommand(makeSystemUserActionContext(outsider.id)).handle(
         new UpdateUserSkillDTO(storedTechnicalSkill.id, ProficiencyLevel.MASTER)
       )
     )
@@ -127,7 +127,7 @@ test.group('Integration | User Skills', (group) => {
       category_code: 'technical',
     })
 
-    await new AddUserSkillCommand(ExecutionContext.system(user.id)).handle(
+    await new AddUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
       new AddUserSkillDTO(skill.id, ProficiencyLevel.SENIOR)
     )
 
@@ -137,11 +137,11 @@ test.group('Integration | User Skills', (group) => {
       return
     }
 
-    const query = new GetUserSkillsQuery(ExecutionContext.system(user.id))
+    const query = new GetUserSkillsQuery(makeSystemUserActionContext(user.id))
     const cachedSkills = await query.handle(new GetUserSkillsDTO(user.id))
     assert.lengthOf(cachedSkills, 1)
 
-    await new RemoveUserSkillCommand(ExecutionContext.system(user.id)).handle(
+    await new RemoveUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
       new RemoveUserSkillDTO(storedSkill.id)
     )
 
