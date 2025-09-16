@@ -4,20 +4,20 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 
-import CreateAuditLog from '#actions/audit/create_audit_log'
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { buildTaskPermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { AuditAction, EntityType } from '#constants/audit_constants'
 import { canUpdateTaskTime } from '#domain/tasks/task_permission_policy'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
-import CacheService from '#infra/cache/cache_service'
+import { taskCacheAdapter } from '#infra/cache/task_cache_adapter'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
-import type Task from '#models/task'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
+import type { TaskRecord, TaskDetailRecord } from '#types/task_records'
 
 interface PersistedTaskTimeUpdate {
-  task: Task
+  task: TaskRecord
   oldValues: {
     estimated_time: number
     actual_time: number
@@ -40,11 +40,11 @@ export default class UpdateTaskTimeCommand {
   /**
    * Execute command để update time
    */
-  async execute(dto: UpdateTaskTimeDTO): Promise<Task> {
+  async execute(dto: UpdateTaskTimeDTO): Promise<TaskDetailRecord> {
     const userId = this.requireUserId()
     const updateResult = await this.persistTaskTimeUpdateInTransaction(dto, userId)
     await this.runPostCommitEffects(updateResult, userId)
-    return await TaskRepository.findByIdWithWriteRelations(dto.task_id)
+    return await TaskRepository.findByIdWithDetailRecord(dto.task_id)
   }
 
   private requireUserId(): DatabaseId {
@@ -63,7 +63,7 @@ export default class UpdateTaskTimeCommand {
     const trx = await db.transaction()
 
     try {
-      const task = await TaskRepository.findActiveForUpdate(dto.task_id, trx)
+      const task = await TaskRepository.findActiveForUpdateAsRecord(dto.task_id, trx)
       await this.ensureTimeUpdatePermission(task, userId, trx)
       const updateResult = await this.persistTaskTimeUpdate(task, dto, userId, trx)
       await trx.commit()
@@ -75,7 +75,7 @@ export default class UpdateTaskTimeCommand {
   }
 
   private async ensureTimeUpdatePermission(
-    task: Task,
+    task: TaskRecord,
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
@@ -84,53 +84,61 @@ export default class UpdateTaskTimeCommand {
   }
 
   private async persistTaskTimeUpdate(
-    task: Task,
+    task: TaskRecord,
     dto: UpdateTaskTimeDTO,
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<PersistedTaskTimeUpdate> {
     const oldValues = {
-      estimated_time: task.estimated_time,
-      actual_time: task.actual_time,
+      estimated_time: task.estimated_time ?? 0,
+      actual_time: task.actual_time ?? 0,
     }
 
-    task.merge(dto.toObject())
-    task.updated_by = userId
-    await TaskRepository.save(task, trx)
-    await this.recordTaskTimeUpdatedAudit(task, oldValues, userId)
+    const updatedTask = await TaskRepository.updateTask(
+      task.id,
+      {
+        ...dto.toObject(),
+        updated_by: userId,
+      },
+      trx
+    )
+    await this.recordTaskTimeUpdatedAudit(updatedTask, oldValues, userId)
 
     return {
-      task,
+      task: updatedTask,
       oldValues,
     }
   }
 
   private async recordTaskTimeUpdatedAudit(
-    task: Task,
+    task: TaskRecord,
     oldValues: PersistedTaskTimeUpdate['oldValues'],
     userId: DatabaseId
   ): Promise<void> {
-    await new CreateAuditLog(this.execCtx).handle({
-      user_id: userId,
-      action: AuditAction.UPDATE_TIME,
-      entity_type: EntityType.TASK,
-      entity_id: task.id,
-      old_values: oldValues,
-      new_values: {
-        estimated_time: task.estimated_time,
-        actual_time: task.actual_time,
+    await auditPublicApi.log(
+      {
+        user_id: userId,
+        action: AuditAction.UPDATE_TIME,
+        entity_type: EntityType.TASK,
+        entity_id: task.id,
+        old_values: oldValues,
+        new_values: {
+          estimated_time: task.estimated_time,
+          actual_time: task.actual_time,
+        },
       },
-    })
+      this.execCtx
+    )
   }
 
   private async runPostCommitEffects(
     updateResult: PersistedTaskTimeUpdate,
     userId: DatabaseId
   ): Promise<void> {
-    await CacheService.deleteByPattern(`task:${updateResult.task.id}:*`)
+    await taskCacheAdapter.invalidateOnTaskUpdate(updateResult.task.id)
 
     void emitter.emit('task:updated', {
-      task: updateResult.task,
+      taskId: updateResult.task.id,
       updatedBy: userId,
       changes: {
         estimated_time: updateResult.task.estimated_time,
