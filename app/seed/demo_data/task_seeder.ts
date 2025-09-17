@@ -14,6 +14,83 @@ import type {
   UserKey,
 } from './types.js'
 
+export interface SeedTaskApplicationSpec {
+  taskKey: string
+  applicant: UserKey
+  status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
+  source: 'public_listing' | 'referral'
+  message: string
+  reviewedBy?: UserKey
+}
+
+export const SEED_TASK_APPLICATION_SPECS: SeedTaskApplicationSpec[] = [
+  {
+    taskKey: 'owner-marketplace-pending',
+    applicant: 'owner',
+    status: 'pending',
+    source: 'public_listing',
+    message: 'Tôi muốn dùng account chính để kiểm thử luồng marketplace pending application.',
+  },
+  {
+    taskKey: 'owner-marketplace-approved',
+    applicant: 'owner',
+    status: 'approved',
+    source: 'public_listing',
+    message:
+      'Tôi có thể nhận QA pipeline này để kiểm thử approved application và freelancer assignment.',
+    reviewedBy: 'freelancerTwo',
+  },
+  {
+    taskKey: 'owner-marketplace-rejected',
+    applicant: 'owner',
+    status: 'rejected',
+    source: 'public_listing',
+    message: 'Application dùng để kiểm thử rejected state kèm rejection reason cho owner.',
+    reviewedBy: 'freelancerOne',
+  },
+  {
+    taskKey: 'owner-marketplace-withdrawn',
+    applicant: 'owner',
+    status: 'withdrawn',
+    source: 'public_listing',
+    message: 'Application dùng để kiểm thử withdrawn state của owner trên marketplace.',
+  },
+  {
+    taskKey: 'marketplace-content-pass',
+    applicant: 'freelancerOne',
+    status: 'pending',
+    source: 'public_listing',
+    message:
+      'Tôi có kinh nghiệm viết tài liệu kỹ thuật cho B2B SaaS và có thể bàn giao trong 3 ngày.',
+  },
+  {
+    taskKey: 'marketplace-content-pass',
+    applicant: 'freelancerTwo',
+    status: 'approved',
+    source: 'referral',
+    message: 'Đã từng triển khai content guide cho marketplace workflow tương tự.',
+    reviewedBy: 'owner',
+  },
+  {
+    taskKey: 'marketplace-qa-pipeline',
+    applicant: 'freelancerOne',
+    status: 'pending',
+    source: 'public_listing',
+    message: 'Có thể hỗ trợ thiết kế QA checklist và checklist verify deliverables.',
+  },
+]
+
+export const SEED_TASK_APPLICATION_COUNTS_BY_TASK = SEED_TASK_APPLICATION_SPECS.reduce<
+  Record<string, number>
+>((counts, row) => {
+  counts[row.taskKey] = (counts[row.taskKey] ?? 0) + 1
+  return counts
+}, {})
+
+export const SEED_APPROVED_APPLICATION_ASSIGNMENT_KEYS = SEED_TASK_APPLICATION_SPECS.filter(
+  (row) => row.status === 'approved'
+).map((row) => `${row.taskKey}:${row.applicant}`)
+
 export async function seedTasks(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
@@ -84,7 +161,7 @@ export async function seedTasks(
       business_domain: spec.businessDomain,
       estimated_users_affected: spec.estimatedUsersAffected,
       estimated_budget: spec.estimatedBudget,
-      external_applications_count: spec.visibility === 'internal' ? 0 : 2,
+      external_applications_count: SEED_TASK_APPLICATION_COUNTS_BY_TASK[spec.key] ?? 0,
       sort_order: Object.keys(result).length,
       task_status_id: taskStatusId,
       created_at: runtime.isoDaysAgo(20),
@@ -181,32 +258,7 @@ export async function seedTaskApplications(
   users: Record<UserKey, SeededUser>,
   tasks: Record<string, SeededTask>
 ): Promise<void> {
-  const rows = [
-    {
-      taskKey: 'marketplace-content-pass',
-      applicant: 'freelancerOne',
-      status: 'pending',
-      source: 'public_listing',
-      message:
-        'Tôi có kinh nghiệm viết tài liệu kỹ thuật cho B2B SaaS và có thể bàn giao trong 3 ngày.',
-    },
-    {
-      taskKey: 'marketplace-content-pass',
-      applicant: 'freelancerTwo',
-      status: 'approved',
-      source: 'referral',
-      message: 'Đã từng triển khai content guide cho marketplace workflow tương tự.',
-    },
-    {
-      taskKey: 'marketplace-qa-pipeline',
-      applicant: 'freelancerOne',
-      status: 'pending',
-      source: 'public_listing',
-      message: 'Có thể hỗ trợ thiết kế QA checklist và checklist verify deliverables.',
-    },
-  ] as const
-
-  for (const row of rows) {
+  for (const row of SEED_TASK_APPLICATION_SPECS) {
     const task = runtime.requireValue(tasks[row.taskKey], `task-application:${row.taskKey}`)
     const where = {
       task_id: task.id,
@@ -223,9 +275,16 @@ export async function seedTaskApplications(
         `https://github.com/${users[row.applicant].username.toLowerCase()}`,
       ]),
       applied_at: runtime.isoDaysAgo(2),
-      reviewed_by: row.status === 'approved' ? users.owner.id : null,
-      reviewed_at: row.status === 'approved' ? runtime.isoDaysAgo(1) : null,
-      rejection_reason: null,
+      reviewed_by:
+        row.status === 'approved' || row.status === 'rejected'
+          ? users[row.reviewedBy ?? 'freelancerTwo'].id
+          : null,
+      reviewed_at:
+        row.status === 'approved' || row.status === 'rejected' ? runtime.isoDaysAgo(1) : null,
+      rejection_reason:
+        row.status === 'rejected'
+          ? 'Seeded rejection reason để test marketplace rejected state.'
+          : null,
     }
 
     if (existing) {
@@ -236,6 +295,54 @@ export async function seedTaskApplications(
         .table('task_applications')
         .insert({ id: runtime.uuid(), ...where, ...payload })
     }
+
+    if (row.status === 'approved') {
+      const reviewerKey = row.reviewedBy ?? 'owner'
+      const assignmentWhere = {
+        task_id: task.id,
+        assignee_id: users[row.applicant].id,
+      }
+      const existingAssignment = await findRow(trx, 'task_assignments', assignmentWhere)
+      const assignmentPayload = {
+        assigned_by: users[reviewerKey].id,
+        assignment_type: 'freelancer',
+        assignment_status: 'active',
+        estimated_hours: 12,
+        actual_hours: null,
+        progress_percentage: 25,
+        completion_notes: null,
+        verified_by: null,
+        verified_at: null,
+        assigned_at: runtime.isoDaysAgo(1),
+        completed_at: null,
+      }
+
+      if (existingAssignment) {
+        await applyWhere(trx.from('task_assignments'), assignmentWhere).update(assignmentPayload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('task_assignments')
+          .insert({ id: runtime.uuid(), ...assignmentWhere, ...assignmentPayload })
+      }
+
+      await trx
+        .from('tasks')
+        .where('id', task.id)
+        .update({ assigned_to: users[row.applicant].id, updated_at: runtime.isoDaysAgo(1) })
+    }
+  }
+
+  for (const task of Object.values(tasks)) {
+    const applicationCount = await trx
+      .from('task_applications')
+      .where('task_id', task.id)
+      .count('* as total')
+      .first() as { total: string | number } | null
+    await trx
+      .from('tasks')
+      .where('id', task.id)
+      .update({ external_applications_count: Number(applicationCount?.total ?? 0) })
   }
 }
 
@@ -245,6 +352,15 @@ export async function seedTaskRequiredSkills(
   tasks: Record<string, SeededTask>,
   skills: Record<string, string>
 ): Promise<void> {
+  const dbLevels = (await trx.from('proficiency_levels').select('id', 'code')) as {
+    id: string
+    code: string
+  }[]
+  const levelMap: Record<string, string> = {}
+  for (const level of dbLevels) {
+    levelMap[level.code] = level.id
+  }
+
   for (const spec of SEEDED_TASK_SPECS) {
     for (const code of spec.requiredSkills) {
       const task = runtime.requireValue(tasks[spec.key], `task-required-skills:${spec.key}`)
@@ -254,13 +370,21 @@ export async function seedTaskRequiredSkills(
         skill_id: skillId,
       }
       const existing = await findRow(trx, 'task_required_skills', where)
+
+      const levelCode =
+        code === 'leadership' || code === 'problem_solving'
+          ? 'senior'
+          : code === 'communication'
+            ? 'middle'
+            : 'junior'
+      const levelId = levelMap[levelCode]
+
       const payload = {
-        required_level_code:
-          code === 'leadership' || code === 'problem_solving'
-            ? 'senior'
-            : code === 'communication'
-              ? 'middle'
-              : 'junior',
+        required_level_code: levelCode,
+        minimum_level_id: levelId,
+        target_level_id: levelId,
+        assessment_ceiling_level_id: levelId,
+        requirement_source: 'imported_legacy',
         is_mandatory: true,
         created_at: runtime.isoDaysAgo(15),
       }

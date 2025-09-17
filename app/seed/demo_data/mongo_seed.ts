@@ -548,6 +548,7 @@ export async function seedOperationalEvents(
       action_data: JSON.stringify({
         redirect_to: '/admin',
         current_organization_id: null,
+      }),
       related_entity_type: 'user',
       related_entity_id: context.users.superadmin.id,
       ip_address: '127.0.0.1',
@@ -555,12 +556,13 @@ export async function seedOperationalEvents(
       created_at: new Date(runtime.isoDaysAgo(1)),
     },
     {
+      id: randomUUID(),
       user_id: context.users.owner.id,
       action_type: 'package_metrics_viewed',
-      action_data: {
+      action_data: JSON.stringify({
         packages: ['pro', 'promax'],
         active_orgs: Object.keys(context.organizations).length,
-      },
+      }),
       related_entity_type: 'user_subscription',
       related_entity_id: null,
       ip_address: '127.0.0.1',
@@ -595,13 +597,13 @@ export async function logSummary(context: SeedContext): Promise<void> {
     count('tasks'),
     count('review_sessions'),
     count('user_subscriptions'),
-    env.get('MONGODB_URL', '') ? MongoNotification.countDocuments({}) : Promise.resolve(0),
-    env.get('MONGODB_URL', '') ? MongoAuditLogModel.countDocuments({}) : Promise.resolve(0),
-    env.get('MONGODB_URL', '') ? MongoUserActivityLog.countDocuments({}) : Promise.resolve(0),
+    count('notifications'),
+    count('audit_events'),
+    count('user_activity_events'),
   ])
 
   console.warn(
-    `Users=${userCount}, organizations=${orgCount}, projects=${projectCount}, tasks=${taskCount}, review_sessions=${reviewCount}, user_subscriptions=${subscriptionCount}, mongo_notifications=${notificationCount}, mongo_audit_logs=${auditLogCount}, mongo_user_activity_logs=${userActivityCount}`
+    `Users=${userCount}, organizations=${orgCount}, projects=${projectCount}, tasks=${taskCount}, review_sessions=${reviewCount}, user_subscriptions=${subscriptionCount}, postgres_notifications=${notificationCount}, postgres_audit_logs=${auditLogCount}, postgres_user_activity_logs=${userActivityCount}`
   )
 
   const taskCountRows = (await db

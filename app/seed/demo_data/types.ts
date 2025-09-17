@@ -108,6 +108,7 @@ export interface TaskSpec {
     | 'automation'
     | 'technical_debt'
     | 'ux_improvement'
+    | 'compliance'
   businessDomain: 'saas' | 'edtech' | 'internal_tooling' | 'data_platform' | 'security'
   estimatedUsersAffected: number
   estimatedBudget: number

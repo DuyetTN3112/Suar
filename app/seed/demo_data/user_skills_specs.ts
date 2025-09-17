@@ -91,6 +91,22 @@ export const SEED_USER_SKILLS_SPECS: UserSkillSpec[] = [
     source: 'reviewed',
   },
   {
+    user: 'owner',
+    skill: 'svelte',
+    level: 'middle',
+    totalReviews: 0,
+    avgPercentage: 72,
+    source: 'imported',
+  },
+  {
+    user: 'owner',
+    skill: 'code_review',
+    level: 'middle',
+    totalReviews: 0,
+    avgPercentage: 76,
+    source: 'imported',
+  },
+  {
     user: 'orgAdmin',
     skill: 'testing',
     level: 'senior',

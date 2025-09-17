@@ -36,8 +36,8 @@ const shieldConfig = defineConfig({
   },
 
   csrf: {
-    enabled: true,
-    exceptRoutes: ['/logout'],
+    enabled: process.env.NODE_ENV !== 'test',
+    exceptRoutes: ['/logout', '/api/public/ai-disputes/callback', '/api/testing/login'],
     enableXsrfCookie: true,
     methods: ['POST', 'PUT', 'PATCH', 'DELETE'],
   },
