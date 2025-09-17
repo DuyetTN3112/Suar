@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
 
-import TaskStatus from '#modules/tasks/infra/models/task_status'
+import TaskStatus from '../../../../../tasks/infra/models/task_status.js'
 
 export interface CreateTaskStatusData {
   name: string

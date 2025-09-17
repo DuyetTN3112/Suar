@@ -79,6 +79,8 @@ export interface ProjectUserReader {
   getSystemRoleName(userId: string, trx?: TransactionClientContract): Promise<string | null>
 
   findActorInfo(userId: string, trx?: TransactionClientContract): Promise<ProjectActorInfo>
+
+  isActiveUser(userId: string, trx?: TransactionClientContract): Promise<boolean>
 }
 
 export interface ProjectPermissionReader {

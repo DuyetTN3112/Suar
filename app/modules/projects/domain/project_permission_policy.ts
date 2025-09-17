@@ -155,8 +155,7 @@ export function canUpdateProjectFields(
  * Rules:
  * 1. System admin/superadmin → allow (if no incomplete tasks)
  * 2. Project owner → allow (if no incomplete tasks)
- * 3. Project creator → allow (if no incomplete tasks)
- * 4. Org owner/admin → allow (if no incomplete tasks)
+ * 3. Org owner/admin → allow (if no incomplete tasks)
  * 5. Incomplete tasks → deny (business rule)
  * 6. Others → deny
  */
@@ -164,7 +163,6 @@ export function canDeleteProject(ctx: ProjectDeletionContext): PolicyResult {
   const hasPermission =
     isSystemAdmin(ctx.actorSystemRole) ||
     isSameId(ctx.projectOwnerId, ctx.actorId) ||
-    isSameId(ctx.projectCreatorId, ctx.actorId) ||
     isOrgOwnerOrAdmin(ctx.actorOrgRole)
 
   if (!hasPermission) {
@@ -174,6 +172,13 @@ export function canDeleteProject(ctx: ProjectDeletionContext): PolicyResult {
   if (ctx.incompleteTaskCount > 0) {
     return PR.deny(
       `Dự án có ${ctx.incompleteTaskCount} công việc chưa hoàn thành. Vui lòng hoàn thành hoặc hủy các công việc trước khi xóa dự án.`,
+      'BUSINESS_RULE'
+    )
+  }
+
+  if (ctx.pendingReviewSessionCount > 0) {
+    return PR.deny(
+      `Dự án có ${ctx.pendingReviewSessionCount} review session đang chờ xử lý. Vui lòng hoàn tất review trước khi xóa dự án.`,
       'BUSINESS_RULE'
     )
   }
@@ -333,6 +338,7 @@ export function calculateProjectPermissions(ctx: ProjectPermissionContext): {
     projectOwnerId: ctx.projectOwnerId,
     projectCreatorId: ctx.projectCreatorId,
     incompleteTaskCount: 0,
+    pendingReviewSessionCount: 0,
   }).allowed
   const canManageMembersResult = canManageProjectMembers(ctx).allowed
   const canTransfer = canTransferProjectOwnership({
@@ -387,6 +393,7 @@ export function calculateProjectDetailPermissions(
       projectOwnerId: ctx.projectOwnerId,
       projectCreatorId: ctx.projectCreatorId,
       incompleteTaskCount: 0,
+      pendingReviewSessionCount: 0,
     }).allowed,
     canAddMembers: canManageProjectMembers(ctx).allowed,
   }

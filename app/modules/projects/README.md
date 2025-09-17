@@ -3,6 +3,14 @@
 ### Kiến trúc lõi & Phân tích nghiệp vụ
 - **Project Context**: Điểm neo chính kết nối giữa Organization, Member, Project Skills (`project_skills`), Project Professional Roles (`project_professional_roles`), và các Task nghiệp vụ.
 
+## Frontend Surface Contract
+
+- User workspace route `/projects` shows projects in the current organization context with organization switch, create guard, status badges, summary cards, and an API-backed detail modal.
+- Organization route `/org/projects` is the admin-shell surface for org-scoped create/search/list. Its `ProjectGrid` cards must route to `/org/projects/:id`, not the user-shell `/projects/:id` route.
+- Shared detail route rendering uses `inertia/pages/projects/show.svelte` for both `/projects/:id` and `/org/projects/:id`; `shellMode` selects `AppLayout` or `OrganizationLayout`, and `baseRoute` controls back navigation.
+- Detail update/delete mutations use `/api/projects/:id`; add-member still posts to `/projects/members` so the existing command and permission checks remain the single source of truth.
+- UI status handling must include `active`, `in_progress`, `on_hold`, and `archived`; user-facing labels collapse `active` and `in_progress` into “Đang chạy”.
+
 ## Module Path
 
 ```text
