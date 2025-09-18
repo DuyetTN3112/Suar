@@ -1,6 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/tasks/base_command'
 import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/request/task_application_dtos'
 import { ApplicationStatus } from '#constants/task_constants'
 import NotFoundException from '#exceptions/not_found_exception'
@@ -33,20 +34,36 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       const task = await TaskRepository.findActiveOrFail(application.task_id, trx)
 
       // Update status
-      application.application_status = ApplicationStatus.WITHDRAWN
-      await TaskApplicationRepository.save(application, trx)
+      await TaskApplicationRepository.updateStatus(
+        application.id,
+        { application_status: ApplicationStatus.WITHDRAWN },
+        trx
+      )
 
       // Decrement task's application count
-      if (task.external_applications_count > 0) {
-        task.external_applications_count -= 1
-        await TaskRepository.save(task, trx)
+      const currentApplicationCount = task.external_applications_count ?? 0
+      if (currentApplicationCount > 0) {
+        await TaskRepository.updateTask(
+          task.id,
+          { external_applications_count: currentApplicationCount - 1 },
+          trx
+        )
       }
 
       // Log audit
-      await this.logAudit('withdraw_application', 'task_application', application.id, null, {
-        task_id: task.id,
-        task_title: task.title,
-      })
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'withdraw_application',
+          entity_type: 'task_application',
+          entity_id: application.id,
+          old_values: null,
+          new_values: {
+            task_id: task.id,
+            task_title: task.title,
+          },
+        })
+      }
 
       return {
         cachePattern: `task:${task.id}:*`,
