@@ -1,22 +1,25 @@
-<script lang="ts" module>
-  export { default as Collapsible, default as Root } from './collapsible.svelte'
-  export { default as CollapsibleTrigger, default as Trigger } from './collapsible_trigger.svelte'
-  export { default as CollapsibleContent, default as Content } from './collapsible_content.svelte'
-</script>
-
 <script lang="ts">
-  import { Collapsible as CollapsiblePrimitive, type CollapsibleRootProps } from 'bits-ui'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  type Props = CollapsibleRootProps
+  import { cn } from "$lib/utils-svelte"
 
-  const props: Props = $props()
-  const children = $derived(props.children)
-  const restProps = $derived.by(() => {
-    const { children: _children, ...rest } = props
-    return rest
-  })
+  type Props = HTMLAttributes<HTMLDivElement> & {
+    class?: string
+    children?: Snippet
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+  }
+
+  let { class: className, children, open = $bindable(false), onOpenChange: _onOpenChange, ...restProps }: Props = $props()
 </script>
 
-<CollapsiblePrimitive.Root data-slot="collapsible" {...restProps}>
+<div class={cn(className)} {...restProps}>
   {@render children?.()}
-</CollapsiblePrimitive.Root>
+</div>
+
+{#if open}
+<div class="mt-2">
+  <!-- Content rendered via CollapsibleContent -->
+</div>
+{/if}

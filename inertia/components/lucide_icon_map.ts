@@ -1,5 +1,6 @@
 import {
   Activity,
+  AlertTriangle,
   Boxes,
   Building,
   Building2,
@@ -30,6 +31,7 @@ export type LucideIconComponent = typeof Boxes
 
 export const lucideIconMap = {
   Activity,
+  AlertTriangle,
   Boxes,
   Building,
   Building2,

@@ -1,28 +1,12 @@
-<!--
-  DialogFooter Component - Svelte 5
--->
-
 <script lang="ts">
-  import type { Snippet } from 'svelte'
-  import type { HTMLAttributes } from 'svelte/elements'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  type Props = HTMLAttributes<HTMLDivElement> & {
-    class?: string
-    children?: Snippet
-  }
-
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLDivElement> & { class?: string; children?: Snippet }
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<div
-  data-slot="dialog-footer"
-  class={cn(
-    'flex flex-col-reverse gap-2 sm:flex-row sm:justify-end',
-    className
-  )}
-  {...restProps}
->
+<div class={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:gap-2", className)} {...restProps}>
   {@render children?.()}
 </div>
