@@ -142,7 +142,7 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
   if (data.label !== undefined) {
     payload.label = normalizeOptionalEnum(
       data.label,
-      Object.values(TaskLabel) as string[],
+      Object.values(TaskLabel),
       'Nhãn không hợp lệ'
     )
     payload.providedFields.add('label')
@@ -151,7 +151,7 @@ export function buildUpdateTaskPayload(data: UpdateTaskDTOInput): UpdateTaskNorm
   if (data.priority !== undefined) {
     payload.priority = normalizeOptionalEnum(
       data.priority,
-      Object.values(TaskPriority) as string[],
+      Object.values(TaskPriority),
       'Mức độ ưu tiên không hợp lệ'
     )
     payload.providedFields.add('priority')
