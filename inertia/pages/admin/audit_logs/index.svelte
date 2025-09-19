@@ -43,6 +43,9 @@
       search?: string
       action?: string
       resource_type?: string
+      user_id?: string | null
+      from?: string | null
+      to?: string | null
     }
   }
 
@@ -52,19 +55,46 @@
   const filters = $derived(props.filters)
 
   let searchValue = $state('')
+  let actionValue = $state('')
+  let resourceTypeValue = $state('')
+  let userIdValue = $state('')
+  let fromValue = $state('')
+  let toValue = $state('')
 
   $effect(() => {
     searchValue = filters.search ?? ''
+    actionValue = filters.action ?? ''
+    resourceTypeValue = filters.resource_type ?? ''
+    userIdValue = filters.user_id ?? ''
+    fromValue = filters.from ? filters.from.slice(0, 10) : ''
+    toValue = filters.to ? filters.to.slice(0, 10) : ''
   })
 
   function handleSearch() {
     router.get('/admin/audit-logs', {
-      search: searchValue,
+      search: searchValue || undefined,
+      action: actionValue || undefined,
+      resource_type: resourceTypeValue || undefined,
+      user_id: userIdValue || undefined,
+      from: fromValue || undefined,
+      to: toValue || undefined,
       page: 1,
     }, {
       preserveState: true,
       preserveScroll: true,
     })
+  }
+
+  function pageHref(page: number): string {
+    const params = new URLSearchParams()
+    if (searchValue) params.set('search', searchValue)
+    if (actionValue) params.set('action', actionValue)
+    if (resourceTypeValue) params.set('resource_type', resourceTypeValue)
+    if (userIdValue) params.set('user_id', userIdValue)
+    if (fromValue) params.set('from', fromValue)
+    if (toValue) params.set('to', toValue)
+    params.set('page', String(page))
+    return `/admin/audit-logs?${params.toString()}`
   }
 
   function getActionBadge(action: string) {
@@ -93,21 +123,21 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Admin / System Audit</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / System Audit</p>
         <h1 class="text-3xl font-bold tracking-tight">Audit Logs</h1>
         <p class="text-muted-foreground">Dòng sự kiện quan trọng để truy vết hoạt động và hành vi hệ thống.</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/admin/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò và quyền</a>
-        <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
+        <a href="/admin/permissions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Vai trò và quyền</a>
+        <a href="/admin/qr-codes" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">QR gói cá nhân</a>
       </div>
     </div>
 
     <!-- Filters -->
     <Card>
       <CardContent class="pt-6">
-        <div class="flex gap-4">
-          <div class="flex-1 relative">
+        <div class="grid gap-4 lg:grid-cols-[minmax(0,2fr)_repeat(3,minmax(0,1fr))]">
+          <div class="relative">
             <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
@@ -119,7 +149,38 @@
               }}
             />
           </div>
+          <select class="h-10 rounded-md border border-input bg-background px-3 text-sm" bind:value={actionValue}>
+            <option value="">Tất cả action</option>
+            <option value="create">create</option>
+            <option value="update">update</option>
+            <option value="delete">delete</option>
+            <option value="suspend">suspend</option>
+            <option value="activate">activate</option>
+            <option value="login">login</option>
+          </select>
+          <Input bind:value={resourceTypeValue} name="resource_type" placeholder="resource_type" />
+          <Input bind:value={userIdValue} name="user_id" placeholder="user_id" />
+          <div class="grid gap-4 sm:grid-cols-2 lg:col-span-4">
+            <Input bind:value={fromValue} type="date" />
+            <Input bind:value={toValue} type="date" />
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-3">
           <Button onclick={handleSearch}>Tìm kiếm</Button>
+          <Button
+            variant="outline"
+            onclick={() => {
+              searchValue = ''
+              actionValue = ''
+              resourceTypeValue = ''
+              userIdValue = ''
+              fromValue = ''
+              toValue = ''
+              handleSearch()
+            }}
+          >
+            Xóa lọc
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -137,11 +198,11 @@
                 <div class="flex items-start gap-3 flex-1 min-w-0">
                   <div class="flex-shrink-0 mt-1">
                     {#if log.action.includes('login') || log.action.includes('access')}
-                      <Shield class="h-5 w-5 text-blue-500" />
+                      <Shield class="h-5 w-5 text-foreground" />
                     {:else if log.action.includes('delete') || log.action.includes('suspend')}
-                      <CircleAlert class="h-5 w-5 text-red-500" />
+                      <CircleAlert class="h-5 w-5 text-destructive" />
                     {:else}
-                      <FileText class="h-5 w-5 neo-text-magenta" />
+                      <FileText class="h-5 w-5 text-fuchsia-600" />
                     {/if}
                   </div>
                   <div class="flex-1 min-w-0">
@@ -207,7 +268,7 @@
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === 1}
-                onclick={() => { router.visit(`/admin/audit-logs?page=${pagination.currentPage - 1}`) }}
+                onclick={() => { router.visit(pageHref(pagination.currentPage - 1)) }}
               >
                 Trước
               </Button>
@@ -215,7 +276,7 @@
                 variant="outline"
                 size="sm"
                 disabled={pagination.currentPage === pagination.lastPage}
-                onclick={() => { router.visit(`/admin/audit-logs?page=${pagination.currentPage + 1}`) }}
+                onclick={() => { router.visit(pageHref(pagination.currentPage + 1)) }}
               >
                 Sau
               </Button>
