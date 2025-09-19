@@ -1,37 +1,9 @@
-<!--
-  Separator Component - Svelte 5
-
-  Port từ shadcn/ui React separator.
-  Uses Bits UI Separator primitive.
--->
-
 <script lang="ts">
-  import { Separator as SeparatorPrimitive } from 'bits-ui'
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  interface Props {
-    class?: string
-    orientation?: 'horizontal' | 'vertical'
-    decorative?: boolean
-    [key: string]: unknown
-  }
-
-  const {
-    class: className,
-    orientation = 'horizontal',
-    decorative = true,
-    ...restProps
-  }: Props = $props()
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLDivElement> & { class?: string; orientation?: "horizontal" | "vertical" }
+  const { class: className, orientation = "horizontal", ...restProps }: Props = $props()
 </script>
 
-<SeparatorPrimitive.Root
-  data-slot="separator-root"
-  {decorative}
-  {orientation}
-  class={cn(
-    'bg-border shrink-0 data-[orientation=horizontal]:h-[2px] data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-[2px]',
-    className
-  )}
-  {...restProps}
-/>
+<div class={cn("shrink-0 bg-border", orientation === "horizontal" ? "h-[1px] w-full" : "h-full w-[1px]", className)} {...restProps}></div>
