@@ -10,24 +10,20 @@
   import CardTitle from '@/components/ui/card_title.svelte'
   import Input from '@/components/ui/input.svelte'
   import Label from '@/components/ui/label.svelte'
-  import Select from '@/components/ui/select.svelte'
-  import SelectContent from '@/components/ui/select_content.svelte'
-  import SelectItem from '@/components/ui/select_item.svelte'
-  import SelectTrigger from '@/components/ui/select_trigger.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import OrganizationLayout from '@/layouts/organization_layout.svelte'
 
 
   import ProjectGrid from './components/project_grid.svelte'
 
-  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
+  type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'pending' | 'warning'
 
   interface Props {
     projects: {
       id: string
       name: string
       description: string | null
-      status: 'active' | 'archived' | 'on_hold'
+      status: 'pending' | 'in_progress' | 'completed' | 'cancelled'
       created_at: string
       _count: {
         members: number
@@ -54,11 +50,13 @@
   let createFormOpen = $state(false)
   let isSubmitting = $state(false)
   let errorMessage = $state('')
-  let formData = $state({
+  let formData = $state<{ name: string; description: string; status: ProjectStatus }>({
     name: '',
     description: '',
-    status: 'active',
+    status: 'pending',
   })
+
+  type ProjectStatus = Props['projects'][number]['status']
 
   $effect(() => {
     searchValue = filters.search ?? ''
@@ -81,25 +79,26 @@
     return document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ?? ''
   }
 
-  function getStatusBadge(status: string): BadgeVariant {
+  function getStatusBadge(status: ProjectStatus): BadgeVariant {
     const variants = {
-      active: 'default',
-      archived: 'secondary',
-      on_hold: 'outline',
+      pending: 'default',
+      in_progress: 'pending',
+      completed: 'secondary',
+      cancelled: 'warning',
     } as const
-    return variants[status as keyof typeof variants]
+    return variants[status]
   }
 
-  function statusLabel(status: string): string {
+  function statusLabel(status: ProjectStatus): string {
     switch (status) {
-      case 'active':
+      case 'pending':
+        return 'Chờ bắt đầu'
+      case 'in_progress':
         return 'Đang chạy'
-      case 'archived':
-        return 'Lưu trữ'
-      case 'on_hold':
-        return 'Tạm dừng'
-      default:
-        return status
+      case 'completed':
+        return 'Hoàn thành'
+      case 'cancelled':
+        return 'Đã hủy'
     }
   }
 
@@ -144,7 +143,7 @@
       formData = {
         name: '',
         description: '',
-        status: 'active',
+        status: 'pending',
       }
       router.reload()
     } catch (error) {
@@ -157,16 +156,26 @@
 
 <OrganizationLayout title="Dự án tổ chức">
   <div class="space-y-6">
-    <div class="flex items-center justify-between gap-3">
-      <div>
-        <p class="neo-kicker">Organization / Projects</p>
-        <h1 class="text-4xl font-bold tracking-tight">Dự án</h1>
-        <p class="mt-2 text-sm text-muted-foreground">Quản lý danh sách dự án nội bộ của tổ chức và mở nhanh sang màn project chi tiết.</p>
+    <div class="rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div class="max-w-3xl">
+          <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">Org projects surface</p>
+          <h1 class="mt-2 text-3xl font-black tracking-tight sm:text-4xl">Dự án tổ chức</h1>
+          <p class="mt-3 text-sm leading-6 text-muted-foreground">
+            Quản lý project trong workspace tổ chức: thành viên, task và workflow cùng một ngữ cảnh. Đây không phải user project cá nhân.
+          </p>
+        </div>
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div class="rounded-2xl border border-dashed border-black/20 px-4 py-3 text-sm">
+            <span class="block text-xs font-bold uppercase tracking-wider text-muted-foreground">Tổng dự án</span>
+            <strong class="mt-1 block text-2xl">{pagination.total}</strong>
+          </div>
+          <Button onclick={() => { createFormOpen = !createFormOpen }}>
+            <Plus class="mr-2 h-4 w-4" />
+            {createFormOpen ? 'Đóng form' : 'Tạo dự án tổ chức'}
+          </Button>
+        </div>
       </div>
-      <Button onclick={() => { createFormOpen = !createFormOpen }}>
-        <Plus class="mr-2 h-4 w-4" />
-        {createFormOpen ? 'Đóng form' : 'Tạo dự án'}
-      </Button>
     </div>
 
     {#if createFormOpen}
@@ -174,7 +183,7 @@
         <CardHeader>
           <CardTitle>Tạo dự án mới</CardTitle>
           <CardDescription>
-            Batch frontend này dùng form tạo nhanh trong namespace <code>/org</code> thay vì điều hướng sang route chưa có riêng.
+            Tạo project trong organization workspace hiện tại. Thành viên tổ chức sẽ thấy project theo quyền của họ.
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -205,25 +214,23 @@
 
           <div class="space-y-2">
             <Label for="project_status">Trạng thái ban đầu</Label>
-            <Select
+            <select
+              id="project_status"
+              class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               value={formData.status}
-              onValueChange={(value: string) => {
-                formData.status = value
+              onchange={(event) => {
+                formData.status = event.currentTarget.value as ProjectStatus
               }}
             >
-              <SelectTrigger id="project_status">
-                <span>{statusLabel(formData.status)}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Đang chạy</SelectItem>
-                <SelectItem value="on_hold">Tạm dừng</SelectItem>
-                <SelectItem value="archived">Lưu trữ</SelectItem>
-              </SelectContent>
-            </Select>
+              <option value="pending">Chờ bắt đầu</option>
+              <option value="in_progress">Đang chạy</option>
+              <option value="completed">Hoàn thành</option>
+              <option value="cancelled">Đã hủy</option>
+            </select>
           </div>
 
           {#if errorMessage}
-            <p class="text-sm neo-text-orange">{errorMessage}</p>
+            <p class="text-sm text-primary">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">
@@ -240,14 +247,17 @@
 
     <Card>
       <CardContent class="pt-6">
-        <div class="flex gap-4">
+        <div class="flex flex-col gap-3 sm:flex-row">
           <div class="relative flex-1">
             <Search class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
               placeholder="Tìm theo tên hoặc mô tả dự án..."
               class="pl-10"
-              bind:value={searchValue}
+              value={searchValue}
+              oninput={(event: Event) => {
+                searchValue = (event.currentTarget as HTMLInputElement).value
+              }}
               onkeydown={(event: KeyboardEvent) => { if (event.key === 'Enter') handleSearch() }}
             />
           </div>

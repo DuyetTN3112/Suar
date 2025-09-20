@@ -51,16 +51,16 @@
   <div class="space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="neo-kicker">Organization / Departments</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Departments</p>
         <h1 class="text-4xl font-bold tracking-tight">Cấu trúc phòng ban</h1>
         <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
           Màn planning cho tổ chức: gom role theo cụm Leadership, People, Delivery, Engineering để sau này nối tiếp sang department thật khi schema lưu trữ sẵn sàng.
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/org/roles" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò</a>
-        <a href="/org/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Quyền hạn</a>
-        <a href="/org/members" class="neo-surface-soft px-3 py-2 text-sm font-bold">Thành viên</a>
+        <a href="/org/roles" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Vai trò</a>
+        <a href="/org/permissions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Quyền hạn</a>
+        <a href="/org/members" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Thành viên</a>
       </div>
     </div>
 

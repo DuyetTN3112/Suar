@@ -90,7 +90,7 @@
             href={selectedOrg.website}
             target="_blank"
             rel="noopener noreferrer"
-            class="text-sm text-blue-500 hover:underline truncate"
+            class="text-sm text-foreground hover:underline truncate"
           >
             {selectedOrg.website}
           </a>
@@ -129,7 +129,7 @@
         <span class="text-sm font-medium">Trạng thái:</span>
         <span class="text-sm">
           {#if selectedOrg && checkMembershipStatus(selectedOrg.id).isMember}
-            <span class="text-green-500 font-medium">Đã tham gia</span>
+            <span class="text-foreground font-medium">Đã tham gia</span>
           {:else}
             <span class="text-amber-500 font-medium">Chưa tham gia</span>
           {/if}

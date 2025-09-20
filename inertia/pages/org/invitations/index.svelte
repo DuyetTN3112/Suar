@@ -159,7 +159,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between gap-3">
       <div>
-        <p class="neo-kicker">Organization / Invitations</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Organization / Invitations</p>
         <h1 class="text-4xl font-bold tracking-tight">Lời mời thành viên</h1>
         <p class="mt-2 text-sm text-muted-foreground">Theo dõi các lời mời đã gửi và tạo lời mời mới cho team của tổ chức.</p>
       </div>
@@ -170,9 +170,9 @@
     </div>
 
     <div class="flex flex-wrap gap-2">
-      <a href="/org/departments" class="neo-surface-soft px-3 py-2 text-sm font-bold">Phòng ban</a>
-      <a href="/org/roles" class="neo-surface-soft px-3 py-2 text-sm font-bold">Vai trò</a>
-      <a href="/org/permissions" class="neo-surface-soft px-3 py-2 text-sm font-bold">Quyền hạn</a>
+      <a href="/org/departments" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Phòng ban</a>
+      <a href="/org/roles" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Vai trò</a>
+      <a href="/org/permissions" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Quyền hạn</a>
     </div>
 
     {#if inviteFormOpen}
@@ -216,7 +216,7 @@
           </div>
 
           {#if errorMessage}
-            <p class="text-sm neo-text-orange">{errorMessage}</p>
+            <p class="text-sm text-primary">{errorMessage}</p>
           {/if}
 
           <div class="flex justify-end gap-2">

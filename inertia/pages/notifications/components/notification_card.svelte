@@ -13,6 +13,8 @@
     type: FrontendNotificationType
     title: string
     message: string
+    related_entity_type: string | null
+    related_entity_id: string | null
     data?: Record<string, unknown>
     read_at: string | null
     created_at: string
@@ -38,7 +40,7 @@
   onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') onOpen(notification) }}
 >
   <CardContent class="flex items-start gap-4 p-4 pt-4">
-    <div class="shrink-0 rounded-md border-2 border-border bg-muted p-2 shadow-neo-sm">
+    <div class="shrink-0 rounded-md border border-border bg-muted p-2">
       <IconComponent class="h-5 w-5 text-foreground" />
     </div>
 
