@@ -1,14 +1,4 @@
 <script lang="ts">
-  import Badge from '@/components/ui/badge.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Tabs from '@/components/ui/tabs.svelte'
-  import TabsContent from '@/components/ui/tabs_content.svelte'
-  import TabsList from '@/components/ui/tabs_list.svelte'
-  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import { groupByCategory } from '@/lib/access_ui'
 
   interface PermissionPresentation {
@@ -44,6 +34,8 @@
 
   const { summary, systemRoles, organizationRoles, projectRoles, catalogs }: Props = $props()
 
+  let activeSection = $state('organization')
+
   const sections = $derived.by(() => [
     {
       value: 'system',
@@ -67,126 +59,165 @@
       catalogGroups: groupByCategory(catalogs.project),
     },
   ])
+
+  const currentSection = $derived(
+    sections.find((section) => section.value === activeSection) ?? sections[1]
+  )
 </script>
 
-<div class="space-y-6">
-  <div class="flex flex-wrap items-end justify-between gap-4">
+<section class="admin-content-card" style="--bg-word: 'ACCESS';">
+  <div class="admin-page-head">
     <div>
-      <p class="neo-kicker">Admin / Access Control</p>
-      <h1 class="text-4xl font-bold tracking-tight">Vai trò và quyền hạn hệ thống</h1>
-      <p class="mt-2 max-w-3xl text-sm text-muted-foreground">
-        Màn hình chuẩn hóa access surface của backend để admin nhìn rõ role matrix, permission catalog và phạm vi từng nhóm quyền.
+      <div class="admin-eyebrow">Admin / Access control</div>
+      <h1>Vai trò và quyền hạn hệ thống</h1>
+      <p class="admin-page-subtitle">
+        Màn hình chuẩn hóa access surface của backend để admin nhìn rõ role matrix, permission
+        catalog và phạm vi từng nhóm quyền.
       </p>
     </div>
-    <div class="flex flex-wrap gap-2">
-      <a href="/admin/audit-logs" class="neo-surface-soft px-3 py-2 text-sm font-bold">Audit log</a>
-      <a href="/admin/packages" class="neo-surface-soft px-3 py-2 text-sm font-bold">Packages</a>
-      <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
+    <div class="admin-header-actions">
+      <div class="admin-header-stat">
+        <span>Permission keys</span>
+        <strong>{summary.totalUniquePermissions}</strong>
+      </div>
     </div>
   </div>
 
-  <div class="grid gap-4 md:grid-cols-3">
-    <Card>
-      <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Nhóm vai trò</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="text-3xl font-bold">{summary.totalRoleGroups}</div>
-        <p class="mt-1 text-xs text-muted-foreground">System, organization và project</p>
-      </CardContent>
-    </Card>
-    <Card>
-      <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Tổng vai trò</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="text-3xl font-bold">{summary.totalRoles}</div>
-        <p class="mt-1 text-xs text-muted-foreground">Các vai trò được code backend hỗ trợ</p>
-      </CardContent>
-    </Card>
-    <Card>
-      <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Permission keys</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="text-3xl font-bold">{summary.totalUniquePermissions}</div>
-        <p class="mt-1 text-xs text-muted-foreground">Tập quyền duy nhất trong toàn hệ thống</p>
-      </CardContent>
-    </Card>
+  <div class="admin-surface">
+    <div class="admin-surface-head">
+      <h2>Access surface</h2>
+      <p>
+        Màn này chuẩn hóa access surface của backend để admin nhìn rõ role matrix, permission
+        catalog và phân loại key theo domain.
+      </p>
+    </div>
+
+    <div class="admin-toolbar">
+      <a href="/admin/audit-logs" class="admin-chip-action">Audit log</a>
+      <a href="/admin/packages" class="admin-chip-action">Packages</a>
+      <a href="/admin/qr-codes" class="admin-chip-action">QR gói cá nhân</a>
+    </div>
+
+    <div class="admin-stats-row">
+      <div class="admin-stat-box">
+        <span>Nhóm vai trò</span>
+        <strong>{summary.totalRoleGroups}</strong>
+        <p>System, organization và project</p>
+      </div>
+      <div class="admin-stat-box">
+        <span>Tổng vai trò</span>
+        <strong>{summary.totalRoles}</strong>
+        <p>Các vai trò được code backend hỗ trợ</p>
+      </div>
+      <div class="admin-stat-box">
+        <span>Permission keys</span>
+        <strong>{summary.totalUniquePermissions}</strong>
+        <p>Tập quyền duy nhất trong toàn hệ thống</p>
+      </div>
+    </div>
+
+    <div class="admin-tabs" role="tablist" aria-label="Access groups">
+      {#each sections as section}
+        <button
+          class="admin-tab {activeSection === section.value ? 'is-active' : ''}"
+          type="button"
+          role="tab"
+          aria-selected={activeSection === section.value}
+          onclick={() => {
+            activeSection = section.value
+          }}
+        >
+          {section.label}
+        </button>
+      {/each}
+    </div>
+
+    <div class="admin-section-title">
+      <h2>{currentSection.label}</h2>
+      <p>{currentSection.subtitle}</p>
+    </div>
+
+    <div class="admin-roles-layout">
+      <div class="admin-roles-column">
+        {#each currentSection.roles as role}
+          <article class="admin-role-card">
+            <div class="admin-role-head">
+              <div>
+                <h3>{role.label}</h3>
+                <span class="admin-badge is-count">{role.permissionCount} quyền</span>
+                <p>{role.description}</p>
+              </div>
+              <span class="admin-role-key">{role.code}</span>
+            </div>
+
+            <div class="admin-permission-tags">
+              {#each role.permissions as permission}
+                <span class="admin-permission-tag">{permission.label}</span>
+              {/each}
+            </div>
+          </article>
+        {/each}
+      </div>
+
+      <aside class="admin-permission-card">
+        <h3>Permission catalog</h3>
+        <p>Phân nhóm theo category để đối chiếu nhanh khi audit quyền.</p>
+        <div class="admin-permission-list">
+          {#each currentSection.catalogGroups as group}
+            <section class="admin-permission-group">
+              <h4>{group.category}</h4>
+              <div class="admin-permission-list">
+                {#each group.items as permission}
+                  <article class="admin-permission-item">
+                    <div class="admin-permission-item-head">
+                      <strong>{permission.label}</strong>
+                      <span class="admin-permission-code">{permission.key}</span>
+                    </div>
+                    <p>{permission.description}</p>
+                  </article>
+                {/each}
+              </div>
+            </section>
+          {/each}
+        </div>
+      </aside>
+    </div>
   </div>
 
-  <Tabs value="organization">
-    <TabsList class="w-full justify-start overflow-x-auto">
-      {#each sections as section}
-        <TabsTrigger value={section.value}>{section.label}</TabsTrigger>
-      {/each}
-    </TabsList>
+  <div class="admin-footer-mark">System admin panel · SUAR platform</div>
+</section>
 
-    {#each sections as section}
-      <TabsContent value={section.value} class="mt-4 space-y-4">
-        <div>
-          <h2 class="text-2xl font-bold">{section.label}</h2>
-          <p class="text-sm text-muted-foreground">{section.subtitle}</p>
-        </div>
+<style>
+  .admin-content-card {
+    position: relative;
+    min-height: calc(100vh - 60px);
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 38px;
+    background: linear-gradient(180deg, rgba(255, 253, 248, .86), rgba(255, 246, 232, .76)), var(--suar-white);
+    box-shadow: 10px 10px 0 rgba(22, 19, 15, .1);
+    padding: clamp(24px, 4vw, 52px);
+  }
 
-        <div class="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-          <Card>
-            <CardHeader>
-              <CardTitle>Role matrix</CardTitle>
-              <CardDescription>Mỗi role hiển thị đúng permission set hiện đang được backend gắn.</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              {#each section.roles as role}
-                <div class="rounded-xl border border-border p-4">
-                  <div class="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-lg font-bold">{role.label}</h3>
-                        <Badge variant="secondary">{role.permissionCount} quyền</Badge>
-                      </div>
-                      <p class="mt-1 text-sm text-muted-foreground">{role.description}</p>
-                    </div>
-                    <Badge variant="outline">{role.code}</Badge>
-                  </div>
+  .admin-content-card::before {
+    content: var(--bg-word, "ADMIN");
+    position: absolute;
+    right: -18px;
+    top: 14px;
+    color: rgba(22, 19, 15, .035);
+    font-size: clamp(72px, 13vw, 190px);
+    font-weight: 950;
+    letter-spacing: -.09em;
+    line-height: .8;
+    pointer-events: none;
+  }
 
-                  <div class="mt-4 flex flex-wrap gap-2">
-                    {#each role.permissions as permission}
-                      <Badge variant="outline">{permission.label}</Badge>
-                    {/each}
-                  </div>
-                </div>
-              {/each}
-            </CardContent>
-          </Card>
+  .admin-content-card::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px dashed rgba(22, 19, 15, .09);
+    border-radius: 28px;
+    pointer-events: none;
+  }
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Permission catalog</CardTitle>
-              <CardDescription>Phân nhóm theo category để đối chiếu nhanh khi audit quyền.</CardDescription>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              {#each section.catalogGroups as group}
-                <div class="rounded-xl border border-border p-4">
-                  <h3 class="font-bold">{group.category}</h3>
-                  <div class="mt-3 space-y-3">
-                    {#each group.items as permission}
-                      <div class="rounded-lg bg-muted/30 p-3">
-                        <div class="flex items-start justify-between gap-3">
-                          <div>
-                            <p class="font-medium">{permission.label}</p>
-                            <p class="mt-1 text-xs text-muted-foreground">{permission.description}</p>
-                          </div>
-                          <Badge variant="outline">{permission.key}</Badge>
-                        </div>
-                      </div>
-                    {/each}
-                  </div>
-                </div>
-              {/each}
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-    {/each}
-  </Tabs>
-</div>

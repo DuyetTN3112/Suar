@@ -67,13 +67,13 @@
   <div class="space-y-6">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="neo-kicker">Admin / Packages</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Packages</p>
         <h1 class="text-4xl font-bold tracking-tight">Gói dịch vụ</h1>
         <p class="mt-2 text-sm text-muted-foreground">Theo dõi adoption của gói Pro/ProMax và chỉnh trạng thái subscription trực tiếp.</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <a href="/admin/qr-codes" class="neo-surface-soft px-3 py-2 text-sm font-bold">QR gói cá nhân</a>
-        <a href="/admin/audit-logs" class="neo-surface-soft px-3 py-2 text-sm font-bold">Audit log</a>
+        <a href="/admin/qr-codes" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">QR gói cá nhân</a>
+        <a href="/admin/audit-logs" class="border border-border rounded-lg px-3 py-2 bg-white text-sm font-medium">Audit log</a>
       </div>
     </div>
 
@@ -88,13 +88,13 @@
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium">Đang active</CardTitle>
         </CardHeader>
-        <CardContent><div class="text-2xl font-bold neo-text-blue">{stats.active}</div></CardContent>
+        <CardContent><div class="text-2xl font-bold text-foreground">{stats.active}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-medium">Sắp hết hạn 14 ngày</CardTitle>
         </CardHeader>
-        <CardContent><div class="text-2xl font-bold neo-text-orange">{stats.expiringSoon}</div></CardContent>
+        <CardContent><div class="text-2xl font-bold text-primary">{stats.expiringSoon}</div></CardContent>
       </Card>
       <Card>
         <CardHeader class="pb-2">
@@ -132,7 +132,7 @@
       </CardHeader>
       <CardContent>
         <div class="overflow-x-auto">
-          <table class="neo-data-table">
+          <table class="w-full border-collapse">
             <thead>
               <tr>
                 <th>User</th>

@@ -1,40 +1,26 @@
 <script lang="ts">
   import { router } from '@inertiajs/svelte'
-  import {
-    Building2,
-    Users,
-    FolderKanban,
-    Crown,
-    Calendar,
-    Search
-  } from 'lucide-svelte'
+  import { Building2, Calendar, Crown, FolderKanban, Search, Users } from 'lucide-svelte'
 
-  import Button from '@/components/ui/button.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Input from '@/components/ui/input.svelte'
-
+  interface Organization {
+    id: string
+    name: string
+    description: string | null
+    owner: {
+      id: string
+      username: string
+      email: string
+    }
+    created_at: string
+    updated_at: string
+    _count: {
+      members: number
+      projects: number
+    }
+  }
 
   interface Props {
-    organizations: {
-      id: string
-      name: string
-      description: string | null
-      owner: {
-        id: string
-        username: string
-        email: string
-      }
-      created_at: string
-      updated_at: string
-      _count: {
-        members: number
-        projects: number
-      }
-    }[]
+    organizations: Organization[]
     pagination: {
       total: number
       perPage: number
@@ -57,11 +43,12 @@
     searchValue = filters.search ?? ''
   })
 
-  function handleSearch() {
+  function handleSearch(event?: SubmitEvent) {
+    event?.preventDefault()
     router.get(
       '/admin/organizations',
       {
-        search: searchValue,
+        search: searchValue || undefined,
         page: 1,
       },
       {
@@ -69,6 +56,10 @@
         preserveScroll: true,
       }
     )
+  }
+
+  function visitPage(page: number) {
+    router.visit(`/admin/organizations?page=${page}${searchValue ? `&search=${encodeURIComponent(searchValue)}` : ''}`)
   }
 
   function formatDate(dateString: string) {
@@ -80,152 +71,528 @@
   }
 </script>
 
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <p class="neo-kicker">Admin / Organizations</p>
-        <h1 class="text-4xl font-bold tracking-tight">Tổ chức</h1>
-        <p class="mt-2 text-sm text-muted-foreground">Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống.</p>
+<section class="admin-content-card" style="--bg-word: 'ORGS';">
+  <div class="admin-page-head">
+    <div>
+      <div class="admin-eyebrow">Admin / Organizations</div>
+      <h1>Tổ chức</h1>
+      <p class="admin-page-subtitle">
+        Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống. Phần này ưu tiên đọc nhanh
+        tên org, owner, kích thước team và dự án đang chạy.
+      </p>
+    </div>
+    <div class="admin-header-actions">
+      <a class="admin-chip-action" href="/organizations/create">Tạo tổ chức</a>
+      <div class="admin-header-stat">
+        <span>Active orgs</span>
+        <strong>{pagination.total.toLocaleString()}</strong>
       </div>
     </div>
+  </div>
 
-    <!-- Filters -->
-    <Card>
-      <CardContent class="pt-6">
-        <div class="flex gap-4">
-          <div class="flex-1 relative">
-            <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Tìm theo tên tổ chức..."
-              class="pl-10"
-              bind:value={searchValue}
-              onkeydown={(e: KeyboardEvent) => {
-                if (e.key === 'Enter') handleSearch()
-              }}
-            />
-          </div>
-          <Button onclick={handleSearch}>Tìm kiếm</Button>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Organizations Grid -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-      {#each organizations as org}
-        <Card class="neo-panel transition-transform hover:-translate-y-0.5">
-          <CardHeader>
-            <div class="flex items-start justify-between">
-              <div class="flex items-center gap-3 flex-1 min-w-0">
-                <div class="flex-shrink-0 h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Building2 class="h-6 w-6 text-primary" />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <CardTitle class="text-lg truncate">{org.name}</CardTitle>
-                </div>
-              </div>
-            </div>
-            {#if org.description}
-              <CardDescription class="line-clamp-2 mt-2">
-                {org.description}
-              </CardDescription>
-            {/if}
-          </CardHeader>
-          <CardContent>
-            <div class="space-y-3">
-              <!-- Owner -->
-              <div class="flex items-center gap-2 text-sm">
-                <Crown class="h-4 w-4 neo-text-orange" />
-                <span class="text-muted-foreground">Owner:</span>
-                <span class="font-medium">{org.owner.username}</span>
-              </div>
-
-              <!-- Stats -->
-              <div class="neo-divider grid grid-cols-2 gap-3 pt-3">
-                <div class="flex items-center gap-2 text-sm">
-                  <Users class="h-4 w-4 neo-text-blue" />
-                  <span class="font-medium">{org._count.members}</span>
-                  <span class="text-muted-foreground">thành viên</span>
-                </div>
-                <div class="flex items-center gap-2 text-sm">
-                  <FolderKanban class="h-4 w-4 neo-text-magenta" />
-                  <span class="font-medium">{org._count.projects}</span>
-                  <span class="text-muted-foreground">dự án</span>
-                </div>
-              </div>
-
-              <!-- Created Date -->
-              <div class="neo-divider flex items-center gap-2 pt-3 text-xs text-muted-foreground">
-                <Calendar class="h-3 w-3" />
-                <span>Tạo ngày {formatDate(org.created_at)}</span>
-              </div>
-
-              <!-- Actions -->
-              <div class="flex gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  class="flex-1"
-                  onclick={() => {
-                    router.visit(`/admin/organizations/${org.id}`)
-                  }}
-                >
-                  Xem chi tiết
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      {/each}
+  <div class="admin-surface">
+    <div class="admin-surface-head">
+      <h2>Tổ chức đang hoạt động</h2>
+      <p>
+        Theo dõi danh sách tổ chức và tín hiệu vận hành ở cấp hệ thống. Card được làm để đọc nhanh
+        owner, members, projects và bối cảnh org.
+      </p>
     </div>
 
-    <!-- Empty State -->
-    {#if organizations.length === 0}
-      <Card>
-        <CardContent class="py-12 text-center">
-          <Building2 class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 class="text-lg font-semibold mb-2">Không tìm thấy tổ chức</h3>
-          <p class="text-muted-foreground">
-            {filters.search ? 'Thử đổi từ khóa tìm kiếm.' : 'Hệ thống chưa có tổ chức nào.'}
-          </p>
-        </CardContent>
-      </Card>
+    <form class="admin-toolbar" onsubmit={handleSearch}>
+      <label class="admin-search-box">
+        <Search />
+        <input bind:value={searchValue} type="search" placeholder="Tìm theo tên tổ chức..." />
+      </label>
+      <button class="admin-primary-button" type="submit">Tìm kiếm</button>
+    </form>
+
+    {#if organizations.length > 0}
+      <div class="admin-cards-grid">
+        {#each organizations as org}
+          <article class="admin-org-card">
+            <div class="admin-org-card-top">
+              <div class="admin-org-icon"><Building2 /></div>
+              <div>
+                <h3>{org.name}</h3>
+                <p>{org.description ?? 'Tổ chức chưa có mô tả.'}</p>
+              </div>
+            </div>
+
+            <div class="admin-meta-row">
+              <Crown />
+              <strong>Owner:</strong>
+              <span>{org.owner.username}</span>
+            </div>
+
+            <div class="admin-org-stats">
+              <div class="admin-meta-row">
+                <Users />
+                <strong>{org._count.members} thành viên</strong>
+              </div>
+              <div class="admin-meta-row">
+                <FolderKanban />
+                <strong>{org._count.projects} dự án</strong>
+              </div>
+            </div>
+
+            <div class="admin-org-footer">
+              <div class="admin-meta-row">
+                <Calendar />
+                <span>Tạo ngày {formatDate(org.created_at)}</span>
+              </div>
+              <button
+                class="admin-secondary-button"
+                type="button"
+                onclick={() => {
+                  router.visit(`/admin/organizations/${org.id}`)
+                }}
+              >
+                Xem chi tiết
+              </button>
+            </div>
+          </article>
+        {/each}
+      </div>
+    {:else}
+      <div class="admin-empty-state">
+        <Building2 />
+        <h3>Không tìm thấy tổ chức</h3>
+        <p>{filters.search ? 'Thử đổi từ khóa tìm kiếm.' : 'Hệ thống chưa có tổ chức nào.'}</p>
+      </div>
     {/if}
 
-    <!-- Pagination -->
     {#if pagination.lastPage > 1}
-      <Card>
-        <CardContent class="py-4">
-          <div class="flex items-center justify-between">
-            <div class="text-sm text-muted-foreground">
-              Hiển thị <span class="font-medium">{(pagination.currentPage - 1) * pagination.perPage + 1}</span>
-              đến <span class="font-medium">{Math.min(pagination.currentPage * pagination.perPage, pagination.total)}</span>
-              trên tổng <span class="font-medium">{pagination.total}</span> tổ chức
-            </div>
-            <div class="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pagination.currentPage === 1}
-                onclick={() => {
-                  router.visit(`/admin/organizations?page=${pagination.currentPage - 1}`)
-                }}
-              >
-                Trước
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={pagination.currentPage === pagination.lastPage}
-                onclick={() => {
-                  router.visit(`/admin/organizations?page=${pagination.currentPage + 1}`)
-                }}
-              >
-                Sau
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div class="admin-pagination">
+        <div class="admin-pagination-meta">
+          Hiển thị {(pagination.currentPage - 1) * pagination.perPage + 1}-{Math.min(
+            pagination.currentPage * pagination.perPage,
+            pagination.total
+          )} / {pagination.total}
+        </div>
+        <div class="admin-pagination-controls">
+          <button
+            class="admin-page-button"
+            type="button"
+            disabled={pagination.currentPage === 1}
+            onclick={() => { visitPage(pagination.currentPage - 1); }}
+          >
+            Trước
+          </button>
+          <button
+            class="admin-page-button"
+            type="button"
+            disabled={pagination.currentPage === pagination.lastPage}
+            onclick={() => { visitPage(pagination.currentPage + 1); }}
+          >
+            Sau
+          </button>
+        </div>
+      </div>
     {/if}
   </div>
+
+  <div class="admin-footer-mark">System admin panel · SUAR platform</div>
+</section>
+
+<style>
+  .admin-content-card {
+    position: relative;
+    min-height: calc(100vh - 60px);
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 38px;
+    background: linear-gradient(180deg, rgba(255, 253, 248, .86), rgba(255, 246, 232, .76)), var(--suar-white);
+    box-shadow: 10px 10px 0 rgba(22, 19, 15, .1);
+    padding: clamp(24px, 4vw, 52px);
+  }
+
+  .admin-content-card::before {
+    content: var(--bg-word, "ADMIN");
+    position: absolute;
+    right: -18px;
+    top: 14px;
+    color: rgba(22, 19, 15, .035);
+    font-size: clamp(72px, 13vw, 190px);
+    font-weight: 950;
+    letter-spacing: -.09em;
+    line-height: .8;
+    pointer-events: none;
+  }
+
+  .admin-content-card::after {
+    content: "";
+    position: absolute;
+    inset: 18px;
+    border: 1px dashed rgba(22, 19, 15, .09);
+    border-radius: 28px;
+    pointer-events: none;
+  }
+
+  .admin-page-head,
+  .admin-surface,
+  .admin-footer-mark {
+    position: relative;
+    z-index: 1;
+  }
+
+  .admin-page-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 24px;
+    align-items: start;
+  }
+
+  .admin-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 14px;
+    color: color-mix(in srgb, var(--suar-orange) 80%, var(--suar-black));
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .admin-eyebrow::before,
+  .admin-eyebrow::after {
+    content: "";
+    display: inline-block;
+    background: var(--suar-orange);
+  }
+
+  .admin-eyebrow::before {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    box-shadow: 0 0 0 6px rgba(255, 61, 22, .12);
+  }
+
+  .admin-eyebrow::after {
+    width: 44px;
+    height: 2px;
+  }
+
+  h1 {
+    margin: 0;
+    font-size: clamp(50px, 7.4vw, 110px);
+    font-weight: 950;
+    letter-spacing: -.09em;
+    line-height: .82;
+  }
+
+  .admin-page-subtitle {
+    max-width: 780px;
+    margin: 18px 0 0;
+    color: var(--suar-ink-56);
+    font-size: 16px;
+    font-weight: 640;
+    line-height: 1.7;
+  }
+
+  .admin-header-actions {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .admin-chip-action,
+  .admin-header-stat,
+  .admin-primary-button,
+  .admin-secondary-button,
+  .admin-page-button {
+    border: 2px solid var(--suar-black);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .75);
+    box-shadow: 4px 4px 0 rgba(22, 19, 15, .1);
+    color: var(--suar-black);
+    font-weight: 900;
+  }
+
+  .admin-chip-action,
+  .admin-primary-button,
+  .admin-secondary-button,
+  .admin-page-button {
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    text-decoration: none;
+    transition: transform .2s var(--ease-suar), box-shadow .2s var(--ease-suar);
+  }
+
+  .admin-chip-action:hover,
+  .admin-primary-button:hover,
+  .admin-secondary-button:hover,
+  .admin-page-button:hover:not(:disabled) {
+    transform: translate(-1px, -2px);
+    box-shadow: 6px 6px 0 var(--suar-black);
+  }
+
+  .admin-header-stat {
+    min-width: 190px;
+    padding: 14px 16px;
+  }
+
+  .admin-header-stat span {
+    display: block;
+    color: var(--suar-ink-56);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+  }
+
+  .admin-header-stat strong {
+    display: block;
+    margin-top: 8px;
+    font-size: 34px;
+    font-weight: 950;
+    letter-spacing: -.08em;
+    line-height: .9;
+  }
+
+  .admin-surface {
+    margin-top: 26px;
+    overflow: hidden;
+    border: 2px solid var(--suar-black);
+    border-radius: 30px;
+    background: rgba(255, 253, 248, .87);
+    box-shadow: 8px 8px 0 rgba(22, 19, 15, .1);
+  }
+
+  .admin-surface-head {
+    padding: 20px 22px 14px;
+  }
+
+  .admin-surface-head h2 {
+    margin: 0;
+    font-size: clamp(28px, 3vw, 44px);
+    font-weight: 950;
+    letter-spacing: -.06em;
+  }
+
+  .admin-surface-head p {
+    margin: 10px 0 0;
+    color: var(--suar-ink-56);
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  .admin-toolbar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 0 22px 18px;
+  }
+
+  .admin-search-box {
+    display: flex;
+    min-height: 48px;
+    flex: 1 1 320px;
+    align-items: center;
+    gap: 10px;
+    border: 2px solid var(--suar-black);
+    border-radius: 16px;
+    background: var(--suar-white);
+    padding: 0 14px;
+    box-shadow: 4px 4px 0 rgba(22, 19, 15, .1);
+  }
+
+  .admin-search-box :global(svg) {
+    width: 18px;
+    height: 18px;
+    color: var(--suar-ink-56);
+  }
+
+  .admin-search-box input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .admin-primary-button {
+    background: var(--suar-orange);
+    color: white;
+    box-shadow: 4px 4px 0 var(--suar-black);
+  }
+
+  .admin-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    padding: 0 22px 22px;
+  }
+
+  .admin-org-card {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    border: 2px solid var(--suar-black);
+    border-radius: 22px;
+    background: rgba(255, 255, 255, .7);
+    padding: 20px;
+    box-shadow: 4px 4px 0 rgba(22, 19, 15, .12);
+  }
+
+  .admin-org-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .admin-org-icon {
+    display: grid;
+    width: 46px;
+    height: 46px;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(255, 61, 22, .12);
+    color: var(--suar-orange);
+  }
+
+  .admin-org-icon :global(svg),
+  .admin-meta-row :global(svg),
+  .admin-empty-state :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .admin-org-card h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 950;
+    letter-spacing: -.03em;
+  }
+
+  .admin-org-card p {
+    margin: 0;
+    color: var(--suar-ink-56);
+    line-height: 1.6;
+  }
+
+  .admin-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--suar-ink-56);
+    font-size: 14px;
+  }
+
+  .admin-org-stats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    border-top: 2px solid var(--suar-black);
+    border-bottom: 2px solid var(--suar-black);
+    padding: 12px 0;
+  }
+
+  .admin-org-footer {
+    display: grid;
+    gap: 10px;
+    margin-top: auto;
+  }
+
+  .admin-secondary-button {
+    width: 100%;
+    background: var(--suar-white);
+  }
+
+  .admin-empty-state {
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    padding: 36px 22px;
+    color: var(--suar-ink-56);
+    text-align: center;
+  }
+
+  .admin-empty-state h3,
+  .admin-empty-state p {
+    margin: 0;
+  }
+
+  .admin-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 0 22px 22px;
+  }
+
+  .admin-pagination-meta {
+    color: var(--suar-ink-56);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .admin-pagination-controls {
+    display: flex;
+    gap: 8px;
+  }
+
+  .admin-page-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+  }
+
+  .admin-footer-mark {
+    margin-top: 24px;
+    color: rgba(22, 19, 15, .46);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: .22em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 1280px) {
+    .admin-cards-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 1120px) {
+    .admin-page-head {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 900px) {
+    .admin-cards-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .admin-content-card {
+      min-height: calc(100vh - 150px);
+      border-radius: 26px;
+      padding: 22px;
+      box-shadow: 6px 6px 0 rgba(22, 19, 15, .1);
+    }
+
+    h1 {
+      font-size: 50px;
+    }
+
+    .admin-org-stats {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
