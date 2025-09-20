@@ -1,11 +1,11 @@
 import emitter from '@adonisjs/core/services/emitter'
 
+import { reviewCachePortImpl } from '#actions/reviews/ports/review_cache_port_impl'
 import type {
   ReviewSubmittedEvent,
   ReviewConfirmedEvent,
   SkillScoreUpdatedEvent,
 } from '#events/event_types'
-import cacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -22,8 +22,7 @@ import { ExecutionContext } from '#types/execution_context'
 emitter.on('review:submitted', async (event: ReviewSubmittedEvent) => {
   try {
     // Invalidate spider chart cache for the reviewee
-    await cacheService.deleteByPattern(`*spider:user:${event.revieweeId}*`)
-    await cacheService.deleteByPattern(`*skill_scores:user:${event.revieweeId}*`)
+    await reviewCachePortImpl.invalidateUserReviewData(event.revieweeId)
 
     loggerService.debug('Review submitted — spider chart cache invalidated', {
       reviewSessionId: event.reviewSessionId,
@@ -104,10 +103,7 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
     }
 
     // 3) Invalidate reviewee profile-related cache.
-    await cacheService.deleteByPattern(`*spider:user:${event.revieweeId}*`)
-    await cacheService.deleteByPattern(`*skill_scores:user:${event.revieweeId}*`)
-    await cacheService.deleteByPattern(`*user:profile:${event.revieweeId}*`)
-    await cacheService.deleteByPattern(`*profile:snapshot:current*${event.revieweeId}*`)
+    await reviewCachePortImpl.invalidateUserProfileReviewData(event.revieweeId)
 
     loggerService.debug('Review confirmed pipeline executed', {
       confirmationId: event.confirmationId,
@@ -127,8 +123,7 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
 emitter.on('skill:score:updated', async (event: SkillScoreUpdatedEvent) => {
   try {
     // Invalidate spider chart cache for the user
-    await cacheService.deleteByPattern(`*spider:user:${event.userId}*`)
-    await cacheService.deleteByPattern(`*skill_scores:user:${event.userId}*`)
+    await reviewCachePortImpl.invalidateUserReviewData(event.userId)
 
     loggerService.debug('Skill score updated — cache invalidated', {
       userId: event.userId,

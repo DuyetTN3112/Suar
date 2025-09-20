@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import TaskSelfAssessment from '#models/task_self_assessment'
+import TaskSelfAssessment from '#infra/tasks/models/task_self_assessment'
 import type { DatabaseId } from '#types/database'
 
 export default class UserAnalyticsRepository {
