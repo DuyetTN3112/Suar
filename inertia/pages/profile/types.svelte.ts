@@ -114,6 +114,25 @@ export interface UserSkillResult {
   avg_score: number | null
   avg_percentage: number | null
   last_reviewed_at: string | null
+  evidence_count: number
+  evidence_history: SkillEvidenceHistoryEntry[]
+}
+
+export interface SkillEvidenceLink {
+  evidence_id: string
+  evidence_type: string
+  url: string
+  title: string | null
+}
+
+export interface SkillEvidenceHistoryEntry {
+  task_id: string
+  task_title: string
+  completed_at: string | null
+  assigned_level_code: string | null
+  reviewer_type: string | null
+  comment: string | null
+  evidence_links: SkillEvidenceLink[]
 }
 
 export interface SkillCategoryOption {

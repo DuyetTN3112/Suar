@@ -8,7 +8,8 @@
   import CardDescription from '@/components/ui/card_description.svelte'
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
 
   interface AuthUser {
     username?: string
@@ -22,8 +23,8 @@
     }
   }
 
-  const props = $derived(page.props as unknown as PageProps)
-  const authUser = $derived(props.auth?.user)
+  const pageProps = $derived(page.props as unknown as PageProps)
+  const authUser = $derived(pageProps.auth?.user)
 
   function authMethodLabel(authMethod?: string | null): string {
     switch (authMethod) {
@@ -38,13 +39,16 @@
         return 'OAuth'
     }
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Cài đặt tài khoản</title>
 </svelte:head>
 
-<AppLayout title="Cài đặt tài khoản">
+<Layout title="Cài đặt tài khoản">
   <div class="container py-8">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold">Cài đặt tài khoản</h1>
@@ -123,4 +127,4 @@
       </Card>
     </div>
   </div>
-</AppLayout>
+</Layout>
