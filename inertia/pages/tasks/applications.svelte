@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { ArrowLeft, ChevronLeft, ChevronRight, Inbox, Check, X } from 'lucide-svelte'
 
   import Badge from '@/components/ui/badge.svelte'
@@ -25,6 +25,7 @@
     type ApplicationStatus,
   } from '@/constants'
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
 
@@ -44,7 +45,16 @@
     created_at: string
   }
 
+  interface RankedApplication {
+    application_id: string
+    match_score: number
+    trust_score: number
+    candidate_source?: string
+  }
+
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     taskId: string
     applications: Application[]
     meta: { total: number; per_page: number; current_page: number; last_page: number }
@@ -55,6 +65,8 @@
 
   let activeFilter = $state<ApplicationFilterValue>(FILTER_VALUES.ALL)
   let processing = $state<string | null>(null)
+  let rankings = $state<Record<string, RankedApplication | undefined>>({})
+  let rankingError = $state(false)
 
   $effect(() => {
     const normalizedStatusFilter = props.statusFilter.trim()
@@ -64,6 +76,11 @@
   })
 
   const statusFilters = APPLICATION_FILTER_OPTIONS
+
+  $effect(() => {
+    const taskId = props.taskId
+    void loadRankings(taskId)
+  })
 
   function statusBadgeVariant(status: ApplicationStatus): 'default' | 'secondary' | 'destructive' | 'outline' {
     return APPLICATION_STATUS_BADGE_VARIANTS[status]
@@ -75,6 +92,35 @@
 
   function formatDate(dateString: string): string {
     return new Date(dateString).toLocaleDateString('vi-VN')
+  }
+
+  async function loadRankings(taskId: string) {
+    try {
+      const response = await fetch(`/api/tasks/${taskId}/applications/ranking`, {
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      })
+
+      if (!response.ok) {
+        rankingError = true
+        return
+      }
+
+      const payloadUnknown: unknown = await response.json()
+      const payload = Array.isArray(payloadUnknown)
+        ? (payloadUnknown as RankedApplication[])
+        : []
+
+      rankings = Object.fromEntries(
+        payload.map((item) => [item.application_id, item])
+      )
+    } catch (error) {
+      console.error('Lỗi khi tải ranking ứng viên:', error)
+      rankingError = true
+    }
   }
 
   function handleFilterChange(filter: ApplicationFilterValue) {
@@ -123,19 +169,22 @@
     }
   }
 
-  function goToPage(page: number) {
+  function goToPage(pageNumber: number) {
     const params = new URLSearchParams()
     if (activeFilter !== FILTER_VALUES.ALL) params.set('status', activeFilter)
-    params.set('page', String(page))
+    params.set('page', String(pageNumber))
     router.visit(`${getTaskApplicationsRoute(props.taskId)}?${params.toString()}`, { preserveState: true })
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Đơn ứng tuyển</title>
 </svelte:head>
 
-<AppLayout title="Đơn ứng tuyển">
+<Layout title="Đơn ứng tuyển">
   <div class="p-4 sm:p-6 space-y-4">
     <!-- Header with back button -->
     <div class="flex items-center gap-3">
@@ -160,21 +209,28 @@
       {/each}
     </div>
 
+    {#if rankingError}
+      <div class="alert alert-warning" data-testid="ranking-error">
+        <p class="font-bold">Unable to load ranking now</p>
+      </div>
+    {/if}
+
     {#if props.applications.length === 0}
-      <Card class="border-2 shadow-neo">
+      <Card class="border-2 shadow-none">
         <CardContent class="flex flex-col items-center justify-center py-12">
           <Inbox class="h-12 w-12 text-muted-foreground mb-3" />
-          <p class="text-muted-foreground font-bold">Chưa có đơn ứng tuyển nào</p>
+          <p class="text-muted-foreground font-bold" data-testid="empty-state">Chưa có đơn ứng tuyển nào</p>
         </CardContent>
       </Card>
     {:else}
-      <Card class="border-2 shadow-neo">
+      <Card class="border-2 shadow-none">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead class="font-bold">Ứng viên</TableHead>
               <TableHead class="font-bold">Trạng thái</TableHead>
-              <TableHead class="font-bold">Ngân sách đề xuất</TableHead>
+              <TableHead class="font-bold">Nguồn</TableHead>
+              <TableHead class="font-bold">Match score</TableHead>
               <TableHead class="font-bold">Thời gian ước tính</TableHead>
               <TableHead class="font-bold">Thư ứng tuyển</TableHead>
               <TableHead class="font-bold">Ngày gửi</TableHead>
@@ -183,7 +239,7 @@
           </TableHeader>
           <TableBody>
             {#each props.applications as app (app.id)}
-              <TableRow>
+              <TableRow data-testid="application-row">
                 <TableCell>
                   {#if app.user}
                     <div>
@@ -199,11 +255,29 @@
                     {statusLabel(app.status)}
                   </Badge>
                 </TableCell>
+
                 <TableCell>
-                  {#if app.proposed_budget != null}
-                    <span class="font-bold">{app.proposed_budget.toLocaleString('vi-VN')}đ</span>
+                  {@const ranking = rankings[app.id]}
+                  {#if ranking?.candidate_source}
+                    <Badge
+                      variant={ranking.candidate_source === 'project_member' ? 'default' : ranking.candidate_source === 'org_member' ? 'secondary' : 'outline'}
+                      class="font-bold text-xs"
+                    >
+                      {ranking.candidate_source === 'project_member' ? 'Trong dự án' : ranking.candidate_source === 'org_member' ? 'Trong tổ chức' : 'Bên ngoài'}
+                    </Badge>
                   {:else}
                     <span class="text-muted-foreground">—</span>
+                  {/if}
+                </TableCell>
+                <TableCell>
+                  {@const ranking = rankings[app.id]}
+                  {#if ranking?.match_score != null}
+                    <div>
+                      <p class="font-bold">{Math.round(ranking.match_score)}%</p>
+                      <p class="text-xs text-muted-foreground">Trust {Math.round(ranking.trust_score)}%</p>
+                    </div>
+                  {:else}
+                    <span class="text-muted-foreground">Đang tải</span>
                   {/if}
                 </TableCell>
                 <TableCell>
@@ -280,4 +354,4 @@
       {/if}
     {/if}
   </div>
-</AppLayout>
+</Layout>
