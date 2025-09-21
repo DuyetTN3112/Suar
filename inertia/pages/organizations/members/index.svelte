@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
 
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
@@ -7,6 +7,7 @@
   import CardHeader from '@/components/ui/card_header.svelte'
   import CardTitle from '@/components/ui/card_title.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
   import MemberFiltersBar from './components/member_filters_bar.svelte'
@@ -214,13 +215,16 @@
       }
     )
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Quản lý thành viên - {organization.name}</title>
 </svelte:head>
 
-<AppLayout title={`Quản lý thành viên - ${organization.name}`}>
+<Layout title={`Quản lý thành viên - ${organization.name}`}>
   <div class="container py-4 space-y-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Quản lý thành viên tổ chức</h1>
@@ -311,4 +315,4 @@
       }}
     />
   {/if}
-</AppLayout>
+</Layout>
