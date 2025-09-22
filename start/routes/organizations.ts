@@ -127,14 +127,7 @@ router
   .prefix('/organizations')
   .use([middleware.auth(), throttle])
 
-const SwitchOrganizationController = () =>
-  import('#modules/organizations/controllers/switch_organization_controller')
 
-// API chuyển tổ chức
-router
-  .post('/switch-organization', [SwitchOrganizationController, 'handle'])
-  .as('organizations.switch.api')
-  .use(middleware.auth())
 
 // Thêm route GET để xử lý redirect sau khi chuyển tổ chức
 router
@@ -158,3 +151,12 @@ router
   .post('/organizations/users/add', [AddUsersController, 'handle'])
   .as('organizations.users.add')
   .use(middleware.auth())
+
+// Switch organization route
+const SwitchOrgApiController = () =>
+  import('#modules/organizations/controllers/switch_organization_controller')
+
+router
+  .post('/switch-organization', [SwitchOrgApiController, 'handle'])
+  .as('organizations.switch.api')
+  .use([middleware.auth()])

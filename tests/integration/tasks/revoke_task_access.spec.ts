@@ -1,6 +1,6 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import RevokeTaskAccessCommand from '#modules/tasks/actions/commands/revoke_task_access_command'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
@@ -38,11 +38,12 @@ function buildActionContext(userId: string, organizationId: string): TaskActionC
 }
 
 async function countRevokeAuditLogs(assignmentId: string): Promise<number> {
-  return await MongoAuditLogModel.countDocuments({
-    entity_type: 'task_assignment',
-    entity_id: assignmentId,
-    action: 'revoke_task_access',
-  })
+  const result = (await db.from('audit_events')
+    .where('entity_type', 'task_assignment')
+    .where('entity_id', assignmentId)
+    .where('action', 'revoke_task_access')
+    .count('* as count')) as { count: number | string }[]
+  return Number(result[0]?.count ?? 0)
 }
 
 test.group('Integration | Revoke Task Access', (group) => {

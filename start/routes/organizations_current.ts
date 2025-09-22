@@ -61,10 +61,14 @@ const OrgListProjectsController = () =>
   import('#modules/organizations/controllers/current/projects/list_projects_controller')
 const OrgCreateProjectController = () =>
   import('#modules/organizations/controllers/current/projects/create_project_controller')
+const OrgShowProjectController = () =>
+  import('#modules/organizations/controllers/current/projects/show_project_controller')
 
 // Tasks (Organization-level)
 const OrgListTasksController = () =>
   import('#modules/organizations/controllers/current/tasks/list_tasks_controller')
+const OrgShowTaskController = () =>
+  import('#modules/organizations/controllers/current/tasks/show_task_controller')
 
 // Workflow Customization
 const OrgListTaskStatusesController = () =>
@@ -98,9 +102,7 @@ router
         router
           .put('/requests/:id/approve', [OrgApproveJoinRequestController, 'handle'])
           .as('org.requests.approve')
-        router
-          .get('/invitations', [OrgListInvitationsController, 'handle'])
-          .as('org.invitations.index')
+        router.get('/', [OrgListInvitationsController, 'handle']).as('org.invitations.index')
       })
       .prefix('/invitations')
 
@@ -122,6 +124,7 @@ router
       .group(() => {
         router.get('/', [OrgListProjectsController, 'handle']).as('org.projects.index')
         router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.create')
+        router.get('/:id', [OrgShowProjectController, 'handle']).as('org.projects.show')
       })
       .prefix('/projects')
 
@@ -129,6 +132,7 @@ router
     router
       .group(() => {
         router.get('/', [OrgListTasksController, 'handle']).as('org.tasks.index')
+        router.get('/:id', [OrgShowTaskController, 'handle']).as('org.tasks.show')
       })
       .prefix('/tasks')
 
