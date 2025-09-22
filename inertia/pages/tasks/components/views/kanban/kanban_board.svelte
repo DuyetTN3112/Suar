@@ -357,3 +357,151 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .kanban-stage {
+    width: 100%;
+    margin-top: 22px;
+    overflow-x: auto;
+    padding: 0 4px 14px;
+    scroll-snap-type: x proximity;
+  }
+
+  .kanban-stage::-webkit-scrollbar {
+    height: 10px;
+  }
+
+  .kanban-stage::-webkit-scrollbar-track {
+    border-radius: 999px;
+    background: rgba(22, 19, 15, .06);
+  }
+
+  .kanban-stage::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(22, 19, 15, .28);
+  }
+
+  .kanban-board {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, 1fr);
+    gap: 14px;
+    min-width: max-content;
+  }
+
+  .kanban-column-shell {
+    transition: opacity .18s var(--ease-suar), transform .18s var(--ease-suar);
+    scroll-snap-align: start;
+  }
+
+  .kanban-column-shell.is-dragging {
+    opacity: .6;
+  }
+
+  .kanban-sync-notice,
+  .kanban-empty-state {
+    margin-bottom: 14px;
+    border: 2px solid var(--suar-black);
+    border-radius: 18px;
+    background: rgba(255, 253, 248, .9);
+    padding: 13px 15px;
+    box-shadow: 5px 5px 0 rgba(22, 19, 15, .1);
+    color: var(--suar-black);
+    font-size: 14px;
+    font-weight: 850;
+  }
+
+  .kanban-sync-notice {
+    background: rgba(107, 140, 255, .14);
+  }
+
+  .kanban-empty-state > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .kanban-empty-actions {
+    display: inline-flex;
+    gap: 8px;
+  }
+
+  .kanban-empty-actions button,
+  .kanban-add-status {
+    border: 2px solid var(--suar-black);
+    border-radius: 14px;
+    background: var(--suar-white);
+    color: var(--suar-black);
+    font-size: 12px;
+    font-weight: 950;
+    box-shadow: 3px 3px 0 rgba(22, 19, 15, .14);
+    transition: transform .2s var(--ease-suar), box-shadow .2s var(--ease-suar);
+  }
+
+  .kanban-empty-actions button {
+    min-height: 36px;
+    padding: 0 12px;
+  }
+
+  .kanban-add-status {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-style: dashed;
+  }
+
+  .kanban-empty-actions button:hover,
+  .kanban-add-status:hover {
+    transform: translate(-1px, -2px);
+    box-shadow: 5px 5px 0 var(--suar-black);
+  }
+
+  .kanban-loading {
+    display: grid;
+    min-height: 320px;
+    place-items: center;
+    gap: 18px;
+    color: var(--suar-ink-56);
+    font-size: 14px;
+    font-weight: 900;
+  }
+
+  .kanban-loading-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(120px, 1fr));
+    gap: 14px;
+    width: min(100%, 980px);
+  }
+
+  .kanban-skeleton {
+    height: 220px;
+    border: 2px solid rgba(22, 19, 15, .22);
+    border-radius: 22px;
+    background:
+      linear-gradient(90deg, transparent, rgba(255, 61, 22, .08), transparent),
+      rgba(255, 253, 248, .72);
+    background-size: 220% 100%, auto;
+    box-shadow: 5px 5px 0 rgba(22, 19, 15, .08);
+    animation: kanban-shimmer 1.6s var(--ease-suar) infinite;
+    animation-delay: calc(var(--i) * 90ms);
+  }
+
+  @keyframes kanban-shimmer {
+    to {
+      background-position: -220% 0, 0 0;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .kanban-board {
+      grid-auto-columns: minmax(250px, 86vw);
+    }
+
+    .kanban-loading-grid {
+      grid-template-columns: repeat(2, minmax(120px, 1fr));
+    }
+  }
+</style>
