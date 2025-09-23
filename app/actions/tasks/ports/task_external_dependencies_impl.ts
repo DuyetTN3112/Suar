@@ -1,14 +1,5 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import OrganizationRepository from '#infra/organizations/repositories/organization_repository'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import ProjectRepository from '#infra/projects/repositories/project_repository'
-import ReviewSessionRepository from '#infra/reviews/repositories/review_session_repository'
-import SkillRepository from '#infra/skills/repositories/skill_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import * as PermissionService from '#services/permission_service'
-import type { DatabaseId } from '#types/database'
-
 import type {
   TaskExternalDependencies,
   TaskOrgReader,
@@ -23,12 +14,19 @@ import type {
   TaskUserReader,
 } from './task_external_dependencies.js'
 
+import { organizationPublicApi } from '#actions/organizations/public_api'
+import { projectPublicApi } from '#actions/projects/public_api'
+import { reviewPublicApi } from '#actions/reviews/public_api'
+import { skillPublicApi } from '#actions/skills/public_api'
+import { userPublicApi } from '#actions/users/public_api'
+import type { DatabaseId } from '#types/database'
+
 export class InfraTaskOrgReader implements TaskOrgReader {
   async ensureActiveOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await OrganizationRepository.findActiveOrFail(organizationId, trx)
+    await organizationPublicApi.ensureActiveOrganization(organizationId, trx)
   }
 
   async isApprovedMember(
@@ -36,7 +34,7 @@ export class InfraTaskOrgReader implements TaskOrgReader {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return OrganizationUserRepository.isApprovedMember(userId, organizationId, trx)
+    return organizationPublicApi.isApprovedMember(userId, organizationId, trx)
   }
 }
 
@@ -46,27 +44,27 @@ export class InfraTaskProjectReader implements TaskProjectReader {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<void> {
-    await ProjectRepository.validateBelongsToOrg(projectId, organizationId, trx)
+    await projectPublicApi.ensureBelongsToOrganization(projectId, organizationId, trx)
   }
 
   async listProjectsByOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskProjectOption[]> {
-    return ProjectRepository.listSimpleByOrganization(organizationId, trx)
+    return projectPublicApi.listSimpleByOrganization(organizationId, trx)
   }
 }
 
 export class InfraTaskUserReader implements TaskUserReader {
   async ensureActiveUser(userId: DatabaseId, trx?: TransactionClientContract): Promise<void> {
-    await UserRepository.findActiveOrFail(userId, trx)
+    await userPublicApi.ensureActiveUser(userId, trx)
   }
 
   async findUserIdentity(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskUserIdentity | null> {
-    const user = await UserRepository.findById(userId, trx)
+    const user = await userPublicApi.findById(userId, trx)
     if (!user) {
       return null
     }
@@ -79,14 +77,14 @@ export class InfraTaskUserReader implements TaskUserReader {
   }
 
   async isFreelancer(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
-    return UserRepository.isFreelancer(userId, trx)
+    return userPublicApi.isFreelancer(userId, trx)
   }
 
   async listUsersByOrganization(
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<TaskUserOption[]> {
-    const users = await UserRepository.findByOrganization(organizationId, trx)
+    const users = await userPublicApi.listUsersByOrganization(organizationId, trx)
 
     return users.map((user) => ({
       id: user.id,
@@ -97,24 +95,21 @@ export class InfraTaskUserReader implements TaskUserReader {
 }
 
 export class InfraTaskReviewReader implements TaskReviewReader {
-  async hasAnyReviewForTask(
-    taskId: DatabaseId,
-    trx?: TransactionClientContract
-  ): Promise<boolean> {
-    return ReviewSessionRepository.hasAnyForTask(taskId, trx)
+  async hasAnyReviewForTask(taskId: DatabaseId, trx?: TransactionClientContract): Promise<boolean> {
+    return reviewPublicApi.hasAnyForTask(taskId, trx)
   }
 
   async hasAnyReviewForTasksWithStatus(
     taskStatusId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return ReviewSessionRepository.hasAnyForTasksWithStatus(taskStatusId, trx)
+    return reviewPublicApi.hasAnyForTasksWithStatus(taskStatusId, trx)
   }
 }
 
 export class InfraTaskSkillReader implements TaskSkillReader {
   async listActiveSkills(): Promise<TaskSkillOption[]> {
-    const skills = await SkillRepository.activeSkills()
+    const skills = await skillPublicApi.listActive()
 
     return skills.map((skill) => ({
       id: skill.id,
@@ -124,9 +119,9 @@ export class InfraTaskSkillReader implements TaskSkillReader {
 
   async findActiveSkillIds(
     skillIds: DatabaseId[],
-    trx?: TransactionClientContract
+    _trx?: TransactionClientContract
   ): Promise<DatabaseId[]> {
-    const skills = await SkillRepository.findActiveByIds(skillIds, trx)
+    const skills = await skillPublicApi.findActiveByIds(skillIds)
     return skills.map((skill) => skill.id)
   }
 }
@@ -136,7 +131,7 @@ export class InfraTaskPermissionReader implements TaskPermissionReader {
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string | null> {
-    return (await PermissionService.getSystemRoleInfo(userId, trx))?.roleName ?? null
+    return userPublicApi.getSystemRoleName(userId, trx)
   }
 
   async getOrgRoleName(
@@ -144,7 +139,13 @@ export class InfraTaskPermissionReader implements TaskPermissionReader {
     organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string | null> {
-    return (await PermissionService.getOrgMembership(userId, organizationId, trx))?.org_role ?? null
+    const orgMembership = await organizationPublicApi.getMembershipContext(
+      organizationId,
+      userId,
+      trx,
+      true
+    )
+    return orgMembership?.role ?? null
   }
 
   async getProjectRoleName(
@@ -152,9 +153,8 @@ export class InfraTaskPermissionReader implements TaskPermissionReader {
     projectId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<string | null> {
-    return (
-      await PermissionService.getProjectMembership(userId, projectId, trx)
-    )?.project_role ?? null
+    const projectMembership = await projectPublicApi.getMembershipContext(projectId, userId, trx)
+    return projectMembership?.project_role ?? null
   }
 }
 
