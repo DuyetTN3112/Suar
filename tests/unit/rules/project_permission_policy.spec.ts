@@ -106,6 +106,7 @@ test.group('Project permission policy', () => {
         actorId: 'owner-001',
         actorSystemRole: null,
         actorOrgRole: null,
+        pendingReviewSessionCount: 0,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
         incompleteTaskCount: 0,
@@ -119,6 +120,7 @@ test.group('Project permission policy', () => {
         actorOrgRole: null,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
+        pendingReviewSessionCount: 0,
         incompleteTaskCount: 3,
       }),
       'BUSINESS_RULE'
@@ -131,6 +133,7 @@ test.group('Project permission policy', () => {
         actorOrgRole: OrganizationRole.MEMBER,
         projectOwnerId: 'owner-001',
         projectCreatorId: 'creator-001',
+        pendingReviewSessionCount: 0,
         incompleteTaskCount: 0,
       }),
       'FORBIDDEN'

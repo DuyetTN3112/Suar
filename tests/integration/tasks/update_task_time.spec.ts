@@ -1,6 +1,6 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import UpdateTaskTimeCommand from '#modules/tasks/actions/commands/update_task_time_command'
 import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
@@ -17,15 +17,11 @@ import {
 } from '#tests/helpers/factories'
 
 async function countUpdateTimeAuditLogs(taskId: string): Promise<number> {
-  const auditLogs = await MongoAuditLogModel.find({
-    entity_type: 'task',
-    entity_id: taskId,
-    action: 'update_time',
-  })
-    .lean()
-    .exec()
-
-  return auditLogs.length
+  const logs = await db.from('audit_events')
+    .where('entity_type', 'task')
+    .where('entity_id', taskId)
+    .where('action', 'update_time')
+  return logs.length
 }
 
 test.group('Integration | Update Task Time', (group) => {
