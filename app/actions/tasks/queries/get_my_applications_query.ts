@@ -1,22 +1,12 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/tasks/base_query'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 import TaskApplicationRepository from '#infra/tasks/repositories/task_application_repository'
-import type TaskApplication from '#models/task_application'
+import type { PaginatedTaskApplicationRecords } from '#types/task_records'
 
 export interface GetMyApplicationsInput {
   status?: 'pending' | 'approved' | 'rejected' | 'withdrawn' | 'all'
   page: number
   per_page: number
-}
-
-interface MyApplicationsResult {
-  data: TaskApplication[]
-  meta: {
-    total: number
-    per_page: number
-    current_page: number
-    last_page: number
-  }
 }
 
 /**
@@ -27,9 +17,9 @@ interface MyApplicationsResult {
  */
 export default class GetMyApplicationsQuery extends BaseQuery<
   GetMyApplicationsInput,
-  MyApplicationsResult
+  PaginatedTaskApplicationRecords
 > {
-  async handle(dto: GetMyApplicationsInput): Promise<MyApplicationsResult> {
+  async handle(dto: GetMyApplicationsInput): Promise<PaginatedTaskApplicationRecords> {
     const userId = this.getCurrentUserId()
     if (!userId) {
       throw new UnauthorizedException()
@@ -42,21 +32,11 @@ export default class GetMyApplicationsQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      const result = await TaskApplicationRepository.paginateByApplicant(userId, {
+      return TaskApplicationRepository.paginateByApplicant(userId, {
         status: dto.status,
         page: dto.page,
         perPage: dto.per_page,
       })
-
-      return {
-        data: result.all(),
-        meta: {
-          total: result.total,
-          per_page: result.perPage,
-          current_page: result.currentPage,
-          last_page: result.lastPage,
-        },
-      }
     })
   }
 }
