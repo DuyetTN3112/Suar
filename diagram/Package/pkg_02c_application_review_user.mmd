@@ -1,40 +1,70 @@
-%% pkg_02c_application_review_user: Review, User, Auth, Shared Packages
-%% Scope: CQRS package split for review/account support.
+%% pkg_02c_application_review_user: Review, User, Auth, Skills Packages
+%% Updated 2026-04-29.
 
 graph TD
     subgraph reviews["reviews/"]
+        R_API["reviews/public_api.ts"]
         R_CMD["Commands"]
         R_QRY["Queries"]
-        R_MAP["Mapper"]
+        R_FORMULA["review formula callers"]
     end
 
     subgraph users["users/"]
+        U_API["users/public_api.ts"]
         U_CMD["Commands"]
         U_QRY["Queries"]
-        U_MAP["Mapper"]
+        U_PROFILE["profile snapshot / skill profile flows"]
+    end
+
+    subgraph skills["skills/"]
+        S_API["skills/public_api.ts"]
+        S_PORT["skill public reads"]
     end
 
     subgraph auth["auth/"]
         AUTH_CMD["Commands"]
+        AUTH_IFACE["local interfaces.ts"]
     end
 
-    SHARED["shared/ + common/"]
-    DTOS["dtos/"]
-    REPOS["repositories"]
+    DOMAIN_FORMULAS["domain/reviews/review_formulas.ts"]
+    AUDIT_API["audit/public_api.ts"]
+    NOTIF_API["notifications/public_api.ts"]
+    INFRA["app/infra/reviews + users + skills"]
+    DTO_TYPES["app/types/action_dtos.ts"]
+    EMPTY_SHARED["shared/ + common/\n0 TypeScript files"]
 
-    R_CMD --> REPOS
-    R_QRY --> REPOS
-    R_MAP --> DTOS
+    R_API --> R_CMD
+    R_API --> R_QRY
+    R_CMD --> DOMAIN_FORMULAS
+    R_FORMULA --> DOMAIN_FORMULAS
+    R_CMD --> S_API
+    R_QRY --> S_API
+    R_CMD --> AUDIT_API
+    R_CMD --> INFRA
+    R_QRY --> INFRA
 
-    U_CMD --> REPOS
-    U_QRY --> REPOS
-    U_MAP --> DTOS
+    U_API --> U_CMD
+    U_API --> U_QRY
+    U_CMD --> S_API
+    U_QRY --> S_API
+    U_PROFILE --> U_CMD
+    U_PROFILE --> U_QRY
+    U_CMD --> AUDIT_API
+    U_CMD --> INFRA
+    U_QRY --> INFRA
 
-    AUTH_CMD --> SHARED
-    R_CMD --> SHARED
-    U_CMD --> SHARED
+    S_API --> S_PORT
+    S_PORT --> INFRA
+    AUTH_CMD --> AUTH_IFACE
+    AUTH_CMD --> NOTIF_API
+    AUTH_CMD --> DTO_TYPES
+
+    R_CMD -.-> EMPTY_SHARED
+    U_CMD -.-> EMPTY_SHARED
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
-    class R_CMD,R_QRY,R_MAP,U_CMD,U_QRY,U_MAP,AUTH_CMD pkg
-    class SHARED,DTOS,REPOS aux
+    class R_CMD,R_QRY,R_FORMULA,U_CMD,U_QRY,U_PROFILE,S_PORT,AUTH_CMD,AUTH_IFACE pkg
+    class R_API,U_API,S_API,AUDIT_API,NOTIF_API api
+    class DOMAIN_FORMULAS,INFRA,DTO_TYPES,EMPTY_SHARED aux
