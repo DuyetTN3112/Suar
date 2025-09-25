@@ -34,44 +34,40 @@ graph TD
         REDIS[("Redis")]
     end
 
-    subgraph external["📦 External Dependencies"]
-        direction LR
-        LUCID["Lucid ORM\n(PostgreSQL driver)"]
-        VINE["VineJS\n(Validation)"]
-        MONGOOSE["Mongoose\n(MongoDB ODM)"]
-        ALLY["@adonisjs/ally\n(OAuth: Google, GitHub)"]
+    subgraph drained["Drained Legacy Boundaries"]
+        SERVICES["app/services\nno active TS files"]
+        SHARED["app/actions/shared\nno active TS files"]
     end
 
-    %% Domain → Infrastructure (interface → implementation)
-    REPO_IFACE -->|"implemented by"| REPO_IMPL
-    REPO_IMPL -->|"ORM ↔ domain"| INFRA_MAPPER
-    REPO_IMPL -->|"references"| ORM_REFS
-    ORM_REFS -->|"wraps"| MODELS
-    RULES -->|"use types"| DOMAIN_TYPES
+    PUBLIC_API --> ACTIONS
+    ACTIONS --> ENTITIES
+    ACTIONS --> FORMULAS
+    ACTIONS --> POLICIES
+    ACTIONS --> REPO_IFACE
+    ACTIONS --> REPO_IMPL
 
-    %% Mapper flow: Write: Request DTO → Domain Entity → ORM Entity
-    %% Read: ORM Entity → Domain Entity → Response DTO
-    ENTITIES -->|"props ↔ entity"| DOMAIN_MAPPER
+    ENTITIES --> DOMAIN_MAPPER
+    REPO_IFACE --> REPO_IMPL
+    REPO_IMPL --> INFRA_MAPPER
+    REPO_IMPL --> LUCID_MODELS
+    REPO_PROVIDERS --> MONGO_MODELS
+    CACHE_LOGGER --> REDIS
 
-    %% Legacy repos still in use
-    LEGACY_REPOS -->|"⚠️ direct Lucid\nqueries"| MODELS
+    LUCID_MODELS --> PG
+    MONGO_MODELS --> MONGO
 
-    %% Models → Data
-    MODELS --> LUCID --> PG
-    REPOS --> MONGOOSE --> MONGO
-    PERM_SVC --> REDIS
+    PUBLIC_API -.-> SERVICES
+    PUBLIC_API -.-> SHARED
 
-    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238
-    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#B71C1C
-    classDef appSvcStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
-    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
-    classDef legacyStyle fill:#FFEBEE,stroke:#D32F2F,stroke-width:2px,color:#B71C1C,stroke-dasharray: 5 5
-    classDef modelStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
-    classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
-    class LUCID,VINE,MONGOOSE,ALLY extStyle
-    class ENTITIES,REPO_IFACE,DOMAIN_MAPPER,RULES,DOMAIN_TYPES domStyle
-    class PERM_SVC,VALIDATORS appSvcStyle
-    class ORM_REFS,REPO_IMPL,INFRA_MAPPER,REPOS infraStyle
-    class LEGACY_REPOS legacyStyle
-    class MODELS modelStyle
+    classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#333
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
+    classDef modelStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#333,stroke-dasharray: 5 5
+    class PUBLIC_API,ACTIONS appStyle
+    class ENTITIES,FORMULAS,POLICIES,REPO_IFACE,DOMAIN_MAPPER domStyle
+    class REPO_IMPL,INFRA_MAPPER,CACHE_LOGGER,REPO_PROVIDERS infraStyle
+    class LUCID_MODELS,MONGO_MODELS modelStyle
     class PG,MONGO,REDIS dataStyle
+    class SERVICES,SHARED drainedStyle

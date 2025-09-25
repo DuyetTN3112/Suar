@@ -43,7 +43,7 @@
   )
 
   const reviewee = $derived(session.reviewee)
-  const currentUserId = $derived(($page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id)
+  const currentUserId = $derived((page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id)
   const isReviewee = $derived(currentUserId === session.reviewee_id)
   let selectedReviewerType = $state<ReviewerType>('peer')
 
@@ -96,7 +96,7 @@
             acc.push({
               id: reviewer.id,
               username: reviewer.username,
-              type: sr.reviewer_type as 'peer' | 'manager',
+              type: sr.reviewer_type,
             })
           }
           return acc
@@ -109,7 +109,7 @@
   const activeSkills = $derived(skills.filter((s) => s.is_active))
 
   // Flash messages from session
-  const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
+  const flash = $derived((page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
   const hasManagerSummary = $derived(
     session.overall_quality_score != null ||
       session.delivery_timeliness != null ||
