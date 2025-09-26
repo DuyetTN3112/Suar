@@ -1,12 +1,8 @@
-import redis from '@adonisjs/redis/services/main'
 
-import {
-  buildAuditUserMap,
-  formatAuditChanges,
-  listAuditLogsByEntity,
-} from '#actions/audit/read_audit_logs'
+import { auditPublicApi } from '#actions/audit/public_api'
 import { PAGINATION } from '#constants/common_constants'
 import ValidationException from '#exceptions/validation_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import type { DatabaseId } from '#types/database'
 
@@ -55,8 +51,8 @@ export default class GetTaskAuditLogsQuery {
       return cached
     }
 
-    const logs = await listAuditLogsByEntity('task', input.taskId, limit)
-    const userMap = await buildAuditUserMap(logs, ['id', 'username', 'email'])
+    const logs = await auditPublicApi.listByEntity('task', input.taskId, limit)
+    const userMap = await auditPublicApi.buildUserMap(logs, ['id', 'username', 'email'])
 
     // Format logs
     const formattedLogs = logs.map((log) => {
@@ -72,7 +68,7 @@ export default class GetTaskAuditLogsQuery {
             }
           : null,
         timestamp: log.created_at,
-        changes: formatAuditChanges(log.old_values ?? {}, log.new_values ?? {}),
+        changes: auditPublicApi.formatChanges(log.old_values ?? {}, log.new_values ?? {}),
       }
     })
 
@@ -85,26 +81,26 @@ export default class GetTaskAuditLogsQuery {
   /**
    * Get from Redis cache
    */
-  private async getFromCache(key: string): Promise<{
-    id: DatabaseId
-    action: string
-    user: { id: DatabaseId; name: string; email: string } | null
-    timestamp: Date
-    changes: { field: string; oldValue: unknown; newValue: unknown }[]
-  }[] | null> {
+  private async getFromCache(key: string): Promise<
+    | {
+        id: DatabaseId
+        action: string
+        user: { id: DatabaseId; name: string; email: string } | null
+        timestamp: Date
+        changes: { field: string; oldValue: unknown; newValue: unknown }[]
+      }[]
+    | null
+  > {
     try {
-      const cached = await redis.get(key)
-      if (cached) {
-        const parsed: unknown = JSON.parse(cached)
-        if (Array.isArray(parsed)) {
-          return parsed as {
+      const cached = await CacheService.get<unknown>(key)
+      if (Array.isArray(cached)) {
+        return cached as {
             id: DatabaseId
             action: string
             user: { id: DatabaseId; name: string; email: string } | null
             timestamp: Date
             changes: { field: string; oldValue: unknown; newValue: unknown }[]
-          }[]
-        }
+        }[]
       }
     } catch (error) {
       loggerService.error('[GetTaskAuditLogsQuery] Cache get error:', error)
@@ -117,7 +113,7 @@ export default class GetTaskAuditLogsQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTaskAuditLogsQuery] Cache set error:', error)
     }
