@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 import { INTERFACE_CONTEXT_TYPES, type InterfaceContextType } from '#modules/authorization/constants/context_constants'
+import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
 
 /**
  * SystemAdminContextMiddleware
@@ -32,8 +33,8 @@ export default class SystemAdminContextMiddleware {
     }
 
     // Check if user can access system admin
-    const systemRole = auth.user.system_role.toLowerCase()
-    const canSwitchToAdmin = systemRole === 'superadmin' || systemRole === 'system_admin'
+    const systemAccess = await canAccessSystemAdministration(auth.user.system_role)
+    const canSwitchToAdmin = systemAccess.allowed
 
     // Check if admin mode is enabled in session
     const isAdminModeRaw: unknown = session.get('is_admin_mode', false)

@@ -18,6 +18,14 @@ import {
   logSocialAuthConfigCheck,
   logSocialAuthRedirect,
 } from '#modules/auth/actions/support/social_auth_logging'
+import type { SocialAuthDriver } from '#modules/auth/infra/oauth/social_auth_provider_service'
+import { buildAuthLoginEvent } from '#modules/auth/observability/auth_event_factory'
+import { optionalActionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import env from '#start/env'
 
 interface AllyDriverWithConfig {
@@ -25,12 +33,16 @@ interface AllyDriverWithConfig {
   options?: { callbackUrl?: string }
 }
 
+interface SocialAuthRedirectDriver extends SocialAuthDriver {
+  redirect(): Promise<void>
+}
+
 export default class SocialAuthController {
   /**
    * Chuyển hướng người dùng đến trang đăng nhập của nhà cung cấp
    */
   async redirect({ params, ally, request, response, session }: HttpContext) {
-    const provider = buildSupportedSocialAuthProvider(params.provider as string)
+    const provider = buildSupportedSocialAuthProvider(params['provider'] as string)
 
     const host = request.header('host') ?? 'localhost:3333'
     const appUrl = env.get('APP_URL')
@@ -64,7 +76,7 @@ export default class SocialAuthController {
     logSocialAuthConfigCheck(provider, hasClientId, hasClientSecret, dynamicCallbackUrl)
 
     logSocialAuthRedirect(provider, buildSocialAuthRedirectLogContext(request))
-    const socialAuth = ally.use(provider)
+    const socialAuth = ally.use(provider) as unknown as SocialAuthRedirectDriver
     const driverWithConfig = socialAuth as unknown as AllyDriverWithConfig
     if (driverWithConfig.config) {
       driverWithConfig.config.callbackUrl = dynamicCallbackUrl
@@ -78,8 +90,11 @@ export default class SocialAuthController {
   /**
    * Xử lý callback từ nhà cung cấp xác thực
    */
-  async callback({ params, ally, auth, response, request, session }: HttpContext) {
-    const provider = buildSupportedSocialAuthProvider(params.provider as string)
+  async callback(ctx: HttpContext) {
+    const { params, ally, auth, response, request, session } = ctx
+    const provider = buildSupportedSocialAuthProvider(params['provider'] as string)
+    const execCtx = optionalActionContextFromHttp(ctx)
+    const startedAt = Date.now()
 
     // Override callbackUrl dynamically based on current request host to match redirect config
     const host = request.header('host') ?? 'localhost:3333'
@@ -87,7 +102,7 @@ export default class SocialAuthController {
     const dynamicCallbackUrl = `${protocol}://${host}/auth/${provider}/callback`
     config.set(`ally.${provider}.callbackUrl`, dynamicCallbackUrl)
 
-    const socialAuth = ally.use(provider)
+    const socialAuth = ally.use(provider) as unknown as SocialAuthRedirectDriver
     const driverWithConfig = socialAuth as unknown as AllyDriverWithConfig
     if (driverWithConfig.config) {
       driverWithConfig.config.callbackUrl = dynamicCallbackUrl
@@ -97,23 +112,88 @@ export default class SocialAuthController {
     }
 
     logSocialAuthCallbackStart(provider, buildSocialAuthCallbackLogContext(request))
-
-    const callbackResult = await new ProcessSocialAuthCallbackCommand().execute(
-      provider,
-      socialAuth
+    platformOperationalLogger.log(
+      'info',
+      buildAuthLoginEvent(execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.AUTH_LOGIN_STARTED,
+        stage: 'started',
+        outcome: 'success',
+        provider,
+      })
     )
-    if (callbackResult.type === 'error') {
-      const errorRedirect = mapSocialAuthErrorRedirect(callbackResult.errorMessage)
-      response.redirect().withQs(errorRedirect.query).toPath(errorRedirect.path)
-      return
-    }
 
-    await auth.use('web').login(callbackResult.user, true)
-    const sessionState = mapSocialAuthSessionState(callbackResult.currentOrganizationId)
-    if (sessionState) {
-      session.put('current_organization_id', sessionState.currentOrganizationId)
-    }
+    try {
+      const callbackResult = await new ProcessSocialAuthCallbackCommand().execute(
+        provider,
+        socialAuth
+      )
+      if (callbackResult.type === 'error') {
+        await platformWorkflowLogger.checkpointSafely(
+          execCtx,
+          buildAuthLoginEvent(execCtx, {
+            eventName: PLATFORM_EVENT_NAMES.AUTH_LOGIN_FAILED,
+            stage: 'callback_failed',
+            outcome: 'failure',
+            provider,
+            runtime: {
+              duration_ms: Date.now() - startedAt,
+            },
+            error: {
+              class: 'SocialAuthCallbackError',
+              message: callbackResult.errorMessage,
+            },
+          })
+        )
+        const errorRedirect = mapSocialAuthErrorRedirect(callbackResult.errorMessage)
+        response.redirect().withQs(errorRedirect.query).toPath(errorRedirect.path)
+        return
+      }
 
-    response.redirect(mapSocialAuthSuccessRedirect(callbackResult.redirectTo).redirectTo)
+      await auth.use('web').login(callbackResult.user, true)
+      const sessionState = mapSocialAuthSessionState(callbackResult.currentOrganizationId)
+      if (sessionState) {
+        session.put('current_organization_id', sessionState.currentOrganizationId)
+      }
+
+      await platformWorkflowLogger.checkpointSafely(
+        {
+          ...execCtx,
+          userId: callbackResult.user.id,
+          organizationId: callbackResult.currentOrganizationId,
+        },
+        buildAuthLoginEvent(execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.AUTH_LOGIN_COMPLETED,
+          stage: 'completed',
+          outcome: 'success',
+          provider,
+          userId: callbackResult.user.id,
+          organizationId: callbackResult.currentOrganizationId,
+          change: {
+            redirect_to: callbackResult.redirectTo,
+            is_new_user: callbackResult.redirectTo === '/organizations',
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
+
+      response.redirect(mapSocialAuthSuccessRedirect(callbackResult.redirectTo).redirectTo)
+    } catch (error) {
+      await platformWorkflowLogger.checkpointSafely(
+        execCtx,
+        buildAuthLoginEvent(execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.AUTH_LOGIN_FAILED,
+          stage: 'failed',
+          outcome: 'failure',
+          provider,
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
 }

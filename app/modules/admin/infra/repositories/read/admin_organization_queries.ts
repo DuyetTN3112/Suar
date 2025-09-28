@@ -29,6 +29,7 @@ const toNumberValue = (value: unknown): number => {
 export interface ListOrganizationsFilters {
   search?: string
   partnerType?: PartnerType
+  organizationIds?: string[]
 }
 
 export interface ListOrganizationsResult {
@@ -65,7 +66,18 @@ export const AdminOrganizationReadOps = {
       void query.where('partner_type', filters.partnerType)
     }
 
-    void query.orderBy('created_at', 'desc')
+    if (filters.organizationIds && filters.organizationIds.length > 0) {
+      void query.whereIn('id', filters.organizationIds)
+      const rankByOrganizationId = filters.organizationIds
+        .map((organizationId, index) => `WHEN id = '${organizationId}' THEN ${String(index)}`)
+        .join(' ')
+      void query.orderByRaw(
+        `CASE ${rankByOrganizationId} ELSE ${String(filters.organizationIds.length)} END ASC`
+      )
+    } else {
+      void query.orderBy('created_at', 'desc')
+      void query.orderBy('id', 'desc')
+    }
     const result = await query.paginate(page, perPage)
 
     return {
@@ -92,8 +104,8 @@ export const AdminOrganizationReadOps = {
     const newThisMonth = statsResults[1]
 
     return {
-      total: isRecord(total) ? toNumberValue(total.total) : 0,
-      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth.total) : 0,
+      total: isRecord(total) ? toNumberValue(total['total']) : 0,
+      newThisMonth: isRecord(newThisMonth) ? toNumberValue(newThisMonth['total']) : 0,
     }
   },
 

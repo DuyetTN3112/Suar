@@ -4,6 +4,7 @@ export interface ListUsersFilters {
   search?: string
   systemRole?: string
   status?: string
+  userIds?: string[]
 }
 
 export interface ListUsersResult {

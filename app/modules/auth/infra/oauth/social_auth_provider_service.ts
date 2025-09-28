@@ -1,8 +1,8 @@
+import { type SupportedSocialAuthProvider } from '#modules/auth/constants/auth_constants'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
-
-export type SupportedSocialAuthProvider = 'google' | 'github'
 
 export interface SocialAuthDriver {
   accessDenied(): boolean
@@ -101,13 +101,13 @@ export default class SocialAuthProviderService {
     }
 
     const socialUser = this.buildNormalizedSocialUser(socialUserRaw)
-    AuthLogger.oauthUserReceived(provider, {
+    AuthLogger.oauthUserReceived(provider, omitUndefined({
       id: socialUser.id,
       email: socialUser.email,
       name: socialUser.name,
       nickName: socialUser.nickName ?? undefined,
       token: socialUser.refreshToken ? { refreshToken: socialUser.refreshToken } : undefined,
-    })
+    }))
 
     if (!socialUser.email) {
       AuthLogger.oauthError(provider, new Error('No email from provider'), 'no-email')
@@ -136,28 +136,28 @@ export default class SocialAuthProviderService {
   }
 
   private buildNormalizedSocialUser(socialUserRaw: Record<string, unknown>) {
-    const tokenRaw = isRecord(socialUserRaw.token) ? socialUserRaw.token : null
+    const tokenRaw = isRecord(socialUserRaw['token']) ? socialUserRaw['token'] : null
     const accessTokenRaw =
-      tokenRaw?.token ??
-      tokenRaw?.accessToken ??
-      tokenRaw?.access_token ??
-      socialUserRaw.token ??
-      socialUserRaw.accessToken ??
-      socialUserRaw.access_token
+      tokenRaw?.['token'] ??
+      tokenRaw?.['accessToken'] ??
+      tokenRaw?.['access_token'] ??
+      socialUserRaw['token'] ??
+      socialUserRaw['accessToken'] ??
+      socialUserRaw['access_token']
     const refreshTokenRaw =
-      tokenRaw?.refreshToken ??
-      tokenRaw?.refresh_token ??
-      socialUserRaw.refreshToken ??
-      socialUserRaw.refresh_token
-    const socialIdRaw = socialUserRaw.id
+      tokenRaw?.['refreshToken'] ??
+      tokenRaw?.['refresh_token'] ??
+      socialUserRaw['refreshToken'] ??
+      socialUserRaw['refresh_token']
+    const socialIdRaw = socialUserRaw['id']
     const socialId =
       typeof socialIdRaw === 'string' || typeof socialIdRaw === 'number' ? String(socialIdRaw) : ''
 
     return {
       id: socialId,
-      email: toNullableString(socialUserRaw.email),
-      name: toOptionalString(socialUserRaw.name) ?? 'OAuth User',
-      nickName: toNullableString(socialUserRaw.nickName),
+      email: toNullableString(socialUserRaw['email']),
+      name: toOptionalString(socialUserRaw['name']) ?? 'OAuth User',
+      nickName: toNullableString(socialUserRaw['nickName']),
       token: toOptionalString(accessTokenRaw),
       refreshToken: toNullableString(refreshTokenRaw),
     }

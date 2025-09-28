@@ -15,25 +15,24 @@ export default class ListOrganizationsController {
   private buildListInput(ctx: HttpContext) {
     const { request } = ctx
 
-    const toPageNumber = (value: unknown): number => {
-      if (typeof value === 'number' && Number.isFinite(value)) {
-        return Math.max(1, Math.trunc(value))
-      }
-      if (typeof value === 'string') {
-        const parsed = Number(value)
-        return Number.isFinite(parsed) ? Math.max(1, Math.trunc(parsed)) : 1
-      }
-      return 1
-    }
-
     const toOptionalString = (value: unknown): string | undefined => {
       return typeof value === 'string' && value.trim().length > 0 ? value : undefined
     }
 
-    const page = toPageNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown)
+    const pagination = normalizePagination(
+      {
+        page: request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
+        perPage: ADMIN_ORGANIZATIONS_PER_PAGE,
+      },
+      PAGINATION,
+      { perPage: ADMIN_ORGANIZATIONS_PER_PAGE }
+    )
     const search = toOptionalString(request.input('search', '') as unknown)
 
-    return { page, search }
+    return {
+      page: pagination.page,
+      ...(search ? { search } : {}),
+    }
   }
 
   private async list(ctx: HttpContext) {
@@ -44,7 +43,7 @@ export default class ListOrganizationsController {
     const result = await query.handle({
       page,
       perPage: ADMIN_ORGANIZATIONS_PER_PAGE,
-      search,
+      ...(search ? { search } : {}),
     })
 
     return { result, filters: { search } }
@@ -54,9 +53,9 @@ export default class ListOrganizationsController {
     const { inertia } = ctx
     const { result, filters } = await this.list(ctx)
 
-    return inertia.render('admin/organizations/index', {
+    return inertia.render('organizations/index', {
       organizations: result.data,
-      pagination: result.meta,
+      pagination: toCanonicalPagePagination(result.meta),
       filters: { search: filters.search ?? '' },
     })
   }
@@ -64,11 +63,12 @@ export default class ListOrganizationsController {
   async apiIndex(ctx: HttpContext) {
     const { result, filters } = await this.list(ctx)
 
-    ctx.response.status(HttpStatus.OK).json({
-      success: true,
-      data: result.data,
-      meta: result.meta,
-      filters: { search: filters.search ?? '' },
-    });
+    ctx.response.status(HttpStatus.OK).json(
+      wrapAdminCollectionResponse(
+        result.data.map(mapAdminOrganizationResponse),
+        result.meta,
+        { filters: { search: filters.search ?? '' } }
+      )
+    )
   }
 }

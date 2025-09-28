@@ -9,7 +9,7 @@ import {
 } from './mappers/response/auth_response_mapper.js'
 
 import LogoutUserCommand from '#modules/auth/actions/commands/logout_user_command'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 
 /**
  * LogoutController

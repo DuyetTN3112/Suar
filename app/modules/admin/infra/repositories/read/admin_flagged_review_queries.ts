@@ -81,7 +81,7 @@ export const AdminFlaggedReviewReadOps = {
           void rs.preload('reviewee')
           void rs.preload('task_assignment', (ta) => {
             void ta.preload('task', (taskQuery) => {
-              void taskQuery.select('id', 'title', 'project_id')
+              void taskQuery.select('id', 'title', 'description', 'project_id')
             })
           })
         })

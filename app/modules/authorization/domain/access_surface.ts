@@ -148,7 +148,7 @@ const PERMISSION_PRESENTATION_MAP: Record<
   },
   'can_assign_task': {
     label: 'Giao task',
-    description: 'Gán task cho thành viên hoặc freelancer.',
+    description: 'Gán task cho thành viên hoặc external_contributor.',
     category: 'Task',
   },
   'can_update_any_task': {
@@ -161,14 +161,14 @@ const PERMISSION_PRESENTATION_MAP: Record<
     description: 'Xóa task bất kỳ trong project.',
     category: 'Task',
   },
-  'can_invite_freelancer': {
-    label: 'Mời freelancer',
-    description: 'Đưa freelancer hoặc ứng viên ngoài tổ chức vào flow công việc.',
+  'can_invite_external_contributor': {
+    label: 'Mời contributor bên ngoài',
+    description: 'Đưa contributor bên ngoài vào flow công việc.',
     category: 'Marketplace',
   },
   'can_approve_application': {
-    label: 'Duyệt đơn ứng tuyển',
-    description: 'Xử lý application trên marketplace hoặc task external.',
+    label: 'Duyệt đề xuất tham gia',
+    description: 'Xử lý đề xuất tham gia trên marketplace hoặc task external.',
     category: 'Marketplace',
   },
   'can_manage_project_settings': {
@@ -181,9 +181,9 @@ const PERMISSION_PRESENTATION_MAP: Record<
     description: 'Truy cập tất cả task trong project.',
     category: 'Task',
   },
-  'can_manage_project_budget': {
-    label: 'Quản lý ngân sách dự án',
-    description: 'Theo dõi và điều chỉnh budget của project.',
+  'can_manage_project_resources': {
+    label: 'Quản lý nguồn lực dự án',
+    description: 'Theo dõi và điều chỉnh nguồn lực của project.',
     category: 'Project',
   },
   'can_export_project_data': {

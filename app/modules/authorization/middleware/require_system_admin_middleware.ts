@@ -2,6 +2,12 @@ import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
 import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
+import { ErrorCode, HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
+import {
+  classifyHttpTransport,
+  isApiTransport,
+} from '#modules/http/boundary/http_transport'
 
 /**
  * RequireSystemAdminMiddleware
@@ -25,14 +31,19 @@ export default class RequireSystemAdminMiddleware {
   /**
    * Handle the request
    */
-  async handle({ auth, session, response, request }: HttpContext, next: NextFn): Promise<void> {
+  async handle(ctx: HttpContext, next: NextFn): Promise<void> {
+    const { auth, session, response } = ctx
+    const transport = classifyHttpTransport(ctx)
+
     // Check if user is authenticated
     if (!auth.user) {
-      if (request.accepts(['html', 'json']) === 'json' || request.url().startsWith('/api/')) {
-        response.status(401).json({
-          status: 401,
-          code: 'UNAUTHORIZED',
-          message: 'You must be logged in to access this page'
+      if (isApiTransport(transport)) {
+        emitApiError(ctx, {
+          transport,
+          status: HttpStatus.UNAUTHORIZED,
+          code: ErrorCode.UNAUTHORIZED,
+          detail: 'You must be logged in to access this page',
+          includeLegacyMeta: true,
         })
         return
       }
@@ -41,13 +52,15 @@ export default class RequireSystemAdminMiddleware {
       return
     }
 
-    const decision = canAccessSystemAdministration(auth.user.system_role)
+    const decision = await canAccessSystemAdministration(auth.user.system_role)
     if (!decision.allowed) {
-      if (request.accepts(['html', 'json']) === 'json' || request.url().startsWith('/api/')) {
-        response.status(403).json({
-          status: 403,
-          code: 'FORBIDDEN',
-          message: 'Access denied. System administrator privileges required.'
+      if (isApiTransport(transport)) {
+        emitApiError(ctx, {
+          transport,
+          status: HttpStatus.FORBIDDEN,
+          code: ErrorCode.FORBIDDEN,
+          detail: 'Access denied. System administrator privileges required.',
+          includeLegacyMeta: true,
         })
         return
       }

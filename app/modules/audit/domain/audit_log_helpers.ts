@@ -106,7 +106,7 @@ export function createAuditDescriptionVi(
     [EntityType.PROJECT]: 'dự án',
     [EntityType.PROJECT_MEMBER]: 'thành viên dự án',
     [EntityType.TASK]: 'công việc',
-    [EntityType.TASK_APPLICATION]: 'đơn ứng tuyển',
+    [EntityType.TASK_APPLICATION]: 'đề xuất tham gia',
     [EntityType.TASK_ASSIGNMENT]: 'phân công',
     [EntityType.REVIEW]: 'đánh giá',
     [EntityType.NOTIFICATION]: 'thông báo',

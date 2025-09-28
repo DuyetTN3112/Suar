@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import GetUserDetailsQuery from '#modules/admin/actions/users/queries/get_user_details_query'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 
 
 /**
@@ -17,10 +17,10 @@ export default class ShowUserController {
 
     const execCtx = actionContextFromHttp(ctx)
     const query = new GetUserDetailsQuery(execCtx)
-    const userId = String(params.id)
+    const userId = String(params['userId'])
 
     const user = await query.handle({ userId })
 
-    return inertia.render('admin/users/show', { user })
+    return inertia.render('users/show', { user })
   }
 }

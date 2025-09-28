@@ -3,6 +3,9 @@ export interface AuditActionContext {
   readonly ip: string
   readonly userAgent: string
   readonly organizationId: string | null
+  readonly requestId?: string | null
+  readonly traceId?: string | null
+  readonly workflowId?: string | null
 }
 
 export interface AuthenticatedAuditActionContext extends AuditActionContext {
@@ -15,5 +18,8 @@ export function makeSystemAuditActionContext(systemUserId: string): Authenticate
     ip: '0.0.0.0',
     userAgent: 'system',
     organizationId: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
   }
 }

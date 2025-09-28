@@ -29,7 +29,7 @@ export default class AuditLogMiddleware {
       return
     }
 
-    const entityId = ctx.params.id as string | undefined
+    const entityId = this.resolveEntityId(ctx.params)
     const duration = Date.now() - startTime
 
     // Fire-and-forget: emit event → AuditLogListener handles persistence
@@ -37,10 +37,10 @@ export default class AuditLogMiddleware {
       void emitter.emit('audit:log', {
         userId: ctx.auth.user.id,
         action: options.action ?? ctx.request.method(),
-        entityType: options.entityType ?? undefined,
-        entityId: entityId ?? undefined,
         ipAddress: ctx.request.ip(),
         userAgent: ctx.request.header('user-agent') ?? '',
+        ...(options.entityType !== undefined ? { entityType: options.entityType } : {}),
+        ...(entityId !== undefined ? { entityId } : {}),
         newValues: {
           method: ctx.request.method(),
           url: ctx.request.url(),
@@ -56,5 +56,25 @@ export default class AuditLogMiddleware {
         url: ctx.request.url(),
       })
     }
+  }
+
+  private resolveEntityId(params: HttpContext['params']): string | undefined {
+    const routeParams = params as Record<string, unknown>
+    const exactId = routeParams['id']
+    if (typeof exactId === 'string' && exactId.length > 0) {
+      return exactId
+    }
+
+    for (const [key, value] of Object.entries(routeParams)) {
+      if (!key.endsWith('Id')) {
+        continue
+      }
+
+      if (typeof value === 'string' && value.length > 0) {
+        return value
+      }
+    }
+
+    return undefined
   }
 }

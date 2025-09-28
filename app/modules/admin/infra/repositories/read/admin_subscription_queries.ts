@@ -1,5 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : 0
@@ -16,7 +17,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 }
 
 const hasToIso = (value: unknown): value is { toISO: () => string | null } => {
-  return isRecord(value) && typeof value.toISO === 'function'
+  return isRecord(value) && typeof value['toISO'] === 'function'
 }
 
 const toNullableString = (value: unknown): string | null => {
@@ -81,18 +82,18 @@ export const AdminSubscriptionReadOps = {
     const byPlan: Record<string, number> = {}
     if (Array.isArray(planRows)) {
       for (const row of planRows) {
-        if (!isRecord(row) || typeof row.plan !== 'string') {
+        if (!isRecord(row) || typeof row['plan'] !== 'string') {
           continue
         }
-        byPlan[row.plan] = toNumberValue(row.total)
+        byPlan[row['plan']] = toNumberValue(row['total'])
       }
     }
 
     return {
-      total: isRecord(totalRow) ? toNumberValue(totalRow.total) : 0,
-      active: isRecord(activeRow) ? toNumberValue(activeRow.total) : 0,
-      cancelled: isRecord(cancelledRow) ? toNumberValue(cancelledRow.total) : 0,
-      expiringSoon: isRecord(expiringSoonRow) ? toNumberValue(expiringSoonRow.total) : 0,
+      total: isRecord(totalRow) ? toNumberValue(totalRow['total']) : 0,
+      active: isRecord(activeRow) ? toNumberValue(activeRow['total']) : 0,
+      cancelled: isRecord(cancelledRow) ? toNumberValue(cancelledRow['total']) : 0,
+      expiringSoon: isRecord(expiringSoonRow) ? toNumberValue(expiringSoonRow['total']) : 0,
       byPlan,
     }
   },
@@ -144,27 +145,28 @@ export const AdminSubscriptionReadOps = {
           'us.updated_at'
         )
         .orderBy('us.updated_at', 'desc')
+        .orderBy('us.id', 'desc')
         .limit(perPage)
-        .offset((page - 1) * perPage),
+        .offset(toOffset(page, perPage)),
       countQuery.count('* as total').first(),
     ])) as [Record<string, unknown>[], Record<string, unknown> | null]
 
     return {
       subscriptions: rows.map((row) => ({
-        id: String(row.id),
-        user_id: String(row.user_id),
-        username: typeof row.username === 'string' ? row.username : 'Unknown',
-        email: typeof row.email === 'string' ? row.email : null,
-        system_role: typeof row.system_role === 'string' ? row.system_role : 'registered_user',
-        plan: typeof row.plan === 'string' ? row.plan : 'free',
-        status: typeof row.status === 'string' ? row.status : 'active',
-        started_at: toNullableString(row.started_at),
-        expires_at: toNullableString(row.expires_at),
-        auto_renew: Boolean(row.auto_renew),
-        created_at: toNullableString(row.created_at),
-        updated_at: toNullableString(row.updated_at),
+        id: String(row['id']),
+        user_id: String(row['user_id']),
+        username: typeof row['username'] === 'string' ? row['username'] : 'Unknown',
+        email: typeof row['email'] === 'string' ? row['email'] : null,
+        system_role: typeof row['system_role'] === 'string' ? row['system_role'] : 'registered_user',
+        plan: typeof row['plan'] === 'string' ? row['plan'] : 'free',
+        status: typeof row['status'] === 'string' ? row['status'] : 'active',
+        started_at: toNullableString(row['started_at']),
+        expires_at: toNullableString(row['expires_at']),
+        auto_renew: Boolean(row['auto_renew']),
+        created_at: toNullableString(row['created_at']),
+        updated_at: toNullableString(row['updated_at']),
       })),
-      total: isRecord(totalRow) ? toNumberValue(totalRow.total) : 0,
+      total: isRecord(totalRow) ? toNumberValue(totalRow['total']) : 0,
     }
   },
 
