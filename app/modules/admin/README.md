@@ -580,10 +580,10 @@ const AdminDisputesController = () =>
 
 router
   .group(() => {
-    router.post('/toggle', [AdminToggleAdminModeController, 'handle']).as('admin.toggle')
+    router.post('/toggle', [AdminToggleAdminModeController, 'handle']).as('admin.mode.switch')
 
     // ─── Dashboard ───
-    router.get('/', [AdminDashboardController, 'handle']).as('admin.dashboard')
+    router.get('/', [AdminDashboardController, 'handle']).as('admin.dashboard.show')
     router.get('/dashboards/users', [AdminDashboardController, 'users']).as('admin.dashboard.users')
     router
       .get('/dashboards/operations', [AdminDashboardController, 'operations'])
@@ -621,7 +621,7 @@ router
 
     // ─── Audit Logs ───
     router.get('/audit-logs', [AdminListAuditLogsController, 'handle']).as('admin.auditLogs')
-    router.get('/permissions', [AdminShowPermissionsController, 'handle']).as('admin.permissions')
+    router.get('/permissions', [AdminShowPermissionsController, 'handle']).as('admin.permissions.show')
     router.get('/qr-codes', [AdminShowQrCodesController, 'handle']).as('admin.qrCodes')
 
     // ─── Flagged Reviews ───
@@ -631,7 +631,7 @@ router
         router.get('/:id', [AdminShowFlaggedReviewController, 'handle']).as('admin.reviews.show')
         router
           .put('/:id/resolve', [AdminResolveFlaggedReviewController, 'handle'])
-          .as('admin.reviews.resolve')
+          .as('admin.reviews.resolutions.store')
       })
       .prefix('/reviews')
 
@@ -641,7 +641,7 @@ router
         router.get('/', [AdminDisputesController, 'index']).as('admin.disputes.index')
         router
           .get('/ai-operator', [AdminDisputesController, 'aiOperator'])
-          .as('admin.disputes.ai_operator')
+          .as('admin.disputes.ai_operator.show')
         router.get('/:id', [AdminDisputesController, 'show']).as('admin.disputes.show')
       })
       .prefix('/disputes')
@@ -665,7 +665,7 @@ router
 router
   .group(() => {
     router.get('/api/admin/dashboard', [AdminDashboardController, 'apiDashboard']).as(
-      'api.admin.dashboard'
+      'api.admin.dashboard.show'
     )
     router.get('/api/admin/users', [AdminListUsersController, 'apiIndex']).as('api.admin.users')
     router

@@ -24,7 +24,7 @@ export default class ToggleAdminModeCommand extends BaseCommand<
     const userId = this.getCurrentUserId()
     const actorSystemRole = await userPublicApi.getSystemRoleName(userId)
 
-    enforcePolicy(userPublicApi.canToggleAdminMode(actorSystemRole))
+    enforcePolicy(await userPublicApi.canToggleAdminMode(actorSystemRole))
 
     if (dto.enabled) {
       return {

@@ -992,15 +992,16 @@ export type ScannedRoutes = {
     'api.v1.tasks.comments.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.v1.tasks.attachments.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'tasks.create': { paramsTuple?: []; params?: {} }
+    'tasks.board_state.show': { paramsTuple?: []; params?: {} }
+    'tasks.show': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'tasks.edit': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'tasks.audit_logs': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.task_statuses.index': { paramsTuple?: []; params?: {} }
-    'api.workflow.index': { paramsTuple?: []; params?: {} }
-    'marketplace.tasks': { paramsTuple?: []; params?: {} }
-    'api.marketplace.tasks': { paramsTuple?: []; params?: {} }
+    'api.task_statuses.workflow.index': { paramsTuple?: []; params?: {} }
     'settings.index': { paramsTuple?: []; params?: {} }
     'settings.profile': { paramsTuple?: []; params?: {} }
     'settings.account': { paramsTuple?: []; params?: {} }
-    'settings.appearance': { paramsTuple?: []; params?: {} }
-    'settings.display': { paramsTuple?: []; params?: {} }
+    'settings.audit_logs.index': { paramsTuple?: []; params?: {} }
     'settings.notifications': { paramsTuple?: []; params?: {} }
     'account.index': { paramsTuple?: []; params?: {} }
     'notifications.index': { paramsTuple?: []; params?: {} }
@@ -1010,123 +1011,209 @@ export type ScannedRoutes = {
     'api.v1.notifications.index': { paramsTuple?: []; params?: {} }
     'api.v1.task_statuses.index': { paramsTuple?: []; params?: {} }
     'api.v1.task_statuses.show': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
-    'get_task_audit_logs': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.projects.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'redis_list_keys': { paramsTuple?: []; params?: {} }
-    'redis_get_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
-    'api.organizations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'get_organization_members_api': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'get_me_api': { paramsTuple?: []; params?: {} }
-    'get_users_in_organization_api': { paramsTuple?: []; params?: {} }
-    'debug_organization_info_api': { paramsTuple?: []; params?: {} }
-    'organizations.all': { paramsTuple?: []; params?: {} }
-    'api.organizations.list': { paramsTuple?: []; params?: {} }
-    'organizations.debug': { paramsTuple?: []; params?: {} }
-    'organizations.join': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.task_statuses.workflow.index': { paramsTuple?: []; params?: {} }
+    'api.v1.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.search.index': { paramsTuple?: []; params?: {} }
+    'api.tasks.audit_logs.index': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.redis.keys.index': { paramsTuple?: []; params?: {} }
+    'api.redis.cache.show': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
+    'api.organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.organizations.members.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.me.show': { paramsTuple?: []; params?: {} }
+    'api.organizations.users.index': { paramsTuple?: []; params?: {} }
+    'api.dev.organizations.debug_info.show': { paramsTuple?: []; params?: {} }
+    'organizations.directory.index': { paramsTuple?: []; params?: {} }
+    'api.organizations.index': { paramsTuple?: []; params?: {} }
+    'api.v1.organizations.index': { paramsTuple?: []; params?: {} }
+    'organizations.join': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'organizations.index': { paramsTuple?: []; params?: {} }
     'organizations.create': { paramsTuple?: []; params?: {} }
-    'organizations.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'organizations.members.index': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'organizations.members.pending_requests': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'organizations.switch.redirect': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'organizations.show': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'organizations.switch.redirect': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'projects.index': { paramsTuple?: []; params?: {} }
     'projects.create': { paramsTuple?: []; params?: {} }
-    'projects.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'projects.member_candidates': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'reviews.pending': { paramsTuple?: []; params?: {} }
-    'reviews.reverse_reviews': { paramsTuple?: []; params?: {} }
-    'org.reverse_reviews': { paramsTuple?: []; params?: {} }
-    'reviews.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'reviews.disputes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'reviews.evidences.list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'reviews.self_assessment.get': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.me.reverse_reviews.list': { paramsTuple?: []; params?: {} }
-    'api.org.reverse_reviews.list': { paramsTuple?: []; params?: {} }
-    'api.reviews.disputes.comments.list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.reviews.disputes.evidences.list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'reviews.mine': { paramsTuple?: []; params?: {} }
-    'users.reviews': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.reverse_reviews': { paramsTuple?: []; params?: {} }
-    'api.admin.reverse_reviews.list': { paramsTuple?: []; params?: {} }
-    'api.admin.reviews.disputes.list': { paramsTuple?: []; params?: {} }
-    'api.admin.reviews.disputes.show': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.admin.reviews.disputes.case_files.list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.admin.reviews.disputes.ai_evaluations.list': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.flagged_reviews': { paramsTuple?: []; params?: {} }
+    'projects.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'projects.member_candidates': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.sprints.index': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.projects.sprints.show': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
+    'api.v1.projects.sprint_board.show': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.me.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.sprint_review_packages.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.sprint_review_packages.pending': { paramsTuple?: []; params?: {} }
+    'reviews.pending_reviews.index': { paramsTuple?: []; params?: {} }
+    'reviews.task_board.index': { paramsTuple?: []; params?: {} }
+    'org.reviews.task_board.index': { paramsTuple?: []; params?: {} }
+    'reviews.sprint_reverse_board.index': { paramsTuple?: []; params?: {} }
+    'reviews.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'org.reviews.sprint_reverse_board.index': { paramsTuple?: []; params?: {} }
+    'org.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'org.disputes.index': { paramsTuple?: []; params?: {} }
+    'reviews.show': { paramsTuple: [ParamValue]; params: {'reviewId': ParamValue} }
+    'reviews.disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'reviews.sprint_disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'reviews.evidences.index': { paramsTuple: [ParamValue]; params: {'reviewId': ParamValue} }
+    'reviews.self_assessment.show': { paramsTuple: [ParamValue]; params: {'reviewId': ParamValue} }
+    'users.reviews.index': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.reviews.disputes.comments.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.v1.reviews.disputes.evidences.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.v1.sprint_review_packages.show': { paramsTuple: [ParamValue]; params: {'packageId': ParamValue} }
+    'api.reviews.disputes.comments.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.reviews.disputes.evidences.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.sprint_review_packages.show': { paramsTuple: [ParamValue]; params: {'packageId': ParamValue} }
+    'api.v1.me.organizations.current.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.reviews.disputes.index': { paramsTuple?: []; params?: {} }
+    'admin.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'admin.flagged_reviews.index': { paramsTuple?: []; params?: {} }
+    'api.admin.reverse_reviews.index': { paramsTuple?: []; params?: {} }
+    'api.admin.reviews.disputes.index': { paramsTuple?: []; params?: {} }
+    'api.admin.reviews.disputes.show': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.reviews.disputes.case_files.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.admin.reviews.disputes.ai_evaluations.index': { paramsTuple: [ParamValue]; params: {'disputeId': ParamValue} }
+    'api.v1.me.organizations.current.task_statuses.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.reverse_reviews.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.reviews.disputes.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.talents.search.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.talents.alias.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.organizations.members.alias.index': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.me.organizations.current.users.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.users.pending_approvals.count.alias.show': { paramsTuple?: []; params?: {} }
+    'api.tasks.creation_access.alias.show': { paramsTuple?: []; params?: {} }
+    'api.tasks.status_groups.alias.index': { paramsTuple?: []; params?: {} }
+    'api.tasks.timeline_items.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.creation_access.alias.show': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.status_groups.alias.index': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.timeline_items.alias.index': { paramsTuple?: []; params?: {} }
+    'api.me.organizations.current.talents.search.alias.index': { paramsTuple?: []; params?: {} }
+    'api.me.organizations.current.talents.alias.show': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.me.organizations.current.reverse_reviews.alias.index': { paramsTuple?: []; params?: {} }
+    'api.me.organizations.current.reviews.disputes.alias.index': { paramsTuple?: []; params?: {} }
+    'api.recruiters.bookmarks.index': { paramsTuple?: []; params?: {} }
+    'search.index': { paramsTuple?: []; params?: {} }
+    'dashboard.show': { paramsTuple?: []; params?: {} }
     'health_checks': { paramsTuple?: []; params?: {} }
   }
   PUT: {
-    'admin.users.updateRole': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.reviews.resolve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'org.members.updateRole': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'org.requests.approve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.suspend': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.users.activate': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'admin.permissions.custom_roles.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.reviews.resolutions.store': { paramsTuple: [ParamValue]; params: {'flaggedReviewId': ParamValue} }
+    'admin.packages.update': { paramsTuple: [ParamValue]; params: {'subscriptionId': ParamValue} }
+    'org.members.update_role': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'org.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
     'org.settings.update': { paramsTuple?: []; params?: {} }
     'org.roles.update': { paramsTuple?: []; params?: {} }
+    'api.v1.me.organizations.current.members.role.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.join_requests.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
+    'api.v1.me.organizations.current.roles.update': { paramsTuple?: []; params?: {} }
     'api.v1.skills.projects.skills.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
     'api.v1.skills.projects.roles.skills.update': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue,'roleSkillId': ParamValue} }
-    'api.v1.tasks.requirements.tasks.requirements.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
-    'users.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'users.approve': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'users.update_role': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'profile.updateDetails': { paramsTuple?: []; params?: {} }
-    'profile.skills.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.tasks.requirements.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
+    'users.update': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'users.update_role': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'profile.details.update': { paramsTuple?: []; params?: {} }
+    'profile.skills.update': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
     'profile.update_settings': { paramsTuple?: []; params?: {} }
-    'tasks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'tasks.update.status': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.workflow.update': { paramsTuple?: []; params?: {} }
+    'api.v1.users.approvals.store': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.me.invitations.accept': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.me.invitations.reject': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'tasks.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'tasks.update.status': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.task_statuses.replace': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
+    'api.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
     'settings.update': { paramsTuple?: []; params?: {} }
-    'api.projects.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.organizations.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.task_statuses.workflow.update': { paramsTuple?: []; params?: {} }
+    'api.projects.replace': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.organizations.replace': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
     'projects.members.update': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.me.organizations.current.members.role.alias.update': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.join_requests.alias.approvals.store': { paramsTuple: [ParamValue]; params: {'joinRequestId': ParamValue} }
+    'api.v1.me.organizations.current.roles.alias.update': { paramsTuple?: []; params?: {} }
   }
   DELETE: {
-    'org.members.remove': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'admin.permissions.custom_roles.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'org.members.destroy': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.members.destroy': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
     'api.v1.skills.projects.skills.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'projectSkillId': ParamValue} }
     'api.v1.skills.projects.roles.skills.destroy': { paramsTuple: [ParamValue,ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue,'roleSkillId': ParamValue} }
     'api.v1.skills.projects.roles.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'roleId': ParamValue} }
-    'api.v1.tasks.requirements.tasks.requirements.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
-    'users.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.recruiter_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.recruiters.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.org.talents.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
-    'profile.skills.remove': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.tasks.requirements.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'requirementId': ParamValue} }
+    'users.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'profile.skills.destroy': { paramsTuple: [ParamValue]; params: {'skillId': ParamValue} }
+    'api.talent_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.recruiter_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.talent_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.recruiter_bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.me.organizations.current.talents.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
     'api.task_submissions.evidences.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'submissionId': ParamValue,'evidenceId': ParamValue} }
     'api.tasks.comments.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'commentId': ParamValue} }
     'api.tasks.attachments.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'attachmentId': ParamValue} }
-    'tasks.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.task_submissions.evidences.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'submissionId': ParamValue,'evidenceId': ParamValue} }
+    'api.v1.tasks.comments.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'commentId': ParamValue} }
+    'api.v1.tasks.attachments.destroy': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'attachmentId': ParamValue} }
+    'tasks.destroy': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'account.destroy': { paramsTuple?: []; params?: {} }
-    'notifications.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
     'notifications.destroy_all_read': { paramsTuple?: []; params?: {} }
-    'api.v1.notifications.destroy_read': { paramsTuple?: []; params?: {} }
+    'api.v1.notifications.read_notifications.destroy': { paramsTuple?: []; params?: {} }
     'api.v1.notifications.destroy': { paramsTuple: [ParamValue]; params: {'notificationId': ParamValue} }
-    'task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
-    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'redis_clear_cache': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
-    'redis_flush_cache': { paramsTuple?: []; params?: {} }
-    'api.organizations.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'organizations.members.remove': { paramsTuple: [ParamValue,ParamValue]; params: {'id': ParamValue,'userId': ParamValue} }
-    'organizations.users.remove': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'projects.destroy': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'projects.members.remove': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.task_statuses.destroy': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
+    'api.v1.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.organizations.destroy': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.redis.cache.destroy': { paramsTuple: [ParamValue]; params: {'key': ParamValue} }
+    'api.redis.cache.all.destroy': { paramsTuple?: []; params?: {} }
+    'api.organizations.destroy': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'projects.destroy': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'projects.members.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.v1.me.organizations.current.members.alias.destroy': { paramsTuple: [ParamValue]; params: {'memberId': ParamValue} }
+    'api.v1.me.organizations.current.talents.bookmarks.alias.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.me.organizations.current.talents.bookmarks.alias.destroy': { paramsTuple: [ParamValue]; params: {'userId': ParamValue} }
+    'api.recruiters.bookmarks.destroy': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
   }
   PATCH: {
-    'api.recruiter_bookmarks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.recruiters.bookmarks.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'profile.snapshots.access': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.me.profile_snapshots.access': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.tasks.batch_status': { paramsTuple?: []; params?: {} }
-    'api.tasks.status_board': { paramsTuple?: []; params?: {} }
-    'api.tasks.sort_order': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
-    'api.tasks.submission.update': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'profile.snapshots.access.update': { paramsTuple: [ParamValue]; params: {'snapshotId': ParamValue} }
+    'api.me.profile_snapshots.access.update': { paramsTuple: [ParamValue]; params: {'snapshotId': ParamValue} }
+    'api.talent_bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.recruiter_bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.talent_bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.recruiter_bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
+    'api.v1.me.profile_snapshots.access.update': { paramsTuple: [ParamValue]; params: {'snapshotId': ParamValue} }
+    'api.tasks.statuses.batch.update': { paramsTuple?: []; params?: {} }
+    'api.tasks.board_state.update': { paramsTuple?: []; params?: {} }
+    'api.tasks.sort_order.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.tasks.submission.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
     'api.tasks.comments.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'commentId': ParamValue} }
-    'tasks.update.time': { paramsTuple: [ParamValue]; params: {'id': ParamValue} }
+    'api.v1.tasks.statuses.batch.update': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.board_state.update': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.sort_order.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.v1.tasks.submission.update': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.v1.tasks.comments.update': { paramsTuple: [ParamValue,ParamValue]; params: {'taskId': ParamValue,'commentId': ParamValue} }
+    'tasks.update.time': { paramsTuple: [ParamValue]; params: {'taskId': ParamValue} }
+    'api.task_statuses.update': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
     'api.v1.me.settings.update': { paramsTuple?: []; params?: {} }
-    'task_statuses.update': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
+    'api.v1.task_statuses.update': { paramsTuple: [ParamValue]; params: {'taskStatusId': ParamValue} }
+    'api.v1.projects.update': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.v1.organizations.update': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.projects.update': { paramsTuple: [ParamValue]; params: {'projectId': ParamValue} }
+    'api.organizations.update': { paramsTuple: [ParamValue]; params: {'organizationId': ParamValue} }
+    'api.v1.projects.sprints.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'sprintId': ParamValue} }
+    'api.v1.projects.tasks.sprint.update': { paramsTuple: [ParamValue,ParamValue]; params: {'projectId': ParamValue,'taskId': ParamValue} }
+    'api.tasks.board_state.alias.update': { paramsTuple?: []; params?: {} }
+    'api.v1.tasks.board_state.alias.update': { paramsTuple?: []; params?: {} }
+    'api.recruiters.bookmarks.update': { paramsTuple: [ParamValue]; params: {'bookmarkId': ParamValue} }
   }
 }
 declare module '@adonisjs/core/types/http' {

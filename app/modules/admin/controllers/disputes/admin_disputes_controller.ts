@@ -2,32 +2,58 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
-import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { normalizePagination,
+  fromLegacySnakePagination,
+  toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import {
+  getAdminReviewDisputeDetail,
+  listAdminReviewDisputes,
+} from '#modules/reviews/public_contracts/review_admin_disputes'
 
 export default class AdminDisputesController {
   async index(ctx: HttpContext) {
     const { inertia, request } = ctx
-    const page = Number(request.input('page', 1))
-    const perPage = Number(request.input('per_page', 20))
+    const after = request.input('after', null) as string | null
+    const before = request.input('before', null) as string | null
     const status = request.input('status', null) as string | null
     const search = request.input('search', null) as string | null
+    const requestedOutcome = request.input('requested_outcome', null) as string | null
+    const finalDecision = request.input('final_decision', null) as string | null
+    const pagination = normalizePagination(
+      {
+        page: request.input('page', REVIEW_PAGINATION.DEFAULT_PAGE) as unknown,
+        perPage: request.input(
+          'perPage',
+          request.input('per_page', REVIEW_PAGINATION.DEFAULT_PER_PAGE)
+        ) as unknown,
+      },
+      REVIEW_PAGINATION
+    )
 
     const execCtx = actionContextFromHttp(ctx)
-    const result = await new ListAdminReviewDisputesQuery(execCtx).execute({
-      page: Number.isFinite(page) ? page : 1,
-      per_page: Number.isFinite(perPage) ? perPage : 20,
+    const result = await listAdminReviewDisputes({
+      page: after || before ? REVIEW_PAGINATION.DEFAULT_PAGE : pagination.page,
+      perPage: pagination.perPage,
+      after,
+      before,
       status,
       search,
-    })
+      requestedOutcome,
+      finalDecision,
+    }, execCtx)
 
-    return inertia.render('admin/disputes/index' as any, {
+    return inertia.render('disputes/index' as any, {
       disputes: result.data,
-      meta: result.meta,
+      pagination: toCanonicalPagePagination(fromLegacySnakePagination(result.meta)),
       filters: {
         status,
         search,
+        after,
+        before,
+        requested_outcome: requestedOutcome,
+        final_decision: finalDecision,
       },
     })
   }
@@ -35,11 +61,11 @@ export default class AdminDisputesController {
   async show(ctx: HttpContext) {
     const { inertia, params } = ctx
     const execCtx = actionContextFromHttp(ctx)
-    const result = await new GetAdminReviewDisputeDetailQuery(execCtx).execute({
-      dispute_id: params.id as string,
-    })
+    const result = await getAdminReviewDisputeDetail({
+      disputeId: params['disputeId'] as string,
+    }, execCtx)
 
-    return inertia.render('admin/disputes/show' as any, result)
+    return inertia.render('disputes/show' as any, result)
   }
 
   async aiOperator(ctx: HttpContext) {
@@ -47,13 +73,24 @@ export default class AdminDisputesController {
     const execCtx = actionContextFromHttp(ctx)
     const search = request.input('search', null) as string | null
     const status = request.input('status', null) as string | null
+    const pagination = normalizePagination(
+      {
+        page: request.input('page', REVIEW_PAGINATION.DEFAULT_PAGE) as unknown,
+        perPage: request.input(
+          'perPage',
+          request.input('per_page', REVIEW_PAGINATION.DEFAULT_PER_PAGE)
+        ) as unknown,
+      },
+      REVIEW_PAGINATION,
+      { perPage: 25 }
+    )
 
-    const disputes = await new ListAdminReviewDisputesQuery(execCtx).execute({
-      page: 1,
-      per_page: 25,
+    const disputes = await listAdminReviewDisputes({
+      page: pagination.page,
+      perPage: pagination.perPage,
       search,
       status,
-    })
+    }, execCtx)
 
     const providerRows = (await db
       .from('ai_dispute_evaluations')
@@ -61,7 +98,7 @@ export default class AdminDisputesController {
         'provider',
         db.raw('COUNT(*)::int as total'),
         db.raw(
-          "SUM(CASE WHEN status IN ('queued', 'pending', 'running') THEN 1 ELSE 0 END)::int as active"
+          "SUM(CASE WHEN status IN ('queued', 'processing') THEN 1 ELSE 0 END)::int as active"
         ),
         db.raw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::int as completed"),
         db.raw(
@@ -82,7 +119,7 @@ export default class AdminDisputesController {
       .select(
         db.raw('COUNT(*)::int as total'),
         db.raw(
-          "SUM(CASE WHEN status IN ('queued', 'pending', 'running') THEN 1 ELSE 0 END)::int as active"
+          "SUM(CASE WHEN status IN ('queued', 'processing') THEN 1 ELSE 0 END)::int as active"
         ),
         db.raw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END)::int as completed"),
         db.raw(
@@ -118,8 +155,9 @@ export default class AdminDisputesController {
       })),
     }
 
-    return inertia.render('admin/disputes/ai_operator' as any, {
+    return inertia.render('disputes/ai_operator' as any, {
       disputes: disputes.data,
+      pagination: toCanonicalPagePagination(fromLegacySnakePagination(disputes.meta)),
       filters: {
         search,
         status,

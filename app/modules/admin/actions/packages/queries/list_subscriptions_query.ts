@@ -1,6 +1,11 @@
 import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
+import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
 import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import {
   toDisplaySubscriptionPlan,
   toStorageSubscriptionPlan,
@@ -56,24 +61,29 @@ export default class ListSubscriptionsQuery extends BaseQuery<
   }
 
   async handle(dto: ListSubscriptionsDTO): Promise<ListSubscriptionsResult> {
-    const page = dto.page ?? 1
-    const perPage = dto.perPage ?? 20
+    const pagination = normalizePagination(dto, ADMIN_PAGINATION)
+    const plan = toStorageSubscriptionPlan(dto.plan)
 
     const [stats, result] = await Promise.all([
       this.repo.getSubscriptionStats(),
       this.repo.listSubscriptions(
-        { search: dto.search, plan: toStorageSubscriptionPlan(dto.plan), status: dto.status },
-        page,
-        perPage
+        {
+          ...(dto.search ? { search: dto.search } : {}),
+          ...(plan ? { plan } : {}),
+          ...(dto.status ? { status: dto.status } : {}),
+        },
+        pagination.page,
+        pagination.perPage
       ),
     ])
+    const meta = buildPaginationMeta(result.total, pagination)
 
     return {
       stats: {
         ...stats,
         byPlan: {
           ...stats.byPlan,
-          promax: stats.byPlan.enterprise ?? 0,
+          promax: stats.byPlan['enterprise'] ?? 0,
         },
       },
       subscriptions: result.subscriptions.map((subscription) => ({
@@ -81,10 +91,10 @@ export default class ListSubscriptionsQuery extends BaseQuery<
         plan: toDisplaySubscriptionPlan(subscription.plan),
       })),
       meta: {
-        total: result.total,
-        perPage,
-        currentPage: page,
-        lastPage: Math.max(1, Math.ceil(result.total / perPage)),
+        total: meta.total,
+        perPage: meta.perPage,
+        currentPage: meta.currentPage,
+        lastPage: meta.lastPage,
       },
     }
   }

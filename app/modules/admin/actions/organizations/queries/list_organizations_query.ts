@@ -1,7 +1,16 @@
 import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
 import { BaseQuery } from '#modules/admin/actions/base_query'
+import type { AdminOrganizationSearchCandidateReader } from '#modules/admin/actions/ports/admin_search_candidate_readers'
+import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { EngineAdminOrganizationSearchCandidateReader } from '#modules/admin/infra/adapters/engine_admin_search_candidate_readers'
 import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
 import type { PartnerType } from '#modules/organizations/public_contracts/organization_constants'
+import {
+  buildPaginationMeta,
+  normalizePagination,
+  toWindowLimit,
+} from '#modules/pagination/public_contracts/pagination_public_api'
+import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {
@@ -74,26 +83,45 @@ export default class ListOrganizationsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: AdminActionContext,
-    private orgRepo = AdminOrganizationReadOps
+    private orgRepo = AdminOrganizationReadOps,
+    private readonly organizationSearchCandidateReader: AdminOrganizationSearchCandidateReader = new EngineAdminOrganizationSearchCandidateReader()
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListOrganizationsDTO): Promise<ListOrganizationsResult> {
-    const page = dto.page ?? 1
-    const perPage = dto.perPage ?? 50
-
-    // Fetch from repository (Infrastructure layer)
-    const result = await this.orgRepo.listOrganizations(
-      {
-        search: dto.search,
-        partnerType: dto.partnerType,
-      },
-      page,
-      perPage
+    const pagination = normalizePagination(dto, ADMIN_PAGINATION, { perPage: 50 })
+    const organizationIds = await this.resolveEngineOrganizationIds(
+      dto.search,
+      pagination.page,
+      pagination.perPage
     )
 
-    const lastPage = Math.ceil(result.total / perPage)
+    // Fetch from repository (Infrastructure layer).
+      // Search index can lag behind freshly-created DB rows during tests/runtime; fall back to SQL
+      // search when engine candidates do not resolve to any active organizations.
+    let result = await this.orgRepo.listOrganizations(
+      {
+        ...(organizationIds || !dto.search ? {} : { search: dto.search }),
+        ...(dto.partnerType ? { partnerType: dto.partnerType } : {}),
+        ...(organizationIds ? { organizationIds } : {}),
+      },
+      pagination.page,
+      pagination.perPage
+    )
+
+    if (organizationIds && result.organizations.length === 0 && dto.search?.trim()) {
+      result = await this.orgRepo.listOrganizations(
+        {
+          search: dto.search,
+          ...(dto.partnerType ? { partnerType: dto.partnerType } : {}),
+        },
+        pagination.page,
+        pagination.perPage
+      )
+    }
+
+    const meta = buildPaginationMeta(result.total, pagination)
 
     return {
       data: result.organizations.map((org) => ({
@@ -117,11 +145,36 @@ export default class ListOrganizationsQuery extends BaseQuery<
         },
       })),
       meta: {
-        total: result.total,
-        perPage,
-        currentPage: page,
-        lastPage,
+        total: meta.total,
+        perPage: meta.perPage,
+        currentPage: meta.currentPage,
+        lastPage: meta.lastPage,
       },
+    }
+  }
+
+  private async resolveEngineOrganizationIds(
+    search: string | undefined,
+    page: number,
+    perPage: number
+  ): Promise<string[] | null> {
+    if (!search?.trim() || !isSearchRuntimeEnabled()) {
+      return null
+    }
+
+    try {
+      const hits = await this.organizationSearchCandidateReader.searchOrganizationCandidates({
+        q: search,
+        limit: toWindowLimit(page, perPage),
+      })
+
+      if (hits.length === 0) {
+        return null
+      }
+
+      return hits.map((hit) => hit.organizationId)
+    } catch {
+      return null
     }
   }
 }

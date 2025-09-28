@@ -12,6 +12,7 @@ import {
   PROJECT_ROLE_PERMISSIONS,
   SYSTEM_ROLE_PERMISSIONS,
 } from '#modules/authorization/public_contracts/permissions'
+import { CustomSystemRoleService } from '#modules/authorization/services/custom_system_role_service'
 
 interface RoleMatrixEntry {
   code: string
@@ -19,6 +20,8 @@ interface RoleMatrixEntry {
   description: string
   permissions: ReturnType<typeof describePermission>[]
   permissionCount: number
+  isCustom?: boolean
+  id?: string
 }
 
 export interface PermissionMatrixResult {
@@ -51,12 +54,28 @@ export default class GetPermissionMatrixQuery extends BaseQuery<
   Record<string, never>,
   PermissionMatrixResult
 > {
-  handle(): Promise<PermissionMatrixResult> {
+  async handle(): Promise<PermissionMatrixResult> {
     const systemCatalog = listSystemPermissionCatalog()
     const organizationCatalog = listKnownOrganizationPermissions()
     const projectCatalog = listProjectPermissionCatalog()
 
-    return Promise.resolve({
+    const customSystemRoles = await CustomSystemRoleService.getAllCustomRoles()
+    const customSystemRoleEntries: RoleMatrixEntry[] = customSystemRoles.map((role) => ({
+      code: role.code,
+      label: role.name,
+      description: role.description || 'Vai trò tùy chỉnh cấp hệ thống',
+      permissions: role.permissions.map((p) => describePermission(p)),
+      permissionCount: role.permissions.length,
+      isCustom: true,
+      id: role.id,
+    }))
+
+    const allSystemRoles = [
+      ...buildRoleEntries(SYSTEM_ROLE_PERMISSIONS),
+      ...customSystemRoleEntries,
+    ]
+
+    return {
       summary: {
         totalRoleGroups: 3,
         totalRoles:
@@ -69,7 +88,7 @@ export default class GetPermissionMatrixQuery extends BaseQuery<
           ...projectCatalog.map((entry) => entry.key),
         ]).size,
       },
-      systemRoles: buildRoleEntries(SYSTEM_ROLE_PERMISSIONS),
+      systemRoles: allSystemRoles,
       organizationRoles: buildRoleEntries(ORG_ROLE_PERMISSIONS),
       projectRoles: buildRoleEntries(PROJECT_ROLE_PERMISSIONS),
       catalogs: {
@@ -77,6 +96,6 @@ export default class GetPermissionMatrixQuery extends BaseQuery<
         organization: organizationCatalog,
         project: projectCatalog,
       },
-    })
+    }
   }
 }

@@ -100,8 +100,8 @@ export default class GetDashboardStatsQuery extends BaseQuery<
         total: subscriptionStats.total,
         active: subscriptionStats.active,
         expiring_soon: subscriptionStats.expiringSoon,
-        pro: subscriptionStats.byPlan.pro ?? 0,
-        promax: subscriptionStats.byPlan.enterprise ?? 0,
+        pro: subscriptionStats.byPlan['pro'] ?? 0,
+        promax: subscriptionStats.byPlan['enterprise'] ?? 0,
       },
       moderation: {
         pending_flagged_reviews: pendingFlaggedReviews,
