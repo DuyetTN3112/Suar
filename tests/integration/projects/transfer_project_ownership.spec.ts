@@ -1,12 +1,12 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
+import type { NotificationCreator } from '#actions/notifications/public_api'
 import TransferProjectOwnershipCommand from '#actions/projects/commands/transfer_project_ownership_command'
 import { OrganizationRole } from '#constants/organization_constants'
 import { ProjectRole } from '#constants/project_constants'
+import AuditLog from '#infra/audit/models/audit_log'
+import Project from '#infra/projects/models/project'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import AuditLog from '#models/mongo/audit_log'
-import Project from '#models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -18,12 +18,12 @@ import {
 } from '#tests/helpers/factories'
 import { ExecutionContext } from '#types/execution_context'
 
-type NotificationPayload = Parameters<CreateNotification['handle']>[0]
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
-class NotificationSpy extends CreateNotification {
+class NotificationSpy implements NotificationCreator {
   public calls: NotificationPayload[] = []
 
-  public override handle(data: NotificationPayload): Promise<null> {
+  public handle(data: NotificationPayload): Promise<null> {
     this.calls.push(data)
     return Promise.resolve(null)
   }
@@ -33,7 +33,7 @@ const notificationStub = {
   handle() {
     return Promise.resolve(null)
   },
-} as unknown as CreateNotification
+} as unknown as NotificationCreator
 
 test.group('Integration | Transfer Project Ownership', (group) => {
   group.setup(async () => {

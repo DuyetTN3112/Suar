@@ -3,7 +3,7 @@ import { test } from '@japa/runner'
 import RecalculateRevieweeSkillScoresCommand from '#actions/reviews/commands/recalculate_reviewee_skill_scores_command'
 import { ReviewSessionStatus } from '#constants/review_constants'
 import { ProficiencyLevel } from '#constants/user_constants'
-import UserSkill from '#models/user_skill'
+import UserSkill from '#infra/users/models/user_skill'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,

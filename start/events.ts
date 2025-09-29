@@ -8,10 +8,10 @@
  * khi được import — không cần gọi thêm hàm nào.
  */
 
-// DB Trigger replacements — org, project, message, task version
-import '#listeners/trigger_listeners'
+// Cross-cutting listeners live in app/listeners; module-owned listeners live in app/actions/<module>/listeners.
+import '#listeners/lifecycle_log_listener'
 
-// Audit log — async, non-blocking, uses RepositoryFactory (Sprint 5)
+// Audit log — async, non-blocking, uses auditRepositoryProvider
 import '#listeners/audit_log_listener'
 
 // Cache invalidation — auto-invalidate khi data thay đổi + permission cache (Sprint 6)
@@ -28,3 +28,7 @@ import '#listeners/review_listener'
 
 // Sprint 7: Cleanup — remove user from projects/conversations when removed from org
 import '#listeners/cleanup_listener'
+
+// Module-owned task completion side effects
+import '#actions/tasks/listeners/task_completion_listener'
+import '#actions/reviews/listeners/assignment_completion_listener'

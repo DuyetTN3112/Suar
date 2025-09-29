@@ -5,8 +5,8 @@ import ListInvitationsQuery from '#actions/organizations/current/invitations/que
 import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
 import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
 import ForbiddenException from '#exceptions/forbidden_exception'
+import AuditLog from '#infra/audit/models/audit_log'
 import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
-import AuditLog from '#models/mongo/audit_log'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,
