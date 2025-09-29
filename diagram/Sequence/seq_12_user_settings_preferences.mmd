@@ -1,0 +1,32 @@
+%% seq_12_user_settings_preferences.mmd
+%% Scope: settings render, client-side preference updates, and profile/account persistence.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant UI as Browser / Settings pages
+    participant SC as Settings Controllers
+    participant SA as Settings Actions
+    participant PC as Profile Command
+    participant DB as PostgreSQL
+
+    U->>UI: Open settings home
+    UI->>SC: GET /settings
+    SC->>SA: GetUserSettings.handle()
+    SA-->>SC: SSR defaults (theme, notifications, display)
+    SC-->>UI: inertia.render(settings/index)
+
+    U->>UI: Submit appearance/display/notification settings
+    UI->>SC: POST /settings/appearance|display|notifications
+    SC->>SA: UpdateUserSettings.handle(data)
+    SA-->>SC: success (no-op compatibility)
+    SC-->>UI: flash success + redirect
+    UI->>UI: Persist effective value in localStorage/cookies
+
+    U->>UI: Submit profile/account update
+    UI->>SC: POST /settings/profile|account
+    SC->>PC: UpdateUserProfileCommand.handle(dto)
+    PC->>DB: update users profile/account fields
+    DB-->>PC: persisted
+    PC-->>SC: success
+    SC-->>UI: flash success + redirect

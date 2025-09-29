@@ -1,0 +1,35 @@
+%% DFD 06C - System Admin Console
+%% Scope: Admin mode toggle, dashboard reads, user moderation, flagged review resolution.
+
+flowchart TD
+    Admin([System Admin])
+
+    P1[["Toggle admin mode"]]
+    P2[["Load dashboard aggregates"]]
+    P3[["Moderate users / roles"]]
+    P4[["Resolve flagged reviews"]]
+
+    D1[(users)]
+    D2[(flagged_reviews)]
+    D3[(audit_logs)]
+    D4[(admin session state)]
+
+    Admin --> P1
+    Admin --> P2
+    Admin --> P3
+    Admin --> P4
+
+    P1 --> D4
+    P2 --> D1
+    P2 --> D2
+    P3 --> D1
+    P3 --> D3
+    P4 --> D2
+    P4 --> D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Admin entity
+    class P1,P2,P3,P4 process
+    class D1,D2,D3,D4 datastore

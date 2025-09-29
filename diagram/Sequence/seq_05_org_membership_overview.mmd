@@ -1,0 +1,27 @@
+%% seq_05_org_membership_overview.mmd
+%% Scope: Organization membership operations overview.
+%% Detail files:
+%%   - seq_05_org_invite.mmd
+%%   - seq_05b_org_update_member_role.mmd
+%%   - seq_05c_org_remove_member.mmd
+%%   - seq_10_org_join_request.mmd
+
+sequenceDiagram
+    autonumber
+    actor O as Org Owner/Admin
+    actor U as User
+    participant UI as Browser
+    participant C as Controllers
+    participant Cmd as Commands
+
+    Note over O,Cmd: INVITE / ROLE / REMOVE FLOWS
+    O->>UI: Execute membership administration actions
+    UI->>C: /organization/* membership routes
+    C->>Cmd: Invite, update role, remove member
+    C-->>UI: Success/error state
+
+    Note over U,Cmd: JOIN REQUEST FLOW
+    U->>UI: Submit join request
+    UI->>C: /organizations/:slug/join
+    C->>Cmd: Create/process join request
+    C-->>UI: Pending/approved/rejected state
