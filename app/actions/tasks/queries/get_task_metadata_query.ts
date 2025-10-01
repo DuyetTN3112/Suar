@@ -1,17 +1,18 @@
-import redis from '@adonisjs/redis/services/main'
 
-import { TaskLabel, TaskPriority } from '#constants'
+
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 
+import { TaskLabel, TaskPriority } from '#constants/task_constants'
 import BusinessLogicException from '#exceptions/business_logic_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
 import type { DatabaseId } from '#types/database'
 import type { ExecutionContext } from '#types/execution_context'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 /**
  * Query để lấy metadata cho task forms
@@ -185,26 +186,25 @@ export default class GetTaskMetadataQuery {
     projects: { id: DatabaseId; name: string }[]
   } | null> {
     try {
-      const cached = await redis.get(key)
+      const cached = await CacheService.get<{
+        statuses: {
+          id: string
+          value: string
+          label: string
+          slug: string
+          category: string
+          color?: string
+          is_system: boolean
+        }[]
+        labels: { value: string; label: string }[]
+        priorities: { value: string; label: string }[]
+        users: { id: DatabaseId; username: string; email: string }[]
+        parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
+        availableSkills: { id: DatabaseId; name: string }[]
+        projects: { id: DatabaseId; name: string }[]
+      }>(key)
       if (cached) {
-        const parsed = JSON.parse(cached) as {
-          statuses: {
-            id: string
-            value: string
-            label: string
-            slug: string
-            category: string
-            color?: string
-            is_system: boolean
-          }[]
-          labels: { value: string; label: string }[]
-          priorities: { value: string; label: string }[]
-          users: { id: DatabaseId; username: string; email: string }[]
-          parentTasks: { id: DatabaseId; title: string; task_status_id: string | null }[]
-          availableSkills: { id: DatabaseId; name: string }[]
-          projects: { id: DatabaseId; name: string }[]
-        }
-        return parsed
+        return cached
       }
     } catch (error) {
       loggerService.error('[GetTaskMetadataQuery] Cache get error:', error)
@@ -217,7 +217,7 @@ export default class GetTaskMetadataQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTaskMetadataQuery] Cache set error:', error)
     }
