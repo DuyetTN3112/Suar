@@ -1,8 +1,8 @@
-import redis from '@adonisjs/redis/services/main'
 
 import { buildTaskCollectionAccessContext } from '#actions/tasks/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#actions/tasks/support/task_permission_filter_builder'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import CacheService from '#infra/cache/cache_service'
 import loggerService from '#infra/logger/logger_service'
 import TaskRepository from '#infra/tasks/repositories/task_repository'
 import type { TaskPermissionFilter } from '#infra/tasks/repositories/task_repository'
@@ -95,10 +95,7 @@ export default class GetTaskStatisticsQuery {
    */
   private async getFromCache(key: string): Promise<unknown> {
     try {
-      const cached = await redis.get(key)
-      if (cached) {
-        return JSON.parse(cached)
-      }
+      return await CacheService.get<unknown>(key)
     } catch (error) {
       loggerService.error('[GetTaskStatisticsQuery] Cache get error:', error)
     }
@@ -110,7 +107,7 @@ export default class GetTaskStatisticsQuery {
    */
   private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
     try {
-      await redis.setex(key, ttl, JSON.stringify(data))
+      await CacheService.set(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetTaskStatisticsQuery] Cache set error:', error)
     }
