@@ -5,7 +5,7 @@ import { buildCreateReviewSessionDTO } from './mappers/request/review_request_ma
 import { mapCreateReviewSessionApiBody } from './mappers/response/review_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
 
 /**
@@ -20,6 +20,7 @@ export default class CreateReviewSessionController {
     const command = new CreateReviewSessionCommand(actionContextFromHttp(ctx))
     const session = await command.handle(dto)
 
-    response.status(HttpStatus.CREATED).json(mapCreateReviewSessionApiBody(session))
+    response.status(HttpStatus.CREATED)
+    return mapCreateReviewSessionApiBody(session)
   }
 }

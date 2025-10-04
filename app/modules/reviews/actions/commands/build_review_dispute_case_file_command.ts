@@ -94,6 +94,7 @@ export default class BuildReviewDisputeCaseFileCommand {
     const trx = await db.transaction()
 
     try {
+      const built = await buildReviewDisputeCaseFileRecord(trx, dto.dispute_id, actorId)
 
       await trx.commit()
       if (this.execCtx.userId) {
@@ -104,13 +105,13 @@ export default class BuildReviewDisputeCaseFileCommand {
           entity_id: dto.dispute_id,
           old_values: null,
           new_values: {
-            case_file_id: created.id,
-            case_version: nextVersion,
-            completeness_score: completenessScore,
+            case_file_id: built.id,
+            case_version: built.caseVersion,
+            completeness_score: built.completenessScore,
           },
         })
       }
-      return normalize(created)
+      return normalize(built.row)
     } catch (error) {
       await trx.rollback()
       throw error

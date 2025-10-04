@@ -13,14 +13,21 @@ import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
 import { loadReviewSessionActorAccessContext } from '#modules/reviews/actions/support/review_session_actor_access'
+import { markReviewerAssignmentSubmitted } from '#modules/reviews/actions/support/review_session_reviewer_assignments'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
-import { determineSessionStatus } from '#modules/reviews/domain/review_formulas'
+import {
+  determineSessionStatus,
+  isReviewSessionQuorumSatisfied,
+} from '#modules/reviews/domain/review_formulas'
 import { canSubmitReview } from '#modules/reviews/domain/review_policy'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { SkillReviewRecord } from '#modules/reviews/types/review_records'
-import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
-import { ProficiencyLevel } from '#modules/users/public_contracts/user_constants'
+import {
+  getCanonicalProficiencyLevelValue,
+  isCanonicalProficiencyLevelCode,
+  proficiencyFrameworkPublicApi,
+} from '#modules/skills/public_contracts/proficiency_framework'
 
 /**
  * SubmitSkillReviewCommand
@@ -54,24 +61,25 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       await this.ensureReviewHasNotBeenSubmitted(dto.review_session_id, userId, trx)
       await this.validateForeignKeys(dto.skill_ratings, trx)
 
-      const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
-      const levelMap: Record<string, string> = {}
-      if (activeScale) {
-        for (const lvl of activeScale.levels) {
-          levelMap[lvl.code] = lvl.id
-        }
-      }
+      const skillReviewRows = await Promise.all(dto.skill_ratings.map(async (rating) => {
+        const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(
+          rating.assigned_public_proficiency_code,
+          trx
+        )
+        const persistedLevelCode = getCanonicalProficiencyLevelValue(
+          rating.assigned_public_proficiency_code
+        )
 
-      const skillReviewRows = dto.skill_ratings.map((rating) => ({
+        return {
         review_session_id: dto.review_session_id,
         reviewer_id: userId,
         reviewer_type: dto.reviewer_type,
         skill_id: rating.skill_id,
-        assigned_level_code: rating.assigned_level_code,
-        proficiency_level_id: levelMap[rating.assigned_level_code] ?? null,
+        assigned_public_proficiency_code: persistedLevelCode,
+        proficiency_level_id: matchedLevel?.id ?? null,
         observed_level_id: rating.insufficient_evidence
           ? null
-          : (rating.observed_level_id ?? levelMap[rating.assigned_level_code] ?? null),
+          : (rating.observed_level_id ?? matchedLevel?.id ?? null),
         rubric_version_id: rating.rubric_version_id ?? null,
         confidence: rating.confidence ?? null,
         rationale: rating.rationale ?? null,
@@ -79,13 +87,23 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         review_status: 'submitted' as const,
         submitted_at: DateTime.now(),
         comment: rating.comment ?? null,
+        }
       }))
 
       const skillReviews = await SkillReviewRepository.createMany(skillReviewRows, trx)
       await this.linkEvidenceToSkillReviews(skillReviews, dto, trx)
+      await markReviewerAssignmentSubmitted(
+        {
+          reviewSessionId: dto.review_session_id,
+          reviewerId: userId,
+          reviewerType: dto.reviewer_type,
+        },
+        trx
+      )
 
       this.applySubmissionToSession(session, dto)
       await ReviewSessionRepository.save(session, trx)
+      const taskId = await this.loadTaskIdForAssignment(session.task_assignment_id, trx)
 
       if (this.execCtx.userId) {
         await auditPublicApi.write(this.execCtx, {
@@ -102,11 +120,12 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         })
       }
 
-      return this.buildSubmissionResult(dto, userId, session, skillReviews)
+      return this.buildSubmissionResult(dto, userId, session, skillReviews, taskId)
     })
 
     await cacheStore.deleteByPattern(result.revieweeCachePattern)
     await cacheStore.deleteByPattern(result.reviewSessionCachePattern)
+    await cacheStore.deleteByPattern(result.taskDetailCachePattern)
     void emitter.emit('review:submitted', result.reviewSubmittedEvent)
 
     return result.skillReviews
@@ -146,8 +165,14 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   private applySubmissionToSession(
     session: {
       manager_review_completed: boolean
+      creator_reviewer_id: string | null
+      creator_review_completed: boolean
+      manager_reviews_count: number
       peer_reviews_count: number
       required_peer_reviews: number
+      required_total_reviews: number
+      minimum_manager_reviews: number
+      minimum_peer_reviews: number
       status: 'pending' | 'in_progress' | 'completed' | 'disputed'
       overall_quality_score: number | null
       delivery_timeliness: string | null
@@ -165,6 +190,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     if (dto.reviewer_type === 'manager') {
       const qualityMetrics = dto.quality_metrics
       session.manager_review_completed = true
+      session.manager_reviews_count += 1
       session.overall_quality_score = qualityMetrics.overall_quality_score
       session.delivery_timeliness = qualityMetrics.delivery_timeliness
       session.requirement_adherence = qualityMetrics.requirement_adherence
@@ -178,15 +204,28 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       session.peer_reviews_count += 1
     }
 
+    if (session.creator_reviewer_id && session.creator_reviewer_id === this.getCurrentUserId()) {
+      session.creator_review_completed = true
+    }
+
+    const quorumSatisfied = isReviewSessionQuorumSatisfied({
+      creatorReviewCompleted: session.creator_review_completed,
+      managerReviewsCount: session.manager_reviews_count,
+      peerReviewsCount: session.peer_reviews_count,
+      requiredTotalReviews: session.required_total_reviews,
+      minimumManagerReviews: session.minimum_manager_reviews,
+      minimumPeerReviews: session.minimum_peer_reviews,
+    })
+
     const newStatus = determineSessionStatus(
       session.manager_review_completed,
       session.peer_reviews_count,
       session.required_peer_reviews,
       session.status
     )
-    session.status = newStatus
+    session.status = quorumSatisfied ? ReviewSessionStatus.COMPLETED : newStatus
 
-    if (newStatus === 'completed') {
+    if (session.status === 'completed') {
       session.completed_at = DateTime.now()
     }
   }
@@ -199,11 +238,13 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       task_assignment_id: string
       id: string
     },
-    skillReviews: SkillReviewRecord[]
+    skillReviews: SkillReviewRecord[],
+    taskId: string
   ): {
     skillReviews: SkillReviewRecord[]
     revieweeCachePattern: string
     reviewSessionCachePattern: string
+    taskDetailCachePattern: string
     reviewSubmittedEvent: {
       reviewSessionId: string
       reviewerId: string
@@ -215,15 +256,33 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
     return {
       skillReviews,
       revieweeCachePattern: `user:${session.reviewee_id}:*`,
-      reviewSessionCachePattern: `review:session:${session.id}`,
+      reviewSessionCachePattern: `review:session:sessionId:${session.id}`,
+      taskDetailCachePattern: `task:detail:${taskId}*`,
       reviewSubmittedEvent: {
         reviewSessionId: dto.review_session_id,
         reviewerId,
         revieweeId: session.reviewee_id,
-        taskId: session.task_assignment_id,
+        taskId,
         scores: Object.fromEntries(skillReviews.map((review) => [review.skill_id, 0])),
       },
     }
+  }
+
+  private async loadTaskIdForAssignment(
+    taskAssignmentId: string,
+    trx: TransactionClientContract
+  ): Promise<string> {
+    const assignment = (await trx
+      .from('task_assignments')
+      .where('id', taskAssignmentId)
+      .select('task_id')
+      .first()) as { task_id: string } | undefined
+
+    if (!assignment) {
+      throw new NotFoundException('Task assignment not found for review session')
+    }
+
+    return assignment.task_id
   }
 
   private async linkEvidenceToSkillReviews(
@@ -247,10 +306,10 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
   }
 
   /**
-   * Validate FK: skill_id -> skills.id and assigned_level_code -> ProficiencyLevel enum
+   * Validate FK: skill_id -> skills.id and assigned_public_proficiency_code -> canonical/compatible proficiency code
    */
   private async validateForeignKeys(
-    ratings: { skill_id: string; assigned_level_code: string }[],
+    ratings: { skill_id: string; assigned_public_proficiency_code: string }[],
     trx: TransactionClientContract
   ): Promise<void> {
     const skills = await DefaultReviewDependencies.skill.findSkillsByIds(
@@ -269,11 +328,10 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         throw new BusinessLogicException(`Skill với ID ${rating.skill_id} đã bị vô hiệu hóa`)
       }
 
-      // Validate assigned_level_code is a valid ProficiencyLevel constant
-      const validLevels = Object.values(ProficiencyLevel) as string[]
-      if (!validLevels.includes(rating.assigned_level_code)) {
+      // Validate assigned_public_proficiency_code against the skills-owned proficiency model.
+      if (!isCanonicalProficiencyLevelCode(rating.assigned_public_proficiency_code)) {
         throw new BusinessLogicException(
-          `Proficiency level không hợp lệ: ${rating.assigned_level_code}`
+          `Proficiency level không hợp lệ: ${rating.assigned_public_proficiency_code}`
         )
       }
     }

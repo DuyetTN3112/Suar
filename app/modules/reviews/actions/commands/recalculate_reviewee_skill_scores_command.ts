@@ -26,7 +26,7 @@ interface ReviewSkillRow {
   skill_id: string
   review_session_id: string
   reviewer_type: 'manager' | 'peer'
-  assigned_level_code: string
+  assigned_public_proficiency_code: string
   reviewer_credibility_score: number | string
   created_at: string | Date
 }
@@ -53,6 +53,7 @@ interface ComputedSkillScore {
   levelCode: string
   avgPercentage: number
   confidence: number
+  evidenceCount: number
   mostRecentReviewAt: DateTime | null
 }
 
@@ -196,7 +197,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
   private computeSkillScore(reviews: ReviewSkillRow[], evidenceCount: number): ComputedSkillScore {
     const weightedScore = calculateSkillWeightedScore(
       reviews.map((review) => ({
-        levelCode: review.assigned_level_code,
+        levelCode: review.assigned_public_proficiency_code,
         reviewerType: review.reviewer_type,
         reviewerCredibilityScore: this.toCredibilityScore(review.reviewer_credibility_score),
         monthsAgo: this.toMonthsAgo(review.created_at),
@@ -204,7 +205,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
     )
 
     const levelCode = mapWeightedScoreToLevelCode(weightedScore)
-    const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 7) * 100))
+    const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 14) * 100))
     const confidence = calculateSkillConfidence({
       reviewCount: reviews.length,
       hasManager: reviews.some((review) => review.reviewer_type === 'manager'),
@@ -227,6 +228,7 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
       levelCode,
       avgPercentage: Math.round(avgPercentage * 10) / 10,
       confidence,
+      evidenceCount,
       mostRecentReviewAt,
     }
   }
@@ -248,6 +250,8 @@ export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
         totalReviews: reviews.length,
         avgScore: roundedAverage,
         avgPercentage: roundedAverage,
+        confidence: computed.confidence,
+        evidenceCount: computed.evidenceCount,
         lastReviewedAt: computed.mostRecentReviewAt,
       },
       trx

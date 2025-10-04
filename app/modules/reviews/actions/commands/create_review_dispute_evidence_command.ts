@@ -87,9 +87,9 @@ export default class CreateReviewDisputeEvidenceCommand {
           entity_id: dto.dispute_id,
           old_values: null,
           new_values: {
-            evidence_id: created.id,
-            evidence_type: created.evidence_type,
-            url: created.url,
+            evidence_id: created['id'],
+            evidence_type: created['evidence_type'],
+            url: created['url'],
           },
         })
       }

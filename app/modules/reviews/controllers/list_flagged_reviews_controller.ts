@@ -4,7 +4,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildFlaggedReviewsInput } from './mappers/request/review_request_mapper.js'
 import { mapFlaggedReviewsPageProps } from './mappers/response/review_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/get_flagged_reviews_query'
 import { FlaggedReviewStatus } from '#modules/reviews/constants/review_constants'
 
@@ -21,7 +21,9 @@ export default class ListFlaggedReviewsController {
     const result = await query.handle({
       page: filters.page,
       per_page: filters.per_page,
-      status: filters.status,
+      ...(filters.after !== undefined ? { after: filters.after } : {}),
+      ...(filters.before !== undefined ? { before: filters.before } : {}),
+      ...(filters.status !== undefined ? { status: filters.status } : {}),
     })
 
     return inertia.render(

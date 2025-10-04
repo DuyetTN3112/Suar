@@ -2,7 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapReviewEvidenceCollectionApiBody } from './mappers/response/review_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { toCanonicalApiPagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import GetReviewEvidencesQuery from '#modules/reviews/actions/queries/get_review_evidences_query'
 
 /**
@@ -10,10 +11,20 @@ import GetReviewEvidencesQuery from '#modules/reviews/actions/queries/get_review
  */
 export default class GetReviewEvidencesController {
   async handle(ctx: HttpContext) {
-    const { response, params } = ctx
+    const { request, response, params } = ctx
     const query = new GetReviewEvidencesQuery(actionContextFromHttp(ctx))
-    const data = await query.execute(params.id as string)
+    const result = await query.execute(params['reviewId'] as string, {
+      page: request.input('page'),
+      perPage:
+        (request.input('perPage') as unknown) ??
+        (request.input('per_page') as unknown) ??
+        (request.input('limit') as unknown),
+    })
 
-    response.status(200).json(mapReviewEvidenceCollectionApiBody(data))
+    response.status(200)
+    return {
+      ...mapReviewEvidenceCollectionApiBody(result.data),
+      pagination: toCanonicalApiPagination(result.meta),
+    }
   }
 }

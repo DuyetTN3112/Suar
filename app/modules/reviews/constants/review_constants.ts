@@ -119,6 +119,18 @@ export enum ReviewConfirmationAction {
   DISPUTED = 'disputed',
 }
 
+export const REVIEW_CONFIRMATION_ACTION_VALUES = Object.values(ReviewConfirmationAction)
+
+export enum ReviewDisputeStatus {
+  PENDING = 'pending',
+  COLLECTING_EVIDENCE = 'collecting_evidence',
+  ADMIN_REVIEWING = 'admin_reviewing',
+  AI_REVIEWING = 'ai_reviewing',
+  RESOLVED = 'resolved',
+  REJECTED = 'rejected',
+  CANCELLED = 'cancelled',
+}
+
 // ============================================================================
 // Review Defaults
 // ============================================================================
@@ -129,6 +141,12 @@ export enum ReviewConfirmationAction {
 export const REVIEW_DEFAULTS = {
   /** Số peer reviews tối thiểu cần có */
   MIN_PEER_REVIEWS: 2,
+  /** Tổng reviewer distinct tối thiểu */
+  MIN_TOTAL_REVIEWS: 2,
+  /** Số manager-side reviews tối thiểu */
+  MIN_MANAGER_REVIEWS: 1,
+  /** Số peer-side reviews tối thiểu */
+  MINIMUM_PEER_REVIEWS: 2,
   /** Điểm credibility khởi điểm cho reviewer mới */
   INITIAL_CREDIBILITY_SCORE: 50,
   /** Điểm credibility tối đa */
@@ -137,6 +155,8 @@ export const REVIEW_DEFAULTS = {
   MIN_RATING: 1,
   /** Rating tối đa (5 sao) */
   MAX_RATING: 5,
+  /** SLA mặc định cho một review session */
+  REVIEW_SESSION_DEADLINE_HOURS: 72,
 } as const
 
 // ============================================================================
@@ -173,3 +193,16 @@ export const VALID_PROFILE_UPDATE_ACTIONS = new Set<string>(Object.values(PROFIL
  * Valid reviewer credibility actions for validation.
  */
 export const VALID_REVIEWER_CREDIBILITY_ACTIONS = new Set<string>(Object.values(REVIEWER_CREDIBILITY_ACTION))
+
+export const ACTIVE_REVIEW_DISPUTE_STATUSES = [
+  ReviewDisputeStatus.PENDING,
+  ReviewDisputeStatus.COLLECTING_EVIDENCE,
+  ReviewDisputeStatus.ADMIN_REVIEWING,
+  ReviewDisputeStatus.AI_REVIEWING,
+] as const
+
+export const TERMINAL_REVIEW_DISPUTE_STATUSES = [
+  ReviewDisputeStatus.RESOLVED,
+  ReviewDisputeStatus.REJECTED,
+  ReviewDisputeStatus.CANCELLED,
+] as const
