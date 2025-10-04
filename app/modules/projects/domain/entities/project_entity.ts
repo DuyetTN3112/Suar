@@ -24,11 +24,10 @@ export interface ProjectEntityProps {
   startDate: Date | null
   endDate: Date | null
   status: ProjectStatus
-  budget: string
   managerId: string | null
   ownerId: string | null
   visibility: ProjectVisibility
-  allowFreelancer: boolean
+  allowExternalContributors: boolean
   approvalRequiredForMembers: boolean
   tags: unknown[] | null
   customRoles: CustomRoleDefinition[] | null
@@ -46,11 +45,10 @@ export class ProjectEntity {
   readonly startDate: Date | null
   readonly endDate: Date | null
   readonly status: ProjectStatus
-  readonly budget: string
   readonly managerId: string | null
   readonly ownerId: string | null
   readonly visibility: ProjectVisibility
-  readonly allowFreelancer: boolean
+  readonly allowExternalContributors: boolean
   readonly approvalRequiredForMembers: boolean
   readonly tags: unknown[] | null
   readonly customRoles: CustomRoleDefinition[] | null
@@ -67,11 +65,10 @@ export class ProjectEntity {
     this.startDate = props.startDate
     this.endDate = props.endDate
     this.status = props.status
-    this.budget = props.budget
     this.managerId = props.managerId
     this.ownerId = props.ownerId
     this.visibility = props.visibility
-    this.allowFreelancer = props.allowFreelancer
+    this.allowExternalContributors = props.allowExternalContributors
     this.approvalRequiredForMembers = props.approvalRequiredForMembers
     this.tags = props.tags
     this.customRoles = props.customRoles
@@ -96,7 +93,7 @@ export class ProjectEntity {
     return this.visibility === 'public'
   }
 
-  get allowsFreelancers(): boolean {
-    return this.allowFreelancer
+  get allowsExternalContributors(): boolean {
+    return this.allowExternalContributors
   }
 }

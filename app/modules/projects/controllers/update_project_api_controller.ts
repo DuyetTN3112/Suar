@@ -1,32 +1,28 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-
 import { buildUpdateProjectDTO } from './mappers/request/project_request_mapper.js'
 import { mapProjectMutationApiBody } from './mappers/response/project_response_mapper.js'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import UpdateProjectCommand from '#modules/projects/actions/commands/update_project_command'
 
 /**
- * PUT /api/projects/:id → Update project (API)
+ * PUT|PATCH /api/projects/:projectId → Update project (compat API)
  * Controller is thin adapter only; business rules are in command + domain policy.
  */
 export default class UpdateProjectApiController {
   async handle(ctx: HttpContext) {
-    const { params, request, response, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
+    const { params, request } = ctx
+    requireCurrentOrganizationId(ctx)
 
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
-
-    const dto = buildUpdateProjectDTO(request, params.id as string)
+    const dto = buildUpdateProjectDTO(request, params['projectId'] as string)
 
     const command = new UpdateProjectCommand(actionContextFromHttp(ctx))
     const project = await command.handle(dto)
 
-    response.json(mapProjectMutationApiBody(project))
+    return mapProjectMutationApiBody(project)
   }
 }

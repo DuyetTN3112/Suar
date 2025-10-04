@@ -37,11 +37,10 @@ export class ProjectInfraMapper {
       startDate: model.start_date?.toJSDate() ?? null,
       endDate: model.end_date?.toJSDate() ?? null,
       status: model.status as ProjectEntityProps['status'],
-      budget: String(model.budget),
       managerId: model.manager_id,
       ownerId: model.owner_id,
       visibility: model.visibility,
-      allowFreelancer: model.allow_freelancer,
+      allowExternalContributors: model.allow_external_contributors,
       approvalRequiredForMembers: model.approval_required_for_members,
       tags: model.tags,
       customRoles: model.custom_roles,
@@ -65,11 +64,10 @@ export class ProjectInfraMapper {
       start_date: serializeDateTime(model.start_date),
       end_date: serializeDateTime(model.end_date),
       status: model.status,
-      budget: model.budget,
       manager_id: model.manager_id,
       owner_id: model.owner_id,
       visibility: model.visibility,
-      allow_freelancer: model.allow_freelancer,
+      allow_external_contributors: model.allow_external_contributors,
       approval_required_for_members: model.approval_required_for_members,
       tags: model.tags as string[] | null,
       custom_roles: model.custom_roles as Record<string, unknown>[] | null,
@@ -96,22 +94,21 @@ export class ProjectInfraMapper {
   static toOrm(entity: Partial<ProjectEntityProps>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
-    if (entity.creatorId !== undefined) result.creator_id = entity.creatorId
-    if (entity.name !== undefined) result.name = entity.name
-    if (entity.description !== undefined) result.description = entity.description
-    if (entity.organizationId !== undefined) result.organization_id = entity.organizationId
-    if (entity.startDate !== undefined) result.start_date = entity.startDate
-    if (entity.endDate !== undefined) result.end_date = entity.endDate
-    if (entity.status !== undefined) result.status = entity.status
-    if (entity.budget !== undefined) result.budget = entity.budget
-    if (entity.managerId !== undefined) result.manager_id = entity.managerId
-    if (entity.ownerId !== undefined) result.owner_id = entity.ownerId
-    if (entity.visibility !== undefined) result.visibility = entity.visibility
-    if (entity.allowFreelancer !== undefined) result.allow_freelancer = entity.allowFreelancer
+    if (entity.creatorId !== undefined) result['creator_id'] = entity.creatorId
+    if (entity.name !== undefined) result['name'] = entity.name
+    if (entity.description !== undefined) result['description'] = entity.description
+    if (entity.organizationId !== undefined) result['organization_id'] = entity.organizationId
+    if (entity.startDate !== undefined) result['start_date'] = entity.startDate
+    if (entity.endDate !== undefined) result['end_date'] = entity.endDate
+    if (entity.status !== undefined) result['status'] = entity.status
+    if (entity.managerId !== undefined) result['manager_id'] = entity.managerId
+    if (entity.ownerId !== undefined) result['owner_id'] = entity.ownerId
+    if (entity.visibility !== undefined) result['visibility'] = entity.visibility
+    if (entity.allowExternalContributors !== undefined) result['allow_external_contributors'] = entity.allowExternalContributors
     if (entity.approvalRequiredForMembers !== undefined)
-      result.approval_required_for_members = entity.approvalRequiredForMembers
-    if (entity.tags !== undefined) result.tags = entity.tags
-    if (entity.customRoles !== undefined) result.custom_roles = entity.customRoles
+      result['approval_required_for_members'] = entity.approvalRequiredForMembers
+    if (entity.tags !== undefined) result['tags'] = entity.tags
+    if (entity.customRoles !== undefined) result['custom_roles'] = entity.customRoles
 
     return result
   }

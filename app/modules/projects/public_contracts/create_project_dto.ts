@@ -3,7 +3,7 @@ import type { DateTime } from 'luxon'
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { ProjectStatus, ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
-export interface CreateProjectDTOInterface {
+export interface CreateProjectInput {
   name: string
   description?: string
   organization_id: string
@@ -12,12 +12,11 @@ export interface CreateProjectDTOInterface {
   end_date?: DateTime | null
   manager_id?: string | null
   visibility?: ProjectVisibility
-  budget?: number
 }
 
-export type CreateProjectValidatedPayload = Omit<CreateProjectDTOInterface, 'organization_id'>
+export type CreateProjectValidatedPayload = Omit<CreateProjectInput, 'organization_id'>
 
-export class CreateProjectDTO implements CreateProjectDTOInterface {
+export class CreateProjectDTO implements CreateProjectInput {
   public readonly name: string
   public readonly description?: string
   public readonly organization_id: string
@@ -26,9 +25,8 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
   public readonly end_date?: DateTime | null
   public readonly manager_id?: string | null
   public readonly visibility: ProjectVisibility
-  public readonly budget: number
 
-  static fromInput(data: CreateProjectDTOInterface): CreateProjectDTO {
+  static fromInput(data: CreateProjectInput): CreateProjectDTO {
     return new CreateProjectDTO(data)
   }
 
@@ -42,21 +40,23 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
     })
   }
 
-  constructor(data: CreateProjectDTOInterface) {
+  constructor(data: CreateProjectInput) {
     this.validateInput(data)
 
     this.name = data.name.trim()
-    this.description = data.description?.trim() ?? undefined
+    const description = data.description?.trim()
+    if (description !== undefined) {
+      this.description = description
+    }
     this.organization_id = data.organization_id
     this.status = data.status ?? ProjectStatus.PENDING
     this.start_date = data.start_date ?? null
     this.end_date = data.end_date ?? null
     this.manager_id = data.manager_id ?? null
     this.visibility = data.visibility ?? ProjectVisibility.TEAM
-    this.budget = data.budget ?? 0
   }
 
-  private validateInput(data: CreateProjectDTOInterface): void {
+  private validateInput(data: CreateProjectInput): void {
     if (!data.name || data.name.trim().length === 0) {
       throw new ValidationException('Tên dự án là bắt buộc')
     }
@@ -96,9 +96,6 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       throw new ValidationException('Chế độ hiển thị không hợp lệ (public/private/team)')
     }
 
-    if (data.budget !== undefined && data.budget < 0) {
-      throw new ValidationException('Ngân sách không thể là số âm')
-    }
   }
 
   public toObject(): Record<string, unknown> {
@@ -111,7 +108,6 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       end_date: this.end_date?.toJSDate() ?? null,
       manager_id: this.manager_id,
       visibility: this.visibility,
-      budget: this.budget,
     }
   }
 
@@ -120,8 +116,6 @@ export class CreateProjectDTO implements CreateProjectDTOInterface {
       this.start_date && this.end_date
         ? ` (${this.start_date.toFormat('dd/MM/yyyy')} - ${this.end_date.toFormat('dd/MM/yyyy')})`
         : ''
-    const budgetInfo =
-      this.budget > 0 ? ` - Ngân sách: ${this.budget.toLocaleString('vi-VN')}đ` : ''
-    return `Project: ${this.name}${dates}${budgetInfo}`
+    return `Project: ${this.name}${dates}`
   }
 }

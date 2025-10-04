@@ -3,22 +3,24 @@ import type { HttpContext } from '@adonisjs/core/http'
 import {
   PAGINATION,
   PROJECTS_DEFAULT_LIMIT,
-  toBoolean,
+  parseBooleanRequestFlag,
   toDateTimeOrNull,
   toOptionalDateTime,
-  toOptionalNumber,
-  toOptionalString,
+  parseOptionalRequestString,
   toOptionalVisibility,
-  toPositiveNumber,
   toProjectSortBy,
   toProjectSortOrder,
-} from './shared.js'
+  toOptionalBoolean,
+} from './project_request_parsers.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import { AddProjectMemberDTO } from '#modules/projects/actions/dtos/request/add_project_member_dto'
 import { CreateProjectDTO } from '#modules/projects/actions/dtos/request/create_project_dto'
 import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
 import { RemoveProjectMemberDTO } from '#modules/projects/actions/dtos/request/remove_project_member_dto'
 import { UpdateProjectDTO } from '#modules/projects/actions/dtos/request/update_project_dto'
+import { UpdateProjectMemberDTO } from '#modules/projects/actions/dtos/request/update_project_member_dto'
 import type { GetProjectsListDTO } from '#modules/projects/actions/queries/get_projects_list_query'
 import type { ProjectRole } from '#modules/projects/public_contracts/project_constants'
 
@@ -29,21 +31,35 @@ interface OrganizationProjectsListInput {
   status?: string
 }
 
+function readAliasedInput(
+  request: HttpContext['request'],
+  camelKey: string,
+  snakeKey: string,
+  fallback?: unknown
+): unknown {
+  return request.input(camelKey, request.input(snakeKey, fallback))
+}
+
 export function buildCreateProjectDTO(
   request: HttpContext['request'],
   organizationId: string
 ): CreateProjectDTO {
   return CreateProjectDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: request.input('name') as string,
-      description: toOptionalString(request.input('description') as unknown),
-      status: toOptionalString(request.input('status') as unknown),
-      start_date: toOptionalDateTime(request.input('start_date') as unknown) ?? null,
-      end_date: toOptionalDateTime(request.input('end_date') as unknown) ?? null,
-      manager_id: toOptionalString(request.input('manager_id') as unknown) ?? null,
+      description: parseOptionalRequestString(request.input('description') as unknown),
+      status: parseOptionalRequestString(request.input('status') as unknown),
+      start_date:
+        toOptionalDateTime((request.input('startDate') ?? request.input('start_date')) as unknown) ??
+        null,
+      end_date:
+        toOptionalDateTime((request.input('endDate') ?? request.input('end_date')) as unknown) ??
+        null,
+      manager_id:
+        parseOptionalRequestString((request.input('managerId') ?? request.input('manager_id')) as unknown) ??
+        null,
       visibility: toOptionalVisibility(request.input('visibility') as unknown),
-      budget: toOptionalNumber(request.input('budget') as unknown),
-    },
+    }),
     organizationId
   )
 }
@@ -53,13 +69,13 @@ export function buildUpdateProjectDTO(
   projectId: string
 ): UpdateProjectDTO {
   return UpdateProjectDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: request.input('name') as string | undefined,
       description: request.input('description') as string | null | undefined,
       status: request.input('status') as string | undefined,
-      start_date: toDateTimeOrNull(request.input('start_date') as unknown),
-      end_date: toDateTimeOrNull(request.input('end_date') as unknown),
-    },
+      start_date: toDateTimeOrNull(request.input('startDate', request.input('start_date')) as unknown),
+      end_date: toDateTimeOrNull(request.input('endDate', request.input('end_date')) as unknown),
+    }),
     projectId
   )
 }
@@ -68,55 +84,105 @@ export function buildProjectsListDTO(
   request: HttpContext['request'],
   organizationId: string
 ): GetProjectsListDTO {
-  return {
-    page: toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown),
-    limit: toPositiveNumber(
-      request.input('limit', PROJECTS_DEFAULT_LIMIT) as unknown,
-      PROJECTS_DEFAULT_LIMIT
-    ),
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE),
+      limit: request.input('limit', PROJECTS_DEFAULT_LIMIT),
+    },
+    PAGINATION,
+    { perPage: PROJECTS_DEFAULT_LIMIT }
+  )
+
+  return omitUndefined({
+    page: pagination.page,
+    limit: pagination.perPage,
     organization_id: organizationId,
-    status: toOptionalString(request.input('status') as unknown),
-    creator_id: toOptionalString(request.input('creator_id') as unknown),
-    manager_id: toOptionalString(request.input('manager_id') as unknown),
+    status: parseOptionalRequestString(request.input('status') as unknown),
+    creator_id: parseOptionalRequestString(readAliasedInput(request, 'creatorId', 'creator_id')),
+    manager_id: parseOptionalRequestString(readAliasedInput(request, 'managerId', 'manager_id')),
     visibility: toOptionalVisibility(request.input('visibility') as unknown),
-    search: toOptionalString(request.input('search') as unknown),
-    sort_by: toProjectSortBy(request.input('sort_by', 'created_at') as unknown),
-    sort_order: toProjectSortOrder(request.input('sort_order', 'desc') as unknown),
-  }
+    search: parseOptionalRequestString(request.input('search') as unknown),
+    sort_by: toProjectSortBy(readAliasedInput(request, 'sortBy', 'sort_by', 'created_at')),
+    sort_order: toProjectSortOrder(
+      readAliasedInput(request, 'sortOrder', 'sort_order', 'desc')
+    ),
+    allow_external_contributors: toOptionalBoolean(
+      readAliasedInput(
+        request,
+        'allowExternalContributors',
+        'allow_external_contributors',
+        request.input('allow_external_contributors')
+      )
+    ),
+    start_date_start: parseOptionalRequestString(readAliasedInput(request, 'startDateStart', 'start_date_start')),
+    start_date_end: parseOptionalRequestString(readAliasedInput(request, 'startDateEnd', 'start_date_end')),
+    end_date_start: parseOptionalRequestString(readAliasedInput(request, 'endDateStart', 'end_date_start')),
+    end_date_end: parseOptionalRequestString(readAliasedInput(request, 'endDateEnd', 'end_date_end')),
+    created_at_start: parseOptionalRequestString(readAliasedInput(request, 'createdAtStart', 'created_at_start')),
+    created_at_end: parseOptionalRequestString(readAliasedInput(request, 'createdAtEnd', 'created_at_end')),
+  })
 }
 
 export function buildOrganizationProjectsListInput(
   request: HttpContext['request']
 ): OrganizationProjectsListInput {
-  return {
-    page: toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown),
-    perPage: toPositiveNumber(
-      request.input('limit', PROJECTS_DEFAULT_LIMIT) as unknown,
-      PROJECTS_DEFAULT_LIMIT
-    ),
-    search: toOptionalString(request.input('search') as unknown),
-    status: toOptionalString(request.input('status') as unknown),
-  }
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE),
+      limit: request.input('limit', PROJECTS_DEFAULT_LIMIT),
+    },
+    PAGINATION,
+    { perPage: PROJECTS_DEFAULT_LIMIT }
+  )
+
+  return omitUndefined({
+    page: pagination.page,
+    perPage: pagination.perPage,
+    search: parseOptionalRequestString(request.input('search') as unknown),
+    status: parseOptionalRequestString(request.input('status') as unknown),
+  })
 }
 
 export function buildAddProjectMemberDTO(request: HttpContext['request']): AddProjectMemberDTO {
-  return new AddProjectMemberDTO({
-    project_id: request.input('project_id') as string,
-    user_id: request.input('user_id') as string,
-    project_role: request.input('project_role') as ProjectRole | undefined,
-  })
+  return new AddProjectMemberDTO(omitUndefined({
+    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
+    user_id: (request.input('userId') ?? request.input('user_id')) as string,
+    project_role: (request.input('projectRole') ??
+      request.input('project_role')) as ProjectRole | undefined,
+    project_professional_role_id: parseOptionalRequestString(
+      (request.input('projectProfessionalRoleId') ??
+        request.input('project_professional_role_id')) as unknown
+    ),
+  }))
+}
+
+export function buildUpdateProjectMemberDTO(
+  request: HttpContext['request'],
+  userId: string
+): UpdateProjectMemberDTO {
+  return new UpdateProjectMemberDTO(omitUndefined({
+    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
+    user_id: userId,
+    project_role: (request.input('projectRole') ??
+      request.input('project_role')) as ProjectRole,
+    project_professional_role_id: parseOptionalRequestString(
+      (request.input('projectProfessionalRoleId') ??
+        request.input('project_professional_role_id')) as unknown
+    ),
+  }))
 }
 
 export function buildRemoveProjectMemberDTO(
   request: HttpContext['request'],
   userId: string
 ): RemoveProjectMemberDTO {
-  return new RemoveProjectMemberDTO({
-    project_id: request.input('project_id') as string,
+  return new RemoveProjectMemberDTO(omitUndefined({
+    project_id: (request.input('projectId') ?? request.input('project_id')) as string,
     user_id: userId,
     reason: request.input('reason') as string | undefined,
-    reassign_to: request.input('reassign_to') as string | undefined,
-  })
+    reassign_to: (request.input('reassignTo') ??
+      request.input('reassign_to')) as string | undefined,
+  }))
 }
 
 export function buildDeleteProjectDTO(
@@ -124,10 +190,10 @@ export function buildDeleteProjectDTO(
   projectId: string,
   currentOrganizationId?: string
 ): DeleteProjectDTO {
-  return new DeleteProjectDTO({
+  return new DeleteProjectDTO(omitUndefined({
     project_id: projectId,
-    reason: toOptionalString(request.input('reason') as unknown),
-    permanent: toBoolean(request.input('permanent', false) as unknown),
-    current_organization_id: currentOrganizationId,
-  })
+    reason: parseOptionalRequestString(request.input('reason') as unknown),
+    permanent: parseBooleanRequestFlag(request.input('permanent', false) as unknown),
+    currentOrganizationId,
+  }))
 }

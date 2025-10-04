@@ -21,6 +21,9 @@ export default class ProjectMember extends BaseModel {
   @column()
   declare project_role: string
 
+  @column()
+  declare project_professional_role_id: string | null
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

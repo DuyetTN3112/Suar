@@ -3,9 +3,58 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { getCountValue, isRawRecord } from './shared.js'
 
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
 import Project from '#modules/projects/infra/models/project'
 import { ProjectStatus } from '#modules/projects/public_contracts/project_constants'
+
+const PROJECT_SORT_COLUMN_MAP = {
+  created_at: 'p.created_at',
+  name: 'p.name',
+  start_date: 'p.start_date',
+  end_date: 'p.end_date',
+} as const
+
+function resolveProjectSortColumn(value: string | undefined): keyof typeof PROJECT_SORT_COLUMN_MAP {
+  if (value === 'name' || value === 'start_date' || value === 'end_date') {
+    return value
+  }
+
+  return 'created_at'
+}
+
+function applyStableProjectOrder(
+  query: ReturnType<typeof db.query>,
+  sortBy: string | undefined,
+  sortOrder: 'asc' | 'desc' | undefined
+) {
+  const resolvedSortBy = resolveProjectSortColumn(sortBy)
+  const direction = sortOrder === 'asc' ? 'asc' : 'desc'
+
+  void query.orderBy(PROJECT_SORT_COLUMN_MAP[resolvedSortBy], direction)
+
+  if (resolvedSortBy === 'name') {
+    void query.orderBy('p.id', 'asc')
+    return
+  }
+
+  void query.orderBy('p.id', direction)
+}
+
+function applyRankedProjectOrder(
+  query: ReturnType<typeof db.query>,
+  projectIds: string[]
+) {
+  if (projectIds.length === 0) {
+    return
+  }
+
+  const rankByProjectId = projectIds
+    .map((projectId, index) => `WHEN p.id = '${projectId}' THEN ${String(index)}`)
+    .join(' ')
+
+  void query.orderByRaw(`CASE ${rankByProjectId} ELSE ${String(projectIds.length)} END ASC`)
+}
 
 export const isStakeholder = async (
   projectId: string,
@@ -31,6 +80,7 @@ export const paginateByUserAccess = async (
   filters: {
     page?: number
     limit?: number
+    project_ids?: string[]
     organization_id?: string
     status?: string
     creator_id?: string
@@ -39,11 +89,18 @@ export const paginateByUserAccess = async (
     search?: string
     sort_by?: string
     sort_order?: 'asc' | 'desc'
+    allow_external_contributors?: boolean
+    start_date_start?: string
+    start_date_end?: string
+    end_date_start?: string
+    end_date_end?: string
+    created_at_start?: string
+    created_at_end?: string
   }
 ): Promise<{ data: Record<string, unknown>[]; total: number }> => {
   const page = filters.page ?? 1
   const limit = filters.limit ?? PAGINATION.DEFAULT_PER_PAGE
-  const offset = (page - 1) * limit
+  const offset = toOffset(page, limit)
   const sortBy = filters.sort_by ?? 'created_at'
   const sortOrder = filters.sort_order ?? 'desc'
 
@@ -57,7 +114,6 @@ export const paginateByUserAccess = async (
       'p.start_date',
       'p.end_date',
       'p.visibility',
-      'p.budget',
       'p.status',
       'p.created_at',
       'p.updated_at',
@@ -85,6 +141,10 @@ export const paginateByUserAccess = async (
     })
   }
 
+  if (filters.project_ids && filters.project_ids.length > 0) {
+    query = query.whereIn('p.id', filters.project_ids)
+  }
+
   if (filters.status) {
     query = query.where('p.status', filters.status)
   }
@@ -105,6 +165,28 @@ export const paginateByUserAccess = async (
     })
   }
 
+  if (filters.allow_external_contributors !== undefined) {
+    query = query.where('p.allow_external_contributors', filters.allow_external_contributors)
+  }
+  if (filters.start_date_start) {
+    query = query.where('p.start_date', '>=', filters.start_date_start)
+  }
+  if (filters.start_date_end) {
+    query = query.where('p.start_date', '<=', filters.start_date_end)
+  }
+  if (filters.end_date_start) {
+    query = query.where('p.end_date', '>=', filters.end_date_start)
+  }
+  if (filters.end_date_end) {
+    query = query.where('p.end_date', '<=', filters.end_date_end)
+  }
+  if (filters.created_at_start) {
+    query = query.where('p.created_at', '>=', filters.created_at_start)
+  }
+  if (filters.created_at_end) {
+    query = query.where('p.created_at', '<=', filters.created_at_end)
+  }
+
   query = query.groupBy(
     'p.id',
     'p.name',
@@ -113,7 +195,6 @@ export const paginateByUserAccess = async (
     'p.start_date',
     'p.end_date',
     'p.visibility',
-    'p.budget',
     'p.status',
     'p.created_at',
     'p.updated_at',
@@ -147,7 +228,13 @@ export const paginateByUserAccess = async (
     }
   }
 
-  query = query.orderBy(`p.${sortBy}`, sortOrder).limit(limit).offset(offset)
+  if (filters.project_ids && filters.project_ids.length > 0) {
+    applyRankedProjectOrder(query, filters.project_ids)
+  } else {
+    applyStableProjectOrder(query, sortBy, sortOrder)
+  }
+
+  query = query.limit(limit).offset(offset)
 
   const dataRaw = (await query) as unknown
   const data = Array.isArray(dataRaw) ? dataRaw.filter(isRawRecord) : []

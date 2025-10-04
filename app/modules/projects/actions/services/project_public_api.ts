@@ -101,6 +101,33 @@ export class ProjectPublicApi {
     )
   }
 
+  async canViewMarketplaceProjectTasks(projectId: string, userId: string): Promise<boolean> {
+    const project = await projectModelQueries.findDetailWithRelationsRecord(projectId)
+
+    if (project.visibility === 'public') {
+      return true
+    }
+
+    const membership = await projectMemberQueries.findMember(projectId, userId)
+    return membership !== null
+  }
+
+  async canManageMarketplaceProjectTasks(projectId: string, userId: string): Promise<boolean> {
+    const project = await projectModelQueries.findDetailWithRelationsRecord(projectId)
+    const membership = await projectMemberQueries.findMember(projectId, userId)
+
+    if (membership !== null) {
+      return true
+    }
+
+    const actorMembership = await DefaultProjectDependencies.organization.getMembershipRole(
+      project.organization_id,
+      userId
+    )
+
+    return actorMembership === 'org_owner' || actorMembership === 'org_admin'
+  }
+
   async invalidatePermissionCache(projectId: string): Promise<void> {
     await this.cache.invalidateProject(projectId)
   }

@@ -10,11 +10,10 @@ export interface ProjectRecord extends Record<string, unknown> {
   start_date: SerializedDateTime
   end_date: SerializedDateTime
   status: string
-  budget: number | null
   manager_id: string | null
   owner_id: string | null
   visibility: string
-  allow_freelancer: boolean
+  allow_external_contributors: boolean
   approval_required_for_members: boolean
   tags: string[] | null
   custom_roles: Record<string, unknown>[] | null

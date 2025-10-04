@@ -17,7 +17,7 @@ export const getExtraNumber = (row: unknown, key: string): number => {
   if (!isRecord(row)) {
     return 0
   }
-  const extras = row.$extras
+  const extras = row['$extras']
   if (!isRecord(extras)) {
     return 0
   }

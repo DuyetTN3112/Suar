@@ -1,6 +1,11 @@
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/projects/actions/base_query'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
@@ -29,6 +34,9 @@ export interface GetProjectMembersResult {
     username: string
     email: string
     role: string
+    project_professional_role_id: string | null
+    professional_role_name: string | null
+    professional_role_code: string | null
     joined_at: Date
     task_count: number
     last_active_at: Date | null
@@ -60,6 +68,9 @@ export interface GetProjectMembersResult {
 interface MemberRow {
   user_id: string
   role: string
+  project_professional_role_id: string | null
+  professional_role_name: string | null
+  professional_role_code: string | null
   joined_at: Date
   username: string
   email: string
@@ -83,31 +94,36 @@ export default class GetProjectMembersQuery extends BaseQuery<
     // Validate user has access to this project
     await this.validateAccess(dto.project_id)
 
-    // Default values
-    const page = dto.page ?? 1
-    const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
+    const pagination = normalizePagination(
+      {
+        page: dto.page,
+        limit: dto.limit,
+      },
+      PAGINATION
+    )
 
     // Get members → delegate to Model
     const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
       dto.project_id,
-      {
-        page,
-        limit,
+      omitUndefined({
+        page: pagination.page,
+        limit: pagination.perPage,
         role: dto.role,
         search: dto.search,
-      }
+      })
     )
 
     // Enrich with task counts and last activity
     const enrichedMembers = await this.enrichMembers(members, dto.project_id)
+    const meta = buildPaginationMeta(total, pagination)
 
     return {
       data: enrichedMembers,
       pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        page: meta.currentPage,
+        limit: meta.perPage,
+        total: meta.total,
+        totalPages: meta.lastPage,
       },
     }
   }

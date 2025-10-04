@@ -24,6 +24,24 @@ Query/page surfaces:
 - [inertia/pages/org/reverse-reviews.svelte](/home/tranngocduyet/Projects/Suar/inertia/pages/org/reverse-reviews.svelte)
 - [inertia/pages/admin/reviews/reverse-reviews.svelte](/home/tranngocduyet/Projects/Suar/inertia/pages/admin/reviews/reverse-reviews.svelte)
 
+## Runtime Update 2026-07-09
+
+Task-level reverse review is now product-deprecated.
+
+- Active task flow keeps only `forward review` for contributor verification.
+- Review dispute dossier must carry full task context:
+  - task snapshot
+  - review data
+  - all task comments
+  - dispute exchange
+  - attached evidence
+- Reverse review is deferred to a future sprint-close flow, not emitted from individual task review sessions.
+
+Current enforcement points:
+
+- [app/modules/reviews/actions/commands/submit_reverse_review_command.ts](/home/tranngocduyet/Projects/Suar/app/modules/reviews/actions/commands/submit_reverse_review_command.ts)
+- [app/modules/reviews/controllers/submit_reverse_review_controller.ts](/home/tranngocduyet/Projects/Suar/app/modules/reviews/controllers/submit_reverse_review_controller.ts)
+
 ### Kiến trúc lõi & Phân tích nghiệp vụ
 - **Review Session**: Tự động kích hoạt khi task hoàn thành. Đánh giá chất lượng thực tế của contributor dựa trên rubric của từng required skill.
 - **Evidence Verification**: Ghi nhận mức năng lực quan sát được (`observed_level_id`) và liên kết trực tiếp tới bằng chứng thực tế của task (`skill_review_evidence_links`).
@@ -280,12 +298,12 @@ start/routes/reviews.ts
 | function | `mapFlaggedReviewsPageProps` | `app/modules/reviews/controllers/mappers/response/review_response_mapper.ts` | 96 |
 | function | `mapReviewEvidenceCollectionApiBody` | `app/modules/reviews/controllers/mappers/response/review_response_mapper.ts` | 109 |
 | function | `mapTaskSelfAssessmentApiBody` | `app/modules/reviews/controllers/mappers/response/review_response_mapper.ts` | 118 |
-| type | `ResponseRecord` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 1 |
-| interface | `SerializableResponseRecord` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 3 |
-| interface | `PaginationMeta` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 7 |
-| interface | `PaginatedControllerResult` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 14 |
-| function | `serializeForResponse` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 31 |
-| function | `serializeCollectionForResponse` | `app/modules/reviews/controllers/mappers/response/shared.ts` | 41 |
+| type | `SerializedModelRecord` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 1 |
+| interface | `SerializableModelRecord` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 3 |
+| interface | `PaginationMeta` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 7 |
+| interface | `PaginatedControllerResult` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 14 |
+| function | `serializeModelForHttpResponse` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 31 |
+| function | `serializeModelCollectionForHttpResponse` | `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts` | 41 |
 | function | `reviewActorContextFromHttp` | `app/modules/reviews/controllers/mappers/review_actor_context_mapper.ts` | 6 |
 | class | `MyReviewsController` | `app/modules/reviews/controllers/my_reviews_controller.ts` | 14 |
 | class | `ResolveFlaggedReviewController` | `app/modules/reviews/controllers/resolve_flagged_review_controller.ts` | 11 |
@@ -1244,14 +1262,14 @@ import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dt
 
 ```ts
 import type {
-  ResponseRecord,
-  SerializableResponseRecord,
+  SerializedModelRecord,
+  SerializableModelRecord,
   PaginatedControllerResult,
 } from './shared.js'
-import { serializeCollectionForResponse, serializeForResponse } from './shared.js'
+import { serializeModelCollectionForHttpResponse, serializeModelForHttpResponse } from './shared.js'
 ```
 
-### `app/modules/reviews/controllers/mappers/response/shared.ts`
+### `app/modules/reviews/controllers/mappers/response/model_response_serialization.ts`
 
 ```ts
 // no imports
@@ -1368,9 +1386,10 @@ import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/s
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
-import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
+
+// Legacy web route:
+// task-level reverse review is deprecated and now redirects back
+// with a flash error pointing users to sprint-close reverse review.
 ```
 
 ### `app/modules/reviews/controllers/submit_review_controller.ts`
@@ -1475,120 +1494,125 @@ const GetTaskSelfAssessmentController = () =>
 router
   .group(() => {
     // Review session routes
-    router.get('/reviews/pending', [ListPendingReviewsController, 'handle']).as('reviews.pending')
+    router
+      .get('/reviews/pending', [ListPendingReviewsController, 'handle'])
+      .as('reviews.pending_reviews.index')
     router.get('/reviews/:id', [ShowReviewController, 'handle']).as('reviews.show')
-    router.post('/reviews/:id/submit', [SubmitReviewController, 'handle']).as('reviews.submit')
-    router.post('/reviews/:id/confirm', [ConfirmReviewController, 'handle']).as('reviews.confirm')
+    router.post('/reviews/:id/submit', [SubmitReviewController, 'handle']).as('reviews.submissions.store')
+    router
+      .post('/reviews/:id/confirm', [ConfirmReviewController, 'handle'])
+      .as('reviews.confirmations.store')
     router.get('/reviews/disputes/:id', [ShowUserDisputeController, 'handle']).as('reviews.disputes.show')
 
     router
       .get('/reviews/:id/evidences', [GetReviewEvidencesController, 'handle'])
-      .as('reviews.evidences.list')
+      .as('reviews.evidences.index')
     router
       .post('/reviews/:id/evidences', [AddReviewEvidenceController, 'handle'])
-      .as('reviews.evidences.add')
+      .as('reviews.evidences.store')
     router
       .get('/reviews/:id/self-assessment', [GetTaskSelfAssessmentController, 'handle'])
-      .as('reviews.self_assessment.get')
+      .as('reviews.self_assessment.show')
     router
       .post('/reviews/:id/self-assessment', [UpsertTaskSelfAssessmentController, 'handle'])
-      .as('reviews.self_assessment.upsert')
+      .as('reviews.self_assessment.store')
 
-    // Reverse review (reviewee rates reviewers)
+    // Legacy task-level reverse review routes
+    // Product direction moved reverse review collection to sprint close.
     router
       .post('/reviews/:id/reverse', [SubmitReverseReviewController, 'handle'])
-      .as('reviews.reverse')
+      .as('reviews.reverse_reviews.submissions.store')
     router
       .post('/api/review-sessions/:sessionId/reverse-reviews', [
         CreateReverseReviewController,
         'handle',
       ])
-      .as('api.review_sessions.reverse_reviews.create')
+      .as('api.review_sessions.reverse_reviews.store')
     router
       .get('/api/me/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.me.reverse_reviews.list')
+      .as('api.me.reverse_reviews.index')
     router
       .get('/api/org/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.org.reverse_reviews.list')
+      .as('api.org.reverse_reviews.index')
     router
       .get('/api/admin/reverse-reviews', [ListReverseReviewsController, 'handle'])
-      .as('api.admin.reverse_reviews.list')
+      .as('api.admin.reverse_reviews.index')
     router
       .get('/reviews/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('reviews.reverse_reviews')
+      .as('reviews.reverse_reviews.index')
     router
       .get('/org/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('org.reverse_reviews')
+      .as('org.reverse_reviews.index')
     router
       .get('/admin/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
-      .as('admin.reverse_reviews')
+      .as('admin.reverse_reviews.index')
     router
       .post('/api/reviews/disputes', [CreateReviewDisputeController, 'handle'])
-      .as('api.reviews.disputes.create')
+      .as('api.reviews.disputes.store')
     router
       .get('/api/reviews/disputes/:id/comments', [ListReviewDisputeCommentsController, 'handle'])
-      .as('api.reviews.disputes.comments.list')
+      .as('api.reviews.disputes.comments.index')
     router
       .post('/api/reviews/disputes/:id/comments', [CreateReviewDisputeCommentController, 'handle'])
-      .as('api.reviews.disputes.comments.create')
+      .as('api.reviews.disputes.comments.store')
     router
       .get('/api/reviews/disputes/:id/evidences', [ListReviewDisputeEvidencesController, 'handle'])
-      .as('api.reviews.disputes.evidences.list')
+      .as('api.reviews.disputes.evidences.index')
     router
       .post('/api/reviews/disputes/:id/evidences', [CreateReviewDisputeEvidenceController, 'handle'])
-      .as('api.reviews.disputes.evidences.create')
+      .as('api.reviews.disputes.evidences.store')
     router
       .post('/api/org/reviews/disputes/:id/respond', [RespondToReviewDisputeController, 'handle'])
-      .as('api.org.reviews.disputes.respond')
+      .as('api.me.organizations.current.reviews.disputes.alias.responses.store')
     router
       .get('/api/admin/reviews/disputes', [ListAdminReviewDisputesController, 'handle'])
-      .as('api.admin.reviews.disputes.list')
+      .as('api.admin.reviews.disputes.index')
     router
       .get('/api/admin/reviews/disputes/:id', [ShowAdminReviewDisputeController, 'handle'])
       .as('api.admin.reviews.disputes.show')
     router
       .post('/api/admin/reviews/disputes/:id/resolve', [ResolveReviewDisputeController, 'handle'])
-      .as('api.admin.reviews.disputes.resolve')
+      .as('api.admin.reviews.disputes.resolution.store')
     router
       .get('/api/admin/reviews/disputes/:id/case-files', [ListReviewDisputeCaseFilesController, 'handle'])
-      .as('api.admin.reviews.disputes.case_files.list')
+      .as('api.admin.reviews.disputes.case_files.index')
     router
       .post('/api/admin/reviews/disputes/:id/case-files', [
         BuildReviewDisputeCaseFileController,
         'handle',
       ])
-      .as('api.admin.reviews.disputes.case_files.create')
+      .as('api.admin.reviews.disputes.case_files.store')
     router
       .get('/api/admin/reviews/disputes/:id/ai-evaluations', [
         ListAiDisputeEvaluationsController,
         'handle',
       ])
-      .as('api.admin.reviews.disputes.ai_evaluations.list')
+      .as('api.admin.reviews.disputes.ai_evaluations.index')
     router
       .post('/api/admin/reviews/disputes/:id/ai-evaluations', [
         StartAiDisputeEvaluationController,
         'handle',
       ])
-      .as('api.admin.reviews.disputes.ai_evaluations.create')
+      .as('api.admin.reviews.disputes.ai_evaluations.store')
 
     // My reviews (as reviewee)
-    router.get('/my-reviews', [MyReviewsController, 'handle']).as('reviews.mine')
+    router.get('/my-reviews', [MyReviewsController, 'handle']).as('reviews.my_reviews.index')
 
     // User reviews (public profile)
-    router.get('/users/:id/reviews', [UserReviewsController, 'handle']).as('users.reviews')
+    router.get('/users/:id/reviews', [UserReviewsController, 'handle']).as('users.reviews.index')
 
     // Admin: Flagged reviews
     router
       .get('/admin/flagged-reviews', [ListFlaggedReviewsController, 'handle'])
-      .as('admin.flagged_reviews')
+      .as('admin.flagged_reviews.index')
     router
       .post('/admin/flagged-reviews/:id/resolve', [ResolveFlaggedReviewController, 'handle'])
-      .as('admin.flagged_reviews.resolve')
+      .as('admin.flagged_reviews.resolutions.store')
 
     // API routes
     router
       .post('/api/reviews/sessions', [CreateReviewSessionController, 'handle'])
-      .as('api.reviews.sessions.create')
+      .as('api.reviews.sessions.store')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
 
@@ -1602,7 +1626,6 @@ router
 
 router
   .post('/api/public/ai/dispute-evaluations/callback', [AiDisputeCallbackController, 'handle'])
-  .as('api.public.ai.dispute_evaluations.callback.legacy')
   .use([throttle])
 
 ```
