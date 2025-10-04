@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildCreateOrganizationDTO } from './mappers/request/organization_request_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/create_organization_command'
 
@@ -27,6 +27,6 @@ export default class CreateOrganizationController {
     const organization = await createOrganization.execute(dto)
 
     session.flash('success', 'Tổ chức đã được tạo thành công')
-    response.redirect().toRoute('organizations.show', { id: organization.id })
+    response.redirect().toRoute('organizations.show', [organization.id])
   }
 }

@@ -1,6 +1,12 @@
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { BaseQuery } from '#modules/organizations/actions/base_query'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-
+import {
+  buildPaginationMeta,
+  normalizePagination,
+  slicePageItems,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 export interface ListJoinRequestsDTO {
   page?: number
   perPage?: number
@@ -37,8 +43,7 @@ export default class ListJoinRequestsQuery extends BaseQuery<
       throw new Error('Organization context required')
     }
 
-    const page = dto.page ?? 1
-    const perPage = dto.perPage ?? 50
+    const pagination = normalizePagination(dto, ORGANIZATION_PAGINATION, { perPage: 50 })
     const search = dto.search?.trim().toLowerCase()
 
     const pendingMemberships =
@@ -59,8 +64,8 @@ export default class ListJoinRequestsQuery extends BaseQuery<
     })
 
     const total = filtered.length
-    const offset = (page - 1) * perPage
-    const paginated = filtered.slice(offset, offset + perPage)
+    const paginated = slicePageItems(filtered, pagination)
+    const meta = buildPaginationMeta(total, pagination)
 
     return {
       requests: paginated.map((membership) => ({
@@ -72,14 +77,14 @@ export default class ListJoinRequestsQuery extends BaseQuery<
         created_at: membership.created_at.toISO() ?? new Date().toISOString(),
       })),
       meta: {
-        total,
-        perPage,
-        currentPage: page,
-        lastPage: Math.max(1, Math.ceil(total / perPage)),
+        total: meta.total,
+        perPage: meta.perPage,
+        currentPage: meta.currentPage,
+        lastPage: meta.lastPage,
       },
-      filters: {
+      filters: omitUndefined({
         search: dto.search,
-      },
+      }),
     }
   }
 }

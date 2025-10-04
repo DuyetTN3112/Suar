@@ -40,7 +40,10 @@ export class InviteUserDTO {
     this.allowedRoleIds = Array.isArray(allowedRoleIdsOrMessage)
       ? allowedRoleIdsOrMessage
       : [OrganizationRole.ADMIN, OrganizationRole.MEMBER]
-    this.message = Array.isArray(allowedRoleIdsOrMessage) ? message : allowedRoleIdsOrMessage
+    const resolvedMessage = Array.isArray(allowedRoleIdsOrMessage) ? message : allowedRoleIdsOrMessage
+    if (resolvedMessage !== undefined) {
+      this.message = resolvedMessage
+    }
     this.validate()
   }
 

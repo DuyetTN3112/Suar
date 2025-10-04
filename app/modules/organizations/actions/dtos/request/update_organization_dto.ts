@@ -158,27 +158,27 @@ export class UpdateOrganizationDTO {
     if (this.name !== undefined) {
       const trimmed = this.name.trim()
       if (trimmed.length > 0) {
-        updates.name = trimmed
+        updates['name'] = trimmed
       }
     }
 
     if (this.slug !== undefined) {
       const trimmed = this.slug.trim()
       if (trimmed.length > 0) {
-        updates.slug = trimmed
+        updates['slug'] = trimmed
       }
     }
 
     if (this.description !== undefined) {
-      updates.description = this.description.trim() || null
+      updates['description'] = this.description.trim() || null
     }
 
     if (this.logo !== undefined) {
-      updates.logo = this.logo.trim() || null
+      updates['logo'] = this.logo.trim() || null
     }
 
     if (this.website !== undefined) {
-      updates.website = this.website.trim() || null
+      updates['website'] = this.website.trim() || null
     }
 
     return updates

@@ -36,6 +36,19 @@ export enum OrganizationUserStatus {
   REJECTED = 'rejected',
 }
 
+export const ORGANIZATION_MEMBER_STATUS_FILTERS = ['active', 'pending', 'inactive'] as const
+
+export type OrganizationMemberStatusFilter = (typeof ORGANIZATION_MEMBER_STATUS_FILTERS)[number]
+
+export const ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS: Record<
+  OrganizationMemberStatusFilter,
+  OrganizationUserStatus
+> = {
+  active: OrganizationUserStatus.APPROVED,
+  pending: OrganizationUserStatus.PENDING,
+  inactive: OrganizationUserStatus.REJECTED,
+}
+
 /**
  * Partner Type — v3.0 inline CHECK trên organizations.partner_type
  * CHECK ('gold', 'silver', 'bronze')

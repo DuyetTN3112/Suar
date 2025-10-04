@@ -1,28 +1,26 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { DateTime } from 'luxon'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import { CreateProjectDTO } from '#modules/projects/public_contracts/create_project_dto'
 import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
 
 const PROJECTS_DEFAULT_LIMIT = 20
 const VALID_PROJECT_VISIBILITIES = new Set<string>(['public', 'private', 'team'])
 
-function toOptionalString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim().length > 0 ? value : undefined
+function readAliasedInput(
+  request: HttpContext['request'],
+  camelKey: string,
+  snakeKey: string,
+  fallback?: unknown
+): unknown {
+  return request.input(camelKey, request.input(snakeKey, fallback))
 }
 
-function toOptionalNumber(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === 'string' && value.trim().length > 0) {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : undefined
-  }
-
-  return undefined
+function toOptionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined
 }
 
 function toOptionalDateTime(value: unknown): DateTime | undefined {
@@ -42,19 +40,6 @@ function toOptionalVisibility(value: unknown): ProjectVisibility | undefined {
   return VALID_PROJECT_VISIBILITIES.has(value) ? (value as ProjectVisibility) : undefined
 }
 
-function toPositiveNumber(value: unknown, fallback: number): number {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return Math.max(1, Math.trunc(value))
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? Math.max(1, Math.trunc(parsed)) : fallback
-  }
-
-  return fallback
-}
-
 interface CurrentOrganizationProjectsListInput {
   page: number
   perPage: number
@@ -67,16 +52,15 @@ export function buildCreateCurrentOrganizationProjectDTO(
   organizationId: string
 ): CreateProjectDTO {
   return CreateProjectDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: request.input('name') as string,
       description: toOptionalString(request.input('description') as unknown),
       status: toOptionalString(request.input('status') as unknown),
-      start_date: toOptionalDateTime(request.input('start_date') as unknown) ?? null,
-      end_date: toOptionalDateTime(request.input('end_date') as unknown) ?? null,
-      manager_id: toOptionalString(request.input('manager_id') as unknown) ?? null,
+      start_date: toOptionalDateTime(readAliasedInput(request, 'startDate', 'start_date')) ?? null,
+      end_date: toOptionalDateTime(readAliasedInput(request, 'endDate', 'end_date')) ?? null,
+      manager_id: toOptionalString(readAliasedInput(request, 'managerId', 'manager_id')) ?? null,
       visibility: toOptionalVisibility(request.input('visibility') as unknown),
-      budget: toOptionalNumber(request.input('budget') as unknown),
-    },
+    }),
     organizationId
   )
 }
@@ -84,13 +68,19 @@ export function buildCreateCurrentOrganizationProjectDTO(
 export function buildCurrentOrganizationProjectsListInput(
   request: HttpContext['request']
 ): CurrentOrganizationProjectsListInput {
-  return {
-    page: toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown, 1),
-    perPage: toPositiveNumber(
-      request.input('limit', PROJECTS_DEFAULT_LIMIT) as unknown,
-      PROJECTS_DEFAULT_LIMIT
-    ),
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
+      limit: request.input('limit', PROJECTS_DEFAULT_LIMIT) as unknown,
+    },
+    PAGINATION,
+    { perPage: PROJECTS_DEFAULT_LIMIT }
+  )
+
+  return omitUndefined({
+    page: pagination.page,
+    perPage: pagination.perPage,
     search: toOptionalString(request.input('search') as unknown),
     status: toOptionalString(request.input('status') as unknown),
-  }
+  })
 }

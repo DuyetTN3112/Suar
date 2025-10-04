@@ -1,9 +1,10 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
+import { getProjectDetail } from '#modules/projects/public_contracts/project_detail'
 
 /**
  * GET /org/projects/:id
@@ -11,18 +12,13 @@ import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project
  */
 export default class OrgShowProjectController {
   async handle(ctx: HttpContext) {
-    const { params, inertia, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
+    const { params, inertia } = ctx
+    const organizationId = requireCurrentOrganizationId(ctx)
 
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
-
-    const query = new GetProjectDetailQuery(actionContextFromHttp(ctx))
-    const result = await query.handle({
-      projectId: params.id as string,
+    const result = await getProjectDetail({
+      projectId: params['projectId'] as string,
       organizationId,
-    })
+    }, actionContextFromHttp(ctx))
 
     return await inertia.render('projects/show', {
       ...result,

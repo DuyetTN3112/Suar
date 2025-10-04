@@ -76,6 +76,78 @@ export default class UpdateMemberRoleCommand {
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
     const actorId = this.requireActorId()
+    const startedAt = Date.now()
+    platformOperationalLogger.log(
+      'info',
+      buildOrganizationMembershipEvent(this.execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_ROLE_CHANGE_STARTED,
+        eventFamily: 'membership',
+        subsystem: 'organization_membership',
+        workflow: 'organization_update_member_role',
+        stage: 'started',
+        outcome: 'success',
+        organizationId: dto.organizationId,
+        targetType: 'organization_membership',
+        targetId: dto.userId,
+        change: {
+          target_user_id: dto.userId,
+          new_role: dto.newRoleId,
+        },
+        retentionClass: 'transient_runtime',
+      })
+    )
+
+    try {
+      const roleChange = await this.persistRoleChangeInTransaction(dto, actorId)
+      await this.runPostCommitSideEffects(dto, actorId, roleChange.oldRole)
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_ROLE_CHANGE_COMPLETED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_update_member_role',
+          stage: 'completed',
+          outcome: 'success',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            old_role: roleChange.oldRole,
+            new_role: dto.newRoleId,
+            action_type: dto.getActionType(roleChange.oldRole),
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
+    } catch (error) {
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_MEMBER_ROLE_CHANGE_FAILED,
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_update_member_role',
+          stage: 'failed',
+          outcome: 'failure',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            new_role: dto.newRoleId,
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
 
   private async persistRoleChangeInTransaction(
@@ -226,6 +298,27 @@ export default class UpdateMemberRoleCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
+      platformOperationalLogger.log(
+        'warn',
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: 'organization.member_role_change.notification_failed',
+          eventFamily: 'membership',
+          subsystem: 'organization_membership',
+          workflow: 'organization_update_member_role',
+          stage: 'notification_failed',
+          outcome: 'warning',
+          organizationId: dto.organizationId,
+          targetType: 'organization_membership',
+          targetId: dto.userId,
+          change: {
+            target_user_id: dto.userId,
+            old_role: oldRole,
+            new_role: dto.newRoleId,
+          },
+          error,
+          retentionClass: 'transient_runtime',
+        })
+      )
       loggerService.error('[UpdateMemberRoleCommand] Failed to send notification:', error)
     }
   }

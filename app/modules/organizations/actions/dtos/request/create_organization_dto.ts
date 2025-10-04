@@ -1,3 +1,4 @@
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import {
   normalizeOrganizationName,
@@ -133,7 +134,7 @@ export class CreateOrganizationDTO {
   toObject() {
     return {
       name: normalizeOrganizationName(this.name),
-      slug: resolveOrganizationBaseSlug({ name: this.name, slug: this.slug }),
+      slug: resolveOrganizationBaseSlug(omitUndefined({ name: this.name, slug: this.slug })),
       description: this.description?.trim() ?? null,
       logo: this.logo?.trim() ?? null,
       website: this.website?.trim() ?? null,
@@ -164,6 +165,6 @@ export class CreateOrganizationDTO {
    * Helper: Get final slug (generated if not provided)
    */
   getFinalSlug(): string {
-    return resolveOrganizationBaseSlug({ name: this.name, slug: this.slug })
+    return resolveOrganizationBaseSlug(omitUndefined({ name: this.name, slug: this.slug }))
   }
 }

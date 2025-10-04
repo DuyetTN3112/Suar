@@ -1,4 +1,5 @@
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { BaseCommand } from '#modules/organizations/actions/base_command'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
@@ -44,10 +45,10 @@ export default class UpdateOrganizationSettingsCommand extends BaseCommand<Updat
     enforcePolicy(canUpdateOrganization(actorOrgRole))
 
     // Update via repository
-    await this.settingsRepo.updateOrganization(organizationId, {
+    await this.settingsRepo.updateOrganization(organizationId, omitUndefined({
       name: dto.name,
       description: dto.description,
       website: dto.website,
-    })
+    }))
   }
 }

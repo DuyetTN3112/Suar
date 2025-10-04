@@ -210,7 +210,9 @@ export class OrganizationMemberResponseDTO {
     this.role_name = props.role_name
     this.status = props.status
     this.joined_at = props.joined_at
-    this.last_activity_at = props.last_activity_at
+    if (props.last_activity_at !== undefined) {
+      this.last_activity_at = props.last_activity_at
+    }
   }
 
   static fromProps(props: OrganizationMemberResponseDTOProps): OrganizationMemberResponseDTO {

@@ -4,7 +4,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildInvitationsIndexPageInput } from './mappers/request/list_invitations_request_mapper.js'
 import { mapInvitationsIndexPageProps } from './mappers/response/list_invitations_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import GetInvitationsIndexPageQuery from '#modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query'
 
 /**

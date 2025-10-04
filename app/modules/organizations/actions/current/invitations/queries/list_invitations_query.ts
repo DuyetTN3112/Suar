@@ -1,7 +1,12 @@
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { BaseQuery } from '#modules/organizations/actions/base_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import OrganizationInvitationRepository from '#modules/organizations/infra/current/repositories/organization_invitation_repository'
-
+import {
+  buildPaginationMeta,
+  normalizePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * ListInvitationsQuery
  *
@@ -57,34 +62,32 @@ export default class ListInvitationsQuery extends BaseQuery<
       throw new Error('Organization context required')
     }
 
-    const page = dto.page ?? 1
-    const perPage = dto.perPage ?? 20
+    const pagination = normalizePagination(dto, ORGANIZATION_PAGINATION)
 
     // Fetch from repository
     const result = await this.invitationRepo.listInvitations(
       organizationId,
-      {
+      omitUndefined({
         search: dto.search,
         status: dto.status,
-      },
-      page,
-      perPage
+      }),
+      pagination.page,
+      pagination.perPage
     )
-
-    const lastPage = Math.ceil(result.total / perPage)
+    const meta = buildPaginationMeta(result.total, pagination)
 
     return {
       invitations: result.invitations,
       pagination: {
-        total: result.total,
-        perPage,
-        currentPage: page,
-        lastPage,
+        total: meta.total,
+        perPage: meta.perPage,
+        currentPage: meta.currentPage,
+        lastPage: meta.lastPage,
       },
-      filters: {
+      filters: omitUndefined({
         search: dto.search,
         status: dto.status,
-      },
+      }),
     }
   }
 }
