@@ -12,7 +12,7 @@ import AppException from '#modules/http/exceptions/app_exception'
  *
  * throw new ConflictException('Email đã được sử dụng')
  * throw ConflictException.duplicate('User', 'email')
- * throw ConflictException.alreadyExists('Bạn đã ứng tuyển task này')
+ * throw ConflictException.alreadyExists('Bạn đã gửi đề xuất cho task này')
  * ```
  */
 export default class ConflictException extends AppException {
@@ -20,7 +20,7 @@ export default class ConflictException extends AppException {
   static override code = 'E_CONFLICT'
 
   constructor(message: string = ErrorMessages.ALREADY_EXISTS, details?: Record<string, unknown>) {
-    super(message, { details })
+    super(message, details === undefined ? {} : { details })
   }
 
   /**

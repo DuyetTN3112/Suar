@@ -25,10 +25,10 @@ export default class RateLimitException extends AppException {
   public readonly retryAfter?: number
 
   constructor(message: string = ErrorMessages.RATE_LIMIT, retryAfter?: number) {
-    super(message, {
-      details: retryAfter ? { retry_after: retryAfter } : undefined,
-    })
-    this.retryAfter = retryAfter
+    super(message, retryAfter ? { details: { retry_after: retryAfter } } : {})
+    if (retryAfter !== undefined) {
+      this.retryAfter = retryAfter
+    }
   }
 
   /**

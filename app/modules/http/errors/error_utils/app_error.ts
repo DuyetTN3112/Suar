@@ -18,7 +18,9 @@ export class AppError extends Error {
     this.code = options?.code ?? 'UNKNOWN_ERROR'
     this.statusCode = options?.statusCode ?? 500
     this.isOperational = options?.isOperational ?? true
-    this.metadata = options?.metadata
+    if (options?.metadata !== undefined) {
+      this.metadata = options.metadata
+    }
 
     Error.captureStackTrace(this, AppError)
 
@@ -46,7 +48,7 @@ export class AppError extends Error {
     return new AppError(message, {
       code: 'VALIDATION_ERROR',
       statusCode: 400,
-      metadata: field ? { field } : undefined,
+      ...(field ? { metadata: { field } } : {}),
     })
   }
 

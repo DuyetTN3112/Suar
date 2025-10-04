@@ -1,8 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { requireCurrentOrganizationId } from '#modules/http/public_contracts/http_execution_context'
 import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
 /**
@@ -10,25 +10,19 @@ import { organizationPublicApi } from '#modules/organizations/public_contracts/o
  */
 export default class GetUsersInOrganizationApiController {
   async handle(ctx: HttpContext) {
-    const { auth, response, session } = ctx
+    const { auth } = ctx
 
     if (!auth.user) {
       throw new UnauthorizedException()
     }
 
-    const userOrgId = auth.user.current_organization_id
-    const sessionOrgId = session.get('current_organization_id') as string | undefined
-    const organizationId = userOrgId ?? sessionOrgId
-
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const organizationId = requireCurrentOrganizationId(ctx)
 
     const formattedUsers = await organizationPublicApi.getUsersInOrganization(
       organizationId,
       auth.user.id
     )
 
-    response.json({ success: true, users: formattedUsers })
+    return wrapApiV1Data(formattedUsers)
   }
 }

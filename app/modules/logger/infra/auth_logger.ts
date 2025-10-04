@@ -28,7 +28,7 @@ interface ErrorWithCode {
 }
 
 function shouldWriteConsole(): boolean {
-  return process.env.NODE_ENV !== 'test' && process.env.LOG_LEVEL !== 'silent'
+  return process.env['NODE_ENV'] !== 'test' && process.env['LOG_LEVEL'] !== 'silent'
 }
 
 function writeConsole(lines: string[]): void {

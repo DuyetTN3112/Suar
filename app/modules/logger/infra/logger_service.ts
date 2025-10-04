@@ -95,6 +95,40 @@ export class LoggerService {
     }
   }
 
+  public logStructured(level: LogLevel, eventName: string, payload: Record<string, unknown>): void {
+    const message = `[${level.toUpperCase()}] ${eventName}`
+
+    if (level === 'error') {
+      logger.error(message, payload)
+      return
+    }
+
+    if (!this.shouldLog(level)) {
+      return
+    }
+
+    if ((level === 'debug' || level === 'trace') && !this.isDevMode) {
+      return
+    }
+
+    if (level === 'warn') {
+      logger.warn(message, payload)
+      return
+    }
+
+    if (level === 'info') {
+      logger.info(message, payload)
+      return
+    }
+
+    if (level === 'debug') {
+      logger.debug(message, payload)
+      return
+    }
+
+    logger.trace(message, payload)
+  }
+
   /**
    * Log thông tin cơ bản về một đối tượng, không log chi tiết
    * @param label Nhãn để phân biệt log
@@ -116,7 +150,7 @@ export class LoggerService {
           .map((item: unknown) => {
             if (item && typeof item === 'object') {
               const record = item as Record<string, unknown>
-              return record.id ?? record._id
+              return record['id'] ?? record['_id']
             }
             return undefined
           })
@@ -131,8 +165,8 @@ export class LoggerService {
       if (typeof obj === 'object') {
         const record = obj as Record<string, unknown>
         const basicInfo = {
-          id: record.id ?? record._id,
-          name: record.name ?? record.title ?? record.label,
+          id: record['id'] ?? record['_id'],
+          name: record['name'] ?? record['title'] ?? record['label'],
           type: obj.constructor.name,
         }
         this[level](`${label}: ${JSON.stringify(basicInfo)}`)

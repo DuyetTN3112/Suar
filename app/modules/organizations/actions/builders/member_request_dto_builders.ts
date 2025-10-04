@@ -1,6 +1,7 @@
 import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 import { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
@@ -56,13 +57,13 @@ export async function buildInviteUserDTO(
     options.resolveAssignableRoles ?? false
   )
 
-  return InviteUserDTO.fromValidatedPayload({
+  return InviteUserDTO.fromValidatedPayload(omitUndefined({
     organization_id: input.organizationId,
     email: input.email,
     role_id: roleId,
     allowed_role_ids: allowedRoleIds,
     message: input.message,
-  })
+  }))
 }
 
 export async function buildUpdateMemberRoleDTO(

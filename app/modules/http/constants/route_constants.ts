@@ -37,7 +37,7 @@ export const PageRoutes = {
   ORG_INVITATIONS: '/org/invitations',
   ORG_REQUESTS: '/org/invitations/requests',
   ORG_PROJECTS: '/org/projects',
-  ORG_WORKFLOW: '/org/workflow/statuses',
+  ORG_WORKFLOW: '/org/tasks/workflow',
 
   // Organizations
   ORGANIZATIONS: '/organizations',
@@ -66,19 +66,19 @@ export const PageRoutes = {
 
 export const ApiRoutes = {
   // Organizations
-  ORGANIZATIONS: '/api/organizations',
+  ORGANIZATIONS: '/api/v1/organizations',
 
   // Projects
-  PROJECTS: '/api/projects',
+  PROJECTS: '/api/v1/projects',
 
   // Tasks
-  TASKS: '/api/tasks',
+  TASKS: '/api/v1/tasks',
 
   // Users
   USERS: '/api/users',
 
   // Notifications
-  NOTIFICATIONS: '/api/notifications',
+  NOTIFICATIONS: '/api/v1/notifications',
 
 } as const
 

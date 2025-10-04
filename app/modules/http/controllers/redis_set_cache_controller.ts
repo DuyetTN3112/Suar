@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { SetCacheValueCommand } from '#modules/http/actions/cache/public_api'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 
 
 /**
@@ -19,11 +19,6 @@ export default class RedisSetCacheController {
       ttl,
     })
 
-    response.json({
-      success: true,
-      message: 'Cache set successfully',
-      key,
-      ttl,
-    })
+    response.noContent()
   }
 }

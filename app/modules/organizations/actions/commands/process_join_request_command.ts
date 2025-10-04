@@ -7,6 +7,7 @@ import { EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
@@ -14,10 +15,16 @@ import {
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canProcessJoinRequest } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
 import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
 
 /**
@@ -43,6 +50,26 @@ export default class ProcessJoinRequestCommand {
     if (!userId) {
       throw new UnauthorizedException()
     }
+    const startedAt = Date.now()
+    platformOperationalLogger.log(
+      'info',
+      buildOrganizationMembershipEvent(this.execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_JOIN_REQUEST_PROCESSED,
+        eventFamily: 'membership',
+        subsystem: 'organization_join_requests',
+        workflow: 'organization_process_join_request',
+        stage: 'started',
+        outcome: 'success',
+        organizationId: dto.organizationId,
+        targetType: 'organization_join_request',
+        targetId: dto.targetUserId,
+        change: {
+          target_user_id: dto.targetUserId,
+          decision: dto.getStatus(),
+        },
+        retentionClass: 'transient_runtime',
+      })
+    )
     const trx = await db.transaction()
 
     try {
@@ -54,7 +81,7 @@ export default class ProcessJoinRequestCommand {
       )
 
       if (!pendingMembership) {
-        throw new Error('Không tìm thấy yêu cầu tham gia đang chờ xử lý')
+        throw new NotFoundException('Không tìm thấy yêu cầu tham gia đang chờ xử lý')
       }
 
       // 2. Check permissions
@@ -121,8 +148,52 @@ export default class ProcessJoinRequestCommand {
 
       // 5. Send notification
       await this.sendProcessedNotification(dto)
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_JOIN_REQUEST_PROCESSED,
+          eventFamily: 'membership',
+          subsystem: 'organization_join_requests',
+          workflow: 'organization_process_join_request',
+          stage: 'completed',
+          outcome: 'success',
+          organizationId: dto.organizationId,
+          targetType: 'organization_join_request',
+          targetId: dto.targetUserId,
+          change: {
+            target_user_id: dto.targetUserId,
+            decision: dto.getStatus(),
+            reason: dto.getNormalizedReason(),
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
     } catch (error) {
       await trx.rollback()
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.ORGANIZATION_JOIN_REQUEST_FAILED,
+          eventFamily: 'membership',
+          subsystem: 'organization_join_requests',
+          workflow: 'organization_process_join_request',
+          stage: 'failed',
+          outcome: 'failure',
+          organizationId: dto.organizationId,
+          targetType: 'organization_join_request',
+          targetId: dto.targetUserId,
+          change: {
+            target_user_id: dto.targetUserId,
+            decision: dto.getStatus(),
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
       throw error
     }
   }
@@ -145,6 +216,26 @@ export default class ProcessJoinRequestCommand {
         related_entity_id: dto.organizationId,
       })
     } catch (error) {
+      platformOperationalLogger.log(
+        'warn',
+        buildOrganizationMembershipEvent(this.execCtx, {
+          eventName: 'organization.join_request.notification_failed',
+          eventFamily: 'membership',
+          subsystem: 'organization_join_requests',
+          workflow: 'organization_process_join_request',
+          stage: 'notification_failed',
+          outcome: 'warning',
+          organizationId: dto.organizationId,
+          targetType: 'organization_join_request',
+          targetId: dto.targetUserId,
+          change: {
+            target_user_id: dto.targetUserId,
+            decision: dto.getStatus(),
+          },
+          error,
+          retentionClass: 'transient_runtime',
+        })
+      )
       loggerService.error('[ProcessJoinRequestCommand] Failed to send notification:', error)
     }
   }

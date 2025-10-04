@@ -272,9 +272,9 @@ start/routes/tasks.ts
 | function | `buildCurrentOrganizationProcessJoinRequestInput` | `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts` | 52 |
 | function | `mapCurrentOrganizationMutationApiBody` | `app/modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper.ts` | 1 |
 | function | `mapCurrentOrganizationSuccessApiBody` | `app/modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper.ts` | 12 |
-| type | `ResponseRecord` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 1 |
-| interface | `SerializableResponseRecord` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 3 |
-| function | `serializeForCurrentOrganizationResponse` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 19 |
+| type | `SerializedModelRecord` | `app/modules/organizations/controllers/current/mappers/response/model_response_serialization.ts` | 1 |
+| interface | `SerializableModelRecord` | `app/modules/organizations/controllers/current/mappers/response/model_response_serialization.ts` | 3 |
+| function | `serializeForCurrentOrganizationResponse` | `app/modules/organizations/controllers/current/mappers/response/model_response_serialization.ts` | 19 |
 | class | `InviteMemberController` | `app/modules/organizations/controllers/current/members/invite_member_controller.ts` | 17 |
 | class | `ListMembersController` | `app/modules/organizations/controllers/current/members/list_members_controller.ts` | 17 |
 | function | `buildOrganizationMembersIndexPageInput` | `app/modules/organizations/controllers/current/members/mappers/request/list_members_request_mapper.ts` | 26 |
@@ -1533,7 +1533,7 @@ import { OrganizationRole } from '#modules/organizations/public_contracts/organi
 // no imports
 ```
 
-### `app/modules/organizations/controllers/current/mappers/response/shared.ts`
+### `app/modules/organizations/controllers/current/mappers/response/model_response_serialization.ts`
 
 ```ts
 // no imports
@@ -1635,10 +1635,10 @@ import type { ProjectVisibility } from '#modules/projects/public_contracts/proje
 
 ```ts
 import type {
-  ResponseRecord,
-  SerializableResponseRecord,
-} from '#modules/organizations/controllers/current/mappers/response/shared'
-import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/shared'
+  SerializedModelRecord,
+  SerializableModelRecord,
+} from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
+import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
 ```
 
 ### `app/modules/organizations/controllers/current/projects/show_project_controller.ts`
@@ -1724,10 +1724,10 @@ import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status
 
 ```ts
 import type {
-  ResponseRecord,
-  SerializableResponseRecord,
-} from '#modules/organizations/controllers/current/mappers/response/shared'
-import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/shared'
+  SerializedModelRecord,
+  SerializableModelRecord,
+} from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
+import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
 ```
 
 ### `app/modules/organizations/controllers/delete_organization_api_controller.ts`
@@ -2026,20 +2026,20 @@ router
       .group(() => {
         router.get('/', [OrgListMembersController, 'handle']).as('org.members.index')
         router.post('/invite', [OrgInviteMemberController, 'handle']).as('org.members.invite')
-        router.delete('/:id', [OrgRemoveMemberController, 'handle']).as('org.members.remove')
+        router.delete('/:id', [OrgRemoveMemberController, 'handle']).as('org.members.destroy')
         router
           .put('/:id/role', [OrgUpdateMemberRoleController, 'handle'])
-          .as('org.members.updateRole')
+          .as('org.members.update_role')
       })
       .prefix('/members')
 
     // ─── Join Requests & Invitations ───
     router
       .group(() => {
-        router.get('/requests', [OrgListJoinRequestsController, 'handle']).as('org.requests.index')
+        router.get('/requests', [OrgListJoinRequestsController, 'handle']).as('org.join_requests.index')
         router
           .put('/requests/:id/approve', [OrgApproveJoinRequestController, 'handle'])
-          .as('org.requests.approve')
+          .as('org.join_requests.approvals.store')
         router
           .get('/invitations', [OrgListInvitationsController, 'handle'])
           .as('org.invitations.index')
@@ -2063,7 +2063,7 @@ router
     router
       .group(() => {
         router.get('/', [OrgListProjectsController, 'handle']).as('org.projects.index')
-        router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.create')
+        router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.store')
         router.get('/:id', [OrgShowProjectController, 'handle']).as('org.projects.show')
       })
       .prefix('/projects')
@@ -2142,7 +2142,7 @@ const AddUsersController = () => import('#modules/organizations/controllers/add_
 // Route hiển thị tất cả tổ chức (không phụ thuộc vào người dùng)
 router
   .get('/all-organizations', [AllOrganizationsController, 'handle'])
-  .as('organizations.all')
+  .as('organizations.directory.index')
   .use(middleware.auth())
 
 // API endpoint để lấy danh sách tổ chức
@@ -2236,7 +2236,7 @@ const SwitchOrganizationController = () =>
 // API chuyển tổ chức
 router
   .post('/switch-organization', [SwitchOrganizationController, 'handle'])
-  .as('organizations.switch.api')
+  .as('organizations.context_switch.store')
   .use(middleware.auth())
 
 // Thêm route GET để xử lý redirect sau khi chuyển tổ chức

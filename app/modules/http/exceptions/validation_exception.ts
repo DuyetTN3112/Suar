@@ -20,7 +20,7 @@ export default class ValidationException extends AppException {
   static override code = 'E_VALIDATION'
 
   constructor(message: string, errors?: Record<string, string>) {
-    super(message, { errors })
+    super(message, errors === undefined ? {} : { errors })
   }
 
   /**

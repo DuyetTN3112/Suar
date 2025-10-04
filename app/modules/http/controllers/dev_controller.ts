@@ -14,7 +14,7 @@ export default class DevController {
    */
   restart({ response, logger }: HttpContext) {
     // Kiểm tra môi trường
-    if (process.env.NODE_ENV !== 'development') {
+    if (process.env['NODE_ENV'] !== 'development') {
       throw new ForbiddenException('Chỉ có thể khởi động lại server trong môi trường development')
     }
 

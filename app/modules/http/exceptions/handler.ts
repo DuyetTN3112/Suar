@@ -4,11 +4,14 @@ import app from '@adonisjs/core/services/app'
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
 import { Youch } from 'youch'
 
-import { createApiV1ProblemDetails } from '../../../contracts/api/v1/errors.js'
-
 import { isPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
-import { HttpStatus, ErrorCode, ErrorMessages, createApiError } from '#modules/errors/public_contracts/error_constants'
+import { HttpStatus, ErrorCode, ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import { createErrorEvent } from '#modules/errors/public_contracts/error_event_repository'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
+import {
+  classifyHttpTransport,
+  isApiTransport,
+} from '#modules/http/boundary/http_transport'
 import AppException from '#modules/http/exceptions/app_exception'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
@@ -60,21 +63,6 @@ const applyDefaultHeaders = (
 }
 
 /**
- * Kiểm tra xem request có phải là API request không
- * - URL bắt đầu bằng /api/
- * - Hoặc client Accept JSON nhưng KHÔNG phải Inertia (AJAX thuần)
- */
-const isApiRequest = (request: HttpContext['request']): boolean => {
-  if (request.url().startsWith('/api/')) return true
-  if (request.header('X-Inertia')) return false
-  return request.accepts(['json', 'html']) === 'json'
-}
-
-const isApiV1Request = (request: HttpContext['request']): boolean => {
-  return request.url().startsWith('/api/v1')
-}
-
-/**
  * Kiểm tra xem request có phải là Inertia request không
  */
 const isInertiaRequest = (request: HttpContext['request']): boolean => {
@@ -86,7 +74,11 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   protected override renderStatusPages = true
 
   protected override statusPages: Record<StatusPageRange, StatusPageRenderer> = {
-    '404': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_NOT_FOUND, {}),
+    '404': (error, { inertia, response }) => {
+      const message = isHttpError(error) && error.message ? error.message : ErrorMessages.NOT_FOUND
+      response.status(HttpStatus.NOT_FOUND)
+      return inertia.render(InertiaPages.ERROR_NOT_FOUND, { message })
+    },
     '403': (_error, { inertia }) => inertia.render(InertiaPages.ERROR_FORBIDDEN, {}),
     '500..599': (error, { inertia }) => inertia.render(InertiaPages.ERROR_SERVER_ERROR, { error }),
   }
@@ -94,13 +86,18 @@ export default class HttpExceptionHandler extends ExceptionHandler {
   override async handle(error: unknown, ctx: HttpContext): Promise<void> {
     const { request, response, session, inertia } = ctx
     const handledError = this.mapDomainException(error)
-    const apiMeta = this.getApiErrorMeta(ctx)
+    const transport = classifyHttpTransport(ctx)
 
     // ----------------------------------------------------------------
     // Dev mode: Youch HTML cho non-Inertia requests
     // ----------------------------------------------------------------
-    if (!app.inProduction && handledError instanceof Error) {
-      if (!isInertiaRequest(request) && !isApiRequest(request)) {
+    if (
+      !app.inProduction &&
+      handledError instanceof Error &&
+      !(handledError instanceof AppException) &&
+      !isHttpError(handledError)
+    ) {
+      if (!isInertiaRequest(request) && !isApiTransport(transport)) {
         const youch = new Youch()
         const html = await youch.toHTML(handledError)
         response
@@ -114,7 +111,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // ----------------------------------------------------------------
     // API requests: Luôn trả JSON chuẩn
     // ----------------------------------------------------------------
-    if (isApiRequest(request)) {
+    if (isApiTransport(transport)) {
       const status = isHttpError(handledError)
         ? handledError.status
         : HttpStatus.INTERNAL_SERVER_ERROR
@@ -127,26 +124,14 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
       // Custom ValidationException (từ DTOs/Actions) — có .errors field
       if (handledError instanceof AppException && Object.keys(handledError.errors).length > 0) {
-        if (isApiV1Request(request)) {
-          response
-            .status(HttpStatus.UNPROCESSABLE_ENTITY)
-            .header('content-type', 'application/problem+json')
-            .json(
-              createApiV1ProblemDetails({
-                status: HttpStatus.UNPROCESSABLE_ENTITY,
-                code,
-                detail: message,
-                errors: handledError.errors,
-                requestId: ctx.requestContext.requestId,
-                correlationId: ctx.requestContext.correlationId,
-              })
-            )
-          return
-        }
-
-        response
-          .status(HttpStatus.UNPROCESSABLE_ENTITY)
-          .json(createApiError(code, message, handledError.errors, apiMeta))
+        emitApiError(ctx, {
+          transport,
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          code,
+          detail: message,
+          errors: handledError.errors,
+          includeLegacyMeta: true,
+        })
         return
       }
 
@@ -158,33 +143,14 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       ) {
         const errors = this.flattenValidationErrors(handledError.messages)
 
-        if (isApiV1Request(request)) {
-          response
-            .status(HttpStatus.UNPROCESSABLE_ENTITY)
-            .header('content-type', 'application/problem+json')
-            .json(
-              createApiV1ProblemDetails({
-                status: HttpStatus.UNPROCESSABLE_ENTITY,
-                code: ErrorCode.VALIDATION,
-                detail: ErrorMessages.INVALID_INPUT,
-                errors,
-                requestId: ctx.requestContext.requestId,
-                correlationId: ctx.requestContext.correlationId,
-              })
-            )
-          return
-        }
-
-        response
-          .status(HttpStatus.UNPROCESSABLE_ENTITY)
-          .json(
-            createApiError(
-              ErrorCode.VALIDATION,
-              ErrorMessages.INVALID_INPUT,
-              errors,
-              apiMeta
-            )
-          )
+        emitApiError(ctx, {
+          transport,
+          status: HttpStatus.UNPROCESSABLE_ENTITY,
+          code: ErrorCode.VALIDATION,
+          detail: ErrorMessages.INVALID_INPUT,
+          errors,
+          includeLegacyMeta: true,
+        })
         return
       }
 
@@ -195,23 +161,13 @@ export default class HttpExceptionHandler extends ExceptionHandler {
         applyDefaultHeaders(response, handledError)
       }
 
-      if (isApiV1Request(request)) {
-        response
-          .status(status)
-          .header('content-type', 'application/problem+json')
-          .json(
-            createApiV1ProblemDetails({
-              status,
-              code,
-              detail: message,
-              requestId: ctx.requestContext.requestId,
-              correlationId: ctx.requestContext.correlationId,
-            })
-          )
-        return
-      }
-
-      response.status(status).json(createApiError(code, message, undefined, apiMeta))
+      emitApiError(ctx, {
+        transport,
+        status,
+        code,
+        detail: message,
+        includeLegacyMeta: true,
+      })
       return
     }
 
@@ -250,9 +206,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     // 404 — Not Found
     // ----------------------------------------------------------------
     if (isHttpError(handledError) && handledError.status === HttpStatus.NOT_FOUND) {
-      const message = handledError.message ?? ErrorMessages.NOT_FOUND
-      session.flash('error', message)
-      response.redirect().back()
+      await super.handle(handledError, ctx)
       return
     }
 
@@ -394,13 +348,6 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     }
   }
 
-  private getApiErrorMeta(ctx: HttpContext): { request_id?: string; correlation_id?: string } {
-    return {
-      request_id: ctx.requestContext.requestId,
-      correlation_id: ctx.requestContext.correlationId,
-    }
-  }
-
   private shouldPersistErrorEvent(error: Error, status: number): boolean {
     if (error instanceof AppException) {
       return error.shouldReport
@@ -466,7 +413,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       for (const msg of messages) {
         if (msg && typeof msg === 'object' && 'field' in msg && 'message' in msg) {
           const msgRecord = msg as Record<string, unknown>
-          errors[String(msgRecord.field)] = String(msgRecord.message)
+          errors[String(msgRecord['field'])] = String(msgRecord['message'])
         }
       }
     } else if (messages && typeof messages === 'object') {

@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import DeleteNotification from '#modules/notifications/actions/delete_notification'
 
 /**
@@ -10,23 +10,15 @@ import DeleteNotification from '#modules/notifications/actions/delete_notificati
 export default class DeleteNotificationController {
   async destroy(ctx: HttpContext) {
     const { params, response } = ctx
-    try {
-      const deleteNotification = new DeleteNotification(actionContextFromHttp(ctx))
-      await deleteNotification.handle({ id: params.id as string })
-      response.json({ success: true })
-    } catch {
-      response.json({ success: false, error: 'Notification system unavailable' })
-    }
+    const deleteNotification = new DeleteNotification(actionContextFromHttp(ctx))
+    await deleteNotification.handle({ id: params['notificationId'] as string })
+    response.noContent()
   }
 
   async destroyAllRead(ctx: HttpContext) {
     const { response } = ctx
-    try {
-      const deleteNotification = new DeleteNotification(actionContextFromHttp(ctx))
-      await deleteNotification.deleteAllRead()
-      response.json({ success: true })
-    } catch {
-      response.json({ success: false, error: 'Notification system unavailable' })
-    }
+    const deleteNotification = new DeleteNotification(actionContextFromHttp(ctx))
+    await deleteNotification.deleteAllRead()
+    response.noContent()
   }
 }

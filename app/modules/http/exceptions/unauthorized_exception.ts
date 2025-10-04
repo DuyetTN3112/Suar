@@ -20,7 +20,7 @@ export default class UnauthorizedException extends AppException {
   static override code = 'E_UNAUTHORIZED'
 
   constructor(message: string = ErrorMessages.PLEASE_LOGIN, details?: Record<string, unknown>) {
-    super(message, { details })
+    super(message, details === undefined ? {} : { details })
   }
 
   /**

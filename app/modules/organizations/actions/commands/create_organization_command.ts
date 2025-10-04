@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -9,6 +8,7 @@ import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_c
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
@@ -18,17 +18,20 @@ import {
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/application/ports/organization_event_publisher'
+import type { OrganizationTaskWorkflowInitializer } from '#modules/organizations/application/ports/organization_task_workflow_initializer'
 import {
   canCreateOrganization,
   resolveOrganizationBaseSlug,
   resolveUniqueOrganizationSlug,
 } from '#modules/organizations/domain/organization_rules'
+import { InProcessOrganizationEventPublisher } from '#modules/organizations/infra/adapters/in_process_organization_event_publisher'
+import { TaskPublicContractOrganizationTaskWorkflowInitializer } from '#modules/organizations/infra/adapters/task_public_contract_organization_task_workflow_initializer'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
-import { orgTaskBootstrap } from '#modules/tasks/public_contracts/task_public_api'
 
 /**
  * Command: Create Organization
@@ -57,7 +60,9 @@ interface PersistedOrganizationCreation {
 export default class CreateOrganizationCommand {
   constructor(
     protected execCtx: OrganizationActionContext,
-    private createNotification: NotificationCreator
+    private createNotification: NotificationCreator,
+    private readonly organizationEventPublisher: OrganizationEventPublisher = new InProcessOrganizationEventPublisher(),
+    private readonly taskWorkflowInitializer: OrganizationTaskWorkflowInitializer = new TaskPublicContractOrganizationTaskWorkflowInitializer()
   ) {}
 
   /**
@@ -90,7 +95,7 @@ export default class CreateOrganizationCommand {
     enforcePolicy(canCreateOrganization({ actorIsActive: creatorIsActive }))
 
     return {
-      baseSlug: resolveOrganizationBaseSlug({ name: dto.name, slug: dto.slug }),
+      baseSlug: resolveOrganizationBaseSlug(omitUndefined({ name: dto.name, slug: dto.slug })),
     }
   }
 
@@ -133,7 +138,7 @@ export default class CreateOrganizationCommand {
     )
 
     // Seed default task statuses + workflow transitions inside the same transaction.
-    await orgTaskBootstrap.seedDefaultStatusesForOrganization(organization.id, trx)
+    await this.taskWorkflowInitializer.seedDefaultStatusesForOrganization(organization.id, trx)
 
     await auditPublicApi.log(
       {
@@ -170,7 +175,7 @@ export default class CreateOrganizationCommand {
     organization: OrganizationRecord,
     actorId: string
   ): Promise<void> {
-    void emitter.emit('organization:created', {
+    await this.organizationEventPublisher.publishOrganizationCreated({
       organizationId: organization.id,
       ownerId: actorId,
       name: organization.name,

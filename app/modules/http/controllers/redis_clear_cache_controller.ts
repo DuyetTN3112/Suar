@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { ClearCacheKeyCommand } from '#modules/http/actions/cache/public_api'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 
 
 /**
@@ -10,13 +10,9 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 export default class RedisClearCacheController {
   async handle(ctx: HttpContext) {
     const { params, response } = ctx
-    const key = params.key as string | undefined
+    const key = params['key'] as string | undefined
     await new ClearCacheKeyCommand(actionContextFromHttp(ctx)).execute(key ?? '')
 
-    response.json({
-      success: true,
-      message: 'Cache cleared successfully',
-      key,
-    })
+    response.noContent()
   }
 }
