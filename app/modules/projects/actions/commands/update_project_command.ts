@@ -1,6 +1,7 @@
 import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { BaseCommand } from '#modules/projects/actions/base_command'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
@@ -110,6 +111,7 @@ export default class UpdateProjectCommand extends BaseCommand<
     })
 
     await this.projectEventPublisher.publishProjectUpdated(result.projectUpdatedEvent)
+    await cacheStore.deleteByPattern('task:metadata:*')
 
     return result.project
   }
@@ -127,7 +129,6 @@ export default class UpdateProjectCommand extends BaseCommand<
       manager_id: project.manager_id,
       owner_id: project.owner_id,
       visibility: project.visibility,
-      budget: project.budget,
     }
   }
 

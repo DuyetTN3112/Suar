@@ -39,7 +39,8 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
-    if (canAccessSystemAdministration(auth.user.system_role).allowed) {
+    const systemAccess = await canAccessSystemAdministration(auth.user.system_role)
+    if (systemAccess.allowed) {
       response.redirect('/admin')
       return
     }

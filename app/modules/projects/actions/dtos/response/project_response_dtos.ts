@@ -17,11 +17,10 @@ export interface ProjectDetailResponseDTOProps {
   startDate: Date | null
   endDate: Date | null
   status: string
-  budget: string
   managerId: string | null
   ownerId: string | null
   visibility: string
-  allowFreelancer: boolean
+  allowExternalContributors: boolean
   approvalRequiredForMembers: boolean
   tags: unknown[] | null
   customRoles: CustomRoleDefinition[] | null
@@ -35,8 +34,7 @@ export interface ProjectListItemResponseDTOProps {
   description: string | null
   status: string
   visibility: string
-  allowFreelancer: boolean
-  budget: string
+  allowExternalContributors: boolean
   startDate: Date | null
   endDate: Date | null
   createdAt: Date
@@ -61,11 +59,10 @@ export class ProjectDetailResponseDTO {
   public readonly startDate: Date | null
   public readonly endDate: Date | null
   public readonly status: string
-  public readonly budget: string
   public readonly managerId: string | null
   public readonly ownerId: string | null
   public readonly visibility: string
-  public readonly allowFreelancer: boolean
+  public readonly allowExternalContributors: boolean
   public readonly approvalRequiredForMembers: boolean
   public readonly tags: unknown[] | null
   public readonly customRoles: CustomRoleDefinition[] | null
@@ -81,11 +78,10 @@ export class ProjectDetailResponseDTO {
     this.startDate = props.startDate
     this.endDate = props.endDate
     this.status = props.status
-    this.budget = props.budget
     this.managerId = props.managerId
     this.ownerId = props.ownerId
     this.visibility = props.visibility
-    this.allowFreelancer = props.allowFreelancer
+    this.allowExternalContributors = props.allowExternalContributors
     this.approvalRequiredForMembers = props.approvalRequiredForMembers
     this.tags = props.tags
     this.customRoles = props.customRoles
@@ -107,11 +103,10 @@ export class ProjectDetailResponseDTO {
       startDate: entity.startDate,
       endDate: entity.endDate,
       status: entity.status,
-      budget: entity.budget,
       managerId: entity.managerId,
       ownerId: entity.ownerId,
       visibility: entity.visibility,
-      allowFreelancer: entity.allowFreelancer,
+      allowExternalContributors: entity.allowExternalContributors,
       approvalRequiredForMembers: entity.approvalRequiredForMembers,
       tags: entity.tags,
       customRoles: entity.customRoles,
@@ -130,8 +125,7 @@ export class ProjectListItemResponseDTO {
   public readonly description: string | null
   public readonly status: string
   public readonly visibility: string
-  public readonly allowFreelancer: boolean
-  public readonly budget: string
+  public readonly allowExternalContributors: boolean
   public readonly startDate: Date | null
   public readonly endDate: Date | null
   public readonly createdAt: Date
@@ -142,8 +136,7 @@ export class ProjectListItemResponseDTO {
     this.description = props.description
     this.status = props.status
     this.visibility = props.visibility
-    this.allowFreelancer = props.allowFreelancer
-    this.budget = props.budget
+    this.allowExternalContributors = props.allowExternalContributors
     this.startDate = props.startDate
     this.endDate = props.endDate
     this.createdAt = props.createdAt
@@ -160,8 +153,7 @@ export class ProjectListItemResponseDTO {
       description: entity.description,
       status: entity.status,
       visibility: entity.visibility,
-      allowFreelancer: entity.allowFreelancer,
-      budget: entity.budget,
+      allowExternalContributors: entity.allowExternalContributors,
       startDate: entity.startDate,
       endDate: entity.endDate,
       createdAt: entity.createdAt,

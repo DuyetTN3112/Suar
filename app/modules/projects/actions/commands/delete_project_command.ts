@@ -2,6 +2,7 @@ import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import { BaseCommand } from '#modules/projects/actions/base_command'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
@@ -53,7 +54,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
 
       // Optional scope guard for adapters that require current organization context.
-      if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
+      if (dto.currentOrganizationId && project.organization_id !== dto.currentOrganizationId) {
         enforcePolicy(PR.deny('Dự án không thuộc tổ chức hiện tại'))
       }
 
@@ -110,5 +111,6 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
       organizationId: deletedProjectEvent.organizationId,
       deletedBy: userId,
     })
+    await cacheStore.deleteByPattern('task:metadata:*')
   }
 }

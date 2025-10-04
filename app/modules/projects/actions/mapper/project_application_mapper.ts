@@ -15,6 +15,7 @@ import {
   ProjectSummaryResponseDTO,
 } from '../dtos/response/project_response_dtos.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import type { ProjectEntity } from '#modules/projects/domain/entities/project_entity'
 
 export class ProjectApplicationMapper {
@@ -36,9 +37,8 @@ export class ProjectApplicationMapper {
     endDate: Date | null
     managerId: string | null
     visibility: string
-    budget: number
   } {
-    return {
+    return omitUndefined({
       name: dto.name,
       description: dto.description,
       organizationId: dto.organization_id,
@@ -47,8 +47,7 @@ export class ProjectApplicationMapper {
       endDate: dto.end_date?.toJSDate() ?? null,
       managerId: dto.manager_id ?? null,
       visibility: dto.visibility,
-      budget: dto.budget,
-    }
+    })
   }
 
   /**

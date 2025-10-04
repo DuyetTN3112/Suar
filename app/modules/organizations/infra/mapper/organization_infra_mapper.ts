@@ -80,22 +80,22 @@ export class OrganizationInfraMapper {
   static toOrm(entity: Partial<OrganizationEntityProps>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
-    if (entity.name !== undefined) result.name = entity.name
-    if (entity.slug !== undefined) result.slug = entity.slug
-    if (entity.description !== undefined) result.description = entity.description
-    if (entity.logo !== undefined) result.logo = entity.logo
-    if (entity.website !== undefined) result.website = entity.website
-    if (entity.ownerId !== undefined) result.owner_id = entity.ownerId
-    if (entity.customRoles !== undefined) result.custom_roles = entity.customRoles
-    if (entity.partnerType !== undefined) result.partner_type = entity.partnerType
+    if (entity.name !== undefined) result['name'] = entity.name
+    if (entity.slug !== undefined) result['slug'] = entity.slug
+    if (entity.description !== undefined) result['description'] = entity.description
+    if (entity.logo !== undefined) result['logo'] = entity.logo
+    if (entity.website !== undefined) result['website'] = entity.website
+    if (entity.ownerId !== undefined) result['owner_id'] = entity.ownerId
+    if (entity.customRoles !== undefined) result['custom_roles'] = entity.customRoles
+    if (entity.partnerType !== undefined) result['partner_type'] = entity.partnerType
     if (entity.partnerVerifiedAt !== undefined)
-      result.partner_verified_at = entity.partnerVerifiedAt
+      result['partner_verified_at'] = entity.partnerVerifiedAt
     if (entity.partnerVerifiedBy !== undefined)
-      result.partner_verified_by = entity.partnerVerifiedBy
+      result['partner_verified_by'] = entity.partnerVerifiedBy
     if (entity.partnerVerificationProof !== undefined)
-      result.partner_verification_proof = entity.partnerVerificationProof
-    if (entity.partnerExpiresAt !== undefined) result.partner_expires_at = entity.partnerExpiresAt
-    if (entity.partnerIsActive !== undefined) result.partner_is_active = entity.partnerIsActive
+      result['partner_verification_proof'] = entity.partnerVerificationProof
+    if (entity.partnerExpiresAt !== undefined) result['partner_expires_at'] = entity.partnerExpiresAt
+    if (entity.partnerIsActive !== undefined) result['partner_is_active'] = entity.partnerIsActive
 
     return result
   }

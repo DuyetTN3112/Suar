@@ -4,6 +4,11 @@ import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_memb
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import { BaseCommand } from '#modules/projects/actions/base_command'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
@@ -20,6 +25,7 @@ import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapte
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
 import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
+import { buildProjectMembershipEvent } from '#modules/projects/observability/project_event_factory'
 
 /**
  * Command to remove a member from a project
@@ -51,8 +57,29 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
    */
   async handle(dto: RemoveProjectMemberDTO): Promise<void> {
     const userId = this.getCurrentUserId()
+    const startedAt = Date.now()
+    platformOperationalLogger.log(
+      'info',
+      buildProjectMembershipEvent(this.execCtx, {
+        eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_STARTED,
+        eventFamily: 'membership',
+        subsystem: 'project_membership',
+        workflow: 'project_remove_member',
+        stage: 'started',
+        outcome: 'success',
+        projectId: dto.project_id,
+        targetType: 'project_member',
+        targetId: dto.user_id,
+        change: {
+          reason: dto.reason,
+          reassign_to: dto.reassign_to,
+        },
+        retentionClass: 'transient_runtime',
+      })
+    )
 
-    await this.executeInTransaction(async (trx) => {
+    try {
+      await this.executeInTransaction(async (trx) => {
       // 1. Load project
       const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
 
@@ -108,13 +135,61 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
           reassigned_to: reassignToUserId,
         },
       })
-    })
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildProjectMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_COMPLETED,
+          eventFamily: 'membership',
+          subsystem: 'project_membership',
+          workflow: 'project_remove_member',
+          stage: 'completed',
+          outcome: 'success',
+          projectId: project.id,
+          targetType: 'project_member',
+          targetId: dto.user_id,
+          organizationId: project.organization_id,
+          change: {
+            role: memberRole,
+            reason: dto.reason,
+            reassigned_to: reassignToUserId,
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+        })
+      )
+      })
 
-    await this.projectEventPublisher.publishProjectMemberRemoved({
-      projectId: dto.project_id,
-      userId: dto.user_id,
-      removedBy: userId,
-    })
+      await this.projectEventPublisher.publishProjectMemberRemoved({
+        projectId: dto.project_id,
+        userId: dto.user_id,
+        removedBy: userId,
+      })
+    } catch (error) {
+      await platformWorkflowLogger.checkpointSafely(
+        this.execCtx,
+        buildProjectMembershipEvent(this.execCtx, {
+          eventName: PLATFORM_EVENT_NAMES.PROJECT_MEMBER_REMOVAL_FAILED,
+          eventFamily: 'membership',
+          subsystem: 'project_membership',
+          workflow: 'project_remove_member',
+          stage: 'failed',
+          outcome: 'failure',
+          projectId: dto.project_id,
+          targetType: 'project_member',
+          targetId: dto.user_id,
+          change: {
+            reason: dto.reason,
+            reassign_to: dto.reassign_to,
+          },
+          runtime: {
+            duration_ms: Date.now() - startedAt,
+          },
+          error,
+        })
+      )
+      throw error
+    }
   }
 
   /**

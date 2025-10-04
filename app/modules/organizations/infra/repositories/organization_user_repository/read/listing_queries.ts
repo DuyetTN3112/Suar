@@ -9,6 +9,7 @@ import {
   type PaginatedMemberRow,
 } from './shared.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 
@@ -24,7 +25,7 @@ export const countMembers = async (
   }
 
   const extras = first.$extras as Record<string, unknown>
-  return toNumberValue(extras.total)
+  return toNumberValue(extras['total'])
 }
 
 export const getMembersPreview = async (
@@ -60,7 +61,7 @@ export const countMembersByOrgIds = async (
   const map = new Map<string, number>()
   for (const row of results) {
     const extras = row.$extras as Record<string, unknown>
-    map.set(row.organization_id, toNumberValue(extras.total))
+    map.set(row.organization_id, toNumberValue(extras['total']))
   }
   return map
 }
@@ -71,9 +72,12 @@ export const paginateMembers = async (
     page: number
     limit: number
     orgRole?: string
+    userIds?: string[]
     search?: string
     statusFilter?: string
     include?: ('activity' | 'audit')[]
+    joinDateStart?: string
+    joinDateEnd?: string
   },
   trx?: TransactionClientContract
 ): Promise<{
@@ -111,6 +115,10 @@ export const paginateMembers = async (
     void query.where('ou.org_role', options.orgRole)
   }
 
+  if (options.userIds && options.userIds.length > 0) {
+    void query.whereIn('ou.user_id', options.userIds)
+  }
+
   if (options.search) {
     const searchTerm = options.search
     void query.where((searchQuery) => {
@@ -128,7 +136,15 @@ export const paginateMembers = async (
     void query.select('u.updated_at as last_activity_at')
   }
 
-  const countQuery = query.clone()
+  if (options.joinDateStart) {
+    void query.where('ou.created_at', '>=', options.joinDateStart)
+  }
+
+  if (options.joinDateEnd) {
+    void query.where('ou.created_at', '<=', options.joinDateEnd)
+  }
+
+  const countQuery = query.clone().clearSelect().clearOrder()
   const countResultRaw = (await countQuery.count('* as count')) as unknown
   const countResult = Array.isArray(countResultRaw) ? countResultRaw : []
   const total = isRecord(countResult[0])
@@ -136,12 +152,18 @@ export const paginateMembers = async (
     : 0
 
   const offset = (options.page - 1) * options.limit
-  void query
-    .orderByRaw(
+  if (options.userIds && options.userIds.length > 0) {
+    const rankByUserId = options.userIds
+      .map((userId, index) => `WHEN ou.user_id = '${userId}' THEN ${String(index)}`)
+      .join(' ')
+    void query.orderByRaw(`CASE ${rankByUserId} ELSE ${String(options.userIds.length)} END ASC`)
+  } else {
+    void query.orderByRaw(
       `CASE ou.org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`
     )
-    .limit(options.limit)
-    .offset(offset)
+  }
+
+  void query.orderBy('ou.created_at', 'desc').orderBy('ou.user_id', 'desc').limit(options.limit).offset(offset)
 
   const members = await query
   const safeMembers = Array.isArray(members) ? members : []
@@ -149,23 +171,25 @@ export const paginateMembers = async (
   return {
     data: safeMembers
       .filter((member): member is PaginatedMemberRow => isRecord(member))
-      .map((member) => ({
-        user_id: member.user_id,
-        org_role: member.org_role,
-        status: member.status,
-        created_at: member.created_at,
-        last_activity_at: (member as unknown as Record<string, unknown>).last_activity_at as
-          | Date
-          | string
-          | null
-          | undefined,
-        user: {
-          id: member.user_id,
-          username: member.username,
-          email: member.email,
-          status: member.user_status,
-        },
-      })),
+      .map((member) =>
+        omitUndefined({
+          user_id: member.user_id,
+          org_role: member.org_role,
+          status: member.status,
+          created_at: member.created_at,
+          last_activity_at: (member as unknown as Record<string, unknown>)['last_activity_at'] as
+            | Date
+            | string
+            | null
+            | undefined,
+          user: {
+            id: member.user_id,
+            username: member.username,
+            email: member.email,
+            status: member.user_status,
+          },
+        })
+      ),
     total,
   }
 }
@@ -178,6 +202,39 @@ export const findMembersWithUser = async (
     .where('organization_id', organizationId)
     .preload('user')
     .orderBy('created_at', 'asc')
+}
+
+export const findMembersWithUserBySearch = async (
+  organizationId: string,
+  search: string,
+  trx?: TransactionClientContract
+): Promise<OrganizationUser[]> => {
+  return baseQuery(trx)
+    .where('organization_id', organizationId)
+    .whereHas('user', (query) => {
+      void query.where((searchQuery) => {
+        void searchQuery
+          .whereILike('username', `%${search}%`)
+          .orWhereILike('email', `%${search}%`)
+      })
+    })
+    .preload('user')
+    .orderBy('created_at', 'asc')
+}
+
+export const findMembersWithUserByIds = async (
+  organizationId: string,
+  userIds: string[],
+  trx?: TransactionClientContract
+): Promise<OrganizationUser[]> => {
+  if (userIds.length === 0) {
+    return []
+  }
+
+  return baseQuery(trx)
+    .where('organization_id', organizationId)
+    .whereIn('user_id', userIds)
+    .preload('user')
 }
 
 export const findMembersWithUserProfile = async (
@@ -247,5 +304,5 @@ export const countPendingMembers = async (
   }
 
   const extras = count.$extras as Record<string, unknown>
-  return toNumberValue(extras.count)
+  return toNumberValue(extras['count'])
 }

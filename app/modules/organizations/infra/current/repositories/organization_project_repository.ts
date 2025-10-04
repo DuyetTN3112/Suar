@@ -2,6 +2,11 @@ import db from '@adonisjs/lucid/services/db'
 
 import Project from '../../../../projects/infra/models/project.js'
 
+import {
+  ACTIVE_PROJECT_STATUSES,
+  COMPLETED_PROJECT_STATUSES,
+} from '#modules/projects/public_contracts/project_constants'
+
 interface CountRow {
   total: number | string
 }
@@ -16,7 +21,7 @@ const isCountRow = (value: unknown): value is CountRow => {
     return false
   }
 
-  const total = value.total
+  const total = value['total']
   return typeof total === 'number' || typeof total === 'string'
 }
 
@@ -25,8 +30,8 @@ const isGroupCountRow = (value: unknown): value is GroupCountRow => {
     return false
   }
 
-  const projectId = value.project_id
-  const total = value.total
+  const projectId = value['project_id']
+  const total = value['total']
   return typeof projectId === 'string' && (typeof total === 'number' || typeof total === 'string')
 }
 
@@ -60,6 +65,7 @@ export interface DashboardProjectStats {
 export interface ListProjectsFilters {
   search?: string
   status?: string
+  projectIds?: string[]
 }
 
 export interface ListProjectsResult {
@@ -93,7 +99,7 @@ export default class OrganizationProjectRepository {
       .from('projects')
       .count('* as total')
       .where('organization_id', organizationId)
-      .where('status', 'in_progress')
+      .whereIn('status', [...ACTIVE_PROJECT_STATUSES])
       .whereNull('deleted_at')
       .first()
 
@@ -101,7 +107,7 @@ export default class OrganizationProjectRepository {
       .from('projects')
       .count('* as total')
       .where('organization_id', organizationId)
-      .where('status', 'completed')
+      .whereIn('status', [...COMPLETED_PROJECT_STATUSES])
       .whereNull('deleted_at')
       .first()
 
@@ -139,8 +145,18 @@ export default class OrganizationProjectRepository {
       query = query.where('status', filters.status)
     }
 
-    // Order by created_at DESC
-    query = query.orderBy('created_at', 'desc')
+    if (filters.projectIds && filters.projectIds.length > 0) {
+      query = query.whereIn('id', filters.projectIds)
+      const rankByProjectId = filters.projectIds
+        .map((projectId, index) => `WHEN id = '${projectId}' THEN ${String(index)}`)
+        .join(' ')
+      query = query.orderByRaw(
+        `CASE ${rankByProjectId} ELSE ${String(filters.projectIds.length)} END ASC`
+      )
+    } else {
+      query = query.orderBy('created_at', 'desc')
+      query = query.orderBy('id', 'desc')
+    }
 
     // Execute with pagination
     const result = await query.paginate(page, perPage)

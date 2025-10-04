@@ -1,12 +1,19 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import { baseQuery } from './shared.js'
 
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { ORGANIZATION_PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import type { MembershipContext } from '#modules/organizations/domain/org_types'
 import { toOrgRole } from '#modules/organizations/domain/org_types'
 import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import {
+  buildPaginationMeta,
+  normalizePagination,
+  toOffset,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 
 
 export const findMembership = async (
@@ -255,4 +262,46 @@ export const findOwnerMembershipIds = async (
     .select('organization_id')
 
   return memberships.map((membership) => membership.organization_id)
+}
+
+export const findPendingInvitationsByUser = async (
+  userId: string,
+  trx?: TransactionClientContract
+): Promise<OrganizationUser[]> => {
+  return baseQuery(trx)
+    .where('user_id', userId)
+    .where('status', OrganizationUserStatus.PENDING)
+    .whereNotNull('invited_by')
+    .preload('organization')
+    .preload('inviter')
+}
+
+export const findPendingInvitationsPageByUser = async (
+  userId: string,
+  input: { page?: unknown; perPage?: unknown } = {},
+  trx?: TransactionClientContract
+): Promise<{ data: OrganizationUser[]; meta: ReturnType<typeof buildPaginationMeta> }> => {
+  const pagination = normalizePagination(input, ORGANIZATION_PAGINATION, { perPage: 10 })
+  const countQuery = (trx ?? db).from('organization_users')
+    .where('user_id', userId)
+    .where('status', OrganizationUserStatus.PENDING)
+    .whereNotNull('invited_by')
+
+  const totalRow = (await countQuery.count('* as total').first()) as
+    | { total?: string | number }
+    | undefined
+  const total = Number(totalRow?.total ?? 0)
+  const data = await baseQuery(trx)
+    .where('user_id', userId)
+    .where('status', OrganizationUserStatus.PENDING)
+    .whereNotNull('invited_by')
+    .preload('organization')
+    .preload('inviter')
+    .offset(toOffset(pagination.page, pagination.perPage))
+    .limit(pagination.perPage)
+
+  return {
+    data,
+    meta: buildPaginationMeta(total, pagination),
+  }
 }

@@ -5,18 +5,21 @@ export interface UpdateProjectMemberDTOInterface {
   project_id: string
   user_id: string
   project_role: ProjectRole | string
+  project_professional_role_id?: string | null
 }
 
 export class UpdateProjectMemberDTO implements UpdateProjectMemberDTOInterface {
   public readonly project_id: string
   public readonly user_id: string
   public readonly project_role: ProjectRole | string
+  public readonly project_professional_role_id: string | null
 
   constructor(data: UpdateProjectMemberDTOInterface) {
     this.validateInput(data)
     this.project_id = data.project_id
     this.user_id = data.user_id
     this.project_role = data.project_role
+    this.project_professional_role_id = data.project_professional_role_id ?? null
   }
 
   private validateInput(data: UpdateProjectMemberDTOInterface): void {

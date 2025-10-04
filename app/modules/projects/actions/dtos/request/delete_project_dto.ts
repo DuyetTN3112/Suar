@@ -9,6 +9,7 @@ export interface DeleteProjectDTOInterface {
   project_id: string
   reason?: string
   permanent?: boolean
+  currentOrganizationId?: string
   current_organization_id?: string
 }
 
@@ -16,15 +17,20 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
   public readonly project_id: string
   public readonly reason?: string
   public readonly permanent: boolean
+  public readonly currentOrganizationId?: string
   public readonly current_organization_id?: string
 
   constructor(data: DeleteProjectDTOInterface) {
     this.validateInput(data)
 
     this.project_id = data.project_id
-    this.reason = data.reason?.trim()
+    if (data.reason !== undefined) this.reason = data.reason.trim()
     this.permanent = data.permanent ?? false
-    this.current_organization_id = data.current_organization_id
+    const currentOrganizationId = data.currentOrganizationId ?? data.current_organization_id
+    if (currentOrganizationId !== undefined) {
+      this.currentOrganizationId = currentOrganizationId
+      this.current_organization_id = currentOrganizationId
+    }
   }
 
   /**
@@ -73,7 +79,7 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
       project_id: this.project_id,
       reason: this.reason,
       permanent: this.permanent,
-      current_organization_id: this.current_organization_id,
+      currentOrganizationId: this.currentOrganizationId,
     }
   }
 }

@@ -1,16 +1,50 @@
 import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
+import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
-export function mapOrganizationsIndexPageProps(input: {
-  organizations: unknown
-  pagination: unknown
-  currentOrganizationId: string | null | undefined
-  allOrganizations: unknown
+function toJoinedOrganizationsPagination(meta: {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
+  hasNextPage?: boolean
+  hasPrevPage?: boolean
 }) {
   return {
-    organizations: input.organizations,
-    pagination: input.pagination,
+    mode: 'offset' as const,
+    page: meta.page,
+    perPage: meta.limit,
+    total: meta.total,
+    lastPage: meta.totalPages,
+    hasNextPage: meta.hasNextPage ?? meta.page < meta.totalPages,
+    hasPreviousPage: meta.hasPrevPage ?? meta.page > 1,
+  }
+}
+
+export function mapOrganizationsIndexPageProps(input: {
+  joinedOrganizations: unknown
+  joinedPagination: unknown
+  availableOrganizations: unknown
+  availablePagination: unknown
+  currentOrganizationId: string | null | undefined
+  filters: {
+    tab?: string
+    search?: string
+  }
+}) {
+  return {
+    joinedOrganizations: input.joinedOrganizations,
+    joinedPagination: toJoinedOrganizationsPagination(
+      input.joinedPagination as Parameters<typeof toJoinedOrganizationsPagination>[0]
+    ),
+    availableOrganizations: input.availableOrganizations,
+    availablePagination: toCanonicalPagePagination(
+      input.availablePagination as Parameters<typeof toCanonicalPagePagination>[0]
+    ),
     currentOrganizationId: input.currentOrganizationId,
-    allOrganizations: input.allOrganizations,
+    filters: {
+      tab: input.filters.tab ?? 'joined',
+      search: input.filters.search ?? '',
+    },
   }
 }
 

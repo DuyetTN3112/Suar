@@ -1,5 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { TaskStatusCategory, TERMINAL_STATUS_CATEGORIES } from '#modules/tasks/public_contracts/task_constants'
+
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -51,7 +53,7 @@ export default class OrganizationTaskRepository {
         .innerJoin('task_statuses as ts', 'tasks.task_status_id', 'ts.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .where('ts.category', 'in_progress')
+        .where('ts.category', TaskStatusCategory.IN_PROGRESS)
         .whereNull('tasks.deleted_at')
         .first(),
       // completed
@@ -61,7 +63,7 @@ export default class OrganizationTaskRepository {
         .innerJoin('task_statuses as ts', 'tasks.task_status_id', 'ts.id')
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
-        .where('ts.category', 'done')
+        .where('ts.category', TaskStatusCategory.DONE)
         .whereNull('tasks.deleted_at')
         .first(),
       // overdue
@@ -72,13 +74,13 @@ export default class OrganizationTaskRepository {
         .count('tasks.id as total')
         .where('projects.organization_id', organizationId)
         .where('tasks.due_date', '<', now)
-        .whereNotIn('ts.category', ['done', 'cancelled'])
+        .whereNotIn('ts.category', [...TERMINAL_STATUS_CATEGORIES])
         .whereNull('tasks.deleted_at')
         .first(),
     ])) as unknown[]
 
     const [totalRow = 0, inProgressRow = 0, completedRow = 0, overdueRow = 0] = results.map(
-      (row) => (isRecord(row) ? toNumberValue(row.total) : 0)
+      (row) => (isRecord(row) ? toNumberValue(row['total']) : 0)
     )
 
     return {
