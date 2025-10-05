@@ -21,13 +21,13 @@ export async function seedProfileAggregates(
   await seedUserDomainExpertise(runtime, context)
 
   await createProfileSnapshot(runtime, context.users.member.id, 'duyetlaaithe draft snapshot', false)
-  context.snapshots.member = await createProfileSnapshot(
+  context.snapshots['member'] = await createProfileSnapshot(
     runtime,
     context.users.member.id,
     'duyetlaaithe profile proof',
     true
   )
-  context.snapshots.owner = await createProfileSnapshot(
+  context.snapshots['owner'] = await createProfileSnapshot(
     runtime,
     context.users.owner.id,
     'organization-owner profile snapshot',
@@ -95,7 +95,7 @@ async function seedUserWorkHistory(
             skill_id: context.skills[skill.skillCode],
             skill_name: skill.skillName,
             reviewer_type: skill.reviewerType,
-            assigned_level_code: skill.assignedLevelCode,
+            assigned_public_proficiency_code: skill.assignedLevelCode,
             comment: skill.comment,
           }))
         ),
@@ -213,7 +213,7 @@ async function createProfileSnapshot(
     .select(
       'us.skill_id',
       's.skill_name',
-      'us.level_code',
+      'us.verified_public_proficiency_code',
       'us.total_reviews',
       'us.avg_percentage',
       'us.avg_score',
@@ -221,7 +221,7 @@ async function createProfileSnapshot(
     )) as {
     skill_id: string
     skill_name: string
-    level_code: string
+    verified_public_proficiency_code: string
     total_reviews: string | number | null
     avg_percentage: string | number | null
     avg_score: string | number | null
@@ -277,7 +277,7 @@ async function createProfileSnapshot(
     .map((skill) => ({
       skill_id: skill.skill_id,
       skill_name: skill.skill_name,
-      level_code: skill.level_code,
+      verified_public_proficiency_code: skill.verified_public_proficiency_code,
       total_reviews: Number(skill.total_reviews ?? 0),
       avg_percentage: Number(skill.avg_percentage ?? 0),
       avg_score: Number(skill.avg_score ?? 0),
@@ -289,8 +289,8 @@ async function createProfileSnapshot(
     username,
     total_verified_skills: verifiedSkills.length,
     total_tasks_completed: Number(performance?.total_tasks_completed ?? highlights.length),
-    trust_score: Number(trustData.calculated_score ?? 0),
-    trust_tier: trustData.current_tier_code ?? null,
+    trust_score: Number(trustData['calculated_score'] ?? 0),
+    trust_tier: trustData['current_tier_code'] ?? null,
     generated_at: new Date().toISOString(),
   }
 
@@ -343,7 +343,7 @@ async function createProfileSnapshot(
       work_highlights: runtime.toJson(highlights),
       performance_metrics: runtime.toJson(performanceMetrics),
       trust_metrics: runtime.toJson(trustMetrics),
-      scoring_version: 'seed-v1',
+      scoring_version: 'profile_proof_v1',
       created_at: runtime.isoDaysAgo(0),
       updated_at: runtime.isoDaysAgo(0),
     })

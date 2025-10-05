@@ -81,7 +81,7 @@ export default class User extends BaseModel {
   declare external_contributor_rating: number | null
 
   @column()
-  declare freelancer_completed_tasks_count: number
+  declare external_contributor_completed_tasks_count: number
 
   // ===== JSONB columns =====
 

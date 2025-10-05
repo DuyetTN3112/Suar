@@ -4,7 +4,7 @@ import type { ModelQueryBuilderContract } from '@adonisjs/lucid/types/model'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { UserInfraMapper } from '#modules/users/infra/mapper/user_infra_mapper'
 import User from '#modules/users/infra/models/user'
-import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 import type { UserProfileRecord, UserRecord } from '#modules/users/types/user_records'
 
 export const findActiveOrFail = async (userId: string, trx?: TransactionClientContract) => {
@@ -12,7 +12,7 @@ export const findActiveOrFail = async (userId: string, trx?: TransactionClientCo
   const user = await query
     .where('id', userId)
     .whereNull('deleted_at')
-    .where('status', 'active')
+    .where('status', UserStatusName.ACTIVE)
     .first()
 
   if (!user) {
@@ -33,13 +33,13 @@ export const isActive = async (
   }
 }
 
-export const isFreelancer = async (
+export const isExternalContributor = async (
   userId: string,
   trx?: TransactionClientContract
 ): Promise<boolean> => {
   const query = trx ? User.query({ client: trx }) : User.query()
   const user = await query.where('id', userId).whereNull('deleted_at').first()
-  return !!user?.is_freelancer
+  return !!user?.is_external_contributor
 }
 
 export const isSuperadmin = async (
@@ -99,7 +99,7 @@ export const findByOrganization = async (
 ): Promise<User[]> => {
   const query = trx ? User.query({ client: trx }) : User.query()
   return query
-    .select(['users.id', 'users.username', 'users.email'])
+    .select(['users.id', 'users.username', 'users.email', 'users.avatar_url'])
     .join('organization_users', 'users.id', 'organization_users.user_id')
     .where('organization_users.organization_id', organizationId)
     .whereNull('users.deleted_at')

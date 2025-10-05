@@ -12,6 +12,43 @@ import type {
   UserKey,
 } from './types.js'
 
+async function upsertReviewerAssignment(
+  runtime: SeedRuntime,
+  trx: TransactionClientContract,
+  input: {
+    reviewSessionId: string
+    reviewerId: string
+    reviewerType: 'manager' | 'peer'
+  }
+): Promise<void> {
+  const where = {
+    review_session_id: input.reviewSessionId,
+    reviewer_id: input.reviewerId,
+    reviewer_type: input.reviewerType,
+  }
+  const existing = await findRow(trx, 'review_session_reviewer_assignments', where)
+  const payload = {
+    assignment_role: input.reviewerType === 'manager' ? 'manager_required' : 'peer_required',
+    is_required: true,
+    status: 'submitted',
+    due_at: runtime.isoDaysAgo(1, 17),
+    submitted_at: runtime.isoDaysAgo(2, 14),
+    reminded_at: null,
+    escalated_at: null,
+    created_at: runtime.isoDaysAgo(3),
+    updated_at: runtime.isoDaysAgo(2),
+  }
+
+  if (existing) {
+    await applyWhere(trx.from('review_session_reviewer_assignments'), where).update(payload)
+  } else {
+    await trx
+      .insertQuery()
+      .table('review_session_reviewer_assignments')
+      .insert({ id: runtime.uuid(), ...where, ...payload })
+  }
+}
+
 export async function seedReviewData(
   runtime: SeedRuntime,
   trx: TransactionClientContract,
@@ -88,7 +125,19 @@ export async function seedReviewData(
         typeof existingSkillReviewId === 'string' ? existingSkillReviewId : runtime.uuid()
       const skillPayload = {
         reviewer_type: skillReview.reviewerType,
-        assigned_level_code: skillReview.level,
+        assigned_public_proficiency_code: skillReview.level,
+        proficiency_level_id: null,
+        observed_level_id: null,
+        rubric_version_id: null,
+        confidence: 'high',
+        rationale: skillReview.comment,
+        observable_behaviors: runtime.toJson([
+          'Linked delivery evidence',
+          'Clear reviewer rationale',
+          'Traceable acceptance criteria',
+        ]),
+        review_status: 'submitted',
+        submitted_at: runtime.isoDaysAgo(2),
         comment: skillReview.comment,
         created_at: runtime.isoDaysAgo(2),
         updated_at: runtime.isoDaysAgo(1),
@@ -102,6 +151,12 @@ export async function seedReviewData(
           .table('skill_reviews')
           .insert({ id: skillReviewId, ...where, ...skillPayload })
       }
+
+      await upsertReviewerAssignment(runtime, trx, {
+        reviewSessionId: sessionId,
+        reviewerId: users[skillReview.reviewer].id,
+        reviewerType: skillReview.reviewerType,
+      })
 
       if (
         (spec.key === 'member-profile-proof' && skillReview.skill === 'testing') ||
@@ -124,7 +179,7 @@ export async function seedReviewData(
       what_went_well: spec.strengths,
       what_would_do_different: spec.improvements,
       blockers_encountered: runtime.toJson([
-        'Không có blocker nghiêm trọng trong môi trường seed local',
+        'Không có blocker nghiêm trọng sau khi nhóm thống nhất phạm vi delivery',
       ]),
       skills_felt_lacking: runtime.toJson(['automation']),
       skills_felt_strong: runtime.toJson(['communication', 'problem solving']),
@@ -152,8 +207,8 @@ export async function seedReviewData(
       },
       {
         evidence_type: 'demo_recording',
-        url: `https://demo.local/${spec.key}`,
-        title: `${task.title} - Demo`,
+        url: `https://workbench.suar.dev/${spec.key}/walkthrough`,
+        title: `${task.title} - Recorded walkthrough`,
       },
     ] as const
 
@@ -166,7 +221,7 @@ export async function seedReviewData(
       const payloadEvidence = {
         evidence_type: evidence.evidence_type,
         url: evidence.url,
-        description: `Seeded ${evidence.evidence_type} for ${task.title}`,
+        description: `Reviewer-facing ${evidence.evidence_type} for ${task.title}`,
         uploaded_by: users.orgAdmin.id,
         created_at: runtime.isoDaysAgo(2),
         updated_at: runtime.isoDaysAgo(1),
@@ -211,6 +266,61 @@ export async function seedReviewData(
           .insert({ id: runtime.uuid(), ...reverseWhere, ...reversePayload })
       }
     }
+
+    if (spec.sessionStatus === 'disputed') {
+      const disputeId = runtime.uuid()
+      const disputeWhere = { review_session_id: sessionId }
+      const existingDispute = await findRow(trx, 'review_disputes', disputeWhere)
+      const disputePayload = {
+        task_id: task.id,
+        task_assignment_id: assignment.id,
+        reviewee_id: assignment.assigneeId,
+        opened_by: assignment.assigneeId,
+        status: 'admin_reviewing',
+        dispute_reason: spec.disputeReason,
+        requested_outcome: 'adjust_score',
+        disputed_dimensions: runtime.toJson(['code_quality_score', 'overall_quality_score']),
+        disputed_skill_reviews: runtime.toJson([]),
+        reported_to_admin_at: runtime.isoDaysAgo(1),
+        created_at: runtime.isoDaysAgo(2),
+        updated_at: runtime.isoDaysAgo(1),
+      }
+
+      if (existingDispute) {
+        await applyWhere(trx.from('review_disputes'), disputeWhere).update(disputePayload)
+      } else {
+        await trx
+          .insertQuery()
+          .table('review_disputes')
+          .insert({ id: disputeId, ...disputeWhere, ...disputePayload })
+
+        // Create comments
+        const comments = [
+          {
+            author_id: assignment.assigneeId,
+            body: 'Tôi không đồng ý với mức đánh giá này vì các yêu cầu chưa rõ ràng từ đầu.',
+          },
+          {
+            author_id: users.orgAdmin.id,
+            body: 'Các tiêu chí đã được thảo luận trong buổi kickoff. Tuy nhiên chúng tôi sẽ xem xét lại.',
+          },
+        ]
+        for (const comment of comments) {
+          await trx
+            .insertQuery()
+            .table('review_dispute_comments')
+            .insert({
+              id: runtime.uuid(),
+              dispute_id: disputeId,
+              author_id: comment.author_id,
+              body: comment.body,
+              visibility: 'all_parties',
+              created_at: runtime.isoDaysAgo(1),
+              updated_at: runtime.isoDaysAgo(1),
+            })
+        }
+      }
+    }
   }
 
   for (const [index, skillReviewId] of flaggedReviewTargets.entries()) {
@@ -227,8 +337,8 @@ export async function seedReviewData(
       reviewed_by: isReviewedScenario ? users.superadmin.id : null,
       reviewed_at: isReviewedScenario ? runtime.isoDaysAgo(0) : null,
       notes: isReviewedScenario
-        ? 'Seeded moderated review case already resolved by superadmin.'
-        : 'Seeded flagged review for admin moderation page.',
+        ? 'Moderated review case already resolved by the platform administrator.'
+        : 'Flagged review awaiting moderation due to rubric variance.',
       created_at: runtime.isoDaysAgo(1),
       updated_at: runtime.isoDaysAgo(1),
     }

@@ -14,7 +14,7 @@ export interface TaskAssignmentMetricsRow {
 export interface UserSkillAggregationRow {
   skill_id: string
   skill_name: string
-  level_code: string
+  verified_public_proficiency_code: string
   avg_percentage: number | string | null
   total_reviews: number
   category_code: string
@@ -23,7 +23,7 @@ export interface UserSkillAggregationRow {
 export interface TopReviewedSkillRow {
   skill_id: string
   skill_name: string
-  level_code: string
+  verified_public_proficiency_code: string
   avg_percentage: number | string | null
   total_reviews: number
 }

@@ -2,7 +2,12 @@ import app from '@adonisjs/core/services/app'
 import { defineConfig } from '@adonisjs/inertia'
 
 const inertiaConfig = defineConfig({
-  rootView: 'inertia_layout',
+  rootView: (ctx) => {
+    const url = ctx.request.url()
+    if (url.startsWith('/admin')) return 'inertia_admin'
+    if (url === '/org' || url.startsWith('/org/')) return 'inertia_org'
+    return 'inertia_user'
+  },
 
   /**
    * In dev mode, @adonisjs/inertia tries to read vite.manifest() to compute
@@ -17,7 +22,7 @@ const inertiaConfig = defineConfig({
 
   ssr: {
     enabled: false,
-    entrypoint: 'inertia/app.ts',
+    entrypoint: 'inertia/apps/user/app.ts',
   },
 })
 

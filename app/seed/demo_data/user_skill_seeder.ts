@@ -21,7 +21,7 @@ export async function seedUserSkills(
     }
     const existing = await findRow(trx, 'user_skills', where)
     const payload = {
-      level_code: row.level,
+      verified_public_proficiency_code: row.level,
       total_reviews: row.totalReviews,
       avg_score: Math.min(5, Math.round((row.avgPercentage / 20) * 100) / 100),
       last_reviewed_at: row.source === 'reviewed' ? runtime.isoDaysAgo(1) : null,

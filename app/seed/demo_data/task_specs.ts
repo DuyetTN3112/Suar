@@ -1,5 +1,66 @@
 import type { GeneratedProjectTaskSeedConfig, ProjectKey, TaskSpec } from './types.js'
 
+export type TaskRequiredSkillCategory = 'technology' | 'engineering' | 'soft_skill' | 'delivery'
+
+const TASK_REQUIRED_SKILL_CATEGORY_ORDER: TaskRequiredSkillCategory[] = [
+  'technology',
+  'engineering',
+  'soft_skill',
+  'delivery',
+]
+
+const TASK_REQUIRED_SKILL_CATEGORY_BY_CODE: Record<string, TaskRequiredSkillCategory> = {
+  react: 'technology',
+  nodejs: 'technology',
+  typescript: 'technology',
+  svelte: 'technology',
+  postgresql: 'technology',
+  devops: 'technology',
+  testing: 'engineering',
+  code_review: 'engineering',
+  oop: 'engineering',
+  design_patterns: 'engineering',
+  clean_code: 'engineering',
+  api_design: 'engineering',
+  system_design: 'engineering',
+  design_system: 'engineering',
+  communication: 'soft_skill',
+  problem_solving: 'soft_skill',
+  leadership: 'soft_skill',
+  planning: 'delivery',
+  estimation: 'delivery',
+  release_management: 'delivery',
+  risk_tracking: 'delivery',
+  documentation: 'delivery',
+}
+
+const TASK_REQUIRED_SKILL_FALLBACKS: Record<TaskRequiredSkillCategory, string> = {
+  technology: 'typescript',
+  engineering: 'api_design',
+  soft_skill: 'communication',
+  delivery: 'planning',
+}
+
+export function getTaskRequiredSkillCategory(skillCode: string): TaskRequiredSkillCategory | null {
+  return TASK_REQUIRED_SKILL_CATEGORY_BY_CODE[skillCode] ?? null
+}
+
+function ensureFourCategoryRequiredSkills(skills: string[]): string[] {
+  const requiredSkills = [...skills]
+
+  for (const category of TASK_REQUIRED_SKILL_CATEGORY_ORDER) {
+    const hasCategory = requiredSkills.some(
+      (skillCode) => TASK_REQUIRED_SKILL_CATEGORY_BY_CODE[skillCode] === category
+    )
+
+    if (!hasCategory) {
+      requiredSkills.push(TASK_REQUIRED_SKILL_FALLBACKS[category])
+    }
+  }
+
+  return [...new Set(requiredSkills)]
+}
+
 export const TASK_SPECS: TaskSpec[] = [
   {
     key: 'member-org-switch',
@@ -26,7 +87,11 @@ export const TASK_SPECS: TaskSpec[] = [
       'Org member vào org B phải về workspace user thường thay vì org admin layout',
     ],
     verificationMethod: 'manual_qa',
-    expectedDeliverables: ['Role-aware switch flow', 'Regression checklist', 'Screen capture demo'],
+    expectedDeliverables: [
+      'Role-aware switch flow',
+      'Regression checklist',
+      'Recorded walkthrough',
+    ],
     contextBackground:
       'Task này được tạo để kiểm thử trực tiếp issue chuyển context khi đổi tổ chức trên cùng một tài khoản.',
     impactScope: 'organization',
@@ -45,8 +110,7 @@ export const TASK_SPECS: TaskSpec[] = [
     problemCategory: 'new_capability',
     businessDomain: 'saas',
     estimatedUsersAffected: 42,
-    estimatedBudget: 12000000,
-    requiredSkills: ['typescript', 'svelte', 'communication'],
+    requiredSkills: ensureFourCategoryRequiredSkills(['typescript', 'svelte', 'communication']),
   },
 ]
 
@@ -85,7 +149,6 @@ type ScenarioTaskInput = Pick<
       | 'roleInTask'
       | 'autonomyLevel'
       | 'estimatedUsersAffected'
-      | 'estimatedBudget'
       | 'applicationDeadlineDaysAhead'
     >
   >
@@ -95,13 +158,15 @@ function createScenarioTask(input: ScenarioTaskInput): TaskSpec {
   const assignmentActualHours =
     input.assignmentActualHours ?? (input.status === 'done' ? assignmentEstimatedHours : 0)
   const taskStatus = input.taskStatus ?? input.status
+  const assignmentCompletedDaysAgo =
+    input.assignmentCompletedDaysAgo ?? (input.status === 'done' ? 3 : undefined)
 
   return {
     key: input.key,
     organization: input.organization,
     project: input.project,
     creator: input.creator,
-    assignee: input.assignee,
+    ...(input.assignee !== undefined ? { assignee: input.assignee } : {}),
     title: input.title,
     description: input.description,
     status: input.status,
@@ -111,34 +176,35 @@ function createScenarioTask(input: ScenarioTaskInput): TaskSpec {
     difficulty: input.difficulty,
     visibility: input.visibility ?? 'internal',
     dueDaysOffset: input.dueDaysOffset ?? (input.status === 'done' ? -5 : 7),
-    assignmentCompletedDaysAgo:
-      input.assignmentCompletedDaysAgo ?? (input.status === 'done' ? 3 : undefined),
+    ...(assignmentCompletedDaysAgo !== undefined ? { assignmentCompletedDaysAgo } : {}),
     assignmentEstimatedHours,
     assignmentActualHours,
     taskType: input.taskType,
     acceptanceCriteria: [
-      `Seed scenario ${input.key} hiện diện trên task board`,
-      'Dữ liệu liên quan review, profile, notification không bị thiếu khóa ngoại',
+      `${input.title} appears on the project board with the correct owner, assignee, and delivery status`,
+      'Review, profile, notification, and project records resolve from the same task and assignment context',
     ],
     verificationMethod: input.verificationMethod ?? 'manual_qa',
-    expectedDeliverables: ['Seeded task record', 'Linked review/profile/demo data'],
-    contextBackground: `Scenario task cho seed:${input.key}.`,
+    expectedDeliverables: ['Working task record', 'Linked review and profile evidence set'],
+    contextBackground: `This work belongs to ${input.project} so the team can trace ownership, delivery proof, and review outcomes across ${input.organization}.`,
     impactScope: input.impactScope ?? 'project',
     techStack: input.techStack ?? ['AdonisJS', 'Svelte', 'PostgreSQL'],
     environment: input.environment ?? 'staging',
     collaborationType: input.collaborationType ?? 'small_team',
-    complexityNotes: 'Scenario seed dùng để giữ dữ liệu demo có đủ liên kết.',
-    measurableOutcomes: [{ metric: 'seed_integrity', target: 'linked' }],
-    learningObjectives: ['Deterministic seed data', 'Cross-module QA'],
+    complexityNotes:
+      'The work crosses task, review, profile, and notification records, so ownership and timestamps must stay aligned.',
+    measurableOutcomes: [{ metric: 'relationship_integrity', target: 'linked' }],
+    learningObjectives: ['Cross-module delivery flow', 'Evidence-backed review operations'],
     domainTags: [input.organization, input.project, input.key],
     roleInTask: input.roleInTask ?? 'contributor',
     autonomyLevel: input.autonomyLevel ?? 'autonomous',
     problemCategory: input.problemCategory,
     businessDomain: input.businessDomain,
     estimatedUsersAffected: input.estimatedUsersAffected ?? 20,
-    estimatedBudget: input.estimatedBudget ?? 5_000_000,
-    applicationDeadlineDaysAhead: input.applicationDeadlineDaysAhead,
-    requiredSkills: input.requiredSkills,
+    ...(input.applicationDeadlineDaysAhead !== undefined
+      ? { applicationDeadlineDaysAhead: input.applicationDeadlineDaysAhead }
+      : {}),
+    requiredSkills: ensureFourCategoryRequiredSkills(input.requiredSkills),
   }
 }
 
@@ -212,13 +278,14 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     requiredSkills: ['postgresql', 'problem_solving'],
   }),
   createScenarioTask({
-    key: 'owner-seed-governance',
+    key: 'owner-data-governance',
     organization: 'orgA',
     project: 'orgAOperations',
     creator: 'owner',
     assignee: 'owner',
-    title: 'Điều phối seed data đa vai trò cho demo local',
-    description: 'Chuẩn hóa seed nhiều role, nhiều organization và dữ liệu admin demo.',
+    title: 'Điều phối bộ dữ liệu vận hành đa vai trò',
+    description:
+      'Chuẩn hóa dữ liệu vận hành nhiều vai trò, nhiều organization và các hồ sơ quản trị cần đối soát.',
     status: 'done',
     label: 'enhancement',
     priority: 'medium',
@@ -234,7 +301,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAPlatform',
     creator: 'owner',
     assignee: 'owner',
-    title: 'Hoàn thiện luồng task board cho account test chính',
+    title: 'Hoàn thiện luồng task board cho workspace owner',
     description:
       'Task đang làm để test My Tasks, current assignment và trạng thái in_progress cho tranngocduyet31@gmail.com.',
     status: 'in_progress',
@@ -262,7 +329,11 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     taskType: 'qa_testing',
     problemCategory: 'compliance',
     businessDomain: 'internal_tooling',
-    requiredSkills: ['testing', 'communication', 'problem_solving'],
+    requiredSkills: ensureFourCategoryRequiredSkills([
+      'testing',
+      'communication',
+      'problem_solving',
+    ]),
   }),
   createScenarioTask({
     key: 'orgc-marketplace-ranking',
@@ -271,7 +342,8 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     creator: 'peerReviewer',
     assignee: 'owner',
     title: 'So sánh package Pro và ProMax trong ranking của marketplace',
-    description: 'Seed dữ liệu ranking package adoption cho dashboard marketplace đa tenant.',
+    description:
+      'Phân tích ranking package adoption cho dashboard marketplace đa tenant, gồm số liệu proposal, subscription và profile proof.',
     status: 'done',
     label: 'feature',
     priority: 'high',
@@ -304,7 +376,8 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAPlatform',
     creator: 'owner',
     title: 'Chuẩn hóa nội dung marketplace task public',
-    description: 'Task public dùng để seed application list, notification và pending applications view.',
+    description:
+      'Chuẩn hóa nội dung public task để application list, notification và pending application view có cùng ngữ cảnh nghiệp vụ.',
     status: 'todo',
     label: 'documentation',
     priority: 'medium',
@@ -320,7 +393,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     key: 'owner-marketplace-pending',
     organization: 'orgD',
     project: 'orgDTalentShowcase',
-    creator: 'freelancerOne',
+    creator: 'externalContributorOne',
     title: 'Public profile showcase copywriting pass',
     description: 'External marketplace task để owner apply với trạng thái pending.',
     status: 'todo',
@@ -338,9 +411,10 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     key: 'owner-marketplace-approved',
     organization: 'orgE',
     project: 'orgEDataOps',
-    creator: 'freelancerTwo',
+    creator: 'externalContributorTwo',
     title: 'Public data quality QA pipeline',
-    description: 'External marketplace task để owner apply và được approve thành freelancer assignment.',
+    description:
+      'External marketplace task để owner apply và được approve thành external_contributor assignment.',
     status: 'todo',
     label: 'feature',
     priority: 'high',
@@ -356,7 +430,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     key: 'owner-marketplace-rejected',
     organization: 'orgD',
     project: 'orgDTalentShowcase',
-    creator: 'freelancerOne',
+    creator: 'externalContributorOne',
     title: 'Public Svelte profile widget polish',
     description: 'External marketplace task để owner apply với trạng thái rejected.',
     status: 'todo',
@@ -374,7 +448,7 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     key: 'owner-marketplace-withdrawn',
     organization: 'orgE',
     project: 'orgEInsightEngine',
-    creator: 'freelancerTwo',
+    creator: 'externalContributorTwo',
     title: 'Public analytics documentation cleanup',
     description: 'External marketplace task để owner apply rồi withdraw.',
     status: 'todo',
@@ -394,7 +468,8 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     project: 'orgAPlatform',
     creator: 'owner',
     title: 'Thiết kế QA pipeline cho marketplace applicants',
-    description: 'Task public thứ hai để application seed có nhiều trạng thái và applicant.',
+    description:
+      'Thiết kế pipeline QA cho marketplace applicants, gồm tiêu chí lọc proposal và handoff cho reviewer.',
     status: 'todo',
     label: 'feature',
     priority: 'medium',
@@ -447,7 +522,8 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     creator: 'orgBOwner',
     assignee: 'owner',
     title: 'Thiết kế và hoàn thiện chương trình học EdTech cốt lõi',
-    description: 'Phát triển giáo trình chi tiết cho các khóa học EdTech của Open Education Guild, tập trung vào thiết kế trải nghiệm học tập số và áp dụng AI vào quản lý lớp học. Yêu cầu định nghĩa rõ ràng các tiêu chí kiểm tra, bối cảnh nghiệp vụ và mục tiêu học tập.',
+    description:
+      'Phát triển giáo trình chi tiết cho các khóa học EdTech của Open Education Guild, tập trung vào thiết kế trải nghiệm học tập số và áp dụng AI vào quản lý lớp học. Yêu cầu định nghĩa rõ ràng các tiêu chí kiểm tra, bối cảnh nghiệp vụ và mục tiêu học tập.',
     status: 'todo',
     taskStatus: 'todo',
     label: 'feature',
@@ -462,23 +538,32 @@ const SCENARIO_TASK_SPECS: TaskSpec[] = [
     acceptanceCriteria: [
       'Hoàn thiện đề cương 5 môn học cốt lõi',
       'Định nghĩa 10 chỉ số đánh giá năng lực học tập số',
-      'Tạo tài liệu hướng dẫn giảng viên áp dụng AI trong chấm điểm'
+      'Tạo tài liệu hướng dẫn giảng viên áp dụng AI trong chấm điểm',
     ],
     verificationMethod: 'code_review',
-    expectedDeliverables: ['Curriculum proposal document', 'Competency rubrics guide', 'AI-assisted grading workflow specification'],
-    contextBackground: 'Tổ chức đang mở rộng mô hình đào tạo trực tuyến kết hợp AI. Giáo trình này đóng vai trò quan trọng trong việc chuẩn hóa chất lượng và là cơ sở giải quyết các tranh chấp về kết quả học tập sau này.',
+    expectedDeliverables: [
+      'Curriculum proposal document',
+      'Competency rubrics guide',
+      'AI-assisted grading workflow specification',
+    ],
+    contextBackground:
+      'Tổ chức đang mở rộng mô hình đào tạo trực tuyến kết hợp AI. Giáo trình này đóng vai trò quan trọng trong việc chuẩn hóa chất lượng và là cơ sở giải quyết các tranh chấp về kết quả học tập sau này.',
     impactScope: 'project',
     techStack: ['Svelte', 'TypeScript', 'PostgreSQL', 'AI Engine'],
     environment: 'production',
     collaborationType: 'small_team',
-    complexityNotes: 'Yêu cầu sự phối hợp chặt chẽ giữa chuyên gia thiết kế bài giảng và kỹ sư hệ thống để tích hợp tính năng tự động chấm điểm.',
+    complexityNotes:
+      'Yêu cầu sự phối hợp chặt chẽ giữa chuyên gia thiết kế bài giảng và kỹ sư hệ thống để tích hợp tính năng tự động chấm điểm.',
     measurableOutcomes: [{ metric: 'curriculum_coverage', target: '95%' }],
-    learningObjectives: ['EdTech design methodology', 'AI application in education workflows', 'Skill-based evaluation models'],
+    learningObjectives: [
+      'EdTech design methodology',
+      'AI application in education workflows',
+      'Skill-based evaluation models',
+    ],
     domainTags: ['education', 'curriculum', 'ai-assisted', 'edtech'],
     roleInTask: 'lead',
     autonomyLevel: 'autonomous',
     estimatedUsersAffected: 1200,
-    estimatedBudget: 50000000,
   },
 ]
 
@@ -500,8 +585,17 @@ const BULK_COLLABORATION_SEQUENCE: TaskSpec['collaborationType'][] = [
   'pair_programming',
   'cross_team',
 ]
-const BULK_AUTONOMY_SEQUENCE: TaskSpec['autonomyLevel'][] = ['supervised', 'autonomous', 'led_others']
-const BULK_ROLE_SEQUENCE: TaskSpec['roleInTask'][] = ['contributor', 'lead', 'reviewer', 'architect']
+const BULK_AUTONOMY_SEQUENCE: TaskSpec['autonomyLevel'][] = [
+  'supervised',
+  'autonomous',
+  'led_others',
+]
+const BULK_ROLE_SEQUENCE: TaskSpec['roleInTask'][] = [
+  'contributor',
+  'lead',
+  'reviewer',
+  'architect',
+]
 const BULK_ENVIRONMENT_SEQUENCE: TaskSpec['environment'][] = [
   'development',
   'staging',
@@ -541,14 +635,13 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
 
   const generated: TaskSpec[] = []
 
-  for (const [project, config] of Object.entries(GENERATED_PROJECT_TASK_CONFIG) as [ProjectKey, GeneratedProjectTaskSeedConfig][]) {
+  for (const [project, config] of Object.entries(GENERATED_PROJECT_TASK_CONFIG) as [
+    ProjectKey,
+    GeneratedProjectTaskSeedConfig,
+  ][]) {
     const currentCount = currentCounts[project] ?? 0
 
-    for (
-      let targetIndex = currentCount;
-      targetIndex < config.targetTaskCount;
-      targetIndex += 1
-    ) {
+    for (let targetIndex = currentCount; targetIndex < config.targetTaskCount; targetIndex += 1) {
       const ordinal = targetIndex - currentCount + 1
       const status = pickCycled(BULK_STATUS_SEQUENCE, targetIndex, `${project}:status`)
       const taskStatus: TaskSpec['taskStatus'] = status
@@ -569,21 +662,21 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
           ? Math.max(estimatedHours - 1, estimatedHours + ((ordinal % 3) - 1))
           : Math.max(2, estimatedHours - 3)
       const dueDaysOffset = status === 'done' ? -(ordinal % 9) - 1 : (ordinal % 10) + 2
-      const requiredSkills = config.requiredSkills
+      const rotatedRequiredSkills = config.requiredSkills
         .slice(ordinal % config.requiredSkills.length)
         .concat(config.requiredSkills.slice(0, ordinal % config.requiredSkills.length))
-        .slice(0, 2)
+      const requiredSkills = ensureFourCategoryRequiredSkills(rotatedRequiredSkills)
 
       generated.push({
         key: `${project}-bulk-${String(ordinal).padStart(2, '0')}`,
         organization: config.organization,
         project,
         creator,
-        assignee,
+        ...(assignee !== undefined ? { assignee } : {}),
         title: `${config.titlePrefix} ${String(targetIndex + 1).padStart(2, '0')}`,
         description:
-          `Seed thêm dữ liệu dày cho project ${project} để dashboard, board và analytics không còn thưa.` +
-          ` Mục này dùng cho QA local nhiều trạng thái hơn.`,
+          `Project ${project} needs enough active work across statuses for planning, delivery tracking, and review analytics.` +
+          ` This item represents a real ${config.businessDomain} work slice for ${config.organization}.`,
         status,
         taskStatus,
         label: pickCycled(BULK_LABEL_SEQUENCE, targetIndex, `${project}:label`),
@@ -591,22 +684,21 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
         difficulty: pickCycled(BULK_DIFFICULTY_SEQUENCE, targetIndex, `${project}:difficulty`),
         visibility,
         dueDaysOffset,
-        assignmentCompletedDaysAgo: status === 'done' ? (ordinal % 7) + 1 : undefined,
+        ...(status === 'done' ? { assignmentCompletedDaysAgo: (ordinal % 7) + 1 } : {}),
         assignmentEstimatedHours: estimatedHours,
         assignmentActualHours: actualHours,
         taskType: pickCycled(BULK_TASK_TYPE_SEQUENCE, targetIndex, `${project}:taskType`),
         acceptanceCriteria: [
           `Board của project ${project} có thêm dữ liệu trạng thái ${status}`,
-          'Project detail và dashboard đọc được số liệu seeded mới',
+          'Project detail và dashboard đọc được số liệu mới',
         ],
         verificationMethod: pickCycled(
           BULK_VERIFICATION_SEQUENCE,
           targetIndex,
           `${project}:verificationMethod`
         ),
-        expectedDeliverables: ['Updated seeded task record', 'Board card with realistic metadata'],
-        contextBackground:
-          `Generated filler task cho project ${project} trong ${config.organization} để project này có đủ task seed cho QA local.`,
+        expectedDeliverables: ['Updated task record', 'Board card with realistic metadata'],
+        contextBackground: `The team is balancing ${project} roadmap work across ${config.organization}, with enough status diversity for sprint planning and delivery reports.`,
         impactScope: pickCycled(BULK_IMPACT_SEQUENCE, targetIndex, `${project}:impactScope`),
         techStack: config.techStack,
         environment: pickCycled(BULK_ENVIRONMENT_SEQUENCE, targetIndex, `${project}:environment`),
@@ -616,22 +708,15 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
           `${project}:collaborationType`
         ),
         complexityNotes:
-          'Generated seed task giữ metadata thật nhưng không gắn thêm review scenario chuyên biệt.',
+          'Metadata stays broad because this item supports portfolio-level planning rather than a specialized review case.',
         measurableOutcomes: [
-          { metric: 'seeded_project_task_density', target: config.targetTaskCount },
+          { metric: 'project_task_density', target: config.targetTaskCount },
           { metric: 'status_bucket', value: status },
         ],
-        learningObjectives: [
-          'High-density local QA',
-          'Cross-organization navigation verification',
-        ],
-        domainTags: [config.organization, project, 'seed-density', 'task-board'],
+        learningObjectives: ['High-density local QA', 'Cross-organization navigation verification'],
+        domainTags: [config.organization, project, 'portfolio-density', 'task-board'],
         roleInTask: pickCycled(BULK_ROLE_SEQUENCE, targetIndex, `${project}:roleInTask`),
-        autonomyLevel: pickCycled(
-          BULK_AUTONOMY_SEQUENCE,
-          targetIndex,
-          `${project}:autonomyLevel`
-        ),
+        autonomyLevel: pickCycled(BULK_AUTONOMY_SEQUENCE, targetIndex, `${project}:autonomyLevel`),
         problemCategory: pickCycled(
           config.problemCategories,
           targetIndex,
@@ -639,8 +724,7 @@ export function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
         ),
         businessDomain: config.businessDomain,
         estimatedUsersAffected: 12 + ordinal * 3,
-        estimatedBudget: 3_000_000 + ordinal * 350_000,
-        applicationDeadlineDaysAhead: visibility === 'internal' ? undefined : (ordinal % 6) + 3,
+        ...(visibility !== 'internal' ? { applicationDeadlineDaysAhead: (ordinal % 6) + 3 } : {}),
         requiredSkills,
       })
     }
@@ -659,7 +743,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'saas',
     problemCategories: ['new_capability', 'maintainability', 'automation', 'ux_improvement'],
     techStack: ['AdonisJS', 'Svelte', 'PostgreSQL', 'Redis'],
-    requiredSkills: ['typescript', 'testing', 'postgresql', 'communication'],
+    requiredSkills: ['typescript', 'api_design', 'postgresql', 'communication', 'planning'],
   },
   orgAOperations: {
     organization: 'orgA',
@@ -670,7 +754,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'internal_tooling',
     problemCategories: ['maintainability', 'automation', 'new_capability', 'ux_improvement'],
     techStack: ['AdonisJS', 'PostgreSQL', 'Redis'],
-    requiredSkills: ['testing', 'communication', 'problem_solving'],
+    requiredSkills: ['testing', 'code_review', 'communication', 'risk_tracking', 'postgresql'],
   },
   orgADesignSystem: {
     organization: 'orgA',
@@ -681,7 +765,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'saas',
     problemCategories: ['ux_improvement', 'new_capability', 'maintainability'],
     techStack: ['Svelte', 'TypeScript', 'Design System'],
-    requiredSkills: ['svelte', 'communication', 'testing'],
+    requiredSkills: ['svelte', 'design_system', 'communication', 'documentation'],
   },
   orgAAnalytics: {
     organization: 'orgA',
@@ -692,7 +776,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'saas',
     problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
     techStack: ['PostgreSQL', 'Redis', 'AdonisJS', 'Charts'],
-    requiredSkills: ['postgresql', 'problem_solving', 'testing'],
+    requiredSkills: ['postgresql', 'system_design', 'problem_solving', 'risk_tracking'],
   },
   orgBKnowledgeBase: {
     organization: 'orgB',
@@ -703,7 +787,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'edtech',
     problemCategories: ['maintainability', 'automation', 'ux_improvement', 'new_capability'],
     techStack: ['Documentation', 'Svelte', 'PostgreSQL'],
-    requiredSkills: ['communication', 'testing', 'problem_solving'],
+    requiredSkills: ['svelte', 'design_system', 'communication', 'documentation'],
   },
   orgBCurriculumOps: {
     organization: 'orgB',
@@ -714,7 +798,7 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'edtech',
     problemCategories: ['automation', 'maintainability', 'new_capability', 'ux_improvement'],
     techStack: ['Documentation', 'PostgreSQL', 'Svelte'],
-    requiredSkills: ['communication', 'testing', 'problem_solving'],
+    requiredSkills: ['postgresql', 'system_design', 'communication', 'documentation'],
   },
   orgCMarketplaceLab: {
     organization: 'orgC',
@@ -725,49 +809,56 @@ const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeed
     businessDomain: 'saas',
     problemCategories: ['automation', 'new_capability', 'maintainability', 'performance'],
     techStack: ['AdonisJS', 'Charts', 'PostgreSQL', 'Redis'],
-    requiredSkills: ['postgresql', 'problem_solving', 'testing', 'communication'],
+    requiredSkills: ['postgresql', 'api_design', 'communication', 'planning'],
   },
   orgDTalentShowcase: {
     organization: 'orgD',
     targetTaskCount: 20,
-    creators: ['freelancerOne'],
-    assignees: ['freelancerOne', 'owner', 'freelancerTwo'],
+    creators: ['externalContributorOne'],
+    assignees: ['externalContributorOne', 'owner', 'externalContributorTwo'],
     titlePrefix: 'Org D talent backlog',
     businessDomain: 'saas',
     problemCategories: ['new_capability', 'ux_improvement', 'automation', 'technical_debt'],
     techStack: ['Svelte', 'TypeScript', 'PostgreSQL'],
-    requiredSkills: ['svelte', 'communication', 'testing'],
+    requiredSkills: ['svelte', 'design_system', 'communication', 'documentation'],
   },
   orgEDataOps: {
     organization: 'orgE',
     targetTaskCount: 10,
-    creators: ['freelancerTwo', 'orgAdmin'],
-    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    creators: ['externalContributorTwo', 'orgAdmin'],
+    assignees: ['externalContributorTwo', 'owner', 'member', 'orgAdmin'],
     titlePrefix: 'Org E data ops backlog',
     businessDomain: 'data_platform',
     problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
     techStack: ['PostgreSQL', 'Redis', 'AdonisJS', 'TypeScript'],
-    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+    requiredSkills: ['postgresql', 'system_design', 'problem_solving', 'risk_tracking'],
   },
   orgEInsightEngine: {
     organization: 'orgE',
     targetTaskCount: 10,
-    creators: ['freelancerTwo', 'orgAdmin'],
-    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
+    creators: ['externalContributorTwo', 'orgAdmin'],
+    assignees: ['externalContributorTwo', 'owner', 'member', 'orgAdmin'],
     titlePrefix: 'Org E insight backlog',
     businessDomain: 'data_platform',
     problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
     techStack: ['PostgreSQL', 'Redis', 'AdonisJS', 'TypeScript'],
-    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
+    requiredSkills: ['postgresql', 'api_design', 'communication', 'release_management'],
   },
 }
 
-const CORE_TASK_SPECS = [...TASK_SPECS, ...SCENARIO_TASK_SPECS]
-const GENERATED_TASK_SPECS = buildGeneratedTaskSpecs(CORE_TASK_SPECS)
-export const SEEDED_TASK_SPECS = [...CORE_TASK_SPECS, ...GENERATED_TASK_SPECS]
+export interface SeededTaskSpecOptions {
+  dense?: boolean
+}
+
+export const CORE_TASK_SPECS = [...TASK_SPECS, ...SCENARIO_TASK_SPECS]
+export const GENERATED_TASK_SPECS = buildGeneratedTaskSpecs(CORE_TASK_SPECS)
+
+export function getSeededTaskSpecs(options: SeededTaskSpecOptions = {}): TaskSpec[] {
+  return options.dense ? [...CORE_TASK_SPECS, ...GENERATED_TASK_SPECS] : [...CORE_TASK_SPECS]
+}
 
 export function getTaskSpec(taskKey: string): TaskSpec {
-  const spec = SEEDED_TASK_SPECS.find((item) => item.key === taskKey)
+  const spec = getSeededTaskSpecs({ dense: true }).find((item) => item.key === taskKey)
   if (!spec) {
     throw new Error(`Missing task spec for ${taskKey}`)
   }

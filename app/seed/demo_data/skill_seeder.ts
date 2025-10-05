@@ -4,25 +4,49 @@ import type { SeedRuntime } from './seed_runtime.js'
 import { findRow } from './seed_utils.js'
 import type { ProjectKey, SeededProject, SeededUser, UserKey } from './types.js'
 
+import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
+import { buildSkillRubricLevelDescriptorFields } from '#modules/skills/support/build_skill_rubric_level_descriptor_fields'
+import { getSystemDefaultProficiencyScaleSeed } from '#modules/skills/support/system_default_proficiency_scale'
+
 interface ProficiencyLevelSeedRow {
   id: string
   code: string
   ordinal: number
+  expected_knowledge: string | null
+  expected_execution: string | null
+  autonomy_descriptor: string | null
+  complexity_descriptor: string | null
+  quality_descriptor: string | null
+  collaboration_descriptor: string | null
+  observable_behaviors: string[] | null
+  positive_examples: string[] | null
+  negative_examples: string[] | null
+  evidence_guidance: string | null
+  ceiling_guidance: string | null
 }
+
+const L2 = CanonicalProficiencyLevelCode.L2
+const L4 = CanonicalProficiencyLevelCode.L4
+const L7 = CanonicalProficiencyLevelCode.L7
+const L10 = CanonicalProficiencyLevelCode.L10
+const L12 = CanonicalProficiencyLevelCode.L12
+const L13 = CanonicalProficiencyLevelCode.L13
+const L14 = CanonicalProficiencyLevelCode.L14
 
 async function seedProficiencyScales(
   runtime: SeedRuntime,
   trx: TransactionClientContract
 ): Promise<string> {
-  const scaleCode = 'system_default'
+  const scaleSeed = getSystemDefaultProficiencyScaleSeed()
+  const scaleCode = scaleSeed.code
   const existingScale = await findRow(trx, 'proficiency_scales', { code: scaleCode })
   const scaleId = existingScale?.id ?? runtime.uuid()
 
   const scalePayload = {
     code: scaleCode,
-    name: 'System Default Scale',
-    version: 1,
-    is_active: true,
+    name: scaleSeed.name,
+    version: scaleSeed.version,
+    is_active: scaleSeed.isActive,
     created_at: runtime.isoDaysAgo(90),
     updated_at: runtime.isoDaysAgo(1),
   }
@@ -36,18 +60,27 @@ async function seedProficiencyScales(
       .insert({ id: scaleId, ...scalePayload })
   }
 
-  const levelSpecs = [
-    [1, 'beginner', 'Beginner', 'BG', 0.0],
-    [2, 'elementary', 'Elementary', 'EL', 0.1428],
-    [3, 'junior', 'Junior', 'JR', 0.2857],
-    [4, 'middle', 'Middle', 'MD', 0.4285],
-    [5, 'senior', 'Senior', 'SR', 0.5714],
-    [6, 'lead', 'Lead', 'LD', 0.7142],
-    [7, 'principal', 'Principal', 'PR', 0.8571],
-    [8, 'master', 'Master', 'MS', 1.0],
-  ] as const
-
-  for (const [ordinal, code, displayName, shortName, normalizedVal] of levelSpecs) {
+  for (const levelSpec of scaleSeed.levels) {
+    const {
+      ordinal,
+      code,
+      displayName,
+      shortName,
+      normalizedValue,
+      sortOrder,
+      genericDescription,
+      expectedKnowledge,
+      expectedExecution,
+      autonomyDescriptor,
+      complexityDescriptor,
+      qualityDescriptor,
+      collaborationDescriptor,
+      observableBehaviors,
+      positiveExamples,
+      negativeExamples,
+      evidenceGuidance,
+      ceilingGuidance,
+    } = levelSpec
     const existingLevel = await findRow(trx, 'proficiency_levels', { scale_id: scaleId, ordinal })
     const levelId = existingLevel?.id ?? runtime.uuid()
     const levelPayload = {
@@ -56,9 +89,20 @@ async function seedProficiencyScales(
       code,
       display_name: displayName,
       short_name: shortName,
-      normalized_value: normalizedVal,
-      generic_description: `${displayName} level for skills evaluation`,
-      sort_order: ordinal,
+      normalized_value: normalizedValue,
+      generic_description: genericDescription,
+      sort_order: sortOrder,
+      expected_knowledge: expectedKnowledge,
+      expected_execution: expectedExecution,
+      autonomy_descriptor: autonomyDescriptor,
+      complexity_descriptor: complexityDescriptor,
+      quality_descriptor: qualityDescriptor,
+      collaboration_descriptor: collaborationDescriptor,
+      observable_behaviors: JSON.stringify(observableBehaviors),
+      positive_examples: JSON.stringify(positiveExamples),
+      negative_examples: JSON.stringify(negativeExamples),
+      evidence_guidance: evidenceGuidance,
+      ceiling_guidance: ceilingGuidance,
       created_at: runtime.isoDaysAgo(90),
       updated_at: runtime.isoDaysAgo(1),
     }
@@ -83,17 +127,68 @@ export async function seedSkills(
   await seedProficiencyScales(runtime, trx)
 
   const skillSpecs = [
-    ['react', 'React', 'technical'],
-    ['nodejs', 'Node.js', 'technical'],
-    ['typescript', 'TypeScript', 'technical'],
-    ['svelte', 'Svelte', 'technical'],
-    ['postgresql', 'PostgreSQL', 'technical'],
-    ['devops', 'DevOps', 'technical'],
-    ['testing', 'Testing & QA', 'delivery'],
-    ['code_review', 'Code Review', 'delivery'],
+    ['react', 'React', 'technology'],
+    ['nodejs', 'Node.js', 'technology'],
+    ['typescript', 'TypeScript', 'technology'],
+    ['svelte', 'Svelte', 'technology'],
+    ['adonisjs', 'AdonisJS', 'technology'],
+    ['vue', 'Vue', 'technology'],
+    ['angular', 'Angular', 'technology'],
+    ['nextjs', 'Next.js', 'technology'],
+    ['postgresql', 'PostgreSQL', 'technology'],
+    ['redis', 'Redis', 'technology'],
+    ['docker', 'Docker', 'technology'],
+    ['kubernetes', 'Kubernetes', 'technology'],
+    ['elasticsearch', 'Elasticsearch', 'technology'],
+    ['graphql', 'GraphQL', 'technology'],
+    ['rest_api', 'REST API', 'technology'],
+    ['python', 'Python', 'technology'],
+    ['go', 'Go', 'technology'],
+    ['java', 'Java', 'technology'],
+    ['aws', 'AWS', 'technology'],
+    ['gcp', 'Google Cloud', 'technology'],
+    ['devops', 'DevOps', 'technology'],
+    ['testing', 'Testing & QA', 'engineering'],
+    ['test_automation', 'Test Automation', 'engineering'],
+    ['tdd', 'Test-Driven Development', 'engineering'],
+    ['code_review', 'Code Review', 'engineering'],
+    ['refactoring', 'Refactoring', 'engineering'],
+    ['oop', 'Object-Oriented Programming', 'engineering'],
+    ['design_patterns', 'Design Patterns', 'engineering'],
+    ['clean_code', 'Clean Code', 'engineering'],
+    ['api_design', 'API Design', 'engineering'],
+    ['system_design', 'System Design', 'engineering'],
+    ['design_system', 'Design System', 'engineering'],
+    ['technical_design', 'Technical Design', 'engineering'],
+    ['ci_cd', 'CI/CD', 'engineering'],
+    ['observability', 'Observability', 'engineering'],
+    ['security_engineering', 'Security Engineering', 'engineering'],
+    ['data_modeling', 'Data Modeling', 'engineering'],
+    ['performance_engineering', 'Performance Engineering', 'engineering'],
+    ['accessibility', 'Accessibility', 'engineering'],
+    ['integration_testing', 'Integration Testing', 'engineering'],
     ['communication', 'Communication', 'soft_skill'],
     ['problem_solving', 'Problem Solving', 'soft_skill'],
     ['leadership', 'Leadership', 'soft_skill'],
+    ['teamwork', 'Teamwork', 'soft_skill'],
+    ['stakeholder_management', 'Stakeholder Management', 'soft_skill'],
+    ['mentoring', 'Mentoring', 'soft_skill'],
+    ['conflict_resolution', 'Conflict Resolution', 'soft_skill'],
+    ['product_thinking', 'Product Thinking', 'soft_skill'],
+    ['ownership', 'Ownership', 'soft_skill'],
+    ['adaptability', 'Adaptability', 'soft_skill'],
+    ['planning', 'Planning', 'delivery'],
+    ['estimation', 'Estimation', 'delivery'],
+    ['release_management', 'Release Management', 'delivery'],
+    ['risk_tracking', 'Risk Tracking', 'delivery'],
+    ['documentation', 'Documentation', 'delivery'],
+    ['sprint_management', 'Sprint Management', 'delivery'],
+    ['incident_response', 'Incident Response', 'delivery'],
+    ['qa_signoff', 'QA Sign-off', 'delivery'],
+    ['rollout_planning', 'Rollout Planning', 'delivery'],
+    ['monitoring', 'Monitoring', 'delivery'],
+    ['requirements_breakdown', 'Requirements Breakdown', 'delivery'],
+    ['customer_feedback', 'Customer Feedback', 'delivery'],
   ] as const
 
   const result: Record<string, string> = {}
@@ -127,7 +222,7 @@ export async function seedSkills(
   }
 
   // Seed skill aliases for TypeScript
-  const tsId = result.typescript
+  const tsId = result['typescript']
   if (tsId) {
     const tsAliases = [
       { alias: 'TS', locale: 'en', source: 'manual', is_primary: true },
@@ -161,7 +256,7 @@ export async function seedSkills(
   }
 
   // Seed skill aliases for PostgreSQL
-  const pgId = result.postgresql
+  const pgId = result['postgresql']
   if (pgId) {
     const pgAliases = [
       { alias: 'Postgres', locale: 'en', source: 'manual', is_primary: true },
@@ -198,9 +293,14 @@ export async function seedSkills(
     ['typescript', 'TypeScript', 'type-safe application code'],
     ['react', 'React', 'component architecture and client interaction'],
     ['nodejs', 'Node.js', 'server-side runtime and API behavior'],
+    ['api_design', 'API Design', 'clear API contracts and integration boundaries'],
+    ['clean_code', 'Clean Code', 'maintainable implementation structure'],
+    ['system_design', 'System Design', 'scalable architecture decisions'],
     ['communication', 'Communication', 'clear collaboration and expectation management'],
     ['problem_solving', 'Problem Solving', 'structured diagnosis and trade-off decisions'],
-    ['testing', 'Testing & QA', 'delivery verification and regression control'],
+    ['testing', 'Testing & QA', 'quality verification and regression control'],
+    ['planning', 'Planning', 'delivery planning and work sequencing'],
+    ['release_management', 'Release Management', 'release readiness and rollback coordination'],
   ] as const
 
   for (const [skillCode, displayName, focus] of rubricSeeds) {
@@ -245,29 +345,61 @@ async function seedPublishedRubric(
 
   const levels = (await trx
     .from('proficiency_levels')
-    .select('id', 'code', 'ordinal')) as ProficiencyLevelSeedRow[]
+    .select(
+      'id',
+      'code',
+      'ordinal',
+      'expected_knowledge',
+      'expected_execution',
+      'autonomy_descriptor',
+      'complexity_descriptor',
+      'quality_descriptor',
+      'collaboration_descriptor',
+      'observable_behaviors',
+      'positive_examples',
+      'negative_examples',
+      'evidence_guidance',
+      'ceiling_guidance'
+    )) as ProficiencyLevelSeedRow[]
   for (const lvl of levels) {
     const existingLvl = await findRow(trx, 'skill_rubric_levels', {
       rubric_version_id: verId,
       proficiency_level_id: lvl.id,
     })
     const lvlId = existingLvl?.id ?? runtime.uuid()
+    const descriptorFields = buildSkillRubricLevelDescriptorFields(lvl)
     const lvlPayload = {
       rubric_version_id: verId,
       proficiency_level_id: lvl.id,
       summary: `${displayName} level ${lvl.code} expectations for ${focus}.`,
-      knowledge_expectations: JSON.stringify([
-        `Understands ${focus} concepts expected at ${lvl.code} level.`,
-      ]),
-      observable_behaviors: JSON.stringify([
-        `Delivers ${displayName} work with ${lvl.code} level consistency.`,
-      ]),
+      knowledge_expectations: JSON.stringify(
+        descriptorFields.knowledge_expectations ?? [
+          `Understands ${focus} concepts expected at ${lvl.code} level.`,
+        ]
+      ),
+      observable_behaviors: JSON.stringify(
+        descriptorFields.observable_behaviors ?? [
+          `Delivers ${displayName} work with ${lvl.code} level consistency.`,
+        ]
+      ),
       independence_expectations: `Operates at ${lvl.code} independence for ${displayName}.`,
       complexity_expectations: `Handles ${lvl.code} complexity in ${focus}.`,
       impact_scope_expectations: `Creates ${lvl.code} scope impact through ${displayName}.`,
-      positive_examples: JSON.stringify([`Evidence shows reliable ${focus} decisions.`]),
-      negative_examples: JSON.stringify([`Evidence lacks repeatable ${focus} behavior.`]),
-      evidence_guidance: `Verify ${displayName} via task evidence, review comments, and delivery artifacts.`,
+      positive_examples: JSON.stringify(
+        descriptorFields.positive_examples ?? [`Evidence shows reliable ${focus} decisions.`]
+      ),
+      negative_examples: JSON.stringify(
+        descriptorFields.negative_examples ?? [`Evidence lacks repeatable ${focus} behavior.`]
+      ),
+      evidence_guidance:
+        descriptorFields.evidence_guidance ??
+        `Verify ${displayName} via task evidence, review comments, and delivery artifacts.`,
+      expected_execution: descriptorFields.expected_execution,
+      autonomy_descriptor: descriptorFields.autonomy_descriptor,
+      complexity_descriptor: descriptorFields.complexity_descriptor,
+      quality_descriptor: descriptorFields.quality_descriptor,
+      collaboration_descriptor: descriptorFields.collaboration_descriptor,
+      ceiling_guidance: descriptorFields.ceiling_guidance,
       created_at: runtime.isoDaysAgo(90),
       updated_at: runtime.isoDaysAgo(1),
     }
@@ -290,7 +422,7 @@ async function seedPublishedRubric(
  * Idempotent — uses `code` as the unique identifier.
  *
  * @param skillMap  Map of skill_code → UUID from seedSkills()
- * @param levelMap  Map of level_code → UUID, obtained from proficiency_levels table
+ * @param levelMap  Map of public proficiency code → UUID, obtained from proficiency_levels table
  */
 export async function seedProfessionalRoleTemplates(
   runtime: SeedRuntime,
@@ -348,43 +480,48 @@ export async function seedProfessionalRoleTemplates(
         .insert({ id: templateId, ...payload })
     }
 
-    // Define skills per template: [skill_code, min_level_code, target_level_code, ceiling_level_code, is_mandatory, importance]
+    // Define skills per template: [skill_code, minimum public code, target public code, ceiling public code, is_mandatory, importance]
     const templateSkillSpecs: Record<
       string,
       [string, string, string, string, boolean, 'low' | 'medium' | 'high' | 'critical'][]
     > = {
       frontend_engineer: [
-        ['react', 'junior', 'senior', 'principal', true, 'high'],
-        ['typescript', 'junior', 'senior', 'master', true, 'critical'],
-        ['svelte', 'elementary', 'senior', 'principal', true, 'high'],
-        ['testing', 'junior', 'middle', 'lead', false, 'medium'],
-        ['communication', 'junior', 'middle', 'senior', false, 'medium'],
+        ['react', L4, L10, L13, true, 'high'],
+        ['typescript', L4, L10, L14, true, 'critical'],
+        ['svelte', L2, L10, L13, true, 'high'],
+        ['design_system', L4, L10, L13, false, 'high'],
+        ['testing', L4, L7, L12, false, 'medium'],
+        ['communication', L4, L7, L10, false, 'medium'],
       ],
       backend_engineer: [
-        ['nodejs', 'junior', 'senior', 'master', true, 'critical'],
-        ['typescript', 'junior', 'senior', 'master', true, 'critical'],
-        ['postgresql', 'junior', 'senior', 'master', true, 'high'],
-        ['devops', 'elementary', 'middle', 'lead', false, 'medium'],
-        ['testing', 'junior', 'senior', 'principal', true, 'high'],
+        ['nodejs', L4, L10, L14, true, 'critical'],
+        ['typescript', L4, L10, L14, true, 'critical'],
+        ['postgresql', L4, L10, L14, true, 'high'],
+        ['api_design', L4, L10, L13, true, 'high'],
+        ['devops', L2, L7, L12, false, 'medium'],
+        ['testing', L4, L10, L13, true, 'high'],
       ],
       fullstack_engineer: [
-        ['react', 'junior', 'senior', 'principal', true, 'high'],
-        ['nodejs', 'junior', 'senior', 'master', true, 'critical'],
-        ['typescript', 'junior', 'senior', 'master', true, 'critical'],
-        ['postgresql', 'elementary', 'middle', 'lead', false, 'medium'],
-        ['communication', 'junior', 'middle', 'senior', false, 'medium'],
+        ['react', L4, L10, L13, true, 'high'],
+        ['nodejs', L4, L10, L14, true, 'critical'],
+        ['typescript', L4, L10, L14, true, 'critical'],
+        ['postgresql', L2, L7, L12, false, 'medium'],
+        ['system_design', L4, L10, L13, false, 'high'],
+        ['communication', L4, L7, L10, false, 'medium'],
       ],
       devops_engineer: [
-        ['devops', 'middle', 'lead', 'master', true, 'critical'],
-        ['testing', 'junior', 'senior', 'principal', true, 'high'],
-        ['postgresql', 'elementary', 'middle', 'lead', false, 'medium'],
-        ['communication', 'junior', 'middle', 'senior', false, 'medium'],
+        ['devops', L7, L12, L14, true, 'critical'],
+        ['testing', L4, L10, L13, true, 'high'],
+        ['release_management', L4, L10, L13, true, 'high'],
+        ['postgresql', L2, L7, L12, false, 'medium'],
+        ['communication', L4, L7, L10, false, 'medium'],
       ],
       qa_engineer: [
-        ['testing', 'middle', 'lead', 'master', true, 'critical'],
-        ['code_review', 'junior', 'senior', 'principal', true, 'high'],
-        ['communication', 'middle', 'senior', 'master', false, 'high'],
-        ['problem_solving', 'junior', 'senior', 'principal', false, 'medium'],
+        ['testing', L7, L12, L14, true, 'critical'],
+        ['code_review', L4, L10, L13, true, 'high'],
+        ['risk_tracking', L4, L10, L13, false, 'high'],
+        ['communication', L7, L10, L14, false, 'high'],
+        ['problem_solving', L4, L10, L13, false, 'medium'],
       ],
     }
 
@@ -470,17 +607,24 @@ export async function seedProjectSkillCatalog(
     { project: 'orgAPlatform', skill: 'typescript', addedBy: 'owner' },
     { project: 'orgAPlatform', skill: 'nodejs', addedBy: 'owner' },
     { project: 'orgAPlatform', skill: 'postgresql', addedBy: 'orgAdmin' },
+    { project: 'orgAPlatform', skill: 'api_design', addedBy: 'owner' },
+    { project: 'orgAPlatform', skill: 'planning', addedBy: 'owner' },
     { project: 'orgAPlatform', skill: 'communication', addedBy: 'orgAdmin' },
     { project: 'orgAPlatform', skill: 'problem_solving', addedBy: 'orgAdmin' },
     { project: 'orgAPlatform', skill: 'testing', addedBy: 'orgAdmin' },
     { project: 'orgAOperations', skill: 'testing', addedBy: 'orgAdmin' },
     { project: 'orgAOperations', skill: 'code_review', addedBy: 'orgAdmin' },
+    { project: 'orgAOperations', skill: 'risk_tracking', addedBy: 'orgAdmin' },
     { project: 'orgAOperations', skill: 'communication', addedBy: 'orgAdmin' },
     { project: 'orgAOperations', skill: 'problem_solving', addedBy: 'orgAdmin' },
-    { project: 'orgEDataOps', skill: 'postgresql', addedBy: 'freelancerTwo' },
-    { project: 'orgEDataOps', skill: 'nodejs', addedBy: 'freelancerTwo' },
-    { project: 'orgEDataOps', skill: 'devops', addedBy: 'freelancerTwo' },
+    { project: 'orgADesignSystem', skill: 'svelte', addedBy: 'owner' },
+    { project: 'orgADesignSystem', skill: 'design_system', addedBy: 'owner' },
+    { project: 'orgADesignSystem', skill: 'documentation', addedBy: 'orgAdmin' },
+    { project: 'orgEDataOps', skill: 'postgresql', addedBy: 'externalContributorTwo' },
+    { project: 'orgEDataOps', skill: 'nodejs', addedBy: 'externalContributorTwo' },
+    { project: 'orgEDataOps', skill: 'devops', addedBy: 'externalContributorTwo' },
     { project: 'orgEDataOps', skill: 'testing', addedBy: 'orgAdmin' },
+    { project: 'orgEDataOps', skill: 'release_management', addedBy: 'orgAdmin' },
   ]
 
   const projectSkillMap: Record<string, string> = {}
@@ -563,9 +707,9 @@ export async function seedProjectProfessionalRoles(
       skills: [
         {
           skill: 'react',
-          minimum: 'junior',
-          target: 'senior',
-          ceiling: 'principal',
+          minimum: L4,
+          target: L10,
+          ceiling: L13,
           mandatory: true,
           importance: 'high',
           weight: 1.1,
@@ -573,9 +717,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'typescript',
-          minimum: 'junior',
-          target: 'senior',
-          ceiling: 'master',
+          minimum: L4,
+          target: L10,
+          ceiling: L14,
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
@@ -583,9 +727,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'communication',
-          minimum: 'junior',
-          target: 'middle',
-          ceiling: 'senior',
+          minimum: L4,
+          target: L7,
+          ceiling: L10,
           mandatory: false,
           importance: 'medium',
           weight: 0.8,
@@ -603,9 +747,9 @@ export async function seedProjectProfessionalRoles(
       skills: [
         {
           skill: 'nodejs',
-          minimum: 'junior',
-          target: 'senior',
-          ceiling: 'master',
+          minimum: L4,
+          target: L10,
+          ceiling: L14,
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
@@ -613,9 +757,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'postgresql',
-          minimum: 'junior',
-          target: 'middle',
-          ceiling: 'lead',
+          minimum: L4,
+          target: L7,
+          ceiling: L12,
           mandatory: true,
           importance: 'high',
           weight: 1.0,
@@ -623,9 +767,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'problem_solving',
-          minimum: 'middle',
-          target: 'senior',
-          ceiling: 'principal',
+          minimum: L7,
+          target: L10,
+          ceiling: L13,
           mandatory: false,
           importance: 'high',
           weight: 1.0,
@@ -643,19 +787,19 @@ export async function seedProjectProfessionalRoles(
       skills: [
         {
           skill: 'testing',
-          minimum: 'middle',
-          target: 'lead',
-          ceiling: 'master',
+          minimum: L7,
+          target: L12,
+          ceiling: L14,
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
-          notes: 'Delivery dimension represented as skill catalog item by ADR.',
+          notes: 'Engineering quality skill used for review and regression confidence.',
         },
         {
           skill: 'code_review',
-          minimum: 'junior',
-          target: 'senior',
-          ceiling: 'principal',
+          minimum: L4,
+          target: L10,
+          ceiling: L13,
           mandatory: true,
           importance: 'high',
           weight: 1.0,
@@ -669,13 +813,13 @@ export async function seedProjectProfessionalRoles(
       name: 'DevOps Data Operator',
       description: 'Project role for data ops deployment and reliability checks.',
       sourceTemplate: 'devops_engineer',
-      createdBy: 'freelancerTwo',
+      createdBy: 'externalContributorTwo',
       skills: [
         {
           skill: 'devops',
-          minimum: 'middle',
-          target: 'lead',
-          ceiling: 'master',
+          minimum: L7,
+          target: L12,
+          ceiling: L14,
           mandatory: true,
           importance: 'critical',
           weight: 1.2,
@@ -683,9 +827,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'postgresql',
-          minimum: 'junior',
-          target: 'middle',
-          ceiling: 'lead',
+          minimum: L4,
+          target: L7,
+          ceiling: L12,
           mandatory: true,
           importance: 'high',
           weight: 1.0,
@@ -693,9 +837,9 @@ export async function seedProjectProfessionalRoles(
         },
         {
           skill: 'testing',
-          minimum: 'junior',
-          target: 'senior',
-          ceiling: 'principal',
+          minimum: L4,
+          target: L10,
+          ceiling: L13,
           mandatory: false,
           importance: 'medium',
           weight: 0.8,

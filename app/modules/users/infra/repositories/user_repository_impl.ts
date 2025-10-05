@@ -12,7 +12,7 @@ import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import type { UserEntity } from '#modules/users/domain/entities/user_entity'
 import type { UserRepository } from '#modules/users/domain/repositories/user_repository_interface'
 import User from '#modules/users/infra/models/user'
-import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import { SystemRoleName, UserStatusName } from '#modules/users/public_contracts/user_constants'
 
 export class UserRepositoryImpl implements UserRepository {
   async findById(id: string): Promise<UserEntity | null> {
@@ -24,7 +24,7 @@ export class UserRepositoryImpl implements UserRepository {
     const model = await User.query()
       .where('id', id)
       .whereNull('deleted_at')
-      .where('status', 'active')
+      .where('status', UserStatusName.ACTIVE)
       .first()
 
     if (!model) {
@@ -69,9 +69,9 @@ export class UserRepositoryImpl implements UserRepository {
     }
   }
 
-  async isFreelancer(id: string): Promise<boolean> {
+  async isExternalContributor(id: string): Promise<boolean> {
     const model = await User.query().where('id', id).whereNull('deleted_at').first()
-    return !!model?.is_freelancer
+    return !!model?.is_external_contributor
   }
 
   async isSuperadmin(id: string): Promise<boolean> {

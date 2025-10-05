@@ -2,6 +2,12 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import TaskSelfAssessment from '../../../tasks/infra/models/task_self_assessment.js'
 
+import {
+  ACTIVE_REVIEW_DISPUTE_STATUSES,
+  ReviewSessionStatus,
+} from '#modules/reviews/constants/review_constants'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+
 export default class UserAnalyticsRepository {
   private readonly __instanceMarker = true
 
@@ -17,7 +23,7 @@ export default class UserAnalyticsRepository {
       .from('task_assignments as ta')
       .join('tasks as t', 't.id', 'ta.task_id')
       .where('ta.assignee_id', userId)
-      .where('ta.assignment_status', 'completed')
+      .where('ta.assignment_status', AssignmentStatus.COMPLETED)
       .whereNull('t.deleted_at')
       .select(
         'ta.id as task_assignment_id',
@@ -55,12 +61,12 @@ export default class UserAnalyticsRepository {
       .where('task_assignment_id', taskAssignmentId)
       .where('reviewee_id', userId)
       .where((builder) =>
-        builder.where('status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = review_sessions.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )
@@ -82,7 +88,7 @@ export default class UserAnalyticsRepository {
       .select(
         'sr.skill_id',
         's.skill_name',
-        'sr.assigned_level_code',
+        'sr.assigned_public_proficiency_code',
         'sr.reviewer_type',
         'sr.comment'
       )
@@ -157,12 +163,12 @@ export default class UserAnalyticsRepository {
       .where('tsa.user_id', userId)
       .where('rs.reviewee_id', userId)
       .where((builder) =>
-        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('rs.status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('rs.status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = rs.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )

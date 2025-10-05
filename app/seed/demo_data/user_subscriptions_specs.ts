@@ -27,7 +27,7 @@ export const SEED_USER_SUBSCRIPTIONS_SPECS: readonly UserSubscriptionSpec[] = [
     autoRenew: true,
   },
   {
-    user: 'freelancerOne',
+    user: 'externalContributorOne',
     plan: 'enterprise',
     status: 'active',
     startedDaysAgo: 7,
@@ -35,7 +35,7 @@ export const SEED_USER_SUBSCRIPTIONS_SPECS: readonly UserSubscriptionSpec[] = [
     autoRenew: false,
   },
   {
-    user: 'freelancerTwo',
+    user: 'externalContributorTwo',
     plan: 'pro',
     status: 'cancelled',
     startedDaysAgo: 60,

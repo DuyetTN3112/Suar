@@ -5,8 +5,8 @@ export type UserKey =
   | 'orgAdmin'
   | 'peerReviewer'
   | 'orgBOwner'
-  | 'freelancerOne'
-  | 'freelancerTwo'
+  | 'externalContributorOne'
+  | 'externalContributorTwo'
 
 export type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD' | 'orgE'
 
@@ -40,6 +40,10 @@ export interface SeededTask { id: string; title: string; organizationId: string;
 
 export interface SeededAssignment { id: string; taskId: string; assigneeId: string }
 
+export interface SeededSubmission { id: string; taskId: string; taskAssignmentId: string }
+
+export interface SeededSprint { id: string; projectId: string; organizationId: string; status: string }
+
 export interface SeedContext {
   users: Record<UserKey, SeededUser>
   organizations: Record<OrgKey, SeededOrg>
@@ -47,6 +51,8 @@ export interface SeedContext {
   skills: Record<string, string>
   tasks: Record<string, SeededTask>
   assignments: Record<string, SeededAssignment>
+  submissions: Record<string, SeededSubmission>
+  sprints: Record<string, SeededSprint>
   snapshots: Record<string, string>
 }
 
@@ -111,7 +117,6 @@ export interface TaskSpec {
     | 'compliance'
   businessDomain: 'saas' | 'edtech' | 'internal_tooling' | 'data_platform' | 'security'
   estimatedUsersAffected: number
-  estimatedBudget: number
   applicationDeadlineDaysAhead?: number
   requiredSkills: string[]
 }

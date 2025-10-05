@@ -37,7 +37,10 @@ export const updateCurrentOrganization = async (
   trx?: TransactionClientContract
 ): Promise<void> => {
   const query = trx ? User.query({ client: trx }) : User.query()
-  await query.where('id', userId).update({ current_organization_id: organizationId })
+  await query.where('id', userId).update({
+    current_organization_id: organizationId,
+    updated_at: new Date(),
+  })
 }
 
 export const updateByIdRecord = async (

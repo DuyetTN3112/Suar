@@ -250,7 +250,7 @@ export class OrganizationSchema extends BaseModel {
 }
 
 export class ProfessionalRoleTemplateSkillSchema extends BaseModel {
-  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'roleTemplateId', 'skillId', 'sortOrder', 'targetLevelId', 'updatedAt', 'weight'] as const
+  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'notes', 'roleTemplateId', 'skillId', 'sortOrder', 'targetLevelId', 'updatedAt', 'weight'] as const
   $columns = ProfessionalRoleTemplateSkillSchema.$columns
   @column()
   declare assessmentCeilingLevelId: string | null
@@ -264,6 +264,8 @@ export class ProfessionalRoleTemplateSkillSchema extends BaseModel {
   declare isMandatory: boolean
   @column()
   declare minimumLevelId: string | null
+  @column()
+  declare notes: string | null
   @column()
   declare roleTemplateId: string
   @column()
@@ -298,22 +300,44 @@ export class ProfessionalRoleTemplateSchema extends BaseModel {
 }
 
 export class ProficiencyLevelSchema extends BaseModel {
-  static $columns = ['code', 'createdAt', 'displayName', 'genericDescription', 'id', 'normalizedValue', 'ordinal', 'scaleId', 'shortName', 'sortOrder', 'updatedAt'] as const
+  static $columns = ['autonomyDescriptor', 'ceilingGuidance', 'code', 'collaborationDescriptor', 'complexityDescriptor', 'createdAt', 'displayName', 'evidenceGuidance', 'expectedExecution', 'expectedKnowledge', 'genericDescription', 'id', 'negativeExamples', 'normalizedValue', 'observableBehaviors', 'ordinal', 'positiveExamples', 'qualityDescriptor', 'scaleId', 'shortName', 'sortOrder', 'updatedAt'] as const
   $columns = ProficiencyLevelSchema.$columns
   @column()
+  declare autonomyDescriptor: string | null
+  @column()
+  declare ceilingGuidance: string | null
+  @column()
   declare code: string
+  @column()
+  declare collaborationDescriptor: string | null
+  @column()
+  declare complexityDescriptor: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare displayName: string
   @column()
+  declare evidenceGuidance: string | null
+  @column()
+  declare expectedExecution: string | null
+  @column()
+  declare expectedKnowledge: string | null
+  @column()
   declare genericDescription: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
+  declare negativeExamples: any | null
+  @column()
   declare normalizedValue: string
   @column()
+  declare observableBehaviors: any | null
+  @column()
   declare ordinal: number
+  @column()
+  declare positiveExamples: any | null
+  @column()
+  declare qualityDescriptor: string | null
   @column()
   declare scaleId: string
   @column()
@@ -371,12 +395,14 @@ export class ProjectAttachmentSchema extends BaseModel {
 }
 
 export class ProjectMemberSchema extends BaseModel {
-  static $columns = ['createdAt', 'projectId', 'projectRole', 'userId'] as const
+  static $columns = ['createdAt', 'projectId', 'projectProfessionalRoleId', 'projectRole', 'userId'] as const
   $columns = ProjectMemberSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column({ isPrimary: true })
   declare projectId: string
+  @column()
+  declare projectProfessionalRoleId: string | null
   @column()
   declare projectRole: string
   @column()
@@ -551,6 +577,27 @@ export class RememberMeTokenSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class ReverseReviewTargetStatSchema extends BaseModel {
+  static $columns = ['anonymousReviews', 'averageRating', 'createdAt', 'lastReviewAt', 'targetId', 'targetType', 'totalReviews', 'updatedAt'] as const
+  $columns = ReverseReviewTargetStatSchema.$columns
+  @column()
+  declare anonymousReviews: number
+  @column()
+  declare averageRating: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare lastReviewAt: DateTime | null
+  @column()
+  declare targetId: string
+  @column({ isPrimary: true })
+  declare targetType: string
+  @column()
+  declare totalReviews: number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class ReverseReviewSchema extends BaseModel {
   static $columns = ['comment', 'createdAt', 'id', 'isAnonymous', 'rating', 'reviewSessionId', 'reviewerId', 'targetId', 'targetType'] as const
   $columns = ReverseReviewSchema.$columns
@@ -664,7 +711,7 @@ export class ReviewDisputeEvidenceSchema extends BaseModel {
 }
 
 export class ReviewDisputeSchema extends BaseModel {
-  static $columns = ['createdAt', 'disputeReason', 'disputedDimensions', 'disputedSkillReviews', 'finalDecision', 'finalRationale', 'id', 'openedBy', 'profileUpdateAction', 'requestedOutcome', 'resolvedAt', 'resolvedBy', 'reviewSessionId', 'revieweeId', 'reviewerCredibilityAction', 'status', 'taskAssignmentId', 'taskId', 'updatedAt'] as const
+  static $columns = ['createdAt', 'disputeReason', 'disputedDimensions', 'disputedSkillReviews', 'escalationReason', 'finalDecision', 'finalRationale', 'id', 'openedBy', 'profileUpdateAction', 'reportedToAdminAt', 'reportedToAdminBy', 'requestedOutcome', 'resolvedAt', 'resolvedBy', 'reviewSessionId', 'revieweeId', 'reviewerCredibilityAction', 'status', 'taskAssignmentId', 'taskId', 'updatedAt'] as const
   $columns = ReviewDisputeSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
@@ -675,6 +722,8 @@ export class ReviewDisputeSchema extends BaseModel {
   @column()
   declare disputedSkillReviews: any
   @column()
+  declare escalationReason: string | null
+  @column()
   declare finalDecision: string | null
   @column()
   declare finalRationale: string | null
@@ -684,6 +733,10 @@ export class ReviewDisputeSchema extends BaseModel {
   declare openedBy: string
   @column()
   declare profileUpdateAction: string | null
+  @column.dateTime()
+  declare reportedToAdminAt: DateTime | null
+  @column()
+  declare reportedToAdminBy: string | null
   @column()
   declare requestedOutcome: string
   @column.dateTime()
@@ -707,18 +760,32 @@ export class ReviewDisputeSchema extends BaseModel {
 }
 
 export class ReviewEvidenceSchema extends BaseModel {
-  static $columns = ['createdAt', 'description', 'evidenceType', 'id', 'reviewSessionId', 'title', 'updatedAt', 'uploadedBy', 'url'] as const
+  static $columns = ['authorId', 'confidenceContribution', 'createdAt', 'description', 'disputeStatus', 'evidenceType', 'id', 'isSensitive', 'linkedSkill', 'reviewSessionId', 'reviewerReferences', 'source', 'title', 'updatedAt', 'uploadedBy', 'url', 'verificationStatus'] as const
   $columns = ReviewEvidenceSchema.$columns
+  @column()
+  declare authorId: string | null
+  @column()
+  declare confidenceContribution: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare description: string | null
   @column()
+  declare disputeStatus: string | null
+  @column()
   declare evidenceType: string
   @column({ isPrimary: true })
   declare id: string
   @column()
+  declare isSensitive: boolean | null
+  @column()
+  declare linkedSkill: string | null
+  @column()
   declare reviewSessionId: string
+  @column()
+  declare reviewerReferences: any | null
+  @column()
+  declare source: string | null
   @column()
   declare title: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -727,13 +794,48 @@ export class ReviewEvidenceSchema extends BaseModel {
   declare uploadedBy: string | null
   @column()
   declare url: string | null
+  @column()
+  declare verificationStatus: string | null
+}
+
+export class ReviewSessionReviewerAssignmentSchema extends BaseModel {
+  static $columns = ['assignmentRole', 'createdAt', 'dueAt', 'escalatedAt', 'id', 'isRequired', 'remindedAt', 'reviewSessionId', 'reviewerId', 'reviewerType', 'status', 'submittedAt', 'updatedAt'] as const
+  $columns = ReviewSessionReviewerAssignmentSchema.$columns
+  @column()
+  declare assignmentRole: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare dueAt: DateTime | null
+  @column.dateTime()
+  declare escalatedAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isRequired: boolean
+  @column.dateTime()
+  declare remindedAt: DateTime | null
+  @column()
+  declare reviewSessionId: string
+  @column()
+  declare reviewerId: string
+  @column()
+  declare reviewerType: string
+  @column()
+  declare status: string
+  @column.dateTime()
+  declare submittedAt: DateTime | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class ReviewSessionSchema extends BaseModel {
-  static $columns = ['areasForImprovement', 'codeQualityScore', 'communicationQuality', 'completedAt', 'confirmations', 'createdAt', 'deadline', 'deliveryTimeliness', 'id', 'managerReviewCompleted', 'overallQualityScore', 'peerReviewsCount', 'proactivenessScore', 'requiredPeerReviews', 'requirementAdherence', 'revieweeId', 'status', 'strengthsObserved', 'taskAssignmentId', 'updatedAt', 'wouldWorkWithAgain'] as const
+  static $columns = ['areasForImprovement', 'assessmentCeilingLevelId', 'codeQualityScore', 'communicationQuality', 'completedAt', 'confidence', 'confirmations', 'createdAt', 'creatorReviewCompleted', 'creatorReviewerId', 'deadline', 'deliveryTimeliness', 'evidenceStrength', 'id', 'managerReviewCompleted', 'managerReviewsCount', 'minimumManagerReviews', 'minimumPeerReviews', 'overallQualityScore', 'peerReviewsCount', 'proactivenessScore', 'recencyWeight', 'requiredPeerReviews', 'requiredTotalReviews', 'requirementAdherence', 'revieweeId', 'rubricVersionId', 'status', 'strengthsObserved', 'taskAssignmentId', 'updatedAt', 'wouldWorkWithAgain'] as const
   $columns = ReviewSessionSchema.$columns
   @column()
   declare areasForImprovement: string | null
+  @column()
+  declare assessmentCeilingLevelId: string | null
   @column()
   declare codeQualityScore: number | null
   @column()

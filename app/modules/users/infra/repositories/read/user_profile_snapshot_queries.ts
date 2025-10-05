@@ -84,5 +84,5 @@ export const countByUserSince = async (
   if (!result) {
     return 0
   }
-  return Number(result.$extras.total ?? 0)
+  return Number(result.$extras['total'] ?? 0)
 }

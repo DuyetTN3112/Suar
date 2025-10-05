@@ -12,6 +12,7 @@ export const unsetCurrentByUser = async (
 ): Promise<void> => {
   await baseQuery(trx).where('user_id', userId).where('is_current', true).update({
     is_current: false,
+    updated_at: new Date(),
   })
 }
 
