@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { baseQuery } from './shared.js'
+import { makeTaskReadQuery } from './task_read_query_helpers.js'
 
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
@@ -12,7 +12,7 @@ export const findActiveTaskIdentity = async (
   taskId: string,
   trx?: TransactionClientContract
 ): Promise<Pick<Task, 'id' | 'organization_id'> | null> => {
-  return baseQuery(trx)
+  return makeTaskReadQuery(trx)
     .select(['id', 'organization_id'])
     .where('id', taskId)
     .whereNull('deleted_at')
@@ -23,7 +23,7 @@ export const findActiveOrFail = async (
   taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
-  const task = await baseQuery(trx).where('id', taskId).whereNull('deleted_at').first()
+  const task = await makeTaskReadQuery(trx).where('id', taskId).whereNull('deleted_at').first()
 
   if (!task) {
     throw new NotFoundException('Task không tồn tại')
@@ -49,7 +49,7 @@ export const findActiveByIdsInOrganization = async (
     return []
   }
 
-  return baseQuery(trx)
+  return makeTaskReadQuery(trx)
     .whereIn('id', taskIds)
     .where('organization_id', organizationId)
     .whereNull('deleted_at')
@@ -69,7 +69,7 @@ export const findByIdWithDetailRelations = async (
   trx?: TransactionClientContract,
   optionalRelations: TaskDetailRelation[] = []
 ): Promise<Task> => {
-  const query = baseQuery(trx)
+  const query = makeTaskReadQuery(trx)
     .where('id', taskId)
     .whereNull('deleted_at')
     .preload('assignee')
@@ -89,7 +89,19 @@ export const findByIdWithDetailRelations = async (
     void query.preload('versions')
   }
 
-  return query.firstOrFail()
+  try {
+    return await query.firstOrFail()
+  } catch (error: unknown) {
+    const code = typeof error === 'object' && error !== null && 'code' in error
+      ? String((error as { code?: string }).code)
+      : null
+
+    if (code === 'E_ROW_NOT_FOUND') {
+      throw NotFoundException.task(taskId)
+    }
+
+    throw error
+  }
 }
 
 export const findByIdWithDetailRecord = async (
@@ -105,7 +117,7 @@ export const findByIdWithWriteRelations = async (
   taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
-  return baseQuery(trx)
+  return makeTaskReadQuery(trx)
     .where('id', taskId)
     .whereNull('deleted_at')
     .preload('assignee')
@@ -124,7 +136,7 @@ export const findByIdWithStatusRelations = async (
   taskId: string,
   trx?: TransactionClientContract
 ): Promise<Task> => {
-  return baseQuery(trx)
+  return makeTaskReadQuery(trx)
     .where('id', taskId)
     .whereNull('deleted_at')
     .preload('assignee')
@@ -139,7 +151,7 @@ export const listPreviewByProject = async (
   limit = 8,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
-  return baseQuery(trx)
+  return makeTaskReadQuery(trx)
     .where('project_id', projectId)
     .whereNull('deleted_at')
     .preload('assignee', (builder) => {

@@ -27,6 +27,13 @@ function toPaginatedTaskApplicationRecords(result: {
   }
 }
 
+function applyStableTaskApplicationOrder(
+  query: ReturnType<typeof TaskApplication.query>,
+  sortOrder: 'asc' | 'desc'
+): void {
+  void query.orderBy('applied_at', sortOrder).orderBy('id', sortOrder)
+}
+
 export async function paginateByTask(
   taskId: string,
   options: {
@@ -44,12 +51,12 @@ export async function paginateByTask(
         void skillsQuery.preload('skill')
       })
     })
-    .orderBy('applied_at', 'desc')
 
   if (options.status && options.status !== 'all') {
     void scopedQuery.where('application_status', options.status)
   }
 
+  applyStableTaskApplicationOrder(scopedQuery, 'desc')
   const result = await scopedQuery.paginate(options.page, options.perPage)
   return toPaginatedTaskApplicationRecords(result)
 }
@@ -74,12 +81,12 @@ export async function paginateByApplicant(
         void projectQuery.select(['id', 'name'])
       })
     })
-    .orderBy('applied_at', 'desc')
 
   if (options.status && options.status !== 'all') {
     void scopedQuery.where('application_status', options.status)
   }
 
+  applyStableTaskApplicationOrder(scopedQuery, 'desc')
   const result = await scopedQuery.paginate(options.page, options.perPage)
   return toPaginatedTaskApplicationRecords(result)
 }

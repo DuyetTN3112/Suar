@@ -25,6 +25,7 @@ import { PolicyResult as PR } from '#modules/authorization/public_contracts/poli
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 
 const isSameId = (a: string, b: string): boolean => a === b
+const PUBLIC_TASK_VISIBILITIES = new Set(['external', 'all'])
 
 // ============================================================================
 // Shared helpers (private)
@@ -242,7 +243,8 @@ export function canPermanentDeleteTask(ctx: { actorSystemRole: string | null }):
  * 4. Active assignee (from task_assignments) → allow
  * 5. Org owner/admin → allow
  * 6. Project manager/owner → allow
- * 7. Deny
+ * 7. Public marketplace task → allow read-only detail
+ * 8. Deny
  */
 export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
   if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
@@ -251,7 +253,12 @@ export function canViewTask(ctx: TaskPermissionContext): PolicyResult {
   if (ctx.isActiveAssignee) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
   if (isProjectManagerOrOwner(ctx.actorProjectRole)) return PR.allow()
-  if (ctx.actorProjectRole === TaskProjectRole.MEMBER || ctx.actorProjectRole === TaskProjectRole.VIEWER) return PR.allow()
+  if (
+    ctx.actorProjectRole === TaskProjectRole.MEMBER ||
+    ctx.actorProjectRole === TaskProjectRole.VIEWER
+  )
+    return PR.allow()
+  if (ctx.taskVisibility && PUBLIC_TASK_VISIBILITIES.has(ctx.taskVisibility)) return PR.allow()
 
   return PR.deny('Bạn không có quyền xem task này')
 }
@@ -293,6 +300,7 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
   canEdit: boolean
   canDelete: boolean
   canAssign: boolean
+  canChangeStatus: boolean
 } {
   const isCreator = isSameId(ctx.taskCreatorId, ctx.actorId)
   const isAssignee = ctx.taskAssignedTo !== null && isSameId(ctx.taskAssignedTo, ctx.actorId)
@@ -303,8 +311,9 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
     isActorOrgMember: ctx.actorOrgRole !== null,
   }).allowed
   const canAssign = canAssignTask(ctx).allowed
+  const canChangeStatus = canUpdateTaskStatus(ctx).allowed
 
-  return { isCreator, isAssignee, canEdit, canDelete, canAssign }
+  return { isCreator, isAssignee, canEdit, canDelete, canAssign, canChangeStatus }
 }
 
 /**
@@ -319,10 +328,12 @@ export function calculateTaskPermissions(ctx: TaskPermissionContext): {
 export function canCreateTask(ctx: TaskCreatePermissionContext): PolicyResult {
   if (isSystemAdmin(ctx.actorSystemRole)) return PR.allow()
   if (isOrgOwnerOrAdmin(ctx.actorOrgRole)) return PR.allow()
-  if (ctx.projectId && (
-    isProjectManagerOrOwner(ctx.actorProjectRole) ||
-    ctx.actorProjectRole === TaskProjectRole.MEMBER
-  )) return PR.allow()
+  if (
+    ctx.projectId &&
+    (isProjectManagerOrOwner(ctx.actorProjectRole) ||
+      ctx.actorProjectRole === TaskProjectRole.MEMBER)
+  )
+    return PR.allow()
 
   return PR.deny(
     'Chỉ thành viên dự án, Quản lý dự án hoặc Chủ sở hữu/Quản trị viên tổ chức mới có thể tạo nhiệm vụ.'

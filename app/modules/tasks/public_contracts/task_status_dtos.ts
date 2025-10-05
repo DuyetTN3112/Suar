@@ -1,3 +1,4 @@
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { isValidSlug, isValidCategory } from '#modules/tasks/domain/task_status_rules'
 import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
@@ -8,8 +9,8 @@ export class CreateTaskStatusDTO {
   public readonly slug: string
   public readonly category: string
   public readonly color: string
-  public readonly icon?: string
-  public readonly description?: string
+  public readonly icon: string | undefined
+  public readonly description: string | undefined
   public readonly sort_order: number
 
   constructor(data: {
@@ -70,7 +71,7 @@ export class CreateTaskStatusDTO {
     },
     organizationId: string
   ): CreateTaskStatusDTO {
-    return new CreateTaskStatusDTO({
+    return new CreateTaskStatusDTO(omitUndefined({
       organization_id: organizationId,
       name: payload.name,
       slug: payload.slug,
@@ -79,21 +80,21 @@ export class CreateTaskStatusDTO {
       icon: payload.icon,
       description: payload.description,
       sort_order: payload.sort_order,
-    })
+    }))
   }
 }
 
 export class UpdateTaskStatusDTO {
   public readonly status_id: string
   public readonly organization_id: string
-  public readonly name?: string
-  public readonly slug?: string
-  public readonly category?: string
-  public readonly color?: string
-  public readonly icon?: string | null
-  public readonly description?: string | null
-  public readonly sort_order?: number
-  public readonly is_default?: boolean
+  public readonly name: string | undefined
+  public readonly slug: string | undefined
+  public readonly category: string | undefined
+  public readonly color: string | undefined
+  public readonly icon: string | null | undefined
+  public readonly description: string | null | undefined
+  public readonly sort_order: number | undefined
+  public readonly is_default: boolean | undefined
 
   constructor(data: {
     status_id: string
@@ -158,7 +159,7 @@ export class UpdateTaskStatusDTO {
       status_id: string
     }
   ): UpdateTaskStatusDTO {
-    return new UpdateTaskStatusDTO({
+    return new UpdateTaskStatusDTO(omitUndefined({
       status_id: identifiers.status_id,
       organization_id: identifiers.organization_id,
       name: payload.name,
@@ -169,7 +170,7 @@ export class UpdateTaskStatusDTO {
       description: payload.description,
       sort_order: payload.sort_order,
       is_default: payload.is_default,
-    })
+    }))
   }
 
   get isChangingCategory(): boolean {

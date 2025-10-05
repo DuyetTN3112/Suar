@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { baseQuery } from '../read/shared.js'
+import { makeTaskReadQuery } from '../read/task_read_query_helpers.js'
 
 
 /**
@@ -14,7 +14,7 @@ export const reassignByUser = async (
   toUserId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
-  await baseQuery(trx)
+  await makeTaskReadQuery(trx)
     .where('tasks.project_id', projectId)
     .where('tasks.assigned_to', fromUserId)
     .whereNull('tasks.deleted_at')
@@ -33,7 +33,7 @@ export const unassignByUserInProjects = async (
     return
   }
 
-  await baseQuery(trx)
+  await makeTaskReadQuery(trx)
     .whereIn('tasks.project_id', projectIds)
     .where('tasks.assigned_to', userId)
     .whereNull('tasks.deleted_at')

@@ -5,7 +5,6 @@
  * Used as input to task permission policies and state machine.
  */
 
-
 /**
  * Pre-fetched data needed for task permission decisions.
  *
@@ -30,6 +29,8 @@ export interface TaskPermissionContext {
   taskOrganizationId: string
   /** Project the task belongs to. Application layer now requires every task to have one. */
   taskProjectId: string | null
+  /** Marketplace visibility for public/external discovery. */
+  taskVisibility: string | null
   /** Whether the actor has an active TaskAssignment for this task */
   isActiveAssignee: boolean
 }

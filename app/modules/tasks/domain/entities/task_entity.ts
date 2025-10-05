@@ -32,7 +32,6 @@ export interface TaskEntityProps {
   projectId: string | null
   taskVisibility: TaskVisibility
   applicationDeadline: Date | null
-  estimatedBudget: number | null
   externalApplicationsCount: number
   sortOrder: number
   deletedAt: Date | null
@@ -60,7 +59,6 @@ export class TaskEntity {
   readonly projectId: string | null
   readonly taskVisibility: TaskVisibility
   readonly applicationDeadline: Date | null
-  readonly estimatedBudget: number | null
   readonly externalApplicationsCount: number
   readonly sortOrder: number
   readonly deletedAt: Date | null
@@ -87,7 +85,6 @@ export class TaskEntity {
     this.projectId = props.projectId
     this.taskVisibility = props.taskVisibility
     this.applicationDeadline = props.applicationDeadline
-    this.estimatedBudget = props.estimatedBudget
     this.externalApplicationsCount = props.externalApplicationsCount
     this.sortOrder = props.sortOrder
     this.deletedAt = props.deletedAt
@@ -126,10 +123,6 @@ export class TaskEntity {
 
   get belongsToProject(): boolean {
     return this.projectId !== null
-  }
-
-  get hasEstimatedBudget(): boolean {
-    return this.estimatedBudget !== null && this.estimatedBudget > 0
   }
 
   get isApplicationOpen(): boolean {

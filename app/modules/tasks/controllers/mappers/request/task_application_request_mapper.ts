@@ -160,49 +160,49 @@ export function buildGetTaskApplicationsDTO(
 
   return GetTaskApplicationsDTO.forTask(taskId, {
     status: toApplicationStatusFilter(request.input('status', 'all') as unknown),
-    page: toPositiveNumber(
-      request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
-      PAGINATION.DEFAULT_PAGE
-    ),
-    per_page: toPositiveNumber(
-      request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as unknown,
-      PAGINATION.DEFAULT_PER_PAGE
-    ),
+    page: pagination.page,
+    per_page: pagination.perPage,
   })
 }
 
 export function buildGetPublicTasksDTO(request: HttpContext['request']): GetPublicTasksDTO {
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE),
+      perPage: readAliasedInput(request, 'perPage', 'per_page', PAGINATION.DEFAULT_PER_PAGE),
+    },
+    PAGINATION
+  )
+
   return GetPublicTasksDTO.fromFilters({
-    page: toPositiveNumber(
-      request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
-      PAGINATION.DEFAULT_PAGE
-    ),
-    per_page: toPositiveNumber(
-      request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as unknown,
-      PAGINATION.DEFAULT_PER_PAGE
-    ),
-    skill_ids: toOptionalStringArray(request.input('skill_ids') as unknown) ?? null,
+    page: pagination.page,
+    per_page: pagination.perPage,
+    skill_ids: toOptionalStringArray(readAliasedInput(request, 'skillIds', 'skill_ids')) ?? null,
     keyword: toOptionalString(request.input('keyword') as unknown) ?? null,
     difficulty: toOptionalString(request.input('difficulty') as unknown) ?? null,
-    min_budget: toOptionalNumericValue(request.input('min_budget') as unknown) ?? null,
-    max_budget: toOptionalNumericValue(request.input('max_budget') as unknown) ?? null,
-    sort_by: toPublicTaskSortBy(request.input('sort_by', 'created_at') as unknown),
-    sort_order: toPublicTaskSortOrder(request.input('sort_order', 'desc') as unknown),
+    sort_by: toPublicTaskSortBy(
+      readAliasedInput(request, 'sortBy', 'sort_by', 'created_at')
+    ),
+    sort_order: toPublicTaskSortOrder(
+      readAliasedInput(request, 'sortOrder', 'sort_order', 'desc')
+    ),
   })
 }
 
 export function buildGetMyApplicationsInput(
   request: HttpContext['request']
 ): GetMyApplicationsInput {
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE),
+      perPage: readAliasedInput(request, 'perPage', 'per_page', PAGINATION.DEFAULT_PER_PAGE),
+    },
+    PAGINATION
+  )
+
   return {
     status: toApplicationStatusFilter(request.input('status', 'all') as unknown),
-    page: toPositiveNumber(
-      request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
-      PAGINATION.DEFAULT_PAGE
-    ),
-    per_page: toPositiveNumber(
-      request.input('per_page', PAGINATION.DEFAULT_PER_PAGE) as unknown,
-      PAGINATION.DEFAULT_PER_PAGE
-    ),
+    page: pagination.page,
+    per_page: pagination.perPage,
   }
 }

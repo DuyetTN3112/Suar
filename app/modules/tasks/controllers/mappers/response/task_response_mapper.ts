@@ -1,16 +1,20 @@
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeForResponse } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './model_response_serialization.js'
+import { serializeModelForHttpResponse } from './model_response_serialization.js'
 
 export interface TaskDetailPageResult {
-  task: SerializableResponseRecord | ResponseRecord
+  task: SerializableModelRecord | SerializedModelRecord
   permissions: {
     isCreator: boolean
     isAssignee: boolean
     canEdit: boolean
     canDelete: boolean
     canAssign: boolean
+    canChangeStatus: boolean
+    canApply: boolean
+    canReviewApplications?: boolean
   }
   auditLogs?: unknown[]
+  taskReviewDetail?: Record<string, unknown> | null
 }
 
 interface TaskDetailPageOptions {
@@ -19,7 +23,7 @@ interface TaskDetailPageOptions {
 }
 
 export interface TaskEditPageResult {
-  task: SerializableResponseRecord | ResponseRecord
+  task: SerializableModelRecord | SerializedModelRecord
   permissions: {
     isCreator: boolean
     isAssignee: boolean
@@ -37,51 +41,51 @@ export interface TaskEditPageResult {
   }
 }
 
-export function mapTaskCreateApiBody(task: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskCreateApiBody(task: SerializableModelRecord | SerializedModelRecord) {
   return {
-    success: true,
-    data: serializeForResponse(task),
+    data: serializeModelForHttpResponse(task),
   }
 }
 
-export function mapTaskUpdateApiBody(task: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskUpdateApiBody(task: SerializableModelRecord | SerializedModelRecord) {
   return {
-    success: true,
-    task: serializeForResponse(task),
+    data: serializeModelForHttpResponse(task),
   }
 }
 
-export function mapTaskStatusApiBody(
-  task: SerializableResponseRecord | ResponseRecord,
-  message: string
-) {
+export function mapTaskStatusApiBody(task: SerializableModelRecord | SerializedModelRecord) {
   return {
-    success: true,
-    message,
-    task: serializeForResponse(task),
+    data: serializeModelForHttpResponse(task),
   }
 }
 
-export function mapTaskSortOrderApiBody(task: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskSortOrderApiBody(task: SerializableModelRecord | SerializedModelRecord) {
   return {
-    success: true,
-    data: serializeForResponse(task),
+    data: serializeModelForHttpResponse(task),
   }
 }
 
-export function mapTaskDetailApiBody(task: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskDetailApiBody(task: SerializableModelRecord | SerializedModelRecord) {
   return {
-    success: true,
-    data: serializeForResponse(task),
+    data: serializeModelForHttpResponse(task),
   }
 }
 
 export function mapTaskDetailPageProps(result: TaskDetailPageResult) {
-  return {
-    task: serializeForResponse(result.task),
+  const props = {
+    task: serializeModelForHttpResponse(result.task),
     permissions: result.permissions,
     auditLogs: result.auditLogs,
   }
+
+  if ('taskReviewDetail' in result) {
+    return {
+      ...props,
+      taskReviewDetail: result.taskReviewDetail ?? null,
+    }
+  }
+
+  return props
 }
 
 export function mapScopedTaskDetailPageProps(
@@ -97,7 +101,7 @@ export function mapScopedTaskDetailPageProps(
 
 export function mapTaskEditPageProps(result: TaskEditPageResult) {
   return {
-    task: serializeForResponse(result.task),
+    task: serializeModelForHttpResponse(result.task),
     metadata: result.metadata,
     permissions: result.permissions,
   }

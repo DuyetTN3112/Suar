@@ -14,7 +14,6 @@ import Task from './task.js'
  *
  * Semantic skill requirement: minimum/target/ceiling level IDs,
  * rubric version, importance, weight, requirement source.
- * required_level_code retained for backward compatibility.
  */
 export default class TaskRequiredSkill extends BaseModel {
   static override table = 'task_required_skills'
@@ -39,7 +38,7 @@ export default class TaskRequiredSkill extends BaseModel {
   @column()
   declare source_role_skill_id: string | null
 
-  // Phase 7 — semantic level IDs (replaces required_level_code semantically)
+  // Phase 7 — semantic level IDs (replaces required_public_proficiency_code semantically)
   @column()
   declare minimum_level_id: string | null
 
@@ -53,9 +52,8 @@ export default class TaskRequiredSkill extends BaseModel {
   @column()
   declare rubric_version_id: string | null
 
-  // v3 backward compat: inline proficiency level string
   @column()
-  declare required_level_code: string
+  declare required_public_proficiency_code: string
 
   // Phase 7 — proficiency level bridge (added by migration 20260611131056)
   @column()
@@ -105,4 +103,5 @@ export default class TaskRequiredSkill extends BaseModel {
 
   @belongsTo(() => ProficiencyLevel, { foreignKey: 'proficiency_level_id' })
   declare proficiencyLevel: BelongsTo<typeof ProficiencyLevel>
+
 }

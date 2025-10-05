@@ -31,6 +31,12 @@ export default class TaskComment extends BaseModel {
   @column()
   declare visibility: 'internal' | 'public' | 'reviewers_only'
 
+  @column()
+  declare review_relevance: boolean
+
+  @column.dateTime()
+  declare edited_at: DateTime | null
+
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

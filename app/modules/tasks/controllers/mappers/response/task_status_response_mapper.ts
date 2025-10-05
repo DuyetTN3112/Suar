@@ -1,32 +1,34 @@
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeForResponse } from './shared.js'
+import {
+  mapApiV1TaskStatusResponse,
+  mapApiV1WorkflowTransitionResponse,
+} from '#modules/http/api_v1/response_mappers'
+import type {
+  TaskStatusRecord,
+  TaskWorkflowTransitionRecord,
+} from '#modules/tasks/types/task_records'
 
-export function mapTaskStatusDefinitionApiBody(data: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskStatusDefinitionApiBody(data: TaskStatusRecord) {
   return {
-    success: true,
-    data: serializeForResponse(data),
+    data: mapApiV1TaskStatusResponse(data),
   }
 }
 
-export function mapTaskWorkflowApiBody<T>(data: T) {
+export function mapTaskStatusCollectionApiBody(data: TaskStatusRecord[]) {
   return {
-    success: true,
-    data,
+    data: data.map(mapApiV1TaskStatusResponse),
   }
 }
 
-export function mapTaskStatusSuccessApiBody(message?: string) {
-  return message ? { success: true, message } : { success: true }
+export function mapTaskWorkflowApiBody(data: TaskWorkflowTransitionRecord[]) {
+  return {
+    data: data.map(mapApiV1WorkflowTransitionResponse),
+  }
 }
 
-export function mapTaskStatusMutationApiBody(data: SerializableResponseRecord | ResponseRecord) {
+export function mapTaskStatusMutationApiBody(data: TaskStatusRecord) {
   return mapTaskStatusDefinitionApiBody(data)
 }
 
-export function mapTaskStatusDeleteApiBody(message?: string) {
-  return mapTaskStatusSuccessApiBody(message)
-}
-
-export function mapWorkflowUpdateApiBody<T>(data: T) {
+export function mapWorkflowUpdateApiBody(data: TaskWorkflowTransitionRecord[]) {
   return mapTaskWorkflowApiBody(data)
 }

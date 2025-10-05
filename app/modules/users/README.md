@@ -1,7 +1,7 @@
 # users Backend Module
 
 ### Kiến trúc lõi & Phân tích nghiệp vụ
-- **Profile Recalculation**: Điểm năng lực (Technical, Soft Skills, Delivery) được tính toán động từ các review và evidence đã được xác thực, cập nhật vào `user_work_history`. Không cho phép sửa đổi trực tiếp trường level của user.
+- **Profile Recalculation**: Điểm năng lực (Technology, Engineering, Soft Skills, Delivery) được tính toán động từ các review và evidence đã được xác thực, cập nhật vào `user_work_history`. Không cho phép sửa đổi trực tiếp trường level của user.
 - **Profile Snapshots**: Bản chụp cấu trúc năng lực hiện tại của user (`user_profile_snapshots`), hỗ trợ tạo liên kết chia sẻ bảo mật, có thể xoay vòng (`rotate`) hoặc cấu hình quyền truy cập công khai/riêng tư.
 
 ## Module Path
@@ -29,7 +29,7 @@ application/dtos/common/ user_action_dtos.ts user_pagination.ts
 application/events/ .gitkeep
 application/ports/ user_account_reader.ts user_profile_projection_writer.ts
 constants/ user_constants.ts
-controllers/ add_profile_skill_controller.ts approve_user_controller.ts create_user_controller.ts delete_user_controller.ts edit_profile_controller.ts edit_user_controller.ts get_current_profile_snapshot_controller.ts get_profile_snapshot_history_controller.ts get_public_profile_snapshot_controller.ts list_users_controller.ts pending_approval_count_api_controller.ts pending_approval_users_api_controller.ts pending_approval_users_controller.ts publish_profile_snapshot_controller.ts recruiter_bookmarks_controller.ts recruiter_bookmarks_workspace_controller.ts remove_profile_skill_controller.ts rotate_profile_snapshot_share_link_controller.ts show_profile_controller.ts show_user_controller.ts store_user_controller.ts system_users_api_controller.ts talent_detail_controller.ts talent_directory_page_controller.ts talents_search_controller.ts update_profile_details_controller.ts update_profile_skill_controller.ts update_profile_snapshot_access_controller.ts update_user_controller.ts update_user_role_controller.ts view_user_profile_controller.ts
+controllers/ add_profile_skill_controller.ts approve_user_controller.ts create_user_controller.ts delete_user_controller.ts edit_profile_controller.ts edit_user_controller.ts get_current_profile_snapshot_controller.ts get_profile_snapshot_history_controller.ts get_public_profile_snapshot_controller.ts list_users_controller.ts org_bookmarks_page_controller.ts org_talents_page_controller.ts pending_approval_count_api_controller.ts pending_approval_users_api_controller.ts pending_approval_users_controller.ts publish_profile_snapshot_controller.ts recruiter_bookmarks_controller.ts remove_profile_skill_controller.ts rotate_profile_snapshot_share_link_controller.ts show_profile_controller.ts show_user_controller.ts store_user_controller.ts system_users_api_controller.ts talent_detail_controller.ts talents_search_controller.ts update_profile_details_controller.ts update_profile_skill_controller.ts update_profile_snapshot_access_controller.ts update_user_controller.ts update_user_role_controller.ts view_user_profile_controller.ts
 controllers/mappers/request/ shared.ts user_request_mapper.ts
 controllers/mappers/response/ shared.ts user_response_mapper.ts
 controllers/mappers/ user_actor_context_mapper.ts

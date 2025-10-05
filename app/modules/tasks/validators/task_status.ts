@@ -29,7 +29,7 @@ export const createTaskStatusValidator = vine.create(
 
 /**
  * Validator for updating a task status definition.
- * PUT /api/task-statuses/:id
+ * PUT|PATCH /api/task-statuses/:taskStatusId
  */
 export const updateTaskStatusValidator = vine.create(
   vine.object({

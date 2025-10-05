@@ -51,14 +51,15 @@ export default class Task extends BaseModel {
   /**
    * v3.0: Inline status VARCHAR — replaces status_id UUID → task_status table
    * CHECK: 'todo', 'in_progress', 'done', 'cancelled', 'in_review'
-   * Phase 4 note: Use task_status_id FK during migration rollout.
+   * Current runtime note: tasks.status remains as a legacy compatibility field
+   * while task_status_id is the workflow source-of-truth.
    */
   @column()
   declare status: string
 
   /**
    * v4.0: FK to task_statuses table (per-org configurable statuses).
-   * Nullable during migration — old tasks may not have this set yet.
+   * Current SQL snapshot (docs_AI/suar.sql): task_status_id is NOT NULL.
    */
   @column()
   declare task_status_id: string | null
@@ -120,6 +121,9 @@ export default class Task extends BaseModel {
   @column()
   // project_id là bắt buộc theo product truth và SQL reference hiện tại.
   declare project_id: string | null
+
+  @column()
+  declare project_sprint_id: string | null
 
   // Marketplace columns
   @column()
@@ -184,9 +188,6 @@ export default class Task extends BaseModel {
   declare estimated_users_affected: number | null
 
   // v3.0: required_skills JSONB REMOVED — single source: task_required_skills table
-
-  @column()
-  declare estimated_budget: number | null
 
   @column()
   declare external_applications_count: number

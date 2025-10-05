@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import {
   CreateTaskStatusDTO,
@@ -69,23 +70,26 @@ export function buildCreateTaskStatusDTO(
   organizationId: string,
   options: CreateTaskStatusOptions = {}
 ): CreateTaskStatusDTO {
-  const rawName = request.input('name') as string
+  const rawName = String(request.input('name', ''))
   const rawSlug = toOptionalString(request.input('slug') as unknown)
 
   return CreateTaskStatusDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: rawName,
-      slug: rawSlug ?? (options.generateSlugFromName ? toSlug(rawName) : ''),
+      slug:
+        rawSlug ?? ((options.generateSlugFromName ?? true) && rawName.trim().length > 0
+          ? toSlug(rawName)
+          : ''),
       category:
-        toOptionalString(request.input('category') as unknown) ??
+        toOptionalString(request.input('group', request.input('category')) as unknown) ??
         options.defaultCategory ??
         TaskStatusCategory.IN_PROGRESS,
       color:
         toOptionalString(request.input('color') as unknown) ?? options.defaultColor ?? '#6B7280',
       icon: toOptionalString(request.input('icon') as unknown),
       description: toOptionalString(request.input('description') as unknown),
-      sort_order: toOptionalNumber(request.input('sort_order') as unknown),
-    },
+      sort_order: toOptionalNumber(request.input('sortOrder', request.input('sort_order')) as unknown),
+    }),
     organizationId
   )
 }
@@ -107,16 +111,16 @@ export function buildUpdateTaskStatusDefinitionDTO(
   statusId: string
 ): UpdateTaskStatusDTO {
   return UpdateTaskStatusDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: toOptionalString(request.input('name') as unknown),
       slug: toOptionalString(request.input('slug') as unknown),
-      category: toOptionalString(request.input('category') as unknown),
+      category: toOptionalString(request.input('group', request.input('category')) as unknown),
       color: toOptionalString(request.input('color') as unknown),
       icon: toOptionalNullableString(request.input('icon') as unknown),
       description: toOptionalNullableString(request.input('description') as unknown),
-      sort_order: toOptionalNumber(request.input('sort_order') as unknown),
-      is_default: toOptionalBoolean(request.input('is_default') as unknown),
-    },
+      sort_order: toOptionalNumber(request.input('sortOrder', request.input('sort_order')) as unknown),
+      is_default: toOptionalBoolean(request.input('isDefault', request.input('is_default')) as unknown),
+    }),
     {
       status_id: statusId,
       organization_id: organizationId,
@@ -138,12 +142,29 @@ export function buildUpdateWorkflowDTO(
   request: HttpContext['request'],
   organizationId: string
 ): UpdateWorkflowDTO {
+  const transitionsInput = request.input('transitions', []) as Array<
+    | {
+        from_status_id: string
+        to_status_id: string
+        conditions?: Record<string, unknown>
+      }
+    | {
+        fromStatusId: string
+        toStatusId: string
+        conditions?: Record<string, unknown>
+      }
+  >
+
   return UpdateWorkflowDTO.fromTransitions(
-    request.input('transitions', []) as {
-      from_status_id: string
-      to_status_id: string
-      conditions?: Record<string, unknown>
-    }[],
+    transitionsInput.map((transition) =>
+      omitUndefined({
+        from_status_id:
+          'from_status_id' in transition ? transition.from_status_id : transition.fromStatusId,
+        to_status_id:
+          'to_status_id' in transition ? transition.to_status_id : transition.toStatusId,
+        conditions: transition.conditions,
+      })
+    ),
     organizationId
   )
 }

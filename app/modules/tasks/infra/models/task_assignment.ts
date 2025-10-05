@@ -14,7 +14,7 @@ import Task from './task.js'
  *
  * Assignment types:
  * - member: Organization member
- * - freelancer: External hired freelancer
+ * - external_contributor: Legacy storage value for external contributor
  * - volunteer: Volunteer contributor
  */
 export default class TaskAssignment extends BaseModel {
@@ -33,7 +33,7 @@ export default class TaskAssignment extends BaseModel {
   declare assigned_by: string
 
   @column()
-  declare assignment_type: 'member' | 'freelancer' | 'volunteer'
+  declare assignment_type: 'member' | 'external_contributor' | 'volunteer'
 
   @column()
   declare assignment_status: 'active' | 'completed' | 'cancelled'

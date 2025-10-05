@@ -19,6 +19,11 @@ export interface TaskUpdatedEvent {
   previousValues: Record<string, unknown>
 }
 
+export interface TaskDeletedEvent {
+  taskId: string
+  deletedBy: string
+}
+
 export interface TaskStatusChangedEvent {
   taskId: string
   assignedTo: string | null
@@ -69,6 +74,7 @@ declare module '@adonisjs/core/types' {
   interface EventsList {
     'task:created': TaskCreatedEvent
     'task:updated': TaskUpdatedEvent
+    'task:deleted': TaskDeletedEvent
     'task:status:changed': TaskStatusChangedEvent
     'task:assignment:completed': TaskAssignmentCompletedEvent
     'task:assigned': TaskAssignedEvent

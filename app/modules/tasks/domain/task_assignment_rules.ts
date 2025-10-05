@@ -17,12 +17,12 @@ const VALID_TASK_LABELS = ['bug', 'feature', 'enhancement', 'documentation'] as 
 const VALID_TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
 
 /**
- * Check if a user can apply for a task on the marketplace.
+ * Check if a user can request to join a marketplace task.
  *
  * Rules:
- * - Cannot apply to your own task
+ * - Cannot request to join your own task
  * - Task must have external or all visibility
- * - Cannot apply if already applied (duplicate check)
+ * - Cannot request to join if an application already exists (duplicate check)
  */
 export function canApplyForTask(ctx: {
   actorId: string
@@ -33,23 +33,23 @@ export function canApplyForTask(ctx: {
   hasExistingApplication: boolean
 }): PolicyResult {
   if (isSameId(ctx.actorId, ctx.taskCreatorId)) {
-    return PR.deny('Không thể ứng tuyển task của chính mình', 'BUSINESS_RULE')
+    return PR.deny('Không thể gửi đề xuất tham gia task của chính mình', 'BUSINESS_RULE')
   }
 
   if (!PUBLIC_TASK_VISIBILITIES.has(ctx.taskVisibility)) {
-    return PR.deny('Task này không mở cho ứng tuyển bên ngoài', 'BUSINESS_RULE')
+    return PR.deny('Task này không mở cho đề xuất tham gia bên ngoài', 'BUSINESS_RULE')
   }
 
   if (ctx.isTaskAlreadyAssigned) {
-    return PR.deny('Task này đã được giao, không thể ứng tuyển thêm', 'BUSINESS_RULE')
+    return PR.deny('Task này đã được giao, không thể nhận thêm đề xuất tham gia', 'BUSINESS_RULE')
   }
 
   if (ctx.isApplicationDeadlinePassed) {
-    return PR.deny('Đã quá hạn nộp đơn ứng tuyển cho task này', 'BUSINESS_RULE')
+    return PR.deny('Đã quá hạn nộp đề xuất tham gia cho task này', 'BUSINESS_RULE')
   }
 
   if (ctx.hasExistingApplication) {
-    return PR.deny('Bạn đã ứng tuyển task này rồi', 'BUSINESS_RULE')
+    return PR.deny('Bạn đã gửi đề xuất tham gia task này rồi', 'BUSINESS_RULE')
   }
 
   return PR.allow()
@@ -59,28 +59,27 @@ export function canApplyForTask(ctx: {
  * Validate that a user can be assigned to a task.
  *
  * Rules:
- * - Must be an org member OR a freelancer (for external/all tasks)
+ * - Must be an org member OR an external contributor (for external/all tasks)
  */
 export function validateAssignee(ctx: {
   isOrgMember: boolean
-  isFreelancer: boolean
+  isExternalContributor: boolean
   taskVisibility: string
 }): PolicyResult {
   // Org members can always be assigned
   if (ctx.isOrgMember) return PR.allow()
 
-  // Freelancers can be assigned to external/all tasks
-  if (ctx.isFreelancer) {
+  if (ctx.isExternalContributor) {
     if (ctx.taskVisibility === 'external' || ctx.taskVisibility === 'all') {
       return PR.allow()
     }
     return PR.deny(
-      'Freelancer chỉ có thể được giao cho task có visibility external hoặc all',
+      'Contributor bên ngoài chỉ có thể được giao cho task có visibility external hoặc all',
       'BUSINESS_RULE'
     )
   }
 
-  return PR.deny('Người được giao phải là thành viên tổ chức hoặc freelancer', 'BUSINESS_RULE')
+  return PR.deny('Người được giao phải là thành viên tổ chức hoặc contributor bên ngoài', 'BUSINESS_RULE')
 }
 
 /**
@@ -180,7 +179,9 @@ export function validateTaskCreationFields(ctx: {
  * Check if a task application can be processed.
  *
  * Rules:
- * - Only task creator can process applications
+ * - Task creator can process applications
+ * - Project owner/manager can process applications
+ * - Organization owner/admin can process applications for tasks in their organization
  */
 export function canProcessApplication(ctx: {
   actorId: string
@@ -188,16 +189,18 @@ export function canProcessApplication(ctx: {
   action: 'approve' | 'reject'
   isTaskAlreadyAssigned: boolean
   isProjectOwnerOrManager?: boolean
+  isOrganizationOwnerOrAdmin?: boolean
 }): PolicyResult {
   const isCreator = isSameId(ctx.actorId, ctx.taskCreatorId)
   const isManager = ctx.isProjectOwnerOrManager === true
+  const isOrgLeader = ctx.isOrganizationOwnerOrAdmin === true
 
-  if (!isCreator && !isManager) {
-    return PR.deny('Bạn không có quyền xử lý đơn ứng tuyển cho task này')
+  if (!isCreator && !isManager && !isOrgLeader) {
+    return PR.deny('Bạn không có quyền xử lý đề xuất tham gia cho task này')
   }
 
   if (ctx.action === 'approve' && ctx.isTaskAlreadyAssigned) {
-    return PR.deny('Task này đã được giao, không thể duyệt thêm đơn ứng tuyển', 'BUSINESS_RULE')
+    return PR.deny('Task này đã được giao, không thể duyệt thêm đề xuất tham gia', 'BUSINESS_RULE')
   }
 
   return PR.allow()
