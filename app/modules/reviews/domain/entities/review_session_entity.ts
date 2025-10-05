@@ -20,8 +20,14 @@ export interface ReviewSessionEntityProps {
   revieweeId: string
   status: ReviewSessionStatus
   managerReviewCompleted: boolean
+  creatorReviewerId: string | null
+  creatorReviewCompleted: boolean
+  managerReviewsCount: number
   peerReviewsCount: number
   requiredPeerReviews: number
+  requiredTotalReviews: number
+  minimumManagerReviews: number
+  minimumPeerReviews: number
   confirmations: ReviewConfirmationEntry[] | null
   deadline: Date | null
   completedAt: Date | null
@@ -35,8 +41,14 @@ export class ReviewSessionEntity {
   readonly revieweeId: string
   readonly status: ReviewSessionStatus
   readonly managerReviewCompleted: boolean
+  readonly creatorReviewerId: string | null
+  readonly creatorReviewCompleted: boolean
+  readonly managerReviewsCount: number
   readonly peerReviewsCount: number
   readonly requiredPeerReviews: number
+  readonly requiredTotalReviews: number
+  readonly minimumManagerReviews: number
+  readonly minimumPeerReviews: number
   readonly confirmations: ReviewConfirmationEntry[] | null
   readonly deadline: Date | null
   readonly completedAt: Date | null
@@ -49,8 +61,14 @@ export class ReviewSessionEntity {
     this.revieweeId = props.revieweeId
     this.status = props.status
     this.managerReviewCompleted = props.managerReviewCompleted
+    this.creatorReviewerId = props.creatorReviewerId
+    this.creatorReviewCompleted = props.creatorReviewCompleted
+    this.managerReviewsCount = props.managerReviewsCount
     this.peerReviewsCount = props.peerReviewsCount
     this.requiredPeerReviews = props.requiredPeerReviews
+    this.requiredTotalReviews = props.requiredTotalReviews
+    this.minimumManagerReviews = props.minimumManagerReviews
+    this.minimumPeerReviews = props.minimumPeerReviews
     this.confirmations = props.confirmations
     this.deadline = props.deadline
     this.completedAt = props.completedAt
@@ -77,5 +95,14 @@ export class ReviewSessionEntity {
 
   get peerReviewProgress(): string {
     return `${this.peerReviewsCount}/${this.requiredPeerReviews}`
+  }
+
+  get isGovernanceReady(): boolean {
+    return (
+      this.creatorReviewCompleted &&
+      this.managerReviewsCount >= this.minimumManagerReviews &&
+      this.peerReviewsCount >= this.minimumPeerReviews &&
+      this.managerReviewsCount + this.peerReviewsCount >= this.requiredTotalReviews
+    )
   }
 }

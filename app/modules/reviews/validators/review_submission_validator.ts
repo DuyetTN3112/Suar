@@ -1,6 +1,8 @@
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+
 interface SkillRatingInput {
   skill_id?: string | null
-  assigned_level_code?: string | null
+  assigned_public_proficiency_code?: string | null
   comment?: string | null
 }
 
@@ -14,16 +16,6 @@ interface ValidationResult {
   valid: boolean
   errors: string[]
 }
-
-const VALID_LEVEL_CODES = new Set([
-  'beginner',
-  'junior',
-  'middle',
-  'senior',
-  'lead',
-  'principal',
-  'master',
-])
 
 const VALID_REVIEWER_TYPES = new Set(['manager', 'peer', 'self'])
 
@@ -46,9 +38,9 @@ export function validateReviewSubmission(input: ReviewSubmissionInput): Validati
   }
 
   for (const rating of ratings) {
-    const levelCode = rating.assigned_level_code?.trim() ?? ''
+    const levelCode = rating.assigned_public_proficiency_code?.trim() ?? ''
 
-    if (!VALID_LEVEL_CODES.has(levelCode)) {
+    if (!isCanonicalProficiencyLevelCode(levelCode)) {
       errors.push('Invalid skill level code')
     }
 

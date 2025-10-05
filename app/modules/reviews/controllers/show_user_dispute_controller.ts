@@ -9,12 +9,14 @@ import {
   loadReviewDisputeComments,
   loadReviewDisputeEvidences,
 } from '#modules/reviews/actions/commands/review_dispute_access'
+import { loadReviewRelatedTaskComments } from '#modules/reviews/actions/support/review_related_task_comments'
 
 interface ReviewDisputeDetailRow {
   id: string
   task_id: string
   review_session_id: string
   reviewee_id: string
+  status: string
   disputed_dimensions: string | Record<string, unknown> | null
   disputed_skill_reviews: string | Record<string, unknown>[] | null
   task_title: string | null
@@ -58,7 +60,11 @@ export default class ShowUserDisputeController {
 
     try {
       // 1) Verify access context
-      const accessCtx = await loadReviewDisputeAccessContext(trx, params.id as string, actorId)
+      const accessCtx = await loadReviewDisputeAccessContext(
+        trx,
+        params['disputeId'] as string,
+        actorId
+      )
       if (!accessCtx.isParticipant) {
         throw new ForbiddenException('You do not have access to this review dispute')
       }
@@ -69,7 +75,7 @@ export default class ShowUserDisputeController {
         .leftJoin('tasks as t', 't.id', 'rd.task_id')
         .leftJoin('review_sessions as rs', 'rs.id', 'rd.review_session_id')
         .leftJoin('users as reviewee', 'reviewee.id', 'rd.reviewee_id')
-        .where('rd.id', params.id as string)
+        .where('rd.id', params['disputeId'] as string)
         .select(
           'rd.*',
           't.title as task_title',
@@ -92,8 +98,25 @@ export default class ShowUserDisputeController {
         disputed_skill_reviews: parseJsonArray(dispute.disputed_skill_reviews),
       }
 
-      const comments = await loadReviewDisputeComments(trx, params.id as string)
-      const evidences = await loadReviewDisputeEvidences(trx, params.id as string)
+      const [comments, evidences, taskComments] = await Promise.all([
+        loadReviewDisputeComments(trx, params['disputeId'] as string),
+        loadReviewDisputeEvidences(trx, params['disputeId'] as string),
+        loadReviewRelatedTaskComments(parsedDispute.task_id, trx, {
+          scope: 'all',
+        }),
+      ])
+      const hasRevieweeExchange = comments.some((comment) => comment['author_id'] === parsedDispute.reviewee_id)
+      const hasCounterpartyExchange = comments.some(
+        (comment) => comment['author_id'] !== parsedDispute.reviewee_id
+      )
+      const canReportToAdmin =
+        actorId === parsedDispute.reviewee_id &&
+        parsedDispute.status !== 'resolved' &&
+        parsedDispute.status !== 'rejected' &&
+        parsedDispute.status !== 'admin_reviewing' &&
+        parsedDispute.status !== 'ai_reviewing' &&
+        hasRevieweeExchange &&
+        hasCounterpartyExchange
 
       await trx.commit()
 
@@ -101,8 +124,10 @@ export default class ShowUserDisputeController {
         dispute: parsedDispute,
         comments,
         evidences,
+        taskComments,
         authorContext: accessCtx.authorContext,
         canRespond: accessCtx.canRespond,
+        canReportToAdmin,
       })
     } catch (error) {
       await trx.rollback()

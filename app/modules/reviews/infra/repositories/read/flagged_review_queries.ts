@@ -1,18 +1,84 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import {
+  buildPaginationMeta,
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? FlaggedReview.query({ client: trx }) : FlaggedReview.query()
 }
 
-export const paginateWithRelations = (
+const applyStatusFilter = <T extends ReturnType<typeof baseQuery>>(query: T, status?: string): T => {
+  if (status) {
+    void query.where('status', status)
+  }
+
+  return query
+}
+
+interface FlaggedReviewFilters {
+  search?: string
+  flagType?: string
+  severity?: string
+}
+
+const applyAdditionalFilters = <T extends ReturnType<typeof baseQuery>>(
+  query: T,
+  filters?: FlaggedReviewFilters
+): T => {
+  if (!filters) {
+    return query
+  }
+
+  const search = filters.search?.trim()
+  if (search) {
+    void query.whereHas('skill_review', (skillReviewQuery) => {
+      void skillReviewQuery.whereHas('reviewer', (reviewerQuery) => {
+        void reviewerQuery.where('username', 'ilike', `%${search}%`)
+      })
+    })
+  }
+
+  if (filters.flagType) {
+    void query.where('flag_type', filters.flagType)
+  }
+
+  if (filters.severity) {
+    void query.where('severity', filters.severity)
+  }
+
+  return query
+}
+
+export const paginateWithRelations = async (
   page: number,
   perPage: number,
   status?: string,
-  trx?: TransactionClientContract
+  after?: string,
+  before?: string,
+  trx?: TransactionClientContract,
+  filters?: FlaggedReviewFilters
 ) => {
-  const query = baseQuery(trx)
+  const normalizedPage = Math.max(1, Math.trunc(page))
+  const normalizedPerPage = Math.max(1, Math.trunc(perPage))
+  const decodedCursor = decodeTimestampCursor(after)
+  const decodedBeforeCursor = decodeTimestampCursor(before)
+  const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
+
+  const totalResult = await applyAdditionalFilters(
+    applyStatusFilter(baseQuery(trx), status),
+    filters
+  ).count('* as total')
+  const total = Number(totalResult[0]?.$extras['total'] ?? 0)
+  const meta = buildPaginationMeta(total, {
+    page: normalizedPage,
+    perPage: normalizedPerPage,
+  })
+
+  const query = applyAdditionalFilters(applyStatusFilter(baseQuery(trx), status), filters)
     .preload('skill_review', (srQuery) => {
       void srQuery
         .preload('reviewer', (uQuery) => {
@@ -24,17 +90,63 @@ export const paginateWithRelations = (
           })
         })
         .preload('skill', (sQuery) => {
-          void sQuery.select(['id', 'name', 'category'])
+          void sQuery.select(['id', 'skill_name', 'category_code'])
         })
     })
     .preload('reviewer', (uQuery) => {
       void uQuery.select(['id', 'username', 'email'])
     })
-    .orderBy('created_at', 'desc')
-
-  if (status) {
-    void query.where('status', status)
+  if (decodedCursor) {
+    void query.where((builder) => {
+      void builder
+        .where('detected_at', '<', decodedCursor.createdAt)
+        .orWhere((nested) => {
+          void nested.where('detected_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
+        })
+    })
+  } else if (decodedBeforeCursor) {
+    void query.where((builder) => {
+      void builder
+        .where('detected_at', '>', decodedBeforeCursor.createdAt)
+        .orWhere((nested) => {
+          void nested
+            .where('detected_at', decodedBeforeCursor.createdAt)
+            .where('id', '>', decodedBeforeCursor.id)
+        })
+    })
   }
 
-  return query.paginate(page, perPage)
+  const rows = await query
+    .orderBy('detected_at', isBeforeWindow ? 'asc' : 'desc')
+    .orderBy('id', isBeforeWindow ? 'asc' : 'desc')
+    .limit(normalizedPerPage + 1)
+  const hasOverflow = rows.length > normalizedPerPage
+  const windowRows = hasOverflow ? rows.slice(0, normalizedPerPage) : rows
+  const data = isBeforeWindow ? [...windowRows].reverse() : windowRows
+  const firstRow = data[0]
+  const lastRow = data[data.length - 1]
+
+  return {
+    data,
+    total,
+    perPage: normalizedPerPage,
+    currentPage: decodedCursor || decodedBeforeCursor ? 1 : normalizedPage,
+    lastPage: meta.lastPage,
+    nextCursor:
+      (isBeforeWindow || hasOverflow) && lastRow
+        ? encodeTimestampCursor({
+            createdAt: lastRow.detected_at.toISO() ?? lastRow.created_at.toISO() ?? new Date().toISOString(),
+            id: lastRow.id,
+          })
+        : null,
+    previousCursor:
+      (decodedCursor || isBeforeWindow) && firstRow
+        ? encodeTimestampCursor({
+            createdAt: firstRow.detected_at.toISO() ?? firstRow.created_at.toISO() ?? new Date().toISOString(),
+            id: firstRow.id,
+          })
+        : null,
+    hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+    hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
+  }
 }

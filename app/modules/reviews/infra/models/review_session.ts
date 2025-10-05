@@ -6,6 +6,7 @@ import { DateTime } from 'luxon'
 import TaskAssignment from '../../../tasks/infra/models/task_assignment.js'
 import User from '../../../users/infra/models/user.js'
 
+import ReviewSessionReviewerAssignment from './review_session_reviewer_assignment.js'
 import SkillReview from './skill_review.js'
 
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
@@ -35,10 +36,28 @@ export default class ReviewSession extends BaseModel {
   declare manager_review_completed: boolean
 
   @column()
+  declare creator_reviewer_id: string | null
+
+  @column()
+  declare creator_review_completed: boolean
+
+  @column()
+  declare manager_reviews_count: number
+
+  @column()
   declare peer_reviews_count: number
 
   @column()
   declare required_peer_reviews: number
+
+  @column()
+  declare required_total_reviews: number
+
+  @column()
+  declare minimum_manager_reviews: number
+
+  @column()
+  declare minimum_peer_reviews: number
 
   // v3: JSONB column replaces review_confirmations table
   @column({
@@ -100,4 +119,7 @@ export default class ReviewSession extends BaseModel {
 
   @hasMany(() => SkillReview, { foreignKey: 'review_session_id' })
   declare skill_reviews: HasMany<typeof SkillReview>
+
+  @hasMany(() => ReviewSessionReviewerAssignment, { foreignKey: 'review_session_id' })
+  declare reviewer_assignments: HasMany<typeof ReviewSessionReviewerAssignment>
 }

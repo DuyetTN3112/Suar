@@ -17,13 +17,12 @@ export default class ReviewSessionRepository {
     void new ReviewSessionRepository().__instanceMarker
   }
 
-  static async paginatePendingForReviewer(
+  static async findPendingForReviewerCursor(
     userId: string,
-    page: number,
-    perPage: number,
+    options?: { limit?: number; after?: string | null; before?: string | null },
     trx?: TransactionClientContract
   ) {
-    return reviewSessionQueries.paginatePendingForReviewer(userId, page, perPage, trx)
+    return reviewSessionQueries.findPendingForReviewerCursor(userId, options, trx)
   }
 
   static async findByIdWithRelations(
