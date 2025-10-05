@@ -23,11 +23,12 @@ import GetTaskStatisticsQuery from '#modules/tasks/actions/queries/get_task_stat
 import GetTaskStatusBoardPageQuery from '#modules/tasks/actions/queries/get_task_status_board_page_query'
 import GetTasksGroupedQuery from '#modules/tasks/actions/queries/get_tasks_grouped_query'
 import GetTasksIndexPageQuery from '#modules/tasks/actions/queries/get_tasks_index_page_query'
-import GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
+import type GetTasksListQuery from '#modules/tasks/actions/queries/get_tasks_list_query'
 import GetTasksPageQuery from '#modules/tasks/actions/queries/get_tasks_page_query'
 import GetTasksTimelineQuery from '#modules/tasks/actions/queries/get_tasks_timeline_query'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { makeGetTasksListQuery as makePortBackedGetTasksListQuery } from '#modules/tasks/bootstrap/task_query_factory'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 
 const taskCache = new TaskCacheInvalidator()
@@ -139,7 +140,7 @@ export function makeGetTasksGroupedQuery(execCtx: TaskActionContext): GetTasksGr
 }
 
 export function makeGetTasksListQuery(execCtx: TaskActionContext): GetTasksListQuery {
-  return new GetTasksListQuery(execCtx, taskExternalDeps)
+  return makePortBackedGetTasksListQuery(execCtx, taskExternalDeps)
 }
 
 export function makeGetTasksIndexPageQuery(execCtx: TaskActionContext): GetTasksIndexPageQuery {

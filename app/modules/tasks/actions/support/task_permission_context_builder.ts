@@ -15,6 +15,7 @@ interface TaskPermissionSource {
   assigned_to: string | null
   organization_id: string
   project_id: string | null
+  task_visibility?: string | null
 }
 
 const normalizeProjectRole = (role: string): string | null => {
@@ -29,11 +30,7 @@ export async function buildTaskPermissionContext(
 ): Promise<TaskPermissionContext> {
   if (trx) {
     const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
-    const orgRoleName = await permissionReader.getOrgRoleName(
-      userId,
-      task.organization_id,
-      trx
-    )
+    const orgRoleName = await permissionReader.getOrgRoleName(userId, task.organization_id, trx)
     const projectRoleName = task.project_id
       ? await permissionReader.getProjectRoleName(userId, task.project_id, trx)
       : null
@@ -48,6 +45,7 @@ export async function buildTaskPermissionContext(
       taskAssignedTo: task.assigned_to ?? null,
       taskOrganizationId: task.organization_id,
       taskProjectId: task.project_id ?? null,
+      taskVisibility: task.task_visibility ?? null,
       isActiveAssignee: activeAssignment?.assignee_id === userId,
     }
   }
@@ -70,6 +68,7 @@ export async function buildTaskPermissionContext(
     taskAssignedTo: task.assigned_to ?? null,
     taskOrganizationId: task.organization_id,
     taskProjectId: task.project_id ?? null,
+    taskVisibility: task.task_visibility ?? null,
     isActiveAssignee: activeAssignment?.assignee_id === userId,
   }
 }
@@ -83,11 +82,7 @@ export async function buildTaskCollectionAccessContext(
 ): Promise<TaskCollectionAccessContext> {
   if (trx) {
     const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
-    const orgRoleName = await permissionReader.getOrgRoleName(
-      userId,
-      organizationId,
-      trx
-    )
+    const orgRoleName = await permissionReader.getOrgRoleName(userId, organizationId, trx)
 
     return {
       actorId: userId,
@@ -119,11 +114,7 @@ export async function buildTaskCreatePermissionContext(
 ): Promise<TaskCreatePermissionContext> {
   if (trx) {
     const systemRoleName = await permissionReader.getSystemRoleName(userId, trx)
-    const orgRoleName = await permissionReader.getOrgRoleName(
-      userId,
-      organizationId,
-      trx
-    )
+    const orgRoleName = await permissionReader.getOrgRoleName(userId, organizationId, trx)
     const projectRoleName = projectId
       ? await permissionReader.getProjectRoleName(userId, projectId, trx)
       : null
@@ -139,9 +130,7 @@ export async function buildTaskCreatePermissionContext(
   const [systemRoleName, orgRoleName, projectRoleName] = await Promise.all([
     permissionReader.getSystemRoleName(userId, trx),
     permissionReader.getOrgRoleName(userId, organizationId, trx),
-    projectId
-      ? permissionReader.getProjectRoleName(userId, projectId, trx)
-      : Promise.resolve(null),
+    projectId ? permissionReader.getProjectRoleName(userId, projectId, trx) : Promise.resolve(null),
   ])
 
   return {

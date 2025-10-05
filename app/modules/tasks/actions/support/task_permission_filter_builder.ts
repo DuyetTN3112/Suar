@@ -1,6 +1,6 @@
 import { resolveTaskCollectionReadScope } from '#modules/tasks/domain/task_permission_policy'
 import type { TaskCollectionScopeFallback } from '#modules/tasks/domain/task_types'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 
 export function buildTaskPermissionFilter(input: {
   actorId: string

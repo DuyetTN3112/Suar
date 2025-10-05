@@ -64,7 +64,7 @@ const nullTaskExternalDependencies: TaskExternalDependencies = {
   user: {
     ensureActiveUser: () => Promise.resolve(),
     findUserIdentity: () => Promise.resolve(null),
-    isFreelancer: () => Promise.resolve(false),
+    isExternalContributor: () => Promise.resolve(false),
     listUsersByOrganization: () => Promise.resolve([]),
   },
   review: {

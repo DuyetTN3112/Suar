@@ -27,7 +27,6 @@ export interface TaskDetailResponseDTOProps {
   projectId: string | null
   taskVisibility: string
   applicationDeadline: Date | null
-  estimatedBudget: number | null
   externalApplicationsCount: number
   sortOrder: number
   createdAt: Date
@@ -103,7 +102,6 @@ function createTaskDetailResponseProps(entity: TaskEntity): TaskDetailResponseDT
     actualTime: entity.actualTime,
     taskVisibility: entity.taskVisibility,
     applicationDeadline: entity.applicationDeadline,
-    estimatedBudget: entity.estimatedBudget,
     externalApplicationsCount: entity.externalApplicationsCount,
     updatedAt: entity.updatedAt,
   }
@@ -141,7 +139,6 @@ export class TaskDetailResponseDTO {
   public readonly projectId: string | null
   public readonly taskVisibility: string
   public readonly applicationDeadline: Date | null
-  public readonly estimatedBudget: number | null
   public readonly externalApplicationsCount: number
   public readonly sortOrder: number
   public readonly createdAt: Date
@@ -167,7 +164,6 @@ export class TaskDetailResponseDTO {
     this.projectId = props.projectId
     this.taskVisibility = props.taskVisibility
     this.applicationDeadline = props.applicationDeadline
-    this.estimatedBudget = props.estimatedBudget
     this.externalApplicationsCount = props.externalApplicationsCount
     this.sortOrder = props.sortOrder
     this.createdAt = props.createdAt

@@ -6,30 +6,28 @@ import {
   mapTaskUpdateApiBody,
 } from './mappers/response/task_response_mapper.js'
 
-import { ErrorMessages, HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import {
   makeGetTaskEditPageQuery,
   makeUpdateTaskCommand,
 } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
- * GET /tasks/:id/edit — show form
- * PUT /tasks/:id — update task
+ * GET /tasks/:taskId/edit — show form
+ * PUT /tasks/:taskId — update task
  */
 export default class EditTaskController {
   async showForm(ctx: HttpContext) {
-    const { session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const organizationId = requireCurrentOrganizationId(ctx)
 
     const { task, permissions, metadata } = await makeGetTaskEditPageQuery(
       actionContextFromHttp(ctx)
-    ).execute(ctx.params.id as string, organizationId)
+    ).execute(ctx.params['taskId'] as string, organizationId)
 
     return await ctx.inertia.render(
       'tasks/edit',
@@ -46,7 +44,7 @@ export default class EditTaskController {
 
     const dto = await buildUpdateTaskDTO(request, auth.user.id)
     const command = makeUpdateTaskCommand(actionContextFromHttp(ctx))
-    const task = await command.execute(params.id as string, dto)
+    const task = await command.execute(params['taskId'] as string, dto)
 
     session.flash('success', 'Nhiệm vụ đã được cập nhật thành công')
 
@@ -55,7 +53,7 @@ export default class EditTaskController {
       return
     }
 
-    response.redirect().toRoute('tasks.show', { id: task.id })
+    response.redirect(`/tasks/${task.id}`)
     return
   }
 }

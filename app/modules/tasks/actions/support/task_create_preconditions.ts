@@ -8,7 +8,7 @@ import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task
 import type { TaskIdentityQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
 import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/task_status_query_repository_port'
 import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
-import { validateTaskCreationFields } from '#modules/tasks/domain/task_assignment_rules'
+import { validateAssignee, validateTaskCreationFields } from '#modules/tasks/domain/task_assignment_rules'
 import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
 import { taskIdentityQueryRepository } from '#modules/tasks/infra/repositories/read/task_identity_query_repository'
 import { taskStatusQueryRepository } from '#modules/tasks/infra/repositories/read/task_status_query_repository'
@@ -88,14 +88,14 @@ async function ensureAssigneeBoundary(
     dto.organization_id,
     trx
   )
-  if (isMember) {
-    return
-  }
-
-  const isFreelancer = await externalDependencies.user.isFreelancer(dto.assigned_to, trx)
-  if (!isFreelancer) {
-    throw new BusinessLogicException('Người được gán phải thuộc tổ chức hoặc là freelancer')
-  }
+  const isExternalContributor = await externalDependencies.user.isExternalContributor(dto.assigned_to, trx)
+  enforcePolicy(
+    validateAssignee({
+      isOrgMember: isMember,
+      isExternalContributor,
+      taskVisibility: dto.task_visibility,
+    })
+  )
 }
 
 export async function ensureTaskCreationPreconditions(

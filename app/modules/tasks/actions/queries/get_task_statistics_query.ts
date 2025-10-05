@@ -1,4 +1,3 @@
-
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
@@ -6,9 +5,8 @@ import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task
 import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
 import * as statisticsQueries from '#modules/tasks/infra/repositories/read/statistics_queries'
-
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 
 /**
  * Query để lấy statistics của tasks

@@ -21,8 +21,8 @@
  * Task Status — v3.0 inline CHECK trên tasks.status
  * CHECK ('todo','in_progress','done','cancelled','in_review')
  *
- * Phase 4 note: Will be replaced by task_statuses table (per-org configurable).
- * Kept for backward compatibility during migration.
+ * Current runtime note: the inline status enum remains for legacy compatibility,
+ * while task_statuses/task_status_id drive the configurable workflow model.
  */
 export enum TaskStatus {
   TODO = 'todo',
@@ -265,6 +265,13 @@ export enum ApplicationSource {
   REFERRAL = 'referral',
 }
 
+export const APPLICATION_STATUS_VALUES = Object.values(ApplicationStatus)
+export const APPLICATION_SOURCE_VALUES = Object.values(ApplicationSource)
+export const ACTIVE_APPLICATION_REVIEW_STATUSES = [
+  ApplicationStatus.PENDING,
+  ApplicationStatus.APPROVED,
+] as const
+
 // ============================================================================
 // Task Assignment Status
 // ============================================================================
@@ -281,10 +288,13 @@ export enum AssignmentStatus {
 
 /**
  * Task Assignment Type
- * v3.0 CHECK: 'member', 'freelancer', 'volunteer'
+ * v3.0 CHECK: 'member', 'external_contributor', 'volunteer'
  */
 export enum AssignmentType {
   MEMBER = 'member',
-  FREELANCER = 'freelancer',
+  EXTERNAL_CONTRIBUTOR = 'external_contributor',
   VOLUNTEER = 'volunteer',
 }
+
+export const ASSIGNMENT_STATUS_VALUES = Object.values(AssignmentStatus)
+export const ASSIGNMENT_TYPE_VALUES = Object.values(AssignmentType)

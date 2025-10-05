@@ -1,9 +1,10 @@
 import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
 
-import GetTasksListQuery from './get_tasks_list_query.js'
-
+import type { CanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import { toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { makeGetTasksListQuery } from '#modules/tasks/bootstrap/task_query_factory'
 
 const DEFAULT_PAGE = 1
 const DEFAULT_LIMIT = 20
@@ -17,6 +18,7 @@ export interface GetTaskStatusBoardPageResult {
   metadata: {
     total: number
   }
+  pagination: CanonicalPagePagination
 }
 
 export default class GetTaskStatusBoardPageQuery {
@@ -25,16 +27,19 @@ export default class GetTaskStatusBoardPageQuery {
     private taskExternalDependencies: TaskExternalDependencies
   ) {}
 
-  async execute(organizationId: string): Promise<GetTaskStatusBoardPageResult> {
+  async execute(
+    organizationId: string,
+    input: { page?: number; limit?: number } = {}
+  ): Promise<GetTaskStatusBoardPageResult> {
     const dto = new GetTasksListDTO({
-      page: DEFAULT_PAGE,
-      limit: DEFAULT_LIMIT,
+      page: input.page ?? DEFAULT_PAGE,
+      limit: input.limit ?? DEFAULT_LIMIT,
       organization_id: organizationId,
       sort_by: 'updated_at',
       sort_order: 'desc',
     })
 
-    const list = await new GetTasksListQuery(this.execCtx, this.taskExternalDependencies).execute(dto)
+    const list = await makeGetTasksListQuery(this.execCtx, this.taskExternalDependencies).execute(dto)
 
     return {
       items: list.data.map((task) => ({
@@ -45,6 +50,12 @@ export default class GetTaskStatusBoardPageQuery {
       metadata: {
         total: list.meta.total,
       },
+      pagination: toCanonicalPagePagination({
+        total: list.meta.total,
+        perPage: list.meta.per_page,
+        currentPage: list.meta.current_page,
+        lastPage: list.meta.last_page,
+      }),
     }
   }
 }

@@ -1,5 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import type { TaskUserReader } from '../ports/task_external_dependencies.js'
 
 import loggerService from '#modules/logger/public_contracts/logger_service'
@@ -10,6 +8,7 @@ import {
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 
 interface TaskUpdateNotificationTarget {
   id: string
@@ -113,9 +112,10 @@ export async function runUpdateTaskPostCommitEffects(
   dto: UpdateTaskDTO,
   createNotification: Pick<NotificationCreator, 'handle'>,
   userReader: Pick<TaskUserReader, 'findUserIdentity'>,
-  cache: TaskCachePort
+  cache: TaskCachePort,
+  taskEventPublisher: TaskEventPublisher
 ): Promise<void> {
-  void emitter.emit('task:updated', {
+  await taskEventPublisher.publishTaskUpdated({
     taskId: updateResult.task.id,
     updatedBy: userId,
     changes: updateResult.changes,

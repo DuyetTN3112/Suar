@@ -4,25 +4,38 @@ import CheckTaskCreatePermissionQuery from './check_task_create_permission_query
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 import GetTasksPageQuery from './get_tasks_page_query.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { TaskProjectRole } from '#modules/tasks/domain/role_contracts'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
+
+interface TaskListDateFilters {
+  created_at_start?: string
+  created_at_end?: string
+  due_date_start?: string
+  due_date_end?: string
+}
 
 export interface GetTasksIndexPageInput {
   page: number
   limit: number
-  task_status_id?: string
-  priority?: string
-  label?: string
-  assigned_to?: string
+  task_status_id?: string[]
+  priority?: string[]
+  label?: string[]
+  assigned_to?: string[]
   parent_task_id?: string | null
   requested_project_id?: string
   search?: string
   organization_id: string
   sort_by: TaskListSortBy
   sort_order: 'asc' | 'desc'
+  created_at_start?: string
+  created_at_end?: string
+  due_date_start?: string
+  due_date_end?: string
 }
 
 export interface GetTasksIndexPageResult {
@@ -39,20 +52,26 @@ export interface GetTasksIndexPageResult {
   permissions: {
     canCreateTask: boolean
     createTaskReason: string | null
+    canAccessProjectSprints: boolean
+    canManageProjectSprints: boolean
   }
   filters: {
     page: number
     limit: number
-    task_status_id?: string
-    status?: string
-    priority?: string
-    label?: string
-    assigned_to?: string
+    task_status_id?: string[]
+    status?: string[]
+    priority?: string[]
+    label?: string[]
+    assigned_to?: string[]
     parent_task_id?: string | null
     project_id?: string
     search?: string
     sort_by: TaskListSortBy
     sort_order: 'asc' | 'desc'
+    created_at_start?: string
+    created_at_end?: string
+    due_date_start?: string
+    due_date_end?: string
   }
 }
 
@@ -75,7 +94,7 @@ export default class GetTasksIndexPageQuery {
       ? (projectOptions.find((project) => project.id === input.requested_project_id) ?? null)
       : null
 
-    const dto = new GetTasksListDTO({
+    const listInput: ConstructorParameters<typeof GetTasksListDTO>[0] & TaskListDateFilters = omitUndefined({
       page: input.page,
       limit: input.limit,
       task_status_id: input.task_status_id,
@@ -88,9 +107,14 @@ export default class GetTasksIndexPageQuery {
       organization_id: input.organization_id,
       sort_by: input.sort_by,
       sort_order: input.sort_order,
+      created_at_start: input.created_at_start,
+      created_at_end: input.created_at_end,
+      due_date_start: input.due_date_start,
+      due_date_end: input.due_date_end,
     })
+    const dto = new GetTasksListDTO(listInput)
 
-    const [{ tasksResult, metadata }, createTaskDecision] = await Promise.all([
+    const [{ tasksResult, metadata }, createTaskDecision, projectSprintPermissions] = await Promise.all([
       new GetTasksPageQuery(this.execCtx, this.taskExternalDependencies).execute(
         dto,
         input.organization_id
@@ -101,6 +125,7 @@ export default class GetTasksIndexPageQuery {
         selectedProject?.id,
         this.taskExternalDependencies.permission
       ),
+      this.resolveProjectSprintPermissions(userId, selectedProject?.id ?? null),
     ])
 
     return {
@@ -120,8 +145,10 @@ export default class GetTasksIndexPageQuery {
       permissions: {
         canCreateTask: createTaskDecision.allowed,
         createTaskReason: createTaskDecision.allowed ? null : createTaskDecision.reason,
+        canAccessProjectSprints: projectSprintPermissions.canAccess,
+        canManageProjectSprints: projectSprintPermissions.canManage,
       },
-      filters: {
+      filters: omitUndefined({
         page: dto.page,
         limit: dto.limit,
         task_status_id: dto.task_status_id,
@@ -134,7 +161,32 @@ export default class GetTasksIndexPageQuery {
         search: dto.search,
         sort_by: dto.sort_by,
         sort_order: dto.sort_order,
-      },
+        created_at_start: (dto as GetTasksListDTO & TaskListDateFilters).created_at_start,
+        created_at_end: (dto as GetTasksListDTO & TaskListDateFilters).created_at_end,
+        due_date_start: (dto as GetTasksListDTO & TaskListDateFilters).due_date_start,
+        due_date_end: (dto as GetTasksListDTO & TaskListDateFilters).due_date_end,
+      }),
+    }
+  }
+
+  private async resolveProjectSprintPermissions(
+    userId: string,
+    projectId: string | null
+  ): Promise<{ canAccess: boolean; canManage: boolean }> {
+    if (!projectId) {
+      return { canAccess: false, canManage: false }
+    }
+
+    const projectRoleName = await this.taskExternalDependencies.permission.getProjectRoleName(
+      userId,
+      projectId
+    )
+    const canManage =
+      projectRoleName === TaskProjectRole.OWNER || projectRoleName === TaskProjectRole.MANAGER
+
+    return {
+      canAccess: projectRoleName !== null,
+      canManage,
     }
   }
 }

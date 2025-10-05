@@ -1,8 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import { makeBatchUpdateTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
 
 /**
@@ -11,20 +15,18 @@ import { makeBatchUpdateTaskStatusCommand } from '#modules/tasks/bootstrap/task_
  */
 export default class BatchUpdateTaskStatusController {
   async handle(ctx: HttpContext) {
-    const { request, response, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
+    const { request } = ctx
+    const organizationId = requireCurrentOrganizationId(ctx)
 
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
-
-    const payload = request.only(['task_ids', 'task_status_id']) as {
+    const payload = request.only(['taskIds', 'taskStatusId', 'task_ids', 'task_status_id']) as {
+      taskIds?: unknown
+      taskStatusId?: unknown
       task_ids?: unknown
       task_status_id?: unknown
     }
 
-    const taskIdsRaw = payload.task_ids
-    const taskStatusIdRaw = payload.task_status_id
+    const taskIdsRaw = payload.taskIds ?? payload.task_ids
+    const taskStatusIdRaw = payload.taskStatusId ?? payload.task_status_id
 
     if (!Array.isArray(taskIdsRaw) || !taskIdsRaw.every((id) => typeof id === 'string')) {
       throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
@@ -38,6 +40,6 @@ export default class BatchUpdateTaskStatusController {
     const command = makeBatchUpdateTaskStatusCommand(execCtx)
     const result = await command.execute(taskIdsRaw, taskStatusIdRaw, organizationId)
 
-    response.json({ success: true, ...result })
+    return wrapApiV1Data(result)
   }
 }

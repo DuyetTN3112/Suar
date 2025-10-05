@@ -130,6 +130,10 @@ export default class UpdateTaskDTO {
     return this.providedFields.has('project_id')
   }
 
+  public hasProjectSprintChange(): boolean {
+    return this.providedFields.has('project_sprint_id')
+  }
+
   public hasTimeTrackingChange(): boolean {
     return this.providedFields.has('estimated_time') || this.providedFields.has('actual_time')
   }
@@ -150,47 +154,55 @@ export default class UpdateTaskDTO {
     const updates: Record<string, unknown> = {}
 
     if (this.providedFields.has('title')) {
-      updates.title = this.title
+      updates['title'] = this.title
     }
 
     if (this.providedFields.has('description')) {
-      updates.description = this.description ?? null
+      updates['description'] = this.description ?? null
     }
 
     if (this.providedFields.has('label')) {
-      updates.label = this.label
+      updates['label'] = this.label
     }
 
     if (this.providedFields.has('priority')) {
-      updates.priority = this.priority
+      updates['priority'] = this.priority
+    }
+
+    if (this.providedFields.has('task_visibility')) {
+      updates['task_visibility'] = this.task_visibility
     }
 
     if (this.providedFields.has('assigned_to')) {
-      updates.assigned_to = this.assigned_to
+      updates['assigned_to'] = this.assigned_to
     }
 
     if (this.providedFields.has('due_date')) {
-      updates.due_date = this.due_date
+      updates['due_date'] = this.due_date
     }
 
     if (this.providedFields.has('parent_task_id')) {
-      updates.parent_task_id = this.parent_task_id
+      updates['parent_task_id'] = this.parent_task_id
     }
 
     if (this.providedFields.has('estimated_time')) {
-      updates.estimated_time = this.estimated_time
+      updates['estimated_time'] = this.estimated_time
     }
 
     if (this.providedFields.has('actual_time')) {
-      updates.actual_time = this.actual_time
+      updates['actual_time'] = this.actual_time
     }
 
     if (this.providedFields.has('project_id')) {
-      updates.project_id = this.project_id
+      updates['project_id'] = this.project_id
+    }
+
+    if (this.providedFields.has('project_sprint_id')) {
+      updates['project_sprint_id'] = this.project_sprint_id
     }
 
     if (this.providedFields.has('updated_by')) {
-      updates.updated_by = this.updated_by
+      updates['updated_by'] = this.updated_by
     }
 
     const richFields = [
@@ -266,6 +278,10 @@ export default class UpdateTaskDTO {
 
     if (this.hasProjectChange()) {
       changeMessages.push('dự án')
+    }
+
+    if (this.hasProjectSprintChange()) {
+      changeMessages.push('sprint')
     }
 
     return `Cập nhật task: ${changeMessages.join(', ')}`

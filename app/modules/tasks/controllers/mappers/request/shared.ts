@@ -7,7 +7,7 @@ import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constant
 export const TASKS_DEFAULT_LIMIT = 10
 
 const VALID_TASK_SORT_BY = new Set(['due_date', 'created_at', 'updated_at', 'title', 'priority'])
-const VALID_PUBLIC_TASK_SORT_BY = new Set(['created_at', 'budget', 'due_date'])
+const VALID_PUBLIC_TASK_SORT_BY = new Set(['created_at', 'due_date', 'recommended'])
 const VALID_APPLICATION_STATUSES = new Set<string>([...Object.values(ApplicationStatus), 'all'])
 
 export function toOptionalString(value: unknown): string | undefined {

@@ -1,12 +1,14 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-
 import { buildCreateTaskDTO } from './mappers/request/task_request_mapper.js'
 import { mapTaskCreateApiBody } from './mappers/response/task_response_mapper.js'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  actionContextFromHttp,
+  requireCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import {
   makeCreateTaskCommand,
   makeGetTaskCreatePageQuery,
@@ -18,28 +20,40 @@ import {
  */
 export default class CreateTaskController {
   async showForm(ctx: HttpContext) {
-    const organizationId = ctx.session.get('current_organization_id') as string | undefined
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const { session } = ctx
+    const organizationId = requireCurrentOrganizationId(ctx)
 
-    const selectedProjectId = ctx.request.input('project_id') as string | undefined
-    const { metadata } = await makeGetTaskCreatePageQuery(actionContextFromHttp(ctx)).execute({
+    const selectedProjectId =
+      (ctx.request.input('projectId') as string | undefined) ??
+      (ctx.request.input('project_id') as string | undefined) ??
+      (session.get('current_project_id') as string | undefined)
+    const { metadata } = await makeGetTaskCreatePageQuery(actionContextFromHttp(ctx)).execute(omitUndefined({
       organizationId,
       selectedProjectId,
-    })
+    }))
     return await ctx.inertia.render('tasks/create', { metadata })
   }
 
   async handle(ctx: HttpContext) {
     const { request, response, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const organizationId = requireCurrentOrganizationId(ctx)
 
-    const dto = await buildCreateTaskDTO(request, organizationId)
-    const task = await makeCreateTaskCommand(actionContextFromHttp(ctx)).execute(dto)
+    let task
+    try {
+      const dto = await buildCreateTaskDTO(request, organizationId)
+      task = await makeCreateTaskCommand(actionContextFromHttp(ctx)).execute(dto)
+    } catch (error) {
+      if (error instanceof BusinessLogicException && !request.accepts(['application/json'])) {
+        const message = error.message
+        session.flash('inputErrorsBag', {
+          [message.includes('Due date') ? 'due_date' : 'form']: message,
+        })
+        response.redirect().back()
+        return
+      }
+
+      throw error
+    }
 
     // SPA/API callers expect JSON to update UI immediately without full-page redirect.
     if (request.accepts(['application/json'])) {
@@ -48,6 +62,6 @@ export default class CreateTaskController {
     }
 
     session.flash('success', 'Nhiệm vụ đã được tạo thành công')
-    response.redirect().toRoute('tasks.show', { id: task.id })
+    response.redirect(`/tasks/${task.id}`)
   }
 }

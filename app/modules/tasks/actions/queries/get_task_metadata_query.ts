@@ -3,14 +3,15 @@
 import GetTaskProjectsQuery from './get_task_projects_query.js'
 
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
+import { listCanonicalProficiencyLevelOptions } from '#modules/skills/public_contracts/proficiency_framework'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
-
 
 /**
  * Query để lấy metadata cho task forms
@@ -42,9 +43,9 @@ export default class GetTaskMetadataQuery {
     }[]
     labels: { value: string; label: string }[]
     priorities: { value: string; label: string }[]
-    users: { id: string; username: string; email: string }[]
+    users: { id: string; username: string; email: string; avatar_url?: string | null }[]
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
-    availableSkills: { id: string; name: string }[]
+    availableSkills: { id: string; name: string; categoryCode: string | null }[]
     projects: { id: string; name: string }[]
     proficiencyLevels: { value: string; label: string }[]
   }> {
@@ -56,7 +57,7 @@ export default class GetTaskMetadataQuery {
     }
 
     // Try cache first
-    const cacheKey = `task:metadata:v2:org:${orgId}`
+    const cacheKey = `task:metadata:v3:org:${orgId}`
     const cached = await this.getFromCache(cacheKey)
     if (cached) {
       return cached
@@ -67,13 +68,17 @@ export default class GetTaskMetadataQuery {
     const priorities = this.loadPriorities()
 
     // Load async metadata in parallel
-    const [users, parentTasks, availableSkills, projects, proficiencyLevels] = await Promise.all([
+    const [users, parentTasks, availableSkills, projects] = await Promise.all([
       this.loadUsers(orgId),
       this.loadParentTasks(orgId),
       this.loadAvailableSkills(),
       new GetTaskProjectsQuery(this.taskExternalDependencies.project).execute(orgId),
-      this.taskExternalDependencies.skill.listActiveProficiencyLevels(),
     ])
+
+    const proficiencyLevels = listCanonicalProficiencyLevelOptions().map((level) => ({
+      value: level.value,
+      label: level.label,
+    }))
 
     const result = {
       statuses,
@@ -137,8 +142,11 @@ export default class GetTaskMetadataQuery {
    */
   private async loadUsers(
     organizationId: string
-  ): Promise<{ id: string; username: string; email: string }[]> {
-    return this.taskExternalDependencies.user.listUsersByOrganization(organizationId)
+  ): Promise<{ id: string; username: string; email: string; avatar_url?: string | null }[]> {
+    const users = await this.taskExternalDependencies.user.listUsersByOrganization(organizationId)
+    return users.map((user) =>
+      omitUndefined({ id: user.id, username: user.username, email: user.email, avatar_url: user.avatar_url })
+    )
   }
 
   /**
@@ -159,8 +167,16 @@ export default class GetTaskMetadataQuery {
   /**
    * Load active skills used for task required-skills selection.
    */
-  private async loadAvailableSkills(): Promise<{ id: string; name: string }[]> {
-    return this.taskExternalDependencies.skill.listActiveSkills()
+  private async loadAvailableSkills(): Promise<
+    { id: string; name: string; categoryCode: string | null }[]
+  > {
+    const skills = await this.taskExternalDependencies.skill.listActiveSkills()
+
+    return skills.map((skill) => ({
+      id: skill.id,
+      name: skill.name,
+      categoryCode: skill.category_code ?? null,
+    }))
   }
 
   /**
@@ -178,9 +194,9 @@ export default class GetTaskMetadataQuery {
     }[]
     labels: { value: string; label: string }[]
     priorities: { value: string; label: string }[]
-    users: { id: string; username: string; email: string }[]
+    users: { id: string; username: string; email: string; avatar_url?: string | null }[]
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
-    availableSkills: { id: string; name: string }[]
+    availableSkills: { id: string; name: string; categoryCode: string | null }[]
     projects: { id: string; name: string }[]
     proficiencyLevels: { value: string; label: string }[]
   } | null> {
@@ -197,9 +213,9 @@ export default class GetTaskMetadataQuery {
         }[]
         labels: { value: string; label: string }[]
         priorities: { value: string; label: string }[]
-        users: { id: string; username: string; email: string }[]
+        users: { id: string; username: string; email: string; avatar_url?: string | null }[]
         parentTasks: { id: string; title: string; task_status_id: string | null }[]
-        availableSkills: { id: string; name: string }[]
+        availableSkills: { id: string; name: string; categoryCode: string | null }[]
         projects: { id: string; name: string }[]
         proficiencyLevels: { value: string; label: string }[]
       }>(key)

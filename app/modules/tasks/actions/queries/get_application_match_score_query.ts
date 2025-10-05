@@ -1,13 +1,24 @@
 import db from '@adonisjs/lucid/services/db'
 
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { BaseQuery } from '#modules/tasks/actions/base_query'
+import {
+  hasOrganizationApplicationReviewRole,
+  hasProjectApplicationReviewRole,
+} from '#modules/tasks/actions/support/task_application_review_roles'
 import { calculateApplicantMatch, type MatchScoreResult } from '#modules/tasks/domain/match_formulas'
+import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
 
 interface TaskRow {
   business_domain: string
   problem_category: string
   task_type: string
+  project_id: string | null
+  organization_id: string | null
+  creator_id: string
+  assigned_to: string | null
 }
 
 interface AppRow {
@@ -20,7 +31,7 @@ interface UserRow {
 
 interface TaskRequiredSkillRow {
   skill_id: string
-  required_level_code: string
+  required_public_proficiency_code: string
   is_mandatory: boolean
   skill_name: string
   minimum_level_id: string | null
@@ -34,7 +45,7 @@ interface TaskRequiredSkillRow {
 
 interface UserSkillRow {
   skill_id: string
-  level_code: string
+  verified_public_proficiency_code: string
   source: string
 }
 
@@ -55,19 +66,49 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
   MatchScoreResult
 > {
   async handle(dto: GetApplicationMatchScoreDTO): Promise<MatchScoreResult> {
+    const userId = this.getCurrentUserId()
+    if (!userId) {
+      throw new ForbiddenException('Authentication required to view task application match score')
+    }
+
     const taskRow = (await db
       .from('tasks')
       .where('id', dto.task_id)
-      .select('business_domain', 'problem_category', 'task_type')
+      .select(
+        'business_domain',
+        'problem_category',
+        'task_type',
+        'project_id',
+        'organization_id',
+        'creator_id',
+        'assigned_to'
+      )
       .first()) as TaskRow | null
 
     if (!taskRow) {
       throw new NotFoundException('Task not found')
     }
 
+    const [isProjectOwnerOrManager, isOrganizationOwnerOrAdmin] = await Promise.all([
+      hasProjectApplicationReviewRole(userId, taskRow.project_id),
+      hasOrganizationApplicationReviewRole(userId, taskRow.organization_id),
+    ])
+
+    enforcePolicy(
+      canProcessApplication({
+        actorId: userId,
+        taskCreatorId: taskRow.creator_id,
+        action: 'reject',
+        isTaskAlreadyAssigned: taskRow.assigned_to !== null,
+        isProjectOwnerOrManager,
+        isOrganizationOwnerOrAdmin,
+      })
+    )
+
     const appRow = (await db
       .from('task_applications')
       .where('id', dto.application_id)
+      .where('task_id', dto.task_id)
       .select('applicant_id')
       .first()) as AppRow | null
 
@@ -91,7 +132,7 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
       .where('trs.task_id', dto.task_id)
       .select(
         'trs.skill_id',
-        'trs.required_level_code',
+        'trs.required_public_proficiency_code',
         'trs.is_mandatory',
         's.skill_name',
         'trs.minimum_level_id',
@@ -106,7 +147,7 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
     const userSkills = (await db
       .from('user_skills')
       .where('user_id', appRow.applicant_id)
-      .select('skill_id', 'level_code', 'source')) as UserSkillRow[]
+      .select('skill_id', 'verified_public_proficiency_code', 'source')) as UserSkillRow[]
 
     const workHistory = (await db
       .from('user_work_history')
@@ -122,7 +163,7 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
       {
         requiredSkills: requiredSkills.map((rs) => ({
           skill_id: rs.skill_id,
-          required_level_code: rs.required_level_code,
+          required_public_proficiency_code: rs.required_public_proficiency_code,
           is_mandatory: rs.is_mandatory,
           skill_name: rs.skill_name,
           minimumLevelId: rs.minimum_level_id,
@@ -140,7 +181,7 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
       {
         skills: userSkills.map((us) => ({
           skill_id: us.skill_id,
-          level_code: us.level_code,
+          verified_public_proficiency_code: us.verified_public_proficiency_code,
           source: us.source,
         })),
         workHistory: workHistory.map((wh) => ({
