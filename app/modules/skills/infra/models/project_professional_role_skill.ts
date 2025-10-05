@@ -2,6 +2,7 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
+import type { SkillImportance } from '#modules/skills/constants/skill_constants'
 import ProficiencyLevel from '#modules/skills/infra/models/proficiency_level'
 import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
 import ProjectSkill from '#modules/skills/infra/models/project_skill'
@@ -31,7 +32,7 @@ export default class ProjectProfessionalRoleSkill extends BaseModel {
   declare is_mandatory: boolean
 
   @column()
-  declare importance: 'low' | 'medium' | 'high' | 'critical'
+  declare importance: SkillImportance
 
   @column()
   declare weight: number

@@ -9,6 +9,8 @@ import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports
 import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/support/update_task_persistence_support'
 import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/support/update_task_post_commit_support'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
@@ -47,6 +49,7 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
     private taskExternalDependencies: TaskExternalDependencies,
     private createNotification: NotificationCreator,
     private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher(),
     private dependencies: UpdateTaskCommandDependencies = defaultDependencies
   ) {
     super(execCtx)
@@ -78,7 +81,8 @@ export default class UpdateTaskCommand extends BaseCommand<UpdateTaskCommandInpu
       input.dto,
       this.createNotification,
       this.taskExternalDependencies.user,
-      this.cache
+      this.cache,
+      this.taskEventPublisher
     )
     return await this.dependencies.taskRepository.findByIdWithDetailRecord(updateResult.task.id)
   }

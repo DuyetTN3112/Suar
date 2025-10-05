@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
@@ -8,8 +7,14 @@ import { BaseCommand } from '#modules/tasks/actions/base_command'
 import type { ProcessApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import { syncAssignment } from '#modules/tasks/actions/support/assignment_lifecycle_helper'
+import {
+  hasOrganizationApplicationReviewRole,
+  hasProjectApplicationReviewRole,
+} from '#modules/tasks/actions/support/task_application_review_roles'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
 import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
 import { ApplicationStatus, type AssignmentType } from '#modules/tasks/public_contracts/task_constants'
@@ -33,7 +38,8 @@ export default class ProcessApplicationCommand extends BaseCommand<
 > {
   constructor(
     execCtx: TaskActionContext,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {
     super(execCtx)
   }
@@ -58,20 +64,13 @@ export default class ProcessApplicationCommand extends BaseCommand<
         throw new NotFoundException('Application task context is missing')
       }
 
-      // Verify user has permission (task creator)
+      // Verify user has permission to review this marketplace application.
       const existingActiveAssignment = await TaskAssignmentRepository.findActiveByTask(task.id, trx)
 
-      // Check if user is project owner/manager for this task's project
-      let isProjectOwnerOrManager = false
-      if (task.project_id) {
-        const { default: ProjectMember } = await import('#modules/projects/infra/models/project_member')
-        const membership = await ProjectMember.query()
-          .where('project_id', task.project_id)
-          .where('user_id', userId)
-          .whereIn('project_role', ['project_owner', 'project_manager'])
-          .first()
-        isProjectOwnerOrManager = membership !== null
-      }
+      const [isProjectOwnerOrManager, isOrganizationOwnerOrAdmin] = await Promise.all([
+        hasProjectApplicationReviewRole(userId, task.project_id, trx),
+        hasOrganizationApplicationReviewRole(userId, task.organization_id, trx),
+      ])
 
       enforcePolicy(
         canProcessApplication({
@@ -80,6 +79,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
           action: dto.action,
           isTaskAlreadyAssigned: task.assigned_to !== null || existingActiveAssignment !== null,
           isProjectOwnerOrManager,
+          isOrganizationOwnerOrAdmin,
         })
       )
 
@@ -164,7 +164,7 @@ export default class ProcessApplicationCommand extends BaseCommand<
     })
 
     await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
-    void emitter.emit('task:application:reviewed', result.applicationReviewedEvent)
+    await this.taskEventPublisher.publishTaskApplicationReviewed(result.applicationReviewedEvent)
 
     return result.application
   }

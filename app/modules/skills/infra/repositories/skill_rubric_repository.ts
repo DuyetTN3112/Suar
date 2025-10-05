@@ -1,5 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { SKILL_RUBRIC_VERSION_STATUSES } from '#modules/skills/constants/skill_constants'
 import Skill from '#modules/skills/infra/models/skill'
 import SkillAlias from '#modules/skills/infra/models/skill_alias'
 import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
@@ -20,10 +21,7 @@ const querySkillRubricLevel = (trx?: TransactionClientContract) =>
 export const SkillRubricRepository = {
   // ── Skill ──
 
-  async findSkill(
-    id: string,
-    trx?: TransactionClientContract
-  ): Promise<Skill | null> {
+  async findSkill(id: string, trx?: TransactionClientContract): Promise<Skill | null> {
     return querySkill(trx).where('id', id).first()
   },
 
@@ -69,18 +67,18 @@ export const SkillRubricRepository = {
     skillId: string,
     trx?: TransactionClientContract
   ): Promise<SkillRubricVersion | null> {
-    return querySkillRubricVersion(trx).where('skill_id', skillId).where('status', 'draft').first()
+    return querySkillRubricVersion(trx)
+      .where('skill_id', skillId)
+      .where('status', SKILL_RUBRIC_VERSION_STATUSES.DRAFT)
+      .first()
   },
 
-  async findMaxVersionBySkill(
-    skillId: string,
-    trx?: TransactionClientContract
-  ): Promise<number> {
+  async findMaxVersionBySkill(skillId: string, trx?: TransactionClientContract): Promise<number> {
     const row = await querySkillRubricVersion(trx)
       .where('skill_id', skillId)
       .max('version as maxVersion')
       .first()
-    return (row?.$extras.maxversion ?? row?.$extras.maxVersion ?? 0) as number
+    return (row?.$extras['maxversion'] ?? row?.$extras['maxVersion'] ?? 0) as number
   },
 
   async findPublishedBySkill(
@@ -89,7 +87,7 @@ export const SkillRubricRepository = {
   ): Promise<SkillRubricVersion | null> {
     return querySkillRubricVersion(trx)
       .where('skill_id', skillId)
-      .where('status', 'published')
+      .where('status', SKILL_RUBRIC_VERSION_STATUSES.PUBLISHED)
       .whereNull('effective_to')
       .preload('levels', (q) => {
         void q.preload('level')
@@ -104,7 +102,7 @@ export const SkillRubricRepository = {
   ): Promise<SkillRubricVersion[]> {
     return querySkillRubricVersion(trx)
       .where('skill_id', skillId)
-      .where('status', 'published')
+      .where('status', SKILL_RUBRIC_VERSION_STATUSES.PUBLISHED)
       .whereNull('effective_to')
       .whereNot('id', excludeId)
   },
@@ -119,9 +117,9 @@ export const SkillRubricRepository = {
     const payload = {
       skill_id: skillId,
       version,
-      status: 'draft' as const,
-      created_by: createdBy,
-      change_summary: changeSummary,
+      status: SKILL_RUBRIC_VERSION_STATUSES.DRAFT,
+      ...(createdBy !== undefined ? { created_by: createdBy } : {}),
+      ...(changeSummary !== undefined ? { change_summary: changeSummary } : {}),
     }
     if (trx) {
       return SkillRubricVersion.create(payload, { client: trx })

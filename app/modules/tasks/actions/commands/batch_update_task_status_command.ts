@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
@@ -8,9 +7,11 @@ import UnauthorizedException from '#modules/http/exceptions/unauthorized_excepti
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { validateBatchStatusUpdate } from '#modules/tasks/domain/task_assignment_rules'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
@@ -30,7 +31,8 @@ import type { TaskRecord } from '#modules/tasks/types/task_records'
 export default class BatchUpdateTaskStatusCommand {
   constructor(
     protected execCtx: TaskActionContext,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {}
 
   async execute(
@@ -171,7 +173,7 @@ export default class BatchUpdateTaskStatusCommand {
       await trx.commit()
 
       for (const event of eventsToEmit) {
-        void emitter.emit('task:status:changed', {
+        await this.taskEventPublisher.publishTaskStatusChanged({
           taskId: event.task.id,
           assignedTo: event.task.assigned_to,
           oldStatus: event.oldStatus,

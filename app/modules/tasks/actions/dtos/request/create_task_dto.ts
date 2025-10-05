@@ -17,9 +17,11 @@ export interface CreateTaskCoreInput {
   description?: string
   label?: string
   priority?: string
+  task_visibility?: string
   assigned_to?: string
   due_date?: string | DateTime
   parent_task_id?: string
+  project_sprint_id?: string | null
   estimated_time?: number
   actual_time?: number
 }
@@ -64,13 +66,15 @@ export interface CreateTaskSpecificationInput {
  */
 export default class CreateTaskDTO {
   public readonly title: string
-  public readonly description?: string
+  public readonly description: string | undefined
   public readonly task_status_id: string
-  public readonly label?: string
-  public readonly priority?: string
-  public readonly assigned_to?: string
-  public readonly due_date?: DateTime
-  public readonly parent_task_id?: string
+  public readonly label: string | undefined
+  public readonly priority: string | undefined
+  public readonly task_visibility: string
+  public readonly assigned_to: string | undefined
+  public readonly due_date: DateTime | undefined
+  public readonly parent_task_id: string | undefined
+  public readonly project_sprint_id: string | null | undefined
   public readonly estimated_time: number
   public readonly actual_time: number
   public readonly project_id: string
@@ -80,20 +84,20 @@ export default class CreateTaskDTO {
   public readonly acceptance_criteria: string
   public readonly verification_method: string
   public readonly expected_deliverables: Record<string, unknown>[]
-  public readonly context_background?: string
-  public readonly impact_scope?: string
+  public readonly context_background: string | undefined
+  public readonly impact_scope: string | undefined
   public readonly tech_stack: string[]
-  public readonly environment?: string
-  public readonly collaboration_type?: string
-  public readonly complexity_notes?: string
+  public readonly environment: string | undefined
+  public readonly collaboration_type: string | undefined
+  public readonly complexity_notes: string | undefined
   public readonly measurable_outcomes: Record<string, unknown>[]
   public readonly learning_objectives: string[]
   public readonly domain_tags: string[]
-  public readonly role_in_task?: string
-  public readonly autonomy_level?: string
-  public readonly problem_category?: string
-  public readonly business_domain?: string
-  public readonly estimated_users_affected?: number
+  public readonly role_in_task: string | undefined
+  public readonly autonomy_level: string | undefined
+  public readonly problem_category: string | undefined
+  public readonly business_domain: string | undefined
+  public readonly estimated_users_affected: number | undefined
 
   static fromCore(
     core: CreateTaskCoreInput,
@@ -125,9 +129,11 @@ export default class CreateTaskDTO {
     this.task_status_id = state.task_status_id
     this.label = state.label
     this.priority = state.priority
+    this.task_visibility = state.task_visibility
     this.assigned_to = state.assigned_to
     this.due_date = state.due_date
     this.parent_task_id = state.parent_task_id
+    this.project_sprint_id = state.project_sprint_id
     this.estimated_time = state.estimated_time
     this.actual_time = state.actual_time
     this.project_id = state.project_id
@@ -198,9 +204,11 @@ export default class CreateTaskDTO {
       task_status_id: this.task_status_id,
       label: this.label ?? null,
       priority: this.priority ?? null,
+      task_visibility: this.task_visibility,
       assigned_to: this.assigned_to ?? null,
       due_date: this.due_date ?? null,
       parent_task_id: this.parent_task_id ?? null,
+      project_sprint_id: this.project_sprint_id ?? null,
       estimated_time: this.estimated_time,
       actual_time: this.actual_time,
       project_id: this.project_id,

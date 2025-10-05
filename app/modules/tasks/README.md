@@ -2,7 +2,7 @@
 
 ### Kiến trúc lõi & Phân tích nghiệp vụ
 - **Task Workflow**: Dựa trên cấu trúc trạng thái động `task_status_id` (trỏ tới bảng `task_statuses`). Cột `status` cũ trong bảng `tasks` được coi là legacy và chỉ dùng để duy trì tương thích ngược.
-- **Required Skills**: Mỗi task quy định kĩ năng tối thiểu (`minimum_required_level`) và mức trần đánh giá (`assessment_ceiling_level`). Thông tin này được snapshot lại theo phiên bản khi task bắt đầu (`task_requirement_versions`).
+- **Required Skills**: Mỗi task quy định kĩ năng tối thiểu (`minimum_required_level`) và mức trần đánh giá (`assessment_ceiling_level`). Runtime hiện enforce tối thiểu 1 required skill cho từng nhóm canonical `technology`, `engineering`, `soft_skill`, `delivery`; thông tin này được snapshot lại theo phiên bản khi task bắt đầu (`task_requirement_versions`).
 - **Task Submission & Evidence**: Giao nộp kết quả công việc qua submission package (`task_submissions` và `task_submission_evidences`), cho phép tải lên URL bằng chứng thực tế và khóa lại (`locked`) để ngăn chặn chỉnh sửa sau khi nộp.
 
 ## Module Path
@@ -17,11 +17,11 @@ app/modules/tasks
 ./ README.md index.ts
 actions/ base_command.ts base_query.ts interfaces.ts public_api.ts result.ts task_action_context.ts
 actions/bootstrap/ org_task_bootstrap.ts
-actions/commands/ add_task_submission_evidence_command.ts apply_for_task_command.ts assign_task_command.ts batch_update_task_status_command.ts create_task_assignment_snapshot_command.ts create_task_attachment_command.ts create_task_command.ts create_task_comment_command.ts create_task_status_command.ts delete_task_attachment_command.ts delete_task_command.ts delete_task_comment_command.ts delete_task_status_command.ts delete_task_submission_evidence_command.ts patch_task_status_board_poc_command.ts process_application_command.ts revoke_task_access_command.ts seed_default_task_statuses.ts submit_task_submission_command.ts task_completion_package_access.ts update_task_command.ts update_task_sort_order_command.ts update_task_status_command.ts update_task_status_definition_command.ts update_task_time_command.ts update_workflow_command.ts withdraw_application_command.ts
+actions/commands/ add_task_submission_evidence_command.ts apply_for_task_command.ts assign_task_command.ts batch_update_task_status_command.ts create_task_assignment_snapshot_command.ts create_task_attachment_command.ts create_task_command.ts create_task_comment_command.ts create_task_status_command.ts delete_task_attachment_command.ts delete_task_command.ts delete_task_status_command.ts delete_task_submission_evidence_command.ts patch_task_status_board_poc_command.ts process_application_command.ts replace_task_workflow_transitions_command.ts revoke_task_access_command.ts seed_default_task_statuses.ts submit_task_submission_command.ts task_completion_package_access.ts update_task_command.ts update_task_sort_order_command.ts update_task_status_command.ts update_task_status_definition_command.ts update_task_time_command.ts withdraw_application_command.ts
 actions/dtos/request/ assign_task_dto.ts create_task_dto.ts create_task_dto_state_builder.ts delete_task_dto.ts get_task_detail_dto.ts get_tasks_list_dto.ts task_application_dtos.ts task_status_dtos.ts update_task_dto.ts update_task_dto_payload_builder.ts update_task_status_dto.ts update_task_time_dto.ts
 actions/dtos/response/ task_response_dtos.ts
 actions/listeners/ task_completion_listener.ts
-actions/mapper/ task_application_mapper.ts task_query_output_mapper.ts
+actions/mapper/ task_dto_mapper.ts task_query_output_mapper.ts
 actions/ports/ task_assignment_command_repository_port.ts task_cache_port.ts task_command_repository_port.ts task_external_dependencies.ts task_public_api_repository_port.ts task_public_api_repository_port_impl.ts task_query_repository_port.ts task_status_query_repository_port.ts
 actions/queries/ check_task_create_permission_query.ts get_application_match_score_query.ts get_my_applications_query.ts get_public_tasks_query.ts get_task_applications_query.ts get_task_applications_ranking_query.ts get_task_audit_logs_query.ts get_task_create_page_query.ts get_task_detail_query.ts get_task_edit_page_query.ts get_task_metadata_query.ts get_task_projects_query.ts get_task_statistics_query.ts get_task_status_board_page_query.ts get_tasks_grouped_query.ts get_tasks_index_page_query.ts get_tasks_list_query.ts get_tasks_page_query.ts get_tasks_timeline_query.ts get_user_tasks_query.ts list_task_statuses_query.ts list_workflow_query.ts
 actions/services/ task_public_api.ts task_requirement_version_service.ts task_skill_requirement_service.ts
@@ -33,8 +33,7 @@ application/ports/ task_actor_lookup.ts task_event_publisher.ts task_organizatio
 bootstrap/adapters/ monolith_task_org_reader.ts monolith_task_permission_reader.ts monolith_task_project_reader.ts monolith_task_review_reader.ts monolith_task_skill_reader.ts monolith_task_user_reader.ts
 bootstrap/ task_action_factory.ts task_composition_root.ts
 constants/ task_constants.ts
-controllers/ apply_for_task_api_controller.ts apply_for_task_controller.ts batch_update_task_status_controller.ts check_create_permission_controller.ts create_task_controller.ts create_task_status_controller.ts delete_task_controller.ts delete_task_status_controller.ts edit_task_controller.ts get_task_audit_logs_controller.ts list_public_tasks_api_controller.ts list_public_tasks_controller.ts list_task_applications_controller.ts list_task_statuses_controller.ts list_tasks_controller.ts list_tasks_grouped_controller.ts list_tasks_timeline_controller.ts list_workflow_controller.ts match_scores_controller.ts my_applications_controller.ts patch_task_status_board_poc_controller.ts process_application_controller.ts show_task_controller.ts show_task_status_board_controller.ts task_command_initializers.ts task_submission_controller.ts update_task_sort_order_controller.ts update_task_status_controller.ts update_task_status_definition_controller.ts update_task_time_controller.ts update_workflow_controller.ts withdraw_application_controller.ts
-controllers/mappers/request/ shared.ts task_application_request_mapper.ts task_request_mapper.ts task_status_request_mapper.ts
+controllers/ batch_update_task_status_controller.ts check_create_permission_controller.ts create_task_controller.ts create_task_status_controller.ts delete_task_controller.ts delete_task_status_controller.ts edit_task_controller.ts get_task_audit_logs_controller.ts list_task_statuses_controller.ts list_tasks_controller.ts list_tasks_grouped_controller.ts list_tasks_timeline_controller.ts list_workflow_controller.ts patch_task_status_board_poc_controller.ts replace_task_workflow_transitions_controller.ts show_task_controller.ts show_task_status_board_controller.ts task_command_initializers.ts task_submission_controller.ts update_task_sort_order_controller.ts update_task_status_controller.ts update_task_status_definition_controller.ts update_task_time_controller.ts controllers/mappers/request/ shared.ts task_application_request_mapper.ts task_request_mapper.ts task_status_request_mapper.ts
 controllers/mappers/response/ public_task_response_mapper.ts shared.ts task_application_response_mapper.ts task_response_mapper.ts task_status_response_mapper.ts
 controllers/mappers/ task_actor_context_mapper.ts
 controllers/v1/ add_task_requirement_controller.ts create_task_status_controller.ts delete_task_status_controller.ts list_task_requirement_versions_controller.ts list_task_requirements_controller.ts list_task_statuses_controller.ts prefill_task_requirements_from_role_controller.ts remove_task_requirement_controller.ts show_task_status_controller.ts update_task_requirement_controller.ts update_task_status_controller.ts
@@ -115,7 +114,7 @@ start/routes/tasks.ts
 | class | `UpdateTaskStatusCommand` | `app/modules/tasks/actions/commands/update_task_status_command.ts` | 52 |
 | class | `UpdateTaskStatusDefinitionCommand` | `app/modules/tasks/actions/commands/update_task_status_definition_command.ts` | 26 |
 | class | `UpdateTaskTimeCommand` | `app/modules/tasks/actions/commands/update_task_time_command.ts` | 38 |
-| class | `UpdateWorkflowCommand` | `app/modules/tasks/actions/commands/update_workflow_command.ts` | 26 |
+| class | `ReplaceTaskWorkflowTransitionsCommand` | `app/modules/tasks/actions/commands/replace_task_workflow_transitions_command.ts` | 26 |
 | class | `WithdrawApplicationCommand` | `app/modules/tasks/actions/commands/withdraw_application_command.ts` | 20 |
 | class | `AssignTaskDTO` | `app/modules/tasks/actions/dtos/request/assign_task_dto.ts` | 17 |
 | interface | `CreateTaskCoreInput` | `app/modules/tasks/actions/dtos/request/create_task_dto.ts` | 11 |
@@ -150,7 +149,7 @@ start/routes/tasks.ts
 | interface | `QueryHandler` | `app/modules/tasks/actions/interfaces.ts` | 22 |
 | interface | `Command` | `app/modules/tasks/actions/interfaces.ts` | 36 |
 | interface | `Query` | `app/modules/tasks/actions/interfaces.ts` | 43 |
-| class | `TaskApplicationMapper` | `app/modules/tasks/actions/mapper/task_application_mapper.ts` | 21 |
+| class | `TaskDtoMapper` | `app/modules/tasks/actions/mapper/task_dto_mapper.ts` | 21 |
 | type | `TaskQueryRecord` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 5 |
 | type | `TaskListQueryRecord` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 10 |
 | function | `mapTaskDetailOutput` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 40 |
@@ -301,8 +300,6 @@ start/routes/tasks.ts
 | enum | `ApplicationSource` | `app/modules/tasks/constants/task_constants.ts` | 262 |
 | enum | `AssignmentStatus` | `app/modules/tasks/constants/task_constants.ts` | 276 |
 | enum | `AssignmentType` | `app/modules/tasks/constants/task_constants.ts` | 286 |
-| class | `ApplyForTaskApiController` | `app/modules/tasks/controllers/apply_for_task_api_controller.ts` | 14 |
-| class | `ApplyForTaskController` | `app/modules/tasks/controllers/apply_for_task_controller.ts` | 11 |
 | class | `BatchUpdateTaskStatusController` | `app/modules/tasks/controllers/batch_update_task_status_controller.ts` | 12 |
 | class | `CheckCreatePermissionController` | `app/modules/tasks/controllers/check_create_permission_controller.ts` | 10 |
 | class | `CreateTaskController` | `app/modules/tasks/controllers/create_task_controller.ts` | 19 |
@@ -311,9 +308,6 @@ start/routes/tasks.ts
 | class | `DeleteTaskStatusController` | `app/modules/tasks/controllers/delete_task_status_controller.ts` | 16 |
 | class | `EditTaskController` | `app/modules/tasks/controllers/edit_task_controller.ts` | 22 |
 | class | `GetTaskAuditLogsController` | `app/modules/tasks/controllers/get_task_audit_logs_controller.ts` | 11 |
-| class | `ListPublicTasksApiController` | `app/modules/tasks/controllers/list_public_tasks_api_controller.ts` | 13 |
-| class | `ListPublicTasksController` | `app/modules/tasks/controllers/list_public_tasks_controller.ts` | 13 |
-| class | `ListTaskApplicationsController` | `app/modules/tasks/controllers/list_task_applications_controller.ts` | 13 |
 | class | `ListTaskStatusesController` | `app/modules/tasks/controllers/list_task_statuses_controller.ts` | 11 |
 | class | `ListTasksController` | `app/modules/tasks/controllers/list_tasks_controller.ts` | 16 |
 | class | `ListTasksGroupedController` | `app/modules/tasks/controllers/list_tasks_grouped_controller.ts` | 12 |
@@ -351,12 +345,12 @@ start/routes/tasks.ts
 | function | `mapPublicTaskCollectionResponse` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 19 |
 | function | `mapPublicTasksPageProps` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 25 |
 | function | `mapPublicTasksApiBody` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 44 |
-| type | `ResponseRecord` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 1 |
-| interface | `SerializableResponseRecord` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 3 |
-| interface | `PaginationMeta` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 7 |
-| interface | `PaginatedControllerResult` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 14 |
-| function | `serializeForResponse` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 31 |
-| function | `serializeCollectionForResponse` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 41 |
+| type | `SerializedModelRecord` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 1 |
+| interface | `SerializableModelRecord` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 3 |
+| interface | `PaginationMeta` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 7 |
+| interface | `PaginatedControllerResult` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 14 |
+| function | `serializeModelForHttpResponse` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 31 |
+| function | `serializeModelCollectionForHttpResponse` | `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts` | 41 |
 | function | `mapApplyForTaskApiBody` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 101 |
 | function | `mapTaskApplicationsPageProps` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 108 |
 | function | `mapMyApplicationsPageProps` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 121 |
@@ -376,10 +370,7 @@ start/routes/tasks.ts
 | function | `mapTaskStatusDeleteApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 26 |
 | function | `mapWorkflowUpdateApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 30 |
 | function | `taskActorContextFromHttp` | `app/modules/tasks/controllers/mappers/task_actor_context_mapper.ts` | 6 |
-| class | `MatchScoresController` | `app/modules/tasks/controllers/match_scores_controller.ts` | 7 |
-| class | `MyApplicationsController` | `app/modules/tasks/controllers/my_applications_controller.ts` | 13 |
 | class | `PatchTaskStatusBoardPocController` | `app/modules/tasks/controllers/patch_task_status_board_poc_controller.ts` | 14 |
-| class | `ProcessApplicationController` | `app/modules/tasks/controllers/process_application_controller.ts` | 11 |
 | class | `ShowTaskController` | `app/modules/tasks/controllers/show_task_controller.ts` | 14 |
 | class | `ShowTaskStatusBoardController` | `app/modules/tasks/controllers/show_task_status_board_controller.ts` | 12 |
 | class | `TaskSubmissionController` | `app/modules/tasks/controllers/task_submission_controller.ts` | 56 |
@@ -387,7 +378,7 @@ start/routes/tasks.ts
 | class | `UpdateTaskStatusController` | `app/modules/tasks/controllers/update_task_status_controller.ts` | 15 |
 | class | `UpdateTaskStatusDefinitionController` | `app/modules/tasks/controllers/update_task_status_definition_controller.ts` | 16 |
 | class | `UpdateTaskTimeController` | `app/modules/tasks/controllers/update_task_time_controller.ts` | 12 |
-| class | `UpdateWorkflowController` | `app/modules/tasks/controllers/update_workflow_controller.ts` | 16 |
+| class | `ReplaceTaskWorkflowTransitionsController` | `app/modules/tasks/controllers/replace_task_workflow_transitions_controller.ts` | 16 |
 | class | `AddTaskRequirementController` | `app/modules/tasks/controllers/v1/add_task_requirement_controller.ts` | 25 |
 | class | `CreateTaskStatusController` | `app/modules/tasks/controllers/v1/create_task_status_controller.ts` | 27 |
 | class | `DeleteTaskStatusController` | `app/modules/tasks/controllers/v1/delete_task_status_controller.ts` | 10 |
@@ -399,7 +390,6 @@ start/routes/tasks.ts
 | class | `ShowTaskStatusController` | `app/modules/tasks/controllers/v1/show_task_status_controller.ts` | 9 |
 | class | `UpdateTaskRequirementController` | `app/modules/tasks/controllers/v1/update_task_requirement_controller.ts` | 22 |
 | class | `UpdateTaskStatusController` | `app/modules/tasks/controllers/v1/update_task_status_controller.ts` | 51 |
-| class | `WithdrawApplicationController` | `app/modules/tasks/controllers/withdraw_application_controller.ts` | 11 |
 | type | `TaskStatus` | `app/modules/tasks/domain/entities/task_entity.ts` | 9 |
 | type | `TaskLabel` | `app/modules/tasks/domain/entities/task_entity.ts` | 10 |
 | type | `TaskPriority` | `app/modules/tasks/domain/entities/task_entity.ts` | 11 |
@@ -519,15 +509,15 @@ start/routes/tasks.ts
 | const | `paginateOrganizationTasks` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 270 |
 | const | `paginatePublicTasks` | `app/modules/tasks/infra/repositories/read/public_queries.ts` | 9 |
 | const | `paginatePublicTasksAsRecords` | `app/modules/tasks/infra/repositories/read/public_queries.ts` | 113 |
-| const | `LEGACY_TASK_STATUS` | `app/modules/tasks/infra/repositories/read/shared.ts` | 6 |
-| const | `TERMINAL_TASK_STATUS_VALUES` | `app/modules/tasks/infra/repositories/read/shared.ts` | 13 |
-| const | `STATUS_CATEGORY_SQL` | `app/modules/tasks/infra/repositories/read/shared.ts` | 18 |
-| const | `getRecordField` | `app/modules/tasks/infra/repositories/read/shared.ts` | 24 |
-| const | `getExtraField` | `app/modules/tasks/infra/repositories/read/shared.ts` | 31 |
-| const | `toNumberValue` | `app/modules/tasks/infra/repositories/read/shared.ts` | 39 |
-| type | `TaskPermissionFilter` | `app/modules/tasks/infra/repositories/read/shared.ts` | 50 |
-| const | `applyPermissionFilter` | `app/modules/tasks/infra/repositories/read/shared.ts` | 56 |
-| const | `baseQuery` | `app/modules/tasks/infra/repositories/read/shared.ts` | 77 |
+| const | `LEGACY_TASK_STATUS` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 6 |
+| const | `TERMINAL_TASK_STATUS_VALUES` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 13 |
+| const | `STATUS_CATEGORY_SQL` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 18 |
+| const | `readTaskModelField` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 24 |
+| const | `readTaskModelExtraField` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 31 |
+| const | `toNumberValue` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 39 |
+| type | `TaskPermissionFilter` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 50 |
+| const | `applyPermissionFilter` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 56 |
+| const | `makeTaskReadQuery` | `app/modules/tasks/infra/repositories/read/task_read_query_helpers.ts` | 77 |
 | const | `getStatisticsByOrganization` | `app/modules/tasks/infra/repositories/read/statistics_queries.ts` | 138 |
 | const | `taskDetailQueryRepository` | `app/modules/tasks/infra/repositories/read/task_detail_query_repository.ts` | 7 |
 | const | `taskIdentityQueryRepository` | `app/modules/tasks/infra/repositories/read/task_identity_query_repository.ts` | 6 |
@@ -1072,7 +1062,7 @@ import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mut
 import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
 ```
 
-### `app/modules/tasks/actions/commands/update_workflow_command.ts`
+### `app/modules/tasks/actions/commands/replace_task_workflow_transitions_command.ts`
 
 ```ts
 import db from '@adonisjs/lucid/services/db'
@@ -1216,7 +1206,7 @@ import type { TaskStatusChangedEvent } from '#modules/tasks/events/task_events'
 import { taskAssignmentCommandRepository } from '#modules/tasks/infra/repositories/write/task_assignment_command_repository'
 ```
 
-### `app/modules/tasks/actions/mapper/task_application_mapper.ts`
+### `app/modules/tasks/actions/mapper/task_dto_mapper.ts`
 
 ```ts
 import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
@@ -1439,7 +1429,7 @@ import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task
 import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 import * as statisticsQueries from '#modules/tasks/infra/repositories/read/statistics_queries'
 ```
 
@@ -1463,7 +1453,7 @@ import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 ```
@@ -1493,7 +1483,7 @@ import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 ```
 
 ### `app/modules/tasks/actions/queries/get_tasks_page_query.ts`
@@ -1518,7 +1508,7 @@ import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support
 import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 ```
 
@@ -1677,7 +1667,7 @@ import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_ass
 ```ts
 import { resolveTaskCollectionReadScope } from '#modules/tasks/domain/task_permission_policy'
 import type { TaskCollectionScopeFallback } from '#modules/tasks/domain/task_types'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 ```
 
 ### `app/modules/tasks/actions/support/task_required_skill_persistence.ts`
@@ -1743,26 +1733,6 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 
 ```ts
 // no imports
-```
-
-### `app/modules/tasks/controllers/apply_for_task_api_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
-import { mapApplyForTaskApiBody } from './mappers/response/task_application_response_mapper.js'
-import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import { makeApplyForTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
-```
-
-### `app/modules/tasks/controllers/apply_for_task_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import { makeApplyForTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
 ```
 
 ### `app/modules/tasks/controllers/batch_update_task_status_controller.ts`
@@ -1860,7 +1830,7 @@ import { buildGetTaskAuditLogsInput } from './mappers/request/task_request_mappe
 import GetTaskAuditLogsQuery from '#modules/tasks/actions/queries/get_task_audit_logs_query'
 ```
 
-### `app/modules/tasks/controllers/list_public_tasks_api_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -1870,7 +1840,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
 ```
 
-### `app/modules/tasks/controllers/list_public_tasks_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -1880,7 +1850,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
 ```
 
-### `app/modules/tasks/controllers/list_task_applications_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2023,11 +1993,11 @@ import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constan
 ### `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts`
 
 ```ts
-import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeCollectionForResponse } from './shared.js'
+import type { PaginationMeta, SerializedModelRecord, SerializableModelRecord } from './shared.js'
+import { serializeModelCollectionForHttpResponse } from './shared.js'
 ```
 
-### `app/modules/tasks/controllers/mappers/response/shared.ts`
+### `app/modules/tasks/controllers/mappers/response/model_response_serialization.ts`
 
 ```ts
 // no imports
@@ -2036,22 +2006,22 @@ import { serializeCollectionForResponse } from './shared.js'
 ### `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts`
 
 ```ts
-import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeForResponse } from './shared.js'
+import type { PaginationMeta, SerializedModelRecord, SerializableModelRecord } from './shared.js'
+import { serializeModelForHttpResponse } from './shared.js'
 ```
 
 ### `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts`
 
 ```ts
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeForResponse } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './shared.js'
+import { serializeModelForHttpResponse } from './shared.js'
 ```
 
 ### `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts`
 
 ```ts
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
-import { serializeForResponse } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './shared.js'
+import { serializeModelForHttpResponse } from './shared.js'
 ```
 
 ### `app/modules/tasks/controllers/mappers/task_actor_context_mapper.ts`
@@ -2062,7 +2032,7 @@ import UnauthorizedException from '#modules/http/exceptions/unauthorized_excepti
 import type { TaskActorContext } from '#modules/tasks/application/context/task_actor_context'
 ```
 
-### `app/modules/tasks/controllers/match_scores_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2071,7 +2041,7 @@ import GetApplicationMatchScoreQuery from '#modules/tasks/actions/queries/get_ap
 import GetTaskApplicationsRankingQuery from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
 ```
 
-### `app/modules/tasks/controllers/my_applications_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2092,7 +2062,7 @@ import BusinessLogicException from '#modules/http/exceptions/business_logic_exce
 import { makePatchTaskStatusBoardPocCommand } from '#modules/tasks/bootstrap/task_action_factory'
 ```
 
-### `app/modules/tasks/controllers/process_application_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2201,7 +2171,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import { makeUpdateTaskTimeCommand } from '#modules/tasks/bootstrap/task_action_factory'
 ```
 
-### `app/modules/tasks/controllers/update_workflow_controller.ts`
+### `app/modules/tasks/controllers/replace_task_workflow_transitions_controller.ts`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2210,7 +2180,7 @@ import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_respons
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UpdateWorkflowCommand from '#modules/tasks/actions/commands/update_workflow_command'
+import ReplaceTaskWorkflowTransitionsCommand from '#modules/tasks/actions/commands/replace_task_workflow_transitions_command'
 ```
 
 ### `app/modules/tasks/controllers/v1/add_task_requirement_controller.ts`
@@ -2314,7 +2284,7 @@ import UpdateTaskStatusDefinitionCommand from '#modules/tasks/actions/commands/u
 import { UpdateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
 ```
 
-### `app/modules/tasks/controllers/withdraw_application_controller.ts`
+### `app/modules/tasks/controllers/`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -2349,25 +2319,6 @@ const GetTaskAuditLogsController = () =>
   import('#modules/tasks/controllers/get_task_audit_logs_controller')
 const TaskSubmissionController = () =>
   import('#modules/tasks/controllers/task_submission_controller')
-const MatchScoresController = () =>
-  import('#modules/tasks/controllers/match_scores_controller')
-
-// Task Application use-case controllers
-const ListTaskApplicationsController = () =>
-  import('#modules/tasks/controllers/list_task_applications_controller')
-const ApplyForTaskController = () => import('#modules/tasks/controllers/apply_for_task_controller')
-const ProcessApplicationController = () =>
-  import('#modules/tasks/controllers/process_application_controller')
-const WithdrawApplicationController = () =>
-  import('#modules/tasks/controllers/withdraw_application_controller')
-const MyApplicationsController = () =>
-  import('#modules/tasks/controllers/my_applications_controller')
-const ListPublicTasksController = () =>
-  import('#modules/tasks/controllers/list_public_tasks_controller')
-const ListPublicTasksApiController = () =>
-  import('#modules/tasks/controllers/list_public_tasks_api_controller')
-const ApplyForTaskApiController = () =>
-  import('#modules/tasks/controllers/apply_for_task_api_controller')
 const CheckCreatePermissionController = () =>
   import('#modules/tasks/controllers/check_create_permission_controller')
 const ListTasksGroupedController = () =>
@@ -2391,8 +2342,8 @@ const UpdateTaskStatusDefinitionController = () =>
 const DeleteTaskStatusController = () =>
   import('#modules/tasks/controllers/delete_task_status_controller')
 const ListWorkflowController = () => import('#modules/tasks/controllers/list_workflow_controller')
-const UpdateWorkflowController = () =>
-  import('#modules/tasks/controllers/update_workflow_controller')
+const ReplaceTaskWorkflowTransitionsController = () =>
+  import('#modules/tasks/controllers/replace_task_workflow_transitions_controller')
 
 router
   .group(() => {
@@ -2412,7 +2363,7 @@ router
       .as('api.tasks.batch_status')
     router
       .patch('/api/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
-      .as('api.tasks.status_board')
+      .as('api.tasks.board_state.show')
     router
       .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
       .as('api.tasks.sort_order')
@@ -2483,7 +2434,7 @@ router
     router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
     router
       .get('/tasks/status-board', [ShowTaskStatusBoardController, 'handle'])
-      .as('tasks.status_board')
+      .as('tasks.board_state.show')
     router.post('/tasks', [CreateTaskController, 'handle']).as('tasks.store')
     router.get('/tasks/:id', [ShowTaskController, 'handle']).as('tasks.show')
     router.get('/tasks/:id/edit', [EditTaskController, 'showForm']).as('tasks.edit')
@@ -2497,30 +2448,6 @@ router
     router
       .get('/tasks/:id/audit-logs', [GetTaskAuditLogsController, 'handle'])
       .as('tasks.audit_logs')
-
-    // Task Applications - for project owners
-    router
-      .get('/tasks/:taskId/applications', [ListTaskApplicationsController, 'handle'])
-      .as('tasks.applications')
-    router.post('/tasks/:taskId/apply', [ApplyForTaskController, 'handle']).as('tasks.apply')
-
-    router
-      .get('/api/tasks/:taskId/applications/:applicationId/match', [MatchScoresController, 'show'])
-      .as('api.tasks.applications.match')
-    router
-      .get('/api/tasks/:taskId/applications/ranking', [MatchScoresController, 'ranking'])
-      .as('api.tasks.applications.ranking')
-
-    // Application processing
-    router
-      .post('/applications/:id/process', [ProcessApplicationController, 'handle'])
-      .as('applications.process')
-    router
-      .post('/applications/:id/withdraw', [WithdrawApplicationController, 'handle'])
-      .as('applications.withdraw')
-
-    // My applications - for freelancers
-    router.get('/my-applications', [MyApplicationsController, 'handle']).as('applications.mine')
 
     // ── Task Status CRUD (Phase 4) ──────────────────────────────────────
     router
@@ -2538,22 +2465,11 @@ router
 
     // ── Workflow Transitions (Phase 4) ──────────────────────────────────
     router.get('/api/workflow', [ListWorkflowController, 'handle']).as('api.workflow.index')
-    router.put('/api/workflow', [UpdateWorkflowController, 'handle']).as('api.workflow.update')
+    router
+      .put('/api/workflow', [ReplaceTaskWorkflowTransitionsController, 'handle'])
+      .as('api.workflow.update')
   })
   .use([middleware.auth(), middleware.requireOrg(), throttle])
-
-// Marketplace routes - public tasks for freelancers
-router
-  .group(() => {
-    router.get('/marketplace/tasks', [ListPublicTasksController, 'handle']).as('marketplace.tasks')
-    router
-      .get('/api/marketplace/tasks', [ListPublicTasksApiController, 'handle'])
-      .as('api.marketplace.tasks')
-    router
-      .post('/api/tasks/:taskId/apply', [ApplyForTaskApiController, 'handle'])
-      .as('api.tasks.apply')
-  })
-  .use([middleware.auth()])
 
 ```
 
@@ -2580,7 +2496,7 @@ import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
 /**
  * ApplyForTaskCommand
  *
- * Allows a freelancer to apply for a public task.
+ * Allows a external_contributor to apply for a public task.
  *
  * Pattern: FETCH → DECIDE → PERSIST
  */
@@ -2634,7 +2550,6 @@ export default class ApplyForTaskCommand extends BaseCommand<
           application_status: ApplicationStatus.PENDING,
           application_source: dto.application_source,
           message: dto.message,
-          expected_rate: dto.expected_rate,
           portfolio_links: dto.portfolio_links,
         },
         trx
@@ -2658,7 +2573,6 @@ export default class ApplyForTaskCommand extends BaseCommand<
           new_values: {
             task_id: dto.task_id,
             task_title: task.title,
-            expected_rate: dto.expected_rate,
           },
         })
       }
@@ -2725,7 +2639,7 @@ interface PersistedTaskAssignment {
  *
  * Business Rules:
  * - Assign/Reassign/Unassign
- * - User phải thuộc cùng organization hoặc là freelancer
+ * - User phải thuộc cùng organization hoặc là external_contributor
  * - Notification gửi cho assignee mới (và có thể old assignee)
  * - Audit log đầy đủ
  *
@@ -2793,7 +2707,7 @@ export default class AssignTaskCommand {
       task.organization_id,
       trx
     )
-    const isFreelancer = await this.taskExternalDependencies.user.isFreelancer(
+    const isExternalContributor = await this.taskExternalDependencies.user.isExternalContributor(
       dto.assigned_to,
       trx
     )
@@ -2801,7 +2715,7 @@ export default class AssignTaskCommand {
     enforcePolicy(
       validateAssignee({
         isOrgMember: isMember,
-        isFreelancer,
+        isExternalContributor,
         taskVisibility: task.task_visibility ?? 'public',
       })
     )

@@ -11,36 +11,39 @@ import {
  * DTO cho việc cập nhật task
  */
 export default class UpdateTaskDTO {
-  public readonly title?: string
-  public readonly description?: string
-  public readonly label?: string | null
-  public readonly priority?: string | null
-  public readonly assigned_to?: string | null
-  public readonly due_date?: DateTime | null
-  public readonly parent_task_id?: string | null
-  public readonly estimated_time?: number
-  public readonly actual_time?: number
-  public readonly project_id?: string
-  public readonly updated_by?: string
+  public readonly title: string | undefined
+  public readonly description: string | undefined
+  public readonly label: string | null | undefined
+  public readonly priority: string | null | undefined
+  public readonly task_visibility: string | undefined
+  public readonly assigned_to: string | null | undefined
+  public readonly due_date: DateTime | null | undefined
+  public readonly parent_task_id: string | null | undefined
+  public readonly estimated_time: number | undefined
+  public readonly actual_time: number | undefined
+  public readonly project_id: string | undefined
+  public readonly project_sprint_id: string | null | undefined
+  public readonly updated_by: string | undefined
+  public readonly expected_updated_at: string | undefined
 
-  public readonly task_type?: string
-  public readonly acceptance_criteria?: string
-  public readonly verification_method?: string
-  public readonly expected_deliverables?: Record<string, unknown>[]
-  public readonly context_background?: string
-  public readonly impact_scope?: string
-  public readonly tech_stack?: string[]
-  public readonly environment?: string
-  public readonly collaboration_type?: string
-  public readonly complexity_notes?: string
-  public readonly measurable_outcomes?: Record<string, unknown>[]
-  public readonly learning_objectives?: string[]
-  public readonly domain_tags?: string[]
-  public readonly role_in_task?: string
-  public readonly autonomy_level?: string
-  public readonly problem_category?: string
-  public readonly business_domain?: string
-  public readonly estimated_users_affected?: number
+  public readonly task_type: string | undefined
+  public readonly acceptance_criteria: string | undefined
+  public readonly verification_method: string | undefined
+  public readonly expected_deliverables: Record<string, unknown>[] | undefined
+  public readonly context_background: string | undefined
+  public readonly impact_scope: string | undefined
+  public readonly tech_stack: string[] | undefined
+  public readonly environment: string | undefined
+  public readonly collaboration_type: string | undefined
+  public readonly complexity_notes: string | undefined
+  public readonly measurable_outcomes: Record<string, unknown>[] | undefined
+  public readonly learning_objectives: string[] | undefined
+  public readonly domain_tags: string[] | undefined
+  public readonly role_in_task: string | undefined
+  public readonly autonomy_level: string | undefined
+  public readonly problem_category: string | undefined
+  public readonly business_domain: string | undefined
+  public readonly estimated_users_affected: number | undefined
 
   private readonly providedFields: Set<string>
 
@@ -65,13 +68,16 @@ export default class UpdateTaskDTO {
     this.description = payload.description
     this.label = payload.label
     this.priority = payload.priority
+    this.task_visibility = payload.task_visibility
     this.assigned_to = payload.assigned_to
     this.due_date = payload.due_date
     this.parent_task_id = payload.parent_task_id
     this.estimated_time = payload.estimated_time
     this.actual_time = payload.actual_time
     this.project_id = payload.project_id
+    this.project_sprint_id = payload.project_sprint_id
     this.updated_by = payload.updated_by
+    this.expected_updated_at = payload.expected_updated_at
     
     this.task_type = payload.task_type
     this.acceptance_criteria = payload.acceptance_criteria
@@ -96,12 +102,16 @@ export default class UpdateTaskDTO {
   }
 
   public hasUpdates(): boolean {
-    const fieldsToCheck = Array.from(this.providedFields).filter((field) => field !== 'updated_by')
+    const fieldsToCheck = Array.from(this.providedFields).filter(
+      (field) => field !== 'updated_by' && field !== 'expected_updated_at'
+    )
     return fieldsToCheck.length > 0
   }
 
   public getUpdatedFields(): string[] {
-    return Array.from(this.providedFields).filter((field) => field !== 'updated_by')
+    return Array.from(this.providedFields).filter(
+      (field) => field !== 'updated_by' && field !== 'expected_updated_at'
+    )
   }
 
   public hasAssigneeChange(): boolean {

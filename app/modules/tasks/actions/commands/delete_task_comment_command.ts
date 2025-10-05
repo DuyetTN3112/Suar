@@ -31,6 +31,9 @@ export default class DeleteTaskCommentCommand {
     await db
       .from('task_comments')
       .where('id', dto.comment_id)
-      .update({ deleted_at: DateTime.now().toSQL() })
+      .update({
+        deleted_at: DateTime.now().toSQL(),
+        updated_at: DateTime.now().toSQL(),
+      })
   }
 }

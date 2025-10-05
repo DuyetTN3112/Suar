@@ -1,5 +1,5 @@
 import type { UserSettingData } from '#modules/settings/types/user_setting'
-import { userPublicApi } from '#modules/users/actions/services/user_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export async function getUserSettingRecord(userId: string) {
   return {

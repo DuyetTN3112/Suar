@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -19,9 +18,11 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
 import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
@@ -54,7 +55,8 @@ export default class UpdateTaskStatusCommand {
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
     private createNotification: NotificationCreator = notificationPublicApi,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {}
 
   /**
@@ -286,7 +288,7 @@ export default class UpdateTaskStatusCommand {
     dto: UpdateTaskStatusDTO
   ): Promise<void> {
     if (updateResult.oldTaskStatusId !== dto.task_status_id) {
-      void emitter.emit('task:status:changed', {
+      await this.taskEventPublisher.publishTaskStatusChanged({
         taskId: updateResult.task.id,
         assignedTo: updateResult.task.assigned_to,
         oldStatus: updateResult.oldStatus,

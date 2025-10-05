@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -12,7 +11,9 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canUpdateTaskTime } from '#modules/tasks/domain/task_permission_policy'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
@@ -23,6 +24,21 @@ interface PersistedTaskTimeUpdate {
     estimated_time: number
     actual_time: number
   }
+}
+
+function normalizeNullableNumber(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    const parsed = Number(value)
+    if (Number.isFinite(parsed)) {
+      return parsed
+    }
+  }
+
+  return 0
 }
 
 /**
@@ -39,7 +55,8 @@ export default class UpdateTaskTimeCommand {
   constructor(
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {}
 
   /**
@@ -100,8 +117,8 @@ export default class UpdateTaskTimeCommand {
     trx: TransactionClientContract
   ): Promise<PersistedTaskTimeUpdate> {
     const oldValues = {
-      estimated_time: task.estimated_time ?? 0,
-      actual_time: task.actual_time ?? 0,
+      estimated_time: normalizeNullableNumber(task.estimated_time),
+      actual_time: normalizeNullableNumber(task.actual_time),
     }
 
     const updatedTask = await taskMutations.updateTask(
@@ -147,7 +164,7 @@ export default class UpdateTaskTimeCommand {
   ): Promise<void> {
     await this.cache.invalidateAfterTaskUpdated(updateResult.task.id)
 
-    void emitter.emit('task:updated', {
+    await this.taskEventPublisher.publishTaskUpdated({
       taskId: updateResult.task.id,
       updatedBy: userId,
       changes: {

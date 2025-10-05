@@ -2,9 +2,18 @@ import db from '@adonisjs/lucid/services/db'
 
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
 } from '#modules/tasks/actions/commands/task_completion_package_access'
+import {
+  replaceTaskCommentMentions,
+  resolveTaskCommentMentions,
+} from '#modules/tasks/actions/support/task_comment_mentions'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface CreateTaskCommentDTO {
@@ -13,6 +22,7 @@ export interface CreateTaskCommentDTO {
   body: string
   comment_type: 'normal' | 'blocker' | 'clarification' | 'status_update' | 'review_note'
   visibility: 'internal' | 'public' | 'reviewers_only'
+  review_relevance?: boolean
 }
 
 export interface TaskCommentResult extends CreateTaskCommentDTO {
@@ -30,6 +40,7 @@ export default class CreateTaskCommentCommand {
 
     const task = await loadTaskForCompletionPackage(dto.task_id)
     const actorId = await assertTaskCompletionPackageAccess(this.execCtx, task)
+    const mentions = await resolveTaskCommentMentions(task.organization_id, dto.body)
 
     if (dto.parent_comment_id) {
       const parent = (await db
@@ -53,8 +64,37 @@ export default class CreateTaskCommentCommand {
         body: dto.body.trim(),
         comment_type: dto.comment_type,
         visibility: dto.visibility,
+        review_relevance: dto.review_relevance ?? dto.comment_type === 'review_note',
       })
       .returning('*')) as Record<string, unknown>[]
+
+    if (!created) {
+      throw new BusinessLogicException('Task comment could not be created')
+    }
+
+    await replaceTaskCommentMentions(
+      String(created['id']),
+      actorId,
+      mentions.map((mention) => ({
+        userId: mention.userId,
+        token: mention.token,
+      }))
+    )
+
+    for (const mention of mentions) {
+      if (mention.userId === actorId) {
+        continue
+      }
+
+      await notificationPublicApi.handle({
+        user_id: mention.userId,
+        type: BACKEND_NOTIFICATION_TYPES.TASK_MENTIONED,
+        title: 'Bạn được nhắc trong thảo luận task',
+        message: `@${mention.username} được nhắc trong task comment`,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+        related_entity_id: dto.task_id,
+      })
+    }
 
     return created as unknown as TaskCommentResult
   }

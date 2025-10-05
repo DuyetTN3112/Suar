@@ -1,3 +1,4 @@
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
 import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
@@ -5,12 +6,11 @@ import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_con
 /**
  * ApplyForTaskDTO
  *
- * Data for freelancer applying to a task
+ * Data for requesting to join a marketplace task
  */
 export class ApplyForTaskDTO {
   declare task_id: string
   declare message: string | null
-  declare expected_rate: number | null
   declare portfolio_links: string[] | null
   declare application_source: 'public_listing' | 'invitation' | 'referral'
 
@@ -20,27 +20,24 @@ export class ApplyForTaskDTO {
     }
     this.task_id = data.task_id
     this.message = data.message ?? null
-    this.expected_rate = data.expected_rate ?? null
     this.portfolio_links = data.portfolio_links ?? null
     this.application_source = data.application_source ?? 'public_listing'
   }
 
   static fromValidatedPayload(
     payload: {
-      message?: string | null
-      expected_rate?: number | null
-      portfolio_links?: string[] | null
-      application_source?: 'public_listing' | 'invitation' | 'referral'
+      message?: string | null | undefined
+      portfolio_links?: string[] | null | undefined
+      application_source?: 'public_listing' | 'invitation' | 'referral' | undefined
     },
     taskId: string
   ): ApplyForTaskDTO {
-    return new ApplyForTaskDTO({
+    return new ApplyForTaskDTO(omitUndefined({
       task_id: taskId,
       message: payload.message,
-      expected_rate: payload.expected_rate,
       portfolio_links: payload.portfolio_links,
       application_source: payload.application_source,
-    })
+    }))
   }
 }
 
@@ -53,7 +50,7 @@ export class ProcessApplicationDTO {
   declare application_id: string
   declare action: 'approve' | 'reject'
   declare rejection_reason: string | null
-  declare assignment_type: 'member' | 'freelancer' | 'volunteer'
+  declare assignment_type: 'member' | 'external_contributor' | 'volunteer'
   declare estimated_hours: number | null
 
   constructor(data: Partial<ProcessApplicationDTO>) {
@@ -66,26 +63,26 @@ export class ProcessApplicationDTO {
     this.application_id = data.application_id
     this.action = data.action
     this.rejection_reason = data.rejection_reason ?? null
-    this.assignment_type = data.assignment_type ?? 'freelancer'
+    this.assignment_type = data.assignment_type ?? 'external_contributor'
     this.estimated_hours = data.estimated_hours ?? null
   }
 
   static fromValidatedPayload(
     payload: {
       action: 'approve' | 'reject'
-      rejection_reason?: string | null
-      assignment_type?: 'member' | 'freelancer' | 'volunteer'
-      estimated_hours?: number | null
+      rejection_reason?: string | null | undefined
+      assignment_type?: 'member' | 'external_contributor' | 'volunteer' | undefined
+      estimated_hours?: number | null | undefined
     },
     applicationId: string
   ): ProcessApplicationDTO {
-    return new ProcessApplicationDTO({
+    return new ProcessApplicationDTO(omitUndefined({
       application_id: applicationId,
       action: payload.action,
       rejection_reason: payload.rejection_reason,
       assignment_type: payload.assignment_type,
       estimated_hours: payload.estimated_hours,
-    })
+    }))
   }
 }
 
@@ -135,12 +132,12 @@ export class GetTaskApplicationsDTO {
       per_page?: number
     }
   ): GetTaskApplicationsDTO {
-    return new GetTaskApplicationsDTO({
+    return new GetTaskApplicationsDTO(omitUndefined({
       task_id: taskId,
       status: params.status,
       page: params.page,
       per_page: params.per_page,
-    })
+    }))
   }
 }
 
@@ -152,26 +149,40 @@ export class GetTaskApplicationsDTO {
 export class GetPublicTasksDTO {
   declare page: number
   declare per_page: number
+  declare task_ids: string[] | null
+  declare skill_categories: string[] | null
   declare skill_ids: string[] | null
   declare keyword: string | null
   declare difficulty: string | null
-  declare min_budget: number | null
-  declare max_budget: number | null
-  declare sort_by: 'created_at' | 'budget' | 'due_date'
+  declare task_type: string | null
+  declare business_domain: string | null
+  declare problem_category: string | null
+  declare role_in_task: string | null
+  declare verification_method: string | null
+  declare tech_stack: string | null
+  declare domain_tags: string | null
+  declare accepting_applications: 'open' | 'closed' | null
+  declare sort_by: 'created_at' | 'due_date' | 'recommended'
   declare sort_order: 'asc' | 'desc'
 
   constructor(data: Partial<GetPublicTasksDTO>) {
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? PAGINATION.DEFAULT_PER_PAGE
+    this.task_ids = this.normalizeStringList(data.task_ids)
+    this.skill_categories = this.normalizeStringList(data.skill_categories)
     this.skill_ids = data.skill_ids ?? null
     this.keyword = this.normalizeKeyword(data.keyword)
     this.difficulty = data.difficulty ?? null
-    this.min_budget = this.normalizeNullableNumber(data.min_budget)
-    this.max_budget = this.normalizeNullableNumber(data.max_budget)
+    this.task_type = this.normalizeKeyword(data.task_type)
+    this.business_domain = this.normalizeKeyword(data.business_domain)
+    this.problem_category = this.normalizeKeyword(data.problem_category)
+    this.role_in_task = this.normalizeKeyword(data.role_in_task)
+    this.verification_method = this.normalizeKeyword(data.verification_method)
+    this.tech_stack = this.normalizeKeyword(data.tech_stack)
+    this.domain_tags = this.normalizeKeyword(data.domain_tags)
+    this.accepting_applications = this.normalizeAcceptingApplications(data.accepting_applications)
     this.sort_by = data.sort_by ?? 'created_at'
     this.sort_order = data.sort_order ?? 'desc'
-
-    this.validateBudgetRange()
   }
 
   static fromFilters(data: Partial<GetPublicTasksDTO>): GetPublicTasksDTO {
@@ -187,30 +198,20 @@ export class GetPublicTasksDTO {
     return trimmed.length > 0 ? trimmed : null
   }
 
-  private normalizeNullableNumber(value: unknown): number | null {
-    if (value === null || value === undefined || value === '') {
+  private normalizeStringList(value: unknown): string[] | null {
+    if (!Array.isArray(value)) {
       return null
     }
 
-    const numericValue = typeof value === 'number' ? value : Number(value)
-    if (!Number.isFinite(numericValue)) {
-      throw new ValidationException('Giá trị ngân sách không hợp lệ')
-    }
+    const normalized = value.filter(
+      (item): item is string => typeof item === 'string' && item.trim().length > 0
+    )
 
-    return numericValue
+    return normalized.length > 0 ? normalized : null
   }
 
-  private validateBudgetRange(): void {
-    if (this.min_budget !== null && this.min_budget < 0) {
-      throw new ValidationException('Ngân sách tối thiểu không được nhỏ hơn 0')
-    }
-
-    if (this.max_budget !== null && this.max_budget < 0) {
-      throw new ValidationException('Ngân sách tối đa không được nhỏ hơn 0')
-    }
-
-    if (this.min_budget !== null && this.max_budget !== null && this.max_budget < this.min_budget) {
-      throw new ValidationException('Ngân sách tối đa không được nhỏ hơn ngân sách tối thiểu')
-    }
+  private normalizeAcceptingApplications(value: unknown): 'open' | 'closed' | null {
+    return value === 'open' || value === 'closed' ? value : null
   }
+
 }

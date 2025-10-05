@@ -30,25 +30,55 @@ export default class SkillRepository {
     return skillQueries.activeSkillsWithPublishedRubrics()
   }
 
+  static searchActiveSkillsWithPublishedRubrics(keyword: string, limit?: number) {
+    return skillQueries.searchActiveSkillsWithPublishedRubrics(keyword, limit)
+  }
+
   static byCategory(categoryCode: string) {
     return skillQueries.byCategory(categoryCode)
   }
 
-  static async getSpiderChartSkillIds(
-    trx?: TransactionClientContract
-  ): Promise<{ id: string }[]> {
+  static async getSpiderChartSkillIds(trx?: TransactionClientContract): Promise<{ id: string }[]> {
     return skillQueries.getSpiderChartSkillIds(trx)
   }
 
-  static async findActiveByIds(
-    ids: string[],
-    trx?: TransactionClientContract
-  ): Promise<Skill[]> {
+  static async findActiveByIds(ids: string[], trx?: TransactionClientContract): Promise<Skill[]> {
     return skillQueries.findActiveByIds(ids, trx)
+  }
+
+  static async findActiveByName(
+    name: string,
+    trx?: TransactionClientContract
+  ): Promise<Skill | null> {
+    return skillQueries.findActiveByName(name, trx)
+  }
+
+  static async createCustomSkill(
+    payload: {
+      id: string
+      skill_code: string
+      skill_name: string
+      category_code: string
+      display_type: string
+      description: string | null
+      icon_url: string | null
+      is_active: boolean
+      sort_order: number
+    },
+    trx?: TransactionClientContract
+  ): Promise<Skill> {
+    return skillQueries.createCustomSkill(payload, trx)
   }
 
   static async findByIds(ids: string[], trx?: TransactionClientContract): Promise<Skill[]> {
     return skillQueries.findByIds(ids, trx)
+  }
+
+  static async findActiveByIdsWithPublishedRubrics(
+    ids: string[],
+    trx?: TransactionClientContract
+  ): Promise<Skill[]> {
+    return skillQueries.findActiveByIdsWithPublishedRubrics(ids, trx)
   }
 
   // ── UserSkill queries ──

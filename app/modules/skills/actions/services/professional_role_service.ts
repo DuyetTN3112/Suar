@@ -1,6 +1,11 @@
 import { ProjectSkillService } from './project_skill_service.js'
 
 import {
+  DEFAULT_SKILL_IMPORTANCE,
+  DEFAULT_SKILL_WEIGHT,
+  type SkillImportance,
+} from '#modules/skills/constants/skill_constants'
+import {
   ProfessionalRoleRepository,
   type ProfessionalRoleTemplate,
   type ProfessionalRoleTemplateSkill,
@@ -82,7 +87,7 @@ export const ProfessionalRoleService = {
     targetLevelId?: string | null
     assessmentCeilingLevelId?: string | null
     isMandatory?: boolean
-    importance?: 'low' | 'medium' | 'high' | 'critical'
+    importance?: SkillImportance
     weight?: number
     sortOrder?: number
   }): Promise<ProfessionalRoleTemplateSkill> {
@@ -109,8 +114,8 @@ export const ProfessionalRoleService = {
       target_level_id: payload.targetLevelId ?? null,
       assessment_ceiling_level_id: payload.assessmentCeilingLevelId ?? null,
       is_mandatory: payload.isMandatory ?? true,
-      importance: payload.importance ?? 'medium',
-      weight: payload.weight ?? 1.0,
+      importance: payload.importance ?? DEFAULT_SKILL_IMPORTANCE,
+      weight: payload.weight ?? DEFAULT_SKILL_WEIGHT,
       sort_order: payload.sortOrder ?? 0,
     })
   },
@@ -224,7 +229,7 @@ export const ProfessionalRoleService = {
     targetLevelId?: string | null
     assessmentCeilingLevelId?: string | null
     isMandatory?: boolean
-    importance?: 'low' | 'medium' | 'high' | 'critical'
+    importance?: SkillImportance
     weight?: number
     sortOrder?: number
     notes?: string | null
@@ -264,8 +269,8 @@ export const ProfessionalRoleService = {
       target_level_id: payload.targetLevelId ?? null,
       assessment_ceiling_level_id: payload.assessmentCeilingLevelId ?? null,
       is_mandatory: payload.isMandatory ?? true,
-      importance: payload.importance ?? 'medium',
-      weight: payload.weight ?? 1.0,
+      importance: payload.importance ?? DEFAULT_SKILL_IMPORTANCE,
+      weight: payload.weight ?? DEFAULT_SKILL_WEIGHT,
       sort_order: payload.sortOrder ?? 0,
       notes: payload.notes ?? null,
     })
@@ -278,7 +283,7 @@ export const ProfessionalRoleService = {
       targetLevelId?: string | null
       assessmentCeilingLevelId?: string | null
       isMandatory?: boolean
-      importance?: 'low' | 'medium' | 'high' | 'critical'
+      importance?: SkillImportance
       weight?: number
       sortOrder?: number
       notes?: string | null

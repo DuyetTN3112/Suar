@@ -1,4 +1,5 @@
 import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
@@ -45,7 +46,10 @@ export default class WithdrawApplicationCommand extends BaseCommand<WithdrawAppl
       // Update status
       await TaskApplicationRepository.updateStatus(
         application.id,
-        { application_status: ApplicationStatus.WITHDRAWN },
+        {
+          application_status: ApplicationStatus.WITHDRAWN,
+          reviewed_at: DateTime.now(),
+        },
         trx
       )
 

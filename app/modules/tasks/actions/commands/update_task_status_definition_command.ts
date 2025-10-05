@@ -5,6 +5,7 @@ import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
@@ -71,20 +72,20 @@ export default class UpdateTaskStatusDefinitionCommand {
       const oldValues = { ...status }
 
       const updateData: Record<string, unknown> = {}
-      if (dto.name !== undefined) updateData.name = dto.name
-      if (dto.slug !== undefined) updateData.slug = dto.slug
-      if (dto.category !== undefined) updateData.category = dto.category
-      if (dto.color !== undefined) updateData.color = dto.color
-      if (dto.icon !== undefined) updateData.icon = dto.icon
-      if (dto.description !== undefined) updateData.description = dto.description
-      if (dto.sort_order !== undefined) updateData.sort_order = dto.sort_order
+      if (dto.name !== undefined) updateData['name'] = dto.name
+      if (dto.slug !== undefined) updateData['slug'] = dto.slug
+      if (dto.category !== undefined) updateData['category'] = dto.category
+      if (dto.color !== undefined) updateData['color'] = dto.color
+      if (dto.icon !== undefined) updateData['icon'] = dto.icon
+      if (dto.description !== undefined) updateData['description'] = dto.description
+      if (dto.sort_order !== undefined) updateData['sort_order'] = dto.sort_order
 
       // Handle is_default: if setting to true, unset others first
       if (dto.is_default === true && !status.is_default) {
         await TaskStatusRepository.unsetDefaults(dto.organization_id, trx)
-        updateData.is_default = true
+        updateData['is_default'] = true
       } else if (dto.is_default === false) {
-        updateData.is_default = false
+        updateData['is_default'] = false
       }
 
       const updatedStatus = await TaskStatusRepository.update(
@@ -107,6 +108,7 @@ export default class UpdateTaskStatusDefinitionCommand {
       )
 
       await trx.commit()
+      await cacheStore.deleteByPattern(`task:metadata:*`)
       return updatedStatus
     } catch (error) {
       await trx.rollback()

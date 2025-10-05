@@ -14,6 +14,7 @@ export class InfraSkillReader implements SkillReader {
       id: skill.id,
       skill_name: skill.skill_name,
       category_code: skill.category_code,
+      is_active: skill.is_active,
     }))
   }
 }

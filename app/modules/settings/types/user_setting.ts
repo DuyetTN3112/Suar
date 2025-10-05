@@ -1,7 +1,13 @@
+import {
+  DEFAULT_USER_SETTING,
+  type SettingDisplayMode,
+  type SettingTheme,
+} from '#modules/settings/constants/user_setting_constants'
+
 export interface UserSettingData {
-  theme: 'light' | 'dark' | 'system'
+  theme: SettingTheme
   notifications_enabled: boolean
-  display_mode: 'grid' | 'list'
+  display_mode: SettingDisplayMode
   font: string
   layout: string
   density: string
@@ -10,25 +16,14 @@ export interface UserSettingData {
 }
 
 export interface UserSettingUpdate {
-  theme?: 'light' | 'dark' | 'system'
+  theme?: SettingTheme
   notifications_enabled?: boolean
-  display_mode?: 'grid' | 'list'
+  display_mode?: SettingDisplayMode
   font?: string
   layout?: string
   density?: string
   animations_enabled?: boolean
   custom_scrollbars?: boolean
-}
-
-export const DEFAULT_USER_SETTING: UserSettingData = {
-  theme: 'light',
-  notifications_enabled: true,
-  display_mode: 'grid',
-  font: 'brand',
-  layout: 'default',
-  density: 'default',
-  animations_enabled: true,
-  custom_scrollbars: true,
 }
 
 export function mergeUserSetting(
