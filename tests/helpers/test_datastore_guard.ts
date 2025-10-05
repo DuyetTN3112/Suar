@@ -52,27 +52,43 @@ const isSafeTestName = (value: string | undefined): boolean => {
 }
 
 const isUnsafeTestDatastoreAllowed = (): boolean => {
-  return process.env.ALLOW_UNSAFE_TEST_DATASTORES === 'true'
+  return process.env['ALLOW_UNSAFE_TEST_DATASTORES'] === 'true'
+}
+
+const getUnsafeTestDatastoreBypassReason = (): string | undefined => {
+  const reason = process.env['ALLOW_UNSAFE_TEST_DATASTORES_REASON']?.trim()
+  return reason && reason.length > 0 ? reason : undefined
 }
 
 export const applyTestDatastoreOverrides = (): void => {
-  const pgTestDatabase = process.env.PG_TEST_DATABASE ?? readDotEnvValue('PG_TEST_DATABASE')
+  const pgTestDatabase = process.env['PG_TEST_DATABASE'] ?? readDotEnvValue('PG_TEST_DATABASE')
 
   if (pgTestDatabase) {
-    process.env.PG_TEST_DATABASE = pgTestDatabase
-    process.env.PG_DATABASE = pgTestDatabase
+    process.env['PG_TEST_DATABASE'] = pgTestDatabase
+    process.env['PG_DATABASE'] = pgTestDatabase
   }
 }
 
 export const assertSafeTestDatastores = async (): Promise<void> => {
   if (isUnsafeTestDatastoreAllowed()) {
+    const reason = getUnsafeTestDatastoreBypassReason()
+    if (!reason) {
+      throw new Error(
+        [
+          'Unsafe test datastore bypass requested.',
+          'ALLOW_UNSAFE_TEST_DATASTORES_REASON is required when ALLOW_UNSAFE_TEST_DATASTORES=true.',
+        ].join(' ')
+      )
+    }
+
+    console.warn(`[test-datastore-guard] Unsafe datastore bypass enabled: ${reason}`)
     return
   }
 
   const envModule = await import('#start/env')
   const env = envModule.default
 
-  const pgDatabase = process.env.PG_DATABASE ?? env.get('PG_DATABASE', '')
+  const pgDatabase = process.env['PG_DATABASE'] ?? env.get('PG_DATABASE', '')
   const issues: string[] = []
 
   if (!isSafeTestName(pgDatabase)) {

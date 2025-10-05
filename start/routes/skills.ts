@@ -15,15 +15,21 @@ router
   .group(() => {
     // Proficiency scales
     router.get('/proficiency-scales', [ListProficiencyScalesController, 'handle']).as('skills.proficiency_scales.index')
-    router.get('/proficiency-scales/:id', [ShowProficiencyScaleController, 'handle']).as('skills.proficiency_scales.show')
+    router
+      .get('/proficiency-scales/:proficiencyScaleId', [ShowProficiencyScaleController, 'handle'])
+      .as('skills.proficiency_scales.show')
 
     // Skill rubrics
     router.get('/skills/:skillId/rubric', [ShowSkillRubricController, 'handle']).as('skills.rubrics.show')
     router.get('/skills/:skillId/rubrics', [ListSkillRubricsController, 'handle']).as('skills.rubrics.index')
 
     // Global active skills and templates
-    router.get('/skills', [() => import('#modules/skills/controllers/list_active_skills_controller'), 'handle']).as('skills.list_active')
-    router.get('/professional-role-templates', [() => import('#modules/skills/controllers/list_role_templates_controller'), 'handle']).as('skills.role_templates.list_active')
+    router
+      .get('/skills', [() => import('#modules/skills/controllers/list_active_skills_controller'), 'handle'])
+      .as('index')
+    router
+      .get('/professional-role-templates', [() => import('#modules/skills/controllers/list_role_templates_controller'), 'handle'])
+      .as('role_templates.index')
 
     // Project skills catalog routes
     router
@@ -34,7 +40,7 @@ router
         router.delete('/:projectSkillId', [() => import('#modules/skills/controllers/deactivate_project_skill_controller'), 'handle']).as('projects.skills.destroy')
       })
       .prefix('/projects/:projectId/skills')
-      .use([middleware.auth(), middleware.requireOrg()])
+      .use([middleware.bindApiAuthContract('bearer-or-session'), middleware.auth(), middleware.requireOrg()])
 
     // Project professional roles routes
     router
@@ -46,36 +52,46 @@ router
         router.delete('/:roleId/skills/:roleSkillId', [() => import('#modules/skills/controllers/deactivate_project_role_controller'), 'handle']).as('projects.roles.skills.destroy')
         router.delete('/:roleId', [() => import('#modules/skills/controllers/deactivate_project_role_controller'), 'handle']).as('projects.roles.destroy')
         router.get('/:roleId/candidates', [GetRoleStaffingCandidatesController, 'handle']).as('projects.roles.candidates')
-        router.get('/:roleId/requirements', [GetRoleRequirementsController, 'handle']).as('projects.roles.requirements')
+        router
+          .get('/:roleId/requirements', [GetRoleRequirementsController, 'handle'])
+          .as('projects.professional_roles.requirements.index')
       })
       .prefix('/projects/:projectId/professional-roles')
-      .use([middleware.auth(), middleware.requireOrg()])
+      .use([middleware.bindApiAuthContract('bearer-or-session'), middleware.auth(), middleware.requireOrg()])
+
+    // Legacy helper path kept temporarily because current Inertia task-create flow still calls `/roles/*`.
+    router
+      .get('/projects/:projectId/roles/:roleId/requirements', [GetRoleRequirementsController, 'handle'])
+      .as('projects.roles.requirements.index')
+      .use([middleware.bindApiAuthContract('bearer-or-session'), middleware.auth(), middleware.requireOrg()])
   })
   .prefix('/api/v1')
   .as('api.v1.skills')
+  .use([middleware.bindHttpTransport('api-canonical')])
 
 // Task skill requirements
 router
   .group(() => {
     router
       .get('/', [() => import('#modules/tasks/controllers/v1/list_task_requirements_controller'), 'handle'])
-      .as('tasks.requirements.index')
+      .as('index')
     router
       .post('/', [() => import('#modules/tasks/controllers/v1/add_task_requirement_controller'), 'handle'])
-      .as('tasks.requirements.store')
+      .as('store')
     router
-      .post('/prefill-from-role', [() => import('#modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller'), 'handle'])
-      .as('tasks.requirements.prefill')
+      .post('/role-prefill', [() => import('#modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller'), 'handle'])
+      .as('role_prefill.store')
     router
       .get('/versions', [() => import('#modules/tasks/controllers/v1/list_task_requirement_versions_controller'), 'handle'])
-      .as('tasks.requirements.versions')
+      .as('versions.index')
     router
       .put('/:requirementId', [() => import('#modules/tasks/controllers/v1/update_task_requirement_controller'), 'handle'])
-      .as('tasks.requirements.update')
+      .as('update')
     router
       .delete('/:requirementId', [() => import('#modules/tasks/controllers/v1/remove_task_requirement_controller'), 'handle'])
-      .as('tasks.requirements.destroy')
+      .as('destroy')
   })
   .prefix('/api/v1/tasks/:taskId/requirements')
-  .use([middleware.auth(), middleware.requireOrg()])
+  .use([middleware.bindApiAuthContract('bearer-or-session'), middleware.auth(), middleware.requireOrg()])
   .as('api.v1.tasks.requirements')
+  .use([middleware.bindHttpTransport('api-canonical')])

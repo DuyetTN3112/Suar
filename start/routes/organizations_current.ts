@@ -183,3 +183,40 @@ router
     middleware.requireOrgAdmin(),
     middleware.orgAdminContext(),
   ])
+
+router
+  .group(() => {
+    router
+      .post('/member-invitations', [OrgInviteMemberController, 'handle'])
+      .as('api.v1.me.organizations.current.member_invitations.store')
+    router
+      .delete('/members/:memberId', [OrgRemoveMemberController, 'handle'])
+      .as('api.v1.me.organizations.current.members.destroy')
+    router
+      .put('/members/:memberId/role', [OrgUpdateMemberRoleController, 'handle'])
+      .as('api.v1.me.organizations.current.members.role.update')
+    router
+      .put('/join-requests/:joinRequestId/approve', [OrgApproveJoinRequestController, 'handle'])
+      .as('api.v1.me.organizations.current.join_requests.approvals.store')
+    router
+      .put('/roles', [OrgUpdateRolesController, 'handle'])
+      .as('api.v1.me.organizations.current.roles.update')
+    router
+      .post('/projects', [OrgCreateProjectController, 'handle'])
+      .as('api.v1.me.organizations.current.projects.store')
+    router
+      .get('/task-statuses', [OrgListTaskStatusesController, 'handle'])
+      .as('api.v1.me.organizations.current.task_statuses.index')
+    router
+      .post('/task-statuses', [OrgCreateTaskStatusController, 'handle'])
+      .as('api.v1.me.organizations.current.task_statuses.store')
+  })
+  .prefix('/api/v1/me/organizations/current')
+  .use([
+    middleware.bindHttpTransport('api-canonical'),
+    middleware.bindApiAuthContract('bearer-or-session'),
+    middleware.auth(),
+    middleware.requireOrg(),
+    middleware.requireOrgAdmin(),
+    middleware.orgAdminContext(),
+  ])

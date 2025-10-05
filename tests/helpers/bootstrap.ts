@@ -26,7 +26,16 @@ import type { ApplicationService } from '@adonisjs/core/types'
 
 import { applyTestDatastoreOverrides, assertSafeTestDatastores } from './test_datastore_guard.js'
 
+const TEST_APP_GLOBAL_KEY = Symbol.for('suar.test.app')
+
 let app: ApplicationService | null = null
+let ownsApp = false
+
+function getSharedTestApp(): ApplicationService | null {
+  return ((globalThis as Record<PropertyKey, unknown>)[TEST_APP_GLOBAL_KEY] as
+    | ApplicationService
+    | undefined) ?? null
+}
 
 async function closeTestRuntimeConnections(): Promise<void> {
   const [{ default: db }, { default: redis }] = await Promise.all([
@@ -42,9 +51,20 @@ async function closeTestRuntimeConnections(): Promise<void> {
  * Call this in group.setup().
  */
 export async function setupApp(): Promise<ApplicationService> {
+  const sharedApp = getSharedTestApp()
+  if (sharedApp) {
+    app = sharedApp
+    ownsApp = false
+    return sharedApp
+  }
+
+  if (app) {
+    return app
+  }
+
   // Set test environment
-  process.env.NODE_ENV = 'test'
-  process.env.LOG_LEVEL = 'silent'
+  process.env['NODE_ENV'] = 'test'
+  process.env['LOG_LEVEL'] = 'silent'
   applyTestDatastoreOverrides()
   await assertSafeTestDatastores()
 
@@ -73,6 +93,7 @@ export async function setupApp(): Promise<ApplicationService> {
 
   // Start providers required by the integration runtime.
   await app.start(() => undefined)
+  ownsApp = true
 
   return app
 }
@@ -82,11 +103,19 @@ export async function setupApp(): Promise<ApplicationService> {
  * Call this in group.teardown().
  */
 export async function teardownApp(): Promise<void> {
-  if (app) {
-    await closeTestRuntimeConnections()
-    await app.terminate()
-    app = null
+  if (!app) {
+    return
   }
+
+  if (!ownsApp) {
+    app = null
+    return
+  }
+
+  await closeTestRuntimeConnections()
+  await app.terminate()
+  app = null
+  ownsApp = false
 }
 
 /**

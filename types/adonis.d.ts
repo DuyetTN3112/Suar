@@ -70,10 +70,18 @@ declare module '@adonisjs/inertia/types' {
     'admin/dashboards/subscriptions': KnownInertiaPageProps
     'admin/dashboards/users': KnownInertiaPageProps
     'admin/disputes/index': KnownInertiaPageProps
+    'admin/proficiency/index': KnownInertiaPageProps
+    'admin/proficiency/rubric': KnownInertiaPageProps
+    'admin/proficiency/show': KnownInertiaPageProps
     'admin/organizations/index': KnownInertiaPageProps
     'admin/organizations/show': KnownInertiaPageProps
     'admin/packages/index': KnownInertiaPageProps
+    'admin/permissions/custom_roles/create': KnownInertiaPageProps
+    'admin/permissions/custom_roles/edit': KnownInertiaPageProps
     'admin/permissions/index': KnownInertiaPageProps
+    'admin/permissions/organization': KnownInertiaPageProps
+    'admin/permissions/project': KnownInertiaPageProps
+    'admin/permissions/system': KnownInertiaPageProps
     'admin/qr_codes/index': KnownInertiaPageProps
     'admin/reviews/flagged': KnownInertiaPageProps
     'admin/reviews/reverse-reviews': KnownInertiaPageProps
@@ -88,28 +96,32 @@ declare module '@adonisjs/inertia/types' {
     'errors/require_organization': KnownInertiaPageProps
     'errors/server_error': KnownInertiaPageProps
     index: KnownInertiaPageProps
-    'marketplace/bookmarks': KnownInertiaPageProps
-    'marketplace/talents': KnownInertiaPageProps
     'marketplace/tasks': KnownInertiaPageProps
+    'org/marketplace/tasks': KnownInertiaPageProps
     'notifications/index': KnownInertiaPageProps
+    'org/bookmarks/index': KnownInertiaPageProps
+    'org/audit_logs/index': KnownInertiaPageProps
     'org/dashboard': KnownInertiaPageProps
     'org/departments/index': KnownInertiaPageProps
+    'org/disputes/index': KnownInertiaPageProps
     'org/invitations/index': KnownInertiaPageProps
     'org/invitations/requests': KnownInertiaPageProps
     'org/members/index': KnownInertiaPageProps
     'org/no_org': KnownInertiaPageProps
     'org/permissions/index': KnownInertiaPageProps
     'org/projects/index': KnownInertiaPageProps
+    'org/reviews/sprint-reverse-board': KnownInertiaPageProps
+    'org/reviews/task-board': KnownInertiaPageProps
     'org/reverse-reviews': KnownInertiaPageProps
     'org/roles/index': KnownInertiaPageProps
     'org/settings/index': KnownInertiaPageProps
+    'org/sprints/index': KnownInertiaPageProps
+    'org/talents/index': KnownInertiaPageProps
+    'org/talents/show': KnownInertiaPageProps
     'org/workflow/index': KnownInertiaPageProps
     'organizations/all': KnownInertiaPageProps
     'organizations/create': KnownInertiaPageProps
     'organizations/index': KnownInertiaPageProps
-    'organizations/members/index': KnownInertiaPageProps
-    'organizations/members/pending_requests': KnownInertiaPageProps
-    'organizations/organization-debug': KnownInertiaPageProps
     'organizations/show': KnownInertiaPageProps
     'profile/edit': KnownInertiaPageProps
     'profile/show': KnownInertiaPageProps
@@ -123,12 +135,19 @@ declare module '@adonisjs/inertia/types' {
     'reviews/pending': KnownInertiaPageProps
     'reviews/reverse-reviews': KnownInertiaPageProps
     'reviews/show': KnownInertiaPageProps
+    'reviews/sprint-disputes/show': KnownInertiaPageProps
+    'reviews/sprint-reverse-board': KnownInertiaPageProps
+    'reviews/task-board': KnownInertiaPageProps
     'reviews/user-reviews': KnownInertiaPageProps
+    'search/index': KnownInertiaPageProps
     'settings/AccountTab': KnownInertiaPageProps
     'settings/AppearanceTab': KnownInertiaPageProps
     'settings/NotificationsTab': KnownInertiaPageProps
     'settings/ProfileTab': KnownInertiaPageProps
     'settings/account': KnownInertiaPageProps
+    'settings/audit_logs': KnownInertiaPageProps
+    'talents/index': KnownInertiaPageProps
+    'talents/show': KnownInertiaPageProps
     'settings/appearance': KnownInertiaPageProps
     'settings/display': KnownInertiaPageProps
     'settings/index': KnownInertiaPageProps

@@ -9,6 +9,7 @@ export {
 export {
   SkillFactory,
   ReviewSessionFactory,
+  ReviewSessionReviewerAssignmentFactory,
   SkillReviewFactory,
   UserSkillFactory,
   FlaggedReviewFactory,
