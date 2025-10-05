@@ -71,9 +71,9 @@ export interface UserEntityProps {
   address: string | null
   timezone: string
   language: string
-  isFreelancer: boolean
-  freelancerRating: number | null
-  freelancerCompletedTasksCount: number
+  isExternalContributor: boolean
+  externalContributorRating: number | null
+  externalContributorCompletedTasksCount: number
   profileSettings: UserProfileSettings | null
   userSetting: UserSettingData | null
   trustData: UserTrustData | null
@@ -97,9 +97,9 @@ export class UserEntity {
   readonly address: string | null
   readonly timezone: string
   readonly language: string
-  readonly isFreelancer: boolean
-  readonly freelancerRating: number | null
-  readonly freelancerCompletedTasksCount: number
+  readonly isExternalContributor: boolean
+  readonly externalContributorRating: number | null
+  readonly externalContributorCompletedTasksCount: number
   readonly profileSettings: UserProfileSettings | null
   readonly userSetting: UserSettingData | null
   readonly trustData: UserTrustData | null
@@ -122,9 +122,9 @@ export class UserEntity {
     this.address = props.address
     this.timezone = props.timezone
     this.language = props.language
-    this.isFreelancer = props.isFreelancer
-    this.freelancerRating = props.freelancerRating
-    this.freelancerCompletedTasksCount = props.freelancerCompletedTasksCount
+    this.isExternalContributor = props.isExternalContributor
+    this.externalContributorRating = props.externalContributorRating
+    this.externalContributorCompletedTasksCount = props.externalContributorCompletedTasksCount
     this.profileSettings = props.profileSettings
     this.userSetting = props.userSetting
     this.trustData = props.trustData

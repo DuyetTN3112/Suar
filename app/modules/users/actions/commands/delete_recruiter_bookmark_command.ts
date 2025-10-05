@@ -20,7 +20,7 @@ export default class DeleteRecruiterBookmarkCommand extends BaseCommand<
         .first()) as Record<string, unknown> | null
 
       if (!bookmark) {
-        throw new NotFoundException('Recruiter bookmark not found')
+        throw new NotFoundException('Talent bookmark not found')
       }
 
       // 2. Delete bookmark

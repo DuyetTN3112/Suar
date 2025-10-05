@@ -22,9 +22,9 @@ export interface UserDetailResponseDTOProps {
   address: string | null
   timezone: string
   language: string
-  isFreelancer: boolean
-  freelancerRating: number | null
-  freelancerCompletedTasksCount: number
+  isExternalContributor: boolean
+  externalContributorRating: number | null
+  externalContributorCompletedTasksCount: number
   profileSettings: UserProfileSettings | null
   trustData: UserTrustData | null
   credibilityData: UserCredibilityData | null
@@ -39,7 +39,7 @@ export interface UserListItemResponseDTOProps {
   status: string
   systemRole: string
   avatarUrl: string | null
-  isFreelancer: boolean
+  isExternalContributor: boolean
   createdAt: Date
 }
 
@@ -51,8 +51,8 @@ export interface UserProfileResponseDTOProps {
   bio: string | null
   timezone: string
   language: string
-  isFreelancer: boolean
-  freelancerRating: number | null
+  isExternalContributor: boolean
+  externalContributorRating: number | null
   profileSettings: UserProfileSettings | null
 }
 
@@ -80,9 +80,9 @@ export class UserDetailResponseDTO {
   public readonly address: string | null
   public readonly timezone: string
   public readonly language: string
-  public readonly isFreelancer: boolean
-  public readonly freelancerRating: number | null
-  public readonly freelancerCompletedTasksCount: number
+  public readonly isExternalContributor: boolean
+  public readonly externalContributorRating: number | null
+  public readonly externalContributorCompletedTasksCount: number
   public readonly profileSettings: UserProfileSettings | null
   public readonly trustData: UserTrustData | null
   public readonly credibilityData: UserCredibilityData | null
@@ -103,9 +103,9 @@ export class UserDetailResponseDTO {
     this.address = props.address
     this.timezone = props.timezone
     this.language = props.language
-    this.isFreelancer = props.isFreelancer
-    this.freelancerRating = props.freelancerRating
-    this.freelancerCompletedTasksCount = props.freelancerCompletedTasksCount
+    this.isExternalContributor = props.isExternalContributor
+    this.externalContributorRating = props.externalContributorRating
+    this.externalContributorCompletedTasksCount = props.externalContributorCompletedTasksCount
     this.profileSettings = props.profileSettings
     this.trustData = props.trustData
     this.credibilityData = props.credibilityData
@@ -132,9 +132,9 @@ export class UserDetailResponseDTO {
       address: entity.address,
       timezone: entity.timezone,
       language: entity.language,
-      isFreelancer: entity.isFreelancer,
-      freelancerRating: entity.freelancerRating,
-      freelancerCompletedTasksCount: entity.freelancerCompletedTasksCount,
+      isExternalContributor: entity.isExternalContributor,
+      externalContributorRating: entity.externalContributorRating,
+      externalContributorCompletedTasksCount: entity.externalContributorCompletedTasksCount,
       profileSettings: entity.profileSettings,
       trustData: entity.trustData,
       credibilityData: entity.credibilityData,
@@ -154,7 +154,7 @@ export class UserListItemResponseDTO {
   public readonly status: string
   public readonly systemRole: string
   public readonly avatarUrl: string | null
-  public readonly isFreelancer: boolean
+  public readonly isExternalContributor: boolean
   public readonly createdAt: Date
 
   private constructor(props: UserListItemResponseDTOProps) {
@@ -164,7 +164,7 @@ export class UserListItemResponseDTO {
     this.status = props.status
     this.systemRole = props.systemRole
     this.avatarUrl = props.avatarUrl
-    this.isFreelancer = props.isFreelancer
+    this.isExternalContributor = props.isExternalContributor
     this.createdAt = props.createdAt
   }
 
@@ -180,7 +180,7 @@ export class UserListItemResponseDTO {
       status: entity.status,
       systemRole: entity.systemRole,
       avatarUrl: entity.avatarUrl,
-      isFreelancer: entity.isFreelancer,
+      isExternalContributor: entity.isExternalContributor,
       createdAt: entity.createdAt,
     })
   }
@@ -197,8 +197,8 @@ export class UserProfileResponseDTO {
   public readonly bio: string | null
   public readonly timezone: string
   public readonly language: string
-  public readonly isFreelancer: boolean
-  public readonly freelancerRating: number | null
+  public readonly isExternalContributor: boolean
+  public readonly externalContributorRating: number | null
   public readonly profileSettings: UserProfileSettings | null
 
   private constructor(props: UserProfileResponseDTOProps) {
@@ -209,8 +209,8 @@ export class UserProfileResponseDTO {
     this.bio = props.bio
     this.timezone = props.timezone
     this.language = props.language
-    this.isFreelancer = props.isFreelancer
-    this.freelancerRating = props.freelancerRating
+    this.isExternalContributor = props.isExternalContributor
+    this.externalContributorRating = props.externalContributorRating
     this.profileSettings = props.profileSettings
   }
 
@@ -227,8 +227,8 @@ export class UserProfileResponseDTO {
       bio: entity.bio,
       timezone: entity.timezone,
       language: entity.language,
-      isFreelancer: entity.isFreelancer,
-      freelancerRating: entity.freelancerRating,
+      isExternalContributor: entity.isExternalContributor,
+      externalContributorRating: entity.externalContributorRating,
       profileSettings: entity.profileSettings,
     })
   }

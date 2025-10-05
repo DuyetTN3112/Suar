@@ -1,4 +1,5 @@
 import ValidationException from '#modules/http/exceptions/validation_exception'
+import { toLastPage, toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
 
 export class UserPaginationDTO {
@@ -13,7 +14,7 @@ export class UserPaginationDTO {
   }
 
   get offset(): number {
-    return (this.page - 1) * this.limit
+    return toOffset(this.page, this.limit)
   }
 }
 
@@ -36,11 +37,13 @@ export class UserPaginatedResult<T> {
     total: number,
     pagination: UserPaginationDTO
   ): UserPaginatedResult<T> {
+    const lastPage = toLastPage(total, pagination.limit)
+
     return new UserPaginatedResult(data, {
       total,
       perPage: pagination.limit,
       currentPage: pagination.page,
-      lastPage: Math.ceil(total / pagination.limit),
+      lastPage,
       firstPage: 1,
     })
   }

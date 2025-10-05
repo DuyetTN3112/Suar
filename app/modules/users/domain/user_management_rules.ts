@@ -15,6 +15,9 @@ import type {
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import {
+  canAccessSystemAdministration,
+} from '#modules/authorization/public_contracts/system_admin_access'
 import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
@@ -94,39 +97,11 @@ export function canDeactivateUser(ctx: UserDeactivationContext): PolicyResult {
  * Rules:
  * 1. Only superadmin or system_admin can use admin mode
  */
-export function canToggleAdminMode(actorSystemRole: string | null): PolicyResult {
-  return canAccessSystemAdministration(actorSystemRole)
+export async function canToggleAdminMode(actorSystemRole: string | null): Promise<PolicyResult> {
+  return await canAccessSystemAdministration(actorSystemRole)
 }
 
-export function canAccessSystemAdministration(actorSystemRole: string | null): PolicyResult {
-  if (actorSystemRole && SYSTEM_ADMIN_ROLES.has(actorSystemRole)) {
-    return PR.allow()
-  }
 
-  return PR.deny('Chỉ system admin mới được chuyển Admin Mode')
-}
-
-export function canAccessAllowedSystemRoles(
-  actorSystemRole: string | null,
-  allowedRoles: string[]
-): PolicyResult {
-  if (!actorSystemRole) {
-    return PR.deny('Bạn không có quyền truy cập chức năng này')
-  }
-
-  const normalizedRole = actorSystemRole.toLowerCase()
-  const normalizedAllowedRoles = allowedRoles.map((role) => role.toLowerCase())
-  const normalizedSystemAdminRoles = [...SYSTEM_ADMIN_ROLES].map((role) => role.toLowerCase())
-
-  if (
-    normalizedSystemAdminRoles.includes(normalizedRole) ||
-    normalizedAllowedRoles.includes(normalizedRole)
-  ) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập chức năng này')
-}
 
 export function canAccessUserAdministrationQueue(input: {
   actorSystemRole: string | null

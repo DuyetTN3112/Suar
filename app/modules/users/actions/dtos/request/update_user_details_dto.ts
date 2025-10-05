@@ -11,7 +11,7 @@ export class UpdateUserDetailsDTO {
   declare address?: string | null
   declare timezone?: string
   declare language?: string
-  declare is_freelancer?: boolean
+  declare is_external_contributor?: boolean
 
   constructor(data: Partial<UpdateUserDetailsDTO>) {
     Object.assign(this, data)

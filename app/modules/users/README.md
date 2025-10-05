@@ -257,14 +257,14 @@ start/routes/users.ts
 | function | `buildUpdateUserProfileDTO` | `app/modules/users/controllers/mappers/request/user_request_mapper.ts` | 245 |
 | function | `buildChangeUserRoleDTO` | `app/modules/users/controllers/mappers/request/user_request_mapper.ts` | 256 |
 | function | `buildDeleteUserInput` | `app/modules/users/controllers/mappers/request/user_request_mapper.ts` | 268 |
-| type | `ResponseRecord` | `app/modules/users/controllers/mappers/response/shared.ts` | 1 |
-| interface | `SerializableResponseRecord` | `app/modules/users/controllers/mappers/response/shared.ts` | 3 |
-| function | `stripUndefined` | `app/modules/users/controllers/mappers/response/shared.ts` | 42 |
-| function | `serializeForResponse` | `app/modules/users/controllers/mappers/response/shared.ts` | 48 |
-| function | `serializeNullableForResponse` | `app/modules/users/controllers/mappers/response/shared.ts` | 58 |
-| function | `serializeCollectionForResponse` | `app/modules/users/controllers/mappers/response/shared.ts` | 64 |
-| function | `normalizePaginationMeta` | `app/modules/users/controllers/mappers/response/shared.ts` | 72 |
-| function | `sanitizePublicSnapshot` | `app/modules/users/controllers/mappers/response/shared.ts` | 81 |
+| type | `SerializedModelRecord` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 1 |
+| interface | `SerializableModelRecord` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 3 |
+| function | `stripUndefined` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 42 |
+| function | `serializeModelForHttpResponse` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 48 |
+| function | `serializeNullableModelForHttpResponse` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 58 |
+| function | `serializeModelCollectionForHttpResponse` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 64 |
+| function | `normalizePaginationMeta` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 72 |
+| function | `sanitizePublicSnapshot` | `app/modules/users/controllers/mappers/response/model_response_serialization.ts` | 81 |
 | function | `mapProfileEditPageProps` | `app/modules/users/controllers/mappers/response/user_response_mapper.ts` | 159 |
 | function | `mapProfileShowPageProps` | `app/modules/users/controllers/mappers/response/user_response_mapper.ts` | 177 |
 | function | `mapProfileViewPageProps` | `app/modules/users/controllers/mappers/response/user_response_mapper.ts` | 195 |
@@ -288,7 +288,7 @@ start/routes/users.ts
 | class | `PendingApprovalUsersController` | `app/modules/users/controllers/pending_approval_users_controller.ts` | 15 |
 | class | `PublishProfileSnapshotController` | `app/modules/users/controllers/publish_profile_snapshot_controller.ts` | 10 |
 | class | `RecruiterBookmarksController` | `app/modules/users/controllers/recruiter_bookmarks_controller.ts` | 9 |
-| class | `RecruiterBookmarksWorkspaceController` | `app/modules/users/controllers/recruiter_bookmarks_workspace_controller.ts` | 6 |
+| class | `OrgBookmarksPageController` | `app/modules/users/controllers/org_bookmarks_page_controller.ts` | 54 |
 | class | `RemoveProfileSkillController` | `app/modules/users/controllers/remove_profile_skill_controller.ts` | 11 |
 | class | `RotateProfileSnapshotShareLinkController` | `app/modules/users/controllers/rotate_profile_snapshot_share_link_controller.ts` | 10 |
 | class | `ShowProfileController` | `app/modules/users/controllers/show_profile_controller.ts` | 12 |
@@ -296,7 +296,7 @@ start/routes/users.ts
 | class | `StoreUserController` | `app/modules/users/controllers/store_user_controller.ts` | 11 |
 | class | `SystemUsersApiController` | `app/modules/users/controllers/system_users_api_controller.ts` | 15 |
 | class | `TalentDetailController` | `app/modules/users/controllers/talent_detail_controller.ts` | 8 |
-| class | `TalentDirectoryPageController` | `app/modules/users/controllers/talent_directory_page_controller.ts` | 6 |
+| class | `OrgTalentsPageController` | `app/modules/users/controllers/org_talents_page_controller.ts` | 161 |
 | class | `TalentsSearchController` | `app/modules/users/controllers/talents_search_controller.ts` | 6 |
 | class | `UpdateProfileDetailsController` | `app/modules/users/controllers/update_profile_details_controller.ts` | 11 |
 | class | `UpdateProfileSkillController` | `app/modules/users/controllers/update_profile_skill_controller.ts` | 11 |
@@ -376,7 +376,7 @@ start/routes/users.ts
 | const | `findUserCreatedAt` | `app/modules/users/infra/repositories/read/analytics_queries.ts` | 110 |
 | const | `findActiveOrFail` | `app/modules/users/infra/repositories/read/model_queries.ts` | 10 |
 | const | `isActive` | `app/modules/users/infra/repositories/read/model_queries.ts` | 24 |
-| const | `isFreelancer` | `app/modules/users/infra/repositories/read/model_queries.ts` | 36 |
+| const | `isExternalContributor` | `app/modules/users/infra/repositories/read/model_queries.ts` | 36 |
 | const | `isSuperadmin` | `app/modules/users/infra/repositories/read/model_queries.ts` | 45 |
 | const | `findNotDeletedOrFail` | `app/modules/users/infra/repositories/read/model_queries.ts` | 54 |
 | const | `findNotDeletedOrFailRecord` | `app/modules/users/infra/repositories/read/model_queries.ts` | 59 |
@@ -1284,7 +1284,7 @@ import { UserPaginationDTO } from '#modules/users/application/dtos/common/user_a
 import { UserStatusName } from '#modules/users/public_contracts/user_constants'
 ```
 
-### `app/modules/users/controllers/mappers/response/shared.ts`
+### `app/modules/users/controllers/mappers/response/model_response_serialization.ts`
 
 ```ts
 // no imports
@@ -1293,13 +1293,13 @@ import { UserStatusName } from '#modules/users/public_contracts/user_constants'
 ### `app/modules/users/controllers/mappers/response/user_response_mapper.ts`
 
 ```ts
-import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
+import type { SerializedModelRecord, SerializableModelRecord } from './shared.js'
 import {
   normalizePaginationMeta,
   sanitizePublicSnapshot,
-  serializeCollectionForResponse,
-  serializeForResponse,
-  serializeNullableForResponse,
+  serializeModelCollectionForHttpResponse,
+  serializeModelForHttpResponse,
+  serializeNullableModelForHttpResponse,
 } from './shared.js'
 ```
 
@@ -1362,12 +1362,19 @@ import DeleteRecruiterBookmarkCommand from '#modules/users/actions/commands/dele
 import UpdateRecruiterBookmarkCommand from '#modules/users/actions/commands/update_recruiter_bookmark_command'
 ```
 
-### `app/modules/users/controllers/recruiter_bookmarks_workspace_controller.ts`
+### `app/modules/users/controllers/org_bookmarks_page_controller.ts`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import {
+  actionContextFromHttp,
+  resolveCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import ListRecruiterBookmarksWorkspaceQuery from '#modules/users/actions/queries/list_recruiter_bookmarks_workspace_query'
+import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
 ```
 
 ### `app/modules/users/controllers/remove_profile_skill_controller.ts`
@@ -1438,12 +1445,23 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
 ```
 
-### `app/modules/users/controllers/talent_directory_page_controller.ts`
+### `app/modules/users/controllers/org_talents_page_controller.ts`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
-import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/get_talent_directory_page_query'
+import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
+import {
+  actionContextFromHttp,
+  resolveCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
+import { USER_PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+import { makeGetTalentDirectoryPageQuery } from '#modules/users/bootstrap/user_query_factory'
 ```
 
 ### `app/modules/users/controllers/talents_search_controller.ts`
@@ -1544,10 +1562,10 @@ const TalentsSearchController = () =>
   import('#modules/users/controllers/talents_search_controller')
 const TalentDetailController = () =>
   import('#modules/users/controllers/talent_detail_controller')
-const TalentDirectoryPageController = () =>
-  import('#modules/users/controllers/talent_directory_page_controller')
-const RecruiterBookmarksWorkspaceController = () =>
-  import('#modules/users/controllers/recruiter_bookmarks_workspace_controller')
+const OrgTalentsPageController = () =>
+  import('#modules/users/controllers/org_talents_page_controller')
+const OrgBookmarksPageController = () =>
+  import('#modules/users/controllers/org_bookmarks_page_controller')
 const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/recruiter_bookmarks_controller')
 
@@ -1590,23 +1608,28 @@ router
     router.get('/users/:id/edit', [EditUserController, 'handle']).as('users.edit')
     router.put('/users/:id', [UpdateUserController, 'handle']).as('users.update')
     router.delete('/users/:id', [DeleteUserController, 'handle']).as('users.destroy')
-    router.put('/users/:id/approve', [ApproveUserController, 'handle']).as('users.approve')
+    router.put('/users/:id/approve', [ApproveUserController, 'handle']).as('users.approvals.store')
     router.put('/users/:id/role', [UpdateUserRoleController, 'handle']).as('users.update_role')
 
-    router
-      .get('/marketplace/talents', [TalentDirectoryPageController, 'handle'])
-      .as('marketplace.talents')
-    router
-      .get('/marketplace/bookmarks', [RecruiterBookmarksWorkspaceController, 'handle'])
-      .as('marketplace.bookmarks')
+    router.get('/org/talents', [OrgTalentsPageController, 'index']).as('org.talents.index')
+    router.get('/org/talents/:userId', [OrgTalentsPageController, 'show']).as('org.talents.show')
+    router.get('/org/bookmarks', [OrgBookmarksPageController, 'handle']).as('org.bookmarks')
+    // /marketplace/talents and /marketplace/bookmarks are legacy redirects owned by marketplace routes.
 
     // API routes
     router
-      .get('/api/users/pending-approval', [PendingApprovalUsersApiController, 'handle'])
-      .as('api.users.pending_approval')
+      .get('/api/users/pending-approvals', [PendingApprovalUsersApiController, 'handle'])
+      .as('api.users.pending_approvals')
     router
-      .get('/api/users/pending-approval/count', [PendingApprovalCountApiController, 'handle'])
-      .as('api.users.pending_approval_count')
+      .get('/api/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
+      .as('api.users.pending_approvals_count')
+    router
+      .get('/api/v1/users/pending-approvals', [PendingApprovalUsersApiController, 'handle'])
+      .as('api.v1.users.pending_approvals.index')
+    router
+      .get('/api/v1/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
+      .as('api.v1.users.pending_approvals.count.show')
+    // Deprecated singular aliases live in start/routes/deprecated/api_context_aliases.ts.
     router
       .get('/api/system-users', [SystemUsersApiController, 'handle'])
       .as('api.users.system_users')
@@ -1620,17 +1643,18 @@ router
       .get('/api/org/talents/:userId', [TalentDetailController, 'handle'])
       .as('api.org.talents.show')
     router
-      .get('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'index'])
-      .as('api.recruiter_bookmarks.index')
+      .get('/api/talent-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.talent_bookmarks.index')
     router
-      .post('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'store'])
-      .as('api.recruiter_bookmarks.store')
+      .post('/api/talent-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.talent_bookmarks.store')
     router
-      .patch('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'update'])
-      .as('api.recruiter_bookmarks.update')
+      .patch('/api/talent-bookmarks/:id', [RecruiterBookmarksController, 'update'])
+      .as('api.talent_bookmarks.update')
     router
-      .delete('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
-      .as('api.recruiter_bookmarks.destroy')
+      .delete('/api/talent-bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
+      .as('api.talent_bookmarks.destroy')
+    // /api/recruiter-bookmarks remains compatibility alias.
     router
       .get('/api/recruiters/bookmarks', [RecruiterBookmarksController, 'index'])
       .as('api.recruiters.bookmarks.index')
@@ -1658,27 +1682,27 @@ router
     router.get('/profile/edit', [EditProfileController, 'handle']).as('profile.edit')
     router
       .put('/profile/details', [UpdateProfileDetailsController, 'handle'])
-      .as('profile.updateDetails')
+      .as('profile.details.update')
 
     // Profile skills management
-    router.post('/profile/skills', [AddProfileSkillController, 'handle']).as('profile.skills.add')
+    router.post('/profile/skills', [AddProfileSkillController, 'handle']).as('profile.skills.store')
     router
       .put('/profile/skills/:id', [UpdateProfileSkillController, 'handle'])
       .as('profile.skills.update')
     router
       .delete('/profile/skills/:id', [RemoveProfileSkillController, 'handle'])
-      .as('profile.skills.remove')
+      .as('profile.skills.destroy')
 
     // View other user's public profile
-    router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.viewUser')
+    router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.user.show')
 
     // Profile snapshots
     router
       .post('/profile/snapshots/publish', [PublishProfileSnapshotController, 'handle'])
-      .as('profile.snapshots.publish')
+      .as('profile.snapshots.store')
     router
       .post('/api/me/profile-snapshots', [PublishProfileSnapshotController, 'handle'])
-      .as('api.me.profile_snapshots.publish')
+      .as('api.me.profile_snapshots.store')
     router
       .get('/profile/snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
       .as('profile.snapshots.current')

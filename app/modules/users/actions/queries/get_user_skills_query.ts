@@ -1,3 +1,5 @@
+import { DateTime } from 'luxon'
+
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 import { BaseQuery } from '#modules/users/actions/base_query'
@@ -13,7 +15,9 @@ export class GetUserSkillsDTO {
 
   constructor(userId: string, categoryCode?: string) {
     this.user_id = userId
-    this.category_code = categoryCode
+    if (categoryCode !== undefined) {
+      this.category_code = categoryCode
+    }
   }
 }
 
@@ -24,10 +28,14 @@ interface UserSkillResult {
   skill_code: string
   category_name: string
   category_code: string
-  level_code: string
+  verified_public_proficiency_code: string
+  source: 'imported' | 'reviewed'
   total_reviews: number
   avg_score: number | null
   avg_percentage: number | null
+  confidence_signal: 'low' | 'medium' | 'high' | null
+  freshness_state: 'unreviewed' | 'fresh' | 'stale'
+  governance_state: 'unreviewed' | 'verified' | 'under_dispute'
   last_reviewed_at: string | null
   evidence_count: number
   evidence_history: SkillEvidenceHistoryEntry[]
@@ -44,7 +52,7 @@ interface SkillEvidenceHistoryEntry {
   task_id: string
   task_title: string
   completed_at: string | null
-  assigned_level_code: string | null
+  assigned_public_proficiency_code: string | null
   reviewer_type: string | null
   comment: string | null
   evidence_links: SkillEvidenceLink[]
@@ -81,7 +89,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
         filteredSkills = userSkills.filter((us) => us.skill.category_code === dto.category_code)
       }
 
-      // Map to result format (v3: level_code is inline on user_skills)
+      // Map to result format (v3: verified_public_proficiency_code is inline on user_skills)
       return filteredSkills.map((us) => {
         const evidence = evidenceBySkill.get(us.skill_id) ?? []
 
@@ -92,10 +100,14 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
           skill_code: us.skill.skill_code,
           category_name: us.skill.category_code,
           category_code: us.skill.category_code,
-          level_code: us.level_code,
+          verified_public_proficiency_code: us.verified_public_proficiency_code,
+          source: us.source,
           total_reviews: us.total_reviews,
           avg_score: us.avg_score,
           avg_percentage: us.avg_percentage,
+          confidence_signal: us.confidence_signal,
+          freshness_state: this.buildFreshnessState(us.last_reviewed_at),
+          governance_state: this.buildGovernanceState(us.has_active_dispute, us.total_reviews),
           last_reviewed_at: us.last_reviewed_at?.toISO() ?? null,
           evidence_count: evidence.length,
           evidence_history: evidence.slice(0, 3),
@@ -119,7 +131,10 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
           task_id: row.task_id,
           task_title: row.task_title,
           completed_at: row.completed_at?.toISO() ?? null,
-          assigned_level_code: this.readString(skillScore, 'assigned_level_code'),
+          assigned_public_proficiency_code: this.readString(
+            skillScore,
+            'assigned_public_proficiency_code'
+          ),
           reviewer_type: this.readString(skillScore, 'reviewer_type'),
           comment: this.readString(skillScore, 'comment'),
           evidence_links: row.evidence_links.map((link) => ({
@@ -139,5 +154,29 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
   private readString(record: Record<string, unknown>, key: string): string | null {
     const value = record[key]
     return typeof value === 'string' && value.trim().length > 0 ? value : null
+  }
+
+  private buildFreshnessState(
+    lastReviewedAt: DateTime | null
+  ): 'unreviewed' | 'fresh' | 'stale' {
+    if (!lastReviewedAt) {
+      return 'unreviewed'
+    }
+
+    const ageInDays = Math.max(0, Math.floor(DateTime.now().diff(lastReviewedAt, 'days').days))
+    return ageInDays <= 90 ? 'fresh' : 'stale'
+  }
+
+  private buildGovernanceState(
+    hasActiveDispute: boolean,
+    totalReviews: number
+  ): 'unreviewed' | 'verified' | 'under_dispute' {
+    if (hasActiveDispute) {
+      return 'under_dispute'
+    }
+    if (totalReviews > 0) {
+      return 'verified'
+    }
+    return 'unreviewed'
   }
 }

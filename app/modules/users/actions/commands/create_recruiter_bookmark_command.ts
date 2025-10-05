@@ -55,7 +55,7 @@ export default class CreateRecruiterBookmarkCommand extends BaseCommand<
         .first()) as RecruiterBookmarkRecord | null
 
       if (existing) {
-        throw new ConflictException('Recruiter bookmark already exists')
+        throw new ConflictException('Talent bookmark already exists')
       }
 
       // 4. Create bookmark

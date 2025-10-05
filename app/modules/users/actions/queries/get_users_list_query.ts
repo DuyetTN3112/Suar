@@ -3,6 +3,7 @@ import { inject } from '@adonisjs/core'
 import { BaseQuery } from '../base_query.js'
 import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { UserPaginatedResult } from '#modules/users/application/dtos/common/user_action_dtos'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import type { UserRecord } from '#modules/users/types/user_records'
@@ -43,7 +44,7 @@ export default class GetUsersListQuery extends BaseQuery<
     const cacheKey = this.buildCacheKey(dto)
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const result = await userModelQueries.paginateUsersList({
+      const result = await userModelQueries.paginateUsersList(omitUndefined({
         page: dto.pagination.page,
         limit: dto.pagination.limit,
         organizationId: dto.organizationId,
@@ -53,7 +54,7 @@ export default class GetUsersListQuery extends BaseQuery<
         excludeStatusId: dto.filters.excludeStatusId,
         excludeOrganizationMembers: dto.filters.excludeOrganizationMembers,
         organizationUserStatus: dto.filters.organizationUserStatus,
-      })
+      }))
 
       const users = result.all().map((user) => user.serialize() as UserRecord)
       return UserPaginatedResult.create(users, result.total, dto.pagination)

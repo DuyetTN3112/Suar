@@ -3,7 +3,11 @@ import emitter from '@adonisjs/core/services/emitter'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
 import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+import {
+  getCanonicalProficiencyLevelValue,
+  isCanonicalProficiencyLevelCode,
+  proficiencyFrameworkPublicApi,
+} from '#modules/skills/public_contracts/proficiency_framework'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { UpdateUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import {
@@ -12,7 +16,6 @@ import {
 } from '#modules/users/actions/support/user_query_cache_keys'
 import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
 import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
-import { ProficiencyLevel } from '#modules/users/public_contracts/user_constants'
 import type { UserSkillRecord } from '#modules/users/types/user_records'
 
 /**
@@ -52,22 +55,28 @@ export default class UpdateUserSkillCommand extends BaseCommand<
       }
 
       const oldValues = {
-        level_code: userSkill.level_code,
+        verified_public_proficiency_code: userSkill.verified_public_proficiency_code,
       }
 
       // v3: Validate new proficiency level against enum
-      const validLevels = Object.values(ProficiencyLevel) as string[]
-      if (!validLevels.includes(dto.level_code)) {
-        throw new BusinessLogicException(`Mức độ thành thạo không hợp lệ: ${dto.level_code}`)
+      if (!isCanonicalProficiencyLevelCode(dto.verified_public_proficiency_code)) {
+        throw new BusinessLogicException(
+          `Mức độ thành thạo không hợp lệ: ${dto.verified_public_proficiency_code}`
+        )
       }
 
       // Resolve level ID
-      const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
-      const matchedLevel = activeScale?.levels.find((level) => level.code === dto.level_code)
-      const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+      const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(
+        dto.verified_public_proficiency_code,
+        trx
+      )
+      const proficiencyLevelId = matchedLevel?.id ?? null
+      const persistedLevelCode = getCanonicalProficiencyLevelValue(
+        dto.verified_public_proficiency_code
+      )
 
-      // Update the level_code (v3: inline string column)
-      userSkill.level_code = dto.level_code
+      // Update public proficiency code while keeping legacy column mapping intact
+      userSkill.verified_public_proficiency_code = persistedLevelCode
       userSkill.proficiency_level_id = proficiencyLevelId
       await userSkillMutations.save(userSkill, trx)
 
@@ -80,7 +89,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<
           entity_id: dto.user_skill_id,
           old_values: oldValues,
           new_values: {
-            level_code: dto.level_code,
+            verified_public_proficiency_code: persistedLevelCode,
           },
         })
       }

@@ -10,7 +10,9 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
 import { ChangeUserRoleDTO } from '#modules/users/actions/dtos/request/change_user_role_dto'
 import { GetUserDetailDTO } from '#modules/users/actions/dtos/request/get_user_detail_dto'
@@ -40,11 +42,48 @@ const SYSTEM_USERS_DEFAULT_LIMIT = 10
 const PROFILE_SNAPSHOT_HISTORY_DEFAULT_LIMIT = 20
 const FEATURED_REVIEWS_DEFAULT_LIMIT = 2
 
+function readAliasedInput(
+  request: HttpContext['request'],
+  camelKey: string,
+  snakeKey: string,
+  fallback?: unknown
+): unknown {
+  return request.input(camelKey, request.input(snakeKey, fallback))
+}
+
+function buildUserPagination(
+  request: HttpContext['request'],
+  defaultLimit: number
+): UserPaginationDTO {
+  const pagination = normalizePagination(
+    {
+      page: request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,
+      limit: request.input('limit', defaultLimit) as unknown,
+    },
+    PAGINATION,
+    { perPage: defaultLimit }
+  )
+
+  return new UserPaginationDTO(pagination.page, pagination.perPage)
+}
+
 export function buildAddUserSkillDTO(request: HttpContext['request']): AddUserSkillDTO {
-  return AddUserSkillDTO.fromValidatedPayload({
-    skill_id: request.input('skill_id') as string,
-    level_code: request.input('level_code') as string,
-  })
+  const skillId = request.input('skillId') ?? request.input('skill_id') ?? null
+  const customSkillName =
+    request.input('customSkillName') ?? request.input('custom_skill_name') ?? null
+  const categoryCode = request.input('categoryCode') ?? request.input('category_code') ?? null
+
+  return AddUserSkillDTO.fromValidatedPayload(omitUndefined({
+    skill_id: skillId as string | null,
+    custom_skill_name: customSkillName as string | null,
+    category_code: categoryCode as string | null,
+    verified_public_proficiency_code: (
+      request.input('verifiedPublicProficiencyCode') ??
+      request.input('verified_public_proficiency_code') ??
+      request.input('levelCode') ??
+      request.input('level_code')
+    ) as string,
+  }))
 }
 
 export function buildApproveUserDTO(
@@ -116,18 +155,14 @@ export function buildUsersListDTO(
   request: HttpContext['request'],
   organizationId: string
 ): GetUsersListDTO {
-  const page = toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown, 1)
-  const limit = toPositiveNumber(
-    request.input('limit', USERS_DEFAULT_LIMIT) as unknown,
-    USERS_DEFAULT_LIMIT
-  )
-
   return new GetUsersListDTO(
-    new UserPaginationDTO(page, limit),
+    buildUserPagination(request, USERS_DEFAULT_LIMIT),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search') as unknown),
-      toOptionalString((request.input('role') ?? request.input('system_role')) as unknown),
+      toOptionalString(
+        (request.input('role') ?? readAliasedInput(request, 'systemRole', 'system_role')) as unknown
+      ),
       toOptionalString(request.input('status') as unknown),
       UserStatusName.INACTIVE,
       OrganizationUserStatus.APPROVED
@@ -139,14 +174,8 @@ export function buildPendingApprovalUsersListDTO(
   request: HttpContext['request'],
   organizationId: string
 ): GetUsersListDTO {
-  const page = toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown, 1)
-  const limit = toPositiveNumber(
-    request.input('limit', PENDING_APPROVAL_DEFAULT_LIMIT) as unknown,
-    PENDING_APPROVAL_DEFAULT_LIMIT
-  )
-
   return new GetUsersListDTO(
-    new UserPaginationDTO(page, limit),
+    buildUserPagination(request, PENDING_APPROVAL_DEFAULT_LIMIT),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search') as unknown),
@@ -162,14 +191,8 @@ export function buildSystemUsersListDTO(
   request: HttpContext['request'],
   organizationId: string
 ): GetUsersListDTO {
-  const page = toPositiveNumber(request.input('page', PAGINATION.DEFAULT_PAGE) as unknown, 1)
-  const limit = toPositiveNumber(
-    request.input('limit', SYSTEM_USERS_DEFAULT_LIMIT) as unknown,
-    SYSTEM_USERS_DEFAULT_LIMIT
-  )
-
   return new GetUsersListDTO(
-    new UserPaginationDTO(page, limit),
+    buildUserPagination(request, SYSTEM_USERS_DEFAULT_LIMIT),
     organizationId,
     new UserFiltersDTO(
       toOptionalString(request.input('search', '') as unknown),
@@ -183,11 +206,17 @@ export function buildSystemUsersListDTO(
 }
 
 export function buildPublishUserProfileSnapshotDTO(request: HttpContext['request']) {
-  return {
-    snapshotName: toOptionalString(request.input('snapshot_name') as unknown),
-    isPublic: toOptionalBoolean(request.input('is_public') as unknown),
-    expiresInDays: toOptionalNumber(request.input('expires_in_days') as unknown),
-  }
+  return omitUndefined({
+    snapshotName: toOptionalString(
+      (request.input('snapshotName') ?? request.input('snapshot_name')) as unknown
+    ),
+    isPublic: toOptionalBoolean(
+      (request.input('isPublic') ?? request.input('is_public')) as unknown
+    ),
+    expiresInDays: toOptionalNumber(
+      (request.input('expiresInDays') ?? request.input('expires_in_days')) as unknown
+    ),
+  })
 }
 
 export function buildRemoveUserSkillDTO(userSkillId: string): RemoveUserSkillDTO {
@@ -204,21 +233,28 @@ export function buildRegisterUserDTO(request: HttpContext['request']): RegisterU
   return new RegisterUserDTO(
     request.input('username') as string,
     request.input('email') as string,
-    (request.input('system_role') ?? request.input('role') ?? '') as string,
+    (readAliasedInput(request, 'systemRole', 'system_role') ?? request.input('role') ?? '') as string,
     (request.input('status') ?? '') as string
   )
 }
 
 export function buildUpdateUserDetailsDTO(request: HttpContext['request']): UpdateUserDetailsDTO {
-  return new UpdateUserDetailsDTO({
-    avatar_url: toOptionalNullableString(request.input('avatar_url') as unknown),
+  return new UpdateUserDetailsDTO(omitUndefined({
+    avatar_url: toOptionalNullableString(readAliasedInput(request, 'avatarUrl', 'avatar_url')),
     bio: toOptionalNullableString(request.input('bio') as unknown),
     phone: toOptionalNullableString(request.input('phone') as unknown),
     address: toOptionalNullableString(request.input('address') as unknown),
     timezone: toOptionalString(request.input('timezone') as unknown),
     language: toOptionalString(request.input('language') as unknown),
-    is_freelancer: toOptionalBoolean(request.input('is_freelancer') as unknown),
-  })
+    is_external_contributor: toOptionalBoolean(
+      readAliasedInput(
+        request,
+        'isExternalContributor',
+        'is_external_contributor',
+        readAliasedInput(request, 'isExternalContributor', 'is_external_contributor')
+      )
+    ),
+  }))
 }
 
 export function buildUpdateUserSkillDTO(
@@ -227,7 +263,12 @@ export function buildUpdateUserSkillDTO(
 ): UpdateUserSkillDTO {
   return UpdateUserSkillDTO.fromValidatedPayload({
     user_skill_id: userSkillId,
-    level_code: request.input('level_code') as string,
+    verified_public_proficiency_code: (
+      request.input('verifiedPublicProficiencyCode') ??
+      request.input('verified_public_proficiency_code') ??
+      request.input('levelCode') ??
+      request.input('level_code')
+    ) as string,
   })
 }
 
@@ -235,11 +276,16 @@ export function buildUpdateProfileSnapshotAccessDTO(
   request: HttpContext['request'],
   snapshotId: string
 ) {
-  return {
+  return omitUndefined({
     snapshotId,
-    isPublic: toBoolean(request.input('is_public') as unknown, false),
-    expiresInDays: toOptionalNumber(request.input('expires_in_days') as unknown),
-  }
+    isPublic: toBoolean(
+      (request.input('isPublic') ?? request.input('is_public')) as unknown,
+      false
+    ),
+    expiresInDays: toOptionalNumber(
+      (request.input('expiresInDays') ?? request.input('expires_in_days')) as unknown
+    ),
+  })
 }
 
 export function buildUpdateUserProfileDTO(
@@ -260,7 +306,7 @@ export function buildChangeUserRoleDTO(
 ): ChangeUserRoleDTO {
   return new ChangeUserRoleDTO(
     targetUserId,
-    (request.input('role') ?? request.input('system_role') ?? '') as string,
+    (request.input('role') ?? readAliasedInput(request, 'systemRole', 'system_role') ?? '') as string,
     changerId
   )
 }

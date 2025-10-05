@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { resolveCurrentOrganizationId } from '#modules/http/public_contracts/http_execution_context'
 import type { UserActorContext } from '#modules/users/application/context/user_actor_context'
 
 export function userActorContextFromHttp(ctx: HttpContext): UserActorContext {
@@ -11,7 +12,7 @@ export function userActorContextFromHttp(ctx: HttpContext): UserActorContext {
 
   return {
     actorUserId: user.id,
-    currentOrganizationId: (ctx.session.get('current_organization_id') as string | undefined) ?? null,
+    currentOrganizationId: resolveCurrentOrganizationId(ctx),
     actorSystemRole: user.system_role,
   }
 }

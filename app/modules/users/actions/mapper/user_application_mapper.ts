@@ -67,16 +67,16 @@ export class UserApplicationMapper {
     address?: string | null
     timezone?: string
     language?: string
-    isFreelancer?: boolean
+    isExternalContributor?: boolean
   } {
     const result: Record<string, unknown> = {}
-    if (dto.avatar_url !== undefined) result.avatarUrl = dto.avatar_url
-    if (dto.bio !== undefined) result.bio = dto.bio
-    if (dto.phone !== undefined) result.phone = dto.phone
-    if (dto.address !== undefined) result.address = dto.address
-    if (dto.timezone !== undefined) result.timezone = dto.timezone
-    if (dto.language !== undefined) result.language = dto.language
-    if (dto.is_freelancer !== undefined) result.isFreelancer = dto.is_freelancer
+    if (dto.avatar_url !== undefined) result['avatarUrl'] = dto.avatar_url
+    if (dto.bio !== undefined) result['bio'] = dto.bio
+    if (dto.phone !== undefined) result['phone'] = dto.phone
+    if (dto.address !== undefined) result['address'] = dto.address
+    if (dto.timezone !== undefined) result['timezone'] = dto.timezone
+    if (dto.language !== undefined) result['language'] = dto.language
+    if (dto.is_external_contributor !== undefined) result['isExternalContributor'] = dto.is_external_contributor
     return result
   }
 

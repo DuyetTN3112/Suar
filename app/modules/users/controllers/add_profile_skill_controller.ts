@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildAddUserSkillDTO } from './mappers/request/user_request_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
 
 /**

@@ -29,7 +29,7 @@ export interface TaskAssignmentData {
 export interface UserSkillData {
   skill_id: string
   skill_name: string
-  level_code: string
+  verified_public_proficiency_code: string
   avg_percentage: number | null
   total_reviews: number
   category_code: string

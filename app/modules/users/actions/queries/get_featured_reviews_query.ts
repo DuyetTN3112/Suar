@@ -1,3 +1,4 @@
+import { getCanonicalProficiencyLevelLabel } from '#modules/skills/public_contracts/proficiency_framework'
 import { BaseQuery } from '#modules/users/actions/base_query'
 import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
 import type { TopReviewedSkillRow } from '#modules/users/infra/repositories/read/types'
@@ -21,7 +22,7 @@ export class GetFeaturedReviewsDTO {
 export interface FeaturedReviewItem {
   skill_id: string
   skill_name: string
-  level_code: string
+  verified_public_proficiency_code: string
   avg_percentage: number
   total_reviews: number
   reviewer_name: string
@@ -65,7 +66,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
         let stars = Math.max(1, Math.min(5, Math.round((avgPercentage || 20) / 20)))
         let content =
           skill.total_reviews > 0
-            ? `${skill.skill_name} đang giữ mức ${this.getLevelLabel(skill.level_code)} với điểm trung bình ${avgPercentage.toFixed(1)}%.`
+            ? `${skill.skill_name} đang giữ mức ${this.getLevelLabel(skill.verified_public_proficiency_code)} với điểm trung bình ${avgPercentage.toFixed(1)}%.`
             : `${skill.skill_name} mới được khai báo, chưa có lượt review để chấm điểm.`
         let taskName = `Skill: ${skill.skill_name}`
 
@@ -91,7 +92,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
         results.push({
           skill_id: skill.skill_id,
           skill_name: skill.skill_name,
-          level_code: skill.level_code,
+          verified_public_proficiency_code: skill.verified_public_proficiency_code,
           avg_percentage: avgPercentage,
           total_reviews: skill.total_reviews,
           reviewer_name: reviewerName,
@@ -107,13 +108,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
   }
 
   private getLevelLabel(levelCode: string): string {
-    const code = levelCode.toLowerCase()
-    if (code.includes('begin')) return 'Beginner'
-    if (code.includes('jun')) return 'Junior'
-    if (code.includes('mid')) return 'Middle'
-    if (code.includes('sen')) return 'Senior'
-    if (code.includes('lead')) return 'Lead'
-    return levelCode
+    return getCanonicalProficiencyLevelLabel(levelCode, levelCode)
   }
 
   private toNumber(value: TopReviewedSkillRow['avg_percentage']): number {

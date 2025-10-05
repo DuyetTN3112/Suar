@@ -34,7 +34,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       const skillInfo = {
         skill_id: userSkill.skill_id,
         skill_name: userSkill.skill.skill_name,
-        level_code: userSkill.level_code,
+        verified_public_proficiency_code: userSkill.verified_public_proficiency_code,
       }
 
       // Delete the user skill

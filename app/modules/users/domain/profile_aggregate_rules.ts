@@ -1,3 +1,5 @@
+import { getCanonicalProficiencyLevelOrder } from '#modules/skills/public_contracts/proficiency_framework'
+
 export interface WorkHistoryDeliveryTimingInput {
   dueDate: Date | null
   completedAt: Date | null
@@ -124,18 +126,7 @@ function computeStreaks(rows: PerformanceAggregateRow[]): {
 }
 
 function getLevelWeight(levelCode: string | null): number {
-  switch (levelCode) {
-    case null:
-      return 1
-    case 'expert':
-      return 4
-    case 'advanced':
-      return 3
-    case 'intermediate':
-      return 2
-    default:
-      return 1
-  }
+  return getCanonicalProficiencyLevelOrder(levelCode)
 }
 
 export function calculateWorkHistoryDeliveryTiming(input: WorkHistoryDeliveryTimingInput): {
