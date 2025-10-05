@@ -11,6 +11,7 @@ fi
 : "${PG_TEST_DATABASE:?PG_TEST_DATABASE is required}"
 
 pnpm run db:test:migrate
+pnpm exec vite build
 
 PG_DATABASE="$PG_TEST_DATABASE" \
 PG_TEST_DATABASE="$PG_TEST_DATABASE" \

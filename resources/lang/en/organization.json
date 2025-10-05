@@ -22,6 +22,290 @@
     "switch_organization": "Switch Organization",
     "current_organization": "Current Organization",
     "debug_tool": "Organization Debug Tool",
-    "debug_tool_description": "This tool helps inspect and fix issues related to the current organization."
+    "debug_tool_description": "This tool helps inspect and fix issues related to the current organization.",
+    "no_description": "No description.",
+    "role_label": "Role",
+    "view_detail": "View details",
+    "select": "Select",
+    "index": {
+      "page_title": "Organizations",
+      "eyebrow": "Organizations",
+      "title": "Organizations",
+      "subtitle_joined": "Choose an organization to enter work or create a new one.",
+      "subtitle_empty": "You are not part of any organization yet.",
+      "create_button": "Create organization",
+      "joined_stat": "Joined",
+      "projects_stat": "Projects",
+      "available_stat": "Available",
+      "open_network": "Open network",
+      "available_title": "Available organizations",
+      "results_count": ":count results",
+      "clear_filters": "Clear filters",
+      "joined_tab": "Joined (:count)",
+      "available_tab": "Available (:count)",
+      "empty_joined_title": "You have not joined any organizations yet",
+      "empty_joined_description": "Choose an available organization or create a new one.",
+      "view_available": "View available organizations",
+      "empty_available_match_title": "No organizations found",
+      "empty_available_title": "No organizations yet",
+      "empty_available_match_description": "No organizations match \":search\".",
+      "empty_available_description": "Create a new organization to get started.",
+      "filter_plan": "Plan",
+      "filter_partner_type": "Partner tier",
+      "filter_partner_status": "Partner status",
+      "filter_created_at": "Created at",
+      "join_current": "Current",
+      "join_switch": "Switch",
+      "join_pending": "Pending approval",
+      "join_retry": "Send request again",
+      "join_button": "Join",
+      "join_error": "Unable to join organization",
+      "join_success": "Organization join request sent",
+      "csrf_missing": "CSRF token not found. Please reload the page.",
+      "request_error": "An error occurred while processing the request",
+      "switch_success": "Organization switched successfully",
+      "switch_error": "Unable to switch organization",
+      "plan": {
+        "free": "Free",
+        "starter": "Starter",
+        "professional": "Professional",
+        "enterprise": "Enterprise"
+      },
+      "partner_type": {
+        "bronze": "Bronze",
+        "silver": "Silver",
+        "gold": "Gold"
+      },
+      "partner_status": {
+        "active": "Active",
+        "inactive": "Inactive"
+      }
+    },
+    "list": {
+      "empty_title": "No organizations yet",
+      "empty_description": "Create a new organization."
+    },
+    "memberships": {
+      "eyebrow": "Your workspace",
+      "title": "Joined organizations",
+      "active_badge": "In use",
+      "joined_badge": "Joined",
+      "uncategorized": "Uncategorized",
+      "location_unknown": "Location unknown",
+      "website_missing": "No website"
+    },
+    "invitations": {
+      "page_title": "Organization invitations",
+      "eyebrow": "Organization invitations",
+      "title": "Organization invitations",
+      "invite_button": "Invite member",
+      "invite_title": "Invite member",
+      "role_label": "Role",
+      "list_title": "Sent invitations",
+      "empty": "No matching invitations yet.",
+      "invited_by": "invited by",
+      "status": {
+        "pending": "Pending",
+        "accepted": "Accepted",
+        "declined": "Declined",
+        "expired": "Expired"
+      }
+    },
+    "requests": {
+      "page_title": "Join requests",
+      "eyebrow": "Organization invitations",
+      "title": "Join requests",
+      "list_title": "Request list",
+      "empty": "No pending requests.",
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "members": {
+      "page_title": "Organization members",
+      "eyebrow": "Organization access",
+      "title": "Organization members",
+      "list_title": "Member list",
+      "empty": "No matching members."
+    },
+    "bookmarks": {
+      "page_title": "Saved talent",
+      "eyebrow": "Recruiting",
+      "title": "Saved talent",
+      "summary": ":count profiles in shortlist.",
+      "list_title": "Saved list",
+      "empty": "No saved talent yet.",
+      "notes_missing": "No notes yet",
+      "folder_default": "Shortlist",
+      "view_profile": "View profile"
+    },
+    "no_org": {
+      "page_title": "Select organization",
+      "eyebrow": "Organization workspace",
+      "title": "Select organization",
+      "description": "Current account has no active organization in this session.",
+      "view_organizations": "View organizations",
+      "create_organization": "Create organization"
+    },
+    "create": {
+      "page_title": "Create organization",
+      "name_label": "Organization name",
+      "name_required": "Organization name is required",
+      "name_placeholder": "Enter organization name",
+      "slug_hint": "Generated from the name; you can edit it.",
+      "description_placeholder": "Describe your organization",
+      "creating": "Creating...",
+      "submit": "Create organization"
+    },
+    "detail_dialog": {
+      "joined_badge": "Joined",
+      "pending_badge": "Pending approval",
+      "description_title": "Description",
+      "not_provided": "Not provided",
+      "founded_year": "Founded year",
+      "owner": "Owner",
+      "employee_count": ":count members",
+      "project_count": ":count projects",
+      "industry": "Industry",
+      "location": "Location",
+      "status": "Status",
+      "joined_status": "Joined",
+      "not_joined_status": "Not joined",
+      "current": "Current",
+      "switch": "Switch",
+      "pending": "Pending approval",
+      "join": "Join organization",
+      "close": "Close"
+    },
+    "switcher": {
+      "invalid_id": "Invalid organization ID",
+      "switch_success": "Organization switched",
+      "switch_error": "Unable to switch organization",
+      "switching": "Switching...",
+      "switch": "Switch organization"
+    },
+    "show": {
+      "page_title": "Organization details",
+      "back_to_list": "Back to organizations",
+      "created_label": "Created",
+      "date_unknown": "Unknown",
+      "members_tab": "Members (:count)",
+      "projects_tab": "Projects",
+      "reviews_tab": "Organization reviews",
+      "members_title": "Members",
+      "invite_members": "Invite members",
+      "members_empty": "This organization has no members yet",
+      "member_name_header": "Name",
+      "member_role_header": "Role",
+      "member_actions_header": "Actions",
+      "view_user": "View user",
+      "projects_title": "Projects",
+      "manage_org_projects": "Manage organization projects",
+      "general_project_list": "General project list",
+      "reviews_title": "Organization reviews",
+      "reviews_description": "Collect recorded work-environment and manager reviews. The new flow runs after sprint closure instead of after each task.",
+      "open_reverse_review_center": "Open environment review center",
+      "total_reviews": "Total reviews",
+      "average_rating": "Average rating",
+      "anonymous_reviews": "Anonymous reviews",
+      "sprint_reviews_title": "Organization-wide post-sprint reviews",
+      "anonymous_count": ":count anonymous",
+      "sprint_reviews_empty": "No post-sprint reviews in this organization yet.",
+      "reviews_empty": "No organization reviews from reverse task reviews yet.",
+      "no_review_comment": "No detailed comment.",
+      "reviewer_anonymous": "Anonymous",
+      "reviewer_member": "Member",
+      "reviewer_org_member": "Organization member",
+      "review_target": {
+        "organization": "Organization",
+        "project": "Project",
+        "manager": "Manager review",
+        "peer": "Peer"
+      }
+    },
+    "required_dialog": {
+      "title": "Organization required",
+      "description_line_1": "Join or create an organization to access this feature.",
+      "description_line_2": "Full platform features require membership in at least one organization.",
+      "view_list": "View organizations"
+    },
+    "talent_explainability": {
+      "reviewed_count": ":reviewed/:total reviewed",
+      "imported_count": ":count imported",
+      "dispute_count": ":count dispute"
+    },
+    "admin_organizations": {
+      "index": {
+        "title": "Organizations",
+        "description": ":count active organizations in the system.",
+        "search_placeholder": "Search organization name...",
+        "create": "Create organization",
+        "list_title": "Organization list (:count)",
+        "no_description": "No description.",
+        "members": "Members",
+        "projects": "Projects",
+        "view_detail": "View detail",
+        "empty_title": "No organizations found",
+        "empty_search": "Try changing the search keyword.",
+        "empty_system": "The system has no organizations yet."
+      },
+      "show": {
+        "eyebrow": "Admin / Organization detail",
+        "summary": ":members members · :projects projects",
+        "info_title": "Organization information",
+        "organization_id": "Organization ID",
+        "name": "Name",
+        "description": "Description",
+        "no_description": "No description",
+        "partner_type": "Partner type",
+        "stats_title": "Owner and statistics",
+        "owner_email": "Owner email",
+        "email_missing": "Not provided",
+        "members": "Members",
+        "member_count": ":count people",
+        "projects": "Projects",
+        "project_count": ":count projects",
+        "created_at": "Created at",
+        "updated_at": "Last updated"
+      }
+    },
+    "dashboard": {
+      "page_title": "Organization overview",
+      "current_org_fallback": "Current organization",
+      "subtitle": "Track members, projects, tasks, and quality signals across the organization workspace.",
+      "actions": {
+        "task_board": "Task board",
+        "settings": "Settings"
+      },
+      "metrics": {
+        "members": {
+          "label": "Members",
+          "detail": ":count pending invitations"
+        },
+        "projects": {
+          "label": "Projects",
+          "detail": ":count active"
+        },
+        "tasks": {
+          "label": "Tasks",
+          "detail": ":count in progress"
+        },
+        "risks": {
+          "label": "Risks",
+          "detail": ":count members with disputes"
+        }
+      },
+      "roles_title": "Organization roles",
+      "roles": {
+        "owner": "Owner",
+        "admin": "Admin",
+        "member": "Member"
+      },
+      "quick_title": "Quick coordination",
+      "quick": {
+        "projects": "Project catalog",
+        "members": "Organization members",
+        "audit_logs": "Organization audit log"
+      }
+    }
   }
-} 
+}

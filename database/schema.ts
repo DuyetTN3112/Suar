@@ -843,17 +843,31 @@ export class ReviewSessionSchema extends BaseModel {
   @column.dateTime()
   declare completedAt: DateTime | null
   @column()
+  declare confidence: string | null
+  @column()
   declare confirmations: any | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare creatorReviewCompleted: boolean
+  @column()
+  declare creatorReviewerId: string | null
   @column.dateTime()
   declare deadline: DateTime | null
   @column()
   declare deliveryTimeliness: string | null
+  @column()
+  declare evidenceStrength: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
   declare managerReviewCompleted: boolean
+  @column()
+  declare managerReviewsCount: number
+  @column()
+  declare minimumManagerReviews: number
+  @column()
+  declare minimumPeerReviews: number
   @column()
   declare overallQualityScore: number | null
   @column()
@@ -861,11 +875,17 @@ export class ReviewSessionSchema extends BaseModel {
   @column()
   declare proactivenessScore: number | null
   @column()
+  declare recencyWeight: string | null
+  @column()
   declare requiredPeerReviews: number
+  @column()
+  declare requiredTotalReviews: number
   @column()
   declare requirementAdherence: number | null
   @column()
   declare revieweeId: string
+  @column()
+  declare rubricVersionId: string | null
   @column()
   declare status: string
   @column()
@@ -919,16 +939,20 @@ export class SkillReviewEvidenceLinkSchema extends BaseModel {
 }
 
 export class SkillReviewSchema extends BaseModel {
-  static $columns = ['assignedLevelCode', 'comment', 'confidence', 'createdAt', 'id', 'isFraud', 'observableBehaviors', 'observedLevelId', 'proficiencyLevelId', 'rationale', 'reviewSessionId', 'reviewStatus', 'reviewerId', 'reviewerType', 'rubricVersionId', 'skillId', 'submittedAt', 'supersededBy', 'updatedAt'] as const
+  static $columns = ['assignedPublicProficiencyCode', 'comment', 'confidence', 'createdAt', 'evidenceIds', 'flags', 'id', 'isFraud', 'observableBehaviors', 'observedLevelId', 'proficiencyLevelId', 'rationale', 'reviewSessionId', 'reviewStatus', 'reviewWeight', 'reviewerId', 'reviewerRole', 'reviewerSkillRelevance', 'reviewerType', 'rubricVersionId', 'skillId', 'submittedAt', 'supersededBy', 'taskRequiredSkillId', 'updatedAt'] as const
   $columns = SkillReviewSchema.$columns
   @column()
-  declare assignedLevelCode: string
+  declare assignedPublicProficiencyCode: string
   @column()
   declare comment: string | null
   @column()
   declare confidence: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare evidenceIds: any | null
+  @column()
+  declare flags: any | null
   @column({ isPrimary: true })
   declare id: string
   @column()
@@ -946,7 +970,13 @@ export class SkillReviewSchema extends BaseModel {
   @column()
   declare reviewStatus: string
   @column()
+  declare reviewWeight: string | null
+  @column()
   declare reviewerId: string
+  @column()
+  declare reviewerRole: string | null
+  @column()
+  declare reviewerSkillRelevance: string | null
   @column()
   declare reviewerType: string
   @column()
@@ -957,19 +987,31 @@ export class SkillReviewSchema extends BaseModel {
   declare submittedAt: DateTime | null
   @column()
   declare supersededBy: string | null
+  @column()
+  declare taskRequiredSkillId: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 }
 
 export class SkillRubricLevelSchema extends BaseModel {
-  static $columns = ['complexityExpectations', 'createdAt', 'evidenceGuidance', 'id', 'impactScopeExpectations', 'independenceExpectations', 'knowledgeExpectations', 'negativeExamples', 'observableBehaviors', 'positiveExamples', 'proficiencyLevelId', 'rubricVersionId', 'summary', 'updatedAt'] as const
+  static $columns = ['autonomyDescriptor', 'ceilingGuidance', 'collaborationDescriptor', 'complexityDescriptor', 'complexityExpectations', 'createdAt', 'evidenceGuidance', 'expectedExecution', 'id', 'impactScopeExpectations', 'independenceExpectations', 'knowledgeExpectations', 'negativeExamples', 'observableBehaviors', 'positiveExamples', 'proficiencyLevelId', 'qualityDescriptor', 'rubricVersionId', 'summary', 'updatedAt'] as const
   $columns = SkillRubricLevelSchema.$columns
+  @column()
+  declare autonomyDescriptor: string | null
+  @column()
+  declare ceilingGuidance: string | null
+  @column()
+  declare collaborationDescriptor: string | null
+  @column()
+  declare complexityDescriptor: string | null
   @column()
   declare complexityExpectations: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare evidenceGuidance: string | null
+  @column()
+  declare expectedExecution: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
@@ -986,6 +1028,8 @@ export class SkillRubricLevelSchema extends BaseModel {
   declare positiveExamples: any | null
   @column()
   declare proficiencyLevelId: string
+  @column()
+  declare qualityDescriptor: string | null
   @column()
   declare rubricVersionId: string
   @column()
@@ -1156,8 +1200,27 @@ export class TaskAttachmentSchema extends BaseModel {
   declare uploadedBy: string
 }
 
+export class TaskCommentMentionSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'mentionToken', 'mentionedByUserId', 'mentionedUserId', 'taskCommentId', 'updatedAt'] as const
+  $columns = TaskCommentMentionSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare mentionToken: string
+  @column()
+  declare mentionedByUserId: string
+  @column()
+  declare mentionedUserId: string
+  @column()
+  declare taskCommentId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class TaskCommentSchema extends BaseModel {
-  static $columns = ['authorId', 'body', 'commentType', 'createdAt', 'deletedAt', 'id', 'parentCommentId', 'taskId', 'updatedAt', 'visibility'] as const
+  static $columns = ['authorId', 'body', 'commentType', 'createdAt', 'deletedAt', 'editedAt', 'id', 'parentCommentId', 'reviewRelevance', 'taskId', 'updatedAt', 'visibility'] as const
   $columns = TaskCommentSchema.$columns
   @column()
   declare authorId: string
@@ -1169,10 +1232,14 @@ export class TaskCommentSchema extends BaseModel {
   declare createdAt: DateTime
   @column.dateTime()
   declare deletedAt: DateTime | null
+  @column.dateTime()
+  declare editedAt: DateTime | null
   @column({ isPrimary: true })
   declare id: string
   @column()
   declare parentCommentId: string | null
+  @column()
+  declare reviewRelevance: boolean
   @column()
   declare taskId: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
@@ -1182,7 +1249,7 @@ export class TaskCommentSchema extends BaseModel {
 }
 
 export class TaskRequiredSkillSchema extends BaseModel {
-  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'proficiencyLevelId', 'projectSkillId', 'requiredLevelCode', 'requirementNotes', 'requirementSource', 'rubricVersionId', 'skillId', 'sourceProjectProfessionalRoleId', 'sourceRoleSkillId', 'targetLevelId', 'taskId', 'weight'] as const
+  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'proficiencyLevelId', 'projectSkillId', 'requiredPublicProficiencyCode', 'requirementNotes', 'requirementSource', 'rubricVersionId', 'skillId', 'sourceProjectProfessionalRoleId', 'sourceRoleSkillId', 'targetLevelId', 'taskId', 'weight'] as const
   $columns = TaskRequiredSkillSchema.$columns
   @column()
   declare assessmentCeilingLevelId: string | null
@@ -1201,7 +1268,7 @@ export class TaskRequiredSkillSchema extends BaseModel {
   @column()
   declare projectSkillId: string | null
   @column()
-  declare requiredLevelCode: string
+  declare requiredPublicProficiencyCode: string
   @column()
   declare requirementNotes: string | null
   @column()
@@ -1223,7 +1290,7 @@ export class TaskRequiredSkillSchema extends BaseModel {
 }
 
 export class TaskRequirementVersionItemSchema extends BaseModel {
-  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'projectSkillId', 'requiredLevelCode', 'requirementNotes', 'requirementSource', 'requirementVersionId', 'rubricVersionId', 'skillId', 'targetLevelId', 'weight'] as const
+  static $columns = ['assessmentCeilingLevelId', 'createdAt', 'id', 'importance', 'isMandatory', 'minimumLevelId', 'projectSkillId', 'requiredPublicProficiencyCode', 'requirementNotes', 'requirementSource', 'requirementVersionId', 'rubricVersionId', 'skillId', 'targetLevelId', 'weight'] as const
   $columns = TaskRequirementVersionItemSchema.$columns
   @column()
   declare assessmentCeilingLevelId: string | null
@@ -1240,7 +1307,7 @@ export class TaskRequirementVersionItemSchema extends BaseModel {
   @column()
   declare projectSkillId: string | null
   @column()
-  declare requiredLevelCode: string | null
+  declare requiredPublicProficiencyCode: string | null
   @column()
   declare requirementNotes: string | null
   @column()
@@ -1445,7 +1512,7 @@ export class TaskWorkflowTransitionSchema extends BaseModel {
 }
 
 export class TaskSchema extends BaseModel {
-  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assignedTo', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedBudget', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'roleInTask', 'sortOrder', 'status', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
+  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assessmentCeilingLevelId', 'assignedTo', 'autonomyExpected', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexity', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedBudget', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'minimumLevelId', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'roleInTask', 'rubricVersionId', 'sortOrder', 'status', 'targetLevelId', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
   $columns = TaskSchema.$columns
   @column()
   declare acceptanceCriteria: string
@@ -1454,13 +1521,19 @@ export class TaskSchema extends BaseModel {
   @column.dateTime()
   declare applicationDeadline: DateTime | null
   @column()
+  declare assessmentCeilingLevelId: string | null
+  @column()
   declare assignedTo: string | null
+  @column()
+  declare autonomyExpected: string | null
   @column()
   declare autonomyLevel: string | null
   @column()
   declare businessDomain: string | null
   @column()
   declare collaborationType: string | null
+  @column()
+  declare complexity: string | null
   @column()
   declare complexityNotes: string | null
   @column()
@@ -1502,6 +1575,8 @@ export class TaskSchema extends BaseModel {
   @column()
   declare measurableOutcomes: any
   @column()
+  declare minimumLevelId: string | null
+  @column()
   declare organizationId: string
   @column()
   declare parentTaskId: string | null
@@ -1510,13 +1585,17 @@ export class TaskSchema extends BaseModel {
   @column()
   declare problemCategory: string | null
   @column()
-  declare projectId: string
+  declare projectId: string | null
   @column()
   declare roleInTask: string | null
+  @column()
+  declare rubricVersionId: string | null
   @column()
   declare sortOrder: number
   @column()
   declare status: string
+  @column()
+  declare targetLevelId: string | null
   @column()
   declare taskStatusId: string
   @column()
@@ -1691,34 +1770,54 @@ export class UserProfileSnapshotSchema extends BaseModel {
 }
 
 export class UserSkillSchema extends BaseModel {
-  static $columns = ['avgPercentage', 'avgScore', 'createdAt', 'id', 'lastCalculatedAt', 'lastReviewedAt', 'levelCode', 'proficiencyLevelId', 'skillId', 'source', 'totalReviews', 'updatedAt', 'userId'] as const
+  static $columns = ['avgPercentage', 'avgScore', 'confidence', 'createdAt', 'disputePendingCount', 'evidenceCount', 'explanationSummary', 'highQualityEvidenceCount', 'id', 'lastCalculatedAt', 'lastReviewedAt', 'lastVerifiedAt', 'proficiencyLevelId', 'reviewedLevelId', 'selfDeclaredLevelId', 'skillId', 'source', 'staleFlag', 'totalReviews', 'trend', 'updatedAt', 'userId', 'verifiedPublicProficiencyCode'] as const
   $columns = UserSkillSchema.$columns
   @column()
   declare avgPercentage: string | null
   @column()
   declare avgScore: string | null
+  @column()
+  declare confidence: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare disputePendingCount: number | null
+  @column()
+  declare evidenceCount: number | null
+  @column()
+  declare explanationSummary: string | null
+  @column()
+  declare highQualityEvidenceCount: number | null
   @column({ isPrimary: true })
   declare id: string
   @column.dateTime()
   declare lastCalculatedAt: DateTime | null
   @column.dateTime()
   declare lastReviewedAt: DateTime | null
-  @column()
-  declare levelCode: string
+  @column.dateTime()
+  declare lastVerifiedAt: DateTime | null
   @column()
   declare proficiencyLevelId: string | null
+  @column()
+  declare reviewedLevelId: string | null
+  @column()
+  declare selfDeclaredLevelId: string | null
   @column()
   declare skillId: string
   @column()
   declare source: string | null
   @column()
+  declare staleFlag: boolean | null
+  @column()
   declare totalReviews: number
+  @column()
+  declare trend: string | null
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
   @column()
   declare userId: string
+  @column()
+  declare verifiedPublicProficiencyCode: string
 }
 
 export class UserSubscriptionSchema extends BaseModel {

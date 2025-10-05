@@ -59,10 +59,14 @@ const OrgUpdateRolesController = () =>
 // Projects (Organization-level)
 const OrgListProjectsController = () =>
   import('#modules/organizations/controllers/current/projects/list_projects_controller')
+const OrgShowProjectCreateController = () =>
+  import('#modules/projects/controllers/create_project_controller')
 const OrgCreateProjectController = () =>
   import('#modules/organizations/controllers/current/projects/create_project_controller')
 const OrgShowProjectController = () =>
   import('#modules/organizations/controllers/current/projects/show_project_controller')
+const ShowOrganizationSprintsWorkspaceController = () =>
+  import('#modules/organizations/controllers/current/sprints/show_organization_sprints_workspace_controller')
 
 // Tasks (Organization-level)
 const OrgListTasksController = () =>
@@ -75,6 +79,10 @@ const OrgListTaskStatusesController = () =>
   import('#modules/organizations/controllers/current/workflow/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
   import('#modules/organizations/controllers/current/workflow/create_task_status_controller')
+const OrgListAuditLogsController = () =>
+  import('#modules/admin/controllers/audit_logs/list_audit_logs_controller')
+const ListMarketplaceTasksController = () =>
+  import('#modules/marketplace/controllers/list_marketplace_tasks_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
@@ -88,20 +96,24 @@ router
       .group(() => {
         router.get('/', [OrgListMembersController, 'handle']).as('org.members.index')
         router.post('/invite', [OrgInviteMemberController, 'handle']).as('org.members.invite')
-        router.delete('/:id', [OrgRemoveMemberController, 'handle']).as('org.members.remove')
         router
-          .put('/:id/role', [OrgUpdateMemberRoleController, 'handle'])
-          .as('org.members.updateRole')
+          .delete('/:memberId', [OrgRemoveMemberController, 'handle'])
+          .as('org.members.destroy')
+        router
+          .put('/:memberId/role', [OrgUpdateMemberRoleController, 'handle'])
+          .as('org.members.update_role')
       })
       .prefix('/members')
 
     // ─── Join Requests & Invitations ───
     router
       .group(() => {
-        router.get('/requests', [OrgListJoinRequestsController, 'handle']).as('org.requests.index')
         router
-          .put('/requests/:id/approve', [OrgApproveJoinRequestController, 'handle'])
-          .as('org.requests.approve')
+          .get('/requests', [OrgListJoinRequestsController, 'handle'])
+          .as('org.join_requests.index')
+        router
+          .put('/requests/:joinRequestId/approve', [OrgApproveJoinRequestController, 'handle'])
+          .as('org.join_requests.approvals.store')
         router.get('/', [OrgListInvitationsController, 'handle']).as('org.invitations.index')
       })
       .prefix('/invitations')
@@ -118,13 +130,21 @@ router
     router.put('/roles', [OrgUpdateRolesController, 'handle']).as('org.roles.update')
     router.get('/permissions', [OrgShowPermissionsController, 'handle']).as('org.permissions.index')
     router.get('/departments', [OrgShowDepartmentsController, 'handle']).as('org.departments.index')
+    router.get('/audit-logs', [OrgListAuditLogsController, 'orgHandle']).as('org.audit_logs.index')
+    router
+      .get('/marketplace/tasks', [ListMarketplaceTasksController, 'handle'])
+      .as('org.marketplace.tasks')
+    router
+      .get('/sprints', [ShowOrganizationSprintsWorkspaceController, 'handle'])
+      .as('org.sprints.index')
 
     // ─── Projects (Organization-level) ───
     router
       .group(() => {
         router.get('/', [OrgListProjectsController, 'handle']).as('org.projects.index')
-        router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.create')
-        router.get('/:id', [OrgShowProjectController, 'handle']).as('org.projects.show')
+        router.get('/create', [OrgShowProjectCreateController, 'handle']).as('org.projects.create')
+        router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.store')
+        router.get('/:projectId', [OrgShowProjectController, 'handle']).as('org.projects.show')
       })
       .prefix('/projects')
 
@@ -132,11 +152,19 @@ router
     router
       .group(() => {
         router.get('/', [OrgListTasksController, 'handle']).as('org.tasks.index')
-        router.get('/:id', [OrgShowTaskController, 'handle']).as('org.tasks.show')
+        router.get('/board', [OrgListTasksController, 'handle']).as('org.tasks.board')
+        router.get('/list', [OrgListTasksController, 'handle']).as('org.tasks.list')
+        router
+          .get('/workflow', [OrgListTaskStatusesController, 'handle'])
+          .as('org.tasks.workflow')
+        router
+          .post('/workflow', [OrgCreateTaskStatusController, 'handle'])
+          .as('org.tasks.workflow.create')
+        router.get('/:taskId', [OrgShowTaskController, 'handle']).as('org.tasks.show')
       })
       .prefix('/tasks')
 
-    // ─── Workflow Customization ───
+    // ─── Workflow Customization (legacy compatibility alias) ───
     router
       .group(() => {
         router
@@ -144,7 +172,7 @@ router
           .as('org.workflow.statuses')
         router
           .post('/statuses', [OrgCreateTaskStatusController, 'handle'])
-          .as('org.workflow.createStatus')
+          .as('org.workflow.statuses.store')
       })
       .prefix('/workflow')
   })
