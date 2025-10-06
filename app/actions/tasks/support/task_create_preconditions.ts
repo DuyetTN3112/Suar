@@ -1,21 +1,32 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
+import { enforcePolicy } from '#actions/authorization/public_api'
 import type CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
+import type { TaskIdentityQueryRepositoryPort } from '#actions/tasks/ports/task_query_repository_port'
+import type { TaskStatusQueryRepositoryPort } from '#actions/tasks/ports/task_status_query_repository_port'
 import { buildTaskCreatePermissionContext } from '#actions/tasks/support/task_permission_context_builder'
 import { validateTaskCreationFields } from '#domain/tasks/task_assignment_rules'
 import { canCreateTask } from '#domain/tasks/task_permission_policy'
 import BusinessLogicException from '#exceptions/business_logic_exception'
-import TaskRepository from '#infra/tasks/repositories/task_repository'
-import TaskStatusRepository from '#infra/tasks/repositories/task_status_repository'
+import { taskIdentityQueryRepository } from '#infra/tasks/repositories/read/task_identity_query_repository'
+import { taskStatusQueryRepository } from '#infra/tasks/repositories/read/task_status_query_repository'
 import type { DatabaseId } from '#types/database'
+import type { TaskStatusRecord } from '#types/task_records'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+export type ResolvedCreateTaskStatus = TaskStatusRecord
 
-export type ResolvedCreateTaskStatus = NonNullable<
-  Awaited<ReturnType<typeof TaskStatusRepository.findByIdAndOrgActive>>
->
+interface TaskCreatePreconditionDependencies {
+  taskRepository: TaskIdentityQueryRepositoryPort
+  taskStatusRepository: TaskStatusQueryRepositoryPort
+}
+
+const defaultDependencies: TaskCreatePreconditionDependencies = {
+  taskRepository: taskIdentityQueryRepository,
+  taskStatusRepository: taskStatusQueryRepository,
+}
 
 async function ensureCreatePermission(
   userId: DatabaseId,
@@ -33,13 +44,14 @@ async function ensureCreatePermission(
 
 async function ensureParentTaskBoundary(
   dto: CreateTaskDTO,
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  taskRepository: TaskIdentityQueryRepositoryPort
 ): Promise<void> {
   if (!dto.parent_task_id) {
     return
   }
 
-  const parentTask = await TaskRepository.findActiveTaskIdentity(dto.parent_task_id, trx)
+  const parentTask = await taskRepository.findActiveTaskIdentity(dto.parent_task_id, trx)
 
   if (!parentTask) {
     throw new BusinessLogicException('Task cha không tồn tại')
@@ -87,8 +99,14 @@ async function ensureAssigneeBoundary(
 export async function ensureTaskCreationPreconditions(
   userId: DatabaseId,
   dto: CreateTaskDTO,
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  dependencies: Partial<TaskCreatePreconditionDependencies> = {}
 ): Promise<void> {
+  const deps = {
+    ...defaultDependencies,
+    ...dependencies,
+  }
+
   await DefaultTaskDependencies.user.ensureActiveUser(userId, trx)
   await DefaultTaskDependencies.org.ensureActiveOrganization(dto.organization_id, trx)
   await ensureCreatePermission(userId, dto, trx)
@@ -97,16 +115,22 @@ export async function ensureTaskCreationPreconditions(
     dto.organization_id,
     trx
   )
-  await ensureParentTaskBoundary(dto, trx)
+  await ensureParentTaskBoundary(dto, trx, deps.taskRepository)
   ensureTaskCreationFieldRules(dto)
   await ensureAssigneeBoundary(dto, trx)
 }
 
 export async function resolveTaskStatusForCreation(
   dto: CreateTaskDTO,
-  trx: TransactionClientContract
+  trx: TransactionClientContract,
+  dependencies: Partial<Pick<TaskCreatePreconditionDependencies, 'taskStatusRepository'>> = {}
 ): Promise<ResolvedCreateTaskStatus> {
-  const selectedStatus = await TaskStatusRepository.findByIdAndOrgActive(
+  const deps = {
+    taskStatusRepository: defaultDependencies.taskStatusRepository,
+    ...dependencies,
+  }
+
+  const selectedStatus = await deps.taskStatusRepository.findByIdAndOrgActive(
     dto.task_status_id,
     dto.organization_id,
     trx
