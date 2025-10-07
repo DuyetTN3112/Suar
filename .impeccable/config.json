@@ -1,0 +1,10 @@
+{
+  "detector": {
+    "ignoreFiles": [
+      ".ai/**",
+      "build/**",
+      "public/assets/**",
+      "storybook-static/**"
+    ]
+  }
+}
