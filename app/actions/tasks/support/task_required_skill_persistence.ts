@@ -1,11 +1,12 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
+
 import type CreateTaskDTO from '#actions/tasks/dtos/request/create_task_dto'
 import BusinessLogicException from '#exceptions/business_logic_exception'
 import TaskRequiredSkillRepository from '#infra/tasks/repositories/task_required_skill_repository'
 import type { DatabaseId } from '#types/database'
 
-import { DefaultTaskDependencies } from '../ports/task_external_dependencies_impl.js'
 
 type RequiredSkill = CreateTaskDTO['required_skills'][number]
 
