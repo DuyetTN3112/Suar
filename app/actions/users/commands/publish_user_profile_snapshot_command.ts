@@ -5,21 +5,29 @@ import { DateTime } from 'luxon'
 
 import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import {
   buildProfileSnapshotSlug,
   pickTopFrequencyKeys,
 } from '#domain/users/profile_snapshot_rules'
 import CacheService from '#infra/cache/cache_service'
-import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
-import UserPerformanceStatRepository from '#infra/users/repositories/user_performance_stat_repository'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
-import UserRepository from '#infra/users/repositories/user_repository'
-import UserSkillRepository from '#infra/users/repositories/user_skill_repository'
-import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
-import type User from '#models/user'
-import type UserProfileSnapshot from '#models/user_profile_snapshot'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as domainExpertiseQueries from '#infra/users/repositories/read/user_domain_expertise_queries'
+import * as performanceStatQueries from '#infra/users/repositories/read/user_performance_stat_queries'
+import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
+import * as userSkillQueries from '#infra/users/repositories/read/user_skill_queries'
+import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
+import * as profileSnapshotMutations from '#infra/users/repositories/write/user_profile_snapshot_mutations'
 import type { DatabaseId } from '#types/database'
+import type {
+  UserDomainExpertiseRecord,
+  UserPerformanceStatRecord,
+  UserProfileSnapshotRecord,
+  UserRecord,
+  UserSkillRecord,
+  UserWorkHistoryRecord,
+} from '#types/user_records'
 
 export interface PublishUserProfileSnapshotDTO {
   snapshotName?: string
@@ -36,17 +44,15 @@ export interface PublishUserProfileSnapshotResult {
 }
 
 interface LoadedSnapshotReadModel {
-  user: User
-  skills: Awaited<ReturnType<typeof UserSkillRepository.listByUserWithSkill>>
-  performanceStatsRow: Awaited<
-    ReturnType<typeof UserPerformanceStatRepository.findLatestLifetimeByUser>
-  >
-  domainExpertiseRow: Awaited<ReturnType<typeof UserDomainExpertiseRepository.findByUser>>
-  latestHighlights: Awaited<ReturnType<typeof UserWorkHistoryRepository.listRecentByUser>>
+  user: UserRecord
+  skills: UserSkillRecord[]
+  performanceStatsRow: UserPerformanceStatRecord | null
+  domainExpertiseRow: UserDomainExpertiseRecord | null
+  latestHighlights: UserWorkHistoryRecord[]
 }
 
 interface LoadedSnapshotInputs {
-  lastSnapshot: UserProfileSnapshot | null
+  lastSnapshot: UserProfileSnapshotRecord | null
   readModel: LoadedSnapshotReadModel
 }
 
@@ -63,7 +69,7 @@ interface BuiltSnapshotContent {
 }
 
 interface PersistedUserProfileSnapshot {
-  snapshot: UserProfileSnapshot
+  snapshot: UserProfileSnapshotRecord
   content: BuiltSnapshotContent
 }
 
@@ -137,6 +143,13 @@ interface SnapshotWorkHighlight extends Record<string, unknown> {
   completed_at: string | null
 }
 
+type VerifiedSkillSource = UserSkillRecord & {
+  skill: {
+    skill_name: string
+    category_code: string
+  }
+}
+
 export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   PublishUserProfileSnapshotDTO,
   PublishUserProfileSnapshotResult
@@ -166,11 +179,11 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private async loadSnapshotReadModel(userId: DatabaseId): Promise<LoadedSnapshotReadModel> {
-    const user = await UserRepository.findNotDeletedOrFail(userId)
-    const skills = await UserSkillRepository.listByUserWithSkill(userId)
-    const performanceStatsRow = await UserPerformanceStatRepository.findLatestLifetimeByUser(userId)
-    const domainExpertiseRow = await UserDomainExpertiseRepository.findByUser(userId)
-    const latestHighlights = await UserWorkHistoryRepository.listRecentByUser(userId, 6)
+    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    const skills = await userSkillQueries.listByUserWithSkill(userId)
+    const performanceStatsRow = await performanceStatQueries.findLatestLifetimeByUser(userId)
+    const domainExpertiseRow = await domainExpertiseQueries.findByUser(userId)
+    const latestHighlights = await workHistoryQueries.listRecentByUser(userId, 6)
 
     return {
       user,
@@ -184,8 +197,8 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   private async loadLastSnapshot(
     userId: DatabaseId,
     trx: TransactionClientContract
-  ): Promise<UserProfileSnapshot | null> {
-    return UserProfileSnapshotRepository.findLatestByUser(userId, trx)
+  ): Promise<UserProfileSnapshotRecord | null> {
+    return profileSnapshotQueries.findLatestByUser(userId, trx)
   }
 
   private buildSnapshotContent(
@@ -233,7 +246,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
 
   private buildVerifiedSkills(skills: LoadedSnapshotReadModel['skills']): SnapshotVerifiedSkill[] {
     return skills
-      .filter((skill) => skill.total_reviews > 0)
+      .filter((skill): skill is VerifiedSkillSource => skill.total_reviews > 0 && !!skill.skill)
       .map((skill) => ({
         skill_id: skill.skill_id,
         skill_name: skill.skill.skill_name,
@@ -247,7 +260,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
 
   private buildSummary(
     userId: DatabaseId,
-    user: User,
+    user: UserRecord,
     totalVerifiedSkills: number,
     inputs: LoadedSnapshotInputs,
     workHighlights: SnapshotWorkHighlight[]
@@ -269,7 +282,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private buildPerformanceMetrics(
-    user: User,
+    user: UserRecord,
     performanceStatsRow: LoadedSnapshotReadModel['performanceStatsRow']
   ): SnapshotPerformanceMetrics {
     return {
@@ -307,7 +320,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   }
 
   private buildTrustMetrics(
-    user: User,
+    user: UserRecord,
     domainExpertiseSummary: SnapshotDomainExpertiseSummary
   ): SnapshotTrustMetrics {
     return {
@@ -339,13 +352,13 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
   private async persistSnapshot(
     userId: DatabaseId,
     dto: PublishUserProfileSnapshotDTO,
-    user: User,
+    user: UserRecord,
     content: BuiltSnapshotContent,
     trx: TransactionClientContract
   ): Promise<PersistedUserProfileSnapshot> {
-    await UserProfileSnapshotRepository.unsetCurrentByUser(userId, trx)
+    await profileSnapshotMutations.unsetCurrentByUser(userId, trx)
 
-    const snapshot = await UserProfileSnapshotRepository.create(
+    const snapshot = await profileSnapshotMutations.create(
       {
         user_id: userId,
         version: content.nextVersion,
@@ -364,12 +377,21 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
       trx
     )
 
-    await this.logAudit('publish_profile_snapshot', 'user_profile_snapshot', snapshot.id, null, {
-      snapshot_id: snapshot.id,
-      version: content.nextVersion,
-      is_public: content.isPublic,
-      shareable_slug: content.shareableSlug,
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'publish_profile_snapshot',
+        entity_type: 'user_profile_snapshot',
+        entity_id: snapshot.id,
+        old_values: null,
+        new_values: {
+          snapshot_id: snapshot.id,
+          version: content.nextVersion,
+          is_public: content.isPublic,
+          shareable_slug: content.shareableSlug,
+        },
+      })
+    }
 
     return {
       snapshot,
