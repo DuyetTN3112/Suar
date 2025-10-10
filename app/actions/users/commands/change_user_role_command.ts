@@ -1,11 +1,13 @@
 import emitter from '@adonisjs/core/services/emitter'
 
-import { BaseCommand } from '../../shared/base_command.js'
+import { BaseCommand } from '../base_command.js'
 import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
 
-import { enforcePolicy } from '#actions/authorization/enforce_policy'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { enforcePolicy } from '#actions/authorization/public_api'
 import { canChangeUserRole } from '#domain/users/user_management_rules'
-import UserRepository from '#infra/users/repositories/user_repository'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as userMutations from '#infra/users/repositories/write/user_mutations'
 
 /**
  * ChangeUserRoleCommand (v3)
@@ -22,7 +24,7 @@ import UserRepository from '#infra/users/repositories/user_repository'
 export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
   async handle(dto: ChangeUserRoleDTO): Promise<void> {
     // Verify permissions via pure rule
-    const isSuperadmin = await UserRepository.isSuperadmin(dto.changerId)
+    const isSuperadmin = await userModelQueries.isSuperadmin(dto.changerId)
     enforcePolicy(
       canChangeUserRole({
         actorId: dto.changerId,
@@ -33,23 +35,25 @@ export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO
     )
 
     // Verify target user exists and not deleted
-    const targetUser = await UserRepository.findNotDeletedOrFail(dto.targetUserId)
+    const targetUser = await userModelQueries.findNotDeletedOrFailRecord(dto.targetUserId)
 
     // Get old role for audit log
     const oldRole = targetUser.system_role
 
     // v3: Update inline system_role string
-    targetUser.system_role = dto.newRoleId
-    await UserRepository.save(targetUser)
+    await userMutations.updateSystemRoleRecord(dto.targetUserId, dto.newRoleId)
 
     // Log the action
-    await this.logAudit(
-      'change_user_role',
-      'user',
-      dto.targetUserId,
-      { system_role: oldRole },
-      { system_role: dto.newRoleId }
-    )
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'change_user_role',
+        entity_type: 'user',
+        entity_id: dto.targetUserId,
+        old_values: { system_role: oldRole },
+        new_values: { system_role: dto.newRoleId },
+      })
+    }
 
     // Emit audit event
     void emitter.emit('audit:log', {
