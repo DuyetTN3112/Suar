@@ -1,14 +1,16 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import {
   buildKnowledgeArtifacts,
   calculateAverageScore,
   calculateWorkHistoryDeliveryTiming,
 } from '#domain/users/profile_aggregate_rules'
+import * as workHistoryQueries from '#infra/users/repositories/read/user_work_history_queries'
 import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import UserWorkHistoryRepository from '#infra/users/repositories/user_work_history_repository'
+import * as workHistoryMutations from '#infra/users/repositories/write/user_work_history_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface BuildUserWorkHistoryDTO {
@@ -220,7 +222,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     userId: DatabaseId,
     trx: TransactionClientContract
   ): Promise<void> {
-    await UserWorkHistoryRepository.deleteByUser(userId, trx)
+    await workHistoryMutations.deleteByUser(userId, trx)
   }
 
   private async loadAssignmentAnalytics(
@@ -340,7 +342,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     payload: WorkHistoryPayload,
     trx: TransactionClientContract
   ): Promise<'inserted' | 'updated'> {
-    const existing = await UserWorkHistoryRepository.findByUserAndAssignment(
+    const existing = await workHistoryQueries.findByUserAndAssignment(
       userId,
       payload.task_assignment_id,
       trx
@@ -348,11 +350,11 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
 
     if (existing) {
       existing.merge(payload)
-      await UserWorkHistoryRepository.save(existing, trx)
+      await workHistoryMutations.save(existing, trx)
       return 'updated'
     }
 
-    await UserWorkHistoryRepository.create(
+    await workHistoryMutations.create(
       {
         user_id: userId,
         ...payload,
@@ -392,11 +394,20 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
     inserted: number,
     updated: number
   ): Promise<void> {
-    await this.logAudit('build_user_work_history', 'user_work_history', userId, null, {
-      full_rebuild: fullRebuild,
-      total_completed_assignments: totalCompletedAssignments,
-      inserted,
-      updated,
-    })
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'build_user_work_history',
+        entity_type: 'user_work_history',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          full_rebuild: fullRebuild,
+          total_completed_assignments: totalCompletedAssignments,
+          inserted,
+          updated,
+        },
+      })
+    }
   }
 }
