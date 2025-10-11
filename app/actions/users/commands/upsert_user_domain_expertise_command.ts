@@ -1,9 +1,11 @@
 import { DateTime } from 'luxon'
 
-import { BaseCommand } from '#actions/shared/base_command'
+import { auditPublicApi } from '#actions/audit/public_api'
+import { BaseCommand } from '#actions/users/base_command'
 import { calculateDomainExpertiseMetrics } from '#domain/users/profile_aggregate_rules'
+import * as domainExpertiseQueries from '#infra/users/repositories/read/user_domain_expertise_queries'
 import UserAnalyticsRepository from '#infra/users/repositories/user_analytics_repository'
-import UserDomainExpertiseRepository from '#infra/users/repositories/user_domain_expertise_repository'
+import * as domainExpertiseMutations from '#infra/users/repositories/write/user_domain_expertise_mutations'
 import type { DatabaseId } from '#types/database'
 
 export interface UpsertUserDomainExpertiseDTO {
@@ -99,30 +101,33 @@ export default class UpsertUserDomainExpertiseCommand extends BaseCommand<
         calculated_at: DateTime.now(),
       }
 
-      const existing = await UserDomainExpertiseRepository.findByUser(dto.userId, trx)
+      const existing = await domainExpertiseQueries.findByUser(dto.userId, trx)
 
       let expertiseId: DatabaseId
       if (existing) {
         existing.merge(payload)
-        await UserDomainExpertiseRepository.save(existing, trx)
+        await domainExpertiseMutations.save(existing, trx)
         expertiseId = existing.id
       } else {
-        const created = await UserDomainExpertiseRepository.create(payload, trx)
+        const created = await domainExpertiseMutations.create(payload, trx)
         expertiseId = created.id
       }
 
-      await this.logAudit(
-        'upsert_user_domain_expertise',
-        'user_domain_expertise',
-        dto.userId,
-        null,
-        {
-          expertise_id: expertiseId,
-          total_domains: Object.keys(metrics.domainFrequency).length,
-          total_tech_stack: Object.keys(metrics.techStackFrequency).length,
-          top_skills_count: metrics.topSkills.length,
-        }
-      )
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'upsert_user_domain_expertise',
+          entity_type: 'user_domain_expertise',
+          entity_id: dto.userId,
+          old_values: null,
+          new_values: {
+            expertise_id: expertiseId,
+            total_domains: Object.keys(metrics.domainFrequency).length,
+            total_tech_stack: Object.keys(metrics.techStackFrequency).length,
+            top_skills_count: metrics.topSkills.length,
+          },
+        })
+      }
 
       return {
         userId: dto.userId,
