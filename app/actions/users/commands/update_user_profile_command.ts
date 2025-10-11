@@ -1,11 +1,13 @@
-﻿import { inject } from '@adonisjs/core'
+import { inject } from '@adonisjs/core'
 import emitter from '@adonisjs/core/services/emitter'
 
-import { BaseCommand } from '../../shared/base_command.js'
+import { BaseCommand } from '../base_command.js'
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
+import { auditPublicApi } from '#actions/audit/public_api'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import * as userMutations from '#infra/users/repositories/write/user_mutations'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * UpdateUserProfileCommand
@@ -14,11 +16,11 @@ import type User from '#models/user'
  * This command handles partial updates - only provided fields are updated.
  */
 @inject()
-export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProfileDTO, User> {
-  async handle(dto: UpdateUserProfileDTO): Promise<User> {
+export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProfileDTO, UserRecord> {
+  async handle(dto: UpdateUserProfileDTO): Promise<UserRecord> {
     const result = await this.executeInTransaction(async (trx) => {
-      const user = await UserRepository.findNotDeletedOrFail(dto.userId, trx)
-      const oldValues = user.toJSON()
+      const user = await userModelQueries.findNotDeletedOrFailRecord(dto.userId, trx)
+      const oldValues = { ...user }
 
       // Build updates object
       const updates: Partial<{
@@ -31,11 +33,16 @@ export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProf
 
       // Update user
       if (Object.keys(updates).length > 0) {
-        user.merge(updates)
-        await UserRepository.save(user, trx)
+        const updatedUser = await userMutations.updateByIdRecord(user.id, updates, trx)
+        return {
+          user: updatedUser,
+          profileUpdatedEvent: {
+            userId: dto.userId,
+            changes: updates,
+          },
+          oldValues,
+        }
       }
-
-      await this.logAudit('update', 'user', user.id, oldValues, user.toJSON())
 
       return {
         user,
@@ -43,8 +50,20 @@ export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProf
           userId: dto.userId,
           changes: updates,
         },
+        oldValues,
       }
     })
+
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'update',
+        entity_type: 'user',
+        entity_id: result.user.id,
+        old_values: result.oldValues,
+        new_values: result.user,
+      })
+    }
 
     void emitter.emit('user:profile:updated', result.profileUpdatedEvent)
 
