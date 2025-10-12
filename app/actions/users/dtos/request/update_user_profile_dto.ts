@@ -1,8 +1,8 @@
-import type { Command } from '../../../shared/interfaces.js'
+import type { Command } from '../../interfaces.js'
 
 import ValidationException from '#exceptions/validation_exception'
-import type User from '#models/user'
 import type { DatabaseId } from '#types/database'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * UpdateUserProfileDTO
@@ -10,7 +10,9 @@ import type { DatabaseId } from '#types/database'
  * Data Transfer Object for updating user profile information (username, email).
  * Used by UpdateUserProfileCommand.
  */
-export class UpdateUserProfileDTO implements Command, Partial<Pick<User, 'username' | 'email'>> {
+export class UpdateUserProfileDTO
+  implements Command, Partial<Pick<UserRecord, 'username' | 'email'>>
+{
   constructor(
     public readonly userId: DatabaseId,
     public readonly username?: string,
