@@ -1,4 +1,6 @@
-import { IdDTO, type Query } from '../../../shared/index.js'
+import type { Query } from '../../interfaces.js'
+
+import { IdDTO } from '#types/action_dtos'
 
 /**
  * GetUserDetailDTO
