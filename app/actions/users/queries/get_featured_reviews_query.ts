@@ -1,6 +1,6 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type { TopReviewedSkillRow } from '#infra/users/repositories/user_repository'
+import { BaseQuery } from '#actions/users/base_query'
+import * as userAnalyticsQueries from '#infra/users/repositories/read/analytics_queries'
+import type { TopReviewedSkillRow } from '#infra/users/repositories/read/types'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -51,14 +51,14 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // Fetch from repository (Infra Layer)
-      const topSkills = await UserRepository.findTopReviewedSkills(dto.user_id, dto.limit)
+      const topSkills = await userAnalyticsQueries.findTopReviewedSkills(dto.user_id, dto.limit)
 
       // For each skill, get a representative review (latest one if available)
       const results: FeaturedReviewItem[] = []
 
       for (const skill of topSkills) {
         // Get a review for this skill + reviewee
-        const review = await UserRepository.findReviewForSkill(dto.user_id, skill.skill_id)
+        const review = await userAnalyticsQueries.findReviewForSkill(dto.user_id, skill.skill_id)
         const avgPercentage = this.toNumber(skill.avg_percentage)
 
         let reviewerName = 'Đánh giá kỹ thuật'
@@ -82,7 +82,7 @@ export default class GetFeaturedReviewsQuery extends BaseQuery<
           content = review.comment ?? content
 
           if (review.task_id) {
-            const taskTitle = await UserRepository.findTaskTitleById(review.task_id)
+            const taskTitle = await userAnalyticsQueries.findTaskTitleById(review.task_id)
             if (taskTitle) {
               taskName = `Task: ${taskTitle}`
             }
