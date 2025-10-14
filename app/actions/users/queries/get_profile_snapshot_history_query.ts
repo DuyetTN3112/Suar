@@ -1,6 +1,7 @@
-import { BaseQuery } from '#actions/shared/base_query'
-import UserProfileSnapshotRepository from '#infra/users/repositories/user_profile_snapshot_repository'
+import { BaseQuery } from '#actions/users/base_query'
+import * as profileSnapshotQueries from '#infra/users/repositories/read/user_profile_snapshot_queries'
 import type { DatabaseId } from '#types/database'
+import type { UserProfileSnapshotRecord } from '#types/user_records'
 
 export class GetProfileSnapshotHistoryDTO {
   declare userId: DatabaseId
@@ -20,7 +21,7 @@ export class GetProfileSnapshotHistoryDTO {
 }
 
 export interface ProfileSnapshotHistoryResult {
-  snapshots: import('#models/user_profile_snapshot').default[]
+  snapshots: UserProfileSnapshotRecord[]
 }
 
 export default class GetProfileSnapshotHistoryQuery extends BaseQuery<
@@ -34,7 +35,7 @@ export default class GetProfileSnapshotHistoryQuery extends BaseQuery<
     })
 
     return await this.executeWithCache(cacheKey, 120, async () => {
-      const snapshots = await UserProfileSnapshotRepository.listByUser(dto.userId, dto.limit)
+      const snapshots = await profileSnapshotQueries.listByUser(dto.userId, dto.limit)
 
       return { snapshots }
     })
