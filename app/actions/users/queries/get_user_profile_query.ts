@@ -1,8 +1,8 @@
-import { BaseQuery } from '#actions/shared/base_query'
+import { BaseQuery } from '#actions/users/base_query'
 import { calculateProfileCompleteness } from '#actions/users/utils/profile_completeness'
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
 import type { DatabaseId } from '#types/database'
+import type { UserProfileRecord } from '#types/user_records'
 
 /**
  * GetUserProfileDTO
@@ -20,7 +20,7 @@ export class GetUserProfileDTO {
 }
 
 export interface UserProfileResult {
-  user: User
+  user: UserProfileRecord
   completeness: number
 }
 
@@ -45,10 +45,10 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      const user = await UserRepository.findProfileWithRelations(dto.user_id, {
+      const serializedUser = await userModelQueries.findProfileWithRelationsRecord(dto.user_id, {
         includeSkills: dto.include_skills,
       })
-      return { user, completeness: calculateProfileCompleteness(user.serialize()) }
+      return { user: serializedUser, completeness: calculateProfileCompleteness(serializedUser) }
     })
   }
 }
