@@ -1,10 +1,10 @@
 import { inject } from '@adonisjs/core'
 
-import { BaseQuery } from '../../shared/base_query.js'
+import { BaseQuery } from '../base_query.js'
 import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 
-import UserRepository from '#infra/users/repositories/user_repository'
-import type User from '#models/user'
+import * as userModelQueries from '#infra/users/repositories/read/model_queries'
+import type { UserRecord } from '#types/user_records'
 
 /**
  * GetUserDetailQuery
@@ -22,15 +22,15 @@ import type User from '#models/user'
  * ```
  */
 @inject()
-export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User> {
+export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, UserRecord> {
   /**
    * Main handler - executes the query with caching
    */
-  async handle(dto: GetUserDetailDTO): Promise<User> {
+  async handle(dto: GetUserDetailDTO): Promise<UserRecord> {
     const cacheKey = `users:detail:${dto.id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      return await UserRepository.findNotDeletedOrFail(dto.id)
+      return await userModelQueries.findNotDeletedOrFailRecord(dto.id)
     })
   }
 }
