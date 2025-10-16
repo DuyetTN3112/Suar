@@ -3,6 +3,9 @@ export interface HttpActionContext {
   readonly ip: string
   readonly userAgent: string
   readonly organizationId: string | null
+  readonly requestId?: string | null
+  readonly traceId?: string | null
+  readonly workflowId?: string | null
 }
 
 export interface AuthenticatedHttpActionContext extends HttpActionContext {

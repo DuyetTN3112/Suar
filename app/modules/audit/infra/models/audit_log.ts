@@ -93,13 +93,13 @@ async function findAuditLogs(filter: AuditLogFilterData): Promise<unknown[]> {
   try {
     const repo = auditRepositoryProvider.getAuditLogRepository()
     const { data } = await repo.findMany({
-      user_id: filter.user_id,
-      action: filter.action,
-      entity_type: filter.entity_type,
-      entity_id: filter.entity_id,
-      from: filter.created_at?.$gte,
-      to: filter.created_at?.$lte,
       limit: 1000,
+      ...(filter.user_id !== undefined ? { user_id: filter.user_id } : {}),
+      ...(filter.action !== undefined ? { action: filter.action } : {}),
+      ...(filter.entity_type !== undefined ? { entity_type: filter.entity_type } : {}),
+      ...(filter.entity_id !== undefined ? { entity_id: filter.entity_id } : {}),
+      ...(filter.created_at?.$gte !== undefined ? { from: filter.created_at.$gte } : {}),
+      ...(filter.created_at?.$lte !== undefined ? { to: filter.created_at.$lte } : {}),
     })
 
     return data

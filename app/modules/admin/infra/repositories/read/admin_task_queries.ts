@@ -46,9 +46,9 @@ export const AdminTaskReadOps = {
     const completed = statsResults[2]
 
     return {
-      total: isRecord(total) ? toNumberValue(total.total) : 0,
-      inProgress: isRecord(inProgress) ? toNumberValue(inProgress.total) : 0,
-      completed: isRecord(completed) ? toNumberValue(completed.total) : 0,
+      total: isRecord(total) ? toNumberValue(total['total']) : 0,
+      inProgress: isRecord(inProgress) ? toNumberValue(inProgress['total']) : 0,
+      completed: isRecord(completed) ? toNumberValue(completed['total']) : 0,
     }
   },
 }

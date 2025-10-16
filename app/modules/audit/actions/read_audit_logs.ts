@@ -25,7 +25,14 @@ export async function listAuditLogsByEntity(
 
 export async function listAdminAuditLogs(
   params: AdminAuditLogListParams
-): Promise<{ data: AdminAuditLogRecord[]; total: number }> {
+): Promise<{
+  data: AdminAuditLogRecord[]
+  total: number
+  nextCursor: string | null
+  previousCursor: string | null
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}> {
   return await listAdminLogs(params)
 }
 

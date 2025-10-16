@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { userPublicApi } from '#modules/users/actions/public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 export const userIdentityReader = {
   async getSystemRoleName(

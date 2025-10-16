@@ -15,6 +15,8 @@
 
 import { AuthOrgRole, AuthProjectRole, AuthSystemRole } from './role_contracts.js'
 
+import { CustomSystemRoleService } from '#modules/authorization/services/custom_system_role_service'
+
 // ============================================================================
 // System Role Permissions
 // ============================================================================
@@ -95,12 +97,12 @@ export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_assign_task',
     'can_update_any_task',
     'can_delete_any_task',
-    'can_invite_freelancer',
+    'can_invite_external_contributor',
     'can_approve_application',
     'can_transfer_ownership',
     'can_manage_project_settings',
     'can_view_all_tasks',
-    'can_manage_project_budget',
+    'can_manage_project_resources',
     'can_export_project_data',
   ],
   [AuthProjectRole.MANAGER]: [
@@ -109,7 +111,7 @@ export const PROJECT_ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'can_assign_task',
     'can_update_task',
     'can_delete_task',
-    'can_invite_freelancer',
+    'can_invite_external_contributor',
     'can_approve_application',
     'can_view_all_tasks',
     'can_review_completed_tasks',
@@ -157,11 +159,19 @@ export const PROJECT_ROLE_LEVEL: Record<string, number> = {
 /**
  * Check if a system role has a specific permission
  */
-export function hasSystemPermission(role: string, permission: string): boolean {
-  const permissions = SYSTEM_ROLE_PERMISSIONS[role]
-  if (!permissions) return false
-  if (permissions.includes('*')) return true
-  return permissions.includes(permission)
+export async function hasSystemPermission(role: string, permission: string): Promise<boolean> {
+  const builtInPermissions = SYSTEM_ROLE_PERMISSIONS[role]
+  if (builtInPermissions) {
+    return builtInPermissions.includes('*') || builtInPermissions.includes(permission)
+  }
+
+  // Handle custom system roles
+  const customPermissions = await CustomSystemRoleService.getRolePermissions(role)
+  if (customPermissions) {
+    return customPermissions.includes('*') || customPermissions.includes(permission)
+  }
+
+  return false
 }
 
 /**

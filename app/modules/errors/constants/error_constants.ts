@@ -97,7 +97,7 @@ export const ErrorMessages = {
   ALREADY_EXISTS: 'Tài nguyên đã tồn tại',
   DUPLICATE_ENTRY: 'Dữ liệu bị trùng lặp',
   ALREADY_MEMBER: 'Người dùng đã là thành viên',
-  ALREADY_APPLIED: 'Bạn đã ứng tuyển rồi',
+  ALREADY_APPLIED: 'Bạn đã gửi đề xuất rồi',
 
   // ---- Business Logic ----
   CANNOT_SELF_ACTION: 'Không thể thực hiện hành động này cho chính mình',

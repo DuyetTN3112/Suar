@@ -1,15 +1,17 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
+import { type SupportedSocialAuthProvider } from '#modules/auth/constants/auth_constants'
 import { resolveLandingPath } from '#modules/auth/domain/landing_surface'
 import SocialLoginPersistenceService, {
   type SocialAuthenticatedUser,
   type SocialLoginInput,
-  type SupportedProvider,
 } from '#modules/auth/infra/social_login_persistence_service'
 import { singleFlight } from '#modules/cache/public_contracts/cache_store'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
 interface SocialUserData {
   id: string
@@ -38,7 +40,7 @@ export default class SocialLoginCommand {
   constructor(private readonly persistenceService = new SocialLoginPersistenceService()) {}
 
   async execute(
-    provider: SupportedProvider,
+    provider: SupportedSocialAuthProvider,
     socialData: SocialUserData
   ): Promise<SocialLoginResult> {
     const loginInput = this.buildLoginInput(provider, socialData)
@@ -53,7 +55,7 @@ export default class SocialLoginCommand {
    */
   private async determineRedirectPath(user: SocialAuthenticatedUser): Promise<string> {
     const currentMembership = user.current_organization_id
-      ? await membershipQueries.findApprovedMembershipContext(user.current_organization_id, user.id)
+      ? await organizationPublicApi.findApprovedMembership(user.current_organization_id, user.id)
       : null
 
     return resolveLandingPath({
@@ -64,13 +66,18 @@ export default class SocialLoginCommand {
   }
 
   private buildLoginInput(
-    provider: SupportedProvider,
+    provider: SupportedSocialAuthProvider,
     socialData: SocialUserData
   ): SocialLoginInput {
+    const socialEmail = socialData.email.trim()
+    if (!socialEmail) {
+      throw new BusinessLogicException(ErrorMessages.INVALID_EMAIL)
+    }
+
     return {
       provider,
       socialId: socialData.id,
-      socialEmail: socialData.email,
+      socialEmail,
       nickName: socialData.nickName,
       accessToken: socialData.token,
       refreshToken: socialData.refreshToken,
@@ -100,7 +107,10 @@ export default class SocialLoginCommand {
     return this.finalizeNewUserLogin(createdUser, loginInput.provider)
   }
 
-  private recordSuccessfulLogin(user: SocialAuthenticatedUser, provider: SupportedProvider): void {
+  private recordSuccessfulLogin(
+    user: SocialAuthenticatedUser,
+    provider: SupportedSocialAuthProvider
+  ): void {
     AuthLogger.userLogin(user.id, user.email ?? '', provider)
     void emitter.emit('user:login', {
       userId: user.id,
@@ -112,7 +122,7 @@ export default class SocialLoginCommand {
 
   private async finalizeExistingUserLogin(
     user: SocialAuthenticatedUser,
-    provider: SupportedProvider
+    provider: SupportedSocialAuthProvider
   ): Promise<SocialLoginResult> {
     this.recordSuccessfulLogin(user, provider)
     return this.buildExistingUserResult(user)
@@ -120,7 +130,7 @@ export default class SocialLoginCommand {
 
   private finalizeNewUserLogin(
     user: SocialAuthenticatedUser,
-    provider: SupportedProvider
+    provider: SupportedSocialAuthProvider
   ): SocialLoginResult {
     this.recordSuccessfulLogin(user, provider)
     return {

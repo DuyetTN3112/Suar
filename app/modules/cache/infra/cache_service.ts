@@ -27,6 +27,14 @@ const DEFAULT_TTL = 300
 const PREFIX = 'app'
 /** Keep in sync with config/redis.ts cache connection keyPrefix */
 const REDIS_CACHE_KEY_PREFIX = 'suar:cache:'
+const USE_MEMORY_CACHE = process.env['NODE_ENV'] === 'test'
+
+interface MemoryCacheEntry {
+  value: string
+  expiresAt: number
+}
+
+const memoryCache = new Map<string, MemoryCacheEntry>()
 
 /**
  * Get the dedicated cache Redis connection.
@@ -45,6 +53,24 @@ function stripRedisKeyPrefix(key: string): string {
   }
 
   return key
+}
+
+function now(): number {
+  return Date.now()
+}
+
+function readMemoryEntry(key: string): MemoryCacheEntry | null {
+  const entry = memoryCache.get(key)
+  if (!entry) {
+    return null
+  }
+
+  if (entry.expiresAt <= now()) {
+    memoryCache.delete(key)
+    return null
+  }
+
+  return entry
 }
 
 // ─── Cache Key Builders ───────────────────────────────────────
@@ -70,6 +96,13 @@ function buildKey(...segments: (string | number)[]): string {
 async function set(key: string, value: unknown, ttl: number = DEFAULT_TTL): Promise<void> {
   try {
     const serialized = typeof value === 'string' ? value : JSON.stringify(value)
+    if (USE_MEMORY_CACHE) {
+      memoryCache.set(key, {
+        value: serialized,
+        expiresAt: now() + ttl * 1000,
+      })
+      return
+    }
     await redis().setex(key, ttl, serialized)
   } catch (error) {
     logger.error({ err: error, key }, 'CacheService.set failed')
@@ -90,7 +123,9 @@ async function set(key: string, value: unknown, ttl: number = DEFAULT_TTL): Prom
  */
 async function get<T>(key: string, defaultValue: T | null = null): Promise<T | null> {
   try {
-    const value = await redis().get(key)
+    const value = USE_MEMORY_CACHE
+      ? (readMemoryEntry(key)?.value ?? null)
+      : await redis().get(key)
     if (value === null) return defaultValue
     try {
       // JSON.parse returns `unknown` functionally, we cast to T
@@ -112,6 +147,9 @@ async function get<T>(key: string, defaultValue: T | null = null): Promise<T | n
  */
 async function has(key: string): Promise<boolean> {
   try {
+    if (USE_MEMORY_CACHE) {
+      return readMemoryEntry(key) !== null
+    }
     return (await redis().exists(key)) > 0
   } catch (error) {
     logger.error({ err: error, key }, 'CacheService.has failed')
@@ -124,6 +162,10 @@ async function has(key: string): Promise<boolean> {
  */
 async function del(key: string): Promise<void> {
   try {
+    if (USE_MEMORY_CACHE) {
+      memoryCache.delete(key)
+      return
+    }
     await redis().del(key)
   } catch (error) {
     logger.error({ err: error, key }, 'CacheService.del failed')
@@ -143,6 +185,19 @@ export { del }
  */
 async function deleteByPattern(pattern: string): Promise<void> {
   try {
+    if (USE_MEMORY_CACHE) {
+      const regex = new RegExp(
+        `^${pattern.split('*').map((segment) => segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*')}$`
+      )
+
+      for (const key of memoryCache.keys()) {
+        if (regex.test(key)) {
+          memoryCache.delete(key)
+        }
+      }
+      return
+    }
+
     const conn = redis()
     const scanPattern = prefixScanPattern(pattern)
     let cursor = '0'
@@ -227,6 +282,12 @@ async function invalidateEntityType(entityType: string): Promise<void> {
  */
 async function increment(key: string, by = 1): Promise<number> {
   try {
+    if (USE_MEMORY_CACHE) {
+      const currentValue = Number((await get<string | number>(key, 0)) ?? 0)
+      const nextValue = currentValue + by
+      await set(key, String(nextValue))
+      return nextValue
+    }
     return await redis().incrby(key, by)
   } catch (error) {
     logger.error({ err: error, key }, 'CacheService.increment failed')
@@ -239,6 +300,12 @@ async function increment(key: string, by = 1): Promise<number> {
  */
 async function decrement(key: string, by = 1): Promise<number> {
   try {
+    if (USE_MEMORY_CACHE) {
+      const currentValue = Number((await get<string | number>(key, 0)) ?? 0)
+      const nextValue = currentValue - by
+      await set(key, String(nextValue))
+      return nextValue
+    }
     return await redis().decrby(key, by)
   } catch (error) {
     logger.error({ err: error, key }, 'CacheService.decrement failed')
@@ -254,6 +321,10 @@ async function decrement(key: string, by = 1): Promise<number> {
  */
 async function flush(): Promise<void> {
   try {
+    if (USE_MEMORY_CACHE) {
+      memoryCache.clear()
+      return
+    }
     await redis().flushdb()
   } catch (error) {
     logger.error({ err: error }, 'CacheService.flush failed')

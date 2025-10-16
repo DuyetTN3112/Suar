@@ -1,9 +1,9 @@
 import SocialLoginCommand from './social_login_command.js'
 
+import { type SupportedSocialAuthProvider } from '#modules/auth/constants/auth_constants'
 import SocialAuthProviderService, {
   type SocialAuthDriver,
   type SocialAuthFailureResult,
-  type SupportedSocialAuthProvider,
 } from '#modules/auth/infra/oauth/social_auth_provider_service'
 import type { SocialAuthenticatedUser } from '#modules/auth/infra/social_login_persistence_service'
 

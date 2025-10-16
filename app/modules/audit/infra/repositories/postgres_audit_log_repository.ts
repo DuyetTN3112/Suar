@@ -8,8 +8,9 @@ import type {
   AuditLogRecord,
   AuditLogRepository,
 } from '#modules/audit/infra/repositories/audit_log_repository_interface'
+import { computeAuditEventHash } from '#modules/audit/domain/audit_event_hash'
 import loggerService from '#modules/logger/public_contracts/logger_service'
-
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 interface AuditEventRow {
   id: string
   user_id: string | null
@@ -20,14 +21,46 @@ interface AuditEventRow {
   new_values: Record<string, unknown> | null
   ip_address: string | null
   user_agent: string | null
+  event_name: string | null
+  event_family: string | null
+  module: string | null
+  subsystem: string | null
+  workflow: string | null
+  stage: string | null
+  severity: string | null
+  outcome: string | null
+  actor_type: string | null
+  actor_user_id: string | null
+  actor_org_id: string | null
+  actor_role_surface: string | null
+  target_type: string | null
+  target_id: string | null
+  target_org_id: string | null
+  request_id: string | null
+  trace_id: string | null
+  correlation_key: string | null
+  retention_class: string | null
+  redaction_applied: boolean
+  schema_version: number
+  event_hash: string | null
+  prev_hash: string | null
   occurred_at: Date
 }
 
 export default class PostgresAuditLogRepository implements AuditLogRepository {
   async create(data: AuditLogCreateData): Promise<void> {
     try {
-      await db.table('audit_events').insert({
-        id: randomUUID(),
+      const id = randomUUID()
+      const previousHashRow = (await db
+        .from('audit_events')
+        .whereNotNull('event_hash')
+        .orderBy('occurred_at', 'desc')
+        .orderBy('id', 'desc')
+        .select('event_hash')
+        .first()) as { event_hash?: string | null } | undefined
+      const prevHash = data.prev_hash ?? previousHashRow?.event_hash ?? null
+      const eventPayload = {
+        id,
         user_id: data.user_id,
         action: data.action,
         entity_type: data.entity_type,
@@ -36,19 +69,72 @@ export default class PostgresAuditLogRepository implements AuditLogRepository {
         new_values: data.new_values ?? null,
         ip_address: data.ip_address ?? null,
         user_agent: data.user_agent ?? null,
+        event_name: data.event_name ?? data.action,
+        event_family: data.event_family ?? null,
+        module: data.module ?? null,
+        subsystem: data.subsystem ?? null,
+        workflow: data.workflow ?? null,
+        stage: data.stage ?? null,
+        severity: data.severity ?? null,
+        outcome: data.outcome ?? null,
+        actor_type: data.actor_type ?? null,
+        actor_user_id: data.actor_user_id ?? data.user_id,
+        actor_org_id: data.actor_org_id ?? null,
+        actor_role_surface: data.actor_role_surface ?? null,
+        target_type: data.target_type ?? data.entity_type,
+        target_id: data.target_id ?? data.entity_id ?? null,
+        target_org_id: data.target_org_id ?? null,
+        request_id: data.request_id ?? null,
+        trace_id: data.trace_id ?? null,
+        correlation_key: data.correlation_key ?? null,
+        retention_class: data.retention_class ?? null,
+        redaction_applied: data.redaction_applied ?? false,
+        schema_version: data.schema_version ?? 2,
+        prev_hash: prevHash,
+      }
+      const eventHash =
+        data.event_hash ??
+        computeAuditEventHash({
+          event: eventPayload,
+          prevHash,
+        })
+
+      await db.transaction(async (trx) => {
+        await trx.table('audit_events').insert({
+          ...eventPayload,
+          event_hash: eventHash,
+        })
+
+        const scopes = data.scopes ?? [
+          { surface: 'system' as const, user_id: null, organization_id: null },
+        ]
+        if (scopes.length > 0) {
+          await trx.table('audit_event_scopes').insert(
+            scopes.map((scope) => ({
+              event_id: id,
+              surface: scope.surface,
+              user_id: scope.user_id,
+              organization_id: scope.organization_id,
+            }))
+          )
+        }
       })
     } catch (error) {
       loggerService.error('PostgresAuditLogRepository.create failed', {
         action: data.action,
         error: error instanceof Error ? error.message : String(error),
       })
+
+      if (data.critical) {
+        throw error
+      }
     }
   }
 
   async findMany(query: AuditLogQuery): Promise<{ data: AuditLogRecord[]; total: number }> {
     const page = query.page ?? 1
     const limit = query.limit ?? 50
-    const offset = (page - 1) * limit
+    const offset = toOffset(page, limit)
     const baseQuery = this.applyFilter(db.from('audit_events'), query)
 
     const rows = (await baseQuery.clone().orderBy('occurred_at', 'desc').offset(offset).limit(limit)) as
@@ -133,6 +219,29 @@ export default class PostgresAuditLogRepository implements AuditLogRepository {
       new_values: row.new_values,
       ip_address: row.ip_address,
       user_agent: row.user_agent,
+      event_name: row.event_name,
+      event_family: row.event_family,
+      module: row.module,
+      subsystem: row.subsystem,
+      workflow: row.workflow,
+      stage: row.stage,
+      severity: row.severity,
+      outcome: row.outcome,
+      actor_type: row.actor_type,
+      actor_user_id: row.actor_user_id,
+      actor_org_id: row.actor_org_id,
+      actor_role_surface: row.actor_role_surface,
+      target_type: row.target_type,
+      target_id: row.target_id,
+      target_org_id: row.target_org_id,
+      request_id: row.request_id,
+      trace_id: row.trace_id,
+      correlation_key: row.correlation_key,
+      retention_class: row.retention_class,
+      redaction_applied: row.redaction_applied,
+      schema_version: row.schema_version,
+      event_hash: row.event_hash,
+      prev_hash: row.prev_hash,
       created_at: new Date(row.occurred_at),
     }
   }
