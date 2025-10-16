@@ -46,9 +46,9 @@ export const SUBSCRIPTION_PACKAGE_CATALOG: SubscriptionPackageDefinition[] = [
 ]
 
 export const SUBSCRIPTION_PAYMENT_CONFIG: SubscriptionPaymentConfig = {
-  bankName: process.env.SUBSCRIPTION_BANK_NAME ?? 'Vietcombank',
-  bankCode: process.env.SUBSCRIPTION_BANK_CODE ?? '970436',
-  bankAccountNumber: process.env.SUBSCRIPTION_BANK_ACCOUNT_NUMBER ?? '0123456789',
-  bankAccountName: process.env.SUBSCRIPTION_BANK_ACCOUNT_NAME ?? 'SUAR PERSONAL SERVICES',
-  branch: process.env.SUBSCRIPTION_BANK_BRANCH ?? 'Ho Chi Minh City',
+  bankName: process.env['SUBSCRIPTION_BANK_NAME'] ?? 'Vietcombank',
+  bankCode: process.env['SUBSCRIPTION_BANK_CODE'] ?? '970436',
+  bankAccountNumber: process.env['SUBSCRIPTION_BANK_ACCOUNT_NUMBER'] ?? '0123456789',
+  bankAccountName: process.env['SUBSCRIPTION_BANK_ACCOUNT_NAME'] ?? 'SUAR PERSONAL SERVICES',
+  branch: process.env['SUBSCRIPTION_BANK_BRANCH'] ?? 'Ho Chi Minh City',
 }

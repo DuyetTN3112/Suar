@@ -19,7 +19,7 @@ export interface UserDetailsResult {
   system_role: string
   status: string
   current_organization_id: string | null
-  is_freelancer: boolean
+  is_external_contributor: boolean
   created_at: string
   updated_at: string
 }
@@ -46,7 +46,7 @@ export default class GetUserDetailsQuery extends BaseQuery<GetUserDetailsDTO, Us
       system_role: user.system_role,
       status: user.status,
       current_organization_id: user.current_organization_id,
-      is_freelancer: user.is_freelancer,
+      is_external_contributor: user.is_external_contributor,
       created_at: user.created_at.toISO() ?? new Date().toISOString(),
       updated_at: user.updated_at.toISO() ?? new Date().toISOString(),
     }
