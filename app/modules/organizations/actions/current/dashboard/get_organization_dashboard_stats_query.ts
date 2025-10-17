@@ -24,6 +24,9 @@ export interface GetOrganizationDashboardStatsResult {
       org_member: number
     }
     pending_invitations: number
+    reviewed_members: number
+    imported_only_members: number
+    under_dispute_members: number
   }
   projects: {
     total: number
@@ -68,6 +71,9 @@ export default class GetOrganizationDashboardStatsQuery extends BaseQuery<
         total: memberStats.total,
         by_role: memberStats.byRole,
         pending_invitations: memberStats.pendingInvitations,
+        reviewed_members: memberStats.reviewedMembers,
+        imported_only_members: memberStats.importedOnlyMembers,
+        under_dispute_members: memberStats.underDisputeMembers,
       },
       projects: {
         total: projectStats.total,

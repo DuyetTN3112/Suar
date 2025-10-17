@@ -1,7 +1,7 @@
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
 import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
-
+import { toLastPage, toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * DTO for getting organization members list with filters and pagination
  *
@@ -21,7 +21,9 @@ export class GetOrganizationMembersDTO {
     public readonly sortBy = 'joined_at',
     public readonly sortOrder: 'asc' | 'desc' = 'desc',
     public readonly statusFilter?: 'active' | 'pending' | 'inactive',
-    public readonly include?: ('activity' | 'audit')[]
+    public readonly include?: ('activity' | 'audit')[],
+    public readonly joinDateStart?: string,
+    public readonly joinDateEnd?: string
   ) {
     this.validate()
   }
@@ -37,6 +39,8 @@ export class GetOrganizationMembersDTO {
       sort_order?: 'asc' | 'desc'
       status_filter?: 'active' | 'pending' | 'inactive'
       include?: ('activity' | 'audit')[]
+      join_date_start?: string
+      join_date_end?: string
     }
   ): GetOrganizationMembersDTO {
     return new GetOrganizationMembersDTO(
@@ -48,7 +52,9 @@ export class GetOrganizationMembersDTO {
       filters.sort_by,
       filters.sort_order,
       filters.status_filter,
-      filters.include
+      filters.include,
+      filters.join_date_start,
+      filters.join_date_end
     )
   }
 
@@ -123,7 +129,7 @@ export class GetOrganizationMembersDTO {
    * Helper: Get offset for SQL query
    */
   getOffset(): number {
-    return (this.page - 1) * this.limit
+    return toOffset(this.page, this.limit)
   }
 
   /**
@@ -191,6 +197,14 @@ export class GetOrganizationMembersDTO {
       parts.push(`include:${this.include.join(',')}`)
     }
 
+    if (this.joinDateStart) {
+      parts.push(`jstart:${this.joinDateStart}`)
+    }
+
+    if (this.joinDateEnd) {
+      parts.push(`jend:${this.joinDateEnd}`)
+    }
+
     return parts.join(':')
   }
 
@@ -217,12 +231,14 @@ export class GetOrganizationMembersDTO {
    * Pattern: Pagination response (learned from all modules)
    */
   getPaginationMetadata(total: number) {
+    const totalPages = toLastPage(total, this.limit)
+
     return {
       page: this.page,
       limit: this.limit,
       total,
-      totalPages: Math.ceil(total / this.limit),
-      hasNextPage: this.page < Math.ceil(total / this.limit),
+      totalPages,
+      hasNextPage: this.page < totalPages,
       hasPrevPage: this.page > 1,
     }
   }

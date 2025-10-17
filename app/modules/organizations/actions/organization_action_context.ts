@@ -3,6 +3,9 @@ export interface OrganizationActionContext {
   readonly ip: string
   readonly userAgent: string
   readonly organizationId: string | null
+  readonly requestId?: string | null
+  readonly traceId?: string | null
+  readonly workflowId?: string | null
 }
 
 export interface AuthenticatedOrganizationActionContext extends OrganizationActionContext {
@@ -17,5 +20,8 @@ export function makeSystemOrganizationActionContext(
     ip: '0.0.0.0',
     userAgent: 'system',
     organizationId: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
   }
 }

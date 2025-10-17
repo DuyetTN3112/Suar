@@ -6,11 +6,28 @@ import GetOrganizationsListQuery from './get_organizations_list_query.js'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 type OrganizationsListResult = Awaited<ReturnType<GetOrganizationsListQuery['execute']>>
+type AvailableOrganizationsResult = Awaited<ReturnType<GetAllOrganizationsQuery['getWithMembershipStatusPage']>>
+
+export interface OrganizationsIndexPageInput {
+  joined: GetOrganizationsListDTO
+  available: {
+    userId: string
+    page: number
+    perPage: number
+    search?: string
+    plan?: string
+    partnerType?: string
+    partnerIsActive?: boolean
+    createdAtStart?: string
+    createdAtEnd?: string
+  }
+}
 
 export interface OrganizationsIndexPageResult {
-  organizations: OrganizationsListResult['data']
-  pagination: OrganizationsListResult['pagination']
-  allOrganizations: Awaited<ReturnType<GetAllOrganizationsQuery['getEnhanced']>>
+  joinedOrganizations: OrganizationsListResult['data']
+  joinedPagination: OrganizationsListResult['pagination']
+  availableOrganizations: AvailableOrganizationsResult['data']
+  availablePagination: AvailableOrganizationsResult['meta']
 }
 
 /**
@@ -22,16 +39,17 @@ export interface OrganizationsIndexPageResult {
 export default class GetOrganizationsIndexPageQuery {
   constructor(protected execCtx: OrganizationActionContext) {}
 
-  async execute(dto: GetOrganizationsListDTO): Promise<OrganizationsIndexPageResult> {
-    const [organizationsResult, allOrganizations] = await Promise.all([
-      new GetOrganizationsListQuery(this.execCtx).execute(dto),
-      new GetAllOrganizationsQuery().getEnhanced(),
+  async execute(input: OrganizationsIndexPageInput): Promise<OrganizationsIndexPageResult> {
+    const [organizationsResult, availableOrganizations] = await Promise.all([
+      new GetOrganizationsListQuery(this.execCtx).execute(input.joined),
+      new GetAllOrganizationsQuery().getWithMembershipStatusPage(input.available),
     ])
 
     return {
-      organizations: organizationsResult.data,
-      pagination: organizationsResult.pagination,
-      allOrganizations,
+      joinedOrganizations: organizationsResult.data,
+      joinedPagination: organizationsResult.pagination,
+      availableOrganizations: availableOrganizations.data,
+      availablePagination: availableOrganizations.meta,
     }
   }
 }

@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import {
+  actionContextFromHttp,
+  resolveCurrentOrganizationId,
+} from '#modules/http/public_contracts/http_execution_context'
 import GetOrganizationDashboardStatsQuery from '#modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query'
 
 /**
@@ -20,13 +23,14 @@ export default class OrgDashboardController {
       return inertia.render('org/no_org', {})
     }
 
-    if (!user.current_organization_id) {
+    const organizationId = resolveCurrentOrganizationId(ctx)
+    if (!organizationId) {
       return inertia.render('org/no_org', {})
     }
 
     const query = new GetOrganizationDashboardStatsQuery(execCtx)
     const stats = await query.handle({
-      organizationId: user.current_organization_id,
+      organizationId,
     })
 
     return inertia.render('org/dashboard', {

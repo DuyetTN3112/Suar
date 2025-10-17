@@ -3,9 +3,10 @@ export function mapCurrentOrganizationMutationApiBody(
   extra: Record<string, unknown> = {}
 ) {
   return {
-    success: true,
-    message,
-    ...extra,
+    data: {
+      message,
+      ...extra,
+    },
   }
 }
 

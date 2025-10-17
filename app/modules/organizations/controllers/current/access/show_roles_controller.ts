@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import GetAccessConfigurationQuery from '#modules/organizations/actions/current/access/queries/get_access_configuration_query'
 
 export default class ShowRolesController {

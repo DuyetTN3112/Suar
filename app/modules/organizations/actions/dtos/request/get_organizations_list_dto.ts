@@ -1,6 +1,6 @@
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
-
+import { toLastPage, toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * DTO for getting organizations list with filters and pagination
  *
@@ -16,7 +16,12 @@ export class GetOrganizationsListDTO {
     public readonly limit: number = PAGINATION.DEFAULT_PER_PAGE,
     public readonly search?: string,
     public readonly sortBy = 'created_at',
-    public readonly sortOrder: 'asc' | 'desc' = 'desc'
+    public readonly sortOrder: 'asc' | 'desc' = 'desc',
+    public readonly plan?: string,
+    public readonly partnerType?: string,
+    public readonly partnerIsActive?: boolean,
+    public readonly createdAtStart?: string,
+    public readonly createdAtEnd?: string
   ) {
     this.validate()
   }
@@ -63,7 +68,7 @@ export class GetOrganizationsListDTO {
    * Pattern: Pagination helper (learned from all modules)
    */
   getOffset(): number {
-    return (this.page - 1) * this.limit
+    return toOffset(this.page, this.limit)
   }
 
   /**
@@ -97,6 +102,11 @@ export class GetOrganizationsListDTO {
     if (this.hasSearch()) {
       parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
     }
+    if (this.plan) parts.push(`plan:${this.plan}`)
+    if (this.partnerType) parts.push(`ptype:${this.partnerType}`)
+    if (this.partnerIsActive !== undefined) parts.push(`pactive:${String(this.partnerIsActive)}`)
+    if (this.createdAtStart) parts.push(`cstart:${this.createdAtStart}`)
+    if (this.createdAtEnd) parts.push(`cend:${this.createdAtEnd}`)
 
     return parts.join(':')
   }
@@ -123,12 +133,14 @@ export class GetOrganizationsListDTO {
    * Pattern: Pagination response (learned from all modules)
    */
   getPaginationMetadata(total: number) {
+    const totalPages = toLastPage(total, this.limit)
+
     return {
       page: this.page,
       limit: this.limit,
       total,
-      totalPages: Math.ceil(total / this.limit),
-      hasNextPage: this.page < Math.ceil(total / this.limit),
+      totalPages,
+      hasNextPage: this.page < totalPages,
       hasPrevPage: this.page > 1,
     }
   }

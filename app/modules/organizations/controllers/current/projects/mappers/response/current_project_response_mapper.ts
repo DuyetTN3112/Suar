@@ -1,14 +1,18 @@
 import type {
-  ResponseRecord,
-  SerializableResponseRecord,
-} from '#modules/organizations/controllers/current/mappers/response/shared'
-import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/shared'
+  SerializedModelRecord,
+  SerializableModelRecord,
+} from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
+import {
+  camelizeCurrentOrganizationResponseValue,
+  serializeForCurrentOrganizationResponse,
+} from '#modules/organizations/controllers/current/mappers/response/model_response_serialization'
 
 export function mapCurrentOrganizationProjectMutationApiBody(
-  project: SerializableResponseRecord | ResponseRecord
+  project: SerializableModelRecord | SerializedModelRecord
 ) {
   return {
-    success: true,
-    data: serializeForCurrentOrganizationResponse(project),
+    data: camelizeCurrentOrganizationResponseValue(
+      serializeForCurrentOrganizationResponse(project)
+    ),
   }
 }

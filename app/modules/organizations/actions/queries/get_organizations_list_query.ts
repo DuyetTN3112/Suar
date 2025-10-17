@@ -3,6 +3,7 @@ import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_
 import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
@@ -74,13 +75,18 @@ export default class GetOrganizationsListQuery {
 
     // 2. Paginate organizations → delegate to Model
     const { column, direction } = dto.getOrderByClause()
-    const { data: organizations, total } = await OrganizationRepository.paginateByUser(userId, {
+    const { data: organizations, total } = await OrganizationRepository.paginateByUser(userId, omitUndefined({
       page: dto.page,
       limit: dto.limit,
       search: dto.hasSearch() ? (dto.getNormalizedSearch() ?? undefined) : undefined,
       sortColumn: column,
       sortDirection: direction,
-    })
+      plan: dto.plan,
+      partnerType: dto.partnerType,
+      partnerIsActive: dto.partnerIsActive,
+      createdAtStart: dto.createdAtStart,
+      createdAtEnd: dto.createdAtEnd,
+    }))
 
     // 3. Enrich with stats
     const enrichedOrganizations = await this.enrichWithStats(organizations)

@@ -4,12 +4,22 @@ import { OrganizationMemberResponseDTO } from '../dtos/response/organization_res
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationMemberSearchCandidateReader } from '#modules/organizations/actions/ports/organization_member_search_candidate_reader'
 import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import { EngineOrganizationMemberSearchCandidateReader } from '#modules/organizations/infra/adapters/engine_organization_member_search_candidate_reader'
 import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import {
+  ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS,
+} from '#modules/organizations/public_contracts/organization_constants'
+import {
+  buildPaginationMeta,
+} from '#modules/pagination/public_contracts/pagination_public_api'
+import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
 
 interface PaginatedResult {
   data: OrganizationMemberResponseDTO[]
@@ -21,10 +31,12 @@ interface PaginatedResult {
   }
 }
 
-const STATUS_FILTER_TO_MEMBER_STATUS: Record<'active' | 'pending' | 'inactive', string> = {
-  active: 'approved',
-  pending: 'pending',
-  inactive: 'rejected',
+interface GetOrganizationMembersQueryDeps {
+  searchCandidateReader: OrganizationMemberSearchCandidateReader
+  paginateMembers: typeof listingQueries.paginateMembers
+  getMembershipContext: typeof membershipQueries.getMembershipContext
+  getCache: (key: string) => Promise<PaginatedResult | null>
+  setCache: (key: string, data: PaginatedResult, ttl: number) => Promise<void>
 }
 
 const ORG_ROLE_LABEL: Record<string, string> = {
@@ -52,7 +64,16 @@ const ORG_ROLE_LABEL: Record<string, string> = {
  * // { data: [...], meta: { total, per_page, current_page, last_page } }
  */
 export default class GetOrganizationMembersQuery {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly deps: GetOrganizationMembersQueryDeps = {
+      searchCandidateReader: new EngineOrganizationMemberSearchCandidateReader(),
+      paginateMembers: listingQueries.paginateMembers,
+      getMembershipContext: membershipQueries.getMembershipContext,
+      getCache: (key) => cacheStore.get<PaginatedResult>(key),
+      setCache: (key, data, ttl) => cacheStore.set(key, data, ttl),
+    }
+  ) {}
 
   async execute(dto: GetOrganizationMembersDTO): Promise<PaginatedResult> {
     const userId = this.execCtx.userId
@@ -72,14 +93,20 @@ export default class GetOrganizationMembersQuery {
     }
 
     // 3. Paginate members → delegate to Model
-    const { data, total } = await listingQueries.paginateMembers(organizationId, {
+    const userIds = await this.resolveEngineUserIds(dto)
+    const { data, total } = await this.deps.paginateMembers(organizationId, omitUndefined({
       page: dto.page,
       limit: dto.limit,
       orgRole: dto.roleId,
-      search: dto.search,
-      statusFilter: dto.statusFilter ? STATUS_FILTER_TO_MEMBER_STATUS[dto.statusFilter] : undefined,
+      userIds: userIds ?? undefined,
+      search: userIds ? undefined : dto.search,
+      statusFilter: dto.statusFilter
+        ? ORGANIZATION_MEMBER_STATUS_FILTER_TO_MEMBERSHIP_STATUS[dto.statusFilter]
+        : undefined,
       include: dto.include,
-    })
+      joinDateStart: dto.joinDateStart,
+      joinDateEnd: dto.joinDateEnd,
+    }))
 
     const mappedData = data.map((member) =>
       OrganizationMemberResponseDTO.fromProps({
@@ -98,14 +125,17 @@ export default class GetOrganizationMembersQuery {
     )
 
     // 4. Calculate meta
-    const lastPage = Math.ceil(total / dto.limit)
+    const meta = buildPaginationMeta(total, {
+      page: dto.page,
+      perPage: dto.limit,
+    })
     const result: PaginatedResult = {
       data: mappedData,
       meta: {
-        total,
-        per_page: dto.limit,
-        current_page: dto.page,
-        last_page: lastPage,
+        total: meta.total,
+        per_page: meta.perPage,
+        current_page: meta.currentPage,
+        last_page: meta.lastPage,
       },
     }
 
@@ -119,7 +149,7 @@ export default class GetOrganizationMembersQuery {
    * Check if user is member of organization
    */
   private async checkMembership(userId: string, organizationId: string): Promise<void> {
-    const actorMembership = await membershipQueries.getMembershipContext(
+    const actorMembership = await this.deps.getMembershipContext(
       organizationId,
       userId,
       undefined,
@@ -141,7 +171,7 @@ export default class GetOrganizationMembersQuery {
    */
   private async getFromCache(key: string): Promise<PaginatedResult | null> {
     try {
-      const cached = await cacheStore.get<PaginatedResult>(key)
+      const cached = await this.deps.getCache(key)
       if (cached) {
         return cached
       }
@@ -156,9 +186,31 @@ export default class GetOrganizationMembersQuery {
    */
   private async saveToCache(key: string, data: PaginatedResult, ttl: number): Promise<void> {
     try {
-      await cacheStore.set(key, data, ttl)
+      await this.deps.setCache(key, data, ttl)
     } catch (error) {
       loggerService.error('[GetOrganizationMembersQuery] Cache set error:', error)
+    }
+  }
+
+  private async resolveEngineUserIds(dto: GetOrganizationMembersDTO): Promise<string[] | null> {
+    if (!dto.hasSearch() || !isSearchRuntimeEnabled()) {
+      return null
+    }
+
+    try {
+      const limit = Math.max(dto.page * dto.limit, 50)
+      const hits = await this.deps.searchCandidateReader.searchUserCandidates({
+        q: dto.search ?? '',
+        limit,
+      })
+
+      if (hits.length === 0) {
+        return null
+      }
+
+      return hits.map((hit) => hit.userId)
+    } catch {
+      return null
     }
   }
 }

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
 import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
 
@@ -36,16 +37,17 @@ export function buildCurrentOrganizationWorkflowCreateTaskStatusDTO(
   const rawSlug = toOptionalString(request.input('slug') as unknown)
 
   return CreateTaskStatusDTO.fromValidatedPayload(
-    {
+    omitUndefined({
       name: rawName,
       slug: rawSlug ?? toSlug(rawName),
       category:
-        toOptionalString(request.input('category') as unknown) ?? TaskStatusCategory.IN_PROGRESS,
+        toOptionalString(request.input('group', request.input('category')) as unknown) ??
+        TaskStatusCategory.IN_PROGRESS,
       color: toOptionalString(request.input('color') as unknown) ?? '#6B7280',
       icon: toOptionalString(request.input('icon') as unknown),
       description: toOptionalString(request.input('description') as unknown),
-      sort_order: toOptionalNumber(request.input('sort_order') as unknown),
-    },
+      sort_order: toOptionalNumber(request.input('sortOrder', request.input('sort_order')) as unknown),
+    }),
     organizationId
   )
 }
