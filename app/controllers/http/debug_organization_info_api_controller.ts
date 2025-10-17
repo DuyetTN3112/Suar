@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetHttpDebugOrganizationInfoQuery from '#actions/http/queries/get_debug_organization_info_query'
+import { organizationPublicApi } from '#actions/organizations/public_api'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
 
 /**
@@ -14,7 +14,7 @@ export default class DebugOrganizationInfoApiController {
     }
 
     const sessionOrgId = session.get('current_organization_id') as string | undefined
-    const debug = await new GetHttpDebugOrganizationInfoQuery().execute(user.id, sessionOrgId)
+    const debug = await organizationPublicApi.getDebugOrganizationInfo(user.id, sessionOrgId)
 
     response.json({ success: true, debug })
   }
