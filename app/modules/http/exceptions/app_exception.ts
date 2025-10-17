@@ -22,7 +22,9 @@ export default class AppException extends Exception {
     const ctor = this.constructor as typeof AppException
     this.status = ctor.status
     this.code = ctor.code
-    this.details = options.details
+    if (options.details !== undefined) {
+      this.details = options.details
+    }
     this.errors = options.errors ?? {}
     this.shouldReport =
       options.shouldReport ??

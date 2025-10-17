@@ -40,6 +40,7 @@ export const BACKEND_NOTIFICATION_TYPES = {
   TASK_UPDATED: 'task_updated',
   TASK_COMPLETED: 'task_completed',
   TASK_COMMENTED: 'task_commented',
+  TASK_MENTIONED: 'task_mentioned',
   TASK_DUE_SOON: 'task_due_soon',
   TASK_OVERDUE: 'task_overdue',
   TASK_APPLICATION_RECEIVED: 'task_application_received',
@@ -50,6 +51,9 @@ export const BACKEND_NOTIFICATION_TYPES = {
   // Review
   REVIEW_RECEIVED: 'review_received',
   REVIEW_REQUESTED: 'review_requested',
+  REVIEW_DISPUTE_ESCALATED: 'review_dispute_escalated',
+  REVERSE_REVIEW_RECEIVED: 'reverse_review_received',
+  ORGANIZATION_REVIEW_RECEIVED: 'organization_review_received',
 
   // Message
   NEW_MESSAGE: 'new_message',
@@ -88,6 +92,7 @@ export const BACKEND_NOTIFICATION_ENTITY_TYPES = {
   TASK: 'task',
   ORGANIZATION: 'organization',
   PROJECT: 'project',
+  PROJECT_SPRINT: 'project_sprint',
   USER: 'user',
   TASK_APPLICATION: 'task_application',
 } as const

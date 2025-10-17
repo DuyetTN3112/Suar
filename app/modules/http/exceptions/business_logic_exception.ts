@@ -21,7 +21,7 @@ export default class BusinessLogicException extends AppException {
   static override code = 'E_BUSINESS_LOGIC'
 
   constructor(message: string = ErrorMessages.GENERIC_ERROR, details?: Record<string, unknown>) {
-    super(message, { details })
+    super(message, details === undefined ? {} : { details })
   }
 
   /**

@@ -27,7 +27,7 @@ export function serializeError(
     result.code = code
   }
 
-  if (includeDetails && isError(error)) {
+  if (includeDetails && isError(error) && error.stack) {
     result.details = error.stack
   }
 

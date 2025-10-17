@@ -21,7 +21,7 @@ export default class ForbiddenException extends AppException {
   static override code = 'E_FORBIDDEN'
 
   constructor(message: string = ErrorMessages.FORBIDDEN_ACTION, details?: Record<string, unknown>) {
-    super(message, { details })
+    super(message, details === undefined ? {} : { details })
   }
 
   /**

@@ -3,7 +3,8 @@ import { timingSafeEqual } from 'node:crypto'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { ErrorCode, HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import env from '#start/env'
 
@@ -21,9 +22,11 @@ export default class ApiKeyMiddleware {
 
     // Secure by default: nếu chưa cấu hình API key → chặn
     if (!expectedApiKey) {
-      ctx.response.status(HttpStatus.SERVICE_UNAVAILABLE).json({
-        message: 'Health check API key chưa được cấu hình',
-        error: 'service_unavailable',
+      emitApiError(ctx, {
+        transport: 'api-ops-internal',
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+        code: ErrorCode.INTERNAL,
+        detail: 'Health check API key chưa được cấu hình',
       })
       return
     }

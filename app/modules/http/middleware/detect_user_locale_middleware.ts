@@ -104,7 +104,7 @@ export default class DetectUserLocaleMiddleware {
 
   async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     // Clear cache in dev for hot reload
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       DetectUserLocaleMiddleware.translationsCache.clear()
     }
 

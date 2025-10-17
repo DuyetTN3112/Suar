@@ -1,4 +1,3 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
@@ -17,7 +16,9 @@ import {
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import type { OrganizationEventPublisher } from '#modules/organizations/application/ports/organization_event_publisher'
 import { canTransferOwnership } from '#modules/organizations/domain/org_permission_policy'
+import { InProcessOrganizationEventPublisher } from '#modules/organizations/infra/adapters/in_process_organization_event_publisher'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
 import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
@@ -55,7 +56,8 @@ interface PersistedOwnershipTransfer {
 export default class TransferOrganizationOwnershipCommand {
   constructor(
     protected execCtx: OrganizationActionContext,
-    private createNotification: NotificationCreator
+    private createNotification: NotificationCreator,
+    private readonly organizationEventPublisher: OrganizationEventPublisher = new InProcessOrganizationEventPublisher()
   ) {}
 
   async execute(dto: TransferOrganizationOwnershipDTO): Promise<OrganizationRecord> {
@@ -197,13 +199,13 @@ export default class TransferOrganizationOwnershipCommand {
     actorId: string,
     dto: TransferOrganizationOwnershipDTO
   ): Promise<void> {
-    void emitter.emit('organization:updated', {
+    await this.organizationEventPublisher.publishOrganizationUpdated({
       organizationId: transfer.organization.id,
       updatedBy: actorId,
       changes: { owner_id: dto.new_owner_id, old_owner_id: transfer.oldOwnerId },
     })
 
-    void emitter.emit('organization:member:role_changed', {
+    await this.organizationEventPublisher.publishOrganizationMemberRoleChanged({
       organizationId: dto.organization_id,
       userId: transfer.oldOwnerId,
       oldRole: OrganizationRole.OWNER,
@@ -211,7 +213,7 @@ export default class TransferOrganizationOwnershipCommand {
       changedBy: actorId,
     })
 
-    void emitter.emit('organization:member:role_changed', {
+    await this.organizationEventPublisher.publishOrganizationMemberRoleChanged({
       organizationId: dto.organization_id,
       userId: dto.new_owner_id,
       oldRole: transfer.newOwnerRole ?? OrganizationRole.MEMBER,

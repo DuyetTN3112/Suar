@@ -38,9 +38,15 @@ type InterfaceContext = JsonObject & {
   isAdminMode: boolean
 }
 
+type InertiaRootViewSetter = {
+  setRootView?: (view: string) => void
+}
+
 export default class InertiaMiddleware extends BaseInertiaMiddleware {
   async share(ctx: HttpContext): Promise<PageProps> {
     const { session, auth } = ctx as Partial<HttpContext>
+    const requestPath = ctx.request.url()
+    const isApiRequest = requestPath === '/api' || requestPath.startsWith('/api/')
 
     const toOptionalString = (value: unknown): string | undefined => {
       return typeof value === 'string' ? value : undefined
@@ -53,13 +59,13 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
     }
 
     try {
-      if (auth && (await auth.check())) {
+      if (!isApiRequest && auth && (await auth.check())) {
         const user = auth.user
         if (user) {
-          if (!user.$preloaded.organizations) {
+          if (!user.$preloaded['organizations']) {
             await user.load('organizations')
           }
-          if (!user.$preloaded.organization_users) {
+          if (!user.$preloaded['organization_users']) {
             await user.load('organization_users')
           }
 
@@ -175,6 +181,17 @@ export default class InertiaMiddleware extends BaseInertiaMiddleware {
 
   async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     await this.init(ctx)
+
+    // Dynamically set root view for Multi-SPA architecture
+    const url = ctx.request.url()
+    const inertia = ctx.inertia as InertiaRootViewSetter
+    if (url.startsWith('/admin')) {
+      inertia.setRootView?.('inertia_admin')
+    } else if (url.startsWith('/org')) {
+      inertia.setRootView?.('inertia_org')
+    } else {
+      inertia.setRootView?.('inertia_user')
+    }
 
     await next()
     this.dispose(ctx)

@@ -4,9 +4,13 @@ import type { ApiV1Pagination } from '../../../contracts/api/v1/pagination.js'
 import type { SettingsResponse } from '../../../contracts/api/v1/settings.js'
 import type { TaskStatusResponse } from '../../../contracts/api/v1/task_statuses.js'
 
-import type { SerializedNotification } from '#modules/notifications/actions/serializers/notification_serializer'
+import type { SerializedNotification } from '#modules/notifications/public_contracts/notification_serialization'
+import {
+  fromLegacySnakePagination,
+  toCanonicalApiPagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import type { UserSettingData } from '#modules/settings/types/user_setting'
-import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+import type { TaskStatusRecord, TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
 
 interface PaginationLike {
   total: number
@@ -33,12 +37,11 @@ interface MeRecordLike {
 }
 
 export function mapApiV1Pagination(meta: PaginationLike): ApiV1Pagination {
-  return {
-    page: meta.current_page,
-    perPage: meta.per_page,
-    total: meta.total,
-    hasNextPage: meta.current_page < meta.last_page,
-  }
+  return toCanonicalApiPagination(fromLegacySnakePagination(meta))
+}
+
+export function wrapApiV1Data<T>(data: T) {
+  return { data }
 }
 
 export function mapApiV1TaskStatusResponse(record: TaskStatusRecord): TaskStatusResponse {
@@ -56,6 +59,25 @@ export function mapApiV1TaskStatusResponse(record: TaskStatusRecord): TaskStatus
     isSystem: record.is_system,
     createdAt: record.created_at ?? null,
     updatedAt: record.updated_at ?? null,
+  }
+}
+
+export function mapApiV1WorkflowTransitionResponse(record: TaskWorkflowTransitionRecord) {
+  return {
+    id: record.id,
+    organizationId: record.organization_id,
+    fromStatusId: record.from_status_id,
+    toStatusId: record.to_status_id,
+    conditions: record.conditions,
+    createdAt: record.created_at ?? null,
+    fromStatus:
+      record.fromStatus && 'organization_id' in record.fromStatus
+        ? mapApiV1TaskStatusResponse(record.fromStatus as TaskStatusRecord)
+        : null,
+    toStatus:
+      record.toStatus && 'organization_id' in record.toStatus
+        ? mapApiV1TaskStatusResponse(record.toStatus as TaskStatusRecord)
+        : null,
   }
 }
 
@@ -84,7 +106,7 @@ export function mapApiV1NotificationResponse(
     type: record.type,
     relatedEntityType: record.related_entity_type,
     relatedEntityId: record.related_entity_id,
-    metadata: record.metadata,
+    metadata: record.metadata ?? null,
     createdAt: record.created_at,
     updatedAt: record.updated_at,
     readAt: record.read_at,
@@ -107,5 +129,27 @@ export function mapApiV1MeResponse(record: MeRecordLike): MeResponse {
       orgRole: organization.org_role,
       status: organization.status,
     })),
+  }
+}
+
+export function mapApiV1OrganizationMemberResponse(
+  record: {
+    id: string
+    org_role: string
+    role_name: string
+    joined_at: string
+    user: {
+      id: string
+      username: string
+      email: string | null
+    }
+  }
+) {
+  return {
+    id: record.id,
+    orgRole: record.org_role,
+    roleName: record.role_name,
+    joinedAt: record.joined_at,
+    user: record.user,
   }
 }

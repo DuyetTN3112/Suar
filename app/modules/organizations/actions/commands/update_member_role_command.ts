@@ -23,10 +23,16 @@ import {
   BACKEND_NOTIFICATION_TYPES,
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { PLATFORM_EVENT_NAMES } from '#modules/observability/contracts/platform_event_names'
+import {
+  platformOperationalLogger,
+  platformWorkflowLogger,
+} from '#modules/observability/public_contracts/platform_observability'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import { canChangeRole } from '#modules/organizations/domain/org_permission_policy'
 import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { buildOrganizationMembershipEvent } from '#modules/organizations/observability/organization_event_factory'
 
 /**
  * Command: Update Member Role
@@ -70,8 +76,6 @@ export default class UpdateMemberRoleCommand {
    */
   async execute(dto: UpdateMemberRoleDTO): Promise<void> {
     const actorId = this.requireActorId()
-    const roleChange = await this.persistRoleChangeInTransaction(dto, actorId)
-    await this.runPostCommitSideEffects(dto, actorId, roleChange.oldRole)
   }
 
   private async persistRoleChangeInTransaction(

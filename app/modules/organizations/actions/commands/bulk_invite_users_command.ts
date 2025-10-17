@@ -2,6 +2,7 @@ import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
 
 import InviteUserCommand from './invite_user_command.js'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 
 /**
@@ -37,12 +38,12 @@ export default class BulkInviteUsersCommand {
 
     for (const email of dto.user_emails) {
       try {
-        const inviteDto = InviteUserDTO.fromValidatedPayload({
+        const inviteDto = InviteUserDTO.fromValidatedPayload(omitUndefined({
           organization_id: dto.organization_id,
           email,
           role_id: dto.org_role,
           message: dto.message,
-        })
+        }))
 
         await inviteCommand.execute(inviteDto)
         success.push(email)

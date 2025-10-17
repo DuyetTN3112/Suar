@@ -19,7 +19,7 @@ export default class NotFoundException extends AppException {
   static override code = 'E_NOT_FOUND'
 
   constructor(message: string = ErrorMessages.NOT_FOUND, details?: Record<string, unknown>) {
-    super(message, { details })
+    super(message, details === undefined ? {} : { details })
   }
 
   /**

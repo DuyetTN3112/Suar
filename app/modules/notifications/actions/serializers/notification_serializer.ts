@@ -54,7 +54,7 @@ export function serializeNotification(notification: RawNotificationData): Serial
     type: notification.type,
     related_entity_type: notification.related_entity_type,
     related_entity_id: notification.related_entity_id,
-    metadata: notification.metadata,
+    metadata: notification.metadata ?? null,
     created_at:
       toIsoString(notification.created_at, new Date().toISOString()) ?? new Date().toISOString(),
     updated_at:

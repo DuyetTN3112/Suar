@@ -7,7 +7,11 @@ import type {
   NotificationRecord,
   NotificationRepository,
 } from '#modules/notifications/infra/repositories/notification_repository_interface'
-
+import {
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+  toOffset,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 interface NotificationRow {
   id: string
   user_id: string
@@ -48,7 +52,7 @@ export default class PostgresNotificationRepository implements NotificationRepos
   ): Promise<{ data: NotificationRecord[]; total: number }> {
     const page = options?.page ?? 1
     const limit = options?.limit ?? 10
-    const offset = (page - 1) * limit
+    const offset = toOffset(page, limit)
     let baseQuery = db.from('notifications').where('user_id', userId)
 
     if (options?.isRead !== undefined) {
@@ -64,6 +68,78 @@ export default class PostgresNotificationRepository implements NotificationRepos
     return {
       data: rows.map((row) => this.toRecord(row)),
       total: Number(totalResult?.count ?? 0),
+    }
+  }
+
+  async findByUserCursor(
+    userId: string,
+    options?: { isRead?: boolean; limit?: number; after?: string | null; before?: string | null }
+  ): Promise<{
+    data: NotificationRecord[]
+    nextCursor: string | null
+    previousCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+  }> {
+    const limit = Math.max(1, options?.limit ?? 10)
+    let baseQuery = db.from('notifications').where('user_id', userId)
+
+    if (options?.isRead !== undefined) {
+      baseQuery = baseQuery.where('is_read', options.isRead)
+    }
+
+    const decodedCursor = decodeTimestampCursor(options?.after)
+    const decodedBeforeCursor = decodeTimestampCursor(options?.before)
+    const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
+
+    if (decodedCursor) {
+      baseQuery = baseQuery.where((builder) => {
+        void builder
+          .where('created_at', '<', decodedCursor.createdAt)
+          .orWhere((nested) => {
+            void nested.where('created_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
+          })
+      })
+    } else if (decodedBeforeCursor) {
+      baseQuery = baseQuery.where((builder) => {
+        void builder
+          .where('created_at', '>', decodedBeforeCursor.createdAt)
+          .orWhere((nested) => {
+            void nested.where('created_at', decodedBeforeCursor.createdAt).where('id', '>', decodedBeforeCursor.id)
+          })
+      })
+    }
+
+    const rows = (await baseQuery
+      .clone()
+      .orderBy('created_at', isBeforeWindow ? 'asc' : 'desc')
+      .orderBy('id', isBeforeWindow ? 'asc' : 'desc')
+      .limit(limit + 1)) as NotificationRow[]
+
+    const hasOverflow = rows.length > limit
+    const windowRows = hasOverflow ? rows.slice(0, limit) : rows
+    const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
+    const firstRow = pageRows[0]
+    const lastRow = pageRows[pageRows.length - 1]
+
+    return {
+      data: pageRows.map((row) => this.toRecord(row)),
+      nextCursor:
+        (isBeforeWindow || hasOverflow) && lastRow
+          ? encodeTimestampCursor({
+              createdAt: lastRow.created_at.toISOString(),
+              id: lastRow.id,
+            })
+          : null,
+      previousCursor:
+        (decodedCursor || isBeforeWindow) && firstRow
+          ? encodeTimestampCursor({
+              createdAt: firstRow.created_at.toISOString(),
+              id: firstRow.id,
+            })
+          : null,
+      hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+      hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
     }
   }
 

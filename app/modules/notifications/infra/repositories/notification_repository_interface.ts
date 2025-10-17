@@ -30,6 +30,16 @@ export interface NotificationRepository {
     userId: string,
     options?: { isRead?: boolean; limit?: number; page?: number }
   ): Promise<{ data: NotificationRecord[]; total: number }>
+  findByUserCursor(
+    userId: string,
+    options?: { isRead?: boolean; limit?: number; after?: string | null; before?: string | null }
+  ): Promise<{
+    data: NotificationRecord[]
+    nextCursor: string | null
+    previousCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+  }>
   markAsRead(notificationId: string, userId?: string): Promise<boolean>
   markAllAsRead(userId: string): Promise<void>
   delete(notificationId: string, userId?: string): Promise<boolean>
