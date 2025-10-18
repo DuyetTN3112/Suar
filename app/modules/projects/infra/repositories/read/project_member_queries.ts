@@ -1,3 +1,4 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import ProjectMember from '#modules/projects/infra/models/project_member'
@@ -24,7 +25,14 @@ interface ProjectMemberCountRow extends CountTotalRow {
 }
 
 const getCountTotal = (row: CountTotalRow | null): number => {
-  return toNumberValue(row?.$extras?.total ?? row?.total)
+  return toNumberValue(row?.$extras?.['total'] ?? row?.total)
+}
+
+function applyStableProjectMemberOrder(
+  query: ReturnType<typeof ProjectMember.query>,
+  sortOrder: 'asc' | 'desc'
+): void {
+  void query.orderBy('created_at', sortOrder).orderBy('user_id', sortOrder)
 }
 
 export const findMember = async (
@@ -133,15 +141,17 @@ export const listPaged = async (
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
-  return query.where('project_id', projectId)
-    .preload('user')
-    .orderBy('created_at', 'desc')
-    .paginate(page, 10)
+  void query.where('project_id', projectId).preload('user')
+  applyStableProjectMemberOrder(query, 'desc')
+  return query.paginate(page, 10)
 }
 
 interface MemberRow {
   user_id: string
   role: string
+  project_professional_role_id: string | null
+  professional_role_name: string | null
+  professional_role_code: string | null
   joined_at: Date
   username: string
   email: string
@@ -157,36 +167,67 @@ export const getMembersWithDetails = async (
   },
   trx?: TransactionClientContract
 ): Promise<{ data: MemberRow[]; total: number }> => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
-  let scopedQuery = query.where('project_id', projectId).preload('user')
+  const page = options?.page ?? 1
+  const limit = options?.limit ?? 10
+  const client = trx ?? db
+  let baseQuery = client
+    .from('project_members as pm')
+    .join('users as u', 'u.id', 'pm.user_id')
+    .leftJoin('project_professional_roles as ppr', 'ppr.id', 'pm.project_professional_role_id')
+    .where('pm.project_id', projectId)
 
   if (options?.role) {
-    scopedQuery = scopedQuery.where('project_role', options.role)
+    baseQuery = baseQuery.where('pm.project_role', options.role)
   }
 
   if (options?.search) {
     const search = options.search
-    scopedQuery = scopedQuery.whereHas('user', (userQuery) => {
-      void userQuery.whereILike('username', `%${search}%`).orWhereILike('email', `%${search}%`)
+    baseQuery = baseQuery.where((query) => {
+      void query.whereILike('u.username', `%${search}%`).orWhereILike('u.email', `%${search}%`)
     })
   }
 
-  const page = options?.page ?? 1
-  const limit = options?.limit ?? 10
+  const totalRow = (await baseQuery.clone().count('* as total').first()) as CountTotalRow | null
+  const rows = (await baseQuery
+    .clone()
+    .select(
+      'pm.user_id',
+      'pm.project_role as role',
+      'pm.project_professional_role_id',
+      'pm.created_at as joined_at',
+      'u.username',
+      'u.email',
+      'ppr.name as professional_role_name',
+      'ppr.code as professional_role_code'
+    )
+    .orderBy('pm.created_at', 'desc')
+    .orderBy('pm.user_id', 'desc')
+    .offset((page - 1) * limit)
+    .limit(limit)) as Array<{
+      user_id: string
+      role: string
+      project_professional_role_id: string | null
+      professional_role_name: string | null
+      professional_role_code: string | null
+      joined_at: string | Date
+      username: string
+      email: string | null
+    }>
 
-  const result = await scopedQuery.orderBy('created_at', 'desc').paginate(page, limit)
-
-  const data = result.all().map((member) => ({
+  const data = rows.map((member) => ({
     user_id: member.user_id,
-    role: member.project_role,
-    joined_at: member.created_at.toJSDate(),
-    username: member.user.username,
-    email: member.user.email ?? '',
+    role: member.role,
+    project_professional_role_id: member.project_professional_role_id,
+    professional_role_name: member.professional_role_name,
+    professional_role_code: member.professional_role_code,
+    joined_at: member.joined_at instanceof Date ? member.joined_at : new Date(member.joined_at),
+    username: member.username,
+    email: member.email ?? '',
   }))
 
   return {
     data,
-    total: result.total,
+    total: getCountTotal(totalRow),
   }
 }
 

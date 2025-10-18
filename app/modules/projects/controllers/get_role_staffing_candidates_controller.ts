@@ -1,6 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { mapRoleStaffingCandidatesApiBody } from './mappers/response/project_response_mapper.js'
+
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import GetRoleStaffingCandidatesQuery from '#modules/projects/actions/queries/get_role_staffing_candidates_query'
 
 /**
@@ -8,12 +10,12 @@ import GetRoleStaffingCandidatesQuery from '#modules/projects/actions/queries/ge
  */
 export default class GetRoleStaffingCandidatesController {
   async handle(ctx: HttpContext) {
-    const { params, response } = ctx
+    const { params } = ctx
     const query = new GetRoleStaffingCandidatesQuery(actionContextFromHttp(ctx))
     const result = await query.handle({
-      project_id: params.projectId as string,
-      role_id: params.roleId as string,
+      project_id: params['projectId'] as string,
+      role_id: params['roleId'] as string,
     })
-    response.json(result)
+    return mapRoleStaffingCandidatesApiBody(result)
   }
 }

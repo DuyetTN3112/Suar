@@ -232,6 +232,65 @@ export default class GetProjectDetailQuery extends BaseQuery<
       tasks_summary: tasksSummary,
       recent_activity: recentActivity,
       permissions,
+      review_governance: reviewGovernance,
+      project_reverse_reviews: projectReverseReviews,
+    }
+  }
+
+  private buildPreviewResult(
+    project: ProjectDetailRecord,
+    permissionContext: ProjectPermissionContext
+  ): GetProjectDetailResult {
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        organization_id: project.organization_id,
+        organization_name: project.organization?.name ?? null,
+        creator_id: null,
+        creator_name: null,
+        manager_id: null,
+        manager_name: null,
+        owner_id: null,
+        owner_name: null,
+        start_date: project.start_date,
+        end_date: project.end_date,
+        status: project.status,
+        visibility: project.visibility,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+      },
+      members: [],
+      tasks: [],
+      tasks_summary: {
+        total: 0,
+        pending: 0,
+        in_progress: 0,
+        completed: 0,
+        overdue: 0,
+      },
+      recent_activity: [],
+      permissions: calculateProjectDetailPermissions({
+        ...permissionContext,
+        projectManagerId: project.manager_id,
+      }),
+      review_governance: {
+        total_sessions: 0,
+        pending_sessions: 0,
+        overdue_sessions: 0,
+        disputed_sessions: 0,
+        completed_sessions: 0,
+        required_pending_assignments: 0,
+        fallback_pending_assignments: 0,
+        completion_rate: 0,
+      },
+      project_reverse_reviews: {
+        total_reviews: 0,
+        anonymous_reviews: 0,
+        average_rating: null,
+        recent: [],
+      },
     }
   }
 
@@ -274,11 +333,20 @@ export default class GetProjectDetailQuery extends BaseQuery<
     const { data: members } = await projectMemberQueries.getMembersWithDetails(projectId)
 
     // Get task count for each member via Model
-    const taskCountMap = await DefaultProjectDependencies.task.countByAssignees(projectId)
+    const [taskCountMap, explainabilityByUserId] = await Promise.all([
+      DefaultProjectDependencies.task.countByAssignees(projectId),
+      userPublicApi.getTalentExplainabilitySummaryByUserId(members.map((member) => member.user_id)),
+    ])
 
     return members.map((member) => ({
       ...member,
       task_count: taskCountMap.get(member.user_id) ?? 0,
+      reviewed_skills_count: explainabilityByUserId.get(member.user_id)?.reviewedSkillsCount ?? 0,
+      imported_skills_count: explainabilityByUserId.get(member.user_id)?.importedSkillsCount ?? 0,
+      under_dispute_skills_count:
+        explainabilityByUserId.get(member.user_id)?.underDisputeSkillsCount ?? 0,
+      latest_confidence_signal:
+        explainabilityByUserId.get(member.user_id)?.latestConfidenceSignal ?? null,
     }))
   }
 
@@ -341,6 +409,68 @@ export default class GetProjectDetailQuery extends BaseQuery<
     })
   }
 
+  private async getReviewGovernance(projectId: string): Promise<ProjectReviewGovernanceSummary> {
+    const summaryRow = (await db
+      .from('review_sessions as rs')
+      .join('task_assignments as ta', 'ta.id', 'rs.task_assignment_id')
+      .join('tasks as t', 't.id', 'ta.task_id')
+      .where('t.project_id', projectId)
+      .count('* as total_sessions')
+      .count('* as pending_sessions')
+      .whereIn('rs.status', ['pending', 'in_progress'])
+      .first()) as { total_sessions?: number | string; pending_sessions?: number | string } | null
+
+    const [statusRows, assignmentRows] = (await Promise.all([
+      db
+        .from('review_sessions as rs')
+        .join('task_assignments as ta', 'ta.id', 'rs.task_assignment_id')
+        .join('tasks as t', 't.id', 'ta.task_id')
+        .where('t.project_id', projectId)
+        .select('rs.status', 'rs.deadline'),
+      db
+        .from('review_session_reviewer_assignments as rra')
+        .join('review_sessions as rs', 'rs.id', 'rra.review_session_id')
+        .join('task_assignments as ta', 'ta.id', 'rs.task_assignment_id')
+        .join('tasks as t', 't.id', 'ta.task_id')
+        .where('t.project_id', projectId)
+        .where('rra.status', 'pending')
+        .select('rra.is_required'),
+    ])) as [
+      Array<{ status: string; deadline: string | Date | null }>,
+      Array<{ is_required: boolean }>
+    ]
+
+    const totalSessions = statusRows.length
+    const completedSessions = statusRows.filter((row) => row.status === 'completed').length
+    const disputedSessions = statusRows.filter((row) => row.status === 'disputed').length
+    const pendingSessions = statusRows.filter((row) =>
+      row.status === 'pending' || row.status === 'in_progress'
+    ).length
+    const overdueSessions = statusRows.filter((row) => {
+      if (row.status === 'completed' || row.status === 'disputed' || !row.deadline) {
+        return false
+      }
+
+      const deadline = new Date(row.deadline)
+      return !Number.isNaN(deadline.getTime()) && deadline.getTime() < Date.now()
+    }).length
+
+    const requiredPendingAssignments = assignmentRows.filter((row) => row.is_required === true).length
+    const fallbackPendingAssignments = assignmentRows.length - requiredPendingAssignments
+
+    return {
+      total_sessions: totalSessions || Number(summaryRow?.total_sessions ?? 0),
+      pending_sessions: pendingSessions || Number(summaryRow?.pending_sessions ?? 0),
+      overdue_sessions: overdueSessions,
+      disputed_sessions: disputedSessions,
+      completed_sessions: completedSessions,
+      required_pending_assignments: requiredPendingAssignments,
+      fallback_pending_assignments: fallbackPendingAssignments,
+      completion_rate:
+        totalSessions > 0 ? Math.round((completedSessions / totalSessions) * 100) : 0,
+    }
+  }
+
   /**
    * Get cache key for this query
    */
@@ -354,5 +484,91 @@ export default class GetProjectDetailQuery extends BaseQuery<
    */
   protected getCacheTTL(): number {
     return 5 * 60
+  }
+
+  private async getProjectReverseReviews(projectId: string): Promise<ProjectReverseReviewSummary> {
+    interface ProjectReverseReviewRow {
+      id: string
+      reviewer_id: string | null
+      reviewer_username: string | null
+      rating: number | string | null
+      comment: string | null
+      is_anonymous: boolean
+      created_at: string | Date
+    }
+
+    const [stats, legacyRecentRows, sprintEnvironmentRows] = (await Promise.all([
+      reviewPublicApi.loadReverseReviewTargetStats('project', projectId),
+      db
+        .from('reverse_reviews')
+        .where('target_type', 'project')
+        .where('target_id', projectId)
+        .leftJoin('users as reviewer', 'reviewer.id', 'reverse_reviews.reviewer_id')
+        .select(
+          'reverse_reviews.id',
+          'reverse_reviews.reviewer_id',
+          'reverse_reviews.rating',
+          'reverse_reviews.comment',
+          'reverse_reviews.is_anonymous',
+          'reverse_reviews.created_at',
+          'reviewer.username as reviewer_username'
+        )
+        .orderBy('reverse_reviews.created_at', 'desc')
+        .limit(5),
+      db
+        .from('sprint_environment_reviews as ser')
+        .innerJoin('sprint_review_packages as srp', 'srp.id', 'ser.package_id')
+        .joinRaw('left join users as reviewer on reviewer.id::text = srp.reviewer_id')
+        .where('ser.target_type', 'project')
+        .where('ser.target_id', projectId)
+        .select(
+          'ser.id',
+          'srp.reviewer_id',
+          'ser.rating',
+          'ser.comment',
+          'ser.is_anonymous_publicly as is_anonymous',
+          'ser.created_at',
+          'reviewer.username as reviewer_username'
+        )
+        .orderBy('ser.created_at', 'desc')
+        .limit(5),
+    ])) as [
+      Awaited<ReturnType<typeof reviewPublicApi.loadReverseReviewTargetStats>>,
+      ProjectReverseReviewRow[],
+      ProjectReverseReviewRow[],
+    ]
+
+    const recentRows = [...legacyRecentRows, ...sprintEnvironmentRows]
+      .sort((left, right) => {
+        return new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
+      })
+      .slice(0, 5)
+
+    const fallbackAverageRating =
+      recentRows.length > 0
+        ? Number(
+            (
+              recentRows.reduce((sum, row) => sum + Number(row.rating ?? 0), 0) / recentRows.length
+            ).toFixed(1)
+          )
+        : null
+
+    return {
+      total_reviews: stats?.total_reviews ?? recentRows.length,
+      anonymous_reviews:
+        stats?.anonymous_reviews ??
+        recentRows.filter((row) => row.is_anonymous === true).length,
+      average_rating: stats?.average_rating ?? fallbackAverageRating,
+      recent: recentRows.map((row) => ({
+        id: row.id,
+        reviewer_id: row.is_anonymous === true ? null : row.reviewer_id,
+        reviewer_username: row.is_anonymous === true ? null : row.reviewer_username,
+        rating: Number(row.rating ?? 0),
+        comment: row.comment,
+        is_anonymous: row.is_anonymous,
+        created_at:
+          row.created_at instanceof Date ? row.created_at.toISOString() : row.created_at,
+      })),
+    }
   }
 }
