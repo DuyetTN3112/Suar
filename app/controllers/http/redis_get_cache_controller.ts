@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import GetCacheValueQuery from '#actions/common/queries/get_cache_value_query'
+import { GetCacheValueQuery } from '#actions/http/cache/public_api'
 import { ExecutionContext } from '#types/execution_context'
 
 /**
