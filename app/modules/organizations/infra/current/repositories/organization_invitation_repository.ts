@@ -1,6 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 
-
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 /**
  * OrganizationInvitationRepository
  *
@@ -78,7 +78,7 @@ const isInvitationCountRow = (value: unknown): value is InvitationCountRow => {
     return false
   }
 
-  return typeof value.total === 'number' || typeof value.total === 'string'
+  return typeof value['total'] === 'number' || typeof value['total'] === 'string'
 }
 
 const isInvitationRow = (value: unknown): value is InvitationRow => {
@@ -87,13 +87,13 @@ const isInvitationRow = (value: unknown): value is InvitationRow => {
   }
 
   return (
-    typeof value.user_id === 'string' &&
-    (typeof value.email === 'string' || value.email === null) &&
-    typeof value.org_role === 'string' &&
-    typeof value.status === 'string' &&
-    (value.created_at instanceof Date || typeof value.created_at === 'string') &&
-    (typeof value.inviter_id === 'string' || value.inviter_id === null) &&
-    (typeof value.inviter_username === 'string' || value.inviter_username === null)
+    typeof value['user_id'] === 'string' &&
+    (typeof value['email'] === 'string' || value['email'] === null) &&
+    typeof value['org_role'] === 'string' &&
+    typeof value['status'] === 'string' &&
+    (value['created_at'] instanceof Date || typeof value['created_at'] === 'string') &&
+    (typeof value['inviter_id'] === 'string' || value['inviter_id'] === null) &&
+    (typeof value['inviter_username'] === 'string' || value['inviter_username'] === null)
   )
 }
 
@@ -149,8 +149,9 @@ export default class OrganizationInvitationRepository {
 
     const rowsRaw: unknown = await query
       .orderBy('ou.created_at', 'desc')
+      .orderBy('ou.user_id', 'desc')
       .limit(perPage)
-      .offset((page - 1) * perPage)
+      .offset(toOffset(page, perPage))
     const rows = Array.isArray(rowsRaw) ? rowsRaw.filter(isInvitationRow) : []
 
     const invitations = rows.map((invitation) => {

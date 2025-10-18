@@ -7,8 +7,12 @@ export function getJoinOrganizationSuccessMessage() {
 
 export function mapJoinOrganizationSuccessApiBody(organization: unknown) {
   return {
-    success: true,
-    message: getJoinOrganizationSuccessMessage(),
-    organization,
+    data: {
+      message: getJoinOrganizationSuccessMessage(),
+      organization,
+      joinRequest: {
+        status: 'pending',
+      },
+    },
   }
 }

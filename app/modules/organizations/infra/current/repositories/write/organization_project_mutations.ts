@@ -16,9 +16,8 @@ export const createProject = async (
     name: data.name,
     description: data.description ?? null,
     status: 'pending',
-    budget: 0,
     visibility: 'team',
-    allow_freelancer: false,
+    allow_external_contributors: false,
     approval_required_for_members: false,
   })
 }

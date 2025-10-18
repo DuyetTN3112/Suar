@@ -1,10 +1,11 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
 import Organization from '#modules/organizations/infra/models/organization'
 import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
-
+import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
 }
@@ -22,6 +23,38 @@ const toDateValue = (value: unknown): Date => {
     return Number.isNaN(date.getTime()) ? new Date(0) : date
   }
   return new Date(0)
+}
+
+const ORGANIZATION_SORT_COLUMN_MAP = {
+  created_at: 'o.created_at',
+  updated_at: 'o.updated_at',
+  name: 'o.name',
+} as const
+
+function resolveOrganizationSortColumn(value: string | undefined): keyof typeof ORGANIZATION_SORT_COLUMN_MAP {
+  if (value === 'updated_at' || value === 'name') {
+    return value
+  }
+
+  return 'created_at'
+}
+
+function applyStableOrganizationOrder(
+  query: ReturnType<typeof db.query>,
+  sortColumn: string | undefined,
+  sortDirection: 'asc' | 'desc' | undefined
+) {
+  const resolvedSortColumn = resolveOrganizationSortColumn(sortColumn)
+  const direction = sortDirection === 'asc' ? 'asc' : 'desc'
+
+  void query.orderBy(ORGANIZATION_SORT_COLUMN_MAP[resolvedSortColumn], direction)
+
+  if (resolvedSortColumn === 'name') {
+    void query.orderBy('o.id', 'asc')
+    return
+  }
+
+  void query.orderBy('o.id', direction)
 }
 
 /**
@@ -100,6 +133,129 @@ export default class OrganizationRepository {
       .select('id', 'name', 'description', 'logo', 'website')
   }
 
+  static async paginateActiveBasicList(
+    options: {
+      page: number
+      perPage: number
+      search?: string
+      organizationIds?: string[]
+      plan?: string
+      partnerType?: string
+      partnerIsActive?: boolean
+      createdAtStart?: string
+      createdAtEnd?: string
+    },
+    trx?: TransactionClientContract
+  ): Promise<{ organizations: Organization[]; total: number }> {
+    const baseDb = trx ?? db
+    const query = baseDb
+      .from('organizations as o')
+      .whereNull('o.deleted_at')
+      .select('o.id', 'o.name', 'o.description', 'o.logo', 'o.website')
+
+    if (options.search) {
+      const searchTerm = `%${options.search.trim()}%`
+      void query.where((builder) => {
+        void builder
+          .whereILike('o.name', searchTerm)
+          .orWhereILike('o.slug', searchTerm)
+          .orWhereILike('o.description', searchTerm)
+          .orWhereILike('o.website', searchTerm)
+      })
+    }
+
+    if (options.plan) {
+      void query.where('o.plan', options.plan)
+    }
+    if (options.partnerType) {
+      void query.where('o.partner_type', options.partnerType)
+    }
+    if (options.partnerIsActive !== undefined) {
+      void query.where('o.partner_is_active', options.partnerIsActive)
+    }
+    if (options.createdAtStart) {
+      void query.where('o.created_at', '>=', options.createdAtStart)
+    }
+    if (options.createdAtEnd) {
+      void query.where('o.created_at', '<=', options.createdAtEnd)
+    }
+
+    if (options.organizationIds && options.organizationIds.length > 0) {
+      void query.whereIn('o.id', options.organizationIds)
+      const rankByOrganizationId = options.organizationIds
+        .map((organizationId, index) => `WHEN o.id = '${organizationId}' THEN ${String(index)}`)
+        .join(' ')
+      void query.orderByRaw(
+        `CASE ${rankByOrganizationId} ELSE ${String(options.organizationIds.length)} END ASC`
+      )
+    } else {
+      void query.orderBy('o.created_at', 'desc').orderBy('o.id', 'desc')
+    }
+
+    const countQuery = query.clone().clearSelect().clearOrder().count('* as total')
+    const countResult = (await countQuery.first()) as { total?: number | string } | null
+    const total = Number(countResult?.total ?? 0)
+
+    const rowsRaw = (await query
+      .limit(options.perPage)
+      .offset(toOffset(options.page, options.perPage))) as unknown
+    const rows = Array.isArray(rowsRaw) ? rowsRaw : []
+
+    return {
+      organizations: rows
+        .filter(isRecord)
+        .map((row) => ({
+          id: typeof row['id'] === 'string' ? row['id'] : '',
+          name: typeof row['name'] === 'string' ? row['name'] : '',
+          description: toNullableString(row['description']),
+          logo: toNullableString(row['logo']),
+          website: toNullableString(row['website']),
+        })) as Organization[],
+      total,
+    }
+  }
+
+  static async searchActiveBasicList(
+    keyword: string,
+    limit?: number,
+    trx?: TransactionClientContract
+  ): Promise<Organization[]> {
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    void query
+      .whereNull('deleted_at')
+      .where((builder) => {
+        const term = `%${keyword.trim()}%`
+        void builder
+          .whereILike('name', term)
+          .orWhereILike('slug', term)
+          .orWhereILike('description', term)
+          .orWhereILike('website', term)
+      })
+      .orderBy('id', 'asc')
+      .select('id', 'name', 'description', 'logo', 'website')
+
+    if (limit && limit > 0) {
+      void query.limit(limit)
+    }
+
+    return query
+  }
+
+  static async findActiveBasicListByIds(
+    organizationIds: string[],
+    trx?: TransactionClientContract
+  ): Promise<Organization[]> {
+    if (organizationIds.length === 0) {
+      return []
+    }
+
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    return query
+      .whereIn('id', organizationIds)
+      .whereNull('deleted_at')
+      .select('id', 'name', 'description', 'logo', 'website')
+  }
+
   static async findActiveByIds(
     orgIds: string[],
     columns: string[] = ['id', 'name'],
@@ -132,6 +288,11 @@ export default class OrganizationRepository {
       search?: string
       sortColumn?: string
       sortDirection?: 'asc' | 'desc'
+      plan?: string
+      partnerType?: string
+      partnerIsActive?: boolean
+      createdAtStart?: string
+      createdAtEnd?: string
     },
     trx?: TransactionClientContract
   ): Promise<{
@@ -148,8 +309,6 @@ export default class OrganizationRepository {
     }[]
     total: number
   }> {
-    const dbModule = await import('@adonisjs/lucid/services/db')
-    const db = dbModule.default
     const baseDb = trx ?? db
 
     const query = baseDb
@@ -167,15 +326,31 @@ export default class OrganizationRepository {
       })
     }
 
+    if (options.plan) {
+      void query.where('o.plan', options.plan)
+    }
+    if (options.partnerType) {
+      void query.where('o.partner_type', options.partnerType)
+    }
+    if (options.partnerIsActive !== undefined) {
+      void query.where('o.partner_is_active', options.partnerIsActive)
+    }
+    if (options.createdAtStart) {
+      void query.where('o.created_at', '>=', options.createdAtStart)
+    }
+    if (options.createdAtEnd) {
+      void query.where('o.created_at', '<=', options.createdAtEnd)
+    }
+
     const countQuery = query.clone().clearSelect().count('* as total')
     const countResult = (await countQuery.first()) as {
       total?: number | string
     } | null
     const total = Number(countResult?.total ?? 0)
 
-    const sortColumn = options.sortColumn ?? 'o.created_at'
-    const sortDirection = options.sortDirection ?? 'desc'
     const offset = (options.page - 1) * options.limit
+
+    applyStableOrganizationOrder(query, options.sortColumn, options.sortDirection)
 
     const organizationsRaw = (await query
       .select(
@@ -189,21 +364,20 @@ export default class OrganizationRepository {
         'o.created_at',
         'o.updated_at'
       )
-      .orderBy(sortColumn, sortDirection)
       .limit(options.limit)
       .offset(offset)) as unknown
 
     const organizations = Array.isArray(organizationsRaw)
       ? organizationsRaw.filter(isRecord).map((row) => ({
-          id: typeof row.id === 'string' ? row.id : '',
-          name: typeof row.name === 'string' ? row.name : '',
-          slug: typeof row.slug === 'string' ? row.slug : '',
-          description: toNullableString(row.description),
-          logo: toNullableString(row.logo),
-          website: toNullableString(row.website),
-          owner_id: typeof row.owner_id === 'string' ? row.owner_id : '',
-          created_at: toDateValue(row.created_at),
-          updated_at: toDateValue(row.updated_at),
+          id: typeof row['id'] === 'string' ? row['id'] : '',
+          name: typeof row['name'] === 'string' ? row['name'] : '',
+          slug: typeof row['slug'] === 'string' ? row['slug'] : '',
+          description: toNullableString(row['description']),
+          logo: toNullableString(row['logo']),
+          website: toNullableString(row['website']),
+          owner_id: typeof row['owner_id'] === 'string' ? row['owner_id'] : '',
+          created_at: toDateValue(row['created_at']),
+          updated_at: toDateValue(row['updated_at']),
         }))
       : []
 

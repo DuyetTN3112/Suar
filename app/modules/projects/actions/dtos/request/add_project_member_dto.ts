@@ -10,12 +10,14 @@ export interface AddProjectMemberDTOInterface {
   project_id: string
   user_id: string
   project_role: ProjectRole
+  project_professional_role_id?: string | null
 }
 
 export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   public readonly project_id: string
   public readonly user_id: string
   public readonly project_role: ProjectRole
+  public readonly project_professional_role_id: string | null
 
   constructor(
     data: Partial<AddProjectMemberDTOInterface> & { project_id: string; user_id: string }
@@ -25,6 +27,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
     this.project_id = data.project_id
     this.user_id = data.user_id
     this.project_role = data.project_role ?? ProjectRole.MEMBER
+    this.project_professional_role_id = data.project_professional_role_id ?? null
   }
 
   /**
@@ -79,6 +82,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
       project_id: this.project_id,
       user_id: this.user_id,
       project_role: this.project_role,
+      project_professional_role_id: this.project_professional_role_id,
     }
   }
 

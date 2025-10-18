@@ -1,3 +1,5 @@
+import db from '@adonisjs/lucid/services/db'
+
 import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
@@ -8,11 +10,14 @@ import {
   canAccessProjectOrganizationScope,
   calculateProjectDetailPermissions,
   canViewProject,
+  canViewProjectPreview,
 } from '#modules/projects/domain/project_permission_policy'
 import type { ProjectPermissionContext } from '#modules/projects/domain/project_types'
 import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
 import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
 import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
+import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 /**
  * Member interface for query results
@@ -22,8 +27,43 @@ interface ProjectMemberResult {
   username: string
   email: string
   role: string
+  project_professional_role_id: string | null
+  professional_role_name: string | null
+  professional_role_code: string | null
   joined_at: Date
   task_count: number
+  reviewed_skills_count: number
+  imported_skills_count: number
+  under_dispute_skills_count: number
+  latest_confidence_signal: 'low' | 'medium' | 'high' | null
+}
+
+interface ProjectReviewGovernanceSummary {
+  total_sessions: number
+  pending_sessions: number
+  overdue_sessions: number
+  disputed_sessions: number
+  completed_sessions: number
+  required_pending_assignments: number
+  fallback_pending_assignments: number
+  completion_rate: number
+}
+
+interface ProjectReverseReviewSummaryItem {
+  id: string
+  reviewer_id: string | null
+  reviewer_username: string | null
+  rating: number
+  comment: string | null
+  is_anonymous: boolean
+  created_at: string
+}
+
+interface ProjectReverseReviewSummary {
+  total_reviews: number
+  anonymous_reviews: number
+  average_rating: number | null
+  recent: ProjectReverseReviewSummaryItem[]
 }
 
 /**
@@ -36,7 +76,7 @@ export interface GetProjectDetailResult {
     description: string | null
     organization_id: string
     organization_name: string | null
-    creator_id: string
+    creator_id: string | null
     creator_name: string | null
     manager_id: string | null
     manager_name: string | null
@@ -45,7 +85,6 @@ export interface GetProjectDetailResult {
     start_date: string | null
     end_date: string | null
     status: string
-    budget: number | null
     visibility: string | null
     created_at: string | null
     updated_at: string | null
@@ -55,8 +94,15 @@ export interface GetProjectDetailResult {
     username: string
     email: string
     role: string
+    project_professional_role_id: string | null
+    professional_role_name: string | null
+    professional_role_code: string | null
     joined_at: Date
     task_count: number
+    reviewed_skills_count: number
+    imported_skills_count: number
+    under_dispute_skills_count: number
+    latest_confidence_signal: 'low' | 'medium' | 'high' | null
   }[]
   tasks: {
     id: string
@@ -75,7 +121,15 @@ export interface GetProjectDetailResult {
     completed: number
     overdue: number
   }
-  recent_activity: unknown[]
+  recent_activity: {
+    id: string
+    user_id: string | null
+    entity_type: string
+    entity_id: string | null
+    action: string
+    created_at: Date
+    username: string | null
+  }[]
   permissions: {
     isOwner: boolean
     isManager: boolean
@@ -85,6 +139,8 @@ export interface GetProjectDetailResult {
     canDelete: boolean
     canAddMembers: boolean
   }
+  review_governance: ProjectReviewGovernanceSummary
+  project_reverse_reviews: ProjectReverseReviewSummary
 }
 
 /**
@@ -128,14 +184,21 @@ export default class GetProjectDetailQuery extends BaseQuery<
       project,
       input.organizationId
     )
-    enforcePolicy(canViewProject(permissionContext))
+    const canViewInternal = canViewProject(permissionContext).allowed
+    if (!canViewInternal) {
+      enforcePolicy(canViewProjectPreview(permissionContext))
+      return this.buildPreviewResult(project, permissionContext)
+    }
 
     // Fetch all related data in parallel
-    const [members, tasks, tasksSummary, recentActivity] = await Promise.all([
+    const [members, tasks, tasksSummary, recentActivity, reviewGovernance, projectReverseReviews] =
+      await Promise.all([
       this.getMembers(projectId),
       this.getTasks(projectId),
       this.getTasksSummary(projectId),
       this.getRecentActivity(projectId),
+      this.getReviewGovernance(projectId),
+      this.getProjectReverseReviews(projectId),
     ])
 
     // Calculate permissions
@@ -160,7 +223,6 @@ export default class GetProjectDetailQuery extends BaseQuery<
         start_date: project.start_date,
         end_date: project.end_date,
         status: project.status,
-        budget: project.budget,
         visibility: project.visibility,
         created_at: project.created_at,
         updated_at: project.updated_at,

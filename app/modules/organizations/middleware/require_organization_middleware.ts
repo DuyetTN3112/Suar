@@ -1,7 +1,12 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
-import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { HttpStatus, ErrorCode, ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
+import {
+  classifyHttpTransport,
+  isApiTransport,
+} from '#modules/http/boundary/http_transport'
 
 /**
  * RequireOrganization Middleware — Thin Guard
@@ -20,6 +25,7 @@ import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/e
 export default class RequireOrganizationMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
     const { auth, response, session, request } = ctx
+    const transport = classifyHttpTransport(ctx)
 
     // OrganizationResolver already resolved org → allow
     if (ctx.currentOrganizationId) {
@@ -31,11 +37,16 @@ export default class RequireOrganizationMiddleware {
       return next()
     }
 
-    if (canAccessSystemAdministration(auth.user.system_role).allowed) {
-      if (request.accepts(['html', 'json']) === 'json') {
-        response.status(HttpStatus.FORBIDDEN).json({
-          ...createApiError(ErrorCode.FORBIDDEN, 'System admin workspace required'),
+    const systemAccess = await canAccessSystemAdministration(auth.user.system_role)
+    if (systemAccess.allowed) {
+      if (isApiTransport(transport)) {
+        emitApiError(ctx, {
+          transport,
+          status: HttpStatus.FORBIDDEN,
+          code: ErrorCode.FORBIDDEN,
+          detail: 'System admin workspace required',
           redirectTo: '/admin',
+          includeLegacyMeta: true,
         })
         return
       }
@@ -56,10 +67,14 @@ export default class RequireOrganizationMiddleware {
     }
 
     // Không có org → block request
-    if (request.accepts(['html', 'json']) === 'json') {
-      response.status(HttpStatus.FORBIDDEN).json({
-        ...createApiError(ErrorCode.FORBIDDEN, ErrorMessages.REQUIRE_ORGANIZATION),
+    if (isApiTransport(transport)) {
+      emitApiError(ctx, {
+        transport,
+        status: HttpStatus.FORBIDDEN,
+        code: ErrorCode.FORBIDDEN,
+        detail: ErrorMessages.REQUIRE_ORGANIZATION,
         redirectTo: '/organizations',
+        includeLegacyMeta: true,
       })
       return
     }
