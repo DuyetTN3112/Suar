@@ -1,11 +1,52 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import {
+  ACTIVE_REVIEW_DISPUTE_STATUSES,
+  ReviewSessionStatus,
+} from '#modules/reviews/constants/review_constants'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
 
 export default class ReviewMetricsRepository {
   private readonly __instanceMarker = true
 
   static {
     void new ReviewMetricsRepository().__instanceMarker
+  }
+
+  static async listLatestConfidenceSignalsBySkill(
+    userId: string,
+    trx?: TransactionClientContract
+  ) {
+    const query = trx ?? db
+
+    return query
+      .from('skill_reviews as sr')
+      .join('review_sessions as rs', 'rs.id', 'sr.review_session_id')
+      .where('rs.reviewee_id', userId)
+      .where('sr.is_fraud', false)
+      .whereNotNull('sr.confidence')
+      .distinctOn('sr.skill_id')
+      .orderBy('sr.skill_id')
+      .orderBy('sr.submitted_at', 'desc')
+      .orderBy('sr.created_at', 'desc')
+      .select('sr.skill_id', 'sr.confidence')
+  }
+
+  static async listActiveDisputedSkillIdsByReviewee(
+    userId: string,
+    trx?: TransactionClientContract
+  ) {
+    const query = trx ?? db
+
+    return query
+      .from('review_disputes as rd')
+      .join('skill_reviews as sr', 'sr.review_session_id', 'rd.review_session_id')
+      .where('rd.reviewee_id', userId)
+      .whereIn('rd.status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
+      .where('sr.is_fraud', false)
+      .distinct('sr.skill_id')
+      .select('sr.skill_id')
   }
 
   static async listCompletedAssignmentsForPerformance(
@@ -16,7 +57,7 @@ export default class ReviewMetricsRepository {
       .from('task_assignments as ta')
       .join('tasks as t', 't.id', 'ta.task_id')
       .where('ta.assignee_id', userId)
-      .where('ta.assignment_status', 'completed')
+      .where('ta.assignment_status', AssignmentStatus.COMPLETED)
       .whereNull('t.deleted_at')
       .select('ta.id', 'ta.completed_at', 'ta.actual_hours', 't.due_date', 't.difficulty')
   }
@@ -26,12 +67,12 @@ export default class ReviewMetricsRepository {
       .from('review_sessions')
       .where('reviewee_id', userId)
       .where((builder) =>
-        builder.where('status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = review_sessions.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )
@@ -44,12 +85,12 @@ export default class ReviewMetricsRepository {
       .from('review_sessions as rs')
       .where('rs.reviewee_id', userId)
       .where((builder) =>
-        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('rs.status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('rs.status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = rs.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )
@@ -69,7 +110,7 @@ export default class ReviewMetricsRepository {
       .select(
         'sr.review_session_id',
         'sr.reviewer_type',
-        'sr.assigned_level_code',
+        'sr.assigned_public_proficiency_code',
         trx.raw(
           "COALESCE((reviewer.credibility_data->>'credibility_score')::numeric, 50) AS reviewer_credibility_score"
         )
@@ -98,12 +139,12 @@ export default class ReviewMetricsRepository {
       .where('rs.reviewee_id', userId)
       .where('sr.is_fraud', false)
       .where((builder) =>
-        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('rs.status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('rs.status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = rs.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )
@@ -111,7 +152,7 @@ export default class ReviewMetricsRepository {
         'sr.skill_id',
         'sr.review_session_id',
         'sr.reviewer_type',
-        'sr.assigned_level_code',
+        'sr.assigned_public_proficiency_code',
         'sr.created_at',
         trx.raw(
           "COALESCE((reviewer.credibility_data->>'credibility_score')::numeric, 50) AS reviewer_credibility_score"
@@ -127,12 +168,12 @@ export default class ReviewMetricsRepository {
       .where('rs.reviewee_id', userId)
       .where('sr.is_fraud', false)
       .where((builder) =>
-        builder.where('rs.status', 'completed').orWhere((orBuilder) =>
-          orBuilder.where('rs.status', 'disputed').whereNotExists((subBuilder) =>
+        builder.where('rs.status', ReviewSessionStatus.COMPLETED).orWhere((orBuilder) =>
+          orBuilder.where('rs.status', ReviewSessionStatus.DISPUTED).whereNotExists((subBuilder) =>
             subBuilder
               .from('review_disputes')
               .whereRaw('review_disputes.review_session_id = rs.id')
-              .whereIn('status', ['pending', 'collecting_evidence', 'admin_reviewing', 'ai_reviewing'])
+              .whereIn('status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
           )
         )
       )

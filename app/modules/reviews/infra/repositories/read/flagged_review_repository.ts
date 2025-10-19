@@ -19,9 +19,11 @@ export default class FlaggedReviewRepository {
     page: number,
     perPage: number,
     status?: string,
+    after?: string,
+    before?: string,
     trx?: TransactionClientContract
   ) {
-    return flaggedReviewQueries.paginateWithRelations(page, perPage, status, trx)
+    return flaggedReviewQueries.paginateWithRelations(page, perPage, status, after, before, trx)
   }
 
 }

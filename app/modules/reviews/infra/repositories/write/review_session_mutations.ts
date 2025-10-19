@@ -1,6 +1,12 @@
+import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
+import {
+  createReviewerAssignmentsForSession,
+  resolveEffectiveCreatorReviewerId,
+  resolveReviewSessionDeadline,
+} from '#modules/reviews/actions/support/review_session_reviewer_assignments'
+import { REVIEW_DEFAULTS, ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 import { findByTaskAssignment } from '#modules/reviews/infra/repositories/read/review_session_queries'
 
@@ -25,7 +31,15 @@ export const create = (
   data: Partial<ReviewSession>,
   trx?: TransactionClientContract
 ): Promise<ReviewSession> => {
-  return ReviewSession.create(data, trx ? { client: trx } : undefined)
+  const deadline = data.deadline ?? resolveReviewSessionDeadline()
+
+  return ReviewSession.create(
+    {
+      ...data,
+      deadline,
+    },
+    trx ? { client: trx } : undefined
+  )
 }
 
 export const createForCompletedAssignmentIfMissing = async (
@@ -40,14 +54,52 @@ export const createForCompletedAssignmentIfMissing = async (
     return false
   }
 
-  await create(
+  const assignmentContext = trx ?? db
+  const assignment = (await assignmentContext
+    .from('task_assignments as ta')
+    .join('tasks as t', 't.id', 'ta.task_id')
+    .where('ta.id', input.assignmentId)
+    .select('t.creator_id')
+    .first()) as { creator_id?: string | null } | undefined
+
+  const creatorReviewerId = await resolveEffectiveCreatorReviewerId(
+    {
+      task_assignment_id: input.assignmentId,
+      reviewee_id: input.assigneeId,
+      creator_reviewer_id: assignment?.creator_id ?? null,
+    },
+    trx
+  )
+
+  const session = await create(
     {
       task_assignment_id: input.assignmentId,
       reviewee_id: input.assigneeId,
       status: ReviewSessionStatus.PENDING,
       manager_review_completed: false,
+      creator_reviewer_id: creatorReviewerId,
+      creator_review_completed: false,
+      manager_reviews_count: 0,
       peer_reviews_count: 0,
-      required_peer_reviews: 2,
+      required_peer_reviews: REVIEW_DEFAULTS.MIN_PEER_REVIEWS,
+      required_total_reviews: REVIEW_DEFAULTS.MIN_TOTAL_REVIEWS,
+      minimum_manager_reviews: REVIEW_DEFAULTS.MIN_MANAGER_REVIEWS,
+      minimum_peer_reviews: REVIEW_DEFAULTS.MINIMUM_PEER_REVIEWS,
+      deadline: resolveReviewSessionDeadline(),
+    },
+    trx
+  )
+
+  await createReviewerAssignmentsForSession(
+    {
+      id: session.id,
+      task_assignment_id: session.task_assignment_id,
+      reviewee_id: session.reviewee_id,
+      creator_reviewer_id: session.creator_reviewer_id,
+      deadline: session.deadline,
+      minimum_manager_reviews: session.minimum_manager_reviews,
+      minimum_peer_reviews: session.minimum_peer_reviews,
+      required_peer_reviews: session.required_peer_reviews,
     },
     trx
   )

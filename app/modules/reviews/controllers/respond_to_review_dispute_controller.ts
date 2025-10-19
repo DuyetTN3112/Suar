@@ -4,16 +4,17 @@ import { buildRespondToReviewDisputeDTO } from './mappers/request/review_request
 import { mapReviewDisputeCommentApiBody } from './mappers/response/review_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import RespondToReviewDisputeCommand from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
 
 export default class RespondToReviewDisputeController {
   async handle(ctx: HttpContext) {
-    const dto = buildRespondToReviewDisputeDTO(ctx.request, ctx.params.id as string)
+    const dto = buildRespondToReviewDisputeDTO(ctx.request, ctx.params['disputeId'] as string)
     const comment = await new RespondToReviewDisputeCommand(actionContextFromHttp(ctx)).execute(
       dto
     )
 
-    ctx.response.status(HttpStatus.CREATED).json(mapReviewDisputeCommentApiBody(comment))
+    ctx.response.status(HttpStatus.CREATED)
+    return mapReviewDisputeCommentApiBody(comment)
   }
 }

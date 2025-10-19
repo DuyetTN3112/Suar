@@ -1,5 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import {
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import ReviewSession from '#modules/reviews/infra/models/review_session'
 
@@ -7,19 +11,78 @@ const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? ReviewSession.query({ client: trx }) : ReviewSession.query()
 }
 
-export const paginatePendingForReviewer = (
-  userId: string,
-  page: number,
-  perPage: number,
-  trx?: TransactionClientContract
-) => {
+function buildPendingReviewBaseQuery(userId: string, trx?: TransactionClientContract) {
   return baseQuery(trx)
     .whereIn('status', [ReviewSessionStatus.PENDING, ReviewSessionStatus.IN_PROGRESS])
+    .whereNot('reviewee_id', userId)
     .whereDoesntHave('skill_reviews', (subQuery) => {
       void subQuery.where('reviewer_id', userId)
     })
+    .where((accessQuery) => {
+      void accessQuery
+        .whereHas('reviewer_assignments', (assignmentQuery) => {
+          void assignmentQuery.where('reviewer_id', userId).where('status', 'pending')
+        })
+        .orWhereHas('task_assignment', (assignmentQuery) => {
+          void assignmentQuery.whereHas('task', (taskQuery) => {
+            void taskQuery.whereHas('project', (projectQuery) => {
+              void projectQuery.whereHas('project_members', (memberQuery) => {
+                void memberQuery.where('user_id', userId)
+              })
+            })
+          })
+        })
+    })
+}
+
+function applyStableReviewSessionOrder(
+  query: ReturnType<typeof ReviewSession.query>,
+  primaryField: 'created_at' | 'updated_at',
+  sortOrder: 'asc' | 'desc'
+): void {
+  void query.orderBy(primaryField, sortOrder).orderBy('id', sortOrder)
+}
+
+export async function findPendingForReviewerCursor(
+  userId: string,
+  options?: { limit?: number; after?: string | null; before?: string | null },
+  trx?: TransactionClientContract
+): Promise<{
+  data: ReviewSession[]
+  total: number
+  nextCursor: string | null
+  previousCursor: string | null
+  hasNextPage: boolean
+  hasPreviousPage: boolean
+}> {
+  const limit = Math.max(1, options?.limit ?? 10)
+  const decodedCursor = decodeTimestampCursor(options?.after)
+  const decodedBeforeCursor = decodeTimestampCursor(options?.before)
+  const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
+  const totalResult = (await buildPendingReviewBaseQuery(userId, trx)
+    .clone()
+    .clearOrder()
+    .count('* as total')
+    .first()) as { $extras?: { total?: number | string } } | null
+  const rawTotal = totalResult?.$extras?.total
+  const total =
+    typeof rawTotal === 'number'
+      ? rawTotal
+      : typeof rawTotal === 'string'
+        ? Number(rawTotal)
+        : 0
+
+  const rowsQuery = buildPendingReviewBaseQuery(userId, trx)
     .preload('reviewee', (userQuery) => {
       void userQuery.select(['id', 'username', 'email'])
+    })
+    .preload('reviewer_assignments', (assignmentQuery) => {
+      void assignmentQuery
+        .where('reviewer_id', userId)
+        .where('status', 'pending')
+        .preload('reviewer', (userQuery) => {
+          void userQuery.select(['id', 'username', 'email'])
+        })
     })
     .preload('task_assignment', (assignmentQuery) => {
       void assignmentQuery.preload('task', (taskQuery) => {
@@ -27,8 +90,53 @@ export const paginatePendingForReviewer = (
         void taskQuery.preload('project')
       })
     })
-    .orderBy('created_at', 'asc')
-    .paginate(page, perPage)
+
+  if (decodedCursor) {
+    void rowsQuery.where((builder) => {
+      void builder
+        .where('created_at', '<', decodedCursor.createdAt)
+        .orWhere((nested) => {
+          void nested.where('created_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
+        })
+    })
+  } else if (decodedBeforeCursor) {
+    void rowsQuery.where((builder) => {
+      void builder
+        .where('created_at', '>', decodedBeforeCursor.createdAt)
+        .orWhere((nested) => {
+          void nested.where('created_at', decodedBeforeCursor.createdAt).where('id', '>', decodedBeforeCursor.id)
+        })
+    })
+  }
+
+  applyStableReviewSessionOrder(rowsQuery, 'created_at', isBeforeWindow ? 'asc' : 'desc')
+  const rows = await rowsQuery.limit(limit + 1)
+  const hasOverflow = rows.length > limit
+  const windowRows = hasOverflow ? rows.slice(0, limit) : rows
+  const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
+  const firstRow = pageRows[0]
+  const lastRow = pageRows[pageRows.length - 1]
+
+  return {
+    data: pageRows,
+    total: Number.isFinite(total) ? total : 0,
+    nextCursor:
+      (isBeforeWindow || hasOverflow) && lastRow
+        ? encodeTimestampCursor({
+            createdAt: lastRow.created_at.toISO() ?? new Date().toISOString(),
+            id: lastRow.id,
+          })
+        : null,
+    previousCursor:
+      (decodedCursor || isBeforeWindow) && firstRow
+        ? encodeTimestampCursor({
+            createdAt: firstRow.created_at.toISO() ?? new Date().toISOString(),
+            id: firstRow.id,
+          })
+        : null,
+    hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+    hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
+  }
 }
 
 export const findByIdWithRelations = (
@@ -38,6 +146,11 @@ export const findByIdWithRelations = (
   return baseQuery(trx)
     .where('id', sessionId)
     .preload('reviewee')
+    .preload('reviewer_assignments', (assignmentQuery) => {
+      void assignmentQuery.preload('reviewer', (userQuery) => {
+        void userQuery.select(['id', 'username', 'email'])
+      })
+    })
     .preload('task_assignment', (assignmentQuery) => {
       void assignmentQuery.preload('task')
     })
@@ -57,7 +170,7 @@ export const paginateByReviewee = (
   perPage: number,
   trx?: TransactionClientContract
 ) => {
-  return baseQuery(trx)
+  const query = baseQuery(trx)
     .where('reviewee_id', userId)
     .whereIn('status', [
       ReviewSessionStatus.PENDING,
@@ -70,11 +183,17 @@ export const paginateByReviewee = (
         void taskQuery.select(['id', 'title'])
       })
     })
+    .preload('reviewer_assignments', (assignmentQuery) => {
+      void assignmentQuery.preload('reviewer', (userQuery) => {
+        void userQuery.select(['id', 'username', 'email'])
+      })
+    })
     .preload('skill_reviews', (reviewQuery) => {
       void reviewQuery.preload('skill')
     })
-    .orderBy('updated_at', 'desc')
-    .paginate(page, perPage)
+
+  applyStableReviewSessionOrder(query, 'updated_at', 'desc')
+  return query.paginate(page, perPage)
 }
 
 export const findById = (

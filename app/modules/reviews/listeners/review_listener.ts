@@ -10,12 +10,13 @@ import type {
   ReviewSubmittedEvent,
 } from '#modules/reviews/events/review_events'
 import type { SkillScoreUpdatedEvent } from '#modules/skills/events/skill_events'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
 
 /**
  * Review Listener — Sprint 7
  *
  * Handles review lifecycle events:
- *   1. review:submitted — Invalidate spider chart cache, trigger recalculation
+ *   1. review:submitted — Invalidate spider-chart cache, trigger anomaly detection
  *   2. review:confirmed — Recalculate reviewer credibility + reviewee scores/trust
  *   3. skill:score:updated — Invalidate spider chart cache
  */
@@ -67,9 +68,6 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
       await import('#modules/reviews/actions/commands/calculate_trust_score_command')
     const { default: CalculatePerformanceScoreCommand } =
       await import('#modules/reviews/actions/commands/calculate_performance_score_command')
-    const { default: RefreshUserProfileAggregatesCommand } =
-      await import('#modules/users/actions/commands/refresh_user_profile_aggregates_command')
-
     // 1) Recompute reviewer credibility from source data to avoid drift.
     for (const reviewerId of event.reviewerIds) {
       const command = new UpdateReviewerCredibilityCommand(
@@ -95,13 +93,13 @@ emitter.on('review:confirmed', async (event: ReviewConfirmedEvent) => {
       )
       await calculateTrustScore.handle({ userId: event.revieweeId })
 
-      const refreshAggregates = new RefreshUserProfileAggregatesCommand(
+      await userPublicApi.refreshProfileAggregates(
+        {
+          userId: event.revieweeId,
+          fullRebuild: false,
+        },
         makeSystemReviewActionContext(event.confirmedBy)
       )
-      await refreshAggregates.handle({
-        userId: event.revieweeId,
-        fullRebuild: false,
-      })
     }
 
     // 3) Invalidate reviewee profile-related cache.
@@ -132,9 +130,6 @@ emitter.on('dispute:resolved', async (event: DisputeResolvedEvent) => {
       await import('#modules/reviews/actions/commands/calculate_trust_score_command')
     const { default: CalculatePerformanceScoreCommand } =
       await import('#modules/reviews/actions/commands/calculate_performance_score_command')
-    const { default: RefreshUserProfileAggregatesCommand } =
-      await import('#modules/users/actions/commands/refresh_user_profile_aggregates_command')
-
     // 1) Recompute reviewer credibility if requested
     if (event.reviewerCredibilityAction === REVIEWER_CREDIBILITY_ACTION.MARK_DISPUTED) {
       for (const reviewerId of event.reviewerIds) {
@@ -162,13 +157,13 @@ emitter.on('dispute:resolved', async (event: DisputeResolvedEvent) => {
       )
       await calculateTrustScore.handle({ userId: event.revieweeId })
 
-      const refreshAggregates = new RefreshUserProfileAggregatesCommand(
+      await userPublicApi.refreshProfileAggregates(
+        {
+          userId: event.revieweeId,
+          fullRebuild: false,
+        },
         makeSystemReviewActionContext(event.resolvedBy)
       )
-      await refreshAggregates.handle({
-        userId: event.revieweeId,
-        fullRebuild: false,
-      })
     }
 
     // 3) Invalidate reviewee profile cache

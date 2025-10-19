@@ -32,7 +32,7 @@ actions/commands/ update_account_settings_command.ts update_profile_settings_com
 actions/ get_user_settings.ts setting_action_context.ts update_user_settings.ts
 controllers/mappers/request/ settings_request_mapper.ts
 controllers/mappers/response/ settings_response_mapper.ts
-controllers/ show_settings_controller.ts update_account_settings_controller.ts update_appearance_settings_controller.ts update_display_settings_controller.ts update_notification_settings_controller.ts update_profile_settings_controller.ts update_settings_controller.ts
+controllers/ show_settings_controller.ts update_account_settings_controller.ts update_notification_settings_controller.ts update_profile_settings_controller.ts update_settings_controller.ts
 controllers/v1/ show_settings_controller.ts update_settings_controller.ts
 infra/repositories/ user_settings_repository.ts
 types/ user_setting.ts
@@ -63,8 +63,6 @@ start/routes/settings.ts
 | function | `getProfileSettingsUpdatedMessage` | `app/modules/settings/controllers/mappers/response/settings_response_mapper.ts` | 5 |
 | class | `ShowSettingsController` | `app/modules/settings/controllers/show_settings_controller.ts` | 9 |
 | class | `UpdateAccountSettingsController` | `app/modules/settings/controllers/update_account_settings_controller.ts` | 14 |
-| class | `UpdateAppearanceSettingsController` | `app/modules/settings/controllers/update_appearance_settings_controller.ts` | 11 |
-| class | `UpdateDisplaySettingsController` | `app/modules/settings/controllers/update_display_settings_controller.ts` | 9 |
 | class | `UpdateNotificationSettingsController` | `app/modules/settings/controllers/update_notification_settings_controller.ts` | 9 |
 | class | `UpdateProfileSettingsController` | `app/modules/settings/controllers/update_profile_settings_controller.ts` | 14 |
 | class | `UpdateSettingsController` | `app/modules/settings/controllers/update_settings_controller.ts` | 11 |
@@ -152,24 +150,6 @@ import UnauthorizedException from '#modules/http/exceptions/unauthorized_excepti
 import UpdateAccountSettingsCommand from '#modules/settings/actions/commands/update_account_settings_command'
 ```
 
-### `app/modules/settings/controllers/update_appearance_settings_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
-```
-
-### `app/modules/settings/controllers/update_display_settings_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
-```
-
 ### `app/modules/settings/controllers/update_notification_settings_controller.ts`
 
 ```ts
@@ -236,10 +216,6 @@ const UpdateProfileSettingsController = () =>
   import('#modules/settings/controllers/update_profile_settings_controller')
 const UpdateAccountSettingsController = () =>
   import('#modules/settings/controllers/update_account_settings_controller')
-const UpdateAppearanceSettingsController = () =>
-  import('#modules/settings/controllers/update_appearance_settings_controller')
-const UpdateDisplaySettingsController = () =>
-  import('#modules/settings/controllers/update_display_settings_controller')
 const UpdateNotificationSettingsController = () =>
   import('#modules/settings/controllers/update_notification_settings_controller')
 
@@ -269,24 +245,6 @@ router
       .post('/settings/account', [UpdateAccountSettingsController, 'handle'])
       .as('settings.account.update')
 
-    // Appearance settings
-    router
-      .get('/settings/appearance', async ({ inertia }) => {
-        return inertia.render('settings/appearance', {})
-      })
-      .as('settings.appearance')
-    router
-      .post('/settings/appearance', [UpdateAppearanceSettingsController, 'handle'])
-      .as('settings.appearance.update')
-    // Display settings
-    router
-      .get('/settings/display', async ({ inertia }) => {
-        return inertia.render('settings/display', {})
-      })
-      .as('settings.display')
-    router
-      .post('/settings/display', [UpdateDisplaySettingsController, 'handle'])
-      .as('settings.display.update')
     // Notifications settings
     router
       .get('/settings/notifications', async ({ inertia }) => {
@@ -452,82 +410,6 @@ export default class UpdateAccountSettingsController {
     await command.handle(dto)
 
     session.flash('success', getAccountSettingsUpdatedMessage())
-    response.redirect().back()
-  }
-}
-
-```
-
-### `app/modules/settings/controllers/update_appearance_settings_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
-
-/**
- * POST /settings/appearance → Update appearance settings
- */
-export default class UpdateAppearanceSettingsController {
-  async handle(ctx: HttpContext) {
-    const { request, response, session, auth } = ctx
-    const user = auth.user
-    if (!user) {
-      throw new UnauthorizedException()
-    }
-    const updateUserSettings = new UpdateUserSettings()
-
-    const data = request.only(['theme', 'font']) as { theme?: string; font?: string }
-
-    if (data.theme && !['light', 'dark', 'system'].includes(data.theme)) {
-      throw new BusinessLogicException(ErrorMessages.INVALID_INPUT)
-    }
-
-    await updateUserSettings.handle({
-      userId: user.id,
-      data: {
-        theme: data.theme as 'light' | 'dark' | 'system' | undefined,
-        font: data.font,
-      },
-    })
-    session.flash('success', 'Giao diện đã được cập nhật thành công')
-    response.redirect().back()
-  }
-}
-
-```
-
-### `app/modules/settings/controllers/update_display_settings_controller.ts`
-
-```ts
-import type { HttpContext } from '@adonisjs/core/http'
-
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import UpdateUserSettings from '#modules/settings/actions/update_user_settings'
-
-/**
- * POST /settings/display → Update display settings
- */
-export default class UpdateDisplaySettingsController {
-  async handle(ctx: HttpContext) {
-    const { request, response, session, auth } = ctx
-    const user = auth.user
-    if (!user) {
-      throw new UnauthorizedException()
-    }
-    const updateUserSettings = new UpdateUserSettings()
-
-    const data = request.only(['layout', 'density', 'animations_enabled', 'custom_scrollbars']) as {
-      layout?: string
-      density?: string
-      animations_enabled?: boolean
-      custom_scrollbars?: boolean
-    }
-    await updateUserSettings.handle({ userId: user.id, data })
-    session.flash('success', 'Tùy chọn hiển thị đã được cập nhật thành công')
     response.redirect().back()
   }
 }
