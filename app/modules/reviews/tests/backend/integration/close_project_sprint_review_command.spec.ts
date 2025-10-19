@@ -898,3 +898,121 @@ test.group('Integration | Close project sprint review command', (group) => {
     assert.sameMembers(
       openNotifications.map((notification) => notification.user_id),
       [owner.id, member.id]
+    )
+    for (const reviewPackage of packages) {
+      const actor = reviewPackage.reviewer_id === member.id ? member : owner
+      const response = await client
+        .post(`/api/v1/sprint-review-packages/${reviewPackage.id}/submit`)
+        .loginAs(actor)
+        .json({
+          managerReviews: [],
+          environmentReviews: [
+            { targetType: 'project', targetId: project.id, rating: 4 },
+            { targetType: 'organization', targetId: org.id, rating: 4 },
+          ],
+        })
+      response.assertStatus(201)
+    }
+    await markSprintReverseReviewWorkflowsDone(sprint.id)
+
+    const closeResponse = await client
+      .post(`/api/v1/project-sprints/${sprint.id}/close-review-period`)
+      .loginAs(owner)
+      .json({})
+    closeResponse.assertStatus(201)
+
+    const sprintAuditLogs = await auditPublicApi.listByEntity('project_sprint', sprint.id, 10)
+    const packageAuditLogs = (
+      await Promise.all(
+        packages.map((reviewPackage) =>
+          auditPublicApi.listByEntity('sprint_review_package', reviewPackage.id, 10)
+        )
+      )
+    ).flat()
+
+    assert.sameMembers(
+      sprintAuditLogs.map((log) => log.action),
+      ['open_sprint_review', 'close_sprint_review_period']
+    )
+    assert.lengthOf(packageAuditLogs, 2)
+    assert.isTrue(packageAuditLogs.every((log) => log.action === 'submit_sprint_review_package'))
+  })
+
+  test('canonical API expires pending sprint review packages but keeps workflow close gate', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const member = await UserFactory.create({ current_organization_id: org.id })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: member.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_owner',
+    })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: member.id,
+      project_role: 'project_member',
+    })
+    const sprint = await ProjectSprint.create({
+      id: testId(),
+      organization_id: org.id,
+      project_id: project.id,
+      name: 'Expire Sprint Reviews',
+      status: 'active',
+      starts_at: DateTime.fromISO('2026-07-01T00:00:00.000Z'),
+      ends_at: DateTime.fromISO('2026-07-14T00:00:00.000Z'),
+      created_by: owner.id,
+      closed_by: null,
+      review_opened_at: null,
+      review_closed_at: null,
+    })
+    await TaskFactory.create({
+      organization_id: org.id,
+      project_id: project.id,
+      project_sprint_id: sprint.id,
+      creator_id: owner.id,
+      assigned_to: member.id,
+      status: 'done',
+    })
+    await new CloseProjectSprintReviewCommand(makeContext(owner.id, org.id)).execute({
+      sprint_id: sprint.id,
+    })
+
+    const expireResponse = await client
+      .post(`/api/v1/project-sprints/${sprint.id}/expire-pending-review-packages`)
+      .loginAs(owner)
+      .json({ reason: 'review window elapsed' })
+    expireResponse.assertStatus(201)
+
+    const expireBody = expireResponse.body() as {
+      data: { sprintId: string; expiredPackageCount: number }
+    }
+    const statuses = await db
+      .from('sprint_review_packages')
+      .where('sprint_id', sprint.id)
+      .select('status')
+
+    assert.equal(expireBody.data.sprintId, sprint.id)
+    assert.equal(expireBody.data.expiredPackageCount, 2)
+    assert.isTrue(statuses.every((row) => row.status === 'expired'))
+
+    const closeResponse = await client
+      .post(`/api/v1/project-sprints/${sprint.id}/close-review-period`)
+      .loginAs(owner)
+      .json({})
+    closeResponse.assertStatus(400)
+    assert.include(JSON.stringify(closeResponse.body()), 'unfinished reverse review workflows')
+  })
+})
