@@ -3,7 +3,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { buildValidatedProcessJoinRequestInput } from './mappers/request/organization_request_mapper.js'
 import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import ProcessJoinRequestCommand from '#actions/organizations/commands/process_join_request_command'
 import { ExecutionContext } from '#types/execution_context'
 
@@ -24,7 +24,7 @@ export default class ProcessJoinRequestController {
     )
     await new ProcessJoinRequestCommand(
       ExecutionContext.fromHttp(ctx),
-      new CreateNotification()
+      notificationPublicApi
     ).execute(dto)
 
     if (request.accepts(['html', 'json']) === 'json') {
