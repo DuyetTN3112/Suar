@@ -1,5 +1,6 @@
 import ValidationException from '#modules/http/exceptions/validation_exception'
 import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
 
 /**
  * CreateReviewSessionDTO
@@ -34,7 +35,7 @@ export class SubmitSkillReviewDTO {
   declare reviewer_type: 'manager' | 'peer'
   declare skill_ratings: {
     skill_id: string
-    assigned_level_code: string
+    assigned_public_proficiency_code: string
     comment?: string
     insufficient_evidence?: boolean
     observed_level_id?: string | null
@@ -81,9 +82,13 @@ export class SubmitSkillReviewDTO {
       review_session_id: payload.review_session_id,
       reviewer_type: reviewerType,
       skill_ratings: payload.skill_ratings,
-      quality_metrics: payload.quality_metrics,
-      strengths_observed: payload.strengths_observed,
-      areas_for_improvement: payload.areas_for_improvement,
+      ...(payload.quality_metrics !== undefined ? { quality_metrics: payload.quality_metrics } : {}),
+      ...(payload.strengths_observed !== undefined
+        ? { strengths_observed: payload.strengths_observed }
+        : {}),
+      ...(payload.areas_for_improvement !== undefined
+        ? { areas_for_improvement: payload.areas_for_improvement }
+        : {}),
     })
   }
 
@@ -116,7 +121,26 @@ export class SubmitSkillReviewDTO {
     }
     this.review_session_id = data.review_session_id
     this.reviewer_type = data.reviewer_type
-    this.skill_ratings = data.skill_ratings ?? []
+    type SkillRatingInput = Omit<
+      SubmitSkillReviewDTO['skill_ratings'][number],
+      'assigned_public_proficiency_code'
+    > & {
+      assigned_public_proficiency_code?: string | null
+    }
+
+    const skillRatings = (data.skill_ratings ?? []) as SkillRatingInput[]
+    this.skill_ratings = skillRatings.map((rating) => ({
+      ...rating,
+      assigned_public_proficiency_code: rating.assigned_public_proficiency_code ?? '',
+    }))
+
+    for (const rating of this.skill_ratings) {
+      if (!isCanonicalProficiencyLevelCode(rating.assigned_public_proficiency_code)) {
+        throw new ValidationException(
+          `assigned_public_proficiency_code must be a canonical code (l0-l14): ${rating.assigned_public_proficiency_code}`
+        )
+      }
+    }
 
     const qualityMetrics = data.quality_metrics ?? {
       overall_quality_score: data.overall_quality_score ?? null,

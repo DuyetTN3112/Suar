@@ -6,6 +6,8 @@ import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import { BaseCommand } from '#modules/reviews/actions/base_command'
 import type { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { createReviewDisputeRecord } from '#modules/reviews/actions/support/review_dispute_creation'
+import { isReviewSessionQuorumSatisfied } from '#modules/reviews/domain/review_formulas'
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
@@ -36,6 +38,19 @@ export default class ConfirmReviewCommand extends BaseCommand<
         throw new ConflictException('Review session không tồn tại hoặc không thể xác nhận')
       }
 
+      const quorumSatisfied = isReviewSessionQuorumSatisfied({
+        creatorReviewCompleted: session.creator_review_completed,
+        managerReviewsCount: session.manager_reviews_count,
+        peerReviewsCount: session.peer_reviews_count,
+        requiredTotalReviews: session.required_total_reviews,
+        minimumManagerReviews: session.minimum_manager_reviews,
+        minimumPeerReviews: session.minimum_peer_reviews,
+      })
+
+      if (!quorumSatisfied) {
+        throw new ConflictException('Review session chưa đủ điều kiện quorum để xác nhận')
+      }
+
       // v3: Check if already confirmed in JSONB confirmations array
       const confirmations: ReviewConfirmationEntry[] = session.confirmations ?? []
       const existing = confirmations.find((c) => c.user_id === userId)
@@ -44,40 +59,41 @@ export default class ConfirmReviewCommand extends BaseCommand<
         throw new ConflictException('You have already confirmed or disputed this review')
       }
 
-      // v3: Append to confirmations JSONB array
-      const newConfirmation: ReviewConfirmationEntry = {
-        user_id: userId,
-        action: dto.action,
-        dispute_reason: dto.dispute_reason ?? null,
-        created_at: DateTime.now().toISO(),
-      }
-      confirmations.push(newConfirmation)
-      session.confirmations = confirmations
+      let newConfirmation: ReviewConfirmationEntry
+      let taskId: string | null = null
 
-      // Update session status if disputed
       if (dto.action === 'disputed') {
-        session.status = 'disputed'
+        const { confirmation, assignment } = await createReviewDisputeRecord({
+          trx,
+          actorId: userId,
+          reviewSessionId: session.id,
+          disputeReason: dto.dispute_reason?.trim() ?? 'No reason provided',
+          requestedOutcome: 'other',
+        })
 
+        if (!confirmation) {
+          throw new ConflictException('Review dispute confirmation could not be created')
+        }
+
+        newConfirmation = confirmation
+        taskId = assignment.task_id
+      } else {
+        newConfirmation = {
+          user_id: userId,
+          action: dto.action,
+          dispute_reason: dto.dispute_reason ?? null,
+          created_at: DateTime.now().toISO(),
+        }
+        confirmations.push(newConfirmation)
+        session.confirmations = confirmations
+        await ReviewSessionRepository.save(session, trx)
         const assignment = (await trx
           .from('task_assignments')
           .where('id', session.task_assignment_id)
-          .first()) as { id: string; task_id: string } | undefined
-
-        if (assignment) {
-          await trx.table('review_disputes').insert({
-            review_session_id: session.id,
-            task_assignment_id: assignment.id,
-            task_id: assignment.task_id,
-            reviewee_id: session.reviewee_id,
-            opened_by: userId,
-            status: 'pending',
-            dispute_reason: dto.dispute_reason?.trim() ?? 'No reason provided',
-            requested_outcome: 'other',
-          })
-        }
+          .select('task_id')
+          .first()) as { task_id: string } | undefined
+        taskId = assignment?.task_id ?? null
       }
-
-      await ReviewSessionRepository.save(session, trx)
 
 
       const skillReviews = await SkillReviewRepository.listBySession(session.id, trx)
@@ -101,7 +117,8 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
       return {
         confirmation: newConfirmation,
-        cachePattern: `review:session:${dto.review_session_id}`,
+        cachePattern: `review:session:sessionId:${dto.review_session_id}`,
+        taskDetailCachePattern: taskId ? `task:detail:${taskId}*` : null,
         reviewConfirmedEvent: {
           confirmationId: newConfirmation.user_id,
           reviewSessionId: dto.review_session_id,
@@ -114,6 +131,9 @@ export default class ConfirmReviewCommand extends BaseCommand<
     })
 
     await cacheStore.deleteByPattern(result.cachePattern)
+    if (result.taskDetailCachePattern) {
+      await cacheStore.deleteByPattern(result.taskDetailCachePattern)
+    }
     await emitter.emit('review:confirmed', result.reviewConfirmedEvent)
 
     return result.confirmation

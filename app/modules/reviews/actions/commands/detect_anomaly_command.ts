@@ -7,6 +7,7 @@ import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged
 import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
 import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
 import type { FlaggedReviewRecord, SkillReviewRecord } from '#modules/reviews/types/review_records'
+import { isHighCanonicalProficiencyLevel } from '#modules/skills/public_contracts/proficiency_framework'
 
 
 /**
@@ -137,7 +138,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
 
     const levelCounts: Record<string, number> = {}
     for (const review of skillReviews) {
-      const level = review.assigned_level_code
+      const level = review.assigned_public_proficiency_code
       levelCounts[level] = (levelCounts[level] ?? 0) + 1
     }
 
@@ -166,7 +167,7 @@ export default class DetectAnomalyCommand extends BaseCommand<
   }
 
   /**
-   * Pattern 5: new_account_high — Account <30 days receives ≥senior level
+   * Pattern 5: new_account_high — Account <30 days receives >= senior-equivalent level
    */
   private checkNewAccountHigh(context: DetectionContext): AnomalyDetection[] {
     const anomalies: AnomalyDetection[] = []
@@ -179,14 +180,13 @@ export default class DetectAnomalyCommand extends BaseCommand<
     )
 
     if (accountAgeDays < 30) {
-      const highLevels = ['senior', 'lead', 'principal', 'expert', 'master']
       for (const review of context.skillReviews) {
-        if (highLevels.includes(review.assigned_level_code)) {
+        if (isHighCanonicalProficiencyLevel(review.assigned_public_proficiency_code)) {
           anomalies.push({
             flagType: AnomalyFlagType.NEW_ACCOUNT_HIGH,
             severity: AnomalySeverity.HIGH,
             skillReviewId: review.id,
-            notes: `Account is ${accountAgeDays} days old but received "${review.assigned_level_code}" level`,
+            notes: `Account is ${accountAgeDays} days old but received "${review.assigned_public_proficiency_code}" level`,
           })
         }
       }

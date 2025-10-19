@@ -193,7 +193,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
         peerLevels: [],
       }
 
-      const levelNum = mapLevelCodeToNumber(review.assigned_level_code)
+      const levelNum = mapLevelCodeToNumber(review.assigned_public_proficiency_code)
       if (review.reviewer_type === 'manager') {
         bucket.managerLevels.push(levelNum)
       } else {
@@ -289,7 +289,7 @@ interface TrustScoreSessionRow {
 interface TrustScoreReviewRow {
   review_session_id: string
   reviewer_type: 'manager' | 'peer'
-  assigned_level_code: string
+  assigned_public_proficiency_code: string
   reviewer_credibility_score: number | string
 }
 

@@ -28,6 +28,8 @@ export interface ReviewedSkillScorePayload {
   totalReviews: number
   avgScore: number
   avgPercentage: number
+  confidence: number | null
+  evidenceCount: number
   lastReviewedAt: DateTime | null
 }
 
