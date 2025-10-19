@@ -898,3 +898,55 @@ test.group('Integration | Sprint review packages API', (group) => {
       manager_reviews: [{ target_user_id: owner.id, rating: 2 }],
       environment_reviews: [],
     }
+
+    await db.table('sprint_review_packages').insert({
+      id: packageId,
+      sprint_id: sprint.id,
+      reviewer_id: reviewer.id,
+      status: 'submitted',
+      submitted_at: '2026-07-14T02:00:00.000Z',
+      created_at: '2026-07-14T01:00:00.000Z',
+      updated_at: '2026-07-14T02:00:00.000Z',
+    })
+    await db.table('sprint_review_disputes').insert({
+      id: disputeId,
+      package_id: packageId,
+      opened_by: reviewer.id,
+      status: 'admin_reviewing',
+      dispute_reason: 'Manager review missed sprint task context.',
+      dispute_review_type: 'manager_review',
+      requested_outcome: 'add_context',
+      escalation_reason: 'Need AI to inspect runtime context.',
+      reported_to_admin_at: '2026-07-14T03:00:00.000Z',
+      reported_to_admin_by: reviewer.id,
+      runtime_context: JSON.stringify(runtimeContext),
+      created_at: '2026-07-14T02:30:00.000Z',
+      updated_at: '2026-07-14T03:00:00.000Z',
+    })
+
+    const result = (await new StartAiDisputeEvaluationCommand(
+      makeActionContext(superadmin.id, org.id)
+    ).execute({
+      dispute_id: disputeId,
+      provider: 'ai_council',
+    })) as unknown as Record<string, unknown>
+    const requestPayload = result['request_payload'] as Record<string, unknown>
+    const row = (await db
+      .from('ai_dispute_evaluations')
+      .where('id', result['id'] as string)
+      .select('source_type', 'source_id', 'case_file_id')
+      .firstOrFail()) as Record<string, unknown>
+
+    assert.equal(result['source_type'], 'sprint_review_dispute')
+    assert.isNull(result['case_file_id'])
+    assert.equal(requestPayload['dispute_review_type'], 'manager_review')
+    assert.equal((requestPayload['organization'] as Record<string, unknown>)['id'], org.id)
+    assert.include(
+      recordArray(requestPayload['sprint_peer_tasks']).map((peerTask) => peerTask['id']),
+      task.id
+    )
+    assert.equal(row['source_type'], 'sprint_review_dispute')
+    assert.equal(row['source_id'], disputeId)
+    assert.isNull(row['case_file_id'])
+  })
+})
