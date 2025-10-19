@@ -2,10 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildCreateOrganizationDTO } from './mappers/request/organization_request_mapper.js'
 
-import CreateNotification from '#actions/common/create_notification'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
 import { ExecutionContext } from '#types/execution_context'
-
 
 /**
  * GET /organizations/create — show form
@@ -20,7 +19,7 @@ export default class CreateOrganizationController {
     const { request, response, session } = ctx
     const createOrganization = new CreateOrganizationCommand(
       ExecutionContext.fromHttp(ctx),
-      new CreateNotification()
+      notificationPublicApi
     )
 
     const dto = buildCreateOrganizationDTO(request)
