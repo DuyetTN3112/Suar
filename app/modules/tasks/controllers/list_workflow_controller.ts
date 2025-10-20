@@ -1,7 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { mapTaskWorkflowApiBody } from './mappers/response/task_status_response_mapper.js'
+
+import { requireCurrentOrganizationId } from '#modules/http/public_contracts/http_execution_context'
 import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_query'
 
 /**
@@ -10,16 +11,11 @@ import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_quer
  */
 export default class ListWorkflowController {
   async handle(ctx: HttpContext) {
-    const { response, session } = ctx
-    const organizationId = session.get('current_organization_id') as string | undefined
-
-    if (!organizationId) {
-      throw new BusinessLogicException(ErrorMessages.REQUIRE_ORGANIZATION)
-    }
+    const organizationId = requireCurrentOrganizationId(ctx)
 
     const query = new ListWorkflowQuery()
     const transitions = await query.execute(organizationId)
 
-    response.json({ success: true, data: transitions })
+    return mapTaskWorkflowApiBody(transitions)
   }
 }

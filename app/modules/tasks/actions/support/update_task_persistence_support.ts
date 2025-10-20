@@ -11,6 +11,7 @@ import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_c
 import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
 import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import {
@@ -50,7 +51,13 @@ type CreateAuditLogFactory = (execCtx: TaskActionContext) => {
 type BuildTaskPermissionContextFn = typeof buildTaskPermissionContext
 type ProjectReaderLike = Pick<TaskProjectReader, 'ensureProjectBelongsToOrganization'>
 type OrganizationReaderLike = Pick<TaskOrgReader, 'isApprovedMember'>
-type UserReaderLike = Pick<TaskUserReader, 'isFreelancer'>
+type UserReaderLike = Pick<TaskUserReader, 'isExternalContributor'>
+
+interface TaskParentRow {
+  id: string
+  organization_id: string
+  parent_task_id: string | null
+}
 
 const nullPermissionReader = {
   getSystemRoleName: () => Promise.resolve(null),
@@ -111,6 +118,82 @@ async function createTaskVersionIfNeeded(
   )
 }
 
+async function findActiveTaskParentRow(
+  trx: TransactionClientContract,
+  taskId: string
+): Promise<TaskParentRow | null> {
+  const row: unknown = await trx
+    .from('tasks')
+    .select('id', 'organization_id', 'parent_task_id')
+    .where('id', taskId)
+    .whereNull('deleted_at')
+    .first()
+
+  return (row ?? null) as TaskParentRow | null
+}
+
+async function ensureParentUpdateBoundary(
+  input: UpdateTaskPersistenceInput,
+  existingTask: TaskRecord
+): Promise<void> {
+  if (input.dto.parent_task_id === undefined || input.dto.parent_task_id === null) {
+    return
+  }
+
+  const requestedParentId = input.dto.parent_task_id
+
+  if (requestedParentId === input.taskId) {
+    enforcePolicy(PR.deny('Task cha không được là chính task hiện tại', 'BUSINESS_RULE'))
+  }
+
+  const requestedParent = await findActiveTaskParentRow(input.trx, requestedParentId)
+
+  if (!requestedParent) {
+    enforcePolicy(PR.deny('Task cha không tồn tại', 'BUSINESS_RULE'))
+    return
+  }
+
+  if (requestedParent.organization_id !== existingTask.organization_id) {
+    enforcePolicy(PR.deny('Task cha phải thuộc cùng tổ chức với task con', 'BUSINESS_RULE'))
+  }
+
+  const visitedTaskIds = new Set<string>([requestedParentId])
+  let ancestorId = requestedParent.parent_task_id
+
+  while (ancestorId) {
+    if (ancestorId === input.taskId) {
+      enforcePolicy(PR.deny('Không thể tạo vòng lặp phân cấp task', 'BUSINESS_RULE'))
+    }
+
+    if (visitedTaskIds.has(ancestorId)) {
+      enforcePolicy(PR.deny('Phân cấp task hiện tại đã có vòng lặp', 'BUSINESS_RULE'))
+    }
+
+    visitedTaskIds.add(ancestorId)
+    const ancestor = await findActiveTaskParentRow(input.trx, ancestorId)
+
+    if (!ancestor) {
+      break
+    }
+
+    if (ancestor.organization_id !== existingTask.organization_id) {
+      enforcePolicy(PR.deny('Task cha phải thuộc cùng tổ chức với task con', 'BUSINESS_RULE'))
+    }
+
+    ancestorId = ancestor.parent_task_id
+  }
+}
+
+function ensureUpdateVersionMatches(dto: UpdateTaskDTO, existingTask: TaskRecord): void {
+  if (!dto.expected_updated_at) {
+    return
+  }
+
+  if (!existingTask.updated_at || existingTask.updated_at !== dto.expected_updated_at) {
+    throw new ConflictException('Task đã được cập nhật bởi người khác. Vui lòng tải lại trước khi sửa tiếp.')
+  }
+}
+
 export async function persistTaskUpdateWithinTransaction(
   input: UpdateTaskPersistenceInput,
   dependencies: Partial<UpdateTaskPersistenceDependencies> = {}
@@ -143,6 +226,8 @@ export async function persistTaskUpdateWithinTransaction(
     enforcePolicy(PR.deny('Task không thuộc tổ chức hiện tại'))
   }
 
+  ensureUpdateVersionMatches(input.dto, existingTask)
+
   if (input.dto.project_id !== undefined) {
     await projectReader.ensureProjectBelongsToOrganization(
       input.dto.project_id,
@@ -151,13 +236,35 @@ export async function persistTaskUpdateWithinTransaction(
     )
   }
 
+  if (input.dto.project_sprint_id !== undefined && input.dto.project_sprint_id !== null) {
+    const targetProjectId = input.dto.project_id ?? existingTask.project_id
+    if (targetProjectId === null) {
+      enforcePolicy(PR.deny('Sprint phải thuộc một dự án của task', 'BUSINESS_RULE'))
+      throw new Error('Sprint project boundary enforcement failed')
+    }
+    const hasMatchingSprint = Boolean(
+      await input.trx
+        .from('project_sprints')
+        .where('id', input.dto.project_sprint_id)
+        .where('organization_id', existingTask.organization_id)
+        .where('project_id', targetProjectId)
+        .first()
+    )
+
+    if (!hasMatchingSprint) {
+      enforcePolicy(PR.deny('Sprint không thuộc dự án của task', 'BUSINESS_RULE'))
+    }
+  }
+
+  await ensureParentUpdateBoundary(input, existingTask)
+
   if (input.dto.assigned_to !== undefined && input.dto.assigned_to !== null) {
     const isApprovedMember = await orgReader.isApprovedMember(
       input.dto.assigned_to,
       existingTask.organization_id,
       input.trx
     )
-    const isFreelancer = await userReader.isFreelancer(
+    const isExternalContributor = await userReader.isExternalContributor(
       input.dto.assigned_to,
       input.trx
     )
@@ -165,8 +272,8 @@ export async function persistTaskUpdateWithinTransaction(
     enforcePolicy(
       validateAssignee({
         isOrgMember: isApprovedMember,
-        isFreelancer,
-        taskVisibility: existingTask.task_visibility ?? 'private',
+        isExternalContributor,
+        taskVisibility: input.dto.task_visibility ?? existingTask.task_visibility ?? 'internal',
       })
     )
   }

@@ -1,5 +1,6 @@
 import type { DateTime } from 'luxon'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
 
@@ -33,9 +34,11 @@ export interface CreateTaskPersistencePayload {
   estimated_users_affected: number | null
   label?: string
   priority?: string
+  task_visibility: string
   assigned_to: string | null
   due_date: DateTime
   parent_task_id: string | null
+  project_sprint_id: string | null
   estimated_time: number
   actual_time: number
   project_id: string
@@ -49,7 +52,7 @@ export function buildCreateTaskPersistencePayload(
   selectedStatus: TaskStatusSelection,
   resolvedDueDate: DateTime
 ): CreateTaskPersistencePayload {
-  return {
+  return omitUndefined({
     title: dto.title,
     description: dto.description ?? '',
     status: toLegacyTaskStatusMirror(selectedStatus),
@@ -74,13 +77,15 @@ export function buildCreateTaskPersistencePayload(
     estimated_users_affected: dto.estimated_users_affected ?? null,
     label: dto.label ?? undefined,
     priority: dto.priority ?? undefined,
+    task_visibility: dto.task_visibility,
     assigned_to: dto.assigned_to ?? null,
     due_date: resolvedDueDate,
     parent_task_id: dto.parent_task_id ?? null,
+    project_sprint_id: dto.project_sprint_id ?? null,
     estimated_time: dto.estimated_time,
     actual_time: dto.actual_time,
     project_id: dto.project_id,
     organization_id: dto.organization_id,
     creator_id: userId,
-  }
+  })
 }

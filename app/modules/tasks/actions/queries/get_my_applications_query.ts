@@ -13,7 +13,7 @@ export interface GetMyApplicationsInput {
  * GetMyApplicationsQuery
  *
  * Fetches applications submitted by the current user.
- * Used by freelancers to track their applications.
+ * Used by external contributors to track their applications.
  */
 export default class GetMyApplicationsQuery extends BaseQuery<
   GetMyApplicationsInput,
@@ -29,14 +29,19 @@ export default class GetMyApplicationsQuery extends BaseQuery<
       userId,
       status: dto.status,
       page: dto.page,
+      perPage: dto.per_page,
     })
 
     return await this.executeWithCache(cacheKey, 60, async () => {
-      return TaskApplicationRepository.paginateByApplicant(userId, {
-        status: dto.status,
+      const options: { status?: string; page: number; perPage: number } = {
         page: dto.page,
         perPage: dto.per_page,
-      })
+      }
+      if (dto.status !== undefined) {
+        options.status = dto.status
+      }
+
+      return TaskApplicationRepository.paginateByApplicant(userId, options)
     })
   }
 }

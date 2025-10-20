@@ -13,6 +13,7 @@ export class MonolithTaskSkillReader implements TaskSkillReader {
     return skills.map((skill) => ({
       id: skill.id,
       name: skill.skill_name,
+      category_code: typeof skill.category_code === 'string' ? skill.category_code : null,
     }))
   }
 
@@ -20,11 +21,8 @@ export class MonolithTaskSkillReader implements TaskSkillReader {
     return skillPublicApi.listActiveProficiencyLevels()
   }
 
-  async findActiveSkillIds(
-    skillIds: string[],
-    _trx?: TransactionClientContract
-  ): Promise<string[]> {
-    const skills = await skillPublicApi.findActiveByIds(skillIds)
+  async findActiveSkillIds(skillIds: string[], trx?: TransactionClientContract): Promise<string[]> {
+    const skills = await skillPublicApi.findActiveByIds(skillIds, trx)
     return skills.map((skill) => skill.id)
   }
 }
