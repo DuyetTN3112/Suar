@@ -1,4 +1,5 @@
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
@@ -12,14 +13,7 @@ export interface PatchTaskStatusBoardPocInput {
 }
 
 export interface PatchTaskStatusBoardPocResult {
-  status: 200 | 409
-  body: {
-    success: boolean
-    message?: string
-    data?: {
-      acknowledged_total: number | null
-    }
-  }
+  acknowledgedTotal: number | null
 }
 
 export default class PatchTaskStatusBoardPocCommand {
@@ -44,23 +38,11 @@ export default class PatchTaskStatusBoardPocCommand {
     enforcePolicy(canManageTaskStatusBoard(accessContext))
 
     if (input.simulateConflict) {
-      return {
-        status: 409,
-        body: {
-          success: false,
-          message: 'Conflict simulated for status board POC',
-        },
-      }
+      throw new ConflictException('Conflict simulated for status board POC')
     }
 
     return {
-      status: 200,
-      body: {
-        success: true,
-        data: {
-          acknowledged_total: typeof input.total === 'number' ? input.total : null,
-        },
-      },
+      acknowledgedTotal: typeof input.total === 'number' ? input.total : null,
     }
   }
 }

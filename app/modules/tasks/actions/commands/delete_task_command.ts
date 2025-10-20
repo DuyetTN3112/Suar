@@ -19,7 +19,9 @@ import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port
 import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
 import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 
 /**
@@ -40,7 +42,8 @@ export default class DeleteTaskCommand {
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
     private createNotification: NotificationCreator,
-    private cache: TaskCachePort
+    private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
   ) {}
 
   /**
@@ -99,6 +102,16 @@ export default class DeleteTaskCommand {
         )
       }
 
+      const hasTaskReviewWorkflow: unknown = await trx
+        .from('task_review_workflows')
+        .where('task_id', task.id)
+        .first()
+      if (hasTaskReviewWorkflow) {
+        throw new BusinessLogicException(
+          'Không thể xóa task đã vào review board. Task vẫn có thể chỉnh sửa nhưng không được xóa.'
+        )
+      }
+
       // ── PERSIST ────────────────────────────────────────────────────────
       const taskData = { ...task }
 
@@ -107,7 +120,7 @@ export default class DeleteTaskCommand {
       } else {
         await taskMutations.updateTask(
           dto.task_id,
-          { deleted_at: DateTime.now().toISO() },
+          { deleted_at: DateTime.now() },
           trx
         )
       }
@@ -129,6 +142,10 @@ export default class DeleteTaskCommand {
       void emitter.emit('cache:invalidate', {
         entityType: 'task',
         entityId: dto.task_id,
+      })
+      await this.taskEventPublisher.publishTaskDeleted({
+        taskId: dto.task_id,
+        deletedBy: userId,
       })
 
       await this.cache.invalidateAfterTaskDeleted(dto.task_id)

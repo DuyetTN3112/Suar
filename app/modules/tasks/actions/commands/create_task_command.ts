@@ -8,6 +8,8 @@ import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports
 import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
 import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/support/task_create_post_commit'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import { taskDetailQueryRepository } from '#modules/tasks/infra/repositories/read/task_detail_query_repository'
 import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
 
@@ -44,6 +46,7 @@ export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, TaskDe
     private taskExternalDependencies: TaskExternalDependencies,
     private createNotification: NotificationCreator,
     private cache: TaskCachePort,
+    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher(),
     private dependencies: CreateTaskCommandDependencies = defaultDependencies
   ) {
     super(execCtx)
@@ -77,7 +80,8 @@ export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, TaskDe
       userId,
       this.createNotification,
       this.taskExternalDependencies.user,
-      this.cache
+      this.cache,
+      this.taskEventPublisher
     )
     return await this.dependencies.taskRepository.findByIdWithDetailRecord(newTask.id)
   }

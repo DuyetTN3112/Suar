@@ -1,11 +1,24 @@
 import { DateTime } from 'luxon'
 
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import ValidationException from '#modules/http/exceptions/validation_exception'
-import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+import { isSkillCategoryCode } from '#modules/skills/constants/skill_constants'
+import { isCanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_framework'
+import { isCanonicalTaskType } from '#modules/tasks/domain/task_taxonomy'
+import { normalizeTaskVerificationMethod } from '#modules/tasks/domain/task_verification_methods'
+import {
+  TaskLabel,
+  TaskPriority,
+  TaskVisibility,
+} from '#modules/tasks/public_contracts/task_constants'
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export interface RequiredSkillInput {
   id: string
   level?: string
+  custom_name?: string
+  category_code?: string | null
   // Semantic fields
   project_skill_id?: string
   source_project_professional_role_id?: string
@@ -27,9 +40,11 @@ export interface CreateTaskDTOInput {
   task_status_id: string
   label?: string
   priority?: string
+  task_visibility?: string
   assigned_to?: string
   due_date?: string | DateTime
   parent_task_id?: string
+  project_sprint_id?: string | null
   estimated_time?: number
   actual_time?: number
   project_id: string
@@ -61,9 +76,11 @@ export interface CreateTaskDTOState {
   task_status_id: string
   label?: string
   priority?: string
+  task_visibility: string
   assigned_to?: string
   due_date?: DateTime
   parent_task_id?: string
+  project_sprint_id?: string | null
   estimated_time: number
   actual_time: number
   project_id: string
@@ -88,60 +105,6 @@ export interface CreateTaskDTOState {
   business_domain?: string
   estimated_users_affected?: number
 }
-
-const VALID_TASK_TYPES = new Set([
-  'feature_development',
-  'bug_fix',
-  'refactoring',
-  'architecture_design',
-  'code_review',
-  'system_integration',
-  'ui_ux_design',
-  'prototype',
-  'api_design',
-  'qa_testing',
-  'test_automation',
-  'performance_testing',
-  'devops_deployment',
-  'infrastructure',
-  'monitoring_setup',
-  'data_analysis',
-  'data_pipeline',
-  'reporting',
-  'technical_writing',
-  'documentation',
-  'knowledge_transfer',
-  'research_spike',
-  'poc',
-  'product_management',
-  'mentoring',
-])
-
-const VALID_VERIFICATION_METHODS = new Set([
-  'code_review',
-  'automated_test',
-  'manual_qa',
-  'demo_presentation',
-  'manager_approval',
-  'peer_review',
-  'user_acceptance_test',
-  'a_b_test',
-  'load_test',
-  'security_audit',
-  'documentation_review',
-  'multi_step',
-])
-
-const VALID_REQUIRED_SKILL_LEVELS = new Set([
-  'beginner',
-  'elementary',
-  'junior',
-  'middle',
-  'senior',
-  'lead',
-  'principal',
-  'master',
-])
 
 function normalizeRequiredTitle(title: string): string {
   if (!title || title.trim().length === 0) {
@@ -201,9 +164,22 @@ function validateOptionalPriority(priority?: string): string | undefined {
   return priority
 }
 
+function normalizeTaskVisibility(taskVisibility?: string): string {
+  if (taskVisibility === undefined) {
+    return TaskVisibility.INTERNAL
+  }
+
+  const validVisibilities = Object.values(TaskVisibility) as string[]
+  if (!validVisibilities.includes(taskVisibility)) {
+    throw new ValidationException('Phạm vi task không hợp lệ')
+  }
+
+  return taskVisibility
+}
+
 function normalizeTaskType(taskType?: string): string {
   const normalizedTaskType = (taskType ?? 'feature_development').trim()
-  if (!VALID_TASK_TYPES.has(normalizedTaskType)) {
+  if (!isCanonicalTaskType(normalizedTaskType)) {
     throw new ValidationException('Loại task không hợp lệ')
   }
 
@@ -220,12 +196,7 @@ function normalizeAcceptanceCriteria(value?: string): string {
 }
 
 function normalizeVerificationMethod(value?: string): string {
-  const verificationMethod = (value ?? 'code_review').trim()
-  if (!VALID_VERIFICATION_METHODS.has(verificationMethod)) {
-    throw new ValidationException('Phương thức xác minh không hợp lệ')
-  }
-
-  return verificationMethod
+  return normalizeTaskVerificationMethod(value)
 }
 
 function validateOptionalNonNegativeNumber(
@@ -239,10 +210,7 @@ function validateOptionalNonNegativeNumber(
   return value
 }
 
-function validateOptionalId(
-  value: string | undefined,
-  message: string
-): string | undefined {
+function validateOptionalId(value: string | undefined, message: string): string | undefined {
   if (value !== undefined && !value) {
     throw new ValidationException(message)
   }
@@ -280,21 +248,35 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
   const seenSkillIds = new Set<string>()
 
   return normalizedRequiredSkills.map((skill) => {
-    const skillId = skill.id
+    const skillId = skill.id?.trim()
+    const customName = skill.custom_name?.trim().replace(/\s+/g, ' ')
+    const categoryCode = skill.category_code?.trim() || null
     if (!skillId) {
       throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
     }
 
-    if (seenSkillIds.has(skillId)) {
+    if (!customName && !UUID_REGEX.test(skillId)) {
+      throw new ValidationException('ID kỹ năng yêu cầu không hợp lệ')
+    }
+
+    if (customName && !isSkillCategoryCode(categoryCode)) {
+      throw new ValidationException('Nhóm kỹ năng custom không hợp lệ')
+    }
+
+    const dedupeKey = customName
+      ? `custom:${categoryCode}:${customName.toLowerCase()}`
+      : `id:${skillId}`
+
+    if (seenSkillIds.has(dedupeKey)) {
       throw new ValidationException('Kỹ năng yêu cầu bị trùng lặp')
     }
 
-    seenSkillIds.add(skillId)
+    seenSkillIds.add(dedupeKey)
 
-    // Validate legacy level if provided
+    // Application boundary only accepts canonical public proficiency codes.
     if (skill.level !== undefined) {
       const level = skill.level.trim().toLowerCase()
-      if (!VALID_REQUIRED_SKILL_LEVELS.has(level)) {
+      if (!isCanonicalProficiencyLevelCode(level)) {
         throw new ValidationException(`Cấp độ kỹ năng không hợp lệ: ${level}`)
       }
     }
@@ -304,9 +286,11 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
       throw new ValidationException('Weight không được âm')
     }
 
-    return {
+    return omitUndefined({
       id: skillId,
       level: skill.level?.trim().toLowerCase(),
+      custom_name: customName,
+      category_code: categoryCode,
       project_skill_id: skill.project_skill_id,
       source_project_professional_role_id: skill.source_project_professional_role_id,
       source_role_skill_id: skill.source_role_skill_id,
@@ -319,7 +303,7 @@ function normalizeRequiredSkills(requiredSkills?: RequiredSkillInput[]): Require
       requirement_source: skill.requirement_source,
       requirement_notes: skill.requirement_notes,
       is_mandatory: skill.is_mandatory,
-    }
+    })
   })
 }
 
@@ -345,15 +329,20 @@ function normalizeOptionalText(value?: string): string | undefined {
 }
 
 export function buildCreateTaskDTOState(data: CreateTaskDTOInput): CreateTaskDTOState {
-  return {
+  return omitUndefined({
     title: normalizeRequiredTitle(data.title),
     description: normalizeOptionalDescription(data.description),
     task_status_id: normalizeRequiredTaskStatusId(data.task_status_id),
     label: validateOptionalLabel(data.label),
     priority: validateOptionalPriority(data.priority),
+    task_visibility: normalizeTaskVisibility(data.task_visibility),
     assigned_to: validateOptionalId(data.assigned_to, 'ID người được giao không hợp lệ'),
     due_date: normalizeDueDate(data.due_date),
     parent_task_id: validateOptionalId(data.parent_task_id, 'ID task cha không hợp lệ'),
+    project_sprint_id:
+      data.project_sprint_id === null
+        ? null
+        : validateOptionalId(data.project_sprint_id, 'ID sprint không hợp lệ'),
     estimated_time:
       validateOptionalNonNegativeNumber(data.estimated_time, 'Thời gian ước tính không được âm') ??
       0,
@@ -383,5 +372,5 @@ export function buildCreateTaskDTOState(data: CreateTaskDTOInput): CreateTaskDTO
       data.estimated_users_affected,
       'estimated_users_affected không được âm'
     ),
-  }
+  })
 }

@@ -50,7 +50,9 @@ export default class AssignTaskDTO {
     this.task_id = data.task_id
     this.assigned_to = data.assigned_to
     this.notify = data.notify ?? true
-    this.reason = data.reason?.trim()
+    if (data.reason !== undefined) {
+      this.reason = data.reason.trim()
+    }
   }
 
   /**

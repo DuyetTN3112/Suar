@@ -22,6 +22,7 @@ export default class GetActiveSkillsQuery {
       id: string
       skill_name: string
       category_code: string | null
+      is_active: boolean
       [key: string]: unknown
     }[]
   > {
@@ -30,6 +31,7 @@ export default class GetActiveSkillsQuery {
       id: skill.id,
       skill_name: skill.skill_name,
       category_code: skill.category_code,
+      is_active: skill.is_active,
     }))
   }
 }

@@ -19,7 +19,7 @@ actions/ports/ skill_external_dependencies.ts skill_external_dependencies_impl.t
 actions/ public_api.ts
 actions/queries/ get_active_skills_query.ts
 actions/services/ professional_role_service.ts proficiency_scale_service.ts project_skill_service.ts skill_public_api.ts skill_rubric_service.ts
-controllers/ add_project_skill_controller.ts create_project_role_controller.ts deactivate_project_role_controller.ts deactivate_project_skill_controller.ts list_active_skills_controller.ts list_proficiency_scales_controller.ts list_project_roles_controller.ts list_project_skills_controller.ts list_role_templates_controller.ts list_skill_rubrics_controller.ts project_auth_helper.ts show_proficiency_scale_controller.ts show_skill_rubric_controller.ts update_project_role_skill_controller.ts update_project_skill_controller.ts
+controllers/ add_project_skill_controller.ts create_project_role_controller.ts deactivate_project_role_controller.ts deactivate_project_skill_controller.ts list_active_skills_controller.ts list_proficiency_scales_controller.ts list_project_roles_controller.ts list_project_skills_controller.ts list_role_templates_controller.ts list_skill_rubrics_controller.ts project_access_guard.ts show_proficiency_scale_controller.ts show_skill_rubric_controller.ts update_project_role_skill_controller.ts update_project_skill_controller.ts
 events/ skill_events.ts
 infra/models/ professional_role_template.ts professional_role_template_skill.ts proficiency_level.ts proficiency_scale.ts project_professional_role.ts project_professional_role_skill.ts project_skill.ts skill.ts skill_alias.ts skill_rubric_level.ts skill_rubric_version.ts
 infra/repositories/ professional_role_repository.ts proficiency_scale_repository.ts project_skill_repository.ts skill_repository.ts skill_rubric_repository.ts
@@ -174,7 +174,7 @@ import { SkillRubricRepository } from '#modules/skills/infra/repositories/skill_
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```
@@ -184,7 +184,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProfessionalRoleService } from '#modules/skills/actions/services/professional_role_service'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```
@@ -195,7 +195,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProfessionalRoleService } from '#modules/skills/actions/services/professional_role_service'
 import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/professional_role_repository'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```
@@ -205,7 +205,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```
@@ -229,7 +229,7 @@ import { ProficiencyScaleService } from '#modules/skills/actions/services/profic
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import ProjectProfessionalRole from '#modules/skills/infra/models/project_professional_role'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 ```
 
 ### `app/modules/skills/controllers/list_project_skills_controller.ts`
@@ -237,7 +237,7 @@ import { checkProjectPermission } from './project_auth_helper.js'
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 ```
 
 ### `app/modules/skills/controllers/list_role_templates_controller.ts`
@@ -255,7 +255,7 @@ import { SkillRubricRepository } from '#modules/skills/infra/repositories/skill_
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 ```
 
-### `app/modules/skills/controllers/project_auth_helper.ts`
+### `app/modules/skills/controllers/project_access_guard.ts`
 
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
@@ -290,7 +290,7 @@ import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProfessionalRoleService } from '#modules/skills/actions/services/professional_role_service'
 import { ProfessionalRoleRepository } from '#modules/skills/infra/repositories/professional_role_repository'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```
@@ -301,7 +301,7 @@ import { actionContextFromHttp } from '#modules/http/adapters/http_execution_con
 import type { HttpContext } from '@adonisjs/core/http'
 import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
 import { ProjectSkillRepository } from '#modules/skills/infra/repositories/project_skill_repository'
-import { checkProjectPermission } from './project_auth_helper.js'
+import { requireProjectAccessUserId } from './project_access_guard.js'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 ```

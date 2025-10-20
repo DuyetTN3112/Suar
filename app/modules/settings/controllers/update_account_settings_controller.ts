@@ -5,6 +5,7 @@ import { buildUpdateAccountSettingsDTO } from './mappers/request/settings_reques
 import { getAccountSettingsUpdatedMessage } from './mappers/response/settings_response_mapper.js'
 
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
 import UpdateAccountSettingsCommand from '#modules/settings/actions/commands/update_account_settings_command'
 
 /**

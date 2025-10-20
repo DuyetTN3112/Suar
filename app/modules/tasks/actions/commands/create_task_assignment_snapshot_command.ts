@@ -39,14 +39,14 @@ function asJsonArray(value: unknown): Record<string, unknown>[] {
 
 function normalizeSnapshot(row: Record<string, unknown>): TaskAssignmentSnapshotResult {
   return {
-    id: row.id as string,
-    task_assignment_id: row.task_assignment_id as string,
-    task_id: row.task_id as string,
-    snapshot_reason: row.snapshot_reason as TaskAssignmentSnapshotResult['snapshot_reason'],
-    task_snapshot: asJsonObject(row.task_snapshot),
-    required_skills_snapshot: asJsonArray(row.required_skills_snapshot),
-    acceptance_criteria_snapshot: asJsonObject(row.acceptance_criteria_snapshot),
-    workflow_snapshot: asJsonObject(row.workflow_snapshot),
+    id: row['id'] as string,
+    task_assignment_id: row['task_assignment_id'] as string,
+    task_id: row['task_id'] as string,
+    snapshot_reason: row['snapshot_reason'] as TaskAssignmentSnapshotResult['snapshot_reason'],
+    task_snapshot: asJsonObject(row['task_snapshot']),
+    required_skills_snapshot: asJsonArray(row['required_skills_snapshot']),
+    acceptance_criteria_snapshot: asJsonObject(row['acceptance_criteria_snapshot']),
+    workflow_snapshot: asJsonObject(row['workflow_snapshot']),
   }
 }
 

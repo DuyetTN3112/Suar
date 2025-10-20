@@ -4,6 +4,7 @@ import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
 import ConflictException from '#modules/http/exceptions/conflict_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
@@ -73,6 +74,7 @@ export default class CreateTaskStatusCommand {
       )
 
       await trx.commit()
+      await cacheStore.deleteByPattern(`task:metadata:*`)
       return status
     } catch (error) {
       await trx.rollback()
