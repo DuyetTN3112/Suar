@@ -10,17 +10,21 @@ function isRecord(value: unknown): value is ResponseRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
+function readValue(record: ResponseRecord, key: string): unknown {
+  return (record as Record<string, unknown>)[key]
+}
+
 function readString(
   record: ResponseRecord,
   key: string,
   fallback: string | null = null
 ): string | null {
-  const value = record[key]
+  const value = readValue(record, key)
   return typeof value === 'string' ? value : fallback
 }
 
 function readNumber(record: ResponseRecord, key: string): number | null {
-  const value = record[key]
+  const value = readValue(record, key)
 
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value
@@ -35,7 +39,7 @@ function readNumber(record: ResponseRecord, key: string): number | null {
 }
 
 function readNestedRecord(record: ResponseRecord, key: string): ResponseRecord | undefined {
-  const value = record[key]
+  const value = readValue(record, key)
   return isRecord(value) ? value : undefined
 }
 
