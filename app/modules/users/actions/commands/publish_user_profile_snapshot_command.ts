@@ -121,7 +121,7 @@ interface SnapshotTrustMetrics extends Record<string, unknown> {
 interface SnapshotVerifiedSkill extends Record<string, unknown> {
   skill_id: string
   skill_name: string
-  level_code: string
+  verified_public_proficiency_code: string
   total_reviews: number
   avg_percentage: number | null
   avg_score: number | null
@@ -283,7 +283,7 @@ export default class PublishUserProfileSnapshotCommand extends BaseCommand<
       .map((skill) => ({
         skill_id: skill.skill_id,
         skill_name: skill.skill.skill_name,
-        level_code: skill.level_code,
+        verified_public_proficiency_code: skill.verified_public_proficiency_code,
         total_reviews: skill.total_reviews,
         avg_percentage: skill.avg_percentage,
         avg_score: skill.avg_score,

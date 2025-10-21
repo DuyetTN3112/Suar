@@ -1,11 +1,12 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import { BaseCommand } from '../base_command.js'
 import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
+import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
 import { canApproveUser } from '#modules/users/public_contracts/user_management_rules'
 
 /**
@@ -23,6 +24,13 @@ import { canApproveUser } from '#modules/users/public_contracts/user_management_
  * - Audit log is created
  */
 export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly userEventPublisher: UserEventPublisher = new InProcessUserEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Main handler - approves a user in organization
    */
@@ -81,6 +89,6 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     })
 
     // Side-effects are post-commit to avoid firing on rollback.
-    void emitter.emit('user:approved', result.userApprovedEvent)
+    await this.userEventPublisher.publishUserApproved(result.userApprovedEvent)
   }
 }

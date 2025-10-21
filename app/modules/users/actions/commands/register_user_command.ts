@@ -6,6 +6,9 @@ import { BaseCommand } from '../base_command.js'
 import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
+import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 import type { UserRecord } from '#modules/users/types/user_records'
@@ -26,6 +29,13 @@ import type { UserRecord } from '#modules/users/types/user_records'
  */
 @inject()
 export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, UserRecord> {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly userEventPublisher: UserEventPublisher = new InProcessUserEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
   /**
    * Main handler - creates user account
    * Uses transaction to ensure data consistency
@@ -60,6 +70,9 @@ export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, Us
     })
 
     void emitter.emit('audit:log', result.auditEvent)
+    await this.userEventPublisher.publishUserRegistered({
+      userId: result.user.id,
+    })
 
     return result.user
   }

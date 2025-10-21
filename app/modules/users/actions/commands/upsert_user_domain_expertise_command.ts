@@ -84,9 +84,11 @@ export default class UpsertUserDomainExpertiseCommand extends BaseCommand<
           businessDomain: row.business_domain,
           problemCategory: row.problem_category,
           skillScores: this.toObjectArray(row.skill_scores).map((skill) => ({
-            skillName: typeof skill.skill_name === 'string' ? skill.skill_name : null,
+            skillName: typeof skill['skill_name'] === 'string' ? skill['skill_name'] : null,
             assignedLevelCode:
-              typeof skill.assigned_level_code === 'string' ? skill.assigned_level_code : null,
+              typeof skill['assigned_public_proficiency_code'] === 'string'
+                ? skill['assigned_public_proficiency_code']
+                : null,
           })),
         }))
       )

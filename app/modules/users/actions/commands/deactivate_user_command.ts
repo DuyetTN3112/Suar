@@ -1,10 +1,10 @@
-import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
@@ -13,6 +13,8 @@ import {
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import type { UserEventPublisher } from '#modules/users/application/ports/user_event_publisher'
+import { InProcessUserEventPublisher } from '#modules/users/infra/adapters/in_process_user_event_publisher'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
 import { UserStatusName } from '#modules/users/public_contracts/user_constants'
@@ -41,7 +43,8 @@ export interface DeactivateUserDTO {
 export default class DeactivateUserCommand {
   constructor(
     protected execCtx: UserActionContext,
-    private createNotification: NotificationCreator
+    private createNotification: NotificationCreator,
+    private readonly userEventPublisher: UserEventPublisher = new InProcessUserEventPublisher()
   ) {}
 
   async execute(dto: DeactivateUserDTO): Promise<UserRecord> {
@@ -93,11 +96,11 @@ export default class DeactivateUserCommand {
       await trx.commit()
 
       // Emit domain event
-      void emitter.emit('user:deactivated', {
+      await this.userEventPublisher.publishUserDeactivated(omitUndefined({
         userId: dto.user_id,
         deactivatedBy: adminUserId,
         reason: dto.reason,
-      })
+      }))
 
       // 6. Send notification
       await this.sendNotification(dto.user_id, dto.reason)

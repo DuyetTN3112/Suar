@@ -43,9 +43,9 @@ export class UserInfraMapper {
       address: model.address,
       timezone: model.timezone,
       language: model.language,
-      isFreelancer: model.is_freelancer,
-      freelancerRating: model.freelancer_rating,
-      freelancerCompletedTasksCount: model.freelancer_completed_tasks_count,
+      isExternalContributor: model.is_external_contributor,
+      externalContributorRating: model.external_contributor_rating,
+      externalContributorCompletedTasksCount: model.external_contributor_completed_tasks_count,
       profileSettings: model.profile_settings,
       userSetting: model.user_setting,
       trustData: model.trust_data,
@@ -72,9 +72,9 @@ export class UserInfraMapper {
       address: model.address,
       timezone: model.timezone,
       language: model.language,
-      is_freelancer: model.is_freelancer,
-      freelancer_rating: model.freelancer_rating,
-      freelancer_completed_tasks_count: model.freelancer_completed_tasks_count,
+      is_external_contributor: model.is_external_contributor,
+      external_contributor_rating: model.external_contributor_rating,
+      external_contributor_completed_tasks_count: model.external_contributor_completed_tasks_count,
       profile_settings: model.profile_settings,
       user_setting: model.user_setting,
       trust_data: model.trust_data,
@@ -86,10 +86,10 @@ export class UserInfraMapper {
   }
 
   static toProfileRecord(model: User): UserProfileRecord {
-    const currentOrganization = model.$preloaded.current_organization as
+    const currentOrganization = model.$preloaded['current_organization'] as
       | { id: string; name?: string; slug?: string; logo?: string | null }
       | undefined
-    const skills = model.$preloaded.skills as UserSkill[] | undefined
+    const skills = model.$preloaded['skills'] as UserSkill[] | undefined
 
     return {
       ...this.toRecord(model),
@@ -106,23 +106,28 @@ export class UserInfraMapper {
   }
 
   static toSkillRecord(model: UserSkill): UserSkillRecord {
-    const skill = model.$preloaded.skill as
+    const skill = model.$preloaded['skill'] as
       | { skill_name: string; category_code: string }
       | undefined
 
-    return {
+    const record: UserSkillRecord = {
       id: model.id,
       user_id: model.user_id,
       skill_id: model.skill_id,
-      level_code: model.level_code,
+      verified_public_proficiency_code: model.verified_public_proficiency_code,
       total_reviews: model.total_reviews,
       avg_score: model.avg_score,
       source: model.source,
       avg_percentage: model.avg_percentage,
       last_calculated_at: model.last_calculated_at,
       last_reviewed_at: model.last_reviewed_at,
-      skill,
     }
+
+    if (skill) {
+      record.skill = skill
+    }
+
+    return record
   }
 
   /**
@@ -132,27 +137,27 @@ export class UserInfraMapper {
   static toOrm(entity: Partial<UserEntityProps>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
-    if (entity.username !== undefined) result.username = entity.username
-    if (entity.email !== undefined) result.email = entity.email
-    if (entity.status !== undefined) result.status = entity.status
-    if (entity.systemRole !== undefined) result.system_role = entity.systemRole
+    if (entity.username !== undefined) result['username'] = entity.username
+    if (entity.email !== undefined) result['email'] = entity.email
+    if (entity.status !== undefined) result['status'] = entity.status
+    if (entity.systemRole !== undefined) result['system_role'] = entity.systemRole
     if (entity.currentOrganizationId !== undefined)
-      result.current_organization_id = entity.currentOrganizationId
-    if (entity.authMethod !== undefined) result.auth_method = entity.authMethod
-    if (entity.avatarUrl !== undefined) result.avatar_url = entity.avatarUrl
-    if (entity.bio !== undefined) result.bio = entity.bio
-    if (entity.phone !== undefined) result.phone = entity.phone
-    if (entity.address !== undefined) result.address = entity.address
-    if (entity.timezone !== undefined) result.timezone = entity.timezone
-    if (entity.language !== undefined) result.language = entity.language
-    if (entity.isFreelancer !== undefined) result.is_freelancer = entity.isFreelancer
-    if (entity.freelancerRating !== undefined) result.freelancer_rating = entity.freelancerRating
-    if (entity.freelancerCompletedTasksCount !== undefined)
-      result.freelancer_completed_tasks_count = entity.freelancerCompletedTasksCount
-    if (entity.profileSettings !== undefined) result.profile_settings = entity.profileSettings
-    if ('userSetting' in entity && entity.userSetting !== undefined) result.user_setting = entity.userSetting
-    if (entity.trustData !== undefined) result.trust_data = entity.trustData
-    if (entity.credibilityData !== undefined) result.credibility_data = entity.credibilityData
+      result['current_organization_id'] = entity.currentOrganizationId
+    if (entity.authMethod !== undefined) result['auth_method'] = entity.authMethod
+    if (entity.avatarUrl !== undefined) result['avatar_url'] = entity.avatarUrl
+    if (entity.bio !== undefined) result['bio'] = entity.bio
+    if (entity.phone !== undefined) result['phone'] = entity.phone
+    if (entity.address !== undefined) result['address'] = entity.address
+    if (entity.timezone !== undefined) result['timezone'] = entity.timezone
+    if (entity.language !== undefined) result['language'] = entity.language
+    if (entity.isExternalContributor !== undefined) result['is_external_contributor'] = entity.isExternalContributor
+    if (entity.externalContributorRating !== undefined) result['external_contributor_rating'] = entity.externalContributorRating
+    if (entity.externalContributorCompletedTasksCount !== undefined)
+      result['external_contributor_completed_tasks_count'] = entity.externalContributorCompletedTasksCount
+    if (entity.profileSettings !== undefined) result['profile_settings'] = entity.profileSettings
+    if (entity.userSetting !== undefined) result['user_setting'] = entity.userSetting
+    if (entity.trustData !== undefined) result['trust_data'] = entity.trustData
+    if (entity.credibilityData !== undefined) result['credibility_data'] = entity.credibilityData
 
     return result
   }

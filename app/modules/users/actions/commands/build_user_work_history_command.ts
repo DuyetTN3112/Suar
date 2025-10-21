@@ -57,7 +57,7 @@ interface CompletedReviewSessionRow {
 interface SkillReviewSummaryRow {
   skill_id: string
   skill_name: string | null
-  assigned_level_code: string
+  assigned_public_proficiency_code: string
   reviewer_type: string
   comment: string | null
 }
@@ -253,7 +253,7 @@ export default class BuildUserWorkHistoryCommand extends BaseCommand<
           ).map((item) => ({
             skill_id: item.skill_id,
             skill_name: item.skill_name,
-            assigned_level_code: item.assigned_level_code,
+            assigned_public_proficiency_code: item.assigned_public_proficiency_code,
             reviewer_type: item.reviewer_type,
             comment: item.comment,
           }))

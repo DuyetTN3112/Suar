@@ -12,8 +12,18 @@ import type {
 } from './user_external_dependencies.js'
 
 import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { reviewMetricsReader } from '#modules/reviews/public_contracts/review_metrics_reader'
 import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
 import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+
+interface ConfidenceSignalRow {
+  skill_id: string
+  confidence: UserSkillDetail['confidence_signal']
+}
+
+interface ActiveDisputeSkillRow {
+  skill_id: string
+}
 
 export class InfraUserOrganizationMembershipReaderWriter implements UserOrganizationMembershipReaderWriter {
   async findMembershipStatus(
@@ -89,16 +99,29 @@ export class InfraUserSkillReader implements UserSkillReader {
     userId: string,
     _trx?: TransactionClientContract
   ): Promise<UserSkillDetail[]> {
-    const userSkills = await skillPublicApi.findUserSkillsWithSkill(userId)
+    const [userSkills, rawConfidenceRows, rawActiveDisputeRows] = await Promise.all([
+      skillPublicApi.findUserSkillsWithSkill(userId),
+      reviewMetricsReader.listLatestConfidenceSignalsBySkill(userId, _trx),
+      reviewMetricsReader.listActiveDisputedSkillIdsByReviewee(userId, _trx),
+    ])
+    const confidenceRows = rawConfidenceRows as ConfidenceSignalRow[]
+    const activeDisputeRows = rawActiveDisputeRows as ActiveDisputeSkillRow[]
+    const confidenceBySkill = new Map(
+      confidenceRows.map((row) => [row.skill_id, row.confidence])
+    )
+    const disputedSkillIds = new Set(activeDisputeRows.map((row) => row.skill_id))
 
     return userSkills.map((userSkill) => ({
       id: userSkill.id,
       skill_id: userSkill.skill_id,
-      level_code: userSkill.level_code,
+      verified_public_proficiency_code: userSkill.verified_public_proficiency_code,
+      source: userSkill.source,
       total_reviews: userSkill.total_reviews,
       avg_score: userSkill.avg_score,
       avg_percentage: userSkill.avg_percentage,
       last_reviewed_at: userSkill.last_reviewed_at,
+      confidence_signal: confidenceBySkill.get(userSkill.skill_id) ?? null,
+      has_active_dispute: disputedSkillIds.has(userSkill.skill_id),
       skill: {
         skill_name: userSkill.skill.skill_name,
         skill_code: userSkill.skill.skill_code,

@@ -3,6 +3,7 @@ import { inject } from '@adonisjs/core'
 import { BaseQuery } from '../base_query.js'
 import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 
+import { reviewPublicApi } from '#modules/reviews/public_contracts/review_public_api'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import type { UserRecord } from '#modules/users/types/user_records'
 
@@ -30,7 +31,15 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
     const cacheKey = `users:detail:${dto.id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      return await userModelQueries.findNotDeletedOrFailRecord(dto.id)
+      const [user, reverseReviewSummary] = await Promise.all([
+        userModelQueries.findNotDeletedOrFailRecord(dto.id),
+        reviewPublicApi.loadUserReverseReviewSummary(dto.id),
+      ])
+
+      return {
+        ...user,
+        reverse_review_summary: reverseReviewSummary,
+      }
     })
   }
 }

@@ -1,9 +1,10 @@
 import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from './get_user_skills_query.js'
 
+import { CANONICAL_PROFICIENCY_LEVEL_OPTIONS } from '#modules/skills/constants/proficiency_level_constants'
 import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
-import { proficiencyLevelOptions, skillCategoryOptions } from '#modules/users/public_contracts/user_constants'
+import { skillCategoryOptions } from '#modules/users/public_contracts/user_constants'
 
 export interface GetProfileEditPageInput {
   userId: string
@@ -14,7 +15,7 @@ export interface GetProfileEditPageResult {
   completeness: number
   availableSkills: Awaited<ReturnType<typeof skillPublicApi.listActive>>
   categories: typeof skillCategoryOptions
-  proficiencyLevels: typeof proficiencyLevelOptions
+  proficiencyLevels: typeof CANONICAL_PROFICIENCY_LEVEL_OPTIONS
   userSkills: Awaited<ReturnType<GetUserSkillsQuery['handle']>>
 }
 
@@ -33,7 +34,7 @@ export default class GetProfileEditPageQuery {
       completeness: profile.completeness,
       availableSkills,
       categories: skillCategoryOptions,
-      proficiencyLevels: proficiencyLevelOptions,
+      proficiencyLevels: CANONICAL_PROFICIENCY_LEVEL_OPTIONS,
       userSkills,
     }
   }

@@ -75,10 +75,10 @@ export default class User extends BaseModel {
   declare language: string
 
   @column()
-  declare is_freelancer: boolean
+  declare is_external_contributor: boolean
 
   @column()
-  declare freelancer_rating: number | null
+  declare external_contributor_rating: number | null
 
   @column()
   declare freelancer_completed_tasks_count: number

@@ -20,12 +20,13 @@ interface SpiderChartPoint {
   skill_code: string
   category_code: string
   avg_percentage: number
-  level_code: string | null
+  verified_public_proficiency_code: string | null
   total_reviews: number
 }
 
 interface SpiderChartResult {
-  technical: SpiderChartPoint[]
+  technology: SpiderChartPoint[]
+  engineering: SpiderChartPoint[]
   soft_skills: SpiderChartPoint[]
   delivery: SpiderChartPoint[]
 }
@@ -33,8 +34,8 @@ interface SpiderChartResult {
 /**
  * GetSpiderChartDataQuery
  *
- * Fetches spider chart data for user's soft skills and delivery metrics.
- * v3: Data is now inline on user_skills table (avg_percentage, level_code)
+ * Fetches spider chart data for user's categorized skills.
+ * v3: Data is now inline on user_skills table
  * and skills have inline category_code + display_type.
  *
  * Uses caching for performance (5 min TTL)
@@ -47,14 +48,15 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
    * Execute the query to get spider chart data
    */
   async handle(dto: GetSpiderChartDataDTO): Promise<SpiderChartResult> {
-    const cacheKey = `users:spider_chart:${dto.user_id}`
+    const cacheKey = `users:spider_chart:v4:${dto.user_id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // v3: Query UserSkill with inline skill data (category_code, display_type on skills table)
       const data = await DefaultUserDependencies.skill.listUserSkillDetails(dto.user_id)
 
       const result: SpiderChartResult = {
-        technical: [],
+        technology: [],
+        engineering: [],
         soft_skills: [],
         delivery: [],
       }
@@ -70,12 +72,14 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
           skill_code: skill.skill_code,
           category_code: skill.category_code,
           avg_percentage: item.avg_percentage ?? 0,
-          level_code: item.level_code,
+          verified_public_proficiency_code: item.verified_public_proficiency_code,
           total_reviews: item.total_reviews,
         }
 
-        if (skill.category_code === 'technical') {
-          result.technical.push(point)
+        if (skill.category_code === 'technology') {
+          result.technology.push(point)
+        } else if (skill.category_code === 'engineering') {
+          result.engineering.push(point)
         } else if (skill.category_code === 'soft_skill') {
           result.soft_skills.push(point)
         } else if (skill.category_code === 'delivery') {
