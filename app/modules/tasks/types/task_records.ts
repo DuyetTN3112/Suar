@@ -22,6 +22,7 @@ export interface TaskRecord {
   actual_time?: number
   organization_id: string
   project_id: string | null
+  project_sprint_id?: string | null
   task_visibility?: string
   application_deadline?: SerializedDateTime
   task_type?: string
@@ -42,9 +43,9 @@ export interface TaskRecord {
   problem_category?: string | null
   business_domain?: string | null
   estimated_users_affected?: number | null
-  estimated_budget?: number | null
   external_applications_count?: number
   user_applied?: number
+  can_review_applications?: boolean
   current_user_application?: {
     id: string
     status: 'pending' | 'approved' | 'rejected'
@@ -95,7 +96,6 @@ export interface TaskApplicationRecord {
   application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
   application_source: 'public_listing' | 'invitation' | 'referral'
   message: string | null
-  expected_rate: number | null
   portfolio_links: string[] | null
   applied_at?: SerializedDateTime
   reviewed_by: string | null
@@ -132,7 +132,7 @@ export interface TaskAssignmentWithDetailsRecord {
   task_id: string
   assignee_id: string
   assigned_by: string
-  assignment_type: 'member' | 'freelancer' | 'volunteer'
+  assignment_type: 'member' | 'external_contributor' | 'volunteer'
   assignment_status: 'active' | 'completed' | 'cancelled'
   task: TaskRecord
   assignee: {

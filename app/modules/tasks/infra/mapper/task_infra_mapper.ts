@@ -59,7 +59,6 @@ export class TaskInfraMapper {
       projectId: model.project_id,
       taskVisibility: model.task_visibility as TaskEntityProps['taskVisibility'],
       applicationDeadline: model.application_deadline?.toJSDate() ?? null,
-      estimatedBudget: model.estimated_budget,
       externalApplicationsCount: model.external_applications_count,
       sortOrder: model.sort_order,
       deletedAt: model.deleted_at?.toJSDate() ?? null,
@@ -111,7 +110,6 @@ export class TaskInfraMapper {
       problem_category: model.problem_category,
       business_domain: model.business_domain,
       estimated_users_affected: model.estimated_users_affected,
-      estimated_budget: model.estimated_budget,
       external_applications_count: model.external_applications_count,
       sort_order: model.sort_order,
     }
@@ -129,34 +127,40 @@ export class TaskInfraMapper {
   }
 
   static toApplicationRecord(model: TaskApplication): TaskApplicationRecord {
-    const task = model.$preloaded.task as Task | undefined
-    const applicant = model.$preloaded.applicant as User | undefined
-    const reviewer = model.$preloaded.reviewer as User | undefined
+    const task = model.$preloaded['task'] as Task | undefined
+    const applicant = model.$preloaded['applicant'] as User | undefined
+    const reviewer = model.$preloaded['reviewer'] as User | undefined
 
-    return {
+    const record: TaskApplicationRecord = {
       id: model.id,
       task_id: model.task_id,
       applicant_id: model.applicant_id,
       application_status: model.application_status,
       application_source: model.application_source,
       message: model.message,
-      expected_rate: model.expected_rate,
       portfolio_links: model.portfolio_links,
       applied_at: serializeDateTime(model.applied_at),
       reviewed_by: model.reviewed_by,
       reviewed_at: serializeDateTime(model.reviewed_at),
       rejection_reason: model.rejection_reason,
-      task: task ? this.toDetailRecord(task) : undefined,
-      applicant: applicant ? this.toUserSummaryRecord(applicant) : undefined,
       reviewer: reviewer ? this.toUserSummaryRecord(reviewer) : null,
     }
+
+    if (task !== undefined) {
+      record.task = this.toDetailRecord(task)
+    }
+    if (applicant !== undefined) {
+      record.applicant = this.toUserSummaryRecord(applicant)
+    }
+
+    return record
   }
 
   static toAssignmentWithDetailsRecord(
     model: TaskAssignment
   ): TaskAssignmentWithDetailsRecord {
-    const task = model.$preloaded.task as Task | undefined
-    const assignee = model.$preloaded.assignee as User | undefined
+    const task = model.$preloaded['task'] as Task | undefined
+    const assignee = model.$preloaded['assignee'] as User | undefined
     if (!task || !assignee) {
       throw new Error('Task assignment details must be preloaded before mapping')
     }
@@ -227,7 +231,6 @@ export class TaskInfraMapper {
       problemCategory: model.problem_category,
       businessDomain: model.business_domain,
       estimatedUsersAffected: model.estimated_users_affected,
-      estimatedBudget: model.estimated_budget,
       externalApplicationsCount: model.external_applications_count,
       sortOrder: model.sort_order,
     }
@@ -240,29 +243,28 @@ export class TaskInfraMapper {
   static toOrm(entity: Partial<TaskEntityProps>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
 
-    if (entity.title !== undefined) result.title = entity.title
-    if (entity.description !== undefined) result.description = entity.description
-    if (entity.status !== undefined) result.status = entity.status
-    if (entity.taskStatusId !== undefined) result.task_status_id = entity.taskStatusId
-    if (entity.label !== undefined) result.label = entity.label
-    if (entity.priority !== undefined) result.priority = entity.priority
-    if (entity.difficulty !== undefined) result.difficulty = entity.difficulty
-    if (entity.assignedTo !== undefined) result.assigned_to = entity.assignedTo
-    if (entity.creatorId !== undefined) result.creator_id = entity.creatorId
-    if (entity.updatedBy !== undefined) result.updated_by = entity.updatedBy
-    if (entity.dueDate !== undefined) result.due_date = entity.dueDate
-    if (entity.parentTaskId !== undefined) result.parent_task_id = entity.parentTaskId
-    if (entity.estimatedTime !== undefined) result.estimated_time = entity.estimatedTime
-    if (entity.actualTime !== undefined) result.actual_time = entity.actualTime
-    if (entity.organizationId !== undefined) result.organization_id = entity.organizationId
-    if (entity.projectId !== undefined) result.project_id = entity.projectId
-    if (entity.taskVisibility !== undefined) result.task_visibility = entity.taskVisibility
+    if (entity.title !== undefined) result['title'] = entity.title
+    if (entity.description !== undefined) result['description'] = entity.description
+    if (entity.status !== undefined) result['status'] = entity.status
+    if (entity.taskStatusId !== undefined) result['task_status_id'] = entity.taskStatusId
+    if (entity.label !== undefined) result['label'] = entity.label
+    if (entity.priority !== undefined) result['priority'] = entity.priority
+    if (entity.difficulty !== undefined) result['difficulty'] = entity.difficulty
+    if (entity.assignedTo !== undefined) result['assigned_to'] = entity.assignedTo
+    if (entity.creatorId !== undefined) result['creator_id'] = entity.creatorId
+    if (entity.updatedBy !== undefined) result['updated_by'] = entity.updatedBy
+    if (entity.dueDate !== undefined) result['due_date'] = entity.dueDate
+    if (entity.parentTaskId !== undefined) result['parent_task_id'] = entity.parentTaskId
+    if (entity.estimatedTime !== undefined) result['estimated_time'] = entity.estimatedTime
+    if (entity.actualTime !== undefined) result['actual_time'] = entity.actualTime
+    if (entity.organizationId !== undefined) result['organization_id'] = entity.organizationId
+    if (entity.projectId !== undefined) result['project_id'] = entity.projectId
+    if (entity.taskVisibility !== undefined) result['task_visibility'] = entity.taskVisibility
     if (entity.applicationDeadline !== undefined)
-      result.application_deadline = entity.applicationDeadline
-    if (entity.estimatedBudget !== undefined) result.estimated_budget = entity.estimatedBudget
+      result['application_deadline'] = entity.applicationDeadline
     if (entity.externalApplicationsCount !== undefined)
-      result.external_applications_count = entity.externalApplicationsCount
-    if (entity.sortOrder !== undefined) result.sort_order = entity.sortOrder
+      result['external_applications_count'] = entity.externalApplicationsCount
+    if (entity.sortOrder !== undefined) result['sort_order'] = entity.sortOrder
 
     return result
   }

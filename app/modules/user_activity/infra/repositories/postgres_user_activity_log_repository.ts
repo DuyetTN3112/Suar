@@ -2,6 +2,11 @@ import { randomUUID } from 'node:crypto'
 
 import db from '@adonisjs/lucid/services/db'
 
+import {
+  decodeTimestampCursor,
+  encodeTimestampCursor,
+  toOffset,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import type {
   UserActivityLogCreateData,
   UserActivityLogRecord,
@@ -40,7 +45,7 @@ export default class PostgresUserActivityLogRepository implements UserActivityLo
   ): Promise<{ data: UserActivityLogRecord[]; total: number }> {
     const page = options?.page ?? 1
     const limit = options?.limit ?? 50
-    const offset = (page - 1) * limit
+    const offset = toOffset(page, limit)
     let baseQuery = db.from('user_activity_events').where('user_id', userId)
 
     if (options?.actionType) {
@@ -56,6 +61,78 @@ export default class PostgresUserActivityLogRepository implements UserActivityLo
     return {
       data: rows.map((row) => this.toRecord(row)),
       total: Number(totalResult?.count ?? 0),
+    }
+  }
+
+  async findByUserCursor(
+    userId: string,
+    options?: { actionType?: string; limit?: number; after?: string | null; before?: string | null }
+  ): Promise<{
+    data: UserActivityLogRecord[]
+    nextCursor: string | null
+    previousCursor: string | null
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+  }> {
+    const limit = Math.max(1, options?.limit ?? 50)
+    let baseQuery = db.from('user_activity_events').where('user_id', userId)
+
+    if (options?.actionType) {
+      baseQuery = baseQuery.where('action_type', options.actionType)
+    }
+
+    const decodedCursor = decodeTimestampCursor(options?.after)
+    const decodedBeforeCursor = decodeTimestampCursor(options?.before)
+    const isBeforeWindow = Boolean(decodedBeforeCursor && !decodedCursor)
+
+    if (decodedCursor) {
+      baseQuery = baseQuery.where((builder) => {
+        void builder
+          .where('created_at', '<', decodedCursor.createdAt)
+          .orWhere((nested) => {
+            void nested.where('created_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
+          })
+      })
+    } else if (decodedBeforeCursor) {
+      baseQuery = baseQuery.where((builder) => {
+        void builder
+          .where('created_at', '>', decodedBeforeCursor.createdAt)
+          .orWhere((nested) => {
+            void nested.where('created_at', decodedBeforeCursor.createdAt).where('id', '>', decodedBeforeCursor.id)
+          })
+      })
+    }
+
+    const rows = (await baseQuery
+      .clone()
+      .orderBy('created_at', isBeforeWindow ? 'asc' : 'desc')
+      .orderBy('id', isBeforeWindow ? 'asc' : 'desc')
+      .limit(limit + 1)) as UserActivityRow[]
+
+    const hasOverflow = rows.length > limit
+    const windowRows = hasOverflow ? rows.slice(0, limit) : rows
+    const pageRows = isBeforeWindow ? [...windowRows].reverse() : windowRows
+    const firstRow = pageRows[0]
+    const lastRow = pageRows[pageRows.length - 1]
+
+    return {
+      data: pageRows.map((row) => this.toRecord(row)),
+      nextCursor:
+        (isBeforeWindow || hasOverflow) && lastRow
+          ? encodeTimestampCursor({
+              createdAt: lastRow.created_at.toISOString(),
+              id: lastRow.id,
+            })
+          : null,
+      previousCursor:
+        (decodedCursor || isBeforeWindow) && firstRow
+          ? encodeTimestampCursor({
+              createdAt: firstRow.created_at.toISOString(),
+              id: firstRow.id,
+            })
+          : null,
+      hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
+      hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
     }
   }
 

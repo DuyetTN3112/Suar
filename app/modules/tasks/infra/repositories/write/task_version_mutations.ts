@@ -10,13 +10,13 @@ export async function createSnapshot(
 ): Promise<void> {
   const payload: Partial<TaskVersion> = {
     task_id: taskId,
-    title: snapshotData.title as string,
-    description: snapshotData.description as string | null,
-    status: snapshotData.status as string,
-    label: snapshotData.label as string,
-    priority: snapshotData.priority as string,
-    difficulty: snapshotData.difficulty as string | null,
-    assigned_to: snapshotData.assigned_to as string | null,
+    title: snapshotData['title'] as string,
+    description: snapshotData['description'] as string | null,
+    status: snapshotData['status'] as string,
+    label: snapshotData['label'] as string,
+    priority: snapshotData['priority'] as string,
+    difficulty: snapshotData['difficulty'] as string | null,
+    assigned_to: snapshotData['assigned_to'] as string | null,
     changed_by: userId,
   }
 
