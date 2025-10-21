@@ -10,7 +10,6 @@ import {
   toPositiveNumber,
 } from './shared.js'
 
-import { PaginationDTO } from '#actions/shared/index'
 import { ApproveUserDTO } from '#actions/users/dtos/request/approve_user_dto'
 import { ChangeUserRoleDTO } from '#actions/users/dtos/request/change_user_role_dto'
 import { GetUserDetailDTO } from '#actions/users/dtos/request/get_user_detail_dto'
@@ -33,6 +32,7 @@ import { GetUserProfileDTO } from '#actions/users/queries/get_user_profile_query
 import { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
 import { OrganizationUserStatus } from '#constants/organization_constants'
 import { UserStatusName } from '#constants/user_constants'
+import { PaginationDTO } from '#types/action_dtos'
 
 const USERS_DEFAULT_LIMIT = 10
 const PENDING_APPROVAL_DEFAULT_LIMIT = 10
