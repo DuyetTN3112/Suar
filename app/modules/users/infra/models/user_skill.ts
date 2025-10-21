@@ -11,7 +11,7 @@ import User from './user.js'
  * UserSkill Model (v3)
  *
  * Pivot table connecting Users with Skills:
- * - level_code: inline proficiency level string (replaces proficiency_level_id FK)
+ * - verified_public_proficiency_code: inline public proficiency code
  * - avg_percentage + last_calculated_at: merged from user_spider_chart_data
  * - Maintains review statistics
  */
@@ -27,9 +27,8 @@ export default class UserSkill extends BaseModel {
   @column()
   declare skill_id: string
 
-  // v3: inline level code replaces proficiency_level_id FK
   @column()
-  declare level_code: string
+  declare verified_public_proficiency_code: string
 
   @column()
   declare proficiency_level_id: string | null
@@ -47,6 +46,12 @@ export default class UserSkill extends BaseModel {
   // v3: merged from user_spider_chart_data
   @column()
   declare avg_percentage: number | null
+
+  @column()
+  declare confidence: number | null
+
+  @column()
+  declare evidence_count: number
 
   // v3: merged from user_spider_chart_data
   @column.dateTime()

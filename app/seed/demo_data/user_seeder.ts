@@ -29,13 +29,13 @@ export async function seedUsers(
       address: 'Ho Chi Minh City, Vietnam',
       timezone: 'Asia/Ho_Chi_Minh',
       language: 'vi',
-      is_freelancer: spec.is_freelancer,
-      freelancer_rating: spec.rating,
-      freelancer_completed_tasks_count: spec.completedTasks,
+      is_external_contributor: spec.is_external_contributor,
+      external_contributor_rating: spec.rating,
+      external_contributor_completed_tasks_count: spec.completedTasks,
       ranking_priority: spec.system_role === 'superadmin' ? 1 : 2,
       is_verified_badge: true,
       profile_settings: runtime.toJson({
-        is_searchable: spec.is_freelancer,
+        is_searchable: spec.is_external_contributor,
         show_contact_info: false,
         show_organizations: true,
         show_projects: true,
@@ -44,9 +44,9 @@ export async function seedUsers(
         custom_headline: spec.headline,
         preferred_job_types: spec.preferredJobTypes,
         preferred_locations: ['remote', 'Ho Chi Minh'],
-        min_salary_expectation: spec.is_freelancer ? 25000000 : null,
+        min_salary_expectation: spec.is_external_contributor ? 25000000 : null,
         salary_currency: 'VND',
-        available_from: spec.is_freelancer ? runtime.isoDaysAhead(7) : null,
+        available_from: spec.is_external_contributor ? runtime.isoDaysAhead(7) : null,
       }),
       trust_data: runtime.toJson({
         current_tier_code: spec.system_role === 'superadmin' ? 'partner' : 'organization',
@@ -61,7 +61,7 @@ export async function seedUsers(
               : spec.system_role === 'superadmin'
                 ? 98
                 : null,
-        scoring_version: key === 'owner' || key === 'member' ? 'seed-performance-v1' : null,
+        scoring_version: key === 'owner' || key === 'member' ? 'performance_v1' : null,
         last_calculated_at: runtime.isoDaysAgo(1),
       }),
       credibility_data: runtime.toJson({

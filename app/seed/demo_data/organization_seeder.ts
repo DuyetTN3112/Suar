@@ -94,7 +94,7 @@ export async function seedOrganizationMemberships(
     },
     {
       organization: 'orgA',
-      user: 'freelancerOne',
+      user: 'externalContributorOne',
       role: 'org_member',
       status: 'pending',
       invitedBy: 'owner',
@@ -129,42 +129,42 @@ export async function seedOrganizationMemberships(
       status: 'approved',
       invitedBy: 'peerReviewer',
     },
-    { organization: 'orgD', user: 'freelancerOne', role: 'org_owner', status: 'approved' },
+    { organization: 'orgD', user: 'externalContributorOne', role: 'org_owner', status: 'approved' },
     {
       organization: 'orgD',
       user: 'owner',
       role: 'org_member',
       status: 'approved',
-      invitedBy: 'freelancerOne',
+      invitedBy: 'externalContributorOne',
     },
     {
       organization: 'orgD',
-      user: 'freelancerTwo',
+      user: 'externalContributorTwo',
       role: 'org_member',
       status: 'approved',
-      invitedBy: 'freelancerOne',
+      invitedBy: 'externalContributorOne',
     },
-    { organization: 'orgE', user: 'freelancerTwo', role: 'org_owner', status: 'approved' },
+    { organization: 'orgE', user: 'externalContributorTwo', role: 'org_owner', status: 'approved' },
     {
       organization: 'orgE',
       user: 'owner',
       role: 'org_member',
       status: 'approved',
-      invitedBy: 'freelancerTwo',
+      invitedBy: 'externalContributorTwo',
     },
     {
       organization: 'orgE',
       user: 'member',
       role: 'org_member',
       status: 'approved',
-      invitedBy: 'freelancerTwo',
+      invitedBy: 'externalContributorTwo',
     },
     {
       organization: 'orgE',
       user: 'orgAdmin',
       role: 'org_admin',
       status: 'approved',
-      invitedBy: 'freelancerTwo',
+      invitedBy: 'externalContributorTwo',
     },
   ]
 
@@ -206,8 +206,8 @@ export async function updateCurrentOrganizations(
     ['peerReviewer', organizations.orgA.id],
     ['orgBOwner', organizations.orgB.id],
     ['superadmin', null],
-    ['freelancerOne', null],
-    ['freelancerTwo', organizations.orgE.id],
+    ['externalContributorOne', null],
+    ['externalContributorTwo', organizations.orgE.id],
   ]
 
   for (const [userKey, currentOrgId] of updates) {

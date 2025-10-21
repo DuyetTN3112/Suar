@@ -1,7 +1,6 @@
 import ValidationException from '#modules/http/exceptions/validation_exception'
-import type { UserRecord } from '#modules/users/types/user_records'
 
-export class UpdateUserProfileDTO implements Partial<Pick<UserRecord, 'username' | 'email'>> {
+export class UpdateUserProfileDTO {
   constructor(
     public readonly userId: string,
     public readonly username?: string,

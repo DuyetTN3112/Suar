@@ -17,5 +17,7 @@ const limiterConfig = defineConfig({
 export default limiterConfig
 
 declare module '@adonisjs/limiter/types' {
-  export interface LimitersList extends InferLimiters<typeof limiterConfig> {}
+  export interface LimitersList
+    extends Record<string, import('@adonisjs/limiter/types').LimiterManagerStoreFactory>,
+      InferLimiters<typeof limiterConfig> {}
 }
