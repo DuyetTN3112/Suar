@@ -16,7 +16,7 @@ export const UserFactory = {
       status: string
       system_role: string
       auth_method: 'google' | 'github'
-      is_freelancer: boolean
+      is_external_contributor: boolean
       current_organization_id: string | null
       timezone: string
       language: string
@@ -30,7 +30,7 @@ export const UserFactory = {
       status: overrides.status ?? 'active',
       system_role: overrides.system_role ?? 'registered_user',
       auth_method: overrides.auth_method ?? 'google',
-      is_freelancer: overrides.is_freelancer ?? false,
+      is_external_contributor: overrides.is_external_contributor ?? false,
       current_organization_id: overrides.current_organization_id ?? null,
       timezone: overrides.timezone ?? 'Asia/Ho_Chi_Minh',
       language: overrides.language ?? 'vi',
@@ -41,15 +41,25 @@ export const UserFactory = {
   },
 
   async createSuperadmin(
-    overrides: Partial<{ id: string; username: string; email: string }> = {}
+    overrides: Partial<{
+      id: string
+      username: string
+      email: string
+      current_organization_id: string | null
+    }> = {}
   ): Promise<User> {
     return this.create({ system_role: 'superadmin', ...overrides })
   },
 
-  async createFreelancer(
-    overrides: Partial<{ id: string; username: string; email: string }> = {}
+  async createExternalContributor(
+    overrides: Partial<{
+      id: string
+      username: string
+      email: string
+      current_organization_id: string | null
+    }> = {}
   ): Promise<User> {
-    return this.create({ is_freelancer: true, ...overrides })
+    return this.create({ is_external_contributor: true, ...overrides })
   },
 }
 

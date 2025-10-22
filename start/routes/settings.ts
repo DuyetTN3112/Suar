@@ -10,12 +10,10 @@ const UpdateProfileSettingsController = () =>
   import('#modules/settings/controllers/update_profile_settings_controller')
 const UpdateAccountSettingsController = () =>
   import('#modules/settings/controllers/update_account_settings_controller')
-const UpdateAppearanceSettingsController = () =>
-  import('#modules/settings/controllers/update_appearance_settings_controller')
-const UpdateDisplaySettingsController = () =>
-  import('#modules/settings/controllers/update_display_settings_controller')
 const UpdateNotificationSettingsController = () =>
   import('#modules/settings/controllers/update_notification_settings_controller')
+const UserListAuditLogsController = () =>
+  import('#modules/admin/controllers/audit_logs/list_audit_logs_controller')
 
 router
   .group(() => {
@@ -25,8 +23,8 @@ router
 
     // Profile settings
     router
-      .get('/settings/profile', async ({ inertia }) => {
-        return inertia.render('settings/profile', {})
+      .get('/settings/profile', ({ response }) => {
+        return response.redirect('/settings/account')
       })
       .as('settings.profile')
     router
@@ -42,25 +40,10 @@ router
     router
       .post('/settings/account', [UpdateAccountSettingsController, 'handle'])
       .as('settings.account.update')
+    router
+      .get('/settings/audit-logs', [UserListAuditLogsController, 'userHandle'])
+      .as('settings.audit_logs.index')
 
-    // Appearance settings
-    router
-      .get('/settings/appearance', async ({ inertia }) => {
-        return inertia.render('settings/appearance', {})
-      })
-      .as('settings.appearance')
-    router
-      .post('/settings/appearance', [UpdateAppearanceSettingsController, 'handle'])
-      .as('settings.appearance.update')
-    // Display settings
-    router
-      .get('/settings/display', async ({ inertia }) => {
-        return inertia.render('settings/display', {})
-      })
-      .as('settings.display')
-    router
-      .post('/settings/display', [UpdateDisplaySettingsController, 'handle'])
-      .as('settings.display.update')
     // Notifications settings
     router
       .get('/settings/notifications', async ({ inertia }) => {

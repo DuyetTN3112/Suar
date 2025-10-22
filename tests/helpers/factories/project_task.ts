@@ -85,8 +85,7 @@ export const ProjectFactory = {
       owner_id: string
       status: string
       visibility: Project['visibility']
-      allow_freelancer: boolean
-      budget: number
+      allow_external_contributors: boolean
       start_date: FactoryDateValue
       end_date: FactoryDateValue
       deleted_at: FactoryDateValue
@@ -105,8 +104,7 @@ export const ProjectFactory = {
       owner_id: overrides.owner_id ?? overrides.creator_id ?? testId(),
       status: overrides.status ?? 'in_progress',
       visibility: overrides.visibility ?? 'team',
-      allow_freelancer: overrides.allow_freelancer ?? false,
-      budget: overrides.budget ?? 0,
+      allow_external_contributors: overrides.allow_external_contributors ?? false,
       ...(startDate !== undefined && { start_date: startDate }),
       ...(endDate !== undefined && { end_date: endDate }),
       ...(deletedAt !== undefined && { deleted_at: deletedAt }),
@@ -121,12 +119,14 @@ export const ProjectMemberFactory = {
       project_id: string
       user_id: string
       project_role: string
+      project_professional_role_id: string | null
     }> = {}
   ): Promise<ProjectMember> {
     return ProjectMember.create({
       project_id: overrides.project_id ?? testId(),
       user_id: overrides.user_id ?? testId(),
       project_role: overrides.project_role ?? 'project_member',
+      project_professional_role_id: overrides.project_professional_role_id ?? null,
     })
   },
 }
@@ -145,6 +145,7 @@ export const TaskFactory = {
       creator_id: string
       assigned_to: string | null
       project_id: string
+      project_sprint_id: string | null
       parent_task_id: string | null
       estimated_time: number
       actual_time: number
@@ -205,6 +206,7 @@ export const TaskFactory = {
       creator_id: creatorId,
       assigned_to: overrides.assigned_to ?? null,
       project_id: projectId,
+      project_sprint_id: overrides.project_sprint_id ?? null,
       parent_task_id: overrides.parent_task_id ?? null,
       estimated_time: overrides.estimated_time ?? 0,
       actual_time: overrides.actual_time ?? 0,
@@ -229,7 +231,6 @@ export const TaskApplicationFactory = {
       application_status: 'pending' | 'approved' | 'rejected' | 'withdrawn'
       application_source: 'public_listing' | 'invitation' | 'referral'
       message: string | null
-      expected_rate: number | null
       portfolio_links: string[] | null
       rejection_reason: string | null
     }> = {}
@@ -241,7 +242,6 @@ export const TaskApplicationFactory = {
       application_status: overrides.application_status ?? 'pending',
       application_source: overrides.application_source ?? 'public_listing',
       message: overrides.message ?? null,
-      expected_rate: overrides.expected_rate ?? null,
       portfolio_links: overrides.portfolio_links ?? null,
       rejection_reason: overrides.rejection_reason ?? null,
     })
@@ -255,7 +255,7 @@ export const TaskAssignmentFactory = {
       task_id: string
       assignee_id: string
       assigned_by: string
-      assignment_type: 'member' | 'freelancer' | 'volunteer'
+      assignment_type: 'member' | 'external_contributor' | 'volunteer'
       assignment_status: 'active' | 'completed' | 'cancelled'
       estimated_hours: number | null
       progress_percentage: number
