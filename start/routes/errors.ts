@@ -1,8 +1,8 @@
 import router from '@adonisjs/core/services/router'
 
 const ErrorController = () => import('#modules/errors/controllers/error_controller')
-import { resolveLandingPath } from '#modules/auth/domain/landing_surface'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { resolveLandingPath } from '#modules/auth/public_contracts/landing_surface'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
 /**
  * Routes cho các trang lỗi hoặc thông báo
@@ -26,7 +26,7 @@ router.get('/', async ({ auth, response, session }) => {
     const orgId =
       typeof sessionOrgId === 'string' ? sessionOrgId : auth.user?.current_organization_id
     const membership = auth.user && orgId
-      ? await membershipQueries.findApprovedMembershipContext(orgId, auth.user.id)
+      ? await organizationPublicApi.findApprovedMembership(orgId, auth.user.id)
       : null
 
     response.redirect(

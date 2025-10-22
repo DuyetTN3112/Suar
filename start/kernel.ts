@@ -82,7 +82,10 @@ router.use([
 export const middleware = router.named({
   guest: () => import('#modules/auth/middleware/guest_middleware'),
   auth: () => import('#modules/auth/middleware/auth_middleware'),
+  bindApiAuthContract: () => import('#modules/auth/middleware/bind_api_auth_contract_middleware'),
   cache: () => import('#modules/http/middleware/cache_middleware'),
+  bindHttpTransport: () => import('#modules/http/middleware/bind_http_transport_middleware'),
+  markDeprecatedRoute: () => import('#modules/http/middleware/mark_deprecated_route_middleware'),
   authorizeRole: () => import('#modules/authorization/middleware/authorize_role'),
   requireOrg: () => import('#modules/organizations/middleware/require_organization_middleware'),
   auditLog: () => import('#modules/audit/middleware/audit_log_middleware'),
@@ -93,6 +96,8 @@ export const middleware = router.named({
   requireOrgAdmin: () => import('#modules/organizations/middleware/require_org_admin_middleware'),
   requireOrgOwner: () => import('#modules/organizations/middleware/require_org_owner_middleware'),
   orgAdminContext: () => import('#modules/organizations/middleware/organization_admin_context_middleware'),
+  bindReverseReviewScope: () =>
+    import('#modules/reviews/middleware/bind_reverse_review_scope_middleware'),
 })
 
 /**

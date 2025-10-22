@@ -14,11 +14,18 @@ import limiter from '@adonisjs/limiter/services/main'
 
 import env from '#start/env'
 
+const isTestEnvironment = env.get('NODE_ENV') === 'test'
+const isRateLimitingDisabled = process.env['DISABLE_RATE_LIMITING'] === 'true'
+
 /**
  * Limiter sử dụng store được chỉ định trong config/limiter.ts (default)
  * 120 requests mỗi phút cho mỗi IP (cho phép duyệt thoải mái)
  */
 export const throttle = limiter.define('global', (ctx: HttpContext) => {
+  if (isTestEnvironment || isRateLimitingDisabled) {
+    return limiter.allowRequests(999999).every('1 minute').usingKey(`global:${ctx.request.ip()}`)
+  }
+
   return limiter.allowRequests(120).every('1 minute').usingKey(`global:${ctx.request.ip()}`)
 })
 
@@ -28,6 +35,11 @@ export const throttle = limiter.define('global', (ctx: HttpContext) => {
  */
 export const apiThrottle = limiter.define('api', (ctx: HttpContext) => {
   const key = ctx.auth.user ? `api:user:${ctx.auth.user.id}` : `api:ip:${ctx.request.ip()}`
+
+  if (isTestEnvironment || isRateLimitingDisabled) {
+    return limiter.allowRequests(999999).every('1 minute').usingKey(key)
+  }
+
   return limiter.allowRequests(60).every('1 minute').usingKey(key)
 })
 
@@ -46,8 +58,8 @@ export const apiThrottle = limiter.define('api', (ctx: HttpContext) => {
 export const loginThrottle = limiter.define('login', (ctx: HttpContext) => {
   const isDevelopment = env.get('NODE_ENV') === 'development'
 
-  if (isDevelopment) {
-    // Development: No limit
+  if (isDevelopment || isTestEnvironment || isRateLimitingDisabled) {
+    // Development/test: No limit
     return limiter.allowRequests(999999).every('1 minute').usingKey(`login:${ctx.request.ip()}`)
   }
 

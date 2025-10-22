@@ -10,6 +10,7 @@ import { RedisCheck, RedisMemoryUsageCheck } from '@adonisjs/redis'
 import redis from '@adonisjs/redis/services/main'
 
 import { ApplicationCheck } from '#modules/http/health_checks/application_check'
+import { SearchHealthCheck } from '#modules/http/health_checks/search_health_check'
 
 export const healthChecks = new HealthChecks().register([
   // Disk checks - cache kết quả trong 1 giờ
@@ -31,4 +32,5 @@ export const healthChecks = new HealthChecks().register([
 
   // Custom application check
   new ApplicationCheck().cacheFor('15 minutes'),
+  new SearchHealthCheck().cacheFor('1 minute'),
 ])
