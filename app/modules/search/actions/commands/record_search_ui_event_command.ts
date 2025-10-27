@@ -1,0 +1,97 @@
+import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
+import { platformAuditLogger, platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
+import { buildSearchPlatformEvent } from '#modules/search/observability/search_event_factory'
+
+export interface RecordSearchUiEventInput {
+  readonly eventName: string
+  readonly surface: string
+  readonly frontendSubmissionId?: string | null
+  readonly queryHash?: string | null
+  readonly queryTextLength?: number | null
+  readonly durationMs?: number | null
+  readonly resultCounts?: Record<string, number> | null
+  readonly entityType?: string | null
+  readonly entityId?: string | null
+  readonly metadata?: Record<string, unknown> | null
+}
+
+const AUDIT_UI_EVENT_NAMES = new Set([
+  'search.ui.submitted',
+  'search.ui.failed',
+  'search.ui.empty_results',
+  'search.ui.result_clicked',
+])
+
+export default class RecordSearchUiEventCommand {
+  async execute(input: RecordSearchUiEventInput, execCtx: HttpActionContext): Promise<void> {
+    const event = buildSearchPlatformEvent({
+      eventName: input.eventName,
+      eventFamily: 'ui',
+      subsystem: 'global_search',
+      workflow: 'global_search',
+      stage: 'completed',
+      severity: input.eventName === 'search.ui.failed' ? 'warn' : 'info',
+      outcome: input.eventName === 'search.ui.failed' ? 'failure' : 'success',
+      actor: {
+        initiator_type: 'frontend',
+        user_id: execCtx.userId,
+        organization_id: execCtx.organizationId,
+      },
+      request: {
+        id: execCtx.requestId ?? null,
+        ip: execCtx.ip,
+        user_agent: execCtx.userAgent,
+      },
+      trace: {
+        id: execCtx.traceId ?? execCtx.requestId ?? `search-ui:${Date.now()}`,
+        workflow_id: 'global_search',
+        frontend_submission_id: input.frontendSubmissionId ?? null,
+        correlation_key: input.queryHash ?? null,
+      },
+      target: {
+        type: input.entityType ?? 'search_query',
+        id: input.entityId ?? null,
+        scope: input.surface,
+      },
+      change: {
+        surface: input.surface,
+        query_hash: input.queryHash ?? null,
+        query_text_length: input.queryTextLength ?? null,
+        result_counts: input.resultCounts ?? null,
+        ...(input.metadata ?? {}),
+      },
+      runtime: {
+        duration_ms: input.durationMs ?? null,
+      },
+      compliance: {
+        redaction_applied: true,
+        retention_class: AUDIT_UI_EVENT_NAMES.has(input.eventName)
+          ? 'support_trace'
+          : 'transient_runtime',
+        contains_user_input: (input.queryTextLength ?? 0) > 0,
+      },
+    })
+
+    platformOperationalLogger.log(
+      input.eventName === 'search.ui.failed' ? 'warn' : 'info',
+      event
+    )
+
+    if (!AUDIT_UI_EVENT_NAMES.has(input.eventName)) {
+      return
+    }
+
+    await platformAuditLogger.record(
+      {
+        userId: execCtx.userId,
+        ip: execCtx.ip,
+        userAgent: execCtx.userAgent,
+        organizationId: execCtx.organizationId,
+        ...(execCtx.requestId !== undefined ? { requestId: execCtx.requestId } : {}),
+        ...(execCtx.traceId !== undefined ? { traceId: execCtx.traceId } : {}),
+        ...(execCtx.workflowId !== undefined ? { workflowId: execCtx.workflowId } : {}),
+      },
+      event
+    )
+  }
+}
