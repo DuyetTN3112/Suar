@@ -1,0 +1,144 @@
+import db from '@adonisjs/lucid/services/db'
+import { test } from '@japa/runner'
+
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import RevokeTaskAccessCommand from '#modules/tasks/actions/commands/revoke_task_access_command'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
+import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
+import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
+import {
+  cleanupTestData,
+  OrganizationFactory,
+  OrganizationUserFactory,
+  TaskAssignmentFactory,
+  TaskFactory,
+  UserFactory,
+} from '#tests/helpers/factories'
+
+type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
+
+class NotificationSpy implements NotificationCreator {
+  public calls: NotificationPayload[] = []
+
+  public handle(data: NotificationPayload): Promise<null> {
+    this.calls.push(data)
+    return Promise.resolve(null)
+  }
+}
+
+class TaskEventPublisherSpy implements TaskEventPublisher {
+  public accessRevokedEvents: Array<{
+    taskId: string
+    userId: string
+    revokedBy: string
+    reason: string
+  }> = []
+
+  publishTaskCreated(): Promise<void> { return Promise.resolve() }
+  publishTaskUpdated(): Promise<void> { return Promise.resolve() }
+  publishTaskDeleted(): Promise<void> { return Promise.resolve() }
+  publishTaskStatusChanged(): Promise<void> { return Promise.resolve() }
+  publishTaskAssignmentCompleted(): Promise<void> { return Promise.resolve() }
+  publishTaskAssigned(): Promise<void> { return Promise.resolve() }
+  publishTaskApplicationSubmitted(): Promise<void> { return Promise.resolve() }
+  publishTaskApplicationReviewed(): Promise<void> { return Promise.resolve() }
+
+  publishTaskAccessRevoked(event: {
+    taskId: string
+    userId: string
+    revokedBy: string
+    reason: string
+  }): Promise<void> {
+    this.accessRevokedEvents.push(event)
+    return Promise.resolve()
+  }
+}
+
+function buildActionContext(userId: string, organizationId: string): TaskActionContext {
+  return {
+    userId,
+    ip: '127.0.0.1',
+    userAgent: 'integration-test',
+    organizationId,
+  }
+}
+
+async function countRevokeAuditLogs(assignmentId: string): Promise<number> {
+  const result = (await db.from('audit_events')
+    .where('entity_type', 'task_assignment')
+    .where('entity_id', assignmentId)
+    .where('action', 'revoke_task_access')
+    .count('* as count')) as { count: number | string }[]
+  return Number(result[0]?.count ?? 0)
+}
+
+test.group('Integration | Revoke Task Access', (group) => {
+  group.setup(async () => {
+    await setupApp()
+  })
+  group.teardown(() => teardownApp())
+  group.each.teardown(() => cleanupTestData())
+
+  test('revokes an active assignment, records audit, and notifies the assignee', async ({
+    assert,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const assignee = await UserFactory.create()
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: assignee.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      assigned_to: assignee.id,
+    })
+    const assignment = await TaskAssignmentFactory.create({
+      task_id: task.id,
+      assignee_id: assignee.id,
+      assigned_by: owner.id,
+      assignment_status: 'active',
+    })
+
+    const notificationSpy = new NotificationSpy()
+    const taskEventPublisherSpy = new TaskEventPublisherSpy()
+    const command = new RevokeTaskAccessCommand(
+      buildActionContext(owner.id, org.id),
+      notificationSpy,
+      taskExternalDeps,
+      new TaskCacheInvalidator(),
+      taskEventPublisherSpy
+    )
+
+    await command.handle({
+      assignment_id: assignment.id,
+      reason: 'Scope changed after reprioritization',
+    })
+
+    const persistedAssignment = await TaskAssignment.findOrFail(assignment.id)
+
+    assert.equal(persistedAssignment.assignment_status, 'cancelled')
+    assert.include(
+      persistedAssignment.completion_notes ?? '',
+      'Scope changed after reprioritization'
+    )
+    assert.equal(await countRevokeAuditLogs(assignment.id), 1)
+    assert.lengthOf(notificationSpy.calls, 1)
+    assert.equal(notificationSpy.calls[0]?.user_id, assignee.id)
+    assert.equal(notificationSpy.calls[0]?.type, 'task_access_revoked')
+    assert.equal(notificationSpy.calls[0]?.related_entity_id, task.id)
+    assert.lengthOf(taskEventPublisherSpy.accessRevokedEvents, 1)
+    assert.deepEqual(taskEventPublisherSpy.accessRevokedEvents[0], {
+      taskId: task.id,
+      userId: assignee.id,
+      revokedBy: owner.id,
+      reason: 'Scope changed after reprioritization',
+    })
+  })
+})
