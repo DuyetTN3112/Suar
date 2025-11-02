@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import ResolveFlaggedReviewCommand from '#actions/admin/reviews/commands/resolve_flagged_review_command'
-import ListFlaggedReviewsQuery from '#actions/admin/reviews/queries/list_flagged_reviews_query'
-import FlaggedReview from '#infra/reviews/models/flagged_review'
+import ResolveFlaggedReviewCommand from '#modules/admin/actions/reviews/commands/resolve_flagged_review_command'
+import ListFlaggedReviewsQuery from '#modules/admin/actions/reviews/queries/list_flagged_reviews_query'
+import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   UserFactory,

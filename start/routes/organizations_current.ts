@@ -21,54 +21,56 @@ import { middleware } from '../kernel.js'
 
 // ================ LAZY-LOADED CONTROLLERS ================
 // Organization Dashboard
-const OrgDashboardController = () => import('#controllers/organizations/current/dashboard_controller')
+const OrgDashboardController = () =>
+  import('#modules/organizations/controllers/current/dashboard_controller')
 
 // Member Management
 const OrgListMembersController = () =>
-  import('#controllers/organizations/current/members/list_members_controller')
+  import('#modules/organizations/controllers/current/members/list_members_controller')
 const OrgInviteMemberController = () =>
-  import('#controllers/organizations/current/members/invite_member_controller')
+  import('#modules/organizations/controllers/current/members/invite_member_controller')
 const OrgRemoveMemberController = () =>
-  import('#controllers/organizations/current/members/remove_member_controller')
+  import('#modules/organizations/controllers/current/members/remove_member_controller')
 const OrgUpdateMemberRoleController = () =>
-  import('#controllers/organizations/current/members/update_member_role_controller')
+  import('#modules/organizations/controllers/current/members/update_member_role_controller')
 
 // Invitations & Join Requests
 const OrgListJoinRequestsController = () =>
-  import('#controllers/organizations/current/invitations/list_join_requests_controller')
+  import('#modules/organizations/controllers/current/invitations/list_join_requests_controller')
 const OrgApproveJoinRequestController = () =>
-  import('#controllers/organizations/current/invitations/approve_join_request_controller')
+  import('#modules/organizations/controllers/current/invitations/approve_join_request_controller')
 const OrgListInvitationsController = () =>
-  import('#controllers/organizations/current/invitations/list_invitations_controller')
+  import('#modules/organizations/controllers/current/invitations/list_invitations_controller')
 
 // Settings
 const OrgShowSettingsController = () =>
-  import('#controllers/organizations/current/settings/show_settings_controller')
+  import('#modules/organizations/controllers/current/settings/show_settings_controller')
 const OrgUpdateSettingsController = () =>
-  import('#controllers/organizations/current/settings/update_settings_controller')
+  import('#modules/organizations/controllers/current/settings/update_settings_controller')
 const OrgShowRolesController = () =>
-  import('#controllers/organizations/current/access/show_roles_controller')
+  import('#modules/organizations/controllers/current/access/show_roles_controller')
 const OrgShowPermissionsController = () =>
-  import('#controllers/organizations/current/access/show_permissions_controller')
+  import('#modules/organizations/controllers/current/access/show_permissions_controller')
 const OrgShowDepartmentsController = () =>
-  import('#controllers/organizations/current/access/show_departments_controller')
+  import('#modules/organizations/controllers/current/access/show_departments_controller')
 const OrgUpdateRolesController = () =>
-  import('#controllers/organizations/current/access/update_roles_controller')
+  import('#modules/organizations/controllers/current/access/update_roles_controller')
 
 // Projects (Organization-level)
 const OrgListProjectsController = () =>
-  import('#controllers/organizations/current/projects/list_projects_controller')
+  import('#modules/organizations/controllers/current/projects/list_projects_controller')
 const OrgCreateProjectController = () =>
-  import('#controllers/organizations/current/projects/create_project_controller')
+  import('#modules/organizations/controllers/current/projects/create_project_controller')
 
 // Tasks (Organization-level)
-const OrgListTasksController = () => import('#controllers/organizations/current/tasks/list_tasks_controller')
+const OrgListTasksController = () =>
+  import('#modules/organizations/controllers/current/tasks/list_tasks_controller')
 
 // Workflow Customization
 const OrgListTaskStatusesController = () =>
-  import('#controllers/organizations/current/workflow/list_task_statuses_controller')
+  import('#modules/organizations/controllers/current/workflow/list_task_statuses_controller')
 const OrgCreateTaskStatusController = () =>
-  import('#controllers/organizations/current/workflow/create_task_status_controller')
+  import('#modules/organizations/controllers/current/workflow/create_task_status_controller')
 
 // ================ ROUTE DEFINITIONS ================
 
