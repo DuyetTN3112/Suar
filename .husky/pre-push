@@ -1,2 +1,14 @@
-pnpm run check:arch:backend:side-effects
+#!/usr/bin/env sh
+set -eu
+
+# Load local env if present, but do not hardcode sensitive values in git hooks.
+if [ -f .env ]; then
+	set -a
+	. ./.env
+	set +a
+fi
+
+export PG_TEST_DATABASE="${PG_TEST_DATABASE:-suar_test}"
+: "${MONGODB_TEST_URL:?MONGODB_TEST_URL is required (set in .env or shell env)}"
+
 pnpm test:all:safe
