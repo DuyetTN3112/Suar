@@ -1,8 +1,8 @@
 import { test } from '@japa/runner'
 
-import DeleteProjectCommand from '#actions/projects/commands/delete_project_command'
-import { DeleteProjectDTO } from '#actions/projects/dtos/request/delete_project_dto'
 import UnauthorizedException from '#exceptions/unauthorized_exception'
+import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
+import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
 import type { ExecutionContext } from '#types/execution_context'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'

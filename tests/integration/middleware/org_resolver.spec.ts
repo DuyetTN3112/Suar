@@ -65,7 +65,7 @@ test.group('Integration | Organization Resolver', (group) => {
     await org.save()
 
     // The membership still exists but org is deleted
-    const membership = await OrganizationUserRepository.findMembership(org.id, owner.id)
+    const membership = await membershipQueries.findMembership(org.id, owner.id)
     assert.isNotNull(membership)
     // In practice, the resolver checks org.deleted_at before accepting
   })

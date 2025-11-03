@@ -1,13 +1,13 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
-import { AddUserSkillDTO } from '#actions/users/dtos/request/user_skill_dtos'
+import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
+import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
 import GetUserProfileQuery, {
   GetUserProfileDTO,
-} from '#actions/users/queries/get_user_profile_query'
-import { ProficiencyLevel, SystemRoleName } from '#constants/user_constants'
-import UserRepository from '#infra/users/repositories/user_repository'
+} from '#modules/users/actions/queries/get_user_profile_query'
+import { ProficiencyLevel, SystemRoleName } from '#modules/users/constants/user_constants'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -50,7 +50,12 @@ test.group('Integration | User Profile', (group) => {
     assert.equal(profile.user.timezone, 'Asia/Ho_Chi_Minh')
     assert.equal(profile.user.language, 'vi')
     assert.isFalse(profile.user.is_freelancer)
-    assert.equal(profile.user.current_organization.id, organization.id)
+    const currentOrganization = profile.user.current_organization
+    if (!currentOrganization) {
+      assert.fail('Expected user profile to include the current organization')
+      return
+    }
+    assert.equal(currentOrganization.id, organization.id)
     assert.lengthOf(profile.user.skills, 1)
     assert.equal(profileSkill.skill_id, skill.id)
     assert.equal(profileSkill.level_code, ProficiencyLevel.SENIOR)

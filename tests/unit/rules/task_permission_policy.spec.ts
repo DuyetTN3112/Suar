@@ -1,8 +1,7 @@
 import { test } from '@japa/runner'
 
-import { OrganizationRole } from '#constants/organization_constants'
-import { ProjectRole } from '#constants/project_constants'
-import { SystemRoleName } from '#constants/user_constants'
+import { OrganizationRole } from '#modules/organizations/constants/organization_constants'
+import { ProjectRole } from '#modules/projects/constants/project_constants'
 import {
   canUpdateTask,
   canUpdateTaskStatus,
@@ -17,8 +16,9 @@ import {
   calculateTaskPermissions,
   canCreateTask,
   resolveTaskCollectionReadScope,
-} from '#domain/tasks/task_permission_policy'
-import type { TaskPermissionContext } from '#domain/tasks/task_types'
+} from '#modules/tasks/domain/task_permission_policy'
+import type { TaskPermissionContext } from '#modules/tasks/domain/task_types'
+import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 function baseCtx(overrides: Partial<TaskPermissionContext> = {}): TaskPermissionContext {
   return {

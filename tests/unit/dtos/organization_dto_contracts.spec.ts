@@ -1,18 +1,18 @@
 import { test } from '@japa/runner'
 
-import { CreateOrganizationDTO } from '#actions/organizations/dtos/request/create_organization_dto'
-import { GetOrganizationMembersDTO } from '#actions/organizations/dtos/request/get_organization_members_dto'
-import { InviteUserDTO } from '#actions/organizations/dtos/request/invite_user_dto'
-import { ProcessJoinRequestDTO } from '#actions/organizations/dtos/request/process_join_request_dto'
-import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
+import { GetOrganizationMembersDTO } from '#modules/organizations/actions/dtos/request/get_organization_members_dto'
+import { InviteUserDTO } from '#modules/organizations/actions/dtos/request/invite_user_dto'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
+import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/update_member_role_dto'
 import {
   OrganizationDetailResponseDTO,
   OrganizationListItemResponseDTO,
   OrganizationMemberResponseDTO,
   OrganizationSummaryResponseDTO,
-} from '#actions/organizations/dtos/response/organization_response_dtos'
-import { OrganizationRole, OrganizationUserStatus } from '#constants/organization_constants'
-import type { OrganizationEntity } from '#domain/organizations/entities/organization_entity'
+} from '#modules/organizations/actions/dtos/response/organization_response_dtos'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
+import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
