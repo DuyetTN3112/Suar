@@ -34,14 +34,8 @@
       "#*": [
         "./app/*"
       ],
-      "#controllers/*": [
-        "./app/controllers/*"
-      ],
       "#exceptions/*": [
         "./app/exceptions/*"
-      ],
-      "#models/*": [
-        "./app/models/*"
       ],
       "#mails/*": [
         "./app/mails/*"
@@ -57,9 +51,6 @@
       ],
       "#middleware/*": [
         "./app/middleware/*"
-      ],
-      "#validators/*": [
-        "./app/validators/*"
       ],
       "#providers/*": [
         "./providers/*"
@@ -79,17 +70,8 @@
       "#config/*": [
         "./config/*"
       ],
-      "#domain/*": [
-        "./app/domain/*"
-      ],
-      "#actions/*": [
-        "./app/actions/*"
-      ],
-      "#constants/*": [
-        "./app/constants/*"
-      ],
-      "#constants": [
-        "./app/constants/index.ts"
+      "#bootstrap/*": [
+        "./app/bootstrap/*"
       ],
       "#libs/*": [
         "./app/libs/*"
@@ -100,11 +82,14 @@
       "#helpers/*": [
         "./app/helpers/*"
       ],
+      "#types/*": [
+        "./app/types/*"
+      ],
       "#utils/*": [
         "./app/utils/*"
       ],
-      "#infra/*": [
-        "./app/infra/*"
+      "#modules/*": [
+        "./app/modules/*"
       ]
     }
   },
