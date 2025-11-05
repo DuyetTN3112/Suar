@@ -1,0 +1,53 @@
+%% seq_08_project_management.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand project management across user-shell and org-shell surfaces before reading individual project operations.
+%% Key boundary: Overview covers list, create/grow, and shared-detail edit patterns only; child diagrams carry create/member-add and delete specifics.
+%% Current caveat: TransferProjectOwnershipCommand exists in code but has no confirmed route wiring, so it remains outside the visible project-management surface.
+%% Runtime caveat: Switch project is session-context behavior (current_project_id) and can change what adjacent task surfaces show, but it is not the same thing as mutating project data.
+
+sequenceDiagram
+    autonumber
+    actor U as Org Member
+    participant B as Browser
+    participant UI as Inertia Project UI
+    participant C as Controller
+    participant API as Project API
+    participant Cmd as Command
+    participant Repo as Repository
+    participant Evt as Event Bus
+
+    Note over U, Evt: LIST SURFACE SPLIT
+    U->>B: Open project workspace
+    B->>C: GET /projects or GET /org/projects
+    C-->>UI: Render user table or org ProjectGrid
+    UI-->>B: /projects uses AppLayout, /org/projects uses OrganizationLayout
+
+    Note over U, Evt: CONTEXT SWITCH, NOT PROJECT MUTATION
+    U->>UI: Switch current project
+    UI->>C: POST /switch-project or POST /api/v1/me/projects/switch
+    C->>API: ensure project belongs to current organization
+    API-->>UI: Save current_project_id in session and redirect /tasks
+
+    Note over U, Evt: CREATE OR GROW PROJECT
+    U->>UI: Submit org project form or add member
+    UI->>C: POST /org/projects or POST /projects/members
+    C->>Cmd: CreateCurrentOrganizationProjectCommand or AddProjectMemberCommand
+    Cmd->>Repo: Persist project or member record
+    Cmd->>Evt: Emit project:created or project:member_added
+    C-->>B: Redirect back
+
+    Note over U, Evt: SHARED DETAIL EDIT
+    U->>UI: Edit shared project detail
+    UI->>API: PUT /api/projects/:id
+    API->>Cmd: UpdateProjectCommand
+    Cmd->>Repo: Validate status and persist update
+    API-->>UI: JSON success or validation error
+
+    Note over U, Evt: DELETE PROJECT
+    U->>B: Delete project
+    B->>API: DELETE /api/projects/:id or DELETE /projects/:id
+    API->>C: Route to API or page controller
+    C->>Cmd: DeleteProjectCommand
+    Cmd->>Repo: Validate blockers and soft delete project
+    Cmd->>Evt: Emit project:deleted
+    C-->>B: Redirect to projects list

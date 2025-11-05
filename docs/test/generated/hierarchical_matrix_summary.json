@@ -1,0 +1,3325 @@
+{
+  "generatedAt": "2026-07-16T06:40:15.644Z",
+  "source": "docs/08-testing/behavior-matrices/*/*.md",
+  "note": "Counts are atomic matrix rows, not product coverage percentages.",
+  "files": [
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/audit-logs.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/authorization.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 8
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/dashboard.md",
+      "atomicCases": 3,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/moderation-disputes.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/packages-subscriptions.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 4,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/admin/permissions-proficiency.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/logout.md",
+      "atomicCases": 3,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/oauth-login.md",
+      "atomicCases": 18,
+      "byLayer": {
+        "Backend": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 15
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 8
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 15,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 15,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/auth/session-refresh.md",
+      "atomicCases": 15,
+      "byLayer": {
+        "Backend": {
+          "covered": 14,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 14
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 15
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 12
+        },
+        "Test Strength": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 12,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-review.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 6,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 6,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-submit.md",
+      "atomicCases": 19,
+      "byLayer": {
+        "Backend": {
+          "covered": 18,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 19
+        },
+        "Component": {
+          "covered": 4,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "E2E": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 10
+        },
+        "Test Strength": {
+          "covered": 13,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 13,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/application-withdraw.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/marketplace/task-discovery.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/notifications/notification-lifecycle.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/create-context.md",
+      "atomicCases": 8,
+      "byLayer": {
+        "Backend": {
+          "covered": 8,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 8
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/invitation-response.md",
+      "atomicCases": 13,
+      "byLayer": {
+        "Backend": {
+          "covered": 12,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 7,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Test Strength": {
+          "covered": 8,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 8,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/invitation-send.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/join-request.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 7,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "E2E": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/membership-role.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 7,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 7,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/organizations/ownership-transfer.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/projects/project-create-update.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/projects/project-membership.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/projects/sprint-backlog.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/ai-evaluation-callback.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Test Strength": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/analytics-trust.md",
+      "atomicCases": 6,
+      "byLayer": {
+        "Backend": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/dispute-governance.md",
+      "atomicCases": 14,
+      "byLayer": {
+        "Backend": {
+          "covered": 10,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 11
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 11
+        },
+        "E2E": {
+          "covered": 5,
+          "partial": 5,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/reverse-review-read.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 4,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/sprint-review-package.md",
+      "atomicCases": 9,
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 9,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 9,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/reviews/task-review.md",
+      "atomicCases": 11,
+      "byLayer": {
+        "Backend": {
+          "covered": 11,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 11
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 4,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 5,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 5,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/search/global-search.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/skills/skill-rubric-management.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Contract": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Test Strength": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/board-interaction.md",
+      "atomicCases": 5,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/comments-attachments.md",
+      "atomicCases": 8,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Contract": {
+          "covered": 6,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/create-update.md",
+      "atomicCases": 19,
+      "byLayer": {
+        "Backend": {
+          "covered": 17,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 15
+        },
+        "E2E": {
+          "covered": 1,
+          "partial": 9,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Test Strength": {
+          "covered": 6,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 6,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/list-access.md",
+      "atomicCases": 8,
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 8
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "E2E": {
+          "covered": 2,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/status-transition.md",
+      "atomicCases": 13,
+      "byLayer": {
+        "Backend": {
+          "covered": 13,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 10
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 7,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 3
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/tasks/submission.md",
+      "atomicCases": 7,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Contract": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/users/invitation-inbox.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 2,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/users/profile-snapshot.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    {
+      "file": "docs/08-testing/behavior-matrices/users/trust-explanation.md",
+      "atomicCases": 4,
+      "byLayer": {
+        "Backend": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 3
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 2,
+          "weak": 0,
+          "missing": 2,
+          "N/A": 0
+        },
+        "Test Strength": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    }
+  ],
+  "totals": {
+    "files": 40,
+    "atomicCases": 319,
+    "byLayer": {
+      "Backend": {
+        "covered": 238,
+        "partial": 30,
+        "weak": 0,
+        "missing": 1,
+        "N/A": 50
+      },
+      "Contract": {
+        "covered": 12,
+        "partial": 8,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 299
+      },
+      "Component": {
+        "covered": 40,
+        "partial": 68,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 211
+      },
+      "E2E": {
+        "covered": 66,
+        "partial": 90,
+        "weak": 0,
+        "missing": 26,
+        "N/A": 137
+      },
+      "Test Strength": {
+        "covered": 116,
+        "partial": 203,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 0
+      },
+      "Overall": {
+        "covered": 116,
+        "partial": 203,
+        "weak": 0,
+        "missing": 0,
+        "N/A": 0
+      }
+    },
+    "verifiedCoveredByLayer": {
+      "Backend": 238,
+      "Contract": 12,
+      "Component": 40,
+      "E2E": 66,
+      "Test Strength": 116,
+      "Overall": 116
+    },
+    "applicableByLayer": {
+      "Backend": 269,
+      "Contract": 20,
+      "Component": 108,
+      "E2E": 182,
+      "Test Strength": 319,
+      "Overall": 319
+    },
+    "coveredRowsWithAnyVerifiedEvidence": 116,
+    "coveredRowsFullyVerified": 116
+  },
+  "byDomain": {
+    "Admin": {
+      "atomicCases": 35,
+      "largeFlows": [
+        "Audit logs",
+        "Authorization boundary",
+        "Dashboard",
+        "Moderation/disputes",
+        "Packages/subscriptions",
+        "Permissions",
+        "Proficiency/rubrics"
+      ],
+      "subflows": [
+        "Audit logs / Access boundary",
+        "Audit logs / Filter logs",
+        "Audit logs / List logs",
+        "Audit logs / Pagination",
+        "Authorization boundary / Admin API route guard",
+        "Authorization boundary / Admin mode/session context",
+        "Authorization boundary / Admin shell route guard",
+        "Authorization boundary / Org admin distinction",
+        "Dashboard / Access boundary",
+        "Dashboard / Empty/minimal stats",
+        "Dashboard / Summary stats",
+        "Moderation/disputes / Access boundary",
+        "Moderation/disputes / Dispute queue",
+        "Moderation/disputes / Dispute resolve",
+        "Moderation/disputes / Flagged detail",
+        "Moderation/disputes / Flagged list",
+        "Moderation/disputes / Resolve flagged",
+        "Packages/subscriptions / Access boundary",
+        "Packages/subscriptions / List packages",
+        "Packages/subscriptions / List subscriptions",
+        "Packages/subscriptions / QR codes",
+        "Packages/subscriptions / Update package",
+        "Packages/subscriptions / Update subscription",
+        "Permissions / Show permissions",
+        "Proficiency/rubrics / Access boundary",
+        "Proficiency/rubrics / List rubric",
+        "Proficiency/rubrics / Read-only guard"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 21,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 35
+        },
+        "Component": {
+          "covered": 6,
+          "partial": 12,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 17
+        },
+        "E2E": {
+          "covered": 9,
+          "partial": 4,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 19
+        },
+        "Test Strength": {
+          "covered": 16,
+          "partial": 19,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 16,
+          "partial": 19,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Auth": {
+      "atomicCases": 36,
+      "largeFlows": [
+        "Login",
+        "Logout",
+        "Session auth",
+        "Token refresh"
+      ],
+      "subflows": [
+        "Login / Landing after login",
+        "Login / Login page",
+        "Login / OAuth callback",
+        "Login / OAuth redirect",
+        "Logout / Browser logout",
+        "Logout / Post-logout access",
+        "Session auth / Bearer bridge",
+        "Session auth / Bearer token",
+        "Session auth / Browser session",
+        "Session auth / E2E helper failure",
+        "Token refresh / Error contract",
+        "Token refresh / Expiry",
+        "Token refresh / Organization switch",
+        "Token refresh / Race",
+        "Token refresh / Replay",
+        "Token refresh / Same org rotation"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 28,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 35
+        },
+        "Component": {
+          "covered": 0,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 33
+        },
+        "E2E": {
+          "covered": 7,
+          "partial": 4,
+          "weak": 0,
+          "missing": 5,
+          "N/A": 20
+        },
+        "Test Strength": {
+          "covered": 18,
+          "partial": 18,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 18,
+          "partial": 18,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Marketplace": {
+      "atomicCases": 39,
+      "largeFlows": [
+        "Application review",
+        "Application submit",
+        "Application withdraw",
+        "Task discovery"
+      ],
+      "subflows": [
+        "Application review / Approve application",
+        "Application review / Permission boundary",
+        "Application review / Ranking support",
+        "Application review / Reject application",
+        "Application review / Reviewer list",
+        "Application submit / Duplicate/idempotency",
+        "Application submit / Eligibility",
+        "Application submit / Message validation",
+        "Application submit / Portfolio links",
+        "Application submit / Task state gates",
+        "Application submit / UI submit result",
+        "Application withdraw / Invalid application state",
+        "Application withdraw / Invalid ownership",
+        "Application withdraw / Own pending application",
+        "Application withdraw / UI result",
+        "Task discovery / Assigned task hidden",
+        "Task discovery / Empty state",
+        "Task discovery / Hidden task listing",
+        "Task discovery / Search/filter",
+        "Task discovery / Visible task listing"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 37,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 39
+        },
+        "Component": {
+          "covered": 5,
+          "partial": 7,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 27
+        },
+        "E2E": {
+          "covered": 13,
+          "partial": 8,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 15
+        },
+        "Test Strength": {
+          "covered": 23,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 23,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Notifications": {
+      "atomicCases": 7,
+      "largeFlows": [
+        "Notification lifecycle"
+      ],
+      "subflows": [
+        "Notification lifecycle / Delete",
+        "Notification lifecycle / Latest",
+        "Notification lifecycle / List",
+        "Notification lifecycle / Mark read"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 6,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 1,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 6
+        },
+        "Component": {
+          "covered": 3,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 3,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Organizations": {
+      "atomicCases": 47,
+      "largeFlows": [
+        "Create organization",
+        "Current context",
+        "Invitation",
+        "Join request",
+        "Member role/remove",
+        "Ownership transfer"
+      ],
+      "subflows": [
+        "Create organization / Creator state",
+        "Create organization / Duplicate naming",
+        "Create organization / Valid create",
+        "Current context / Approved membership",
+        "Current context / Deleted/invalid org",
+        "Current context / Pending membership",
+        "Current context / Switch foreign org",
+        "Current context / Switch org",
+        "Invitation / Accept invitation",
+        "Invitation / Duplicate target",
+        "Invitation / Email validation",
+        "Invitation / End-to-end journey",
+        "Invitation / Invitee inbox",
+        "Invitation / Reject invitation",
+        "Invitation / Send invitation",
+        "Invitation / Target state",
+        "Join request / Approve request",
+        "Join request / Permission boundary",
+        "Join request / Reject request",
+        "Join request / Submit request",
+        "Member role/remove / Cross-org boundary",
+        "Member role/remove / List members",
+        "Member role/remove / Remove member",
+        "Member role/remove / Update role",
+        "Ownership transfer / Actor boundary",
+        "Ownership transfer / Cross-org boundary",
+        "Ownership transfer / Target state",
+        "Ownership transfer / Valid transfer"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 41,
+          "partial": 5,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 1
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 47
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 14,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 32
+        },
+        "E2E": {
+          "covered": 13,
+          "partial": 16,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Test Strength": {
+          "covered": 15,
+          "partial": 32,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 15,
+          "partial": 32,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Projects": {
+      "atomicCases": 17,
+      "largeFlows": [
+        "Project create/update",
+        "Project membership",
+        "Sprint/backlog context"
+      ],
+      "subflows": [
+        "Project create/update / Create project",
+        "Project create/update / Update project",
+        "Project membership / Add member",
+        "Project membership / Permission boundary",
+        "Project membership / Remove member",
+        "Project membership / Update member",
+        "Sprint/backlog context / Cross-project sprint",
+        "Sprint/backlog context / Current project filter",
+        "Sprint/backlog context / Org-wide escape",
+        "Sprint/backlog context / Sprint assignment"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 9,
+          "partial": 6,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 17
+        },
+        "Component": {
+          "covered": 1,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 13
+        },
+        "E2E": {
+          "covered": 4,
+          "partial": 8,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Test Strength": {
+          "covered": 6,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 6,
+          "partial": 11,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Reviews": {
+      "atomicCases": 54,
+      "largeFlows": [
+        "AI dispute evaluation",
+        "Dispute governance",
+        "Reverse review read",
+        "Review analytics",
+        "Sprint review lifecycle",
+        "Task review lifecycle"
+      ],
+      "subflows": [
+        "AI dispute evaluation / Callback auth",
+        "AI dispute evaluation / Payload validation",
+        "AI dispute evaluation / Target state",
+        "Dispute governance / Admin readiness",
+        "Dispute governance / Admin resolution",
+        "Dispute governance / Attach evidence",
+        "Dispute governance / Exchange comments",
+        "Dispute governance / Open dispute",
+        "Dispute governance / Report to admin",
+        "Reverse review read / Admin scope",
+        "Reverse review read / Deprecated create",
+        "Reverse review read / Me scope",
+        "Reverse review read / Org scope",
+        "Review analytics / Anomaly detection",
+        "Review analytics / Empty analytics",
+        "Review analytics / Performance score",
+        "Review analytics / Spider chart",
+        "Review analytics / Trust recalculation",
+        "Sprint review lifecycle / Close period",
+        "Sprint review lifecycle / Expire package",
+        "Sprint review lifecycle / Open period",
+        "Sprint review lifecycle / Submit package",
+        "Task review lifecycle / Complete quorum",
+        "Task review lifecycle / Confirm/dispute",
+        "Task review lifecycle / Manager review",
+        "Task review lifecycle / Open session",
+        "Task review lifecycle / Peer review",
+        "Task review lifecycle / Permission boundary",
+        "Task review lifecycle / Self-assessment"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 44,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 9
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 4,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 50
+        },
+        "Component": {
+          "covered": 5,
+          "partial": 12,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 37
+        },
+        "E2E": {
+          "covered": 9,
+          "partial": 14,
+          "weak": 0,
+          "missing": 3,
+          "N/A": 28
+        },
+        "Test Strength": {
+          "covered": 17,
+          "partial": 37,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 17,
+          "partial": 37,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Search": {
+      "atomicCases": 5,
+      "largeFlows": [
+        "Global search"
+      ],
+      "subflows": [
+        "Global search / Empty query",
+        "Global search / Fallback",
+        "Global search / Permission filter",
+        "Global search / Query",
+        "Global search / Telemetry"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 5,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 3
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 4
+        },
+        "Test Strength": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Skills": {
+      "atomicCases": 7,
+      "largeFlows": [
+        "Skill/rubric management"
+      ],
+      "subflows": [
+        "Skill/rubric management / Active skills",
+        "Skill/rubric management / Project role",
+        "Skill/rubric management / Project skill",
+        "Skill/rubric management / Rubric/admin"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 2,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "Contract": {
+          "covered": 2,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 5
+        },
+        "Component": {
+          "covered": 2,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 2
+        },
+        "E2E": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 7
+        },
+        "Test Strength": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 4,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Tasks": {
+      "atomicCases": 60,
+      "largeFlows": [
+        "Attachments",
+        "Board interaction",
+        "Comments",
+        "Create task",
+        "List/access task",
+        "Status lifecycle",
+        "Submission",
+        "Update task"
+      ],
+      "subflows": [
+        "Attachments / Add attachment",
+        "Attachments / Attachment validation",
+        "Attachments / Delete attachment",
+        "Board interaction / Conflict handling",
+        "Board interaction / Dialog behavior",
+        "Board interaction / Dialog submit",
+        "Board interaction / Pagination",
+        "Board interaction / Sort guard",
+        "Comments / Mention edit",
+        "Comments / Reply",
+        "Comments / Review note",
+        "Comments / Root comment",
+        "Comments / Unauthorized comment",
+        "Create task / Assignment scope",
+        "Create task / Dates/enums",
+        "Create task / Parent task",
+        "Create task / Project boundary",
+        "Create task / Required text fields",
+        "Create task / Role prefill",
+        "Create task / Skill graph rollback",
+        "List/access task / Current project context",
+        "List/access task / Member list",
+        "List/access task / Org admin list",
+        "List/access task / Pending member",
+        "List/access task / Project/backlog filter",
+        "List/access task / Task detail",
+        "Status lifecycle / Batch transition",
+        "Status lifecycle / Locked/reviewed guard",
+        "Status lifecycle / Permission boundary",
+        "Status lifecycle / Single transition",
+        "Status lifecycle / Submission-gated transition",
+        "Submission / Evidence",
+        "Submission / Lock/read-only",
+        "Submission / Save draft",
+        "Submission / Submit package",
+        "Update task / Concurrency",
+        "Update task / Mutable fields",
+        "Update task / Permissions"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 41,
+          "partial": 1,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 18
+        },
+        "Contract": {
+          "covered": 9,
+          "partial": 3,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 48
+        },
+        "Component": {
+          "covered": 7,
+          "partial": 13,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 40
+        },
+        "E2E": {
+          "covered": 6,
+          "partial": 29,
+          "weak": 0,
+          "missing": 6,
+          "N/A": 19
+        },
+        "Test Strength": {
+          "covered": 9,
+          "partial": 51,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 9,
+          "partial": 51,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    },
+    "Users/Profile": {
+      "atomicCases": 12,
+      "largeFlows": [
+        "Invitation inbox",
+        "Profile snapshot",
+        "Trust explanation"
+      ],
+      "subflows": [
+        "Invitation inbox / Accept from inbox",
+        "Invitation inbox / Empty inbox",
+        "Invitation inbox / List invitations",
+        "Invitation inbox / Reject from inbox",
+        "Profile snapshot / Empty work history",
+        "Profile snapshot / Own profile",
+        "Profile snapshot / Privacy boundary",
+        "Profile snapshot / Public/org profile",
+        "Trust explanation / Calculated trust",
+        "Trust explanation / False-pass guard",
+        "Trust explanation / No trust data",
+        "Trust explanation / Raw id privacy"
+      ],
+      "byLayer": {
+        "Backend": {
+          "covered": 4,
+          "partial": 0,
+          "weak": 0,
+          "missing": 1,
+          "N/A": 7
+        },
+        "Contract": {
+          "covered": 0,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 12
+        },
+        "Component": {
+          "covered": 8,
+          "partial": 0,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 4
+        },
+        "E2E": {
+          "covered": 2,
+          "partial": 4,
+          "weak": 0,
+          "missing": 5,
+          "N/A": 1
+        },
+        "Test Strength": {
+          "covered": 3,
+          "partial": 9,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        },
+        "Overall": {
+          "covered": 3,
+          "partial": 9,
+          "weak": 0,
+          "missing": 0,
+          "N/A": 0
+        }
+      }
+    }
+  },
+  "criticalE2eRows": [
+    {
+      "domain": "Admin",
+      "largeFlow": "Audit logs",
+      "subflow": "List logs",
+      "testCaseId": "ADM-AUD-TC001",
+      "overall": "partial",
+      "evidence": "`app/modules/admin/tests/backend/integration/audit_logs.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`, `inertia/apps/admin/tests/modules/audit_logs/index.test.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Audit logs",
+      "subflow": "Filter logs",
+      "testCaseId": "ADM-AUD-TC002",
+      "overall": "partial",
+      "evidence": "`app/modules/admin/tests/backend/integration/audit_logs.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`, `inertia/apps/admin/tests/modules/audit_logs/index.test.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Audit logs",
+      "subflow": "Access boundary",
+      "testCaseId": "ADM-AUD-TC004",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/audit_logs.spec.ts`; `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Authorization boundary",
+      "subflow": "Admin shell route guard",
+      "testCaseId": "ADM-AUTH-TC002",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Authorization boundary",
+      "subflow": "Admin shell route guard",
+      "testCaseId": "ADM-AUTH-TC003",
+      "overall": "covered",
+      "evidence": "`inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Authorization boundary",
+      "subflow": "Org admin distinction",
+      "testCaseId": "ADM-AUTH-TC004",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Dashboard",
+      "subflow": "Access boundary",
+      "testCaseId": "ADM-DB-TC003",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Packages/subscriptions",
+      "subflow": "Access boundary",
+      "testCaseId": "ADM-PKG-TC006",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/admin_api_standardization.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`"
+    },
+    {
+      "domain": "Admin",
+      "largeFlow": "Permissions",
+      "subflow": "Show permissions",
+      "testCaseId": "ADM-PR-TC002",
+      "overall": "covered",
+      "evidence": "`app/modules/admin/tests/backend/integration/permissions_proficiency_access.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_proficiency_rubric_read.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Logout",
+      "subflow": "Browser logout",
+      "testCaseId": "AUTH-LO-TC001",
+      "overall": "covered",
+      "evidence": "`app/modules/auth/tests/backend/integration/logout_command.spec.ts`; `inertia/apps/user/tests/e2e/auth/logout.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Logout",
+      "subflow": "Browser logout",
+      "testCaseId": "AUTH-LO-TC002",
+      "overall": "covered",
+      "evidence": "`app/modules/auth/tests/backend/integration/logout_command.spec.ts`; `inertia/apps/user/tests/e2e/auth/logout.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Logout",
+      "subflow": "Post-logout access",
+      "testCaseId": "AUTH-LO-TC003",
+      "overall": "covered",
+      "evidence": "`inertia/apps/user/tests/e2e/auth/logout.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Login",
+      "subflow": "Login page",
+      "testCaseId": "AUTH-LP-TC001",
+      "overall": "partial",
+      "evidence": "`inertia/apps/user/tests/e2e/auth/login_page.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Login",
+      "subflow": "Login page",
+      "testCaseId": "AUTH-LP-TC002",
+      "overall": "partial",
+      "evidence": "`inertia/apps/user/tests/e2e/auth/login_page.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Login",
+      "subflow": "Login page",
+      "testCaseId": "AUTH-LP-TC003",
+      "overall": "partial",
+      "evidence": "`inertia/apps/user/tests/e2e/auth/login_page.spec.ts`"
+    },
+    {
+      "domain": "Auth",
+      "largeFlow": "Session auth",
+      "subflow": "E2E helper failure",
+      "testCaseId": "AUTH-SA-TC007",
+      "overall": "covered",
+      "evidence": "`inertia/apps/user/tests/e2e/meta/auth_helper_fail_fast.spec.ts` covers user/org login helper bootstrap failure, exact status/body error, and cached-token cleanup"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application review",
+      "subflow": "Reviewer list",
+      "testCaseId": "MKT-RV-TC001",
+      "overall": "covered",
+      "evidence": "`task_application_access.spec.ts`, `marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application review",
+      "subflow": "Reviewer list",
+      "testCaseId": "MKT-RV-TC002",
+      "overall": "covered",
+      "evidence": "`task_application_access.spec.ts`, `marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application review",
+      "subflow": "Approve application",
+      "testCaseId": "MKT-RV-TC003",
+      "overall": "covered",
+      "evidence": "`task_applications.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application review",
+      "subflow": "Reject application",
+      "testCaseId": "MKT-RV-TC006",
+      "overall": "covered",
+      "evidence": "`task_applications.spec.ts`, `marketplace_routes.spec.ts`, `my_applications_page.test.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application review",
+      "subflow": "Permission boundary",
+      "testCaseId": "MKT-RV-TC008",
+      "overall": "partial",
+      "evidence": "`task_applications.spec.ts`, `marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application submit",
+      "subflow": "Eligibility",
+      "testCaseId": "MKT-AS-TC001",
+      "overall": "covered",
+      "evidence": "`marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application submit",
+      "subflow": "Eligibility",
+      "testCaseId": "MKT-AS-TC002",
+      "overall": "covered",
+      "evidence": "`marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application submit",
+      "subflow": "Duplicate/idempotency",
+      "testCaseId": "MKT-AS-TC015",
+      "overall": "covered",
+      "evidence": "`task_applications.spec.ts`, `marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application submit",
+      "subflow": "UI submit result",
+      "testCaseId": "MKT-AS-TC019",
+      "overall": "covered",
+      "evidence": "`inertia/apps/user/tests/modules/marketplace/apply_task_modal.test.ts` covers exact server error, no success toast, no reload, and dialog content remains open; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts` covers browser-level backend reject surface."
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Application withdraw",
+      "subflow": "Own pending application",
+      "testCaseId": "MKT-WD-TC001",
+      "overall": "covered",
+      "evidence": "`task_applications.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Task discovery",
+      "subflow": "Visible task listing",
+      "testCaseId": "MKT-TD-TC001",
+      "overall": "covered",
+      "evidence": "`marketplace_routes.spec.ts`, `tasks_public_api_task_reader.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Task discovery",
+      "subflow": "Hidden task listing",
+      "testCaseId": "MKT-TD-TC002",
+      "overall": "covered",
+      "evidence": "`marketplace_routes.spec.ts`, `tasks_public_api_task_reader.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Marketplace",
+      "largeFlow": "Task discovery",
+      "subflow": "Assigned task hidden",
+      "testCaseId": "MKT-TD-TC003",
+      "overall": "covered",
+      "evidence": "`marketplace_routes.spec.ts`, `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts`"
+    },
+    {
+      "domain": "Notifications",
+      "largeFlow": "Notification lifecycle",
+      "subflow": "List",
+      "testCaseId": "NOTIF-LC-TC001",
+      "overall": "covered",
+      "evidence": "`app/modules/notifications/tests/backend/integration/notification_flow.spec.ts` covers owner feed/unread count; `inertia/apps/user/tests/modules/notifications/notifications_page.test.ts` covers row title/message/count rendering; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts` creates a real task-application notification through browser apply flow, then owner opens `/notifications` and sees the exact notification title/message."
+    },
+    {
+      "domain": "Notifications",
+      "largeFlow": "Notification lifecycle",
+      "subflow": "Mark read",
+      "testCaseId": "NOTIF-LC-TC004",
+      "overall": "covered",
+      "evidence": "`app/modules/notifications/tests/backend/integration/notification_flow.spec.ts` covers owner mark-read, `read_at`, unread count, and audit event; `inertia/apps/user/tests/modules/notifications/notifications_page.test.ts` covers row-level mark-read POST, CSRF header, row retention, and count decrement; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts` clicks the browser notification row `Đã đọc` action and verifies the unread action disappears."
+    },
+    {
+      "domain": "Notifications",
+      "largeFlow": "Notification lifecycle",
+      "subflow": "Delete",
+      "testCaseId": "NOTIF-LC-TC006",
+      "overall": "covered",
+      "evidence": "`app/modules/notifications/tests/backend/integration/notification_flow.spec.ts` covers owner delete, subsequent read removal, unread count, pagination meta, and audit event; `inertia/apps/user/tests/modules/notifications/notifications_page.test.ts` covers owner delete click, CSRF header, row removal, and unread count decrement; `inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts` deletes the real browser notification row and verifies the title is gone."
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Invitee inbox",
+      "testCaseId": "ORG-IV-TC007",
+      "overall": "covered",
+      "evidence": "`app/modules/organizations/tests/backend/integration/org_invitations_query.spec.ts`, `inertia/apps/user/tests/modules/profile/invitations.test.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Accept invitation",
+      "testCaseId": "ORG-IV-TC008",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Accept invitation",
+      "testCaseId": "ORG-IV-TC009",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Accept invitation",
+      "testCaseId": "ORG-IV-TC010",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Reject invitation",
+      "testCaseId": "ORG-IV-TC011",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Reject invitation",
+      "testCaseId": "ORG-IV-TC012",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "End-to-end journey",
+      "testCaseId": "ORG-IV-TC013",
+      "overall": "covered",
+      "evidence": "`inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Invitation",
+      "subflow": "Send invitation",
+      "testCaseId": "ORG-IS-TC001",
+      "overall": "partial",
+      "evidence": "`org_invitations_query.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Join request",
+      "subflow": "Submit request",
+      "testCaseId": "ORG-JR-TC001",
+      "overall": "covered",
+      "evidence": "`join_request.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Join request",
+      "subflow": "Approve request",
+      "testCaseId": "ORG-JR-TC004",
+      "overall": "covered",
+      "evidence": "`join_request.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Join request",
+      "subflow": "Reject request",
+      "testCaseId": "ORG-JR-TC005",
+      "overall": "covered",
+      "evidence": "`join_request.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Join request",
+      "subflow": "Permission boundary",
+      "testCaseId": "ORG-JR-TC006",
+      "overall": "covered",
+      "evidence": "`join_request.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts`"
+    },
+    {
+      "domain": "Organizations",
+      "largeFlow": "Join request",
+      "subflow": "Permission boundary",
+      "testCaseId": "ORG-JR-TC007",
+      "overall": "covered",
+      "evidence": "`join_request.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts`"
+    },
+    {
+      "domain": "Projects",
+      "largeFlow": "Project create/update",
+      "subflow": "Update project",
+      "testCaseId": "PRJ-CU-TC007",
+      "overall": "covered",
+      "evidence": "`inertia/apps/org/tests/e2e/projects/project_status_enum_matrix.spec.ts`"
+    },
+    {
+      "domain": "Projects",
+      "largeFlow": "Sprint/backlog context",
+      "subflow": "Org-wide escape",
+      "testCaseId": "PRJ-SP-TC002",
+      "overall": "covered",
+      "evidence": "`inertia/apps/org/tests/e2e/tasks/org_task_scope_journey.spec.ts`"
+    },
+    {
+      "domain": "Projects",
+      "largeFlow": "Sprint/backlog context",
+      "subflow": "Sprint assignment",
+      "testCaseId": "PRJ-SP-TC003",
+      "overall": "covered",
+      "evidence": "`app/modules/sprints/tests/backend/integration/move_task_to_sprint_command.spec.ts`; `inertia/apps/org/tests/e2e/projects/sprint_board_role_experience.spec.ts`"
+    },
+    {
+      "domain": "Projects",
+      "largeFlow": "Sprint/backlog context",
+      "subflow": "Cross-project sprint",
+      "testCaseId": "PRJ-SP-TC004",
+      "overall": "covered",
+      "evidence": "`app/modules/sprints/tests/backend/integration/move_task_to_sprint_command.spec.ts`; `inertia/apps/org/tests/e2e/projects/sprint_board_role_experience.spec.ts`"
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Dispute governance",
+      "subflow": "Open dispute",
+      "testCaseId": "REV-DG-TC001",
+      "overall": "covered",
+      "evidence": "`confirm_review.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` completes manager/peer review in browser, opens the confirmation tab as reviewee, submits a dispute reason, and asserts the disputed banner."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Dispute governance",
+      "subflow": "Exchange comments",
+      "testCaseId": "REV-DG-TC004",
+      "overall": "partial",
+      "evidence": "`review_disputes_api_standardization.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` logs in the reviewee, posts `Reviewee response: PR evidence shows broader scope.`, and asserts that exact comment appears."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Dispute governance",
+      "subflow": "Exchange comments",
+      "testCaseId": "REV-DG-TC005",
+      "overall": "partial",
+      "evidence": "`review_disputes_api_standardization.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` logs in the reviewer/counterparty, posts `Reviewer response: scoring followed available rubric.`, and asserts that exact comment appears."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Dispute governance",
+      "subflow": "Attach evidence",
+      "testCaseId": "REV-DG-TC007",
+      "overall": "covered",
+      "evidence": "`review_dispute_artifacts_api_standardization.spec.ts`, `dispute_evidence_tab.test.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` adds `Dispute PR package` URL evidence in the browser dispute room and asserts it appears."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Dispute governance",
+      "subflow": "Report to admin",
+      "testCaseId": "REV-DG-TC009",
+      "overall": "covered",
+      "evidence": "`review_dispute_readiness.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` creates both-side comments, adds evidence, fills the admin report reason, verifies the report button is enabled, submits, and asserts `Admin đang xem xét`."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Task review lifecycle",
+      "subflow": "Self-assessment",
+      "testCaseId": "REV-TR-TC003",
+      "overall": "covered",
+      "evidence": "`self_assessment.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` logs in the reviewee, fills self-assessment fields, saves, and asserts `Bản tự đánh giá hiện tại` in browser."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Task review lifecycle",
+      "subflow": "Manager review",
+      "testCaseId": "REV-TR-TC005",
+      "overall": "covered",
+      "evidence": "`submit_review.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` logs in the manager, fills skill level/confidence/rationale/comment plus dimension scores, submits, and asserts `Review submitted successfully`."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Task review lifecycle",
+      "subflow": "Peer review",
+      "testCaseId": "REV-TR-TC006",
+      "overall": "covered",
+      "evidence": "`submit_review.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` logs in the peer, submits one peer review with skill rating, and asserts `Review submitted successfully`."
+    },
+    {
+      "domain": "Reviews",
+      "largeFlow": "Task review lifecycle",
+      "subflow": "Confirm/dispute",
+      "testCaseId": "REV-TR-TC011",
+      "overall": "covered",
+      "evidence": "`confirm_review.spec.ts`; `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts` opens the confirmation tab after required reviews, submits a dispute reason, and asserts `Đánh giá này đang bị khiếu nại.`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "Create task",
+      "subflow": "Required text fields",
+      "testCaseId": "TASK-CU-TC001",
+      "overall": "covered",
+      "evidence": "`app/modules/tasks/tests/backend/integration/create_task.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_create_role_prefill.spec.ts`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "List/access task",
+      "subflow": "Current project context",
+      "testCaseId": "TASK-LA-TC005",
+      "overall": "covered",
+      "evidence": "`inertia/apps/org/tests/e2e/tasks/org_task_scope_journey.spec.ts`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "List/access task",
+      "subflow": "Task detail",
+      "testCaseId": "TASK-LA-TC007",
+      "overall": "covered",
+      "evidence": "`inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "Submission",
+      "subflow": "Save draft",
+      "testCaseId": "TASK-SUB-TC001",
+      "overall": "partial",
+      "evidence": "`inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "Submission",
+      "subflow": "Save draft",
+      "testCaseId": "TASK-SUB-TC002",
+      "overall": "partial",
+      "evidence": "`inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`"
+    },
+    {
+      "domain": "Tasks",
+      "largeFlow": "Submission",
+      "subflow": "Lock/read-only",
+      "testCaseId": "TASK-SUB-TC005",
+      "overall": "covered",
+      "evidence": "`inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`"
+    },
+    {
+      "domain": "Users/Profile",
+      "largeFlow": "Invitation inbox",
+      "subflow": "Accept from inbox",
+      "testCaseId": "USR-IV-TC003",
+      "overall": "covered",
+      "evidence": "`app/modules/organizations/tests/backend/integration/membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    },
+    {
+      "domain": "Users/Profile",
+      "largeFlow": "Invitation inbox",
+      "subflow": "Reject from inbox",
+      "testCaseId": "USR-IV-TC004",
+      "overall": "covered",
+      "evidence": "`membership.spec.ts`, `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`"
+    }
+  ],
+  "evidenceIssues": [],
+  "coveredLayerEvidenceIssues": []
+}

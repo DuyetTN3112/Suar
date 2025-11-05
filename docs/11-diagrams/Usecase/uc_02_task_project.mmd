@@ -1,0 +1,46 @@
+%% uc_02_task_project.mmd — Project & Task Overview
+%% Updated 2026-07-10 (verified).
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_02a_project_governance.mmd
+%%   - uc_02b_task_lifecycle.mmd
+%% Current caveat: Submission package is part of task workspace, but not every task path reaches the same completion/review depth.
+
+flowchart LR
+    projectOwner["<<actor>> Project Owner"]
+    projectManager["<<actor>> Project Manager"]
+    projectMember["<<actor>> Project Member"]
+    projectViewer["<<actor>> Project Viewer"]
+    orgAdmin["<<actor>> Org Admin"]
+
+    subgraph system["Project & Task Workspace"]
+        projectGov([Manage project scope and roster])
+        projectSwitch([Switch current project workspace])
+        taskAuthor([Author and maintain task details])
+        taskFlow([Execute task workflow])
+        submissionPack([Maintain submission package, comments, and attachments])
+        taskViews([View boards, timeline, and audit history])
+        workflowSetup([Configure task statuses and transitions])
+    end
+
+    projectOwner --> projectGov
+    projectOwner --> projectSwitch
+    projectManager --> taskAuthor
+    projectManager --> taskFlow
+    projectManager --> submissionPack
+    projectMember --> taskFlow
+    projectMember --> submissionPack
+    projectMember --> taskViews
+    projectViewer --> taskViews
+    orgAdmin --> workflowSetup
+    projectOwner --> workflowSetup
+
+    projectOwner -.->|generalization| projectManager
+    projectManager -.->|generalization| projectMember
+    projectMember -.->|generalization| projectViewer
+    taskFlow -.->|<<may include>>| submissionPack
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class projectOwner,projectManager,projectMember,projectViewer,orgAdmin actor
+    class projectGov,projectSwitch,taskAuthor,taskFlow,submissionPack,taskViews,workflowSetup usecase

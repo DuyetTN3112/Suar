@@ -1,0 +1,43 @@
+%% ─────────────────────────────────────────────────────────────
+%% Updated 2026-07-10 (verified).
+%% act_07c: Reviewed Skill Recalculation
+%% ─────────────────────────────────────────────────────────────
+%% Reader intent: Understand how confirmed reviews refresh reviewed skill aggregates without user-triggered CRUD.
+%% Key boundary: Review-driven recalculation only; manual skill CRUD and spider-chart reading live in act_07b_skill_management.mmd.
+%% Reading mode: Low-level action diagram. Open only when the concern is profile aggregates, reviewed skills, or post-review recalculation.
+%% Current caveat: Runtime writes reviewed aggregates back into user_skills, so imported/manual and reviewed/system-driven signals share storage but not the same trigger path.
+%% Trigger source:
+%%   - review:confirmed(action='confirmed')
+%%   - review listeners can invalidate related caches after recalculation
+%% Related: act_03_review_overview.mmd, act_07b_skill_management.mmd
+%% Backend: review listeners → RecalculateRevieweeSkillScoresCommand
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    ReviewCompleted(["Event: review:confirmed
+    action = 'confirmed'"]) --> RecalcSkills["RecalculateRevieweeSkillScoresCommand"]
+    RecalcSkills --> CollectEvidence["Collect reviewed-skill inputs:
+    • non-fraud reviews
+    • weighted scores
+    • avg_percentage"]
+    CollectEvidence --> DeriveSkillState["Derive reviewed state:
+    • confidence_score
+    • level_code
+    • avg_percentage"]
+    DeriveSkillState --> UpsertSkill["UPSERT user_skills:
+    source = reviewed aggregate
+    level_code = derived
+    confidence_score = calculated
+    avg_percentage = calculated"]
+    UpsertSkill --> InvalidateCaches["Invalidate related caches:
+    spider:user:{userId}
+    skill_scores:user:{userId}
+    profile aggregate caches"]
+    InvalidateCaches --> End([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef event fill:#FFF9C4,stroke:#F57F17,color:#333
+    class ReviewCompleted,End startEnd
+    class RecalcSkills,CollectEvidence,DeriveSkillState,UpsertSkill process
+    class InvalidateCaches event

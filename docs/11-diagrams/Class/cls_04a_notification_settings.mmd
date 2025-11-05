@@ -1,0 +1,94 @@
+%% Class Diagram: Notification and Settings Slice
+%% Updated 2026-06-26 (verified).
+%% Scope: Controllers and actions for notification center and settings.
+
+classDiagram
+    class ListNotificationsController {
+        +handle(ctx)
+    }
+    class LatestNotificationsController {
+        +handle(ctx)
+    }
+    class MarkNotificationReadController {
+        +markOne(ctx)
+        +markAll(ctx)
+    }
+    class DeleteNotificationController {
+        +destroy(ctx)
+        +destroyAllRead(ctx)
+    }
+
+    class GetUserNotifications {
+        +handle(options)
+    }
+    class MarkNotificationAsRead {
+        +handle(dto)
+        +markAllAsRead()
+    }
+    class DeleteNotification {
+        +handle(dto)
+        +deleteAllRead()
+    }
+    class CreateNotification {
+        +handle(dto)
+    }
+
+    class ShowSettingsController {
+        +handle(ctx)
+    }
+    class UpdateSettingsController {
+        +handle(ctx)
+    }
+    class UpdateUserSettings {
+        +handle(data)
+    }
+    class GetUserSettings {
+        +handle()
+    }
+    class UserSettingData {
+        +theme
+        +notifications_enabled
+        +display_mode
+        +font
+        +layout
+        +density
+        +animations_enabled
+        +custom_scrollbars
+    }
+
+    class Notification {
+        +UUID id
+        +UUID userId
+        +String type
+        +String title
+        +String message
+        +JSON metadata
+        +Boolean isRead
+        +DateTime readAt
+        +String relatedEntityType
+        +String relatedEntityId
+        +DateTime createdAt
+        +DateTime updatedAt
+    }
+
+    class NotificationRepositoryInterface {
+        <<interface>>
+        +findByUserId()
+        +markAsRead()
+        +delete()
+        +create()
+    }
+
+    ListNotificationsController --> GetUserNotifications
+    LatestNotificationsController --> GetUserNotifications
+    MarkNotificationReadController --> MarkNotificationAsRead
+    DeleteNotificationController --> DeleteNotification
+
+    ShowSettingsController --> GetUserSettings
+    UpdateSettingsController --> UpdateUserSettings
+    GetUserSettings --> UserSettingData
+    UpdateUserSettings --> UserSettingData
+
+    note for Notification "PostgreSQL-backed runtime store.
+    Stored shape follows NotificationSchema / notifications table."
+    note for UserSettingData "Merged with defaults and persisted in users.user_setting JSONB."

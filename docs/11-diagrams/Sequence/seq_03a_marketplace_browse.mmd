@@ -1,0 +1,26 @@
+%% seq_03a_marketplace_browse.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand the read-only browse path that exposes public marketplace tasks.
+%% Key boundary: Listing-only concern; no proposal mutation or ranking logic happens here.
+%% Current caveat: Public filters determine visibility, so this browse surface intentionally excludes internal-only task inventory.
+
+sequenceDiagram
+    autonumber
+    actor FL as External Contributor
+    participant B as Browser
+    participant C as ListMarketplaceTasksController
+    participant Q as GetPublicTasksQuery
+    participant Repo as TaskRepository
+    participant DB as PostgreSQL
+
+    FL->>B: Open marketplace
+    B->>C: GET /marketplace/tasks
+    C->>Q: execute(filters)
+    Q->>Repo: findPublicTasks(filters)
+    Repo->>DB: SELECT public tasks
+    DB-->>Repo: Task rows
+    Repo-->>Q: Domain entities
+    Q->>Q: apply filters + pagination
+    Q-->>C: Response DTOs
+    C-->>B: Render task list
+    B-->>FL: Browse marketplace tasks

@@ -1,0 +1,35 @@
+%% state_08b_project_sprint_review.mmd - ProjectSprint Review Lifecycle
+%% Updated 2026-07-16.
+%% Ref: app/modules/sprints/domain/sprint_core_rules.ts
+%% Ref: app/modules/reviews/domain/sprint_review_rules.ts
+%% Ref: app/modules/reviews/actions/commands/close_project_sprint_review_command.ts
+
+stateDiagram-v2
+    [*] --> draft
+    draft --> active : Sprint starts
+
+    active --> review_open : Owner/manager closes sprint\nand opens review
+    review_open --> review_closed : Review period closes
+    review_closed --> archived : Archive sprint
+    archived --> [*]
+
+    state "Open Review Guards" as open_guards {
+        [*] --> check_task_review_debt
+        check_task_review_debt --> blocked_task_reviews : Existing sprint task_review_workflow != done
+        check_task_review_debt --> check_previous_reverse_debt : Existing task review workflows done
+        check_previous_reverse_debt --> blocked_previous_reverse : Previous sprint reverse workflow != done
+        check_previous_reverse_debt --> create_review_records : Previous reverse workflows done
+        create_review_records --> [*] : Create sprint_review_packages,\nsprint_reverse_review_workflows,\nand next active sprint
+    }
+
+    note right of active
+        Sprint planning/backlog lives in app/modules/sprints.
+        Eligible sprint reviewers come from real task work evidence,
+        not membership alone.
+    end note
+
+    note right of review_open
+        sprint_review_packages are submitted records.
+        sprint_reverse_review_workflows are board/projection state.
+        Missing task_review_workflow rows are not counted by this gate.
+    end note

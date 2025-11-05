@@ -1,0 +1,56 @@
+%% Updated: 2026-06-26.
+%% Purpose: Show who can view proposal list and review proposals, with creator vs owner/manager nuance.
+%% Excludes: Proposal submit details, withdraw flow, scoring internals.
+%% Related: act_02b_marketplace_apply.mmd — proposal submit; act_02e_marketplace_application_exceptions.mmd — exceptions.
+%% Reader intent: Clarify who can view/review proposals without inferring a narrower rule than runtime actually enforces.
+%% Key boundary: Focuses on permission chain only, not scoring or proposal lifecycle.
+%% Current caveat: Current runtime allows creator plus project owner/manager paths; callers must pass project-role context correctly.
+
+sequenceDiagram
+    autonumber
+    participant Requester as Requester
+    participant Query as GetMarketplaceTaskApplicationsQuery
+    participant PCmd as ProcessMarketplaceApplicationCommand
+    participant Rules as TaskAssignmentRules
+    participant PM as ProjectMember
+    participant DB as PostgreSQL
+
+    Note over Requester,DB: Scenario A: View proposal list
+
+    Requester->>Query: GET /tasks/:taskId/applications
+    Query->>Rules: canProcessApplication(actorId, creatorId, 'approve', isTaskAlreadyAssigned, isProjectOwnerOrManager)
+
+    alt actor == task.creator_id
+        Rules-->>Query: allow (creator)
+    else actor is project_owner or project_manager
+        Query->>PM: Check project_members where user_id + role IN (project_owner, project_manager)
+        PM-->>Query: membership found
+        Rules-->>Query: allow (owner/manager)
+    else neither
+        Rules-->>Query: deny
+    end
+
+    Note over Requester, DB: Scenario B: Review (approve/reject) proposal
+
+    Requester->>PCmd: POST /applications/:id/process
+    PCmd->>Rules: canProcessApplication(actorId, creatorId, action, isTaskAlreadyAssigned, isProjectOwnerOrManager)
+
+    alt actor == task.creator_id
+        Rules-->>PCmd: allow (creator)
+    else actor is project_owner or project_manager
+        PCmd->>PM: Lazy-load project_members for this task's project
+        PM-->>PCmd: membership
+        Rules-->>PCmd: allow (owner/manager)
+    else neither
+        Rules-->>PCmd: deny → 403
+    end
+
+    alt action == 'approve' AND task already assigned
+        Rules-->>PCmd: deny → 'cannot approve more'
+    end
+
+    Note over Requester, DB: Key nuance
+    Note over Requester, DB: Keep creator and project owner/manager paths aligned.
+    Note over Requester, DB: canProcessApplication allows creator OR project owner/manager.
+    Note over Requester, DB: Frontend proposal page still requires owner/manager capability.
+    Note over Requester, DB: Do not claim project manager or org admin paths are excluded.

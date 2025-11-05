@@ -1,0 +1,38 @@
+flowchart TD
+%% ─────────────────────────────────────────────────────────────
+%% Updated 2026-06-26 (verified).
+%% act_04a: Legacy Conversation Table Maintenance
+%% ─────────────────────────────────────────────────────────────
+%% Reader intent: Show the only currently confirmed runtime path that still mutates legacy conversation tables.
+%% Key boundary: Cleanup-only view; it is not a user-facing chat lifecycle.
+%% Current caveat: Organization-member removal remains the main surviving trigger for these legacy records.
+%% Note:
+%%   - no active conversation create/delete route is wired
+%%   - current verified interaction comes from org-member removal cleanup
+%%
+%% Related: act_04b_messaging.mmd — Message operations
+%% ─────────────────────────────────────────────────────────────
+
+    Start([Start]) --> RemoveMember["Organization member removed"]
+    RemoveMember --> EmitEvent["Emit organization:user_removed"]
+    EmitEvent --> CheckTables{"Legacy conversation tables
+    present?"}
+
+    CheckTables -->|No| Skip["Skip communication cleanup"]
+    Skip --> End1([End])
+
+    CheckTables -->|Yes| ResolveScope["Find organization-linked
+    conversations for removed user"]
+    ResolveScope --> DeleteParticipants["DELETE conversation_participants
+    rows for removed user"]
+    DeleteParticipants --> End2([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E0F7FA,stroke:#00695C,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End1,End2 startEnd
+    class RemoveMember,EmitEvent,ResolveScope,DeleteParticipants process
+    class CheckTables decision
+    class Skip error

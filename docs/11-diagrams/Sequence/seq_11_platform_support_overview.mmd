@@ -1,0 +1,31 @@
+%% seq_11_platform_support_overview.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand the major support interactions around notifications, settings, and admin operations in one place.
+%% Key boundary: Overview names the interaction families only; notification, settings, and admin-console specifics live in child diagrams.
+%% Current caveat: Current support UX still relies on persisted state and refresh-driven interactions more than active realtime push.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    actor A as System Admin
+    participant UI as Browser
+    participant C as Controllers
+    participant App as Commands / Queries
+
+    Note over U,App: NOTIFICATION CENTER
+    U->>UI: Open notifications / mutate read state
+    UI->>C: GET/POST/DELETE /notifications/*
+    C->>App: Notification actions
+    C-->>UI: Inertia/JSON response
+
+    Note over U,App: SETTINGS PREFERENCES
+    U->>UI: Open/update settings
+    UI->>C: GET/POST /settings/*
+    C->>App: Settings actions + profile command
+    C-->>UI: Redirect/render updated state
+
+    Note over A,App: SYSTEM ADMIN CONSOLE
+    A->>UI: Toggle/admin dashboard/moderation
+    UI->>C: /admin/* routes
+    C->>App: Admin commands/queries
+    C-->>UI: Render admin pages + mutation feedback

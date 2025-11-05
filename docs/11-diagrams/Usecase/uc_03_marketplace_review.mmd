@@ -1,0 +1,37 @@
+%% uc_03_marketplace_review.mmd — Marketplace & Review Overview
+%% Updated 2026-07-10 (verified).
+%% Mermaid approximation of a UML use case diagram.
+%% Detail files:
+%%   - uc_03a_marketplace_application.mmd
+%%   - uc_03b_review_lifecycle.mmd
+%% Current caveat: Overdue handling is part of review governance, but automatic force-close scheduling was not the strongest verified runtime path.
+
+flowchart LR
+    applicant["<<actor>> External Contributor"]
+    taskOwner["<<actor>> Task Owner / Manager"]
+    reviewee["<<actor>> Reviewee"]
+    systemAdmin["<<actor>> System Admin"]
+    scheduler["<<actor>> Scheduler"]
+
+    subgraph system["Marketplace & Review"]
+        browse([Browse marketplace tasks])
+        proposal([Submit and manage proposals])
+        process([Review, rank and process proposals])
+        reviewCycle([Complete review session])
+        dispute([Confirm or dispute review])
+        moderation([Resolve disputes and flagged reviews])
+        timeout([Handle overdue review sessions])
+    end
+
+    applicant --> browse
+    applicant --> proposal
+    taskOwner --> process
+    reviewee --> reviewCycle
+    reviewee --> dispute
+    systemAdmin --> moderation
+    scheduler --> timeout
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class applicant,taskOwner,reviewee,systemAdmin,scheduler actor
+    class browse,proposal,process,reviewCycle,dispute,moderation,timeout usecase

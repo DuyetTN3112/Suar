@@ -1,0 +1,44 @@
+%% state_02b_task_review_workflow.mmd - TaskReviewWorkflow Status
+%% Updated 2026-07-19.
+%% Ref: app/modules/reviews/domain/task_review_workflow.ts
+%% Ref: app/modules/reviews/actions/commands/*task_review*_command.ts
+%% Note: workflow status is separate from task delivery status.
+
+stateDiagram-v2
+    [*] --> awaiting_review : Delivery-done task\nvisible on review board
+
+    awaiting_review --> in_review : First required reviewer submits\nquorum not met
+    awaiting_review --> awaiting_response : Required review quorum met
+
+    in_review --> awaiting_response : Remaining required reviewer submits
+
+    awaiting_response --> done : Reviewee accepts\ncompleted_review_count >= required_review_count
+    awaiting_response --> disputed : Reviewee response/debate
+
+    disputed --> reported : Reviewer or reviewee reports dispute
+    disputed --> done : Resolved/accepted outside admin path
+
+    reported --> ai_reviewing : System admin starts\nAI advisory evaluation
+    ai_reviewing --> reported : AI callback returns\nadvisory result
+    reported --> resolved : System admin resolves
+    ai_reviewing --> resolved : System admin resolves\nduring AI review
+    resolved --> done : Resolution applied\nor re-review completed
+    reported --> done : Legacy/manual closure
+    done --> [*]
+
+    note right of awaiting_review
+        Board projection, not delivery status.
+        Normal task board can still show task as done.
+    end note
+
+    note right of in_review
+        Required reviewers are selected by application code.
+        Reviewee cannot review own task.
+        Workflow fails if fewer than two eligible reviewers exist.
+    end note
+
+    note right of reported
+        Workflow tables are storage/index layer.
+        FK/check/quorum/report rules are application-owned.
+        Admin queue reads reported/ai_reviewing/resolved.
+    end note

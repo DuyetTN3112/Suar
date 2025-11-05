@@ -1,0 +1,329 @@
+%% ERD: Review & Messaging Domain (Logical)
+%% Updated 2026-07-16 (Review workflow + sprint review update)
+%% Note: The database does NOT enforce these relationships via physical Foreign Keys.
+%% These are logical, application-enforced relationships.
+erDiagram
+    conversations {
+        UUID id PK
+        VARCHAR title
+        UUID organization_id FK
+        UUID task_id FK
+        UUID last_message_id FK
+        TIMESTAMPTZ last_message_at
+        TIMESTAMPTZ deleted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    conversation_participants {
+        UUID id PK
+        UUID conversation_id FK
+        UUID user_id FK
+    }
+
+    messages {
+        UUID id PK
+        UUID conversation_id FK
+        UUID sender_id FK
+        TEXT message
+        VARCHAR send_status
+        BOOLEAN is_recalled
+        TIMESTAMPTZ recalled_at
+        VARCHAR recall_scope
+        TIMESTAMPTZ read_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    review_sessions {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID reviewee_id FK
+        VARCHAR status
+        BOOLEAN manager_review_completed
+        INT peer_reviews_count
+        INT required_peer_reviews
+        JSONB confirmations
+        NUMERIC overall_quality_score
+        VARCHAR delivery_timeliness
+        NUMERIC requirement_adherence
+        NUMERIC communication_quality
+        NUMERIC code_quality_score
+        NUMERIC proactiveness_score
+        BOOLEAN would_work_with_again
+        TEXT strengths_observed
+        TEXT areas_for_improvement
+        TIMESTAMPTZ deadline
+        TIMESTAMPTZ completed_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    skill_reviews {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        VARCHAR reviewer_type
+        UUID skill_id FK
+        VARCHAR assigned_level_code
+        TEXT comment
+        BOOLEAN is_fraud
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    reverse_reviews {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        VARCHAR target_type
+        UUID target_id FK
+        SMALLINT rating
+        TEXT comment
+        BOOLEAN is_anonymous
+        TIMESTAMPTZ created_at
+    }
+
+    flagged_reviews {
+        UUID id PK
+        UUID skill_review_id FK
+        VARCHAR flag_type
+        VARCHAR severity
+        VARCHAR status
+        TIMESTAMPTZ detected_at
+        UUID reviewed_by FK
+        TIMESTAMPTZ reviewed_at
+        TEXT notes
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    review_evidences {
+        UUID id PK
+        UUID review_session_id FK
+        VARCHAR evidence_type
+        VARCHAR url
+        VARCHAR title
+        TEXT description
+        UUID uploaded_by FK
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_self_assessments {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID user_id FK
+        NUMERIC overall_satisfaction
+        VARCHAR difficulty_felt
+        NUMERIC confidence_level
+        TEXT what_went_well
+        TEXT what_would_do_different
+        JSONB blockers_encountered
+        JSONB skills_felt_lacking
+        JSONB skills_felt_strong
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_review_workflows {
+        UUID id PK
+        UUID task_id FK
+        UUID project_id FK
+        UUID organization_id FK
+        UUID reviewee_id FK
+        VARCHAR status
+        INT required_review_count
+        INT completed_review_count
+        TIMESTAMPTZ accepted_by_reviewee_at
+        TIMESTAMPTZ reported_at
+        UUID reported_by FK
+        VARCHAR final_decision
+        TEXT final_rationale
+        TIMESTAMPTZ resolved_at
+        UUID resolved_by FK
+        TIMESTAMPTZ completed_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_review_reviewers {
+        UUID id PK
+        UUID workflow_id FK
+        UUID reviewer_id FK
+        VARCHAR reviewer_role
+        BOOLEAN is_required
+        VARCHAR status
+        INT priority_rank
+        TIMESTAMPTZ reviewed_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    task_review_messages {
+        UUID id PK
+        UUID workflow_id FK
+        UUID author_id FK
+        VARCHAR message_type
+        TEXT body
+        JSONB metadata
+        TIMESTAMPTZ created_at
+    }
+
+    project_sprints {
+        VARCHAR id PK
+        VARCHAR organization_id FK
+        VARCHAR project_id FK
+        VARCHAR name
+        TEXT goal
+        VARCHAR status
+        TIMESTAMPTZ starts_at
+        TIMESTAMPTZ ends_at
+        VARCHAR created_by FK
+        VARCHAR closed_by FK
+        TIMESTAMPTZ review_opened_at
+        TIMESTAMPTZ review_closed_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_review_packages {
+        VARCHAR id PK
+        VARCHAR sprint_id FK
+        VARCHAR reviewer_id FK
+        VARCHAR status
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_manager_reviews {
+        VARCHAR id PK
+        VARCHAR package_id FK
+        VARCHAR target_user_id FK
+        VARCHAR target_role
+        INT rating
+        JSONB dimensions
+        TEXT comment
+        BOOLEAN is_anonymous_to_target
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_environment_reviews {
+        VARCHAR id PK
+        VARCHAR package_id FK
+        VARCHAR target_type
+        VARCHAR target_id
+        INT rating
+        JSONB dimensions
+        TEXT comment
+        BOOLEAN is_anonymous_publicly
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_review_disputes {
+        VARCHAR id PK
+        VARCHAR package_id FK
+        VARCHAR opened_by FK
+        VARCHAR status
+        TEXT dispute_reason
+        VARCHAR requested_outcome
+        TIMESTAMPTZ reported_to_admin_at
+        VARCHAR reported_to_admin_by FK
+        TEXT escalation_reason
+        TIMESTAMPTZ resolved_at
+        VARCHAR resolved_by FK
+        VARCHAR final_decision
+        TEXT final_rationale
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_review_dispute_comments {
+        VARCHAR id PK
+        VARCHAR dispute_id FK
+        VARCHAR author_id FK
+        TEXT body
+        VARCHAR visibility
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_reverse_review_workflows {
+        UUID id PK
+        VARCHAR sprint_id FK
+        UUID project_id FK
+        UUID organization_id FK
+        UUID reviewer_id FK
+        VARCHAR target_type
+        UUID target_user_id FK
+        UUID target_entity_id FK
+        UUID responder_id FK
+        VARCHAR status
+        INT rating
+        TEXT comment
+        VARCHAR package_id FK
+        TIMESTAMPTZ submitted_at
+        TIMESTAMPTZ accepted_at
+        TIMESTAMPTZ reported_at
+        VARCHAR final_decision
+        TEXT final_rationale
+        TIMESTAMPTZ resolved_at
+        UUID resolved_by FK
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ updated_at
+    }
+
+    sprint_reverse_review_messages {
+        UUID id PK
+        UUID workflow_id FK
+        UUID author_id FK
+        VARCHAR message_type
+        TEXT body
+        JSONB metadata
+        TIMESTAMPTZ created_at
+    }
+
+    %% Application-enforced relationships
+    conversations ||--o{ conversation_participants : "has members"
+    conversations ||--o{ messages : "contains"
+    messages ||--o| conversations : "is last message of"
+
+    task_assignments ||--o| review_sessions : "evaluated in"
+    task_assignments ||--o| task_self_assessments : "has"
+
+    review_sessions ||--o{ skill_reviews : "generates"
+    review_sessions ||--o{ reverse_reviews : "generates"
+    review_sessions ||--o{ review_evidences : "supported by"
+
+    skill_reviews ||--o{ flagged_reviews : "may have"
+
+    tasks ||--o| task_review_workflows : "has review workflow"
+    task_review_workflows ||--o{ task_review_reviewers : "requires"
+    task_review_workflows ||--o{ task_review_messages : "contains"
+
+    projects ||--o{ project_sprints : "plans"
+    project_sprints ||--o{ sprint_review_packages : "opens"
+    sprint_review_packages ||--o{ sprint_manager_reviews : "records manager/assigner reviews"
+    sprint_review_packages ||--o{ sprint_environment_reviews : "records environment reviews"
+    sprint_review_packages ||--o| sprint_review_disputes : "may be disputed"
+    sprint_review_disputes ||--o{ sprint_review_dispute_comments : "contains"
+    project_sprints ||--o{ sprint_reverse_review_workflows : "opens reverse workflows"
+    sprint_reverse_review_workflows ||--o{ sprint_reverse_review_messages : "contains"
+    sprint_review_packages ||--o{ sprint_reverse_review_workflows : "backs board projection"
+
+    users ||--o{ conversation_participants : "participates"
+    users ||--o{ messages : "sends"
+    users ||--o{ review_sessions : "is reviewed in"
+    users ||--o{ skill_reviews : "reviews"
+    users ||--o{ reverse_reviews : "reviews (reverse)"
+    users ||--o{ task_self_assessments : "self-assesses"
+    users ||--o{ task_review_reviewers : "task reviewer"
+    users ||--o{ task_review_messages : "writes"
+    users ||--o{ sprint_review_packages : "sprint reviewer"
+    users ||--o{ sprint_reverse_review_workflows : "reviews/responds"
+
+    skills ||--o{ skill_reviews : "assessed in"

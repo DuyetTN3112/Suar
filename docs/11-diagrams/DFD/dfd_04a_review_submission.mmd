@@ -1,0 +1,42 @@
+%% Updated 2026-07-10 (verified).
+%% DFD 04A — Review Submission
+%% Reader intent: Understand how review data first enters the system after submission/completion paths.
+%% Key boundary: Submission-entry flow only; later confirmation, moderation, and scoring have their own DFDs.
+%% Current caveat: Review session can be created during assignee submission→IN_REVIEW,
+%% with DONE/assignment-complete path acting as backstop if session is still missing.
+
+flowchart TD
+    Submitter([Assignee submits
+    completion package])
+    TaskDone([Task reaches DONE
+    backstop path])
+    Manager([Manager / PM])
+    Peer([Peer reviewer])
+
+    P1[["4A.1 Create review session"]]
+    P2[["4A.2 Submit manager review"]]
+    P3[["4A.3 Submit peer review"]]
+
+    D1[(review_sessions)]
+    D2[(skill_reviews)]
+    D3[(tasks / assignments)]
+
+    Submitter -->|"Submitter Input"| P1
+    TaskDone -->|"Action Request"| P1
+    P1 -->|"Review Data"| D3
+    P1 -->|"Review Data"| D1
+
+    Manager -->|"Action Request"| P2
+    P2 -->|"Review Data"| D1
+    P2 -->|"Review Data"| D2
+
+    Peer -->|"Trigger / Flow"| P3
+    P3 -->|"Review Data"| D1
+    P3 -->|"Review Data"| D2
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Submitter,TaskDone,Manager,Peer entity
+    class P1,P2,P3 process
+    class D1,D2,D3 datastore

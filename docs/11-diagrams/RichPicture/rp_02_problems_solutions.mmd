@@ -1,0 +1,60 @@
+%% Updated 2026-07-14 (Audit Fix)
+mindmap
+  root((🌟 SUAR Platform
+   Problems & Solutions))
+
+    ⚡ Core Problems
+      ❌ Complex cross-org task management
+        Multiple projects, multiple roles
+        Lack of skill matching tools
+      ❌ Hard to find suitable contributors
+        No centralized marketplace
+        Lack of reliable rating system
+      ❌ Non-transparent personnel evaluation
+        1-way review, lacking peer review
+        Unable to detect fraud
+      ❌ Lack of trust verification
+        No distinction between internal vs external
+        No verification mechanism
+
+    💡 Solutions — Suar Platform
+      📊 Task Management
+        CRUD tasks with versioning
+         ⚠️ version only created on Update (not Create/Status change)
+        Kanban board, filter, priority
+        DB-driven workflow (task_statuses + task_workflow_transitions)
+         ⚠️ Legacy state machine deprecated
+        Soft delete + audit trail
+      🛒 Public Task Marketplace
+        Task visibility
+         internal / external / all
+         ⚠️ Ranking/Match score implemented in action/business docs
+        Task application process
+         proposal → review → assign
+        Application sources
+         public_listing / invitation / referral
+         ⚠️ invitation/referral not implemented yet
+      ⭐ 360° Review System
+        Trust Tier weighted scoring
+         Community 0.5 / Org 0.8 / Partner 1.0
+        Credibility formula (ratio-based)
+         base 50 plus confirmed ratio minus disputed ratio
+        6 fraud patterns declared in SQL
+         ✅ detect_anomaly_command checks bulk_same_level, new_account_high, mutual_high
+         ⚠️ ip_collusion documented as placeholder; no current check found for sudden_spike or frequency_anomaly
+        Confirm / Dispute mechanism
+        Reverse review for reviewers
+        Spider chart & trust score
+         review listeners trigger reviewed-skill recalculation
+         and profile aggregate refresh after review events
+      🔐 3-Tier Permission System
+        System level
+         superadmin > system_admin > registered_user
+        Organization level
+         org_owner > org_admin > org_member
+        Project level
+         project_owner > project_manager > member > viewer
+      💬 Legacy messaging schema
+        No active product route/controller
+        No realtime transport
+        Keep as historical data model only

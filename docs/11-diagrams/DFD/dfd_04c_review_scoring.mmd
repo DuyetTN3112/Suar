@@ -1,0 +1,54 @@
+%% Updated 2026-06-27. Last verified for header consistency.
+%% DFD 04C — Review Scoring Pipeline
+%% Reader intent: Understand the data pipeline that recalculates credibility, skills, performance, trust, and profile aggregates.
+%% Key boundary: Score-refresh pipeline only; review submission and manual moderation entry stay outside this DFD.
+%% Current caveat: Different events can trigger different subsets of recalculation, so not every scoring path starts from the same upstream signal.
+
+flowchart TD
+    Confirmed([review:confirmed event])
+    FraudResolved([confirmed flagged review\nor dispute side-effect recalculation])
+
+    P1[["4C.1 Recalculate reviewer credibility"]]
+    P2[["4C.2 Recalculate reviewee skills"]]
+    P3[["4C.3 Recalculate performance score"]]
+    P4[["4C.4 Recalculate trust score"]]
+    P5[["4C.5 Refresh profile aggregates\n+ invalidate profile/spider caches"]]
+
+    D1[(review_sessions)]
+    D2[(skill_reviews)]
+    D3[(user_skills)]
+    D4[(users trust / credibility)]
+    D5[(profile aggregate tables)]
+
+    Confirmed -->|"Action Request"| P1
+    Confirmed -->|"Action Request"| P2
+    Confirmed -->|"Action Request"| P3
+    Confirmed -->|"Action Request"| P4
+    FraudResolved -->|"Action Request"| P2
+    FraudResolved -->|"Action Request"| P3
+    FraudResolved -->|"Action Request"| P4
+
+    P1 -->|"Review Data"| D1
+    P1 -->|"Review Data"| D2
+    P1 -->|"Review Data"| D4
+    P2 -->|"Review Data"| D2
+    P2 -->|"Review Data"| D3
+    P3 -->|"Review Data"| D1
+    P3 -->|"Review Data"| D4
+    P4 -->|"Review Data"| D1
+    P4 -->|"Review Data"| D2
+    P4 -->|"Review Data"| D4
+    P5 -->|"Review Data"| D3
+    P5 -->|"Review Data"| D4
+    P5 -->|"Review Data"| D5
+
+    P2 -->|"Trigger / Flow"| P5
+    P3 -->|"Trigger / Flow"| P5
+    P4 -->|"Trigger / Flow"| P5
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Confirmed,FraudResolved entity
+    class P1,P2,P3,P4,P5 process
+    class D1,D2,D3,D4,D5 datastore

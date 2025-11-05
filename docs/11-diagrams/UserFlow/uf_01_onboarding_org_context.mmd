@@ -1,0 +1,36 @@
+%% uf_01_onboarding_org_context.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand path from first login to first usable org/project workspace.
+%% Key boundary: Join request can stop journey in pending-approval state before workspace access exists.
+%% Current caveat: Diagram stays at workspace-entry level; project internals and task lifecycle live in separate task/project diagrams.
+%% Runtime caveat: Current-org resolution is not a single yes/no gate only; resolver may auto-pick first approved membership or clear invalid org context before workspace entry.
+
+flowchart TD
+    Start([Start]) --> Login["Open /login and choose OAuth provider"]
+    Login --> OAuth["Complete /auth/:provider/redirect and callback"]
+    OAuth --> Session["Server creates web session"]
+    Session --> OrgCheck{"Has usable approved organization context?"}
+
+    OrgCheck -->|No| Orgs["Open /organizations or /all-organizations
+    or let resolver try first approved membership"]
+    Orgs --> OrgAction{"Choose action"}
+    OrgAction -->|Create| CreateOrg["Create organization"]
+    OrgAction -->|Join| JoinOrg["Submit join request"]
+    OrgAction -->|Switch approved org| SwitchOrg["Switch current organization"]
+
+    CreateOrg --> Workspace["Organization context becomes active"]
+    SwitchOrg --> Workspace
+    JoinOrg --> Pending["Stay in pending-approval state until org review"]
+    Pending --> End1([End])
+
+    OrgCheck -->|Yes| Workspace["Organization context active
+    session + DB may be synced by resolver"]
+    Workspace --> ProjectEntry["Open /projects or /tasks"]
+    ProjectEntry --> End2([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    class Start,End1,End2 startEnd
+    class Login,OAuth,Session,Orgs,CreateOrg,JoinOrg,SwitchOrg,Workspace,ProjectEntry,Pending process
+    class OrgCheck,OrgAction decision

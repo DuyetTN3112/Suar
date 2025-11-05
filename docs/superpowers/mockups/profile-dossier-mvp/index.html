@@ -1,0 +1,577 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Suar Profile Dossier MVP</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <aside class="app-sidebar" aria-label="Workspace navigation">
+      <div class="brand">
+        <span class="brand-mark">S</span>
+        <span>Suar</span>
+      </div>
+      <nav>
+        <a href="#">Tổng quan</a>
+        <a href="#" class="active">Hồ sơ năng lực</a>
+        <a href="#">Task board</a>
+        <a href="#">Review board</a>
+        <a href="#">Marketplace</a>
+      </nav>
+    </aside>
+
+    <main class="page-shell">
+      <header class="topbar">
+        <div>
+          <p class="breadcrumb">User workspace / Hồ sơ năng lực</p>
+          <h1>Capability dossier</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="button ghost" type="button">Chỉnh sửa</button>
+          <button
+            class="button primary"
+            type="button"
+            data-snapshot-trigger
+            aria-expanded="false"
+            aria-controls="snapshot-popover"
+          >
+            Tạo snapshot
+          </button>
+          <div
+            class="snapshot-popover"
+            id="snapshot-popover"
+            role="dialog"
+            aria-label="Snapshot actions"
+            hidden
+          >
+            <p class="kicker">Snapshot</p>
+            <h2>Đóng gói hồ sơ hiện tại</h2>
+            <p>
+              Tạo bản public gửi recruiter, hoặc copy link snapshot hiện tại.
+            </p>
+            <div class="snapshot-box">
+              <span>Current snapshot</span>
+              <strong>Profile v12</strong>
+              <small>Public · scoring v3</small>
+            </div>
+            <button class="button primary full" type="button">Tạo snapshot mới</button>
+            <button class="button ghost full" type="button">Sao chép link</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="hero-card" id="overview">
+        <div class="identity">
+          <div class="avatar" aria-hidden="true">DN</div>
+          <div>
+            <div class="identity-row">
+              <h2>duyettn3112</h2>
+              <span class="pill strong">Trusted contributor</span>
+              <span class="pill">Searchable</span>
+            </div>
+            <p class="profile-line">
+              Active · Hồ sơ năng lực tổng hợp từ review, delivery và lịch sử giao việc.
+            </p>
+          </div>
+        </div>
+
+        <div class="hero-grid" aria-label="Profile summary">
+          <article>
+            <span>Trust score</span>
+            <strong>86</strong>
+            <small>+12 trong sprint gần nhất</small>
+          </article>
+          <article>
+            <span>Verified skills</span>
+            <strong>18/24</strong>
+            <small>6 claim cần review</small>
+          </article>
+          <article>
+            <span>On-time delivery</span>
+            <strong>94%</strong>
+            <small>47 task hoàn tất</small>
+          </article>
+          <article>
+            <span>Review credibility</span>
+            <strong>4.8</strong>
+            <small>32 evidence signal</small>
+          </article>
+        </div>
+
+        <div class="hero-bottom">
+          <div class="coverage-strip" aria-label="Capability coverage summary">
+            <article>
+              <span>Technical</span>
+              <strong>8 verified</strong>
+              <small>Architecture, Svelte, data flow</small>
+            </article>
+            <article>
+              <span>Soft skill</span>
+              <strong>5 verified</strong>
+              <small>Review response, collaboration</small>
+            </article>
+            <article>
+              <span>Delivery</span>
+              <strong>5 verified</strong>
+              <small>On-time, estimate, handoff</small>
+            </article>
+          </div>
+          <div class="next-actions">
+            <p class="mini-title">Next best actions</p>
+            <button type="button">Xác minh 6 imported skill</button>
+            <button type="button">Chọn 3 review làm evidence nổi bật</button>
+            <button type="button">Xuất snapshot gửi recruiter</button>
+          </div>
+        </div>
+      </section>
+
+      <nav class="section-nav" aria-label="Profile sections">
+        <a href="#overview" class="active">Tổng quan</a>
+        <a href="#skills">Năng lực</a>
+        <a href="#reviews">Evidence</a>
+        <a href="#history">Kinh nghiệm</a>
+      </nav>
+
+      <div class="content-grid">
+        <div class="main-column">
+          <section class="panel" id="skills">
+            <div class="panel-heading">
+              <div>
+                <p class="kicker">Capability map</p>
+                <h2>Bản đồ năng lực</h2>
+              </div>
+              <div class="filters" role="group" aria-label="Skill filters">
+                <button class="active" data-filter="all" type="button">Tất cả</button>
+                <button data-filter="verified" type="button">Verified</button>
+                <button data-filter="imported" type="button">Imported</button>
+                <button data-filter="disputed" type="button">Disputed</button>
+              </div>
+            </div>
+
+            <div class="spider-grid" aria-label="3 spider charts by skill category">
+              <article class="spider-card technical">
+                <div class="spider-head">
+                  <div>
+                    <p class="kicker">Kỹ thuật</p>
+                    <h3>Technical skills</h3>
+                  </div>
+                  <strong>89%</strong>
+                </div>
+                <div
+                  class="level-spider"
+                  data-level-spider="technical"
+                  data-points='[{"skill":"Svelte","level":"l11","score":78.6,"reviews":12,"confidence":"high","state":"verified"},{"skill":"API","level":"l10","score":71.4,"reviews":7,"confidence":"high","state":"verified"},{"skill":"Testing","level":"l9","score":64.3,"reviews":5,"confidence":"medium","state":"verified"},{"skill":"Data","level":"l8","score":57.1,"reviews":4,"confidence":"medium","state":"verified"},{"skill":"UX","level":"l7","score":50,"reviews":3,"confidence":"medium","state":"verified"},{"skill":"Arch","level":"l12","score":85.7,"reviews":8,"confidence":"high","state":"verified"}]'
+                  aria-label="Technical skills L0 to L14 spider chart"
+                ></div>
+                <div class="level-legend" aria-label="L0 to L14 proficiency landmarks">
+                  <span>L0 none</span>
+                  <span>L4 junior</span>
+                  <span>L7 middle</span>
+                  <span>L10 senior</span>
+                  <span>L12 lead</span>
+                  <span>L14 master</span>
+                </div>
+                <div class="level-matrix" aria-label="Technical skill level details">
+                  <div class="matrix-head"><span>Skill</span><span>Level</span><span>Signal</span></div>
+                  <div data-skill-level="l11"><span>Svelte</span><strong>L11</strong><span>12 review · high</span></div>
+                  <div data-skill-level="l10"><span>API</span><strong>L10</strong><span>7 review · high</span></div>
+                  <div data-skill-level="l9"><span>Testing</span><strong>L9</strong><span>5 review · medium</span></div>
+                </div>
+              </article>
+
+              <article class="spider-card soft">
+                <div class="spider-head">
+                  <div>
+                    <p class="kicker">Kỹ năng mềm</p>
+                    <h3>Soft skills</h3>
+                  </div>
+                  <strong>82%</strong>
+                </div>
+                <div
+                  class="level-spider"
+                  data-level-spider="soft"
+                  data-points='[{"skill":"Feedback","level":"l8","score":57.1,"reviews":5,"confidence":"medium","state":"verified"},{"skill":"Clarity","level":"l7","score":50,"reviews":4,"confidence":"medium","state":"verified"},{"skill":"Mentor","level":"l6","score":42.9,"reviews":3,"confidence":"medium","state":"verified"},{"skill":"Ownership","level":"l8","score":57.1,"reviews":6,"confidence":"high","state":"verified"},{"skill":"Teamwork","level":"l7","score":50,"reviews":4,"confidence":"medium","state":"verified"},{"skill":"Dispute","level":"l9","score":64.3,"reviews":5,"confidence":"medium","state":"under_dispute"}]'
+                  aria-label="Soft skills L0 to L14 spider chart"
+                ></div>
+                <div class="level-legend" aria-label="L0 to L14 proficiency landmarks">
+                  <span>L0 none</span>
+                  <span>L4 junior</span>
+                  <span>L7 middle</span>
+                  <span>L10 senior</span>
+                  <span>L12 lead</span>
+                  <span>L14 master</span>
+                </div>
+                <div class="level-matrix" aria-label="Soft skill level details">
+                  <div class="matrix-head"><span>Skill</span><span>Level</span><span>Signal</span></div>
+                  <div data-skill-level="l8"><span>Feedback</span><strong>L8</strong><span>5 review · medium</span></div>
+                  <div data-skill-level="l7"><span>Clarity</span><strong>L7</strong><span>4 review · medium</span></div>
+                  <div data-skill-level="l9"><span>Dispute</span><strong>L9</strong><span>5 review · dispute</span></div>
+                </div>
+              </article>
+
+              <article class="spider-card delivery">
+                <div class="spider-head">
+                  <div>
+                    <p class="kicker">Thực thi</p>
+                    <h3>Delivery</h3>
+                  </div>
+                  <strong>86%</strong>
+                </div>
+                <div
+                  class="level-spider"
+                  data-level-spider="delivery"
+                  data-points='[{"skill":"On-time","level":"l13","score":92.9,"reviews":18,"confidence":"high","state":"verified"},{"skill":"Estimate","level":"l9","score":64.3,"reviews":4,"confidence":"medium","state":"under_dispute"},{"skill":"Quality","level":"l10","score":71.4,"reviews":9,"confidence":"high","state":"verified"},{"skill":"Handoff","level":"l12","score":85.7,"reviews":11,"confidence":"high","state":"verified"},{"skill":"Scope","level":"l8","score":57.1,"reviews":2,"confidence":"low","state":"imported"},{"skill":"Recovery","level":"l9","score":64.3,"reviews":5,"confidence":"medium","state":"verified"}]'
+                  aria-label="Delivery L0 to L14 spider chart"
+                ></div>
+                <div class="level-legend" aria-label="L0 to L14 proficiency landmarks">
+                  <span>L0 none</span>
+                  <span>L4 junior</span>
+                  <span>L7 middle</span>
+                  <span>L10 senior</span>
+                  <span>L12 lead</span>
+                  <span>L14 master</span>
+                </div>
+                <div class="level-matrix" aria-label="Delivery level details">
+                  <div class="matrix-head"><span>Skill</span><span>Level</span><span>Signal</span></div>
+                  <div data-skill-level="l13"><span>On-time</span><strong>L13</strong><span>18 review · high</span></div>
+                  <div data-skill-level="l12"><span>Handoff</span><strong>L12</strong><span>11 review · high</span></div>
+                  <div data-skill-level="l9"><span>Estimate</span><strong>L9</strong><span>4 review · dispute</span></div>
+                </div>
+              </article>
+            </div>
+
+            <div class="skill-layout">
+              <div class="skill-list">
+                <div class="group-label">Technical</div>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>Svelte architecture</h3>
+                    <p>12 review · L10 · fresh</p>
+                  </div>
+                  <strong>91%</strong>
+                </article>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>API integration</h3>
+                    <p>7 review · L8 · verified</p>
+                  </div>
+                  <strong>86%</strong>
+                </article>
+                <article class="skill-card extra-skill" data-status="imported">
+                  <div>
+                    <h3>Data visualization</h3>
+                    <p>Imported claim · cần task evidence</p>
+                  </div>
+                  <strong>72%</strong>
+                </article>
+              </div>
+
+              <div class="skill-list">
+                <div class="group-label">Soft skill</div>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>Review response</h3>
+                    <p>9 review · L8 · verified</p>
+                  </div>
+                  <strong>84%</strong>
+                </article>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>Dispute clarity</h3>
+                    <p>5 review · L7 · fresh</p>
+                  </div>
+                  <strong>81%</strong>
+                </article>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>Cross-team handoff</h3>
+                    <p>6 review · L7 · verified</p>
+                  </div>
+                  <strong>79%</strong>
+                </article>
+              </div>
+
+              <div class="skill-list">
+                <div class="group-label">Delivery</div>
+                <article class="skill-card" data-status="verified">
+                  <div>
+                    <h3>Task delivery</h3>
+                    <p>18 review · L9 · verified</p>
+                  </div>
+                  <strong>88%</strong>
+                </article>
+                <article class="skill-card extra-skill" data-status="imported">
+                  <div>
+                    <h3>Scope control</h3>
+                    <p>Imported claim · cần sprint evidence</p>
+                  </div>
+                  <strong>76%</strong>
+                </article>
+                <article class="skill-card extra-skill" data-status="disputed">
+                  <div>
+                    <h3>Estimate accuracy</h3>
+                    <p>1 dispute · cần manager confirmation</p>
+                  </div>
+                  <strong>69%</strong>
+                </article>
+              </div>
+            </div>
+
+            <button class="inline-toggle" type="button" data-toggle="skills">
+              Xem thêm kỹ năng
+            </button>
+          </section>
+
+          <section class="panel" id="reviews">
+            <div class="panel-heading">
+              <div>
+                <p class="kicker">Evidence reviews</p>
+                <h2>Đánh giá hai chiều</h2>
+              </div>
+              <button class="button ghost compact" type="button">Xem toàn bộ</button>
+            </div>
+
+            <div class="review-section-grid">
+              <section class="review-lane" data-review-lane="received" aria-labelledby="received-reviews-title">
+                <div class="review-lane-head">
+                  <div>
+                    <p class="kicker">Received</p>
+                    <h3 id="received-reviews-title">Đánh giá nhận được</h3>
+                  </div>
+                  <span data-review-count="received">3 dòng</span>
+                </div>
+                <div class="review-tools">
+                  <div
+                    class="review-filter-bar"
+                    data-review-filter-group="received"
+                    role="group"
+                    aria-label="Filter received reviews"
+                  >
+                    <button class="active" type="button" data-review-filter="all">Tất cả</button>
+                    <button type="button" data-review-filter="manager">Manager</button>
+                    <button type="button" data-review-filter="peer">Peer</button>
+                    <button type="button" data-review-filter="delivery">Delivery</button>
+                  </div>
+                  <label class="sort-control">
+                    <span>Sắp xếp</span>
+                    <select data-review-sort-group="received" aria-label="Sắp xếp đánh giá nhận được">
+                      <option value="score">Điểm cao</option>
+                      <option value="score-asc">Điểm thấp</option>
+                      <option value="date">Mới nhất</option>
+                      <option value="kind">Loại</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="review-list">
+                  <article
+                    class="review-card"
+                    data-review-scope="received"
+                    data-review-kind="manager"
+                    data-review-score="5.0"
+                    data-review-date="2026-07-12"
+                    data-review-title="Frontend workflow refactor"
+                  >
+                    <div class="score">5.0</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge incoming">Nhận được</span>
+                        <span>Manager</span>
+                      </div>
+                      <h3>Frontend workflow refactor</h3>
+                      <p>
+                        “Tự bóc tách route, chuẩn hóa state, giữ behavior ổn định qua review vòng hai.”
+                      </p>
+                      <span>Manager · Sprint Review · Svelte architecture</span>
+                    </div>
+                  </article>
+                  <article
+                    class="review-card"
+                    data-review-scope="received"
+                    data-review-kind="peer"
+                    data-review-score="4.7"
+                    data-review-date="2026-07-15"
+                    data-review-title="Review dispute handling"
+                  >
+                    <div class="score">4.7</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge incoming">Nhận được</span>
+                        <span>Peer</span>
+                      </div>
+                      <h3>Review dispute handling</h3>
+                      <p>
+                        “Giải trình rõ evidence, phản hồi nhanh, không làm gián đoạn task handoff.”
+                      </p>
+                      <span>Peer · Task Review · Communication</span>
+                    </div>
+                  </article>
+                  <article
+                    class="review-card muted-card"
+                    data-review-scope="received"
+                    data-review-kind="delivery"
+                    data-review-score="4.5"
+                    data-review-date="2026-07-05"
+                    data-review-title="Delivery reliability"
+                  >
+                    <div class="score">4.5</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge incoming">Nhận được</span>
+                        <span>Delivery</span>
+                      </div>
+                      <h3>Delivery reliability</h3>
+                      <p>
+                        “Đúng hạn trong sprint có nhiều dependency, estimate lệch ít.”
+                      </p>
+                      <span>Org admin · Delivery · Planning</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="review-lane authored" data-review-lane="authored" aria-labelledby="authored-reviews-title">
+                <div class="review-lane-head">
+                  <div>
+                    <p class="kicker">Authored</p>
+                    <h3 id="authored-reviews-title">Đánh giá đã viết</h3>
+                  </div>
+                  <span data-review-count="authored">3 dòng</span>
+                </div>
+                <div class="review-tools">
+                  <div
+                    class="review-filter-bar"
+                    data-review-filter-group="authored"
+                    role="group"
+                    aria-label="Filter authored reviews"
+                  >
+                    <button class="active" type="button" data-review-filter="all">Tất cả</button>
+                    <button type="button" data-review-filter="task">Task</button>
+                    <button type="button" data-review-filter="manager">Người giao việc</button>
+                    <button type="button" data-review-filter="environment">Môi trường</button>
+                  </div>
+                  <label class="sort-control">
+                    <span>Sắp xếp</span>
+                    <select data-review-sort-group="authored" aria-label="Sắp xếp đánh giá đã viết">
+                      <option value="score">Điểm cao</option>
+                      <option value="score-asc">Điểm thấp</option>
+                      <option value="date">Mới nhất</option>
+                      <option value="kind">Loại</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div class="review-list">
+                  <article
+                    class="review-card"
+                    data-review-scope="authored"
+                    data-review-kind="task"
+                    data-review-score="4.8"
+                    data-review-date="2026-07-14"
+                    data-review-title="Backend handoff review"
+                  >
+                    <div class="score">4.8</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge outgoing">Đã viết</span>
+                        <span>Task</span>
+                      </div>
+                      <h3>Backend handoff review</h3>
+                      <p>
+                        “API contract rõ, nhưng cần chốt migration note trước khi bàn giao.”
+                      </p>
+                      <span>Review cho minhnh23 · Task Review · Delivery handoff</span>
+                    </div>
+                  </article>
+                  <article
+                    class="review-card"
+                    data-review-scope="authored"
+                    data-review-kind="manager"
+                    data-review-score="4.6"
+                    data-review-date="2026-07-11"
+                    data-review-title="Sprint planning feedback"
+                  >
+                    <div class="score">4.6</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge outgoing">Đã viết</span>
+                        <span>Người giao việc</span>
+                      </div>
+                      <h3>Sprint planning feedback</h3>
+                      <p>
+                        “Scope được chia nhỏ tốt, cần cập nhật priority khi dependency đổi.”
+                      </p>
+                      <span>Review cho project lead · Manager Review · Planning</span>
+                    </div>
+                  </article>
+                  <article
+                    class="review-card muted-card"
+                    data-review-scope="authored"
+                    data-review-kind="environment"
+                    data-review-score="4.4"
+                    data-review-date="2026-07-08"
+                    data-review-title="Project environment signal"
+                  >
+                    <div class="score">4.4</div>
+                    <div>
+                      <div class="review-card-top">
+                        <span class="direction-badge outgoing">Đã viết</span>
+                        <span>Môi trường</span>
+                      </div>
+                      <h3>Project environment signal</h3>
+                      <p>
+                        “Review loop minh bạch, nhưng report dispute cần template ngắn hơn.”
+                      </p>
+                      <span>Review môi trường · Sprint retrospective · Governance</span>
+                    </div>
+                  </article>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="panel" id="history">
+            <div class="panel-heading">
+              <div>
+                <p class="kicker">Work history</p>
+                <h2>Kinh nghiệm chứng minh năng lực</h2>
+              </div>
+            </div>
+
+            <ol class="timeline">
+              <li>
+                <time>Q3 2026</time>
+                <div>
+                  <h3>Review Governance Sprint</h3>
+                  <p>Owner frontend flow, dispute room, task evidence projection.</p>
+                </div>
+              </li>
+              <li>
+                <time>Q2 2026</time>
+                <div>
+                  <h3>Marketplace profile loop</h3>
+                  <p>Talent search, profile trust explanation, recruiter bookmark flow.</p>
+                </div>
+              </li>
+              <li class="history-extra">
+                <time>Q1 2026</time>
+                <div>
+                  <h3>Organization workspace</h3>
+                  <p>Task board, project context, organization switching.</p>
+                </div>
+              </li>
+            </ol>
+
+            <button class="inline-toggle" type="button" data-toggle="history">
+              Mở rộng timeline
+            </button>
+          </section>
+        </div>
+
+      </div>
+    </main>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

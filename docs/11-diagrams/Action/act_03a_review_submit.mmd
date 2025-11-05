@@ -1,0 +1,72 @@
+%% ─────────────────────────────────────────────────────────────
+%% Updated 2026-07-10 (verified).
+%% Purpose: Review session creation + parallel skill review submission
+%% Excludes: Confirmation/dispute (see act_03b), scoring/anomaly (see act_03c), dispute lifecycle (see act_03d)
+%% Related: act_03b_review_confirm.mmd, act_03c_review_score.mmd, act_03d_review_dispute_lifecycle.mmd
+%% ─────────────────────────────────────────────────────────────
+%% Reader intent: Understand how task completion turns into review work and evidence-linked skill submissions.
+%% Key boundary: Stops when session becomes completed and hands off to confirm/dispute flow.
+%% Current caveat: One assignment maps to one review session; runtime has 2 creation paths:
+%%   preferred path during submission→in_review, and fallback path after task reaches done.
+%% Evidence links happen per skill review, not as a single session attachment.
+
+flowchart TD
+    StartA(["Assignee submits
+    completion package"]) --> SubmitPath["SubmitTaskSubmissionCommand
+    → upsert submission
+    → replace evidences
+    → move task to IN_REVIEW"]
+    SubmitPath --> EnsureSession["ensureReviewSession()
+    if active assignment
+    has no session"]
+
+    StartB(["Task later reaches
+    DONE category"]) --> MarkComplete["TaskCompletionListener
+    → complete active
+    TaskAssignments"]
+    MarkComplete --> AutoCreate["AssignmentCompletionListener
+    → create missing ReviewSession
+    for completed assignment"]
+
+    EnsureSession --> SeedAssignments["Seed reviewer assignments
+    creator_required first
+    then manager/peer quotas
+    then optional fallback"]
+    AutoCreate --> SeedAssignments
+
+    SeedAssignments --> NotifyAll["Notify reviewer(s)
+    to submit reviews"]
+
+    %% ═══════════════════════════════════════════════════════════
+    %% REVIEWER SUBMITS SKILL REVIEWS
+    %% ═══════════════════════════════════════════════════════════
+    NotifyAll --> ReviewerSubmit["SubmitSkillReviewCommand:
+    For each required skill:
+    • observed_level_id
+    • score
+    • comments"]
+
+    ReviewerSubmit --> LinkEvidence["AddReviewEvidenceCommand:
+    Link skill_review →
+    task_submission_evidences
+    via skill_review_evidence_links"]
+
+    LinkEvidence --> SelfAssessment["Optional:
+    UpsertTaskSelfAssessmentCommand
+    Reviewee declares own view"]
+
+    SelfAssessment --> CheckComplete{"All required skills
+    reviewed?"}
+
+    CheckComplete -->|No| ReviewerSubmit
+    CheckComplete -->|Yes| SessionComplete["session.status = 'completed'
+    session.completed_at = now()
+    → Continue to act_03b"]
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef review fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    class StartA,StartB startEnd
+    class SubmitPath,EnsureSession,MarkComplete,AutoCreate,SeedAssignments,NotifyAll,ReviewerSubmit,LinkEvidence,SelfAssessment,SessionComplete review
+    class CheckComplete decision

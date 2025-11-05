@@ -1,0 +1,68 @@
+%% state_01a_task_transition_rules.mmd — Task Transition Guards and Lifecycle
+%% Updated 2026-07-10 (verified).
+%% Purpose: Exact transition guards and lifecycle rules for task status changes
+%% Scope: DB-driven workflow transitions, guards, terminal behavior
+%% Excludes: Assignment logic (see act_01c), review internals (see act_03)
+%% Related: task_status_rules.ts, update_task_status_command.ts, seed_default_task_statuses.ts
+
+stateDiagram-v2
+    %% ==============================
+    %% TRANSITION GUARDS
+    %% ==============================
+
+    state "TODO" as todo
+    state "IN_PROGRESS" as ip
+    state "IN_REVIEW" as ir
+    state "DONE" as done
+    state "CANCELLED" as cancelled
+
+    [*] --> todo : Task created\n(task_status_id = default TODO)
+
+    %% ── TODO transitions ──
+    todo --> ip : Start work\nGUARD: assigned_to ≠ null\nGUARD: transition in org workflow
+    todo --> cancelled : Cancel\nGUARD: transition in org workflow
+
+    %% ── IN_PROGRESS transitions ──
+    ip --> ir : Submit for review\nGUARD: transition in org workflow
+    ip --> todo : Unassign / back to queue\nGUARD: transition in org workflow
+    ip --> cancelled : Cancel
+
+    %% ── IN_REVIEW transitions ──
+    ir --> done : Mark done\nGUARD: transition in org workflow
+    ir --> ip : Back to in_progress\nGUARD: transition in org workflow
+    ir --> cancelled : Cancel
+
+    %% ── DONE terminal ──
+    done --> [*] : TERMINAL\nSide effects:\n1. Mark assignments → completed\n2. Backstop-create missing ReviewSession\n3. Review remains mandatory
+
+    %% ── CANCELLED ──
+    cancelled --> todo : Reopen\nGUARD: transition in org workflow
+
+    %% ==============================
+    %% NOTES
+    %% ==============================
+
+    note right of done
+        DONE is terminal.
+        No transitions out.
+        Runtime can complete assignments
+        and create missing review session
+        here as backstop path.
+        Preferred creation path may already
+        happen earlier at submission → IN_REVIEW.
+    end note
+
+    note left of todo
+        Organization can add custom statuses
+        and restrict transitions via
+        task_workflow_transitions table.
+        System statuses (TODO, IN_PROGRESS,
+        DONE, CANCELLED) cannot be deleted.
+        Empty transitions = permissive.
+    end note
+
+    note right of ip
+        assigned_to is checked BEFORE
+        allowing TODO → IN_PROGRESS.
+        Unassigned task cannot start.
+    end note

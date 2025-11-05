@@ -1,0 +1,31 @@
+%% Updated 2026-06-26. Last verified for header consistency.
+%% DFD 06B - User Settings
+%% Reader intent: Understand how settings mix server-provided defaults, persistent account data, and client-held UI preferences.
+%% Key boundary: Settings-only view; notifications and admin governance are outside this DFD.
+%% Current caveat: Client-side preference storage is part of the effective user experience even when no server-side write occurs.
+
+flowchart TD
+    User([Authenticated User])
+
+    P1[["Render settings defaults"]]
+    P2[["Update profile/account fields"]]
+    P3[["Apply UI preferences"]]
+
+    D1[(users)]
+    D2[(settings defaults)]
+    D3[(client localStorage / cookies)]
+
+    User -->|"User Input"| P1
+    User -->|"User Input"| P2
+    User -->|"User Input"| P3
+
+    P1 -->|"User Data"| D2
+    P2 -->|"User Data"| D1
+    P3 -->|"User Data"| D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class User entity
+    class P1,P2,P3 process
+    class D1,D2,D3 datastore

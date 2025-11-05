@@ -1,0 +1,48 @@
+%% DFD 01 — Main Overview (Level 1)
+%% Updated 2026-06-26 (verified).
+%% Reader intent: See the whole platform as a small set of interacting capability areas before entering domain-specific DFDs.
+%% Key boundary: Level 1 stays deliberately compressed and does not enumerate every store, actor variant, or exception path.
+%% Current caveat: Realtime transport is inactive, so this overview reflects request/response plus persisted operational stores rather than push-driven flows.
+
+flowchart TD
+    User([User / External Contributor])
+    Admin([System Admin])
+    OAuth([OAuth Provider])
+
+    P1[["1. Identity & Access"]]
+    P2[["2. Workspace Delivery\n(organization -> project -> task)"]]
+    P3[["3. Marketplace"]]
+    P4[["4. Review, Profile & Skills"]]
+    P5[["5. Settings, Notifications & Admin Console"]]
+
+    D1[(PostgreSQL core tables)]
+    D2[(PostgreSQL operational stores\naudit / error / notifications / user activity)]
+    D3[(Redis sessions / cache)]
+
+    User -->|"login and profile request"| P1
+    OAuth -->|"OAuth identity callback"| P1
+    User -->|"workspace task and project request"| P2
+    User -->|"marketplace search and application data"| P3
+    User -->|"review and profile evidence request"| P4
+    Admin -->|"moderation and governance action"| P4
+    User -->|"settings and notification request"| P5
+    Admin -->|"admin console action"| P5
+
+    P1 -->|"user account and auth profile data"| D1
+    P1 -->|"session and cache state"| D3
+    P2 -->|"project task assignment submission data"| D1
+    P2 -->|"task audit and activity events"| D2
+    P3 -->|"public task and application proposal data"| D1
+    P4 -->|"review session skill profile data"| D1
+    P4 -->|"review audit and error events"| D2
+    P4 -->|"review workflow cache state"| D3
+    P5 -->|"settings and admin reference data"| D1
+    P5 -->|"notification audit activity data"| D2
+    P5 -->|"session preference cache data"| D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class User,Admin,OAuth entity
+    class P1,P2,P3,P4,P5 process
+    class D1,D2,D3 datastore

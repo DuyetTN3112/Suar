@@ -1,0 +1,33 @@
+%% uc_04a_system_admin_surface.mmd — System Admin Surface
+%% Updated 2026-06-26 (verified).
+%% Mermaid approximation of a UML use case diagram.
+%% Scope: current platform-governance responsibilities only.
+
+flowchart LR
+    systemAdmin["<<actor>> System Admin"]
+    superadmin["<<actor>> Superadmin"]
+
+    subgraph system["System Administration"]
+        dashboards([View admin dashboards and queues])
+        users([Manage users, status, and system roles])
+        orgs([Inspect organizations, projects, and memberships])
+        disputes([Resolve disputes and flagged reviews])
+        aiEval([Review AI dispute evaluations and case context])
+        audits([View audit events and operational error history])
+        packages([Manage user packages and support actions])
+    end
+
+    systemAdmin --> dashboards
+    systemAdmin --> users
+    systemAdmin --> orgs
+    systemAdmin --> disputes
+    systemAdmin --> aiEval
+    systemAdmin --> audits
+    systemAdmin --> packages
+
+    superadmin -.->|generalization| systemAdmin
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class systemAdmin,superadmin actor
+    class dashboards,users,orgs,disputes,aiEval,audits,packages usecase

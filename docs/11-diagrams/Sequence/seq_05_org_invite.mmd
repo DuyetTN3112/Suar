@@ -1,0 +1,38 @@
+%% seq_05_org_invite.mmd
+%% Updated 2026-07-17 (verified).
+%% Reader intent: Understand the invitation path for adding a future organization member.
+%% Key boundary: Invitation-only sequence; acceptance and post-invite activation are outside this flow.
+%% Current caveat: Accept-invitation and email-delivery behavior are not fully wired, so invite creation does not yet imply a complete onboarding loop.
+
+sequenceDiagram
+    autonumber
+    actor Admin as Org Owner/Admin
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as InviteUserCommand
+    participant Repo as OrgAccessRepository
+    participant DB as PostgreSQL
+    participant Audit as auditPublicApi
+
+    Admin->>B: Enter email + role
+    B->>C: POST invite member
+    C->>Cmd: execute(dto)
+    Cmd->>Cmd: Check actor permission
+    Cmd->>Repo: hasPendingInvitation(orgId, email)
+    Repo->>DB: SELECT pending invitation
+    DB-->>Repo: Result
+
+    alt Duplicate pending invitation
+        Repo-->>Cmd: Already exists
+        Cmd-->>C: Conflict error
+        C-->>B: Show validation error
+    else Invitation allowed
+        Repo-->>Cmd: No duplicate
+        Cmd->>Repo: createInvitation(...)
+        Repo->>DB: INSERT organization_invitations
+        DB-->>Repo: Invitation row
+        Cmd->>Audit: write invite audit log
+        Audit->>DB: INSERT audit_events + audit_event_scopes
+        Cmd-->>C: Success
+        C-->>B: Redirect with success flash
+    end

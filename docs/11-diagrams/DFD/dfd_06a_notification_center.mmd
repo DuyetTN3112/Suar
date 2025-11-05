@@ -1,0 +1,34 @@
+%% Updated 2026-06-26. Last verified for header consistency.
+%% DFD 06A - Notification Center
+%% Reader intent: Understand the read/write footprint of the in-app notification center.
+%% Key boundary: Notification-center only; settings persistence and admin console behaviors are separate support DFDs.
+%% Current caveat: Latest notification access still reflects poll/refresh behavior because active push transport is not running.
+
+flowchart TD
+    User([Authenticated User])
+
+    P1[["List notifications"]]
+    P2[["Get latest notifications"]]
+    P3[["Mark as read"]]
+    P4[["Delete read notifications"]]
+
+    D1[(notifications collection)]
+    D2[(session / identity context)]
+
+    User -->|"User Input"| P1
+    User -->|"User Input"| P2
+    User -->|"User Input"| P3
+    User -->|"User Input"| P4
+
+    P1 -->|"Notification Data"| D1
+    P1 -->|"Notification Data"| D2
+    P2 -->|"Notification Data"| D1
+    P3 -->|"Notification Data"| D1
+    P4 -->|"Notification Data"| D1
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class User entity
+    class P1,P2,P3,P4 process
+    class D1,D2 datastore

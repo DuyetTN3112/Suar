@@ -1,0 +1,23 @@
+%% act_06_user_lifecycle_overview.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Show how first login, workspace context, approval, and profile readiness fit into one user lifecycle.
+%% Key boundary: Overview does not resolve every onboarding branch or permission gate; detailed approval flow lives in its child diagram.
+%% Current caveat: User lifecycle overlaps with org context and profile publication, but those capabilities keep their own deeper diagrams.
+
+flowchart TD
+    Start([Start]) --> Module["User lifecycle module"]
+
+    Module --> OAuth["OAuth login and first-time account registration"]
+    Module --> OrgContext["Create or restore organization workspace context"]
+    Module --> Approval["Queue, review, and approve pending users"]
+    Module --> ProfileReady["Prepare profile, skills, and public talent presence"]
+
+    OAuth --> End([End])
+    OrgContext --> End
+    Approval --> End
+    ProfileReady --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,OAuth,OrgContext,Approval,ProfileReady process

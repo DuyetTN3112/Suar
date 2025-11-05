@@ -1,0 +1,102 @@
+
+%% Updated 2026-07-10 (verified).
+%% ─────────────────────────────────────────────────────────────
+%% act_06: OAuth Login And First-Time Account Registration
+%% ─────────────────────────────────────────────────────────────
+%% Reader intent: Understand the login-time onboarding path from OAuth callback to usable session.
+%% Key boundary: Login/onboarding overview only; deep account-resolution cascade moved to act_06c_social_login_account_resolution.mmd and logout/session teardown moved to act_06b_logout_session_teardown.mmd.
+%% Current caveat: Session truth is AdonisJS cookie-based session, not JWT-driven API auth.
+%% Runtime caveat: Redirect decision after login depends on system_role and current_organization_id, but later middleware may still resolve/sync current org context before workspace becomes truly usable.
+%% Backend: SocialAuthController → SocialLoginCommand
+%% Session: AdonisJS session (cookie), NOT JWT
+%% Rate limit: 5 req/min/IP (loginThrottle)
+%% ─────────────────────────────────────────────────────────────
+
+flowchart TD
+    Start([Start]) --> VisitLogin["User visits /login"]
+
+    VisitLogin --> ChooseProvider{"Choose OAuth
+    provider"}
+
+    ChooseProvider -->|Google| RedirectGoogle["GET /auth/google/redirect
+    → ally.use('google').redirect()"]
+    ChooseProvider -->|GitHub| RedirectGitHub["GET /auth/github/redirect
+    → ally.use('github').redirect()"]
+
+    RedirectGoogle --> OAuthConsent["User accepts consent
+    on provider screen"]
+    RedirectGitHub --> OAuthConsent
+
+    OAuthConsent --> Callback["GET /auth/:provider/callback
+    → SocialAuthController.callback"]
+
+    Callback --> CheckOAuthError{"OAuth error?
+    (denied / state mismatch)"}
+
+    CheckOAuthError -->|"accessDenied
+    or stateMisMatch
+    or hasError"| RedirectLoginError["Redirect /login
+    with error message"]
+    RedirectLoginError --> End2([End])
+
+    CheckOAuthError -->|No error| FetchSocialUser["ally.use(provider).user()
+    → get email, name,
+    provider_id, tokens"]
+
+    FetchSocialUser --> CheckEmail{"Email present
+    in response?"}
+    CheckEmail -->|No| RedirectLoginError
+
+    CheckEmail -->|Yes| SocialLoginCommand["SocialLoginCommand
+    .execute(provider, socialData)"]
+
+    SocialLoginCommand --> AccountPath{"Resolve account path:
+    • linked provider user?
+    • existing email account?
+    • brand-new user?"}
+
+    AccountPath -->|Linked provider user| ExistingLinked["Reuse linked user
+    + refresh provider tokens"]
+    ExistingLinked --> EmitLogin1["Emit user:login event"]
+    EmitLogin1 --> LoginSession
+
+    AccountPath -->|Existing email account| ExistingEmail["Link provider to
+    existing user account"]
+    ExistingEmail --> EmitLogin2["Emit user:login event"]
+    EmitLogin2 --> LoginSession
+
+    AccountPath -->|Brand-new user| NewUser["Create active
+    registered_user
+    + create provider record"]
+    NewUser --> EmitLogin3["Emit user:login event"]
+    EmitLogin3 --> LoginSessionNew
+
+    %% ─── Session Creation ───
+    LoginSession["auth.use('web').login(user)
+    → Create server session (cookie)"]
+    LoginSession --> RedirectExisting["Resolve landing:
+    /admin, /tasks,
+    or /organizations"]
+    RedirectExisting --> End1([End])
+
+    LoginSessionNew["auth.use('web').login(user)
+    → Create server session (cookie)"]
+    LoginSessionNew --> RedirectOrgs["Redirect → /organizations
+    (new user, no org)"]
+    RedirectOrgs --> End1
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef oauth fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    classDef event fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef session fill:#FFF9C4,stroke:#F57F17,color:#333
+    class Start,End1,End2 startEnd
+    class VisitLogin,ExistingLinked,ExistingEmail,NewUser process
+    class ChooseProvider,CheckOAuthError,CheckEmail,AccountPath decision
+    class RedirectGoogle,RedirectGitHub,OAuthConsent,Callback,FetchSocialUser,SocialLoginCommand oauth
+    class RedirectLoginError error
+    class EmitLogin1,EmitLogin2,EmitLogin3 event
+    class LoginSession,LoginSessionNew,RedirectExisting,RedirectOrgs session

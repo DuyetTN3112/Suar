@@ -1,0 +1,72 @@
+%% Class Diagram: Task Assignment and Application Detail
+%% Updated 2026-07-10 (verified).
+%% Scope: Assignment, external application, and version snapshot only.
+
+classDiagram
+    class Task {
+        +UUID id
+        +UUID assigned_to
+        +String task_visibility
+        +DateTime application_deadline
+        +Integer external_applications_count
+    }
+
+    class TaskAssignment {
+        +UUID id
+        +UUID task_id
+        +UUID assignee_id
+        +UUID assigned_by
+        +String assignment_type
+        +String assignment_status
+        +Decimal estimated_hours
+        +Decimal actual_hours
+        +Integer progress_percentage
+        +Text completion_notes
+        +UUID verified_by
+        +DateTime verified_at
+        +DateTime assigned_at
+        +DateTime completed_at
+    }
+
+    class TaskApplication {
+        +UUID id
+        +UUID task_id
+        +UUID applicant_id
+        +String application_status
+        +String application_source
+        +Text message
+        +JSONB portfolio_links
+        +UUID reviewed_by
+        +String rejection_reason
+        +DateTime applied_at
+        +DateTime reviewed_at
+    }
+
+    class TaskVersion {
+        +UUID id
+        +UUID task_id
+        +String title
+        +Text description
+        +String status
+        +String label
+        +String priority
+        +String difficulty
+        +UUID assigned_to
+        +UUID changed_by
+        +DateTime changed_at
+    }
+
+    Task "1" --> "*" TaskAssignment : assignment history
+    Task "1" --> "*" TaskApplication : external applications
+    Task "1" --> "*" TaskVersion : snapshots
+
+    note for TaskAssignment "Assignment lifecycle is separate from task status.
+    Completing assignment can trigger missing review session creation
+    as backstop after task reaches DONE.
+    Preferred review-session creation may already happen
+    earlier when assignee submits completion package.
+    verified_by/verified_at exist but are NEVER SET in current code."
+    note for TaskApplication "Used by marketplace proposal flow.
+    Task creator and project owner/manager can approve/reject proposals."
+    note for TaskVersion "Stores task snapshots for audit/versioning,
+    not workflow policy. Created on update, not on create/status change."

@@ -1,0 +1,42 @@
+%% seq_02a_task_create_update.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand how task authoring enters and updates the task aggregate.
+%% Key boundary: Covers create/update authoring only, not downstream assignment or review consequences.
+%% Current caveat: Authoring changes can also refresh required-skill and versioned task context even when UI exposes one save action.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Manager
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as Command
+    participant Entity as TaskEntity
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    Note over U, Evt: CREATE TASK
+    U->>B: Fill create task form
+    B->>C: POST /tasks
+    C->>Cmd: CreateTaskCommand
+    Cmd->>Cmd: Validate org + project permission
+    Cmd->>Entity: Build new task aggregate
+    Cmd->>Repo: save(task)
+    Repo->>DB: INSERT tasks
+    Cmd->>Evt: emit(task:created)
+    C-->>B: Redirect to detail
+
+    Note over U, Evt: UPDATE TASK
+    U->>B: Edit task fields
+    B->>C: PUT /tasks/:id
+    C->>Cmd: UpdateTaskCommand
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Entity: Apply field changes
+    Cmd->>Repo: save(task)
+    Repo->>DB: UPDATE tasks
+    Cmd->>Repo: saveVersion(snapshot)
+    Repo->>DB: INSERT task_versions
+    Cmd->>Evt: emit(task:updated)
+    C-->>B: Redirect back
