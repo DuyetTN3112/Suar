@@ -1,16 +1,21 @@
 /**
  * ProjectInfraMapper — Infrastructure Layer Mapper
  *
- * Maps between ORM Entity (Lucid Model) ↔ Domain Entity.
+ * Maps between ORM Entity (Lucid Model) ↔ Domain Entity ↔ Plain Record.
  *
  * Flow:
- *   Read:  ORM Entity → Domain Entity
- *   Write: Domain Entity → ORM Entity (partial, for create/update)
+ *   Read:  ORM Entity → Domain Entity (toDomain) or Plain Record (toRecord, toDetailRecord)
+ *   Write: Domain Entity → ORM Entity fields (toOrm)
  */
 
 import { ProjectEntity } from '#domain/projects/entities/project_entity'
 import type { ProjectEntityProps } from '#domain/projects/entities/project_entity'
-import type Project from '#models/project'
+import type Project from '#infra/projects/models/project'
+import type { ProjectDetailRecord, ProjectRecord } from '#types/project_records'
+
+function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
+  return value?.toISO() ?? null
+}
 
 export class ProjectInfraMapper {
   private readonly __instanceMarker = true
@@ -35,7 +40,7 @@ export class ProjectInfraMapper {
       budget: String(model.budget),
       managerId: model.manager_id,
       ownerId: model.owner_id,
-      visibility: model.visibility as ProjectEntityProps['visibility'],
+      visibility: model.visibility,
       allowFreelancer: model.allow_freelancer,
       approvalRequiredForMembers: model.approval_required_for_members,
       tags: model.tags,
@@ -45,6 +50,43 @@ export class ProjectInfraMapper {
       updatedAt: model.updated_at.toJSDate(),
     }
     return new ProjectEntity(props)
+  }
+
+  /**
+   * ORM Entity (Lucid Model) → Plain Record (for barrel seal)
+   */
+  static toRecord(model: Project): ProjectRecord {
+    return {
+      id: model.id,
+      creator_id: model.creator_id,
+      name: model.name,
+      description: model.description,
+      organization_id: model.organization_id,
+      start_date: serializeDateTime(model.start_date),
+      end_date: serializeDateTime(model.end_date),
+      status: model.status,
+      budget: model.budget,
+      manager_id: model.manager_id,
+      owner_id: model.owner_id,
+      visibility: model.visibility,
+      allow_freelancer: model.allow_freelancer,
+      approval_required_for_members: model.approval_required_for_members,
+      tags: model.tags as string[] | null,
+      custom_roles: model.custom_roles as Record<string, unknown>[] | null,
+      deleted_at: serializeDateTime(model.deleted_at),
+      created_at: serializeDateTime(model.created_at),
+      updated_at: serializeDateTime(model.updated_at),
+    }
+  }
+
+  /**
+   * ORM Entity (Lucid Model) → Detail Record with relations
+   */
+  static toDetailRecord(model: Project): ProjectDetailRecord {
+    return {
+      ...(model.serialize() as Record<string, unknown>),
+      ...this.toRecord(model),
+    }
   }
 
   /**
