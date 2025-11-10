@@ -11,7 +11,7 @@ import { ProjectInfraMapper } from '../mapper/project_infra_mapper.js'
 import type { ProjectEntity } from '#domain/projects/entities/project_entity'
 import type { ProjectRepository } from '#domain/projects/repositories/project_repository_interface'
 import NotFoundException from '#exceptions/not_found_exception'
-import Project from '#models/project'
+import Project from '#infra/projects/models/project'
 import type { DatabaseId } from '#types/database'
 
 export class ProjectRepositoryImpl implements ProjectRepository {
