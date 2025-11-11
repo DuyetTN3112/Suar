@@ -1,0 +1,22 @@
+import type {
+  SkillSearchDocumentReader,
+  SkillSearchDocumentRecord,
+} from '#modules/skills/application/ports/skill_search_document_reader'
+import Skill from '#modules/skills/infra/models/skill'
+
+export class LucidSkillSearchDocumentReader implements SkillSearchDocumentReader {
+  async findSkillSearchDocumentRecord(skillId: string): Promise<SkillSearchDocumentRecord> {
+    const skill = await Skill.findOrFail(skillId)
+
+    return {
+      skillId: skill.id,
+      skillCode: skill.skill_code,
+      skillName: skill.skill_name,
+      categoryCode: skill.category_code,
+      displayType: skill.display_type,
+      description: skill.description,
+      isActive: skill.is_active,
+      updatedAt: skill.updated_at.toISO() ?? new Date().toISOString(),
+    }
+  }
+}
