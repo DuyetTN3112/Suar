@@ -1,0 +1,38 @@
+%% act_05d_org_invite_member.mmd
+%% Updated 2026-06-26 (verified).
+%% Reader intent: Understand the invite path for bringing a member into an organization.
+%% Key boundary: Invitation-only flow; later acceptance, rejection, and role mutation are separate concerns.
+%% Current caveat: Invite success does not equal active membership until downstream acceptance/context steps complete.
+%% Backend refs:
+%%   - POST /organizations/:id/members/invite
+%%   - POST /org/members/invite
+%%   - InviteUserCommand
+%% Note: org invitation is separate from project-role invitation, marketplace application, and task assignment.
+
+flowchart TD
+    Start([Start]) --> Input["Owner/Admin enters email + org role"]
+    Input --> Permission{"Actor is org_owner
+or org_admin?"}
+    Permission -->|No| Deny["Reject request"]
+    Permission -->|Yes| Duplicate{"Pending invitation
+already exists?"}
+    Duplicate -->|Yes| Conflict["Return duplicate error"]
+    Duplicate -->|No| CreateInvite["Create organization invitation
+token + expires_at"]
+    CreateInvite --> Audit["Write audit log"]
+    Audit --> Notify["Send in-app notification
+(no email delivery yet)"]
+    Notify --> Boundary["Invitation remains pending membership intent
+no project membership or task assignment yet"]
+    Boundary --> End([Invitation created])
+    Deny --> End2([End])
+    Conflict --> End3([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End,End2,End3 startEnd
+    class Input,CreateInvite,Audit,Notify,Boundary process
+    class Permission,Duplicate decision
+    class Deny,Conflict error

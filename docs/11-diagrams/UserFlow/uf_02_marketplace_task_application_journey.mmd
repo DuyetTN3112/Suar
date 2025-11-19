@@ -1,0 +1,36 @@
+%% uf_02_marketplace_task_application_journey.mmd
+%% Updated 2026-06-26 (verified).
+%% Scope: Marketplace browse to proposal tracking and task assignment outcome.
+%% Reader intent:
+%%   Show one complete contributor proposal journey:
+%%   browse task -> send proposal -> track status -> get rejected / withdraw / become assignee.
+%% Key boundary:
+%%   This diagram explains contributor experience, not owner-side triage detail or task execution detail.
+
+flowchart TD
+    Start([Start]) --> Browse["Open /marketplace/tasks"]
+    Browse --> Inspect["Inspect public task requirements and details"]
+    Inspect --> Decide{"Send proposal?"}
+
+    Decide -->|No| End1([End])
+    Decide -->|Yes| Proposal["Submit proposal for task"]
+    Proposal --> Pending["Proposal stored with pending status"]
+    Pending --> Mine["Open /my-applications to track proposal status"]
+    Mine --> OwnerReview{"Task owner or manager reviews proposal?"}
+
+    OwnerReview -->|Rejected| Rejected["Status becomes rejected and contributor sees timeline"]
+    Rejected --> End2([End])
+
+    OwnerReview -->|Withdrawn by contributor| Withdraw["Contributor posts withdraw action while still allowed"]
+    Withdraw --> End3([End])
+
+    OwnerReview -->|Approved| Assigned["Assignment created and task assignee is set"]
+    Assigned --> Work["Contributor moves into task execution and submission flow"]
+    Work --> End4([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    class Start,End1,End2,End3,End4 startEnd
+    class Browse,Inspect,Proposal,Pending,Mine,Rejected,Withdraw,Assigned,Work process
+    class Decide,OwnerReview decision

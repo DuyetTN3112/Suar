@@ -1,0 +1,81 @@
+%% Communication Diagram: Marketplace Proposal Flow
+%% Updated 2026-06-26 (verified).
+%% Scope: Current runtime proposal submission path for public marketplace tasks.
+%% Evidence notes:
+%%   - route surface is POST /api/v1/tasks/:taskId/apply
+%%   - route/controller ownership is in app/modules/marketplace
+%%   - phase-1 storage remains task_applications; marketplace_applications is parked, not runtime truth
+%%   - event emitted is task:application:submitted
+%%   - no realtime broadcast because Transmit transport=null
+
+graph LR
+    FL["👷 External Contributor
+(Actor)"]
+    UI["📱 TaskMarketplacePage
+:SvelteComponent"]
+    CTRL["⚙️ ApplyMarketplaceTaskController
+:HttpController"]
+    CMD["📦 ApplyMarketplaceTaskCommand
+:Command"]
+    RULES["📏 TaskAssignmentRules
+:PureFunction"]
+    TASK_MODEL["📋 Task
+:LucidModel"]
+    APP_MODEL["📋 TaskApplication
+:LucidModel
+(phase-1 storage)"]
+    DB[("💾 PostgreSQL
+:Database")]
+    EVT["📡 EventBus
+:Emitter"]
+    NOTIF["🔔 NotificationListener
+:Listener"]
+    OWNER["🧑‍💼 TaskOwner
+(Actor)"]
+
+    FL -->|"1: clickSendProposal(taskId)"| UI
+    UI -->|"2: POST /api/v1/tasks/:taskId/apply"| CTRL
+    CTRL -->|"3: execute(taskId, contributor/applicantId)"| CMD
+
+    CMD -->|"4: findOrFail(taskId)"| TASK_MODEL
+    TASK_MODEL -->|"4.1: SELECT tasks"| DB
+    DB -->|"4.2: return Task"| TASK_MODEL
+    TASK_MODEL -->|"4.3: return Task"| CMD
+
+    CMD -->|"5: canApplyForTask(ctx)"| RULES
+    RULES -->|"5.1: check task_visibility
+IN ('external','all')"| RULES
+    RULES -->|"5.2: check no active proposal yet
+(hasExistingApplication)"| RULES
+    RULES -->|"5.3: return PolicyResult"| CMD
+
+    CMD -->|"6: TaskApplication.create()"| APP_MODEL
+    APP_MODEL -->|"6.1: INSERT task_applications
+(status = pending)"| DB
+    DB -->|"6.2: confirm"| APP_MODEL
+    APP_MODEL -->|"6.3: return proposal row"| CMD
+
+    CMD -->|"7: increment
+external_applications_count"| TASK_MODEL
+
+    CMD -->|"8: emit('task:application:submitted')"| EVT
+    EVT -->|"9: onApplicationSubmitted()"| NOTIF
+    NOTIF -->|"9.1: createNotification
+(type = task_application)"| DB
+
+    CMD -->|"10: return proposal row"| CTRL
+    CTRL -->|"11: Inertia redirect"| UI
+    UI -->|"12: show proposal sent state"| FL
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef component fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+
+    class FL,OWNER actor
+    class UI,CTRL,CMD component
+    class RULES rule
+    class EVT,NOTIF infra
+    class DB db
+    class TASK_MODEL,APP_MODEL infra

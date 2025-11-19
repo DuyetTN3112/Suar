@@ -1,0 +1,85 @@
+%% Updated: 2026-06-26.
+%% Purpose: Show how organizer views ranked proposal list and triages contributors.
+%% Excludes: Proposal submit flow, withdraw flow, approval/rejection side effects.
+%% Related: act_02b_marketplace_apply.mmd — proposal happy path; act_02e_marketplace_application_exceptions.mmd — exception paths.
+%% Reader intent: Understand how organizer sees ranked proposals and what factors shape that ranking.
+%% Key boundary: Covers ranking/triage only, not proposal submit/withdraw side effects or approval outcome handling.
+%% Current caveat: Formula weights reflect current runtime logic and can change independently from UI labels.
+
+flowchart TD
+    Start(["Organizer opens task proposal page"]) --> FetchRanking["GET /api/v1/tasks/:taskId/applications/ranking
+    → GetMarketplaceTaskApplicationsRankingQuery"]
+
+    FetchRanking --> LoadTask["Load task context:
+    business_domain, problem_category, task_type, project_id"]
+    LoadTask --> LoadApps["Load pending + approved proposals
+    with contributor + trust_data"]
+
+    LoadTask --> LoadSkills["Load task_required_skills
+    (required_level, is_mandatory, weight, importance)"]
+
+    LoadApps --> Loop["For each contributor:"]
+    LoadSkills --> Loop
+
+    Loop --> CalcSkill["Skill Match:
+    • Level ratio (user vs required)
+    • Source weight (reviewed = 1.0, imported = 0.5)
+    • Importance multiplier (critical = 1.5, high = 1.25, low = 0.75)
+    • Weight factor"]
+
+    Loop --> CalcDomain["Domain Match:
+    • business_domain match = 25 pts
+    • problem_category match = 15 pts
+    • task_type match = 10 pts
+    • Cap at 100"]
+
+    Loop --> CalcDelivery["Delivery Reliability:
+    • on-time ratio from work_history
+    • Percentage"]
+
+    Loop --> CalcTrust["Trust Score:
+    • From user.trust_data.calculated_score
+    • Clamped 0-100"]
+
+    CalcSkill --> Overall["Overall = skill*0.4 + domain*0.2 + delivery*0.2 + trust*0.2"]
+    CalcDomain --> Overall
+    CalcDelivery --> Overall
+    CalcTrust --> Overall
+
+    Overall --> FitLabel{"Fit label:"}
+    FitLabel -->|>= 80| Strong["strong_match"]
+    FitLabel -->|>= 60| Good["good_match"]
+    FitLabel -->|>= 40| Partial["partial_match"]
+    FitLabel -->|< 40| Weak["weak_match"]
+
+    Strong --> SourceCheck["Contributor source:"]
+    Good --> SourceCheck
+    Partial --> SourceCheck
+    Weak --> SourceCheck
+
+    SourceCheck -->|project_member| SourcePM["project_member"]
+    SourceCheck -->|org_member| SourceOrg["org_member"]
+    SourceCheck -->|neither| SourceExt["external"]
+
+    SourcePM --> Sort["Sort by match_score DESC"]
+    SourceOrg --> Sort
+    SourceExt --> Sort
+
+    Sort --> Render["UI renders:
+    • Ranked list with scores
+    • Fit label badge
+    • Contributor source badge
+    • Skill overlap details
+    • Risks + explanations"]
+
+    Render --> OrganizerDecision["Organizer selects contributor proposal for approval"]
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef score fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    class Start startEnd
+    class FetchRanking,LoadTask,LoadApps,LoadSkills,Loop,Render,OrganizerDecision process
+    class CalcSkill,CalcDomain,CalcDelivery,CalcTrust,Overall,SourceCheck score
+    class FitLabel decision
+    class Strong,Good,Partial,Weak,SourcePM,SourceOrg,SourceExt score

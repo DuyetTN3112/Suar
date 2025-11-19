@@ -1,0 +1,61 @@
+%% uc_04b_org_project_access.mmd — Organization & Project Access
+%% Updated 2026-06-26 (verified).
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    orgOwner["<<actor>> Org Owner"]
+    orgAdmin["<<actor>> Org Admin"]
+    projectOwner["<<actor>> Project Owner"]
+    projectManager["<<actor>> Project Manager"]
+    projectMember["<<actor>> Project Member"]
+    projectViewer["<<actor>> Project Viewer"]
+    userWorkspaceMember["<<actor>> User Workspace Member"]
+
+    subgraph system["Organization & Project Access"]
+        orgSettings([Manage org settings])
+        orgMembers([Manage org members and requests])
+        orgWorkflow([Customize task workflow])
+        userProjects([View my current-org projects])
+        switchOrg([Switch current organization])
+        orgProjects([List, search, and create org projects])
+        sharedProjectDetail([Open shared project detail])
+        projectMutations([Edit, delete, and add members])
+        taskWorkspace([Manage tasks and assignments])
+        taskReadOnly([View task boards and detail])
+    end
+
+    orgOwner --> orgSettings
+    orgOwner --> orgMembers
+    orgOwner --> orgWorkflow
+    orgOwner --> orgProjects
+
+    orgAdmin --> orgSettings
+    orgAdmin --> orgMembers
+    orgAdmin --> orgWorkflow
+    orgAdmin --> orgProjects
+
+    userWorkspaceMember --> userProjects
+    userWorkspaceMember --> switchOrg
+    userWorkspaceMember --> sharedProjectDetail
+
+    orgProjects --> sharedProjectDetail
+    sharedProjectDetail --> projectMutations
+
+    projectOwner --> projectMutations
+    projectOwner --> taskWorkspace
+    projectManager --> projectMutations
+    projectManager --> taskWorkspace
+    projectMember --> taskWorkspace
+    projectMember --> sharedProjectDetail
+    projectMember --> taskReadOnly
+    projectViewer --> taskReadOnly
+
+    orgOwner -.->|generalization| orgAdmin
+    projectOwner -.->|generalization| projectManager
+    projectManager -.->|generalization| projectMember
+    projectMember -.->|generalization| projectViewer
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class orgOwner,orgAdmin,projectOwner,projectManager,projectMember,projectViewer,userWorkspaceMember actor
+    class orgSettings,orgMembers,orgWorkflow,userProjects,switchOrg,orgProjects,sharedProjectDetail,projectMutations,taskWorkspace,taskReadOnly usecase

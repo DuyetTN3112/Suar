@@ -1,0 +1,121 @@
+%% Class Diagram: Organization & Project Core
+%% Updated 2026-06-26 (verified).
+%% Scope: Organization membership, project ownership, and core repositories.
+
+classDiagram
+    class Organization {
+        +id
+        +name
+        +slug
+        +description
+        +logo
+        +website
+        +owner_id
+        +custom_roles
+        +partner_type
+        +partner_is_active
+        +deleted_at
+    }
+
+    class OrganizationUser {
+        +organization_id
+        +user_id
+        +org_role
+        +status
+        +invited_by
+    }
+
+    class Project {
+        +id
+        +creator_id
+        +organization_id
+        +name
+        +status
+        +manager_id
+        +owner_id
+        +visibility
+        +allow_external_contributors
+        +approval_required_for_members
+        +start_date
+        +end_date
+        +tags
+        +custom_roles
+    }
+
+    class ProjectMember {
+        +project_id
+        +user_id
+        +project_role
+    }
+
+    class ProjectSprint {
+        +id
+        +organization_id
+        +project_id
+        +name
+        +goal
+        +status
+        +starts_at
+        +ends_at
+        +review_opened_at
+        +review_closed_at
+    }
+
+    class OrganizationEntity {
+        <<Domain Entity>>
+        +id
+        +name
+        +slug
+        +ownerId
+        +partnerType
+        +partnerIsActive
+        +hasCustomRoles()
+    }
+
+    class ProjectEntity {
+        <<Domain Entity>>
+        +id
+        +creatorId
+        +organizationId
+        +name
+        +status
+        +ownerId
+        +managerId
+        +visibility
+        +allowExternalContributors
+        +startDate
+        +endDate
+        +isPublic()
+        +allowsExternalContributors()
+        +isActive
+        +isCompleted
+        +isDeleted
+    }
+
+    class OrganizationRepository {
+        <<interface>>
+        +findById()
+        +findBySlug()
+        +findByOwnerId()
+        +findNotDeletedOrFail()
+    }
+
+    class ProjectRepository {
+        <<interface>>
+        +findById()
+        +findByOrganization()
+        +findByCreator()
+        +findByManager()
+        +findNotDeletedOrFail()
+    }
+
+    Organization "1" --> "many" OrganizationUser : membership
+    Organization "1" --> "many" Project : contains
+    Project "1" --> "many" ProjectMember : members
+    Project "1" --> "many" ProjectSprint : plans
+    Organization --> OrganizationEntity : mapped to domain
+    Project --> ProjectEntity : mapped to domain
+    OrganizationRepository ..> OrganizationEntity : loads
+    ProjectRepository ..> ProjectEntity : loads
+
+    note for Project "allow_external_contributors enables public marketplace access for contributors outside the organization."

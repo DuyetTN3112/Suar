@@ -1,0 +1,17 @@
+# Admin Dashboard Hierarchical Test-Case Matrix
+
+| Field           | Value                          |
+| --------------- | ------------------------------ |
+| Status          | Active hierarchical matrix     |
+| L0 Domain       | Admin                          |
+| L1 Large Flow   | Dashboard                      |
+| Source evidence | `../admin-audit-moderation.md` |
+| Last Reviewed   | 2026-07-14                     |
+
+## Atomic Cases
+
+| Domain | Large Flow | Subflow             | Scenario ID                  | Test Case ID | Actor            | Preconditions                        | Resource State   | Input Class     | Specific Input      | Trigger        | Expected API                | Expected DB/State | Expected UI                                             | Side effects | Backend | Contract | Component | E2E     | Evidence                                                                                                                                                    | Test Strength | Overall |
+| ------ | ---------- | ------------------- | ---------------------------- | ------------ | ---------------- | ------------------------------------ | ---------------- | --------------- | ------------------- | -------------- | --------------------------- | ----------------- | ------------------------------------------------------- | ------------ | ------- | -------- | --------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ------- |
+| Admin  | Dashboard  | Summary stats       | ADM-DB-SC01 stats render     | ADM-DB-TC001 | System admin     | Users/orgs/tasks/subscriptions exist | Aggregate data   | valid read      | Dashboard route/API | Open dashboard | Wrapped stats keys present  | No write          | Cards show exact seeded values or stable fixture values | None         | covered | N/A      | partial   | N/A     | `app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/modules/dashboard/subscriptions.test.ts`    | partial       | partial |
+| Admin  | Dashboard  | Empty/minimal stats | ADM-DB-SC02 zero stats       | ADM-DB-TC002 | System admin     | No matching rows or minimal seed     | Empty aggregates | empty result    | Dashboard route/API | Open dashboard | Zero/default stats returned | No write          | Zero states render, no NaN/undefined                    | None         | covered | N/A      | covered   | N/A     | `app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/modules/dashboard/subscriptions.test.ts` covers zero dashboard stats, chart roles, zero values, and no `NaN`/`Infinity`/`undefined` leakage.                                                                        | covered       | covered |
+| Admin  | Dashboard  | Access boundary     | ADM-DB-SC03 non-admin denied | ADM-DB-TC003 | Non-system admin | Active user                          | Admin dashboard  | forbidden actor | Dashboard route/API | Open dashboard | Forbidden/redirect          | No data leak      | No dashboard                                            | None         | covered | N/A      | N/A       | covered | `app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts` | covered       | covered |

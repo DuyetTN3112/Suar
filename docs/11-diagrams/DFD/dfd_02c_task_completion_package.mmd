@@ -1,0 +1,54 @@
+%% Updated 2026-07-10 (verified).
+%% DFD 02c — Task Completion Package
+%% Reader intent: Understand how submission package, evidences, comments, and attachments move through task delivery.
+%% Key boundary: Completion-package view only; task authoring, assignment decision, and deeper review scoring are separate concerns.
+%% Current caveat: Submit path can open review session before task reaches DONE, while DONE path still acts as backstop if session is missing.
+
+flowchart TD
+    ASSIGNEE([Assignee])
+    REVIEWER([Reviewer / Reviewee])
+    REV([Review])
+
+    P1[[Save Draft Or Submit Package]]
+    P2[[Maintain Submission Evidences]]
+    P3[[Maintain Task Comments And Attachments]]
+    P4[[Lock Completion Package]]
+
+    D1[(tasks)]
+    D2[(task_assignments)]
+    D3[(task_submissions)]
+    D4[(task_submission_evidences)]
+    D5[(task_comments)]
+    D6[(task_attachments)]
+    D7[(task_assignment_snapshots)]
+
+    ASSIGNEE -->|"summary, links,\nimplementation notes"| P1
+    ASSIGNEE -->|"evidence URLs"| P2
+    ASSIGNEE -->|"discussion + files"| P3
+    REVIEWER -->|"read-only / discussion\ncontext as allowed"| P3
+    ASSIGNEE -->|"freeze final package"| P4
+
+    P1 -->|"check task + active assignment"| D1
+    P1 -->|"check active assignment"| D2
+    P1 -->|"upsert draft/submitted package"| D3
+    P1 -->|"submitted snapshot if needed"| D7
+    P1 -->|"submit path may open\nreview session"| REV
+
+    P2 -->|"read/write evidence rows"| D4
+    P2 -->|"resolve submission owner/status"| D3
+
+    P3 -->|"store thread + replies"| D5
+    P3 -->|"store task files"| D6
+    P3 -->|"read task + assignment context"| D1
+    P3 -->|"read task + assignment context"| D2
+
+    P4 -->|"set submission = locked"| D3
+
+    classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
+    classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    classDef external fill:#F3E5F5,stroke:#7B1FA2,color:#333,stroke-width:2px
+    class ASSIGNEE,REVIEWER entity
+    class P1,P2,P3,P4 process
+    class D1,D2,D3,D4,D5,D6,D7 datastore
+    class REV external

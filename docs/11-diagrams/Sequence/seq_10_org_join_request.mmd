@@ -1,0 +1,59 @@
+%% seq_10_org_join_request.mmd
+%% Updated 2026-07-10 (verified).
+%% Reader intent: Understand how a requester checks eligibility and creates pending membership in current runtime.
+%% Key boundary: Submission-only flow; admin-side pending queue and approve/reject resolution moved to seq_10b_org_join_request_resolution.mmd.
+%% Reading mode: Mid-to-low level sequence. Open after organization/project overview, especially if reader is new to membership-state model.
+%% Current caveat: Current runtime uses `organization_users(status='pending')` rather than a dedicated `organization_join_requests` flow record.
+
+sequenceDiagram
+    autonumber
+    actor User as User (Requester)
+    participant B as Browser (Svelte)
+    participant C as Controller
+    participant Q as Query
+    participant Cmd as Command
+    participant Entity as Domain Entity
+    participant Repo as Repository
+    participant DB as PostgreSQL
+
+    Note over User, DB: === CHECK ELIGIBILITY + SUBMIT ===
+    Note over C: JoinOrganizationController
+    Note over C: GET shows join page
+    Note over C: POST submits request
+
+    User->>B: Visit organization page
+    B->>C: GET /organizations/:id/join
+    C->>Q: CheckJoinEligibilityQuery.execute(dto)
+    Q->>Repo: findMembership(orgId, userId)
+    Repo->>DB: SELECT organization_users by orgId and userId
+    DB-->>Repo: Result
+    Note over Repo: Infra Mapper: ORM Model → Domain Entity
+    Repo-->>Q: Membership entity or null
+
+    alt Already approved member
+        Q-->>C: Not eligible: already_member
+        C-->>B: Show "Already a member"
+    else Has pending request (status='pending')
+        Q-->>C: Not eligible: pending_request
+        C-->>B: Show "Request pending"
+    else Eligible
+        C-->>B: Show join form
+        User->>B: Enter message + submit
+        B->>C: POST /organizations/:id/join
+        C->>Cmd: CreateJoinRequestCommand.execute(dto)
+        Note over Cmd: App Mapper: Request DTO → Domain params
+        Note over Cmd: v3.0: Creates/updates
+        Note over Cmd: organization_users row
+        Note over Cmd: with status='pending'
+        Note over Cmd: NOT organization_join_requests
+        Cmd->>Entity: OrganizationUser.create(orgId,<br/>userId, role='org_member', status='pending')
+        Note over Entity: Domain validation
+        Cmd->>Repo: save(membershipEntity)
+        Note over Repo: Infra Mapper: Domain Entity → ORM Model
+        Repo->>DB: INSERT organization_users pending org_member row
+        DB-->>Repo: Created
+        Repo-->>Cmd: Persisted entity
+        Cmd->>Cmd: emit('audit:log')
+        Cmd-->>C: OK
+        C-->>B: Redirect with success message
+    end

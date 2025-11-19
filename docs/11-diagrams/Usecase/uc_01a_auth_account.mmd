@@ -1,0 +1,45 @@
+%% uc_01a_auth_account.mmd — Account Authentication & Profile
+%% Updated 2026-06-26 (verified).
+%% Mermaid approximation of a UML use case diagram.
+
+flowchart LR
+    user["<<actor>> Authenticated User"]
+    viewer["<<actor>> Profile Viewer"]
+    publicViewer["<<actor>> Public Snapshot Viewer"]
+    talentViewer["<<actor>> Talent Viewer / Project Manager"]
+
+    subgraph system["Account & Profile"]
+        login([Start OAuth sign-in])
+        logout([Logout])
+        viewOwn([View own profile])
+        updateOwn([Update profile details and settings-backed identity fields])
+        manageSkills([Manage profile skills])
+        publishSnapshot([Publish profile snapshot])
+        manageSnapshot([Rotate link and update snapshot access])
+        viewPublic([View public profile])
+        viewShared([Open shared profile snapshot])
+        manageBookmarks([Create and maintain talent bookmarks])
+    end
+
+    user --> login
+    user --> logout
+    user --> viewOwn
+    user --> updateOwn
+    user --> manageSkills
+    user --> viewPublic
+    user --> publishSnapshot
+    user --> manageSnapshot
+    viewer --> viewPublic
+    publicViewer --> viewShared
+    talentViewer --> viewPublic
+    talentViewer --> manageBookmarks
+
+    updateOwn -.->|<<include>>| viewOwn
+    manageSkills -.->|<<extend>>| updateOwn
+    manageSnapshot -.->|<<include>>| publishSnapshot
+    viewShared -.->|<<extend>>| viewPublic
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
+    class user,viewer,publicViewer,talentViewer actor
+    class login,logout,viewOwn,updateOwn,manageSkills,publishSnapshot,manageSnapshot,viewPublic,viewShared,manageBookmarks usecase

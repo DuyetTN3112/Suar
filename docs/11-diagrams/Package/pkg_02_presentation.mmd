@@ -1,0 +1,57 @@
+%% Package Diagram: Suar Platform — Presentation Layer (Detail)
+%% Updated 2026-07-17 (verified).
+%% Shows routes, controllers, middleware, and split frontend app surfaces.
+%% Dependencies: calls Application Layer via action public APIs.
+
+graph TD
+    subgraph external["📦 External Dependencies"]
+        direction LR
+        ADONIS["AdonisJS 7\n(HTTP, Auth, Session,\nShield, Limiter)"]
+        INERTIA["Inertia.js\n(SSR Adapter)"]
+        SVELTE["Svelte 5\n(Frontend Framework)"]
+    end
+
+    subgraph presentation["📦 Presentation Layer"]
+        direction TB
+        subgraph routes_pkg["start/routes/"]
+            ROUTES["Routes\n(route files)"]
+        end
+        subgraph controllers_pkg["app/modules/*/controllers/"]
+            CONTROLLERS["Controllers\n(thin, zero Model import)\n──────────────\nParse request → call Action\n→ return response"]
+        end
+        subgraph middleware_pkg["app/modules/*/middleware/\n+ app/middleware/"]
+            MIDDLEWARE["Auth · Guest\nAuthorizeRole ·\nRequireOrganization ·\nThrottle · AuditLog"]
+        end
+        subgraph frontend_pkg["inertia/apps/{user,org,admin}/"]
+            USER_APP["user/app.ts\nroot workspace"]
+            ORG_APP["org/app.ts\n/org workspace"]
+            ADMIN_APP["admin/app.ts\n/admin workspace"]
+            MODULES["modules/*\npage surfaces"]
+            SHARED["shared/*\nlayouts, stores, hooks, UI"]
+            TESTS["tests/{modules,shared,e2e,storybook}"]
+        end
+        subgraph views_pkg["resources/views/"]
+            ROOT_VIEWS["inertia_user.edge\ninertia_org.edge\ninertia_admin.edge"]
+        end
+    end
+
+    ROUTES --> CONTROLLERS
+    CONTROLLERS --> MIDDLEWARE
+    CONTROLLERS -->|"Inertia render"| INERTIA
+    CONTROLLERS --> ADONIS
+    CONTROLLERS -->|"select root view"| ROOT_VIEWS
+    ROOT_VIEWS --> INERTIA
+    INERTIA --> USER_APP
+    INERTIA --> ORG_APP
+    INERTIA --> ADMIN_APP
+    USER_APP --> MODULES
+    ORG_APP --> MODULES
+    ADMIN_APP --> MODULES
+    MODULES --> SHARED
+    MODULES --> SVELTE
+    SHARED --> SVELTE
+
+    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238
+    classDef presStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    class ADONIS,INERTIA,SVELTE extStyle
+    class ROUTES,CONTROLLERS,MIDDLEWARE,USER_APP,ORG_APP,ADMIN_APP,MODULES,SHARED,TESTS,ROOT_VIEWS presStyle

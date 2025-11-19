@@ -1,0 +1,39 @@
+%% seq_02b_task_status_assignment.mmd
+%% Updated 2026-07-10 (verified).
+%% Reader intent: Understand runtime status-change execution over the task aggregate.
+%% Key boundary: This file now focuses on status movement only.
+%% Historical name kept for catalog stability; assignment execution lives in seq_02d_task_assignment_decision.mmd.
+%% Current caveat: One UI board interaction may still combine reorder, status change, and later review backstop side effects.
+
+sequenceDiagram
+    autonumber
+    actor U as Project Member / Manager
+    participant B as Browser
+    participant C as Controller
+    participant Cmd as UpdateTaskStatusCommand
+    participant Repo as Repository
+    participant DB as PostgreSQL
+    participant Evt as Event Bus
+
+    U->>B: Change task status
+    B->>C: PUT /tasks/:taskId/status
+    C->>Cmd: execute(dto)
+    Cmd->>Repo: findById(taskId)
+    Repo->>DB: SELECT task
+    Repo-->>Cmd: Task aggregate
+    Cmd->>Cmd: Resolve target task_status_id
+    Cmd->>Cmd: Check permission + workflow guards
+
+    alt todo -> in_progress without assignee
+        Cmd-->>C: Reject request
+        C-->>B: 422 validation error
+    else target category = done and valid submission missing
+        Cmd-->>C: Reject request
+        C-->>B: 4xx business/conflict error
+    else Valid transition
+        Cmd->>Repo: save(task)
+        Repo->>DB: UPDATE task_status_id + legacy status mirror
+        Cmd->>Evt: emit(task:status:changed)
+        Note over Evt: If new category = done,\ncompletion listener can complete active assignments\nand backstop-create missing review session
+        C-->>B: Return updated task
+    end

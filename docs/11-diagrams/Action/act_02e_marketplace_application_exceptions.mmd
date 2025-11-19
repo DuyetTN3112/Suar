@@ -1,0 +1,53 @@
+%% Updated: 2026-06-26.
+%% Purpose: Show all proposal rejection paths and their trigger conditions.
+%% Excludes: Happy path proposal submit, withdraw lifecycle, ranking logic.
+%% Related: act_02b_marketplace_apply.mmd — happy path; act_02c_marketplace_withdraw.mmd — withdraw; seq_03d_marketplace_application_permissions.mmd — permission nuance.
+%% Reader intent: Show why a proposal action is rejected without needing to trace each command.
+%% Key boundary: Exception map only; successful submit/withdraw/review flows live in sibling diagrams.
+%% Current caveat: Error labels are grouped by business rule, while controller/exception classes may differ by entrypoint.
+
+flowchart TD
+    Start(["Proposal attempt"]) --> CheckRule{"Which rule violated?"}
+
+    %% ─── Submit-phase exceptions ───
+    CheckRule -->|Self proposal| Ex1["DENY: Cannot send application for your own task
+    Trigger: actorId == taskCreatorId"]
+    CheckRule -->|Internal-only visibility| Ex2["DENY: Task is not open for external applications
+    Trigger: visibility ∉ {external, all}"]
+    CheckRule -->|Already assigned| Ex3["DENY: Task is already assigned, cannot receive more applications
+    Trigger: assigned_to !== null"]
+    CheckRule -->|Deadline passed| Ex4["DENY: Application deadline has passed
+    Trigger: application_deadline <= now()"]
+    CheckRule -->|Duplicate| Ex5["DENY: You have already applied for this task
+    Trigger: existing non-withdrawn proposal found"]
+
+    %% ─── Review-phase exceptions ───
+    CheckRule -->|Not creator/manager| Ex6["DENY: You do not have permission to process applications
+    Trigger: actor ≠ creator AND actor ≠ project_owner/manager"]
+    CheckRule -->|Task already assigned| Ex7["DENY: Task already assigned, cannot approve more
+    Trigger: action=approve AND assigned_to !== null"]
+
+    %% ─── Withdraw-phase exceptions ───
+    CheckRule -->|Not pending| Ex8["NotFoundException: Application does not exist or cannot be withdrawn
+    Trigger: proposal not found or not owned by contributor or status ≠ pending"]
+
+    Ex1 --> Response["Return 4xx error to client"]
+    Ex2 --> Response
+    Ex3 --> Response
+    Ex4 --> Response
+    Ex5 --> Response
+    Ex6 --> Response
+    Ex7 --> Response
+    Ex8 --> Response
+
+    Response --> End([End])
+
+    %% ─── Styles ───
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End startEnd
+    class CheckRule decision
+    class Ex1,Ex2,Ex3,Ex4,Ex5,Ex6,Ex7,Ex8 error
+    class Response process
