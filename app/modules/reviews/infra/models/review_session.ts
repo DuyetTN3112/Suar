@@ -3,11 +3,12 @@ import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 
+import TaskAssignment from '../../../tasks/infra/models/task_assignment.js'
+import User from '../../../users/infra/models/user.js'
+
 import SkillReview from './skill_review.js'
 
 import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
-import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
-import User from '#modules/users/infra/models/user'
 
 /**
  * ReviewSession Model (v3)

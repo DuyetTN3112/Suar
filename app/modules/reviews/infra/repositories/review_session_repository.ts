@@ -103,6 +103,13 @@ export default class ReviewSessionRepository {
     return reviewSessionQueries.hasAnyForTask(taskId, trx)
   }
 
+  static async countPendingForProject(
+    projectId: string,
+    trx?: TransactionClientContract
+  ): Promise<number> {
+    return reviewSessionQueries.countPendingForProject(projectId, trx)
+  }
+
   static async hasAnyForTasksWithStatus(
     taskStatusId: string,
     trx?: TransactionClientContract
