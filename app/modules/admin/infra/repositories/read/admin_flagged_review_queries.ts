@@ -1,4 +1,4 @@
-import FlaggedReview from '#modules/reviews/infra/models/flagged_review'
+import FlaggedReview from '../../../../reviews/infra/models/flagged_review.js'
 
 const toNumberValue = (value: unknown): number => {
   if (typeof value === 'number') {

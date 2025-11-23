@@ -4,6 +4,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import GetDashboardStatsQuery from '#modules/admin/actions/dashboard/get_dashboard_stats_query'
 import ListSubscriptionsQuery from '#modules/admin/actions/packages/queries/list_subscriptions_query'
 import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
 import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 
 /**
@@ -31,6 +32,15 @@ export default class AdminDashboardController {
     return inertia.render('admin/dashboard', {
       stats,
     })
+  }
+
+  async apiDashboard(ctx: HttpContext) {
+    const stats = await this.getStats(ctx)
+
+    ctx.response.status(HttpStatus.OK).json({
+      success: true,
+      data: stats,
+    });
   }
 
   async users(ctx: HttpContext) {

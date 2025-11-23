@@ -28,7 +28,7 @@ on:
   workflow_dispatch:
 
 env:
-  NODE_VERSION: '22'
+  NODE_VERSION: '24'
   PNPM_VERSION: '10'
 
 jobs:
@@ -154,15 +154,6 @@ jobs:
           --health-interval=5s
           --health-timeout=5s
           --health-retries=5
-      mongo:
-        image: mongo:7
-        ports:
-          - 27017:27017
-        options: >-
-          --health-cmd="mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=10
       redis:
         image: redis:alpine
         ports:
@@ -208,7 +199,6 @@ jobs:
           PG_PASSWORD: ''
           PG_DATABASE: suar_test
           PG_TEST_DATABASE: suar_test
-          MONGODB_TEST_URL: mongodb://127.0.0.1:27017/suar_test
           REDIS_HOST: localhost
           REDIS_PORT: 6379
           LOCK_STORE: memory
