@@ -61,4 +61,60 @@ class AuditLogQueryBuilder implements PromiseLike<AuditLogQueryRecord[]> {
   }
 }
 
+async function createAuditLog(data: AuditLogCreateData): Promise<unknown> {
+  try {
+    const repo = auditRepositoryProvider.getAuditLogRepository()
+    await repo.create({
+      action: data.action,
+      entity_type: data.entity_type,
+      user_id: data.user_id ?? null,
+      entity_id: data.entity_id ?? null,
+      old_values: (data.old_values as Record<string, unknown> | null | undefined) ?? null,
+      new_values: (data.new_values as Record<string, unknown> | null | undefined) ?? null,
+      ip_address: data.ip_address ?? null,
+      user_agent: data.user_agent ?? null,
+    })
+    return null
+  } catch (error) {
+    loggerService.warn('[AuditLog] Failed to create audit log', {
+      action: data.action,
+      entity_type: data.entity_type,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return null
+  }
+}
+
+function queryAuditLogs() {
+  return new AuditLogQueryBuilder()
+}
+
+async function findAuditLogs(filter: AuditLogFilterData): Promise<unknown[]> {
+  try {
+    const repo = auditRepositoryProvider.getAuditLogRepository()
+    const { data } = await repo.findMany({
+      user_id: filter.user_id,
+      action: filter.action,
+      entity_type: filter.entity_type,
+      entity_id: filter.entity_id,
+      from: filter.created_at?.$gte,
+      to: filter.created_at?.$lte,
+      limit: 1000,
+    })
+
+    return data
+  } catch (error) {
+    loggerService.warn('[AuditLog] Failed to query audit logs', {
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return []
+  }
+}
+
+const AuditLog = {
+  create: createAuditLog,
+  query: queryAuditLogs,
+  find: findAuditLogs,
+}
+
 export default AuditLog

@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
 import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/errors/public_contracts/error_constants'
 
 /**
@@ -15,22 +16,32 @@ import { HttpStatus, createApiError, ErrorCode, ErrorMessages } from '#modules/e
  *   .use([middleware.auth(), middleware.requireOrg()])
  *
  * UUID-READY: Dùng truthy check thay vì so sánh number
- *
- * TRƯỚC (117 dòng):
- *   - 2 DB queries MỖI request (validate org + find first org)
- *   - Duplicate logic với OrganizationResolverMiddleware
- *   - Hardcoded `{ id: number }` types
- *
- * SAU (45 dòng):
- *   - 0 DB queries (đã resolve bởi OrganizationResolver)
- *   - Chỉ check kết quả session/model
- *   - UUID-ready (truthy check)
  */
 export default class RequireOrganizationMiddleware {
-  async handle({ auth, response, session, request }: HttpContext, next: () => Promise<void>) {
+  async handle(ctx: HttpContext, next: () => Promise<void>) {
+    const { auth, response, session, request } = ctx
+
+    // OrganizationResolver already resolved org → allow
+    if (ctx.currentOrganizationId) {
+      return next()
+    }
+
     // Skip nếu chưa đăng nhập (auth middleware sẽ xử lý)
     if (!auth.isAuthenticated || !auth.user) {
       return next()
+    }
+
+    if (canAccessSystemAdministration(auth.user.system_role).allowed) {
+      if (request.accepts(['html', 'json']) === 'json') {
+        response.status(HttpStatus.FORBIDDEN).json({
+          ...createApiError(ErrorCode.FORBIDDEN, 'System admin workspace required'),
+          redirectTo: '/admin',
+        })
+        return
+      }
+
+      response.redirect('/admin')
+      return
     }
 
     // OrganizationResolver đã chạy trước — chỉ cần check kết quả

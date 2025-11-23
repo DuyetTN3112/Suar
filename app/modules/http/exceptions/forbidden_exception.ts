@@ -1,6 +1,5 @@
-import { Exception } from '@adonisjs/core/exceptions'
-
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * ForbiddenException
@@ -17,12 +16,12 @@ import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
  * throw ForbiddenException.onlyRole('owner hoặc admin')
  * ```
  */
-export default class ForbiddenException extends Exception {
+export default class ForbiddenException extends AppException {
   static override status = 403
   static override code = 'E_FORBIDDEN'
 
-  constructor(message: string = ErrorMessages.FORBIDDEN_ACTION) {
-    super(message)
+  constructor(message: string = ErrorMessages.FORBIDDEN_ACTION, details?: Record<string, unknown>) {
+    super(message, { details })
   }
 
   /**

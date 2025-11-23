@@ -1,4 +1,4 @@
-import { Exception } from '@adonisjs/core/exceptions'
+import AppException from '#modules/http/exceptions/app_exception'
 
 /**
  * ValidationException
@@ -15,18 +15,12 @@ import { Exception } from '@adonisjs/core/exceptions'
  * throw ValidationException.fields({ name: 'Tên là bắt buộc', email: 'Email không hợp lệ' })
  * ```
  */
-export default class ValidationException extends Exception {
+export default class ValidationException extends AppException {
   static override status = 422
   static override code = 'E_VALIDATION'
 
-  /**
-   * Các lỗi validation theo field
-   */
-  public readonly errors: Record<string, string>
-
   constructor(message: string, errors?: Record<string, string>) {
-    super(message)
-    this.errors = errors ?? {}
+    super(message, { errors })
   }
 
   /**

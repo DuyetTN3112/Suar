@@ -1,6 +1,7 @@
 import emitter from '@adonisjs/core/services/emitter'
 import db from '@adonisjs/lucid/services/db'
 
+import { resolveLandingPath } from '#modules/auth/domain/landing_surface'
 import SocialLoginPersistenceService, {
   type SocialAuthenticatedUser,
   type SocialLoginInput,
@@ -8,6 +9,7 @@ import SocialLoginPersistenceService, {
 } from '#modules/auth/infra/social_login_persistence_service'
 import { singleFlight } from '#modules/cache/public_contracts/cache_store'
 import * as AuthLogger from '#modules/logger/public_contracts/auth_logger'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
 
 interface SocialUserData {
   id: string
@@ -49,19 +51,16 @@ export default class SocialLoginCommand {
   /**
    * Determine redirect path based on user's system role and organization context
    */
-  private determineRedirectPath(user: SocialAuthenticatedUser): string {
-    // 1. Superadmin/System Admin → Admin interface
-    if (user.system_role === 'superadmin' || user.system_role === 'system_admin') {
-      return '/admin'
-    }
+  private async determineRedirectPath(user: SocialAuthenticatedUser): Promise<string> {
+    const currentMembership = user.current_organization_id
+      ? await membershipQueries.findApprovedMembershipContext(user.current_organization_id, user.id)
+      : null
 
-    // 2. User with organization context → Tasks (default workspace)
-    if (user.current_organization_id) {
-      return '/tasks'
-    }
-
-    // 3. User without organization → Organizations selection
-    return '/organizations'
+    return resolveLandingPath({
+      systemRole: user.system_role,
+      currentOrganizationId: user.current_organization_id,
+      currentOrganizationRole: currentMembership?.role ?? null,
+    })
   }
 
   private buildLoginInput(
@@ -111,10 +110,10 @@ export default class SocialLoginCommand {
     })
   }
 
-  private finalizeExistingUserLogin(
+  private async finalizeExistingUserLogin(
     user: SocialAuthenticatedUser,
     provider: SupportedProvider
-  ): SocialLoginResult {
+  ): Promise<SocialLoginResult> {
     this.recordSuccessfulLogin(user, provider)
     return this.buildExistingUserResult(user)
   }
@@ -131,11 +130,11 @@ export default class SocialLoginCommand {
     }
   }
 
-  private buildExistingUserResult(user: SocialAuthenticatedUser): SocialLoginResult {
+  private async buildExistingUserResult(user: SocialAuthenticatedUser): Promise<SocialLoginResult> {
     return {
       user,
       isNewUser: false,
-      redirectTo: this.determineRedirectPath(user),
+      redirectTo: await this.determineRedirectPath(user),
     }
   }
 }
