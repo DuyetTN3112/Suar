@@ -9,14 +9,16 @@ import {
   type TaskPermissionFilter,
 } from './shared.js'
 
-import { isValidId } from '#modules/identifiers/domain/id_utils'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import type Task from '#modules/tasks/infra/models/task'
-import type { DatabaseId } from '#types/database'
-import type { TaskDetailRecord } from '#types/task_records'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+
+const UUID_REGEX = /^[\da-f]{8}-[\da-f]{4}-[1-7][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i
+const isValidId = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_REGEX.test(value)
 
 export const findRootTasksForKanban = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
@@ -43,7 +45,7 @@ export const findRootTasksForKanban = async (
 }
 
 export const findRootTasksForKanbanAsRecords = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<TaskDetailRecord[]> => {
@@ -52,7 +54,7 @@ export const findRootTasksForKanbanAsRecords = async (
 }
 
 export const findTasksForTimeline = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<Task[]> => {
@@ -73,7 +75,7 @@ export const findTasksForTimeline = async (
 }
 
 export const findTasksForTimelineAsRecords = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   permissionFilter: TaskPermissionFilter,
   trx?: TransactionClientContract
 ): Promise<TaskDetailRecord[]> => {
@@ -82,14 +84,8 @@ export const findTasksForTimelineAsRecords = async (
 }
 
 export const paginateByOrganization = async (
-  organizationId: DatabaseId,
+  organizationId: string,
   filters: {
-    status?: DatabaseId
-    priority?: DatabaseId
-    label?: DatabaseId
-    assigned_to?: DatabaseId
-    parent_task_id?: DatabaseId | null
-    project_id?: DatabaseId
     search?: string
     sort_by: string
     sort_order: 'asc' | 'desc'

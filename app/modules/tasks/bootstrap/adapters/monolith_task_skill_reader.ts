@@ -16,6 +16,10 @@ export class MonolithTaskSkillReader implements TaskSkillReader {
     }))
   }
 
+  async listActiveProficiencyLevels(): Promise<{ value: string; label: string }[]> {
+    return skillPublicApi.listActiveProficiencyLevels()
+  }
+
   async findActiveSkillIds(
     skillIds: string[],
     _trx?: TransactionClientContract

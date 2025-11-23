@@ -3,7 +3,8 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
-
+import { syncAssignment } from '../support/assignment_lifecycle_helper.js'
+ 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
@@ -126,14 +127,18 @@ export default class AssignTaskCommand {
     const oldAssignedTo = task.assigned_to
     const oldValues = { ...task }
 
-    const updatedTask = await taskMutations.updateTask(
-      task.id,
+    // Sync assignment lifecycle: task_assignments + tasks.assigned_to cache
+    await syncAssignment(
       {
-        assigned_to: dto.assigned_to,
-        updated_by: userId,
+        taskId: task.id,
+        assigneeId: dto.assigned_to,
+        assignedBy: userId,
       },
       trx
     )
+
+    // Fetch updated task for audit
+    const updatedTask = await taskMutations.findActiveForUpdateAsRecord(task.id, trx)
 
     await auditPublicApi.log(
       {
