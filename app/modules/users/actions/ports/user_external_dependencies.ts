@@ -1,10 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import type { DateTime } from 'luxon'
 
-import type { DatabaseId } from '#types/database'
 
 export interface PendingApprovalUser {
-  id: DatabaseId
+  id: string
   email: string
   username: string
   system_role: string
@@ -18,14 +17,14 @@ export interface UserOrganizationMembershipInfo {
 }
 
 export interface UserActiveSkillInfo {
-  id: DatabaseId
+  id: string
   skill_name: string
   category_code: string
 }
 
 export interface UserSkillDetail {
-  id: DatabaseId
-  skill_id: DatabaseId
+  id: string
+  skill_id: string
   level_code: string
   total_reviews: number
   avg_score: number | null
@@ -41,8 +40,6 @@ export interface UserSkillDetail {
 
 export interface UserOrganizationMembershipReaderWriter {
   findMembershipStatus(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<UserOrganizationMembershipInfo | null>
 

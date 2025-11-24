@@ -4,10 +4,10 @@ import emitter from '@adonisjs/core/services/emitter'
 import { BaseCommand } from '../base_command.js'
 import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
 
-import { auditPublicApi } from '#modules/audit/actions/public_api'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
 import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
-import type { UserRecord } from '#types/user_records'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
  * UpdateUserProfileCommand

@@ -1,8 +1,7 @@
 import type { Query } from '../../interfaces.js'
 
-import type { OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import type { PaginationDTO } from '#types/action_dtos'
-import type { DatabaseId } from '#types/database'
+import type { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import type { UserPaginationDTO } from '#modules/users/application/dtos/common/user_action_dtos'
 
 /**
  * GetUsersListDTO
@@ -12,8 +11,8 @@ import type { DatabaseId } from '#types/database'
  */
 export class GetUsersListDTO implements Query {
   constructor(
-    public readonly pagination: PaginationDTO,
-    public readonly organizationId: DatabaseId,
+    public readonly pagination: UserPaginationDTO,
+    public readonly organizationId: string,
     public readonly filters: UserFiltersDTO
   ) {}
 }
