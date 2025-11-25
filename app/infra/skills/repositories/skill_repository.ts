@@ -1,7 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import Skill from '#models/skill'
-import UserSkill from '#models/user_skill'
+import * as skillQueries from './read/skill_queries.js'
+import * as userSkillQueries from './read/user_skill_queries.js'
+
+import type Skill from '#infra/skills/models/skill'
+import type UserSkill from '#infra/users/models/user_skill'
 import type { DatabaseId } from '#types/database'
 
 /**
@@ -20,61 +23,44 @@ export default class SkillRepository {
   // ── Skill queries ──
 
   static activeSkills() {
-    return Skill.query().where('is_active', true).orderBy('sort_order', 'asc')
+    return skillQueries.activeSkills()
   }
 
   static byCategory(categoryCode: string) {
-    return Skill.query()
-      .where('category_code', categoryCode)
-      .where('is_active', true)
-      .orderBy('sort_order', 'asc')
+    return skillQueries.byCategory(categoryCode)
   }
 
   static async getSpiderChartSkillIds(
     trx?: TransactionClientContract
   ): Promise<{ id: DatabaseId }[]> {
-    const query = trx ? Skill.query({ client: trx }) : Skill.query()
-    const skills = await query
-      .where('display_type', 'spider_chart')
-      .where('is_active', true)
-      .select('id')
-
-    return skills.map((s) => ({ id: s.id }))
+    return skillQueries.getSpiderChartSkillIds(trx)
   }
 
   static async findActiveByIds(
     ids: DatabaseId[],
     trx?: TransactionClientContract
   ): Promise<Skill[]> {
-    if (ids.length === 0) return []
-    const query = trx ? Skill.query({ client: trx }) : Skill.query()
-    return query.whereIn('id', ids).where('is_active', true)
+    return skillQueries.findActiveByIds(ids, trx)
   }
 
   static async findByIds(ids: DatabaseId[], trx?: TransactionClientContract): Promise<Skill[]> {
-    if (ids.length === 0) return []
-    const query = trx ? Skill.query({ client: trx }) : Skill.query()
-    return query.whereIn('id', ids)
+    return skillQueries.findByIds(ids, trx)
   }
 
   // ── UserSkill queries ──
 
   static async findByUserAndSkill(userId: string, skillId: string) {
-    return await UserSkill.query().where('user_id', userId).where('skill_id', skillId).first()
+    return await userSkillQueries.findByUserAndSkill(userId, skillId)
   }
 
   static async getUserSkillsWithDetails(userId: string) {
-    return await UserSkill.query()
-      .where('user_id', userId)
-      .preload('skill')
-      .orderBy('created_at', 'desc')
+    return await userSkillQueries.getUserSkillsWithDetails(userId)
   }
 
   static async findUserSkillsWithSkill(
     userId: DatabaseId,
     trx?: TransactionClientContract
   ): Promise<UserSkill[]> {
-    const query = trx ? UserSkill.query({ client: trx }) : UserSkill.query()
-    return query.where('user_id', userId).preload('skill')
+    return userSkillQueries.findUserSkillsWithSkill(userId, trx)
   }
 }
