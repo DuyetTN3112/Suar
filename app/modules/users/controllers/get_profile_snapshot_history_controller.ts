@@ -1,14 +1,15 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
+
 import { buildGetProfileSnapshotHistoryDTO } from './mappers/request/user_request_mapper.js'
 import { mapProfileSnapshotHistoryApiBody } from './mappers/response/user_response_mapper.js'
 
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
 import GetProfileSnapshotHistoryQuery from '#modules/users/actions/queries/get_profile_snapshot_history_query'
-import { ExecutionContext } from '#types/execution_context'
 
 export default class GetProfileSnapshotHistoryController {
   async handle(ctx: HttpContext) {
-    const execCtx = ExecutionContext.fromHttp(ctx)
+    const execCtx = actionContextFromHttp(ctx)
     const query = new GetProfileSnapshotHistoryQuery(execCtx)
     const result = await query.handle(
       buildGetProfileSnapshotHistoryDTO(ctx.request, execCtx.userId)

@@ -54,6 +54,7 @@ export class UserDomainMapper {
       freelancerRating: entity.freelancerRating,
       freelancerCompletedTasksCount: entity.freelancerCompletedTasksCount,
       profileSettings: entity.profileSettings,
+      userSetting: entity.userSetting,
       trustData: entity.trustData,
       credibilityData: entity.credibilityData,
       deletedAt: entity.deletedAt,

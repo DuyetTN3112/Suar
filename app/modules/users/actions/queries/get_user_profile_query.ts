@@ -1,18 +1,17 @@
 import { BaseQuery } from '#modules/users/actions/base_query'
 import { calculateProfileCompleteness } from '#modules/users/actions/utils/profile_completeness'
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import type { DatabaseId } from '#types/database'
-import type { UserProfileRecord } from '#types/user_records'
+import type { UserProfileRecord } from '#modules/users/types/user_records'
 
 /**
  * GetUserProfileDTO
  */
 export class GetUserProfileDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
   declare include_skills: boolean
   declare include_spider_chart: boolean
 
-  constructor(userId: DatabaseId, includeSkills = true, includeSpiderChart = true) {
+  constructor(userId: string, includeSkills = true, includeSpiderChart = true) {
     this.user_id = userId
     this.include_skills = includeSkills
     this.include_spider_chart = includeSpiderChart

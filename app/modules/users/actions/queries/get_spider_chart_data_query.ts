@@ -1,22 +1,21 @@
 import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
 
 import { BaseQuery } from '#modules/users/actions/base_query'
-import type { DatabaseId } from '#types/database'
 
 
 /**
  * GetSpiderChartDataDTO
  */
 export class GetSpiderChartDataDTO {
-  declare user_id: DatabaseId
+  declare user_id: string
 
-  constructor(userId: DatabaseId) {
+  constructor(userId: string) {
     this.user_id = userId
   }
 }
 
 interface SpiderChartPoint {
-  skill_id: DatabaseId
+  skill_id: string
   skill_name: string
   skill_code: string
   category_code: string

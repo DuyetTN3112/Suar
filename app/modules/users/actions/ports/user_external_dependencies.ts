@@ -40,47 +40,49 @@ export interface UserSkillDetail {
 
 export interface UserOrganizationMembershipReaderWriter {
   findMembershipStatus(
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<UserOrganizationMembershipInfo | null>
 
   approveMembership(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<void>
 
   listPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<PendingApprovalUser[]>
 
   countPendingApprovalUsers(
-    organizationId: DatabaseId,
+    organizationId: string,
     trx?: TransactionClientContract
   ): Promise<number>
 }
 
 export interface UserSkillReader {
   findActiveSkillById(
-    skillId: DatabaseId,
+    skillId: string,
     trx?: TransactionClientContract
   ): Promise<UserActiveSkillInfo | null>
 
   listUserSkillDetails(
-    userId: DatabaseId,
+    userId: string,
     trx?: TransactionClientContract
   ): Promise<UserSkillDetail[]>
 }
 
 export interface UserPermissionReader {
   checkOrgPermission(
-    userId: DatabaseId,
-    organizationId: DatabaseId,
+    userId: string,
+    organizationId: string,
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean>
 
-  isSystemSuperadmin(userId: DatabaseId, trx?: TransactionClientContract): Promise<boolean>
+  isSystemSuperadmin(userId: string, trx?: TransactionClientContract): Promise<boolean>
 }
 
 export interface UserExternalDependencies {

@@ -4,7 +4,7 @@ import { BaseQuery } from '../base_query.js'
 import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
 
 import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
-import type { UserRecord } from '#types/user_records'
+import type { UserRecord } from '#modules/users/types/user_records'
 
 /**
  * GetUserDetailQuery
