@@ -1,7 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
-import type { DatabaseId } from '#types/database'
 
 const baseQuery = (trx?: TransactionClientContract) => {
   return trx ? UserWorkHistory.query({ client: trx }) : UserWorkHistory.query()
@@ -26,7 +25,7 @@ export const save = async (
 }
 
 export const deleteByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<void> => {
   await baseQuery(trx).where('user_id', userId).delete()

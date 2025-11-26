@@ -1,63 +1,46 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-enum-comparison, @typescript-eslint/no-unsafe-argument */
+import { randomUUID } from 'node:crypto'
+
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import db from '@adonisjs/lucid/services/db'
-import { randomUUID } from 'node:crypto'
-import env from '#start/env'
-import mongoose from 'mongoose'
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import MongoNotification from '#modules/notifications/infra/models/notification'
-import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-type UserKey =
-  | 'owner'
-  | 'superadmin'
-  | 'member'
-  | 'orgAdmin'
-  | 'peerReviewer'
-  | 'orgBOwner'
-  | 'freelancerOne'
-  | 'freelancerTwo'
+import { seedMongo, logSummary } from '../app/seed/demo_data/mongo_seed.js'
+import {
+  seedOrganizations,
+  seedOrganizationMemberships,
+  updateCurrentOrganizations,
+} from '../app/seed/demo_data/organization_seeder.js'
+import { seedProfileAggregates } from '../app/seed/demo_data/profile_seed.js'
+import { seedProjectAttachments } from '../app/seed/demo_data/project_attachment_seeder.js'
+import { seedProjects, seedProjectMembers } from '../app/seed/demo_data/project_seeder.js'
+import { seedReviewData } from '../app/seed/demo_data/review_data_seeder.js'
+import type { SeedRuntime } from '../app/seed/demo_data/seed_runtime.js'
+import {
+  applyWhere,
+  findRow,
+  resetPostgres,
+  resetMongo,
+  ensureMongoConnection,
+  closeSeedConnections,
+} from '../app/seed/demo_data/seed_utils.js'
+import { seedSkills } from '../app/seed/demo_data/skill_seeder.js'
+import {
+  seedTasks,
+  seedTaskAssignments,
+  seedTaskApplications,
+  seedTaskRequiredSkills,
+} from '../app/seed/demo_data/task_seeder.js'
+import { seedTaskStatuses } from '../app/seed/demo_data/task_status_seeder.js'
+import type {
+  SeedContext,
+  SeedRow,
+  SeedWhereValue,
+} from '../app/seed/demo_data/types.js'
+import { seedUsers, seedUserOAuthProviders } from '../app/seed/demo_data/user_seeder.js'
+import { seedUserSkills } from '../app/seed/demo_data/user_skill_seeder.js'
+import { seedUserSubscriptions } from '../app/seed/demo_data/user_subscription_seeder.js'
 
-type OrgKey = 'orgA' | 'orgB' | 'orgC' | 'orgD' | 'orgE'
-type ProjectKey =
-  | 'orgAPlatform'
-  | 'orgAOperations'
-  | 'orgADesignSystem'
-  | 'orgAAnalytics'
-  | 'orgBKnowledgeBase'
-  | 'orgBCurriculumOps'
-  | 'orgCMarketplaceLab'
-  | 'orgDTalentShowcase'
-  | 'orgEDataOps'
-  | 'orgEInsightEngine'
-type StatusSlug = 'todo' | 'in_progress' | 'in_review' | 'done' | 'cancelled'
-
-type SeededUser = {
-  id: string
-  username: string
-  email: string
-  authMethod: 'google' | 'github'
-  systemRole: 'superadmin' | 'registered_user'
-}
-type SeededOrg = { id: string; name: string; slug: string }
-type SeededProject = { id: string; name: string; organizationId: string }
-type SeededTask = { id: string; title: string; organizationId: string; projectId: string | null }
-type SeededAssignment = { id: string; taskId: string; assigneeId: string }
-
-type SeedContext = {
-  users: Record<UserKey, SeededUser>
-  organizations: Record<OrgKey, SeededOrg>
-  projects: Record<ProjectKey, SeededProject>
-  skills: Record<string, string>
-  tasks: Record<string, SeededTask>
-  assignments: Record<string, SeededAssignment>
-  snapshots: Record<string, string>
-}
-
-type SeedWhereValue = string | number | boolean | Date | null
-type SeedRow = Record<string, unknown> & { id: string }
 type SeedQuery = ReturnType<TransactionClientContract['from']>
 
 type TaskSpec = {

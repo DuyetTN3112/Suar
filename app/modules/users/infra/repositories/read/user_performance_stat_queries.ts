@@ -7,7 +7,7 @@ const baseQuery = (trx?: TransactionClientContract) => {
 }
 
 export const findLatestLifetimeByUser = async (
-  userId: DatabaseId,
+  userId: string,
   trx?: TransactionClientContract
 ): Promise<UserPerformanceStat | null> => {
   return baseQuery(trx)
@@ -19,7 +19,7 @@ export const findLatestLifetimeByUser = async (
 }
 
 export const findByUserAndPeriod = async (
-  userId: DatabaseId,
+  userId: string,
   periodStart: string | null,
   periodEnd: string | null,
   trx?: TransactionClientContract
