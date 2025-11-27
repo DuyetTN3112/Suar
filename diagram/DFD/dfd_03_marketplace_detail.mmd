@@ -1,35 +1,24 @@
 %% DFD 03 — Marketplace Detail (Level 2)
-%% Cross-referenced with actual backend code 2024
+%% Updated 2026-05-18.
 %% ❌ Removed: skill_match_percentage (no matching algorithm exists)
-%% ❌ Removed: skill matching flows (P51→D8 "Match user skills")
-%% ❌ Removed: deadline check in P53 (application_deadline NOT enforced)
+%% ❌ Removed: skill matching flows
 %% ❌ Fixed: Only task CREATOR can approve (not PM/manager)
 %% ❌ Fixed: Approve does NOT change status to in_progress
-%% ✅ Merged: P54+P55 into single P54 (ProcessApplicationCommand handles both approve+assign)
-%% ⚠️ Note: external_applications_count NOT updated on approve/reject (only on withdraw)
-%% ✅ Architecture: Clean Architecture + DDD
-%%    Sub-processes (Actions) access data stores via Repository Interfaces
-%%    Repository Impls use Lucid ORM; Infra Mappers convert ORM ↔ Domain Entities
+%% ✅ Merged: ProcessApplicationCommand handles both approve+assign
+%% ⚠️ Note: external_applications_count updated on apply/withdraw
+%% ✅ Architecture: Modular monolith with app/modules/tasks structure
+%%    Actions → Bootstrap → Application → Domain → Infrastructure → DB
 flowchart TD
     %% External Entities
     FL([👷 Freelancer])
     CR([👤 Task Creator])
-    P4([Process 4.0
-    Task Management])
+    P4([Process 4.0\nTask Management])
 
-    %% Sub-processes of 5.0 Job Marketplace
-    P51[["5.1
-    Browse & Search
-    Tasks"]]
-    P52[["5.2
-    View Task
-    Details"]]
-    P53[["5.3
-    Submit
-    Application"]]
-    P54[["5.4
-    Process Application
-    (approve/reject/assign)"]]
+    %% Sub-processes of 3.0 Job Marketplace
+    P51[["3.1\nBrowse &\nSearch Tasks"]]
+    P52[["3.2\nView Task\nDetails"]]
+    P53[["3.3\nSubmit\nApplication"]]
+    P54[["3.4\nProcess Application\n(approve/reject/assign)"]]
 
     %% Data Stores
     D4[(D4: tasks)]
@@ -43,10 +32,6 @@ flowchart TD
     %% ═══════════════════════════════════════════
     subgraph infra[" Infrastructure Layer — Repositories (Lucid ORM)"]
         direction TB
-        R_TASK[["TaskRepository
-        + TaskMapper"]]
-        R_APP[["ApplicationRepository
-        + ApplicationMapper"]]
     end
 
     %% Repository → Data Store connections (Lucid ORM)

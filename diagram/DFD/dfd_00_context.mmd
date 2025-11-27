@@ -1,13 +1,12 @@
 %% DFD 00 — Context Diagram (Level 0)
-%% Cross-referenced with actual backend code 2024
+%% Updated 2026-05-18.
 %% ❌ Removed: Email Service (no mailer/SMTP exists anywhere)
 %% ✅ Added: Redis (DB0 sessions/locks, DB1 app cache)
 %% ✅ Fixed: "Register" → "OAuth Login" (no email/password registration)
 %% ✅ Fixed: "Auth Token" → "Session cookie" (no JWT)
 %% ✅ Fixed: MongoDB label expanded (audit_logs + notifications + user_activity_logs)
-%% ✅ Architecture: Clean Architecture + DDD — internal layers:
-%%    Application (Actions) → Domain (Entities, Repository Interfaces)
-%%    → Infrastructure (Repository Impls via Lucid ORM, Infra Mappers) → DB
+%% ✅ Architecture: Modular monolith with Clean Architecture layers:
+%%    Presentation → Actions → Bootstrap → Application → Domain → Infrastructure → DB
 flowchart LR
     %% ═══════════════════════════════
     %% LEFT: External Entities (Actors)
@@ -29,7 +28,7 @@ flowchart LR
          Project & Task Management
          Job Marketplace
          360° Review & Spider Chart
-         Messaging & Notifications
+         Notifications & Settings
          Skill Management & Profiles"]
     end
 
@@ -46,7 +45,7 @@ flowchart LR
     %% ═══════════════════════════════
     subgraph store[" Data Stores"]
         direction TB
-        PG[( PostgreSQL\n27 main tables)]
+        PG[( PostgreSQL\ncore business tables)]
         MG[( MongoDB\nAudit Logs / Notifications\n/ User Activity Logs)]
         RD[( Redis\nDB0: Sessions & Locks\nDB1: App Cache)]
     end

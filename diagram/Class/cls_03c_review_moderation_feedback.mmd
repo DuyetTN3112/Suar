@@ -1,4 +1,5 @@
 %% Class Diagram: Review Moderation and Feedback Detail
+%% Updated 2026-05-18.
 %% Scope: Flagged review moderation and reverse review feedback only.
 
 classDiagram
@@ -44,6 +45,9 @@ classDiagram
     SkillReview "1" --> "0..1" FlaggedReview : may be moderated
 
     note for ReverseReview "Feedback target is polymorphic via target_type + target_id.
-    It is a separate feedback stream from skill review scoring."
+    It is a separate feedback stream from skill review scoring.
+    Only timestamp is created_at (no updated_at)."
     note for FlaggedReview "Only some anomaly patterns are implemented in code.
-    Moderation lifecycle is distinct from review submission."
+    Moderation lifecycle is distinct from review submission.
+    flag_type: sudden_spike, mutual_high, bulk_same_level,
+    frequency_anomaly, new_account_high, ip_collusion."
