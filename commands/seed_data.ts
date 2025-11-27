@@ -43,425 +43,7 @@ import { seedUserSubscriptions } from '../app/seed/demo_data/user_subscription_s
 
 type SeedQuery = ReturnType<TransactionClientContract['from']>
 
-      'Profile widgets không hiển thị stale metrics sau khi đổi organization',
-      'Task completed xuất hiện đúng trong work history timeline',
-    ],
-    verificationMethod: 'manual_qa',
-    expectedDeliverables: ['Cache invalidation checklist', 'Profile widget verification clip'],
-    contextBackground:
-      'Task này giúp tăng độ phong phú của completed tasks cho member account khi QA profile page.',
-    impactScope: 'project',
-    techStack: ['Svelte', 'Redis', 'TypeScript'],
-    environment: 'staging',
-    collaborationType: 'pair_programming',
-    complexityNotes: 'Cần đồng bộ cache keys giữa user profile và organization context.',
-    measurableOutcomes: [{ metric: 'profile_widget_stale_reads', target: 0 }],
-    learningObjectives: ['Cache invalidation strategies'],
-    domainTags: ['profile', 'cache', 'organization-context'],
-    roleInTask: 'contributor',
-    autonomyLevel: 'autonomous',
-    problemCategory: 'ux_improvement',
-    businessDomain: 'saas',
-    estimatedUsersAffected: 40,
-    estimatedBudget: 7000000,
-    requiredSkills: ['typescript', 'testing'],
-  },
-  {
-    key: 'orgd-talent-proof',
-    organization: 'orgD',
-    project: 'orgDTalentShowcase',
-    creator: 'freelancerOne',
-    assignee: 'freelancerOne',
-    title: 'Xây landing page talent showcase cho external contributors',
-    description:
-      'Seed thêm một org do freelancer làm owner để admin thấy hệ thống có nhiều loại tổ chức và project hơn.',
-    status: 'done',
-    taskStatus: 'done',
-    label: 'feature',
-    priority: 'medium',
-    difficulty: 'medium',
-    visibility: 'internal',
-    dueDaysOffset: -9,
-    assignmentCompletedDaysAgo: 5,
-    assignmentEstimatedHours: 14,
-    assignmentActualHours: 13,
-    taskType: 'feature_development',
-    acceptanceCriteria: ['Có public showcase draft', 'Có proof links để admin xem'],
-    verificationMethod: 'demo_presentation',
-    expectedDeliverables: ['Talent showcase landing', 'Portfolio attachments'],
-    contextBackground: 'Làm dày dataset cho admin organization overview.',
-    impactScope: 'end_users',
-    techStack: ['Svelte', 'TypeScript'],
-    environment: 'staging',
-    collaborationType: 'solo',
-    complexityNotes: 'Task seed thêm đa dạng owner type.',
-    measurableOutcomes: [{ metric: 'showcase_sections', target: 3 }],
-    learningObjectives: ['Portfolio presentation'],
-    domainTags: ['portfolio', 'external', 'talent'],
-    roleInTask: 'lead',
-    autonomyLevel: 'autonomous',
-    problemCategory: 'new_capability',
-    businessDomain: 'saas',
-    estimatedUsersAffected: 55,
-    estimatedBudget: 10000000,
-    requiredSkills: ['svelte', 'communication'],
-  },
-  {
-    key: 'orgd-package-upsell',
-    organization: 'orgD',
-    project: 'orgDTalentShowcase',
-    creator: 'freelancerOne',
-    title: 'Thiết kế nội dung upsell cho gói ProMax',
-    description:
-      'Task public để admin và user đều có thể test thêm dữ liệu package-related và marketplace.',
-    status: 'todo',
-    taskStatus: 'todo',
-    label: 'documentation',
-    priority: 'medium',
-    difficulty: 'easy',
-    visibility: 'all',
-    dueDaysOffset: 10,
-    taskType: 'technical_writing',
-    acceptanceCriteria: ['Copy nhấn mạnh khác biệt Pro và ProMax', 'Có CTA rõ ràng'],
-    verificationMethod: 'documentation_review',
-    expectedDeliverables: ['Upsell copy deck'],
-    contextBackground: 'Tạo thêm public task và data cho package management narratives.',
-    impactScope: 'end_users',
-    techStack: ['Documentation'],
-    environment: 'development',
-    collaborationType: 'solo',
-    complexityNotes: 'Task mở cho external apply.',
-    measurableOutcomes: [{ metric: 'upsell_copy_variants', target: 2 }],
-    learningObjectives: ['Package positioning'],
-    domainTags: ['package', 'copy', 'marketplace'],
-    roleInTask: 'architect',
-    autonomyLevel: 'autonomous',
-    problemCategory: 'new_capability',
-    businessDomain: 'saas',
-    estimatedUsersAffected: 75,
-    estimatedBudget: 4500000,
-    applicationDeadlineDaysAhead: 6,
-    requiredSkills: ['communication', 'testing'],
-  },
-]
-
-const BULK_STATUS_SEQUENCE: TaskSpec['status'][] = ['todo', 'in_progress', 'in_review', 'done']
-const BULK_LABEL_SEQUENCE: TaskSpec['label'][] = [
-  'feature',
-  'enhancement',
-  'documentation',
-  'bug',
-]
-const BULK_PRIORITY_SEQUENCE: TaskSpec['priority'][] = ['medium', 'high', 'low', 'urgent']
-const BULK_DIFFICULTY_SEQUENCE: TaskSpec['difficulty'][] = ['easy', 'medium', 'hard', 'expert']
-const BULK_TASK_TYPE_SEQUENCE: TaskSpec['taskType'][] = [
-  'feature_development',
-  'technical_writing',
-  'qa_testing',
-  'bug_fix',
-  'code_review',
-  'ui_ux_design',
-]
-const BULK_COLLABORATION_SEQUENCE: TaskSpec['collaborationType'][] = [
-  'solo',
-  'small_team',
-  'pair_programming',
-  'cross_team',
-]
-const BULK_AUTONOMY_SEQUENCE: TaskSpec['autonomyLevel'][] = [
-  'supervised',
-  'autonomous',
-  'led_others',
-]
-const BULK_ROLE_SEQUENCE: TaskSpec['roleInTask'][] = [
-  'contributor',
-  'lead',
-  'reviewer',
-  'architect',
-]
-const BULK_ENVIRONMENT_SEQUENCE: TaskSpec['environment'][] = [
-  'development',
-  'staging',
-  'mixed',
-  'production',
-]
-const BULK_IMPACT_SEQUENCE: TaskSpec['impactScope'][] = [
-  'team',
-  'project',
-  'organization',
-  'end_users',
-]
-const BULK_VERIFICATION_SEQUENCE: TaskSpec['verificationMethod'][] = [
-  'code_review',
-  'manual_qa',
-  'documentation_review',
-  'manager_approval',
-]
-
-type GeneratedProjectTaskSeedConfig = {
-  organization: OrgKey
-  targetTaskCount: number
-  creators: UserKey[]
-  assignees: UserKey[]
-  titlePrefix: string
-  businessDomain: TaskSpec['businessDomain']
-  problemCategories: TaskSpec['problemCategory'][]
-  techStack: string[]
-  requiredSkills: string[]
-}
-
-const GENERATED_PROJECT_TASK_CONFIG: Record<ProjectKey, GeneratedProjectTaskSeedConfig> = {
-  orgAPlatform: {
-    organization: 'orgA',
-    targetTaskCount: 8,
-    creators: ['owner', 'orgAdmin'],
-    assignees: ['owner', 'member', 'orgAdmin', 'peerReviewer'],
-    titlePrefix: 'Org A platform backlog',
-    businessDomain: 'saas',
-    problemCategories: ['new_capability', 'maintainability', 'automation', 'ux_improvement'],
-    techStack: ['AdonisJS', 'Svelte', 'PostgreSQL', 'Redis'],
-    requiredSkills: ['typescript', 'testing', 'postgresql', 'communication'],
-  },
-  orgAOperations: {
-    organization: 'orgA',
-    targetTaskCount: 4,
-    creators: ['owner', 'orgAdmin'],
-    assignees: ['owner', 'member', 'orgAdmin'],
-    titlePrefix: 'Org A admin quality backlog',
-    businessDomain: 'internal_tooling',
-    problemCategories: ['maintainability', 'automation', 'new_capability', 'ux_improvement'],
-    techStack: ['AdonisJS', 'PostgreSQL', 'MongoDB'],
-    requiredSkills: ['testing', 'communication', 'problem_solving'],
-  },
-  orgADesignSystem: {
-    organization: 'orgA',
-    targetTaskCount: 3,
-    creators: ['owner', 'orgAdmin'],
-    assignees: ['orgAdmin', 'member'],
-    titlePrefix: 'Org A design system backlog',
-    businessDomain: 'saas',
-    problemCategories: ['ux_improvement', 'new_capability', 'maintainability'],
-    techStack: ['Svelte', 'TypeScript', 'Design System'],
-    requiredSkills: ['svelte', 'communication', 'testing'],
-  },
-  orgAAnalytics: {
-    organization: 'orgA',
-    targetTaskCount: 5,
-    creators: ['owner', 'orgAdmin'],
-    assignees: ['owner', 'peerReviewer', 'orgAdmin'],
-    titlePrefix: 'Org A analytics backlog',
-    businessDomain: 'saas',
-    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
-    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'Charts'],
-    requiredSkills: ['postgresql', 'problem_solving', 'testing'],
-  },
-  orgBKnowledgeBase: {
-    organization: 'orgB',
-    targetTaskCount: 10,
-    creators: ['orgBOwner'],
-    assignees: ['orgBOwner', 'owner', 'member'],
-    titlePrefix: 'Org B knowledge backlog',
-    businessDomain: 'edtech',
-    problemCategories: ['maintainability', 'automation', 'ux_improvement', 'new_capability'],
-    techStack: ['Documentation', 'Svelte', 'PostgreSQL'],
-    requiredSkills: ['communication', 'testing', 'problem_solving'],
-  },
-  orgBCurriculumOps: {
-    organization: 'orgB',
-    targetTaskCount: 10,
-    creators: ['orgBOwner'],
-    assignees: ['orgBOwner', 'owner', 'member'],
-    titlePrefix: 'Org B curriculum backlog',
-    businessDomain: 'edtech',
-    problemCategories: ['automation', 'maintainability', 'new_capability', 'ux_improvement'],
-    techStack: ['Documentation', 'PostgreSQL', 'Svelte'],
-    requiredSkills: ['communication', 'testing', 'problem_solving'],
-  },
-  orgCMarketplaceLab: {
-    organization: 'orgC',
-    targetTaskCount: 20,
-    creators: ['peerReviewer', 'orgAdmin'],
-    assignees: ['peerReviewer', 'owner', 'orgAdmin'],
-    titlePrefix: 'Org C marketplace backlog',
-    businessDomain: 'saas',
-    problemCategories: ['automation', 'new_capability', 'maintainability', 'performance'],
-    techStack: ['AdonisJS', 'Charts', 'PostgreSQL', 'MongoDB'],
-    requiredSkills: ['postgresql', 'problem_solving', 'testing', 'communication'],
-  },
-  orgDTalentShowcase: {
-    organization: 'orgD',
-    targetTaskCount: 20,
-    creators: ['freelancerOne'],
-    assignees: ['freelancerOne', 'owner', 'freelancerTwo'],
-    titlePrefix: 'Org D talent backlog',
-    businessDomain: 'saas',
-    problemCategories: ['new_capability', 'ux_improvement', 'automation', 'technical_debt'],
-    techStack: ['Svelte', 'TypeScript', 'MongoDB'],
-    requiredSkills: ['svelte', 'communication', 'testing'],
-  },
-  orgEDataOps: {
-    organization: 'orgE',
-    targetTaskCount: 10,
-    creators: ['freelancerTwo', 'orgAdmin'],
-    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
-    titlePrefix: 'Org E data ops backlog',
-    businessDomain: 'data_platform',
-    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
-    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
-    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
-  },
-  orgEInsightEngine: {
-    organization: 'orgE',
-    targetTaskCount: 10,
-    creators: ['freelancerTwo', 'orgAdmin'],
-    assignees: ['freelancerTwo', 'owner', 'member', 'orgAdmin'],
-    titlePrefix: 'Org E insight backlog',
-    businessDomain: 'data_platform',
-    problemCategories: ['automation', 'new_capability', 'performance', 'maintainability'],
-    techStack: ['PostgreSQL', 'MongoDB', 'AdonisJS', 'TypeScript'],
-    requiredSkills: ['postgresql', 'testing', 'communication', 'problem_solving'],
-  },
-}
-
-function pickCycled<T>(items: readonly T[], index: number, label: string): T {
-  const item = items[index % items.length]
-  if (item === undefined) {
-    throw new Error(`Missing generated seed item for ${label}`)
-  }
-
-  return item
-}
-
-function buildGeneratedTaskSpecs(existingSpecs: TaskSpec[]): TaskSpec[] {
-  const currentCounts = existingSpecs.reduce(
-    (counts, spec) => {
-      counts[spec.project] = (counts[spec.project] ?? 0) + 1
-      return counts
-    },
-    {} as Partial<Record<ProjectKey, number>>
-  )
-
-  const generated: TaskSpec[] = []
-
-  for (const [project, config] of Object.entries(GENERATED_PROJECT_TASK_CONFIG) as Array<
-    [ProjectKey, GeneratedProjectTaskSeedConfig]
-  >) {
-    const currentCount = currentCounts[project] ?? 0
-
-    for (
-      let targetIndex = currentCount;
-      targetIndex < config.targetTaskCount;
-      targetIndex += 1
-    ) {
-      const ordinal = targetIndex - currentCount + 1
-      const status = pickCycled(BULK_STATUS_SEQUENCE, targetIndex, `${project}:status`)
-      const taskStatus: TaskSpec['taskStatus'] = status
-      const creator = pickCycled(config.creators, targetIndex, `${project}:creator`)
-      const assignee =
-        status === 'todo' && ordinal % 3 === 0
-          ? undefined
-          : pickCycled(config.assignees, targetIndex, `${project}:assignee`)
-      const visibility: TaskSpec['visibility'] =
-        status === 'todo' && ordinal % 6 === 0
-          ? 'all'
-          : status === 'todo' && ordinal % 4 === 0
-            ? 'external'
-            : 'internal'
-      const estimatedHours = 6 + (ordinal % 5) * 2
-      const actualHours =
-        status === 'done'
-          ? Math.max(estimatedHours - 1, estimatedHours + ((ordinal % 3) - 1))
-          : Math.max(2, estimatedHours - 3)
-      const dueDaysOffset =
-        status === 'done' ? -(ordinal % 9) - 1 : (ordinal % 10) + 2
-      const requiredSkills = config.requiredSkills
-        .slice(ordinal % config.requiredSkills.length)
-        .concat(config.requiredSkills.slice(0, ordinal % config.requiredSkills.length))
-        .slice(0, 2)
-
-      generated.push({
-        key: `${project}-bulk-${String(ordinal).padStart(2, '0')}`,
-        organization: config.organization,
-        project,
-        creator,
-        assignee,
-        title: `${config.titlePrefix} ${String(targetIndex + 1).padStart(2, '0')}`,
-        description:
-          `Seed thêm dữ liệu dày cho project ${project} để dashboard, board và analytics không còn thưa.` +
-          ` Mục này dùng cho QA local nhiều trạng thái hơn.`,
-        status,
-        taskStatus,
-        label: pickCycled(BULK_LABEL_SEQUENCE, targetIndex, `${project}:label`),
-        priority: pickCycled(BULK_PRIORITY_SEQUENCE, targetIndex, `${project}:priority`),
-        difficulty: pickCycled(BULK_DIFFICULTY_SEQUENCE, targetIndex, `${project}:difficulty`),
-        visibility,
-        dueDaysOffset,
-        assignmentCompletedDaysAgo: status === 'done' ? (ordinal % 7) + 1 : undefined,
-        assignmentEstimatedHours: estimatedHours,
-        assignmentActualHours: actualHours,
-        taskType: pickCycled(BULK_TASK_TYPE_SEQUENCE, targetIndex, `${project}:taskType`),
-        acceptanceCriteria: [
-          `Board của project ${project} có thêm dữ liệu trạng thái ${status}`,
-          'Project detail và dashboard đọc được số liệu seeded mới',
-        ],
-        verificationMethod: pickCycled(
-          BULK_VERIFICATION_SEQUENCE,
-          targetIndex,
-          `${project}:verificationMethod`
-        ),
-        expectedDeliverables: [
-          'Updated seeded task record',
-          'Board card with realistic metadata',
-        ],
-        contextBackground:
-          `Generated filler task cho project ${project} trong ${config.organization} để project này có đủ task seed cho QA local.`,
-        impactScope: pickCycled(BULK_IMPACT_SEQUENCE, targetIndex, `${project}:impactScope`),
-        techStack: config.techStack,
-        environment: pickCycled(BULK_ENVIRONMENT_SEQUENCE, targetIndex, `${project}:environment`),
-        collaborationType: pickCycled(
-          BULK_COLLABORATION_SEQUENCE,
-          targetIndex,
-          `${project}:collaborationType`
-        ),
-        complexityNotes:
-          'Generated seed task giữ metadata thật nhưng không gắn thêm review scenario chuyên biệt.',
-        measurableOutcomes: [
-          { metric: 'seeded_project_task_density', target: config.targetTaskCount },
-          { metric: 'status_bucket', value: status },
-        ],
-        learningObjectives: [
-          'High-density local QA',
-          'Cross-organization navigation verification',
-        ],
-        domainTags: [config.organization, project, 'seed-density', 'task-board'],
-        roleInTask: pickCycled(BULK_ROLE_SEQUENCE, targetIndex, `${project}:roleInTask`),
-        autonomyLevel: pickCycled(
-          BULK_AUTONOMY_SEQUENCE,
-          targetIndex,
-          `${project}:autonomyLevel`
-        ),
-        problemCategory: pickCycled(
-          config.problemCategories,
-          targetIndex,
-          `${project}:problemCategory`
-        ),
-        businessDomain: config.businessDomain,
-        estimatedUsersAffected: 12 + ordinal * 3,
-        estimatedBudget: 3_000_000 + ordinal * 350_000,
-        applicationDeadlineDaysAhead: visibility === 'internal' ? undefined : (ordinal % 6) + 3,
-        requiredSkills,
-      })
-    }
-  }
-
-  return generated
-}
-
-const CORE_TASK_SPECS = [...TASK_SPECS, ...EXTRA_TASK_SPECS]
-const GENERATED_TASK_SPECS = buildGeneratedTaskSpecs(CORE_TASK_SPECS)
-const SEEDED_TASK_SPECS = [...CORE_TASK_SPECS, ...GENERATED_TASK_SPECS]
-
-export default class SeedData extends BaseCommand {
+export default class SeedData extends BaseCommand implements SeedRuntime {
   static override commandName = 'seed:data'
   static override description = 'Seed deterministic local demo data for admin/org/user flows'
 
@@ -474,6 +56,70 @@ export default class SeedData extends BaseCommand {
   declare fresh: boolean
 
   private seedCompleted = false
+
+  uuid(): string {
+    return randomUUID()
+  }
+
+  isoDaysAgo(daysAgo: number, hour = 9): string {
+    const value = new Date()
+    value.setDate(value.getDate() - daysAgo)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  isoDaysAhead(daysAhead: number, hour = 17): string {
+    const value = new Date()
+    value.setDate(value.getDate() + daysAhead)
+    value.setHours(hour, 0, 0, 0)
+    return value.toISOString()
+  }
+
+  seedPullRequestUrl(seedKey: string): string {
+    return `https://github.com/suar/demo/pull/${seedKey}`
+  }
+
+  toJson(value: unknown): string {
+    return JSON.stringify(value)
+  }
+
+  readNonEmptyString(value: unknown, fallback: string): string {
+    return typeof value === 'string' && value.length > 0 ? value : fallback
+  }
+
+  toRecord(value: unknown): Record<string, unknown> {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return value as Record<string, unknown>
+    }
+    return {}
+  }
+
+  parseJsonRecord(value: string): Record<string, unknown> {
+    const parsed: unknown = JSON.parse(value)
+    return this.toRecord(parsed)
+  }
+
+  requireValue<T>(value: T | undefined, label: string): T {
+    if (value === undefined) {
+      throw new Error(`Missing seeded value for ${label}`)
+    }
+    return value
+  }
+
+  findRow<T extends SeedRow = SeedRow>(
+    trx: TransactionClientContract,
+    table: string,
+    where: Record<string, SeedWhereValue>
+  ): Promise<T | null> {
+    return findRow<T>(trx, table, where)
+  }
+
+  applyWhere(
+    query: SeedQuery,
+    where: Record<string, SeedWhereValue>
+  ): SeedQuery {
+    return applyWhere(query, where)
+  }
 
   private installShutdownErrorGuard(): void {
     process.once('uncaughtException', (error) => {
@@ -502,26 +148,26 @@ export default class SeedData extends BaseCommand {
     await db.transaction(async (trx) => {
       if (this.fresh) {
         this.logger.warning('Clearing PostgreSQL seed scope...')
-        await this.resetPostgres(trx)
+        await resetPostgres(trx)
       }
 
-      const skills = await this.seedSkills(trx)
-      const users = await this.seedUsers(trx)
-      await this.seedUserOAuthProviders(trx, users)
-      const organizations = await this.seedOrganizations(trx, users)
-      await this.seedOrganizationMemberships(trx, users, organizations)
-      const projects = await this.seedProjects(trx, users, organizations)
-      await this.seedProjectMembers(trx, users, projects)
-      const statuses = await this.seedTaskStatuses(trx, organizations)
-      const tasks = await this.seedTasks(trx, users, projects, organizations, statuses)
-      const assignments = await this.seedTaskAssignments(trx, users, tasks)
-      await this.seedTaskApplications(trx, users, tasks)
-      await this.seedTaskRequiredSkills(trx, tasks, skills)
-      await this.seedReviewData(trx, users, tasks, assignments, skills, organizations)
-      await this.seedUserSkills(trx, users, skills)
-      await this.seedUserSubscriptions(trx, users)
-      await this.seedProjectAttachments(trx, users, projects)
-      await this.updateCurrentOrganizations(trx, users, organizations)
+      const skills = await seedSkills(this, trx)
+      const users = await seedUsers(this, trx)
+      await seedUserOAuthProviders(this, trx, users)
+      const organizations = await seedOrganizations(this, trx, users)
+      await seedOrganizationMemberships(this, trx, users, organizations)
+      const projects = await seedProjects(this, trx, users, organizations)
+      await seedProjectMembers(this, trx, users, projects)
+      const statuses = await seedTaskStatuses(this, trx, organizations)
+      const tasks = await seedTasks(this, trx, users, projects, organizations, statuses)
+      const assignments = await seedTaskAssignments(this, trx, users, tasks)
+      await seedTaskApplications(this, trx, users, tasks)
+      await seedTaskRequiredSkills(this, trx, tasks, skills)
+      await seedReviewData(this, trx, users, tasks, assignments, skills, organizations)
+      await seedUserSkills(this, trx, users, skills)
+      await seedUserSubscriptions(this, trx, users)
+      await seedProjectAttachments(this, trx, users, projects)
+      await updateCurrentOrganizations(this, trx, users, organizations)
 
       context = {
         users,
@@ -534,16 +180,16 @@ export default class SeedData extends BaseCommand {
       }
     })
 
-    await this.ensureMongoConnection()
+    await ensureMongoConnection()
 
     if (this.fresh) {
       this.logger.warning('Clearing MongoDB seed scope...')
-      await this.resetMongo()
+      await resetMongo()
     }
 
-    context = await this.seedProfileAggregates(context)
-    await this.seedMongo(context)
-    await this.logSummary(context)
+    context = await seedProfileAggregates(this, context)
+    await seedMongo(this, context)
+    await logSummary(context)
 
     this.seedCompleted = true
     this.logger.success('Seed data inserted successfully.')
