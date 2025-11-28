@@ -1,9 +1,11 @@
 %% pkg_02c_application_review_user: Review, User, Auth, Skills Packages
-%% Updated 2026-04-29.
+%% Updated 2026-05-18.
 
 graph TD
     subgraph reviews["reviews/"]
         R_API["reviews/public_api.ts"]
+        R_BOOTSTRAP["bootstrap/\ncomposition root"]
+        R_APP["application/\nactor context\nports (interfaces)\nDTOs"]
         R_CMD["Commands"]
         R_QRY["Queries"]
         R_FORMULA["review formula callers"]
@@ -11,6 +13,7 @@ graph TD
 
     subgraph users["users/"]
         U_API["users/public_api.ts"]
+        U_APP["application/\nactor context\nports (interfaces)\nDTOs"]
         U_CMD["Commands"]
         U_QRY["Queries"]
         U_PROFILE["profile snapshot / skill profile flows"]
@@ -29,12 +32,14 @@ graph TD
     DOMAIN_FORMULAS["domain/reviews/review_formulas.ts"]
     AUDIT_API["audit/public_api.ts"]
     NOTIF_API["notifications/public_api.ts"]
-    INFRA["app/infra/reviews + users + skills"]
+    INFRA["app/modules/reviews/infra\n+ users/infra + skills infra"]
     DTO_TYPES["app/types/action_dtos.ts"]
     EMPTY_SHARED["shared/ + common/\n0 TypeScript files"]
 
-    R_API --> R_CMD
-    R_API --> R_QRY
+    R_API --> R_BOOTSTRAP
+    R_BOOTSTRAP --> R_APP
+    R_APP --> R_CMD
+    R_APP --> R_QRY
     R_CMD --> DOMAIN_FORMULAS
     R_FORMULA --> DOMAIN_FORMULAS
     R_CMD --> S_API
@@ -43,8 +48,9 @@ graph TD
     R_CMD --> INFRA
     R_QRY --> INFRA
 
-    U_API --> U_CMD
-    U_API --> U_QRY
+    U_API --> U_APP
+    U_APP --> U_CMD
+    U_APP --> U_QRY
     U_CMD --> S_API
     U_QRY --> S_API
     U_PROFILE --> U_CMD
@@ -64,7 +70,9 @@ graph TD
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
     class R_CMD,R_QRY,R_FORMULA,U_CMD,U_QRY,U_PROFILE,S_PORT,AUTH_CMD,AUTH_IFACE pkg
+    class R_BOOTSTRAP,R_APP,U_APP bootstrap
     class R_API,U_API,S_API,AUDIT_API,NOTIF_API api
     class DOMAIN_FORMULAS,INFRA,DTO_TYPES,EMPTY_SHARED aux

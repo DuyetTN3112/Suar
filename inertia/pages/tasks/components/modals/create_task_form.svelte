@@ -44,9 +44,20 @@
     parentTasks: { id: string; title: string; task_status_id: string | null }[]
     availableSkills?: { id: string; name: string }[]
     projects?: { id: string; name: string }[]
+    formError?: string
   }
 
-  const { formData, setFormData, errors, statuses, priorities, labels, users, parentTasks, availableSkills, projects }: Props = $props()
+  const { formData, setFormData, errors, statuses, priorities, labels, users, parentTasks, availableSkills, projects, formError }: Props = $props()
+
+  function fieldError(...keys: string[]): string | undefined {
+    for (const key of keys) {
+      if (Object.prototype.hasOwnProperty.call(errors, key) && errors[key]) {
+        return errors[key]
+      }
+    }
+
+    return undefined
+  }
 
   const handleChange = (e: Event) => {
     const target = e.target as HTMLInputElement | HTMLTextAreaElement
@@ -92,6 +103,15 @@
 </script>
 
 <div class="space-y-4 py-4">
+  {#if formError}
+    <div
+      class="whitespace-pre-line rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-200"
+      role="alert"
+    >
+      {formError}
+    </div>
+  {/if}
+
   <BasicFields
     {formData}
     {handleChange}
@@ -115,7 +135,7 @@
     onAddSkill={handleAddSkill}
     onRemoveSkill={handleRemoveSkill}
     availableSkills={availableSkills ?? []}
-    error={errors.required_skills}
+    error={fieldError('required_skills', 'required_skills.0.id', 'required_skills.0.skill_id', 'required_skills.0.level')}
   />
 
   <div class="grid gap-4 rounded-lg border bg-muted/10 p-4">
@@ -181,6 +201,9 @@
           }}
         />
         <p class="text-[11px] text-muted-foreground">Ngăn cách bằng dấu phẩy hoặc xuống dòng.</p>
+        {#if fieldError('tech_stack', 'tech_stack.0')}
+          <p class="text-xs text-red-500">{fieldError('tech_stack', 'tech_stack.0')}</p>
+        {/if}
       </div>
 
       <div class="grid gap-2">
@@ -197,6 +220,9 @@
           }}
         />
         <p class="text-[11px] text-muted-foreground">Giúp nhóm lọc task và đọc profile sau này.</p>
+        {#if fieldError('domain_tags', 'domain_tags.0')}
+          <p class="text-xs text-red-500">{fieldError('domain_tags', 'domain_tags.0')}</p>
+        {/if}
       </div>
     </div>
 
@@ -214,6 +240,9 @@
           )
         }}
       />
+      {#if fieldError('learning_objectives', 'learning_objectives.0')}
+        <p class="text-xs text-red-500">{fieldError('learning_objectives', 'learning_objectives.0')}</p>
+      {/if}
     </div>
   </div>
 

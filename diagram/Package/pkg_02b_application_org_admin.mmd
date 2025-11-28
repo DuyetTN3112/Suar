@@ -1,15 +1,17 @@
 %% pkg_02b_application_org_admin: Organization & Admin Action Packages
-%% Updated 2026-04-29.
+%% Updated 2026-05-18.
 
 graph TD
     subgraph organizations["organizations/"]
         O_API["organizations/public_api.ts"]
+        O_APP["application/\nactor context\nports (interfaces)\nDTOs"]
         O_CMD["Commands"]
         O_QRY["Queries"]
         O_CURRENT["current/* org admin surface"]
     end
 
     subgraph admin["admin/"]
+        A_APP["application/\nDTOs"]
         A_CMD["Commands"]
         A_QRY["Queries"]
         A_SURFACES["users / organizations / reviews / packages"]
@@ -19,12 +21,13 @@ graph TD
     PROJECT_API["projects/public_api.ts"]
     TASK_API["tasks/public_api.ts"]
     AUDIT_API["audit/public_api.ts"]
-    INFRA["app/infra/organizations + admin repositories"]
+    INFRA["app/modules/organizations/infra\n+ admin/infra/repositories"]
     DOMAIN["organization policies and rules"]
     DTOS["request + response DTOs"]
 
-    O_API --> O_CMD
-    O_API --> O_QRY
+    O_API --> O_APP
+    O_APP --> O_CMD
+    O_APP --> O_QRY
     O_CMD --> DOMAIN
     O_CMD --> INFRA
     O_QRY --> INFRA
@@ -35,6 +38,8 @@ graph TD
     O_QRY --> TASK_API
     O_CMD --> AUDIT_API
 
+    A_APP --> A_CMD
+    A_APP --> A_QRY
     A_CMD --> USER_API
     A_QRY --> USER_API
     A_QRY --> AUDIT_API
@@ -46,7 +51,9 @@ graph TD
 
     classDef pkg fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef api fill:#FFF9C4,stroke:#F57F17,color:#333
+    classDef bootstrap fill:#FCE4EC,stroke:#C62828,color:#333
     classDef aux fill:#E8F5E9,stroke:#2E7D32,color:#333
     class O_CMD,O_QRY,O_CURRENT,A_CMD,A_QRY,A_SURFACES pkg
+    class O_APP,A_APP bootstrap
     class O_API,USER_API,PROJECT_API,TASK_API,AUDIT_API api
     class INFRA,DOMAIN,DTOS aux

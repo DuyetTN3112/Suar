@@ -1,5 +1,5 @@
 %% Package Diagram: Suar Platform - Cross-Cutting Concerns
-%% Updated 2026-05-12.
+%% Updated 2026-05-18.
 
 graph TD
     subgraph events_pkg["app/events/"]
@@ -11,6 +11,7 @@ graph TD
         NOTIFICATION["NotificationListener"]
         CACHE_INVALIDATION["CacheInvalidationListener"]
         REVIEW["Review / cleanup listeners"]
+        AUDIT["AuditLogListener"]
     end
 
     subgraph public_apis["Action public API boundaries"]
@@ -20,6 +21,8 @@ graph TD
         USER_API["userPublicApi"]
         ORG_API["organizationPublicApi"]
         PROJECT_API["projectPublicApi"]
+        TASK_API["taskPublicApi"]
+        REVIEW_API["reviewPublicApi"]
     end
 
     subgraph infra_runtime["Runtime infra"]
@@ -37,6 +40,7 @@ graph TD
     EVENTS --> NOTIFICATION
     EVENTS --> CACHE_INVALIDATION
     EVENTS --> REVIEW
+    EVENTS --> AUDIT
 
     ACTIVITY --> AUDIT_API
     ACTIVITY --> ACTIVITY_API
@@ -44,6 +48,7 @@ graph TD
     CACHE_INVALIDATION --> USER_API
     CACHE_INVALIDATION --> ORG_API
     CACHE_INVALIDATION --> PROJECT_API
+    AUDIT --> AUDIT_API
 
     AUDIT_API --> REPO_PROVIDERS
     ACTIVITY_API --> REPO_PROVIDERS
@@ -51,10 +56,11 @@ graph TD
     USER_API --> CACHE
     ORG_API --> CACHE
     PROJECT_API --> CACHE
+    TASK_API --> CACHE
     CACHE_INVALIDATION --> LOGGER
     REVIEW -.-> TRANSMIT
 
     classDef crossStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#333
     classDef apiStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
-    class EVENTS,ACTIVITY,NOTIFICATION,CACHE_INVALIDATION,REVIEW,CACHE,LOGGER,REPO_PROVIDERS,TRANSMIT,CONSTANTS crossStyle
-    class AUDIT_API,ACTIVITY_API,NOTIF_API,USER_API,ORG_API,PROJECT_API apiStyle
+    class EVENTS,ACTIVITY,NOTIFICATION,CACHE_INVALIDATION,REVIEW,AUDIT,CACHE,LOGGER,REPO_PROVIDERS,TRANSMIT,CONSTANTS crossStyle
+    class AUDIT_API,ACTIVITY_API,NOTIF_API,USER_API,ORG_API,PROJECT_API,TASK_API,REVIEW_API apiStyle

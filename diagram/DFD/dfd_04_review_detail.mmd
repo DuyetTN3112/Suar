@@ -1,4 +1,5 @@
 %% DFD 04 — Review Domain Overview
+%% Updated 2026-05-18.
 %% Scope: Review module overview only.
 %% Detail files:
 %%   - dfd_04a_review_submission.mmd
@@ -21,7 +22,9 @@ flowchart TD
     D2[(skill_reviews)]
     D3[(flagged_reviews)]
     D4[(reverse_reviews)]
-    D5[(user aggregates)]
+    D5[(review_evidences)]
+    D6[(task_self_assessments)]
+    D7[(user aggregates)]
 
     TaskFlow --> P1
     Reviewer --> P2
@@ -32,15 +35,16 @@ flowchart TD
     P1 --> D1
     P2 --> D1
     P2 --> D2
+    P2 --> D5
     P3 --> D1
     P3 --> D3
     P4 --> D4
-    P4 --> D5
+    P4 --> D6
+    P4 --> D7
 
     classDef entity fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
     classDef process fill:#FFF9C4,stroke:#F57F17,color:#333,stroke-width:2px
     classDef datastore fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
     class Reviewer,Reviewee,Admin,TaskFlow entity
     class P1,P2,P3,P4 process
-    class D1,D2,D3,D4,D5 datastore
-
+    class D1,D2,D3,D4,D5,D6,D7 datastore

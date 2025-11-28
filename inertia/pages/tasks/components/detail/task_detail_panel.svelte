@@ -14,18 +14,21 @@
   import Button from '@/components/ui/button.svelte'
   import Dialog from '@/components/ui/dialog.svelte'
   import DialogContent from '@/components/ui/dialog_content.svelte'
-  import type { TaskStore } from '@/stores/tasks.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import type { Task } from '../../types.svelte'
 
   import TaskDetailMetadataSidebar from './task_detail_metadata_sidebar.svelte'
 
+  interface CapabilityDecision {
+    allowed: boolean
+    reason?: string | null
+  }
+
   interface Props {
     open: boolean
     onOpenChange: (open: boolean) => void
     task: Task | null
-    store: TaskStore
     metadata: {
       statuses: { value: string; label: string; color?: string }[]
       labels: { value: string; label: string; color?: string }[]
@@ -33,15 +36,18 @@
       users: { id: string; username: string; email: string }[]
     }
     onEdit?: (task: Task) => void
+    onChangeStatus?: (task: Task, toStatusId: string) => void
+    getStatusChangeDecision?: (task: Task, toStatusId: string) => CapabilityDecision
   }
 
   const {
     open = false,
     onOpenChange,
     task,
-    store,
     metadata,
     onEdit,
+    onChangeStatus,
+    getStatusChangeDecision,
   }: Props = $props()
 
   const { t } = useTranslation()
@@ -99,8 +105,17 @@
   const isOverdue = $derived(task?.due_date ? new Date(task.due_date).getTime() < Date.now() : false)
 
   function handleStatusChange(newStatus: string) {
-    if (!task) return
-    void store.moveTaskStatus(task.id, newStatus)
+    if (!task || !onChangeStatus) return
+
+    const decision = getStatusChangeDecision?.(task, newStatus) ?? { allowed: true }
+    if (!decision.allowed) return
+
+    onChangeStatus(task, newStatus)
+  }
+
+  function getSidebarStatusChangeDecision(newStatus: string): CapabilityDecision {
+    if (!task) return { allowed: false, reason: null }
+    return getStatusChangeDecision?.(task, newStatus) ?? { allowed: true }
   }
 </script>
 
@@ -189,6 +204,7 @@
             {formatDate}
             {formatRelativeDate}
             onStatusChange={handleStatusChange}
+            getStatusChangeDecision={getSidebarStatusChangeDecision}
             {statusConfig}
             {priorityClass}
           />

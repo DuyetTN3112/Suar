@@ -1,14 +1,14 @@
-
 %% ERD: Task & Marketplace Domain
-%% Source: app/infra/tasks/models/task.ts, task_status.ts, task_workflow_transition.ts,
+%% Updated 2026-05-18.
+%% Source: app/modules/tasks/infra/models/task.ts, task_status.ts, task_workflow_transition.ts,
 %%         task_version.ts, task_application.ts, task_assignment.ts,
 %%         task_required_skill.ts
 %% Scope: current task runtime + marketplace-supporting tables.
 %% Convention: table/column only. No relationship edges or FK markers.
 %% Runtime notes:
-%%   - tasks.project_id là bắt buộc theo product truth
-%%   - task_status_id là workflow source-of-truth; tasks.status chỉ còn legacy compatibility
-%%   - app layer vẫn phải enforce organization_id khớp với project.organization_id
+%%   - tasks.project_id is required by runtime truth
+%%   - task_status_id is workflow source-of-tright; tasks.status is legacy compatibility
+%%   - app layer must enforce organization_id matches project.organization_id
 erDiagram
     task_statuses {
         UUID id PK

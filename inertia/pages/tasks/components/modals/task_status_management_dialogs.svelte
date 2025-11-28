@@ -9,6 +9,14 @@
   import DialogHeader from '@/components/ui/dialog_header.svelte'
   import DialogTitle from '@/components/ui/dialog_title.svelte'
   import Input from '@/components/ui/input.svelte'
+  import Label from '@/components/ui/label.svelte'
+  import Select from '@/components/ui/select.svelte'
+  import SelectContent from '@/components/ui/select_content.svelte'
+  import SelectItem from '@/components/ui/select_item.svelte'
+  import SelectTrigger from '@/components/ui/select_trigger.svelte'
+  import SelectValue from '@/components/ui/select_value.svelte'
+
+  import type { TaskStatusCategory } from '../../types.svelte'
 
   interface DeleteStatusTarget {
     status: string
@@ -21,18 +29,25 @@
   interface Props {
     createOpen: boolean
     createStatusName: string
+    createStatusCategory: TaskStatusCategory | ''
+    createStatusDescription: string
+    createStatusColor: string
     createStatusError: string
     createStatusSubmitting: boolean
     onCreateSubmit: () => void
     onCreateClose: () => void
     onCreateOpenChange: (open: boolean) => void
     onCreateStatusNameChange: (value: string) => void
+    onCreateStatusCategoryChange: (value: TaskStatusCategory | '') => void
+    onCreateStatusDescriptionChange: (value: string) => void
+    onCreateStatusColorChange: (value: string) => void
 
     deleteOpen: boolean
     deleteStatusError: string
     deleteStatusSubmitting: boolean
     deleteStatusTarget: DeleteStatusTarget | null
     hasDeleteTargetTasks: boolean
+    isStatusMutationLocked: boolean
     onDeleteConfirm: () => void
     onDeleteClose: () => void
     onDeleteOpenChange: (open: boolean) => void
@@ -41,17 +56,24 @@
   const {
     createOpen,
     createStatusName,
+    createStatusCategory,
+    createStatusDescription,
+    createStatusColor,
     createStatusError,
     createStatusSubmitting,
     onCreateSubmit,
     onCreateClose,
     onCreateOpenChange,
     onCreateStatusNameChange,
+    onCreateStatusCategoryChange,
+    onCreateStatusDescriptionChange,
+    onCreateStatusColorChange,
     deleteOpen,
     deleteStatusError,
     deleteStatusSubmitting,
     deleteStatusTarget,
     hasDeleteTargetTasks,
+    isStatusMutationLocked,
     onDeleteConfirm,
     onDeleteClose,
     onDeleteOpenChange,
