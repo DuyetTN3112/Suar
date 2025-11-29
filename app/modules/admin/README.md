@@ -898,3 +898,505 @@ export interface GetOrganizationDetailsDTO {
 }
 
 export interface OrganizationDetailsResult {
+  id: string
+  name: string
+  slug: string
+  description: string | null
+  partner_type: string | null
+  created_at: string
+  updated_at: string
+  owner: {
+    id: string
+    username: string
+    email: string | null
+  }
+  stats: {
+    usersCount: number
+    projectsCount: number
+  }
+}
+
+export default class GetOrganizationDetailsQuery extends BaseQuery<
+  GetOrganizationDetailsDTO,
+  OrganizationDetailsResult
+> {
+  constructor(
+    execCtx: AdminActionContext,
+    private orgRepo = AdminOrganizationReadOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: GetOrganizationDetailsDTO): Promise<OrganizationDetailsResult> {
+    const org = await this.orgRepo.findById(dto.organizationId)
+
+    if (!org) {
+      throw new Error(`Organization not found: ${dto.organizationId}`)
+    }
+
+    return {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      description: org.description,
+      partner_type: org.partner_type,
+      created_at: org.created_at.toISO() ?? new Date().toISOString(),
+      updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
+      owner: {
+        id: org.owner.id,
+        username: org.owner.username,
+        email: org.owner.email,
+      },
+      stats: {
+        usersCount: getExtrasNumber(org, 'users_count'),
+        projectsCount: getExtrasNumber(org, 'projects_count'),
+      },
+    }
+  }
+}
+
+```
+
+### `app/modules/admin/actions/organizations/queries/list_organizations_query.ts`
+
+```ts
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import { BaseQuery } from '#modules/admin/actions/base_query'
+import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
+import type { PartnerType } from '#modules/organizations/public_contracts/organization_constants'
+
+const toNumberValue = (value: unknown): number => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : 0
+  }
+  if (typeof value === 'string') {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : 0
+  }
+  return 0
+}
+
+const getExtrasNumber = (value: unknown, key: string): number => {
+  if (typeof value !== 'object' || value === null) {
+    return 0
+  }
+  const extras = (value as { $extras?: unknown }).$extras
+  if (typeof extras !== 'object' || extras === null) {
+    return 0
+  }
+  return toNumberValue((extras as Record<string, unknown>)[key])
+}
+
+/**
+ * ListOrganizationsQuery (System Admin)
+ *
+ * Query to list all organizations in the system with filtering and pagination.
+ * Uses repository (Infrastructure layer) for DB queries.
+ */
+
+export interface ListOrganizationsDTO {
+  page?: number
+  perPage?: number
+  search?: string
+  partnerType?: PartnerType
+}
+
+export interface ListOrganizationsResult {
+  data: {
+    id: string
+    name: string
+    slug: string
+    description: string | null
+    owner_id: string
+    owner: {
+      id: string
+      username: string
+      email: string
+    }
+    partner_type: string | null
+    partner_is_active: boolean
+    created_at: string
+    updated_at: string
+    _count: {
+      members: number
+      projects: number
+    }
+  }[]
+  meta: {
+    total: number
+    perPage: number
+    currentPage: number
+    lastPage: number
+  }
+}
+
+export default class ListOrganizationsQuery extends BaseQuery<
+  ListOrganizationsDTO,
+  ListOrganizationsResult
+> {
+  constructor(
+    execCtx: AdminActionContext,
+    private orgRepo = AdminOrganizationReadOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: ListOrganizationsDTO): Promise<ListOrganizationsResult> {
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 50
+
+    // Fetch from repository (Infrastructure layer)
+    const result = await this.orgRepo.listOrganizations(
+      {
+        search: dto.search,
+        partnerType: dto.partnerType,
+      },
+      page,
+      perPage
+    )
+
+    const lastPage = Math.ceil(result.total / perPage)
+
+    return {
+      data: result.organizations.map((org) => ({
+        id: org.id,
+        name: org.name,
+        slug: org.slug,
+        description: org.description ?? null,
+        owner_id: org.owner_id,
+        owner: {
+          id: org.owner.id,
+          username: org.owner.username,
+          email: org.owner.email ?? '',
+        },
+        partner_type: org.partner_type,
+        partner_is_active: org.partner_is_active ?? false,
+        created_at: org.created_at.toISO() ?? new Date().toISOString(),
+        updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
+        _count: {
+          members: getExtrasNumber(org, 'users_count'),
+          projects: getExtrasNumber(org, 'projects_count'),
+        },
+      })),
+      meta: {
+        total: result.total,
+        perPage,
+        currentPage: page,
+        lastPage,
+      },
+    }
+  }
+}
+
+```
+
+### `app/modules/admin/actions/packages/commands/update_subscription_command.ts`
+
+```ts
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import { BaseCommand } from '#modules/admin/actions/base_command'
+import { AdminSubscriptionWriteOps } from '#modules/admin/infra/repositories/write/admin_subscription_mutations'
+import { toStorageSubscriptionPlan } from '#modules/users/public_contracts/subscription_rules'
+
+export interface UpdateSubscriptionDTO {
+  subscriptionId: string
+  plan?: string
+  status?: string
+  auto_renew?: boolean
+  expires_at?: string | null
+}
+
+export default class UpdateSubscriptionCommand extends BaseCommand<UpdateSubscriptionDTO> {
+  constructor(
+    execCtx: AdminActionContext,
+    private repo = AdminSubscriptionWriteOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: UpdateSubscriptionDTO): Promise<void> {
+    // Intentionally no executeInTransaction: this is a single-table subscription update.
+    await this.repo.updateSubscription(dto.subscriptionId, {
+      plan: toStorageSubscriptionPlan(dto.plan),
+      status: dto.status,
+      auto_renew: dto.auto_renew,
+      expires_at: dto.expires_at,
+    })
+  }
+}
+
+```
+
+### `app/modules/admin/actions/packages/queries/get_subscription_qr_catalog_query.ts`
+
+```ts
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import { BaseQuery } from '#modules/admin/actions/base_query'
+import {
+  SUBSCRIPTION_PACKAGE_CATALOG,
+  SUBSCRIPTION_PAYMENT_CONFIG,
+} from '#modules/admin/constants/subscription_packages'
+import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
+
+export interface SubscriptionQrCatalogResult {
+  paymentConfig: typeof SUBSCRIPTION_PAYMENT_CONFIG
+  plans: typeof SUBSCRIPTION_PACKAGE_CATALOG
+  stats: {
+    total: number
+    active: number
+    expiringSoon: number
+    cancelled: number
+    byPlan: Record<string, number>
+  }
+}
+
+export default class GetSubscriptionQrCatalogQuery extends BaseQuery<
+  Record<string, never>,
+  SubscriptionQrCatalogResult
+> {
+  constructor(
+    execCtx: AdminActionContext,
+    private repo = AdminSubscriptionReadOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(): Promise<SubscriptionQrCatalogResult> {
+    const stats = await this.repo.getSubscriptionStats()
+
+    return {
+      paymentConfig: SUBSCRIPTION_PAYMENT_CONFIG,
+      plans: SUBSCRIPTION_PACKAGE_CATALOG,
+      stats,
+    }
+  }
+}
+
+```
+
+### `app/modules/admin/actions/packages/queries/list_subscriptions_query.ts`
+
+```ts
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import { BaseQuery } from '#modules/admin/actions/base_query'
+import { AdminSubscriptionReadOps } from '#modules/admin/infra/repositories/read/admin_subscription_queries'
+import {
+  toDisplaySubscriptionPlan,
+  toStorageSubscriptionPlan,
+} from '#modules/users/public_contracts/subscription_rules'
+
+export interface ListSubscriptionsDTO {
+  page?: number
+  perPage?: number
+  search?: string
+  plan?: string
+  status?: string
+}
+
+export interface ListSubscriptionsResult {
+  stats: {
+    total: number
+    active: number
+    expiringSoon: number
+    cancelled: number
+    byPlan: Record<string, number>
+  }
+  subscriptions: {
+    id: string
+    user_id: string
+    username: string
+    email: string | null
+    system_role: string
+    plan: string
+    status: string
+    started_at: string | null
+    expires_at: string | null
+    auto_renew: boolean
+    created_at: string | null
+    updated_at: string | null
+  }[]
+  meta: {
+    total: number
+    perPage: number
+    currentPage: number
+    lastPage: number
+  }
+}
+
+export default class ListSubscriptionsQuery extends BaseQuery<
+  ListSubscriptionsDTO,
+  ListSubscriptionsResult
+> {
+  constructor(
+    execCtx: AdminActionContext,
+    private repo = AdminSubscriptionReadOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: ListSubscriptionsDTO): Promise<ListSubscriptionsResult> {
+    const page = dto.page ?? 1
+    const perPage = dto.perPage ?? 20
+
+    const [stats, result] = await Promise.all([
+      this.repo.getSubscriptionStats(),
+      this.repo.listSubscriptions(
+        { search: dto.search, plan: toStorageSubscriptionPlan(dto.plan), status: dto.status },
+        page,
+        perPage
+      ),
+    ])
+
+    return {
+      stats: {
+        ...stats,
+        byPlan: {
+          ...stats.byPlan,
+          promax: stats.byPlan.enterprise ?? 0,
+        },
+      },
+      subscriptions: result.subscriptions.map((subscription) => ({
+        ...subscription,
+        plan: toDisplaySubscriptionPlan(subscription.plan),
+      })),
+      meta: {
+        total: result.total,
+        perPage,
+        currentPage: page,
+        lastPage: Math.max(1, Math.ceil(result.total / perPage)),
+      },
+    }
+  }
+}
+
+```
+
+### `app/modules/admin/actions/permissions/queries/get_permission_matrix_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/admin/actions/base_query'
+import {
+  describePermission,
+  formatRoleLabel,
+  getRoleDescription,
+  listKnownOrganizationPermissions,
+  listProjectPermissionCatalog,
+  listSystemPermissionCatalog,
+} from '#modules/authorization/public_contracts/access_surface'
+import {
+  ORG_ROLE_PERMISSIONS,
+  PROJECT_ROLE_PERMISSIONS,
+  SYSTEM_ROLE_PERMISSIONS,
+} from '#modules/authorization/public_contracts/permissions'
+
+interface RoleMatrixEntry {
+  code: string
+  label: string
+  description: string
+  permissions: ReturnType<typeof describePermission>[]
+  permissionCount: number
+}
+
+export interface PermissionMatrixResult {
+  summary: {
+    totalRoleGroups: number
+    totalRoles: number
+    totalUniquePermissions: number
+  }
+  systemRoles: RoleMatrixEntry[]
+  organizationRoles: RoleMatrixEntry[]
+  projectRoles: RoleMatrixEntry[]
+  catalogs: {
+    system: ReturnType<typeof listSystemPermissionCatalog>
+    organization: ReturnType<typeof listKnownOrganizationPermissions>
+    project: ReturnType<typeof listProjectPermissionCatalog>
+  }
+}
+
+const buildRoleEntries = (map: Record<string, readonly string[]>): RoleMatrixEntry[] => {
+  return Object.entries(map).map(([code, permissions]) => ({
+    code,
+    label: formatRoleLabel(code),
+    description: getRoleDescription(code),
+    permissions: permissions.map((permission) => describePermission(permission)),
+    permissionCount: permissions.length,
+  }))
+}
+
+export default class GetPermissionMatrixQuery extends BaseQuery<
+  Record<string, never>,
+  PermissionMatrixResult
+> {
+  handle(): Promise<PermissionMatrixResult> {
+    const systemCatalog = listSystemPermissionCatalog()
+    const organizationCatalog = listKnownOrganizationPermissions()
+    const projectCatalog = listProjectPermissionCatalog()
+
+    return Promise.resolve({
+      summary: {
+        totalRoleGroups: 3,
+        totalRoles:
+          Object.keys(SYSTEM_ROLE_PERMISSIONS).length +
+          Object.keys(ORG_ROLE_PERMISSIONS).length +
+          Object.keys(PROJECT_ROLE_PERMISSIONS).length,
+        totalUniquePermissions: new Set([
+          ...systemCatalog.map((entry) => entry.key),
+          ...organizationCatalog.map((entry) => entry.key),
+          ...projectCatalog.map((entry) => entry.key),
+        ]).size,
+      },
+      systemRoles: buildRoleEntries(SYSTEM_ROLE_PERMISSIONS),
+      organizationRoles: buildRoleEntries(ORG_ROLE_PERMISSIONS),
+      projectRoles: buildRoleEntries(PROJECT_ROLE_PERMISSIONS),
+      catalogs: {
+        system: systemCatalog,
+        organization: organizationCatalog,
+        project: projectCatalog,
+      },
+    })
+  }
+}
+
+```
+
+### `app/modules/admin/actions/reviews/commands/resolve_flagged_review_command.ts`
+
+```ts
+import { Exception } from '@adonisjs/core/exceptions'
+
+import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
+import { BaseCommand } from '#modules/admin/actions/base_command'
+import { AdminFlaggedReviewReadOps } from '#modules/admin/infra/repositories/read/admin_flagged_review_queries'
+import { AdminFlaggedReviewWriteOps } from '#modules/admin/infra/repositories/write/admin_flagged_review_mutations'
+
+export interface ResolveFlaggedReviewDTO {
+  flaggedReviewId: string
+  action: 'dismiss' | 'confirm'
+  notes?: string
+}
+
+export default class ResolveFlaggedReviewCommand extends BaseCommand<ResolveFlaggedReviewDTO> {
+  constructor(
+    execCtx: AdminActionContext,
+    private readRepo = AdminFlaggedReviewReadOps,
+    private writeRepo = AdminFlaggedReviewWriteOps
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: ResolveFlaggedReviewDTO): Promise<void> {
+    const reviewerId = this.getCurrentUserId()
+    const flaggedReview = await this.readRepo.getFlaggedReviewDetail(dto.flaggedReviewId)
+    if (!flaggedReview) {
+      throw new Exception('Flagged review not found', { status: 404 })
+    }
+
+    if (flaggedReview.status !== 'pending') {
+      throw new Exception('Flagged review already resolved', { status: 400 })
+    }
+
+    await this.writeRepo.resolve(dto.flaggedReviewId, dto.action, reviewerId, dto.notes)
+  }
+}
+
+```
