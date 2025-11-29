@@ -12,7 +12,7 @@ import {
   handleControllerError,
   serializeError,
   withErrorHandling,
-} from '#libs/error_utils'
+} from '#modules/http/errors/error_utils'
 
 test.group('Error utils', () => {
   test('AppError preserves canonical metadata and factory helper contracts', ({ assert }) => {

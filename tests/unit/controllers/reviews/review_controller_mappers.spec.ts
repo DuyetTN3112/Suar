@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/constants/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import { buildSubmitSkillReviewDTO } from '#modules/reviews/controllers/mappers/request/review_request_mapper'
 import {
   mapCreateReviewSessionApiBody,

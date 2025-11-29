@@ -1,9 +1,10 @@
 import { randomUUID } from 'node:crypto'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import NotFoundException from '#exceptions/not_found_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
 import { SubmitSkillReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import type Skill from '#modules/skills/infra/models/skill'
 import { ProficiencyLevel } from '#modules/users/constants/user_constants'
 import {
@@ -14,7 +15,6 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 interface ReviewScoreInput {
   skill_id: string
@@ -140,7 +140,7 @@ export default class SubmitReviewScenario {
     skillRatings: ReviewScoreInput[],
     overrides: SubmitReviewInput = {}
   ): Promise<Awaited<ReturnType<SubmitSkillReviewCommand['handle']>>> {
-    const command = new SubmitSkillReviewCommand(ExecutionContext.system(actorId))
+    const command = new SubmitSkillReviewCommand(makeSystemReviewActionContext(actorId))
 
     return command.handle(
       new SubmitSkillReviewDTO({

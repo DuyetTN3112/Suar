@@ -1,6 +1,7 @@
 {
   "extends": "./inertia/tsconfig.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "rootDir": "./inertia",
     "composite": true,
     "paths": {

@@ -5,6 +5,7 @@ import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
 import ReviewEvidence from '#modules/reviews/infra/models/review_evidence'
 import TaskSelfAssessment from '#modules/tasks/infra/models/task_self_assessment'
 import BuildUserWorkHistoryCommand from '#modules/users/actions/commands/build_user_work_history_command'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
 import {
   OrganizationFactory,
@@ -16,33 +17,31 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
-import type { DatabaseId } from '#types/database'
-import type { ExecutionContext } from '#types/execution_context'
 
 interface BuildUserWorkHistoryResult {
-  userId: DatabaseId
+  userId: string
   totalCompletedAssignments: number
   inserted: number
   updated: number
 }
 
 interface ActorRef {
-  id: DatabaseId
+  id: string
 }
 
 interface TaskRef {
-  id: DatabaseId
+  id: string
   title: string
 }
 
 interface AssignmentRef {
-  id: DatabaseId
+  id: string
 }
 
 interface WorkHistoryRow {
-  id: DatabaseId
-  task_id: DatabaseId
-  task_assignment_id: DatabaseId
+  id: string
+  task_id: string
+  task_assignment_id: string
   task_title: string
   estimated_hours: number | null
   actual_hours: number | null
@@ -67,7 +66,7 @@ interface EvidenceSeed {
   url: string
   title: string
   description: string
-  uploaded_by: DatabaseId
+  uploaded_by: string
 }
 
 interface SelfAssessmentSeed {
@@ -83,7 +82,7 @@ interface WorkHistorySeedInput {
   reviewee: ActorRef
   task: TaskRef
   assignment: AssignmentRef
-  sessionId: DatabaseId
+  sessionId: string
 }
 
 export default class WorkHistoryScenario {
@@ -209,7 +208,7 @@ export default class WorkHistoryScenario {
   }
 
   public async runBuild(
-    execCtx: ExecutionContext,
+    execCtx: UserActionContext,
     fullRebuild = false
   ): Promise<BuildUserWorkHistoryResult> {
     const command = new BuildUserWorkHistoryCommand(execCtx)

@@ -1,11 +1,13 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 
-import type { NotificationCreator } from '#modules/notifications/actions/public_api'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import CreateTaskCommand from '#modules/tasks/actions/commands/create_task_command'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import type { ExecutionContext } from '#types/execution_context'
-import type { TaskDetailRecord, TaskRecord } from '#types/task_records'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import type { TaskDetailRecord, TaskRecord } from '#modules/tasks/types/task_records'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -17,14 +19,42 @@ class NotificationStub implements NotificationCreator {
   }
 }
 
+function resolvedVoid(): Promise<void> {
+  return Promise.resolve()
+}
+
+class TaskCacheStub implements TaskCachePort {
+  invalidateAfterTaskCreated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskUpdated() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskDeleted() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskAssigned() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskAccessChanged() {
+    return resolvedVoid()
+  }
+  invalidateAfterTaskApplicationChanged() {
+    return resolvedVoid()
+  }
+  invalidateTaskDetail() {
+    return resolvedVoid()
+  }
+}
+
 class TestableCreateTaskCommand extends CreateTaskCommand {
   constructor(
-    execCtx: ExecutionContext,
+    execCtx: TaskActionContext,
     createNotification: NotificationCreator,
-    dependencies: ConstructorParameters<typeof CreateTaskCommand>[2],
+    dependencies: ConstructorParameters<typeof CreateTaskCommand>[4],
     private trx: TransactionClientContract
   ) {
-    super(execCtx, createNotification, dependencies)
+    super(execCtx, taskExternalDeps, createNotification, new TaskCacheStub(), dependencies)
   }
 
   protected override async executeInTransaction<T>(
@@ -34,7 +64,7 @@ class TestableCreateTaskCommand extends CreateTaskCommand {
   }
 }
 
-function makeExecCtx(userId: string | null = VALID_UUID): ExecutionContext {
+function makeExecCtx(userId: string | null = VALID_UUID): TaskActionContext {
   return {
     userId,
     ip: '127.0.0.1',
@@ -91,7 +121,12 @@ test.group('CreateTaskCommand shell orchestration', () => {
   test('requires an authenticated user before opening the orchestration flow', async ({
     assert,
   }) => {
-    const command = new CreateTaskCommand(makeExecCtx(null), new NotificationStub())
+    const command = new CreateTaskCommand(
+      makeExecCtx(null),
+      taskExternalDeps,
+      new NotificationStub(),
+      new TaskCacheStub()
+    )
 
     await assert.rejects(() => command.execute(makeCreateTaskDTO()))
   })

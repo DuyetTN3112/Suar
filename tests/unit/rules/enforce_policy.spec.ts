@@ -1,9 +1,8 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
-import { enforcePolicy } from '#modules/authorization/actions/public_api'
-import { PolicyResult } from '#modules/policies/domain/policy_result'
+import { isPolicyViolationException } from '#modules/authorization/exceptions/policy_violation_exception'
+import { enforcePolicy } from '#modules/authorization/public_contracts/permission_checker'
+import { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 
 test.group('enforcePolicy', () => {
   test('allowed results are a no-op', ({ assert }) => {
@@ -12,26 +11,28 @@ test.group('enforcePolicy', () => {
     })
   })
 
-  test('FORBIDDEN results become ForbiddenException with the original reason', ({ assert }) => {
+  test('FORBIDDEN results become a policy violation with the original reason', ({ assert }) => {
     try {
       enforcePolicy(PolicyResult.deny('No access', 'FORBIDDEN'))
-      assert.fail('Expected a forbidden exception')
+      assert.fail('Expected a policy violation exception')
     } catch (error) {
-      assert.instanceOf(error, ForbiddenException)
-      assert.equal((error as ForbiddenException).status, 403)
-      assert.equal((error as ForbiddenException).message, 'No access')
+      assert.isTrue(isPolicyViolationException(error))
+      if (!isPolicyViolationException(error)) throw error
+      assert.equal(error.policyCode, 'FORBIDDEN')
+      assert.equal(error.reason, 'No access')
     }
   })
 
-  test('BUSINESS_RULE and INVALID_STATE both become BusinessLogicException', ({ assert }) => {
+  test('BUSINESS_RULE and INVALID_STATE both become policy violations', ({ assert }) => {
     for (const code of ['BUSINESS_RULE', 'INVALID_STATE'] as const) {
       try {
         enforcePolicy(PolicyResult.deny(`Denied as ${code}`, code))
         assert.fail(`Expected ${code} to throw`)
       } catch (error) {
-        assert.instanceOf(error, BusinessLogicException)
-        assert.equal((error as BusinessLogicException).status, 400)
-        assert.equal((error as BusinessLogicException).message, `Denied as ${code}`)
+        assert.isTrue(isPolicyViolationException(error))
+        if (!isPolicyViolationException(error)) throw error
+        assert.equal(error.policyCode, code)
+        assert.equal(error.reason, `Denied as ${code}`)
       }
     }
   })

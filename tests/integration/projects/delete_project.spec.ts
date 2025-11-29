@@ -1,9 +1,10 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import DeleteProjectCommand from '#modules/projects/actions/commands/delete_project_command'
 import { DeleteProjectDTO } from '#modules/projects/actions/dtos/request/delete_project_dto'
+import { makeSystemProjectActionContext } from '#modules/projects/actions/project_action_context'
 import Project from '#modules/projects/infra/models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -14,7 +15,6 @@ import {
   UserFactory,
   cleanupTestData,
 } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 test.group('Integration | Delete Project', (group) => {
   group.setup(async () => {
@@ -31,7 +31,7 @@ test.group('Integration | Delete Project', (group) => {
       owner_id: owner.id,
     })
 
-    const command = new DeleteProjectCommand(ExecutionContext.system(owner.id))
+    const command = new DeleteProjectCommand(makeSystemProjectActionContext(owner.id))
 
     await command.handle(
       new DeleteProjectDTO({
@@ -61,7 +61,7 @@ test.group('Integration | Delete Project', (group) => {
       status: 'todo',
     })
 
-    const command = new DeleteProjectCommand(ExecutionContext.system(owner.id))
+    const command = new DeleteProjectCommand(makeSystemProjectActionContext(owner.id))
 
     await assert.rejects(
       () =>
@@ -97,7 +97,7 @@ test.group('Integration | Delete Project', (group) => {
       owner_id: owner.id,
     })
 
-    const command = new DeleteProjectCommand(ExecutionContext.system(member.id))
+    const command = new DeleteProjectCommand(makeSystemProjectActionContext(member.id))
 
     await assert.rejects(
       () =>

@@ -35,6 +35,16 @@ declare module '@adonisjs/inertia/types' {
         isAdmin: boolean
         current_organization_id: string | null
         current_organization_role: string | null
+        user_setting: {
+          theme: string
+          notifications_enabled: boolean
+          display_mode: string
+          font: string
+          layout: string
+          density: string
+          animations_enabled: boolean
+          custom_scrollbars: boolean
+        }
         organizations: {
           id: string
           name: string
@@ -59,12 +69,14 @@ declare module '@adonisjs/inertia/types' {
     'admin/dashboards/operations': KnownInertiaPageProps
     'admin/dashboards/subscriptions': KnownInertiaPageProps
     'admin/dashboards/users': KnownInertiaPageProps
+    'admin/disputes/index': KnownInertiaPageProps
     'admin/organizations/index': KnownInertiaPageProps
     'admin/organizations/show': KnownInertiaPageProps
     'admin/packages/index': KnownInertiaPageProps
     'admin/permissions/index': KnownInertiaPageProps
     'admin/qr_codes/index': KnownInertiaPageProps
     'admin/reviews/flagged': KnownInertiaPageProps
+    'admin/reviews/reverse-reviews': KnownInertiaPageProps
     'admin/reviews/show': KnownInertiaPageProps
     'admin/users/index': KnownInertiaPageProps
     'admin/users/show': KnownInertiaPageProps
@@ -76,6 +88,8 @@ declare module '@adonisjs/inertia/types' {
     'errors/require_organization': KnownInertiaPageProps
     'errors/server_error': KnownInertiaPageProps
     index: KnownInertiaPageProps
+    'marketplace/bookmarks': KnownInertiaPageProps
+    'marketplace/talents': KnownInertiaPageProps
     'marketplace/tasks': KnownInertiaPageProps
     'notifications/index': KnownInertiaPageProps
     'org/dashboard': KnownInertiaPageProps
@@ -86,6 +100,7 @@ declare module '@adonisjs/inertia/types' {
     'org/no_org': KnownInertiaPageProps
     'org/permissions/index': KnownInertiaPageProps
     'org/projects/index': KnownInertiaPageProps
+    'org/reverse-reviews': KnownInertiaPageProps
     'org/roles/index': KnownInertiaPageProps
     'org/settings/index': KnownInertiaPageProps
     'org/workflow/index': KnownInertiaPageProps
@@ -103,8 +118,10 @@ declare module '@adonisjs/inertia/types' {
     'projects/index': KnownInertiaPageProps
     'projects/show': KnownInertiaPageProps
     'reviews/flagged': KnownInertiaPageProps
+    'reviews/disputes/show': KnownInertiaPageProps
     'reviews/my-reviews': KnownInertiaPageProps
     'reviews/pending': KnownInertiaPageProps
+    'reviews/reverse-reviews': KnownInertiaPageProps
     'reviews/show': KnownInertiaPageProps
     'reviews/user-reviews': KnownInertiaPageProps
     'settings/AccountTab': KnownInertiaPageProps
