@@ -119,6 +119,20 @@
         {#if deleteStatusError}
           <p class="text-red-500">{deleteStatusError}</p>
         {/if}
+
+        {#if deleteStatusTarget.isSystem}
+          <p class="text-sm text-muted-foreground">
+            Trang thai he thong khong the xoa.
+          </p>
+        {:else if hasDeleteTargetTasks}
+          <p class="text-sm text-muted-foreground">
+            Chuyen het task khoi cot nay truoc khi xoa.
+          </p>
+        {:else if isStatusMutationLocked}
+          <p class="text-sm text-muted-foreground">
+            Board dang dong bo. Vui long doi thao tac hien tai hoan tat.
+          </p>
+        {/if}
       </div>
     {/if}
 
@@ -136,7 +150,7 @@
       <Button
         variant="destructive"
         onclick={onDeleteConfirm}
-        disabled={deleteStatusSubmitting || !deleteStatusTarget?.id || hasDeleteTargetTasks}
+        disabled={deleteStatusSubmitting || !deleteStatusTarget?.id || deleteStatusTarget.isSystem === true || hasDeleteTargetTasks || isStatusMutationLocked}
       >
         {deleteStatusSubmitting ? 'Dang xoa...' : 'Xoa trang thai'}
       </Button>
@@ -161,21 +175,78 @@
       </DialogDescription>
     </DialogHeader>
 
-    <div class="space-y-2 py-2">
-      <Input
-        placeholder="VD: Cho QA"
-        value={createStatusName}
-        oninput={(event: Event) => {
-          const target = event.target as HTMLInputElement
-          onCreateStatusNameChange(target.value)
-        }}
-        onkeydown={(event: KeyboardEvent) => {
-          if (event.key === 'Enter') {
-            event.preventDefault()
-            onCreateSubmit()
-          }
-        }}
-      />
+    <div class="space-y-4 py-2">
+      <div class="space-y-2">
+        <Label for="status-name">Ten trang thai</Label>
+        <Input
+          id="status-name"
+          placeholder="VD: Cho QA"
+          value={createStatusName}
+          disabled={createStatusSubmitting || isStatusMutationLocked}
+          oninput={(event: Event) => {
+            const target = event.target as HTMLInputElement
+            onCreateStatusNameChange(target.value)
+          }}
+          onkeydown={(event: KeyboardEvent) => {
+            if (event.key === 'Enter') {
+              event.preventDefault()
+              onCreateSubmit()
+            }
+          }}
+        />
+      </div>
+
+      <div class="space-y-2">
+        <Label>Nhom trang thai</Label>
+        <Select
+          value={createStatusCategory}
+          onValueChange={(value: string) => {
+            if (createStatusSubmitting || isStatusMutationLocked) return
+            onCreateStatusCategoryChange(value as TaskStatusCategory)
+          }}
+        >
+          <SelectTrigger class="w-full {createStatusSubmitting || isStatusMutationLocked ? 'pointer-events-none opacity-60' : ''}">
+            <SelectValue placeholder="Chon nhom trang thai" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todo" label="Todo: Chua bat dau" />
+            <SelectItem value="in_progress" label="In progress: Dang thuc hien" />
+            <SelectItem value="done" label="Done: Hoan tat" />
+            <SelectItem value="cancelled" label="Cancelled: Da huy" />
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div class="grid gap-3 sm:grid-cols-[1fr_96px]">
+        <div class="space-y-2">
+          <Label for="status-description">Mo ta</Label>
+          <Input
+          id="status-description"
+          placeholder="Mo ta ngan"
+          value={createStatusDescription}
+          disabled={createStatusSubmitting || isStatusMutationLocked}
+          oninput={(event: Event) => {
+            const target = event.target as HTMLInputElement
+            onCreateStatusDescriptionChange(target.value)
+            }}
+          />
+        </div>
+        <div class="space-y-2">
+          <Label for="status-color">Mau</Label>
+          <Input
+            id="status-color"
+            type="color"
+            class="h-9 p-1"
+            value={createStatusColor}
+            disabled={createStatusSubmitting || isStatusMutationLocked}
+            oninput={(event: Event) => {
+              const target = event.target as HTMLInputElement
+              onCreateStatusColorChange(target.value)
+            }}
+          />
+        </div>
+      </div>
+
       {#if createStatusError}
         <p class="text-sm text-red-500">{createStatusError}</p>
       {/if}
@@ -192,7 +263,12 @@
       >
         Huy
       </Button>
-      <Button onclick={onCreateSubmit} disabled={createStatusSubmitting}>
+      {#if isStatusMutationLocked}
+        <p class="text-xs text-muted-foreground">
+          Board dang dong bo. Vui long doi thao tac hien tai hoan tat.
+        </p>
+      {/if}
+      <Button onclick={onCreateSubmit} disabled={createStatusSubmitting || isStatusMutationLocked}>
         {createStatusSubmitting ? 'Dang tao...' : 'Tao trang thai'}
       </Button>
     </DialogFooter>

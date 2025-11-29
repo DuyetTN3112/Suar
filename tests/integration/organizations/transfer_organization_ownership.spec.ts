@@ -1,7 +1,5 @@
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#exceptions/business_logic_exception'
-import ForbiddenException from '#exceptions/forbidden_exception'
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import type { NotificationCreator } from '#modules/notifications/actions/public_api'
 import TransferOrganizationOwnershipCommand from '#modules/organizations/actions/commands/transfer_organization_ownership_command'

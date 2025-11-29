@@ -2,9 +2,10 @@ import { test } from '@japa/runner'
 
 import AuditLog from '#modules/audit/infra/models/audit_log'
 import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
-import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/actions/public_api'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import CreateOrganizationCommand from '#modules/organizations/actions/commands/create_organization_command'
 import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
 import Organization from '#modules/organizations/infra/models/organization'
 import OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import { DEFAULT_TASK_STATUSES } from '#modules/tasks/constants/task_constants'
@@ -12,7 +13,6 @@ import TaskStatusModel from '#modules/tasks/infra/models/task_status'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, cleanupTestData } from '#tests/helpers/factories'
-import { ExecutionContext } from '#types/execution_context'
 
 type NotificationPayload = Parameters<NotificationCreator['handle']>[0]
 
@@ -27,7 +27,7 @@ class FailingNotification implements NotificationCreator {
 
 async function createOrganizationAs(userId: string, name: string) {
   const command = new CreateOrganizationCommand(
-    ExecutionContext.system(userId),
+    makeSystemOrganizationActionContext(userId),
     notificationPublicApi
   )
   return command.execute(new CreateOrganizationDTO(name))
@@ -54,7 +54,7 @@ test.group('Integration | Create Organization', (group) => {
     const statuses = await TaskStatusModel.query()
       .where('organization_id', organization.id)
       .orderBy('sort_order', 'asc')
-    const notifications = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+    const notifications = await new GetUserNotifications(makeSystemOrganizationActionContext(user.id)).handle({
       page: 1,
       limit: 10,
     })
@@ -99,7 +99,7 @@ test.group('Integration | Create Organization', (group) => {
   }) => {
     const inactiveUser = await UserFactory.create({ status: 'inactive' })
     const command = new CreateOrganizationCommand(
-      ExecutionContext.system(inactiveUser.id),
+      makeSystemOrganizationActionContext(inactiveUser.id),
       notificationPublicApi
     )
 
@@ -107,7 +107,7 @@ test.group('Integration | Create Organization', (group) => {
 
     const organizations = await Organization.query().where('owner_id', inactiveUser.id)
     const notifications = await new GetUserNotifications(
-      ExecutionContext.system(inactiveUser.id)
+      makeSystemOrganizationActionContext(inactiveUser.id)
     ).handle({
       page: 1,
       limit: 10,
@@ -122,7 +122,7 @@ test.group('Integration | Create Organization', (group) => {
   }) => {
     const user = await UserFactory.create()
     const notification = new FailingNotification()
-    const command = new CreateOrganizationCommand(ExecutionContext.system(user.id), notification)
+    const command = new CreateOrganizationCommand(makeSystemOrganizationActionContext(user.id), notification)
 
     const organization = await command.execute(new CreateOrganizationDTO('Resilient Org'))
 
@@ -134,7 +134,7 @@ test.group('Integration | Create Organization', (group) => {
     const statuses = await TaskStatusModel.query()
       .where('organization_id', organization.id)
       .orderBy('sort_order', 'asc')
-    const notifications = await new GetUserNotifications(ExecutionContext.system(user.id)).handle({
+    const notifications = await new GetUserNotifications(makeSystemOrganizationActionContext(user.id)).handle({
       page: 1,
       limit: 10,
     })

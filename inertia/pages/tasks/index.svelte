@@ -14,7 +14,7 @@
   import KanbanBoard from './components/views/kanban/kanban_board.svelte'
   import { buildProjectScopeFilters } from './scope_helpers'
   import { createStatusManagementController } from './status_management_controller.svelte'
-  import type { Task, TaskMetadata, TasksProps } from './types.svelte'
+  import type { Task, TaskMetadata, TasksProps, TaskStatusCategory } from './types.svelte'
 
   interface Props extends TasksProps {
     metadata: TaskMetadata
@@ -33,12 +33,27 @@
   }: Props = $props()
   const { t } = useTranslation()
   const currentOrganizationRole = $derived(auth?.user?.current_organization_role ?? null)
-  const canManageWorkflow = $derived(
+  const isOrgTaskSurface = $derived(shellMode === 'organization')
+  const isOrgOwnerOrAdmin = $derived(
     currentOrganizationRole === 'org_owner' || currentOrganizationRole === 'org_admin'
+  )
+  // TODO: remove role fallback after backend provides permissions.canManageWorkflow consistently.
+  const canManageWorkflow = $derived(
+    isOrgTaskSurface && (permissions?.canManageWorkflow ?? isOrgOwnerOrAdmin)
   )
   const Layout = $derived(shellMode === 'organization' ? OrganizationLayout : AppLayout)
 
-  const store = createTaskStore()
+  function getCurrentTaskScope() {
+    return {
+      baseRoute,
+      shellMode,
+      projectId: filters.project_id ?? null,
+    }
+  }
+
+  const store = createTaskStore({
+    getCurrentScope: getCurrentTaskScope,
+  })
   const isBoardMutationLocked = $derived(store.isOptimisticActive)
 
   $effect(() => {
@@ -47,9 +62,9 @@
 
   let createModalOpen = $state(false)
   let selectedCreateStatus = $state('')
-  let importModalOpen = $state(false)
   let detailModalOpen = $state(false)
-  let selectedTask = $state<Task | null>(null)
+  let selectedTaskId = $state<string | null>(null)
+  const selectedTask = $derived(selectedTaskId ? (store.getTaskById(selectedTaskId) ?? null) : null)
   const createTaskPermission = $derived({
     allowed: permissions?.canCreateTask ?? false,
     reason: permissions?.createTaskReason ?? null,
@@ -80,20 +95,55 @@
   }
 
   function handleViewTaskDetail(task: Task) {
-    selectedTask = task
+    selectedTaskId = task.id
     detailModalOpen = true
   }
 
   function handleProjectScopeChange(projectId: string) {
+    if (store.isOptimisticActive) {
+      notificationStore.info('Board đang đồng bộ', 'Vui lòng đợi thao tác hiện tại hoàn tất.')
+      return
+    }
+
     const nextFilters = buildProjectScopeFilters(filters, projectId)
     router.get(baseRoute, nextFilters, {
       preserveScroll: true,
     })
   }
 
-  function handleTaskCreated(task: Task) {
-    store.upsertTask(task)
+  function isTaskInCurrentScope(task: Task): boolean {
+    const selectedProjectId = filters.project_id ?? null
+    return !selectedProjectId || task.project_id === selectedProjectId
   }
+
+  function handleTaskCreated(task: Task) {
+    if (isTaskInCurrentScope(task)) {
+      store.upsertTask(task)
+    }
+  }
+
+  function handleDetailStatusChange(task: Task, toStatusId: string) {
+    void store.moveTaskStatus(task.id, toStatusId)
+  }
+
+  function getDetailStatusChangeDecision(_task: Task, _toStatusId: string) {
+    if (store.isOptimisticActive) {
+      return { allowed: false, reason: 'Đang đồng bộ thay đổi trước đó.' }
+    }
+
+    return { allowed: true, reason: null }
+  }
+
+  function handleDetailClose() {
+    detailModalOpen = false
+    selectedTaskId = null
+  }
+
+  $effect(() => {
+    if (detailModalOpen && selectedTaskId && !selectedTask && !store.isOptimisticActive) {
+      handleDetailClose()
+    }
+  })
 
   const pageTitle = $derived(
     shellMode === 'organization' ? 'Task tổ chức' : t('task.task_list', {}, 'Quản lý nhiệm vụ')
@@ -112,6 +162,7 @@
       {projectContext}
       {projectOptions}
       createTaskPermission={vm.createTaskPermission}
+      isBoardMutationLocked={store.isOptimisticActive}
       onProjectScopeChange={handleProjectScopeChange}
     />
     <TaskHeader {store} {metadata} />
@@ -122,13 +173,14 @@
       onCreateTask={handleCreateClick}
       onCreateStatus={statusManager.handleCreateStatusClick}
       onDeleteStatus={statusManager.handleDeleteStatusClick}
-      canCreateTask={vm.createTaskPermission.allowed}
+      canCreateTask={vm.createTaskPermission.allowed && projectOptions.length > 0}
       canManageStatuses={canManageWorkflow}
       canDeleteStatus={statusManager.canDeleteStatus}
+      createTaskDisabledReason={vm.createTaskPermission.reason}
+      hasProjectOptions={projectOptions.length > 0}
     />
   </div>
   <TaskIndexModals
-    {store}
     {metadata}
     {projectOptions}
     {projectContext}
@@ -138,22 +190,19 @@
     }}
     {selectedCreateStatus}
     onTaskCreated={handleTaskCreated}
-    {importModalOpen}
-    onImportModalOpenChange={(open: boolean) => {
-      importModalOpen = open
-    }}
     {detailModalOpen}
     onDetailModalOpenChange={(open: boolean) => {
       detailModalOpen = open
     }}
     {selectedTask}
-    onDetailClose={() => {
-      setTimeout(() => {
-        selectedTask = null
-      }, 300)
-    }}
+    onDetailClose={handleDetailClose}
+    onDetailStatusChange={handleDetailStatusChange}
+    getDetailStatusChangeDecision={getDetailStatusChangeDecision}
     createStatusModalOpen={statusManager.createStatusModalOpen}
     createStatusName={statusManager.createStatusName}
+    createStatusCategory={statusManager.createStatusCategory}
+    createStatusDescription={statusManager.createStatusDescription}
+    createStatusColor={statusManager.createStatusColor}
     createStatusError={statusManager.createStatusError}
     createStatusSubmitting={statusManager.createStatusSubmitting}
     onCreateStatusSubmit={statusManager.handleCreateStatusSubmit}
@@ -164,11 +213,21 @@
     onCreateStatusNameChange={(value: string) => {
       statusManager.createStatusName = value
     }}
+    onCreateStatusCategoryChange={(value: TaskStatusCategory | '') => {
+      statusManager.createStatusCategory = value
+    }}
+    onCreateStatusDescriptionChange={(value: string) => {
+      statusManager.createStatusDescription = value
+    }}
+    onCreateStatusColorChange={(value: string) => {
+      statusManager.createStatusColor = value
+    }}
     deleteStatusModalOpen={statusManager.deleteStatusModalOpen}
     deleteStatusError={statusManager.deleteStatusError}
     deleteStatusSubmitting={statusManager.deleteStatusSubmitting}
     statusDeleteTarget={statusManager.statusDeleteTarget}
     hasDeleteTargetTasks={statusManager.hasDeleteTargetTasks}
+    isStatusMutationLocked={statusManager.isStatusMutationLocked}
     onDeleteStatusConfirm={statusManager.confirmDeleteStatus}
     onDeleteStatusDialogClose={statusManager.handleDeleteStatusDialogClose}
     onDeleteStatusModalOpenChange={(open: boolean) => {
