@@ -1,0 +1,900 @@
+# organizations Backend Module
+
+## Module Path
+
+```text
+app/modules/organizations
+```
+
+## Folder And File Inventory
+
+```text
+./ README.md index.ts
+actions/ base_command.ts base_query.ts interfaces.ts organization_action_context.ts public_api.ts result.ts
+actions/builders/ member_request_dto_builders.ts
+actions/commands/ add_member_by_email_command.ts add_member_command.ts approve_membership.ts bulk_add_members_command.ts bulk_invite_users_command.ts create_join_request_command.ts create_organization_command.ts delete_organization_command.ts invite_user_command.ts process_join_request_command.ts remove_member_command.ts request_organization_join_command.ts switch_organization_command.ts transfer_organization_ownership_command.ts update_member_role_command.ts update_organization_command.ts
+actions/current/access/commands/ update_custom_roles_command.ts
+actions/current/access/queries/ get_access_configuration_query.ts get_assignable_organization_roles_query.ts
+actions/current/dashboard/ get_organization_dashboard_stats_query.ts
+actions/current/invitations/queries/ get_invitations_index_page_query.ts list_invitations_query.ts list_join_requests_query.ts
+actions/current/members/queries/ get_organization_members_index_page_query.ts list_organization_members_query.ts
+actions/current/projects/commands/ create_project_command.ts
+actions/current/projects/queries/ list_projects_query.ts
+actions/current/settings/commands/ update_organization_settings_command.ts
+actions/current/settings/queries/ get_organization_settings_query.ts
+actions/current/tasks/queries/ get_organization_tasks_index_page_query.ts
+actions/current/workflow/commands/ create_task_status_command.ts
+actions/current/workflow/queries/ list_task_statuses_query.ts
+actions/dtos/request/ add_member_dto.ts bulk_add_members_dto.ts create_organization_dto.ts delete_organization_dto.ts get_organization_detail_dto.ts get_organization_members_dto.ts get_organizations_list_dto.ts invite_user_dto.ts process_join_request_dto.ts remove_member_dto.ts update_member_role_dto.ts update_organization_dto.ts
+actions/dtos/response/ organization_response_dtos.ts
+actions/mapper/ organization_application_mapper.ts
+actions/ports/ organization_external_dependencies.ts organization_external_dependencies_impl.ts
+actions/queries/ check_join_eligibility_query.ts find_pending_join_request_query.ts get_all_organizations_query.ts get_debug_organization_info_query.ts get_organization_basic_info_query.ts get_organization_detail_query.ts get_organization_members_api_query.ts get_organization_members_page_query.ts get_organization_members_query.ts get_organization_members_with_analytics_query.ts get_organization_metadata_query.ts get_organization_show_data_query.ts get_organization_show_page_query.ts get_organization_tasks_query.ts get_organizations_index_page_query.ts get_organizations_list_query.ts get_pending_requests_page_query.ts get_pending_requests_query.ts get_user_owned_organizations_query.ts get_users_in_organization_query.ts
+actions/services/ organization_public_api.ts
+application/context/ organization_actor_context.ts
+application/dtos/common/ organization_pagination.ts
+application/events/ .gitkeep
+application/ports/ organization_actor_lookup.ts organization_event_publisher.ts organization_membership_reader.ts organization_project_invariant.ts organization_task_invariant.ts
+constants/ organization_constants.ts
+controllers/ add_direct_member_controller.ts add_member_controller.ts add_users_controller.ts all_organizations_controller.ts api_list_organizations_controller.ts create_organization_controller.ts delete_organization_api_controller.ts invite_member_controller.ts join_organization_controller.ts list_members_controller.ts list_organizations_controller.ts pending_requests_controller.ts process_join_request_controller.ts remove_member_controller.ts show_organization_api_controller.ts show_organization_controller.ts switch_and_redirect_controller.ts switch_organization_controller.ts update_member_role_controller.ts update_organization_api_controller.ts
+controllers/current/access/mappers/request/ update_roles_request_mapper.ts
+controllers/current/access/mappers/response/ update_roles_response_mapper.ts
+controllers/current/access/ show_departments_controller.ts show_permissions_controller.ts show_roles_controller.ts update_roles_controller.ts
+controllers/current/ dashboard_controller.ts
+controllers/current/invitations/ approve_join_request_controller.ts list_invitations_controller.ts list_join_requests_controller.ts
+controllers/current/invitations/mappers/request/ list_invitations_request_mapper.ts
+controllers/current/invitations/mappers/response/ list_invitations_response_mapper.ts
+controllers/current/mappers/request/ current_organization_mutation_request_mapper.ts
+controllers/current/mappers/response/ current_organization_mutation_response_mapper.ts shared.ts
+controllers/current/members/ invite_member_controller.ts list_members_controller.ts remove_member_controller.ts update_member_role_controller.ts
+controllers/current/members/mappers/request/ list_members_request_mapper.ts
+controllers/current/members/mappers/response/ list_members_response_mapper.ts
+controllers/current/projects/ create_project_controller.ts list_projects_controller.ts show_project_controller.ts
+controllers/current/projects/mappers/request/ current_project_request_mapper.ts
+controllers/current/projects/mappers/response/ current_project_response_mapper.ts
+controllers/current/settings/ show_settings_controller.ts update_settings_controller.ts
+controllers/current/tasks/ list_tasks_controller.ts show_task_controller.ts
+controllers/current/tasks/mappers/request/ current_task_request_mapper.ts
+controllers/current/workflow/ create_task_status_controller.ts list_task_statuses_controller.ts
+controllers/current/workflow/mappers/request/ current_task_status_request_mapper.ts
+controllers/current/workflow/mappers/response/ current_task_status_response_mapper.ts
+controllers/mappers/ organization_actor_context_mapper.ts
+controllers/mappers/request/ join_organization_request_mapper.ts organization_request_mapper.ts
+controllers/mappers/response/ join_organization_response_mapper.ts organization_mutation_api_mapper.ts organization_page_props_mapper.ts organization_response_mapper.ts
+domain/entities/ organization_entity.ts
+domain/mapper/ organization_domain_mapper.ts
+domain/ org_access_rules.ts org_permission_policy.ts org_types.ts organization_rules.ts
+domain/repositories/ organization_repository_interface.ts
+events/ organization_events.ts
+infra/adapters/ .gitkeep
+infra/current/repositories/ organization_invitation_repository.ts organization_member_repository.ts organization_project_repository.ts organization_settings_repository.ts organization_task_repository.ts organization_workflow_repository.ts
+infra/current/repositories/write/ organization_project_mutations.ts organization_settings_mutations.ts organization_workflow_mutations.ts
+infra/mapper/ organization_infra_mapper.ts
+infra/models/ organization.ts organization_invitation.ts organization_join_request.ts organization_user.ts
+infra/repositories/ organization_repository_barrel.ts organization_repository_impl.ts
+infra/repositories/organization_user_repository/read/ listing_queries.ts membership_queries.ts shared.ts
+infra/repositories/organization_user_repository/write/ mutation_queries.ts
+infra/repositories/read/ org_access_repository.ts organization_repository.ts
+infra/repositories/write/ organization_mutations.ts
+middleware/ organization_admin_context_middleware.ts organization_resolver_middleware.ts require_org_admin_middleware.ts require_org_owner_middleware.ts require_organization_middleware.ts
+public_contracts/ organization_constants.ts organization_events_v1.ts organization_membership_v1.ts organization_public_api.ts
+public_contracts/schemas/ organization_events_v1.schema.ts
+types/ custom_role_definition.ts organization_records.ts
+validators/ organization.ts
+validators/rules/ database.ts
+```
+
+## Route Evidence
+
+```text
+start/routes/api.ts
+start/routes/api_v1.ts
+start/routes/organizations.ts
+start/routes/organizations_current.ts
+start/routes/projects.ts
+start/routes/settings.ts
+start/routes/tasks.ts
+```
+
+## Symbol Evidence
+
+| Kind | Symbol | File | Line |
+|---|---|---|---:|
+| interface | `InviteMemberRequestInput` | `app/modules/organizations/actions/builders/member_request_dto_builders.ts` | 8 |
+| interface | `UpdateMemberRoleRequestInput` | `app/modules/organizations/actions/builders/member_request_dto_builders.ts` | 16 |
+| interface | `BuildMemberRequestOptions` | `app/modules/organizations/actions/builders/member_request_dto_builders.ts` | 23 |
+| class | `AddMemberByEmailCommand` | `app/modules/organizations/actions/commands/add_member_by_email_command.ts` | 15 |
+| class | `AddMemberCommand` | `app/modules/organizations/actions/commands/add_member_command.ts` | 38 |
+| class | `BulkAddMembersCommand` | `app/modules/organizations/actions/commands/bulk_add_members_command.ts` | 29 |
+| interface | `BulkInviteUsersDTO` | `app/modules/organizations/actions/commands/bulk_invite_users_command.ts` | 10 |
+| class | `BulkInviteUsersCommand` | `app/modules/organizations/actions/commands/bulk_invite_users_command.ts` | 26 |
+| class | `CreateJoinRequestCommand` | `app/modules/organizations/actions/commands/create_join_request_command.ts` | 18 |
+| class | `CreateOrganizationCommand` | `app/modules/organizations/actions/commands/create_organization_command.ts` | 57 |
+| class | `DeleteOrganizationCommand` | `app/modules/organizations/actions/commands/delete_organization_command.ts` | 25 |
+| class | `InviteUserCommand` | `app/modules/organizations/actions/commands/invite_user_command.ts` | 38 |
+| class | `ProcessJoinRequestCommand` | `app/modules/organizations/actions/commands/process_join_request_command.ts` | 35 |
+| class | `RemoveMemberCommand` | `app/modules/organizations/actions/commands/remove_member_command.ts` | 32 |
+| interface | `RequestOrganizationJoinResult` | `app/modules/organizations/actions/commands/request_organization_join_command.ts` | 11 |
+| class | `RequestOrganizationJoinCommand` | `app/modules/organizations/actions/commands/request_organization_join_command.ts` | 18 |
+| class | `SwitchOrganizationCommand` | `app/modules/organizations/actions/commands/switch_organization_command.ts` | 33 |
+| interface | `TransferOrganizationOwnershipDTO` | `app/modules/organizations/actions/commands/transfer_organization_ownership_command.ts` | 30 |
+| class | `TransferOrganizationOwnershipCommand` | `app/modules/organizations/actions/commands/transfer_organization_ownership_command.ts` | 55 |
+| class | `UpdateMemberRoleCommand` | `app/modules/organizations/actions/commands/update_member_role_command.ts` | 46 |
+| class | `UpdateOrganizationCommand` | `app/modules/organizations/actions/commands/update_organization_command.ts` | 32 |
+| interface | `UpdateCustomRolesDTO` | `app/modules/organizations/actions/current/access/commands/update_custom_roles_command.ts` | 9 |
+| class | `UpdateCustomRolesCommand` | `app/modules/organizations/actions/current/access/commands/update_custom_roles_command.ts` | 13 |
+| interface | `AccessConfigurationResult` | `app/modules/organizations/actions/current/access/queries/get_access_configuration_query.ts` | 39 |
+| class | `GetAccessConfigurationQuery` | `app/modules/organizations/actions/current/access/queries/get_access_configuration_query.ts` | 79 |
+| interface | `GetAssignableOrganizationRolesDTO` | `app/modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query.ts` | 6 |
+| interface | `AssignableOrganizationRoleOption` | `app/modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query.ts` | 10 |
+| interface | `AssignableOrganizationRolesResult` | `app/modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query.ts` | 15 |
+| class | `GetAssignableOrganizationRolesQuery` | `app/modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query.ts` | 20 |
+| interface | `GetOrganizationDashboardStatsDTO` | `app/modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query.ts` | 14 |
+| interface | `GetOrganizationDashboardStatsResult` | `app/modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query.ts` | 18 |
+| class | `GetOrganizationDashboardStatsQuery` | `app/modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query.ts` | 41 |
+| type | `InvitationsIndexPageInput` | `app/modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query.ts` | 6 |
+| interface | `InvitationsIndexPageResult` | `app/modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query.ts` | 8 |
+| class | `GetInvitationsIndexPageQuery` | `app/modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query.ts` | 14 |
+| interface | `ListInvitationsDTO` | `app/modules/organizations/actions/current/invitations/queries/list_invitations_query.ts` | 11 |
+| interface | `ListInvitationsResult` | `app/modules/organizations/actions/current/invitations/queries/list_invitations_query.ts` | 18 |
+| class | `ListInvitationsQuery` | `app/modules/organizations/actions/current/invitations/queries/list_invitations_query.ts` | 43 |
+| interface | `ListJoinRequestsDTO` | `app/modules/organizations/actions/current/invitations/queries/list_join_requests_query.ts` | 4 |
+| interface | `ListJoinRequestsResult` | `app/modules/organizations/actions/current/invitations/queries/list_join_requests_query.ts` | 10 |
+| class | `ListJoinRequestsQuery` | `app/modules/organizations/actions/current/invitations/queries/list_join_requests_query.ts` | 30 |
+| type | `OrganizationMembersIndexPageInput` | `app/modules/organizations/actions/current/members/queries/get_organization_members_index_page_query.ts` | 8 |
+| interface | `OrganizationMembersIndexPageResult` | `app/modules/organizations/actions/current/members/queries/get_organization_members_index_page_query.ts` | 10 |
+| class | `GetOrganizationMembersIndexPageQuery` | `app/modules/organizations/actions/current/members/queries/get_organization_members_index_page_query.ts` | 21 |
+| interface | `ListOrganizationMembersDTO` | `app/modules/organizations/actions/current/members/queries/list_organization_members_query.ts` | 12 |
+| interface | `ListOrganizationMembersResult` | `app/modules/organizations/actions/current/members/queries/list_organization_members_query.ts` | 21 |
+| class | `ListOrganizationMembersQuery` | `app/modules/organizations/actions/current/members/queries/list_organization_members_query.ts` | 39 |
+| class | `CreateCurrentOrganizationProjectCommand` | `app/modules/organizations/actions/current/projects/commands/create_project_command.ts` | 4 |
+| interface | `ListProjectsDTO` | `app/modules/organizations/actions/current/projects/queries/list_projects_query.ts` | 11 |
+| interface | `ListProjectsResult` | `app/modules/organizations/actions/current/projects/queries/list_projects_query.ts` | 18 |
+| class | `ListProjectsQuery` | `app/modules/organizations/actions/current/projects/queries/list_projects_query.ts` | 42 |
+| interface | `UpdateOrganizationSettingsDTO` | `app/modules/organizations/actions/current/settings/commands/update_organization_settings_command.ts` | 14 |
+| class | `UpdateOrganizationSettingsCommand` | `app/modules/organizations/actions/current/settings/commands/update_organization_settings_command.ts` | 21 |
+| type | `GetOrganizationSettingsDTO` | `app/modules/organizations/actions/current/settings/queries/get_organization_settings_query.ts` | 14 |
+| interface | `GetOrganizationSettingsResult` | `app/modules/organizations/actions/current/settings/queries/get_organization_settings_query.ts` | 16 |
+| class | `GetOrganizationSettingsQuery` | `app/modules/organizations/actions/current/settings/queries/get_organization_settings_query.ts` | 26 |
+| type | `OrganizationTasksIndexPageInput` | `app/modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query.ts` | 8 |
+| type | `OrganizationTasksIndexPageResult` | `app/modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query.ts` | 9 |
+| class | `GetOrganizationTasksIndexPageQuery` | `app/modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query.ts` | 11 |
+| class | `CreateOrganizationTaskStatusCommand` | `app/modules/organizations/actions/current/workflow/commands/create_task_status_command.ts` | 5 |
+| type | `ListTaskStatusesDTO` | `app/modules/organizations/actions/current/workflow/queries/list_task_statuses_query.ts` | 11 |
+| interface | `ListTaskStatusesResult` | `app/modules/organizations/actions/current/workflow/queries/list_task_statuses_query.ts` | 13 |
+| class | `ListTaskStatusesQuery` | `app/modules/organizations/actions/current/workflow/queries/list_task_statuses_query.ts` | 23 |
+| class | `AddMemberDTO` | `app/modules/organizations/actions/dtos/request/add_member_dto.ts` | 16 |
+| class | `BulkAddMembersDTO` | `app/modules/organizations/actions/dtos/request/bulk_add_members_dto.ts` | 6 |
+| class | `CreateOrganizationDTO` | `app/modules/organizations/actions/dtos/request/create_organization_dto.ts` | 16 |
+| class | `DeleteOrganizationDTO` | `app/modules/organizations/actions/dtos/request/delete_organization_dto.ts` | 12 |
+| class | `GetOrganizationDetailDTO` | `app/modules/organizations/actions/dtos/request/get_organization_detail_dto.ts` | 12 |
+| class | `GetOrganizationMembersDTO` | `app/modules/organizations/actions/dtos/request/get_organization_members_dto.ts` | 14 |
+| class | `GetOrganizationsListDTO` | `app/modules/organizations/actions/dtos/request/get_organizations_list_dto.ts` | 13 |
+| interface | `InviteUserRecord` | `app/modules/organizations/actions/dtos/request/invite_user_dto.ts` | 5 |
+| class | `InviteUserDTO` | `app/modules/organizations/actions/dtos/request/invite_user_dto.ts` | 23 |
+| class | `ProcessJoinRequestDTO` | `app/modules/organizations/actions/dtos/request/process_join_request_dto.ts` | 13 |
+| class | `RemoveMemberDTO` | `app/modules/organizations/actions/dtos/request/remove_member_dto.ts` | 14 |
+| interface | `UpdateMemberRoleRecord` | `app/modules/organizations/actions/dtos/request/update_member_role_dto.ts` | 5 |
+| class | `UpdateMemberRoleDTO` | `app/modules/organizations/actions/dtos/request/update_member_role_dto.ts` | 22 |
+| class | `UpdateOrganizationDTO` | `app/modules/organizations/actions/dtos/request/update_organization_dto.ts` | 12 |
+| interface | `OrganizationDetailResponseDTOProps` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 11 |
+| interface | `OrganizationListItemResponseDTOProps` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 27 |
+| interface | `OrganizationSummaryResponseDTOProps` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 39 |
+| interface | `OrganizationMemberResponseDTOProps` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 46 |
+| class | `OrganizationDetailResponseDTO` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 61 |
+| class | `OrganizationListItemResponseDTO` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 118 |
+| class | `OrganizationSummaryResponseDTO` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 163 |
+| class | `OrganizationMemberResponseDTO` | `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts` | 193 |
+| interface | `CommandHandler` | `app/modules/organizations/actions/interfaces.ts` | 7 |
+| interface | `QueryHandler` | `app/modules/organizations/actions/interfaces.ts` | 22 |
+| interface | `Command` | `app/modules/organizations/actions/interfaces.ts` | 36 |
+| interface | `Query` | `app/modules/organizations/actions/interfaces.ts` | 43 |
+| class | `OrganizationApplicationMapper` | `app/modules/organizations/actions/mapper/organization_application_mapper.ts` | 20 |
+| interface | `OrganizationActionContext` | `app/modules/organizations/actions/organization_action_context.ts` | 1 |
+| interface | `AuthenticatedOrganizationActionContext` | `app/modules/organizations/actions/organization_action_context.ts` | 8 |
+| function | `makeSystemOrganizationActionContext` | `app/modules/organizations/actions/organization_action_context.ts` | 12 |
+| interface | `OrganizationOwnerName` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 4 |
+| interface | `OrganizationUserIdentity` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 9 |
+| interface | `DebugUserOrganizationsInfo` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 16 |
+| interface | `OrganizationUserReaderWriter` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 23 |
+| interface | `OrganizationProjectTaskReaderWriter` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 50 |
+| interface | `OrganizationExternalDependencies` | `app/modules/organizations/actions/ports/organization_external_dependencies.ts` | 68 |
+| class | `InfraOrganizationUserReaderWriter` | `app/modules/organizations/actions/ports/organization_external_dependencies_impl.ts` | 17 |
+| class | `InfraOrganizationProjectTaskReaderWriter` | `app/modules/organizations/actions/ports/organization_external_dependencies_impl.ts` | 87 |
+| const | `DefaultOrganizationDependencies` | `app/modules/organizations/actions/ports/organization_external_dependencies_impl.ts` | 126 |
+| class | `CheckJoinEligibilityQuery` | `app/modules/organizations/actions/queries/check_join_eligibility_query.ts` | 19 |
+| class | `FindPendingJoinRequestQuery` | `app/modules/organizations/actions/queries/find_pending_join_request_query.ts` | 12 |
+| class | `GetAllOrganizationsQuery` | `app/modules/organizations/actions/queries/get_all_organizations_query.ts` | 36 |
+| class | `GetDebugOrganizationInfoQuery` | `app/modules/organizations/actions/queries/get_debug_organization_info_query.ts` | 18 |
+| class | `GetOrganizationBasicInfoQuery` | `app/modules/organizations/actions/queries/get_organization_basic_info_query.ts` | 14 |
+| class | `GetOrganizationDetailQuery` | `app/modules/organizations/actions/queries/get_organization_detail_query.ts` | 54 |
+| class | `GetOrganizationMembersApiQuery` | `app/modules/organizations/actions/queries/get_organization_members_api_query.ts` | 43 |
+| interface | `OrganizationMembersPageResult` | `app/modules/organizations/actions/queries/get_organization_members_page_query.ts` | 14 |
+| interface | `OrganizationMembersPageFilters` | `app/modules/organizations/actions/queries/get_organization_members_page_query.ts` | 22 |
+| class | `GetOrganizationMembersPageQuery` | `app/modules/organizations/actions/queries/get_organization_members_page_query.ts` | 37 |
+| class | `GetOrganizationMembersQuery` | `app/modules/organizations/actions/queries/get_organization_members_query.ts` | 54 |
+| interface | `OrganizationMembersAnalytics` | `app/modules/organizations/actions/queries/get_organization_members_with_analytics_query.ts` | 8 |
+| interface | `GetOrganizationMembersWithAnalyticsResult` | `app/modules/organizations/actions/queries/get_organization_members_with_analytics_query.ts` | 14 |
+| class | `GetOrganizationMembersWithAnalyticsQuery` | `app/modules/organizations/actions/queries/get_organization_members_with_analytics_query.ts` | 29 |
+| class | `GetOrganizationMetadataQuery` | `app/modules/organizations/actions/queries/get_organization_metadata_query.ts` | 42 |
+| class | `GetOrganizationShowDataQuery` | `app/modules/organizations/actions/queries/get_organization_show_data_query.ts` | 23 |
+| interface | `OrganizationShowPageResult` | `app/modules/organizations/actions/queries/get_organization_show_page_query.ts` | 9 |
+| class | `GetOrganizationShowPageQuery` | `app/modules/organizations/actions/queries/get_organization_show_page_query.ts` | 27 |
+| class | `GetOrganizationTasksQuery` | `app/modules/organizations/actions/queries/get_organization_tasks_query.ts` | 32 |
+| interface | `OrganizationsIndexPageResult` | `app/modules/organizations/actions/queries/get_organizations_index_page_query.ts` | 10 |
+| class | `GetOrganizationsIndexPageQuery` | `app/modules/organizations/actions/queries/get_organizations_index_page_query.ts` | 22 |
+| class | `GetOrganizationsListQuery` | `app/modules/organizations/actions/queries/get_organizations_list_query.ts` | 56 |
+| interface | `PendingRequestsPageResult` | `app/modules/organizations/actions/queries/get_pending_requests_page_query.ts` | 6 |
+| class | `GetPendingRequestsPageQuery` | `app/modules/organizations/actions/queries/get_pending_requests_page_query.ts` | 11 |
+| class | `GetPendingRequestsQuery` | `app/modules/organizations/actions/queries/get_pending_requests_query.ts` | 47 |
+| class | `GetUserOwnedOrganizationsQuery` | `app/modules/organizations/actions/queries/get_user_owned_organizations_query.ts` | 15 |
+| class | `GetUsersInOrganizationQuery` | `app/modules/organizations/actions/queries/get_users_in_organization_query.ts` | 15 |
+| class | `Result` | `app/modules/organizations/actions/result.ts` | 5 |
+| class | `OrganizationPublicApi` | `app/modules/organizations/actions/services/organization_public_api.ts` | 19 |
+| const | `organizationPublicApi` | `app/modules/organizations/actions/services/organization_public_api.ts` | 141 |
+| interface | `OrganizationActorContext` | `app/modules/organizations/application/context/organization_actor_context.ts` | 1 |
+| const | `ORGANIZATION_PAGINATION` | `app/modules/organizations/application/dtos/common/organization_pagination.ts` | 1 |
+| interface | `OrganizationActor` | `app/modules/organizations/application/ports/organization_actor_lookup.ts` | 1 |
+| interface | `OrganizationActorLookup` | `app/modules/organizations/application/ports/organization_actor_lookup.ts` | 8 |
+| type | `OrganizationPublicEventV1` | `app/modules/organizations/application/ports/organization_event_publisher.ts` | 7 |
+| interface | `OrganizationEventPublisher` | `app/modules/organizations/application/ports/organization_event_publisher.ts` | 12 |
+| interface | `OrganizationMembershipSnapshot` | `app/modules/organizations/application/ports/organization_membership_reader.ts` | 1 |
+| interface | `OrganizationMembershipReader` | `app/modules/organizations/application/ports/organization_membership_reader.ts` | 9 |
+| interface | `OrganizationMemberRemovedProjectInvariantInput` | `app/modules/organizations/application/ports/organization_project_invariant.ts` | 3 |
+| interface | `OrganizationProjectInvariant` | `app/modules/organizations/application/ports/organization_project_invariant.ts` | 10 |
+| interface | `OrganizationMemberRemovedTaskInvariantInput` | `app/modules/organizations/application/ports/organization_task_invariant.ts` | 3 |
+| interface | `OrganizationTaskInvariant` | `app/modules/organizations/application/ports/organization_task_invariant.ts` | 10 |
+| enum | `OrganizationRole` | `app/modules/organizations/constants/organization_constants.ts` | 22 |
+| enum | `OrganizationUserStatus` | `app/modules/organizations/constants/organization_constants.ts` | 33 |
+| enum | `PartnerType` | `app/modules/organizations/constants/organization_constants.ts` | 43 |
+| class | `AddDirectMemberController` | `app/modules/organizations/controllers/add_direct_member_controller.ts` | 15 |
+| class | `AddMemberController` | `app/modules/organizations/controllers/add_member_controller.ts` | 10 |
+| class | `AddUsersController` | `app/modules/organizations/controllers/add_users_controller.ts` | 16 |
+| class | `AllOrganizationsController` | `app/modules/organizations/controllers/all_organizations_controller.ts` | 10 |
+| class | `ApiListOrganizationsController` | `app/modules/organizations/controllers/api_list_organizations_controller.ts` | 9 |
+| class | `CreateOrganizationController` | `app/modules/organizations/controllers/create_organization_controller.ts` | 13 |
+| function | `buildUpdateCustomRolesDTO` | `app/modules/organizations/controllers/current/access/mappers/request/update_roles_request_mapper.ts` | 5 |
+| function | `getUpdateCustomRolesSuccessMessage` | `app/modules/organizations/controllers/current/access/mappers/response/update_roles_response_mapper.ts` | 1 |
+| function | `mapUpdateCustomRolesSuccessApiBody` | `app/modules/organizations/controllers/current/access/mappers/response/update_roles_response_mapper.ts` | 5 |
+| class | `ShowDepartmentsController` | `app/modules/organizations/controllers/current/access/show_departments_controller.ts` | 6 |
+| class | `ShowPermissionsController` | `app/modules/organizations/controllers/current/access/show_permissions_controller.ts` | 6 |
+| class | `ShowRolesController` | `app/modules/organizations/controllers/current/access/show_roles_controller.ts` | 6 |
+| class | `UpdateRolesController` | `app/modules/organizations/controllers/current/access/update_roles_controller.ts` | 11 |
+| class | `OrgDashboardController` | `app/modules/organizations/controllers/current/dashboard_controller.ts` | 13 |
+| class | `ApproveJoinRequestController` | `app/modules/organizations/controllers/current/invitations/approve_join_request_controller.ts` | 18 |
+| class | `ListInvitationsController` | `app/modules/organizations/controllers/current/invitations/list_invitations_controller.ts` | 17 |
+| class | `ListJoinRequestsController` | `app/modules/organizations/controllers/current/invitations/list_join_requests_controller.ts` | 16 |
+| function | `buildInvitationsIndexPageInput` | `app/modules/organizations/controllers/current/invitations/mappers/request/list_invitations_request_mapper.ts` | 25 |
+| function | `mapInvitationsIndexPageProps` | `app/modules/organizations/controllers/current/invitations/mappers/response/list_invitations_response_mapper.ts` | 3 |
+| function | `buildCurrentOrganizationInviteMemberInput` | `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts` | 11 |
+| function | `buildCurrentOrganizationRemoveMemberDTO` | `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts` | 25 |
+| function | `buildCurrentOrganizationRoleUpdateInput` | `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts` | 37 |
+| function | `buildCurrentOrganizationProcessJoinRequestInput` | `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts` | 52 |
+| function | `mapCurrentOrganizationMutationApiBody` | `app/modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper.ts` | 1 |
+| function | `mapCurrentOrganizationSuccessApiBody` | `app/modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper.ts` | 12 |
+| type | `ResponseRecord` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 1 |
+| interface | `SerializableResponseRecord` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 3 |
+| function | `serializeForCurrentOrganizationResponse` | `app/modules/organizations/controllers/current/mappers/response/shared.ts` | 19 |
+| class | `InviteMemberController` | `app/modules/organizations/controllers/current/members/invite_member_controller.ts` | 17 |
+| class | `ListMembersController` | `app/modules/organizations/controllers/current/members/list_members_controller.ts` | 17 |
+| function | `buildOrganizationMembersIndexPageInput` | `app/modules/organizations/controllers/current/members/mappers/request/list_members_request_mapper.ts` | 26 |
+| function | `mapOrganizationMembersIndexPageProps` | `app/modules/organizations/controllers/current/members/mappers/response/list_members_response_mapper.ts` | 3 |
+| class | `RemoveMemberController` | `app/modules/organizations/controllers/current/members/remove_member_controller.ts` | 18 |
+| class | `UpdateMemberRoleController` | `app/modules/organizations/controllers/current/members/update_member_role_controller.ts` | 18 |
+| class | `CreateProjectController` | `app/modules/organizations/controllers/current/projects/create_project_controller.ts` | 17 |
+| class | `ListProjectsController` | `app/modules/organizations/controllers/current/projects/list_projects_controller.ts` | 14 |
+| function | `buildCreateCurrentOrganizationProjectDTO` | `app/modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper.ts` | 65 |
+| function | `buildCurrentOrganizationProjectsListInput` | `app/modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper.ts` | 84 |
+| function | `mapCurrentOrganizationProjectMutationApiBody` | `app/modules/organizations/controllers/current/projects/mappers/response/current_project_response_mapper.ts` | 7 |
+| class | `OrgShowProjectController` | `app/modules/organizations/controllers/current/projects/show_project_controller.ts` | 12 |
+| class | `ShowSettingsController` | `app/modules/organizations/controllers/current/settings/show_settings_controller.ts` | 13 |
+| class | `UpdateSettingsController` | `app/modules/organizations/controllers/current/settings/update_settings_controller.ts` | 13 |
+| class | `ListTasksController` | `app/modules/organizations/controllers/current/tasks/list_tasks_controller.ts` | 13 |
+| function | `buildCurrentOrganizationTasksIndexPageInput` | `app/modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper.ts` | 45 |
+| class | `OrgShowTaskController` | `app/modules/organizations/controllers/current/tasks/show_task_controller.ts` | 10 |
+| class | `CreateTaskStatusController` | `app/modules/organizations/controllers/current/workflow/create_task_status_controller.ts` | 17 |
+| class | `ListTaskStatusesController` | `app/modules/organizations/controllers/current/workflow/list_task_statuses_controller.ts` | 13 |
+| function | `buildCurrentOrganizationWorkflowCreateTaskStatusDTO` | `app/modules/organizations/controllers/current/workflow/mappers/request/current_task_status_request_mapper.ts` | 31 |
+| function | `mapCurrentOrganizationTaskStatusMutationApiBody` | `app/modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper.ts` | 7 |
+| class | `DeleteOrganizationApiController` | `app/modules/organizations/controllers/delete_organization_api_controller.ts` | 9 |
+| class | `InviteMemberController` | `app/modules/organizations/controllers/invite_member_controller.ts` | 10 |
+| class | `JoinOrganizationController` | `app/modules/organizations/controllers/join_organization_controller.ts` | 18 |
+| class | `ListMembersController` | `app/modules/organizations/controllers/list_members_controller.ts` | 16 |
+| class | `ListOrganizationsController` | `app/modules/organizations/controllers/list_organizations_controller.ts` | 15 |
+| function | `organizationActorContextFromHttp` | `app/modules/organizations/controllers/mappers/organization_actor_context_mapper.ts` | 6 |
+| interface | `JoinOrganizationRequestInput` | `app/modules/organizations/controllers/mappers/request/join_organization_request_mapper.ts` | 4 |
+| function | `buildJoinOrganizationRequestInput` | `app/modules/organizations/controllers/mappers/request/join_organization_request_mapper.ts` | 9 |
+| function | `buildCreateOrganizationDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 91 |
+| function | `buildUpdateOrganizationDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 101 |
+| function | `buildDeleteOrganizationDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 115 |
+| function | `buildOrganizationsListDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 126 |
+| function | `buildOrganizationMembersPageFilters` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 142 |
+| function | `buildRemoveMemberDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 158 |
+| function | `buildProcessJoinRequestDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 189 |
+| function | `buildAddDirectMemberDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 210 |
+| function | `buildBulkAddMembersDTO` | `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts` | 221 |
+| function | `getJoinOrganizationSuccessMessage` | `app/modules/organizations/controllers/mappers/response/join_organization_response_mapper.ts` | 4 |
+| function | `mapJoinOrganizationSuccessApiBody` | `app/modules/organizations/controllers/mappers/response/join_organization_response_mapper.ts` | 8 |
+| function | `mapOrganizationMutationApiBody` | `app/modules/organizations/controllers/mappers/response/organization_mutation_api_mapper.ts` | 1 |
+| function | `mapOrganizationSuccessApiBody` | `app/modules/organizations/controllers/mappers/response/organization_mutation_api_mapper.ts` | 12 |
+| function | `mapOrganizationDetailApiBody` | `app/modules/organizations/controllers/mappers/response/organization_mutation_api_mapper.ts` | 19 |
+| function | `mapOrganizationsIndexPageProps` | `app/modules/organizations/controllers/mappers/response/organization_page_props_mapper.ts` | 3 |
+| function | `mapOrganizationMembersPageProps` | `app/modules/organizations/controllers/mappers/response/organization_page_props_mapper.ts` | 17 |
+| class | `PendingRequestsController` | `app/modules/organizations/controllers/pending_requests_controller.ts` | 10 |
+| class | `ProcessJoinRequestController` | `app/modules/organizations/controllers/process_join_request_controller.ts` | 17 |
+| class | `RemoveMemberController` | `app/modules/organizations/controllers/remove_member_controller.ts` | 15 |
+| class | `ShowOrganizationApiController` | `app/modules/organizations/controllers/show_organization_api_controller.ts` | 10 |
+| class | `ShowOrganizationController` | `app/modules/organizations/controllers/show_organization_controller.ts` | 11 |
+| class | `SwitchAndRedirectController` | `app/modules/organizations/controllers/switch_and_redirect_controller.ts` | 12 |
+| class | `SwitchOrganizationController` | `app/modules/organizations/controllers/switch_organization_controller.ts` | 13 |
+| class | `UpdateMemberRoleController` | `app/modules/organizations/controllers/update_member_role_controller.ts` | 11 |
+| class | `UpdateOrganizationApiController` | `app/modules/organizations/controllers/update_organization_api_controller.ts` | 12 |
+| interface | `CustomRoleDefinition` | `app/modules/organizations/domain/entities/organization_entity.ts` | 9 |
+| interface | `OrganizationEntityProps` | `app/modules/organizations/domain/entities/organization_entity.ts` | 15 |
+| class | `OrganizationEntity` | `app/modules/organizations/domain/entities/organization_entity.ts` | 35 |
+| class | `OrganizationDomainMapper` | `app/modules/organizations/domain/mapper/organization_domain_mapper.ts` | 18 |
+| interface | `OrganizationDepartmentTemplate` | `app/modules/organizations/domain/org_access_rules.ts` | 4 |
+| interface | `OrganizationDepartmentCoverage` | `app/modules/organizations/domain/org_access_rules.ts` | 12 |
+| const | `ORG_ROLE_PRESETS` | `app/modules/organizations/domain/org_access_rules.ts` | 23 |
+| const | `ORG_DEPARTMENT_TEMPLATES` | `app/modules/organizations/domain/org_access_rules.ts` | 61 |
+| function | `normalizeRoleCode` | `app/modules/organizations/domain/org_access_rules.ts` | 96 |
+| function | `sanitizeCustomRoleDefinitions` | `app/modules/organizations/domain/org_access_rules.ts` | 104 |
+| function | `getAssignableOrganizationRoles` | `app/modules/organizations/domain/org_access_rules.ts` | 149 |
+| function | `buildOrganizationDepartmentCoverage` | `app/modules/organizations/domain/org_access_rules.ts` | 157 |
+| function | `canTransferOwnership` | `app/modules/organizations/domain/org_permission_policy.ts` | 48 |
+| function | `canRemoveMember` | `app/modules/organizations/domain/org_permission_policy.ts` | 76 |
+| function | `canDeleteOrganization` | `app/modules/organizations/domain/org_permission_policy.ts` | 98 |
+| function | `canChangeRole` | `app/modules/organizations/domain/org_permission_policy.ts` | 124 |
+| function | `canAddMember` | `app/modules/organizations/domain/org_permission_policy.ts` | 159 |
+| function | `canProcessJoinRequest` | `app/modules/organizations/domain/org_permission_policy.ts` | 183 |
+| function | `canCreateJoinRequest` | `app/modules/organizations/domain/org_permission_policy.ts` | 206 |
+| function | `canSwitchOrganization` | `app/modules/organizations/domain/org_permission_policy.ts` | 218 |
+| function | `canViewOrganization` | `app/modules/organizations/domain/org_permission_policy.ts` | 226 |
+| function | `canViewOrganizationMembers` | `app/modules/organizations/domain/org_permission_policy.ts` | 234 |
+| function | `canUpdateOrganization` | `app/modules/organizations/domain/org_permission_policy.ts` | 242 |
+| function | `canInviteOrganizationMembers` | `app/modules/organizations/domain/org_permission_policy.ts` | 246 |
+| function | `canBulkAddOrganizationMembers` | `app/modules/organizations/domain/org_permission_policy.ts` | 250 |
+| function | `canViewPendingJoinRequests` | `app/modules/organizations/domain/org_permission_policy.ts` | 258 |
+| function | `checkJoinEligibility` | `app/modules/organizations/domain/org_permission_policy.ts` | 268 |
+| function | `canAccessOrganizationAdminShell` | `app/modules/organizations/domain/org_permission_policy.ts` | 298 |
+| function | `canAccessOrganizationOwnerControls` | `app/modules/organizations/domain/org_permission_policy.ts` | 306 |
+| type | `OrgRole` | `app/modules/organizations/domain/org_types.ts` | 8 |
+| type | `MembershipContext` | `app/modules/organizations/domain/org_types.ts` | 10 |
+| function | `toOrgRole` | `app/modules/organizations/domain/org_types.ts` | 16 |
+| function | `isOrgOwner` | `app/modules/organizations/domain/org_types.ts` | 24 |
+| function | `isOrgAdminOrAbove` | `app/modules/organizations/domain/org_types.ts` | 28 |
+| function | `isAnyOrgMember` | `app/modules/organizations/domain/org_types.ts` | 32 |
+| interface | `OrgOwnershipTransferContext` | `app/modules/organizations/domain/org_types.ts` | 39 |
+| interface | `OrgMemberRemovalContext` | `app/modules/organizations/domain/org_types.ts` | 52 |
+| interface | `OrgDeletionContext` | `app/modules/organizations/domain/org_types.ts` | 64 |
+| interface | `OrgRoleChangeContext` | `app/modules/organizations/domain/org_types.ts` | 75 |
+| interface | `OrgMemberAddContext` | `app/modules/organizations/domain/org_types.ts` | 89 |
+| interface | `OrgJoinRequestProcessContext` | `app/modules/organizations/domain/org_types.ts` | 101 |
+| interface | `OrgJoinRequestEligibility` | `app/modules/organizations/domain/org_types.ts` | 113 |
+| interface | `OrganizationCreationContext` | `app/modules/organizations/domain/organization_rules.ts` | 4 |
+| interface | `OrganizationSlugInput` | `app/modules/organizations/domain/organization_rules.ts` | 8 |
+| function | `canCreateOrganization` | `app/modules/organizations/domain/organization_rules.ts` | 13 |
+| function | `normalizeOrganizationName` | `app/modules/organizations/domain/organization_rules.ts` | 21 |
+| function | `normalizeOrganizationSlug` | `app/modules/organizations/domain/organization_rules.ts` | 25 |
+| function | `resolveOrganizationBaseSlug` | `app/modules/organizations/domain/organization_rules.ts` | 37 |
+| function | `buildOrganizationSlugCandidate` | `app/modules/organizations/domain/organization_rules.ts` | 50 |
+| interface | `OrganizationRepository` | `app/modules/organizations/domain/repositories/organization_repository_interface.ts` | 12 |
+| interface | `OrganizationCreatedEvent` | `app/modules/organizations/events/organization_events.ts` | 2 |
+| interface | `OrganizationUpdatedEvent` | `app/modules/organizations/events/organization_events.ts` | 10 |
+| interface | `OrganizationDeletedEvent` | `app/modules/organizations/events/organization_events.ts` | 16 |
+| interface | `OrganizationMemberAddedEvent` | `app/modules/organizations/events/organization_events.ts` | 21 |
+| interface | `OrganizationMemberRemovedEvent` | `app/modules/organizations/events/organization_events.ts` | 28 |
+| interface | `OrganizationMemberRoleChangedEvent` | `app/modules/organizations/events/organization_events.ts` | 34 |
+| interface | `OrganizationMemberApprovedEvent` | `app/modules/organizations/events/organization_events.ts` | 42 |
+| interface | `ListInvitationsFilters` | `app/modules/organizations/infra/current/repositories/organization_invitation_repository.ts` | 10 |
+| interface | `InvitationData` | `app/modules/organizations/infra/current/repositories/organization_invitation_repository.ts` | 15 |
+| interface | `ListInvitationsResult` | `app/modules/organizations/infra/current/repositories/organization_invitation_repository.ts` | 28 |
+| class | `OrganizationInvitationRepository` | `app/modules/organizations/infra/current/repositories/organization_invitation_repository.ts` | 100 |
+| interface | `ListMembersFilters` | `app/modules/organizations/infra/current/repositories/organization_member_repository.ts` | 61 |
+| interface | `OrganizationMember` | `app/modules/organizations/infra/current/repositories/organization_member_repository.ts` | 67 |
+| interface | `ListMembersResult` | `app/modules/organizations/infra/current/repositories/organization_member_repository.ts` | 77 |
+| interface | `DashboardMemberStats` | `app/modules/organizations/infra/current/repositories/organization_member_repository.ts` | 82 |
+| class | `OrganizationMemberRepository` | `app/modules/organizations/infra/current/repositories/organization_member_repository.ts` | 92 |
+| interface | `DashboardProjectStats` | `app/modules/organizations/infra/current/repositories/organization_project_repository.ts` | 54 |
+| interface | `ListProjectsFilters` | `app/modules/organizations/infra/current/repositories/organization_project_repository.ts` | 60 |
+| interface | `ListProjectsResult` | `app/modules/organizations/infra/current/repositories/organization_project_repository.ts` | 65 |
+| class | `OrganizationProjectRepository` | `app/modules/organizations/infra/current/repositories/organization_project_repository.ts` | 80 |
+| interface | `OrganizationData` | `app/modules/organizations/infra/current/repositories/organization_settings_repository.ts` | 9 |
+| class | `OrganizationSettingsRepository` | `app/modules/organizations/infra/current/repositories/organization_settings_repository.ts` | 17 |
+| interface | `DashboardTaskStats` | `app/modules/organizations/infra/current/repositories/organization_task_repository.ts` | 24 |
+| class | `OrganizationTaskRepository` | `app/modules/organizations/infra/current/repositories/organization_task_repository.ts` | 31 |
+| interface | `TaskStatusData` | `app/modules/organizations/infra/current/repositories/organization_workflow_repository.ts` | 9 |
+| class | `OrganizationWorkflowRepository` | `app/modules/organizations/infra/current/repositories/organization_workflow_repository.ts` | 17 |
+| interface | `CreateProjectData` | `app/modules/organizations/infra/current/repositories/write/organization_project_mutations.ts` | 3 |
+| const | `createProject` | `app/modules/organizations/infra/current/repositories/write/organization_project_mutations.ts` | 8 |
+| interface | `UpdateOrganizationData` | `app/modules/organizations/infra/current/repositories/write/organization_settings_mutations.ts` | 4 |
+| const | `updateOrganization` | `app/modules/organizations/infra/current/repositories/write/organization_settings_mutations.ts` | 11 |
+| interface | `CreateTaskStatusData` | `app/modules/organizations/infra/current/repositories/write/organization_workflow_mutations.ts` | 5 |
+| const | `createTaskStatus` | `app/modules/organizations/infra/current/repositories/write/organization_workflow_mutations.ts` | 10 |
+| const | `deleteTaskStatus` | `app/modules/organizations/infra/current/repositories/write/organization_workflow_mutations.ts` | 35 |
+| class | `OrganizationInfraMapper` | `app/modules/organizations/infra/mapper/organization_infra_mapper.ts` | 20 |
+| class | `Organization` | `app/modules/organizations/infra/models/organization.ts` | 13 |
+| class | `OrganizationInvitation` | `app/modules/organizations/infra/models/organization_invitation.ts` | 11 |
+| class | `OrganizationJoinRequest` | `app/modules/organizations/infra/models/organization_join_request.ts` | 16 |
+| class | `OrganizationUser` | `app/modules/organizations/infra/models/organization_user.ts` | 14 |
+| class | `OrganizationRepositoryImpl` | `app/modules/organizations/infra/repositories/organization_repository_impl.ts` | 16 |
+| const | `countMembers` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 16 |
+| const | `getMembersPreview` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 30 |
+| const | `countMembersByOrgIds` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 46 |
+| const | `paginateMembers` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 68 |
+| const | `findMembersWithUser` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 173 |
+| const | `findMembersWithUserProfile` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 183 |
+| const | `findPendingMembersWithDetails` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 194 |
+| const | `findMembersExcludingUser` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 210 |
+| const | `findPendingMembershipsWithUserInfo` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 221 |
+| const | `countPendingMembers` | `app/modules/organizations/infra/repositories/organization_user_repository/read/listing_queries.ts` | 235 |
+| const | `findMembership` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 12 |
+| const | `findApprovedMembershipWithOrganization` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 21 |
+| const | `findApprovedMembershipContext` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 39 |
+| const | `listMembershipsByUser` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 65 |
+| const | `findPendingMembership` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 72 |
+| const | `findMembershipOrFail` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 84 |
+| const | `isApprovedMember` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 95 |
+| const | `isAdminOrOwner` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 108 |
+| const | `validateAllApprovedMembers` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 127 |
+| const | `findApprovedMemberOrFail` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 145 |
+| const | `isMember` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 163 |
+| const | `getMembershipContext` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 175 |
+| const | `findMembershipsByUser` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 200 |
+| const | `findFirstApprovedMembershipWithOrganization` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 208 |
+| const | `findFirstApprovedMembershipContext` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 222 |
+| const | `findOwnerMembershipIds` | `app/modules/organizations/infra/repositories/organization_user_repository/read/membership_queries.ts` | 247 |
+| interface | `CountResultRow` | `app/modules/organizations/infra/repositories/organization_user_repository/read/shared.ts` | 5 |
+| interface | `PaginatedMemberRow` | `app/modules/organizations/infra/repositories/organization_user_repository/read/shared.ts` | 9 |
+| const | `isRecord` | `app/modules/organizations/infra/repositories/organization_user_repository/read/shared.ts` | 19 |
+| const | `toNumberValue` | `app/modules/organizations/infra/repositories/organization_user_repository/read/shared.ts` | 23 |
+| const | `baseQuery` | `app/modules/organizations/infra/repositories/organization_user_repository/read/shared.ts` | 34 |
+| const | `updateRole` | `app/modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries.ts` | 9 |
+| const | `deleteMember` | `app/modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries.ts` | 21 |
+| const | `updateStatus` | `app/modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries.ts` | 29 |
+| const | `addMember` | `app/modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries.ts` | 43 |
+| class | `OrgAccessRepository` | `app/modules/organizations/infra/repositories/read/org_access_repository.ts` | 15 |
+| class | `OrganizationRepository` | `app/modules/organizations/infra/repositories/read/organization_repository.ts` | 33 |
+| const | `findActiveForUpdate` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 8 |
+| const | `findActiveForUpdateRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 19 |
+| const | `create` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 27 |
+| const | `createRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 34 |
+| const | `save` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 42 |
+| const | `updateByIdRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 53 |
+| const | `updateOwnerRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 64 |
+| const | `hardDelete` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 72 |
+| const | `softDeleteByIdRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 82 |
+| const | `hardDeleteByIdRecord` | `app/modules/organizations/infra/repositories/write/organization_mutations.ts` | 93 |
+| class | `OrganizationAdminContextMiddleware` | `app/modules/organizations/middleware/organization_admin_context_middleware.ts` | 33 |
+| class | `OrganizationResolverMiddleware` | `app/modules/organizations/middleware/organization_resolver_middleware.ts` | 26 |
+| class | `RequireOrgAdminMiddleware` | `app/modules/organizations/middleware/require_org_admin_middleware.ts` | 29 |
+| class | `RequireOrgOwnerMiddleware` | `app/modules/organizations/middleware/require_org_owner_middleware.ts` | 29 |
+| class | `RequireOrganizationMiddleware` | `app/modules/organizations/middleware/require_organization_middleware.ts` | 29 |
+| interface | `OrganizationMembershipApprovedV1` | `app/modules/organizations/public_contracts/organization_events_v1.ts` | 1 |
+| interface | `OrganizationMemberRemovedV1` | `app/modules/organizations/public_contracts/organization_events_v1.ts` | 9 |
+| interface | `OrganizationRoleChangedV1` | `app/modules/organizations/public_contracts/organization_events_v1.ts` | 17 |
+| interface | `OrganizationMembershipV1` | `app/modules/organizations/public_contracts/organization_membership_v1.ts` | 1 |
+| const | `organizationMemberRemovedV1Schema` | `app/modules/organizations/public_contracts/schemas/organization_events_v1.schema.ts` | 3 |
+| const | `organizationRoleChangedV1Schema` | `app/modules/organizations/public_contracts/schemas/organization_events_v1.schema.ts` | 11 |
+| interface | `OrganizationCustomRoleDefinition` | `app/modules/organizations/types/custom_role_definition.ts` | 1 |
+| type | `SerializedDateTime` | `app/modules/organizations/types/organization_records.ts` | 3 |
+| interface | `OrganizationRecord` | `app/modules/organizations/types/organization_records.ts` | 5 |
+| interface | `OrganizationMembershipRecord` | `app/modules/organizations/types/organization_records.ts` | 26 |
+| const | `processJoinRequestValidator` | `app/modules/organizations/validators/organization.ts` | 6 |
+| const | `organizationIdRule` | `app/modules/organizations/validators/rules/database.ts` | 15 |
+| const | `userIdRule` | `app/modules/organizations/validators/rules/database.ts` | 16 |
+
+## Import Evidence
+
+### `app/modules/organizations/actions/base_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { CommandHandler } from './interfaces.js'
+import { Result } from './result.js'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/base_query.ts`
+
+```ts
+import type { QueryHandler } from './interfaces.js'
+import { Result } from './result.js'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/builders/member_request_dto_builders.ts`
+
+```ts
+import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+import { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
+import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/add_member_by_email_command.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/commands/add_member_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canAddMember } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+```
+
+### `app/modules/organizations/actions/commands/approve_membership.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/bulk_add_members_command.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import type { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/bulk_invite_users_command.ts`
+
+```ts
+import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+import InviteUserCommand from './invite_user_command.js'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/commands/create_join_request_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/create_organization_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import {
+  canCreateOrganization,
+  resolveOrganizationBaseSlug,
+  resolveUniqueOrganizationSlug,
+} from '#modules/organizations/domain/organization_rules'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
+import { orgTaskBootstrap } from '#modules/tasks/public_contracts/task_public_api'
+```
+
+### `app/modules/organizations/actions/commands/delete_organization_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { DeleteOrganizationDTO } from '../dtos/request/delete_organization_dto.js'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canDeleteOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
+```
+
+### `app/modules/organizations/actions/commands/invite_user_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import {
+  buildInviteUserDTO,
+  type BuildMemberRequestOptions,
+  type InviteMemberRequestInput,
+} from '../builders/member_request_dto_builders.js'
+import type { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canInviteOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrgAccessRepository from '#modules/organizations/infra/repositories/read/org_access_repository'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/process_join_request_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { ProcessJoinRequestDTO } from '../dtos/request/process_join_request_dto.js'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canProcessJoinRequest } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/commands/remove_member_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { RemoveMemberDTO } from '../dtos/request/remove_member_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canRemoveMember } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+```
+
+### `app/modules/organizations/actions/commands/request_organization_join_command.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import CreateJoinRequestCommand from './create_join_request_command.js'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import CheckJoinEligibilityQuery from '#modules/organizations/actions/queries/check_join_eligibility_query'
+```
+
+### `app/modules/organizations/actions/commands/switch_organization_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import {
+  canAccessOrganizationAdminShell,
+  canSwitchOrganization,
+} from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/commands/transfer_organization_ownership_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canTransferOwnership } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
+```
+
+### `app/modules/organizations/actions/commands/update_member_role_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import {
+  buildUpdateMemberRoleDTO,
+  type BuildMemberRequestOptions,
+  type UpdateMemberRoleRequestInput,
+} from '../builders/member_request_dto_builders.js'
+import type { UpdateMemberRoleDTO } from '../dtos/request/update_member_role_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canChangeRole } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+```
+
+### `app/modules/organizations/actions/commands/update_organization_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { UpdateOrganizationDTO } from '../dtos/request/update_organization_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import * as OrganizationMutations from '#modules/organizations/infra/repositories/write/organization_mutations'
+import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
+```
+
+### `app/modules/organizations/actions/current/access/commands/update_custom_roles_command.ts`
+
+```ts
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/organizations/actions/base_command'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { sanitizeCustomRoleDefinitions } from '#modules/organizations/domain/org_access_rules'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as OrganizationSettingsMutations from '#modules/organizations/infra/current/repositories/write/organization_settings_mutations'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/current/access/queries/get_access_configuration_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import {
+  describePermission,
+  formatRoleLabel,
+  getRoleDescription,
+  listKnownOrganizationPermissions,
+  listProjectPermissionCatalog,
+} from '#modules/authorization/public_contracts/access_surface'
+import { ORG_ROLE_PERMISSIONS, PROJECT_ROLE_PERMISSIONS } from '#modules/authorization/public_contracts/permissions'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import {
+  ORG_ROLE_PRESETS,
+  buildOrganizationDepartmentCoverage,
+  sanitizeCustomRoleDefinitions,
+} from '#modules/organizations/domain/org_access_rules'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query.ts`
+
+```ts
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import { getAssignableOrganizationRoles } from '#modules/organizations/domain/org_access_rules'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
+import OrganizationProjectRepository from '#modules/organizations/infra/current/repositories/organization_project_repository'
+import OrganizationTaskRepository from '#modules/organizations/infra/current/repositories/organization_task_repository'
+```
+
