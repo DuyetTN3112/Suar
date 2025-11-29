@@ -898,3 +898,903 @@ import OrganizationProjectRepository from '#modules/organizations/infra/current/
 import OrganizationTaskRepository from '#modules/organizations/infra/current/repositories/organization_task_repository'
 ```
 
+### `app/modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query.ts`
+
+```ts
+import ListInvitationsQuery, { type ListInvitationsDTO } from './list_invitations_query.js'
+import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/current/invitations/queries/list_invitations_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import OrganizationInvitationRepository from '#modules/organizations/infra/current/repositories/organization_invitation_repository'
+```
+
+### `app/modules/organizations/actions/current/invitations/queries/list_join_requests_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+```
+
+### `app/modules/organizations/actions/current/members/queries/get_organization_members_index_page_query.ts`
+
+```ts
+import ListOrganizationMembersQuery, {
+  type ListOrganizationMembersDTO,
+} from './list_organization_members_query.js'
+import GetAssignableOrganizationRolesQuery from '#modules/organizations/actions/current/access/queries/get_assignable_organization_roles_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/current/members/queries/list_organization_members_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import OrganizationMemberRepository from '#modules/organizations/infra/current/repositories/organization_member_repository'
+```
+
+### `app/modules/organizations/actions/current/projects/commands/create_project_command.ts`
+
+```ts
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { projectPublicApi, type CreateProjectDTO } from '#modules/projects/public_contracts/project_public_api'
+```
+
+### `app/modules/organizations/actions/current/projects/queries/list_projects_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import OrganizationProjectRepository from '#modules/organizations/infra/current/repositories/organization_project_repository'
+```
+
+### `app/modules/organizations/actions/current/settings/commands/update_organization_settings_command.ts`
+
+```ts
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/organizations/actions/base_command'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as OrganizationSettingsMutations from '#modules/organizations/infra/current/repositories/write/organization_settings_mutations'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/current/settings/queries/get_organization_settings_query.ts`
+
+```ts
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canUpdateOrganization } from '#modules/organizations/domain/org_permission_policy'
+import OrganizationSettingsRepository from '#modules/organizations/infra/current/repositories/organization_settings_repository'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query.ts`
+
+```ts
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import {
+  taskPublicApi,
+  type GetTasksIndexPageInput,
+  type GetTasksIndexPageResult,
+} from '#modules/tasks/public_contracts/task_public_api'
+```
+
+### `app/modules/organizations/actions/current/workflow/commands/create_task_status_command.ts`
+
+```ts
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { taskPublicApi, type CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_public_api'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/organizations/actions/current/workflow/queries/list_task_statuses_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/organizations/actions/base_query'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import OrganizationWorkflowRepository from '#modules/organizations/infra/current/repositories/organization_workflow_repository'
+```
+
+### `app/modules/organizations/actions/dtos/request/add_member_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/dtos/request/bulk_add_members_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/organizations/actions/dtos/request/create_organization_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import {
+  normalizeOrganizationName,
+  resolveOrganizationBaseSlug,
+} from '#modules/organizations/domain/organization_rules'
+```
+
+### `app/modules/organizations/actions/dtos/request/delete_organization_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/organizations/actions/dtos/request/get_organization_detail_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/organizations/actions/dtos/request/get_organization_members_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/dtos/request/get_organizations_list_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+```
+
+### `app/modules/organizations/actions/dtos/request/invite_user_dto.ts`
+
+```ts
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/dtos/request/process_join_request_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/dtos/request/remove_member_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/organizations/actions/dtos/request/update_member_role_dto.ts`
+
+```ts
+import { formatRoleLabel } from '#modules/authorization/public_contracts/access_surface'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/dtos/request/update_organization_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/organizations/actions/dtos/response/organization_response_dtos.ts`
+
+```ts
+import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
+```
+
+### `app/modules/organizations/actions/interfaces.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/actions/mapper/organization_application_mapper.ts`
+
+```ts
+import type { CreateOrganizationDTO } from '../dtos/request/create_organization_dto.js'
+import {
+  OrganizationDetailResponseDTO,
+  OrganizationListItemResponseDTO,
+  OrganizationSummaryResponseDTO,
+} from '../dtos/response/organization_response_dtos.js'
+import type { OrganizationEntity } from '#modules/organizations/domain/entities/organization_entity'
+```
+
+### `app/modules/organizations/actions/organization_action_context.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/actions/ports/organization_external_dependencies.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+```
+
+### `app/modules/organizations/actions/ports/organization_external_dependencies_impl.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type {
+  DebugUserOrganizationsInfo,
+  OrganizationExternalDependencies,
+  OrganizationOwnerName,
+  OrganizationProjectTaskReaderWriter,
+  OrganizationUserIdentity,
+  OrganizationUserReaderWriter,
+} from './organization_external_dependencies.js'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+```
+
+### `app/modules/organizations/actions/public_api.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/actions/queries/check_join_eligibility_query.ts`
+
+```ts
+import { checkJoinEligibility } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import { type OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/queries/find_pending_join_request_query.ts`
+
+```ts
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import type { OrganizationMembershipRecord } from '#modules/organizations/types/organization_records'
+```
+
+### `app/modules/organizations/actions/queries/get_all_organizations_query.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_debug_organization_info_query.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_basic_info_query.ts`
+
+```ts
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_detail_query.ts`
+
+```ts
+import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canViewOrganization } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_members_api_query.ts`
+
+```ts
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_members_page_query.ts`
+
+```ts
+import { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
+import GetOrganizationMembersQuery from './get_organization_members_query.js'
+import GetOrganizationMetadataQuery from './get_organization_metadata_query.js'
+import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
+import GetPendingRequestsQuery from './get_pending_requests_query.js'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_members_query.ts`
+
+```ts
+import type { GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+import { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canViewOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_members_with_analytics_query.ts`
+
+```ts
+import { type GetOrganizationMembersDTO } from '../dtos/request/get_organization_members_dto.js'
+import type { OrganizationMemberResponseDTO } from '../dtos/response/organization_response_dtos.js'
+import GetOrganizationMembersQuery from './get_organization_members_query.js'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_metadata_query.ts`
+
+```ts
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_show_data_query.ts`
+
+```ts
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_show_page_query.ts`
+
+```ts
+import { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
+import GetOrganizationDetailQuery from './get_organization_detail_query.js'
+import GetOrganizationShowDataQuery from './get_organization_show_data_query.js'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/queries/get_organization_tasks_query.ts`
+
+```ts
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { taskPublicApi } from '#modules/tasks/public_contracts/task_public_api'
+```
+
+### `app/modules/organizations/actions/queries/get_organizations_index_page_query.ts`
+
+```ts
+import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
+import GetAllOrganizationsQuery from './get_all_organizations_query.js'
+import GetOrganizationsListQuery from './get_organizations_list_query.js'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/queries/get_organizations_list_query.ts`
+
+```ts
+import type { GetOrganizationsListDTO } from '../dtos/request/get_organizations_list_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_pending_requests_page_query.ts`
+
+```ts
+import GetOrganizationBasicInfoQuery from './get_organization_basic_info_query.js'
+import GetPendingRequestsQuery from './get_pending_requests_query.js'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+```
+
+### `app/modules/organizations/actions/queries/get_pending_requests_query.ts`
+
+```ts
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canViewPendingJoinRequests } from '#modules/organizations/domain/org_permission_policy'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+```
+
+### `app/modules/organizations/actions/queries/get_user_owned_organizations_query.ts`
+
+```ts
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/actions/queries/get_users_in_organization_query.ts`
+
+```ts
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+```
+
+### `app/modules/organizations/actions/result.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/actions/services/organization_public_api.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { approveMembershipInternal } from '../commands/approve_membership.js'
+import GetDebugOrganizationInfoQuery from '../queries/get_debug_organization_info_query.js'
+import GetOrganizationMembersApiQuery from '../queries/get_organization_members_api_query.js'
+import GetUserOwnedOrganizationsQuery from '../queries/get_user_owned_organizations_query.js'
+import GetUsersInOrganizationQuery from '../queries/get_users_in_organization_query.js'
+import { hasOrgPermission } from '#modules/authorization/public_contracts/permissions'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
+import type { OrgRole } from '#modules/organizations/domain/org_types'
+import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+```
+
+### `app/modules/organizations/controllers/add_direct_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildAddDirectMemberDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+```
+
+### `app/modules/organizations/controllers/add_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import AddMemberByEmailCommand from '#modules/organizations/actions/commands/add_member_by_email_command'
+```
+
+### `app/modules/organizations/controllers/add_users_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildBulkAddMembersDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BulkAddMembersCommand from '#modules/organizations/actions/commands/bulk_add_members_command'
+```
+
+### `app/modules/organizations/controllers/all_organizations_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetAllOrganizationsQuery from '#modules/organizations/actions/queries/get_all_organizations_query'
+```
+
+### `app/modules/organizations/controllers/api_list_organizations_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import GetAllOrganizationsQuery from '#modules/organizations/actions/queries/get_all_organizations_query'
+```
+
+### `app/modules/organizations/controllers/create_organization_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildCreateOrganizationDTO } from './mappers/request/organization_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import CreateOrganizationCommand from '#modules/organizations/actions/commands/create_organization_command'
+```
+
+### `app/modules/organizations/controllers/current/access/mappers/request/update_roles_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import type { UpdateCustomRolesDTO } from '#modules/organizations/actions/current/access/commands/update_custom_roles_command'
+```
+
+### `app/modules/organizations/controllers/current/access/mappers/response/update_roles_response_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/current/access/show_departments_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetAccessConfigurationQuery from '#modules/organizations/actions/current/access/queries/get_access_configuration_query'
+```
+
+### `app/modules/organizations/controllers/current/access/show_permissions_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetAccessConfigurationQuery from '#modules/organizations/actions/current/access/queries/get_access_configuration_query'
+```
+
+### `app/modules/organizations/controllers/current/access/show_roles_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetAccessConfigurationQuery from '#modules/organizations/actions/current/access/queries/get_access_configuration_query'
+```
+
+### `app/modules/organizations/controllers/current/access/update_roles_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateCustomRolesCommand from '#modules/organizations/actions/current/access/commands/update_custom_roles_command'
+import { buildUpdateCustomRolesDTO } from '#modules/organizations/controllers/current/access/mappers/request/update_roles_request_mapper'
+import {
+  getUpdateCustomRolesSuccessMessage,
+  mapUpdateCustomRolesSuccessApiBody,
+} from '#modules/organizations/controllers/current/access/mappers/response/update_roles_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/dashboard_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetOrganizationDashboardStatsQuery from '#modules/organizations/actions/current/dashboard/get_organization_dashboard_stats_query'
+```
+
+### `app/modules/organizations/controllers/current/invitations/approve_join_request_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/process_join_request_command'
+import { buildCurrentOrganizationProcessJoinRequestInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/invitations/list_invitations_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildInvitationsIndexPageInput } from './mappers/request/list_invitations_request_mapper.js'
+import { mapInvitationsIndexPageProps } from './mappers/response/list_invitations_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetInvitationsIndexPageQuery from '#modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/invitations/list_join_requests_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListJoinRequestsQuery from '#modules/organizations/actions/current/invitations/queries/list_join_requests_query'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+```
+
+### `app/modules/organizations/controllers/current/invitations/mappers/request/list_invitations_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import type { InvitationsIndexPageInput } from '#modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+```
+
+### `app/modules/organizations/controllers/current/invitations/mappers/response/list_invitations_response_mapper.ts`
+
+```ts
+import type { InvitationsIndexPageResult } from '#modules/organizations/actions/current/invitations/queries/get_invitations_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
+import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+```
+
+### `app/modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/current/mappers/response/shared.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/current/members/invite_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
+import { buildCurrentOrganizationInviteMemberInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/members/list_members_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildOrganizationMembersIndexPageInput } from './mappers/request/list_members_request_mapper.js'
+import { mapOrganizationMembersIndexPageProps } from './mappers/response/list_members_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetOrganizationMembersIndexPageQuery from '#modules/organizations/actions/current/members/queries/get_organization_members_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/members/mappers/request/list_members_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import type { OrganizationMembersIndexPageInput } from '#modules/organizations/actions/current/members/queries/get_organization_members_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/members/mappers/response/list_members_response_mapper.ts`
+
+```ts
+import type { OrganizationMembersIndexPageResult } from '#modules/organizations/actions/current/members/queries/get_organization_members_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/members/remove_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
+import { buildCurrentOrganizationRemoveMemberDTO } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/members/update_member_role_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
+import { buildCurrentOrganizationRoleUpdateInput } from '#modules/organizations/controllers/current/mappers/request/current_organization_mutation_request_mapper'
+import { mapCurrentOrganizationSuccessApiBody } from '#modules/organizations/controllers/current/mappers/response/current_organization_mutation_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/projects/create_project_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import CreateCurrentOrganizationProjectCommand from '#modules/organizations/actions/current/projects/commands/create_project_command'
+import { buildCreateCurrentOrganizationProjectDTO } from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
+import { mapCurrentOrganizationProjectMutationApiBody } from '#modules/organizations/controllers/current/projects/mappers/response/current_project_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/projects/list_projects_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListProjectsQuery from '#modules/organizations/actions/current/projects/queries/list_projects_query'
+import { buildCurrentOrganizationProjectsListInput } from '#modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper'
+```
+
+### `app/modules/organizations/controllers/current/projects/mappers/request/current_project_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { CreateProjectDTO } from '#modules/projects/public_contracts/create_project_dto'
+import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
+```
+
+### `app/modules/organizations/controllers/current/projects/mappers/response/current_project_response_mapper.ts`
+
+```ts
+import type {
+  ResponseRecord,
+  SerializableResponseRecord,
+} from '#modules/organizations/controllers/current/mappers/response/shared'
+import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/shared'
+```
+
+### `app/modules/organizations/controllers/current/projects/show_project_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
+```
+
+### `app/modules/organizations/controllers/current/settings/show_settings_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetOrganizationSettingsQuery from '#modules/organizations/actions/current/settings/queries/get_organization_settings_query'
+```
+
+### `app/modules/organizations/controllers/current/settings/update_settings_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateOrganizationSettingsCommand from '#modules/organizations/actions/current/settings/commands/update_organization_settings_command'
+```
+
+### `app/modules/organizations/controllers/current/tasks/list_tasks_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetOrganizationTasksIndexPageQuery from '#modules/organizations/actions/current/tasks/queries/get_organization_tasks_index_page_query'
+import { buildCurrentOrganizationTasksIndexPageInput } from '#modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper'
+```
+
+### `app/modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
+```
+
+### `app/modules/organizations/controllers/current/tasks/show_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeGetTaskDetailQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/organizations/controllers/current/workflow/create_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import CreateOrganizationTaskStatusCommand from '#modules/organizations/actions/current/workflow/commands/create_task_status_command'
+import { buildCurrentOrganizationWorkflowCreateTaskStatusDTO } from '#modules/organizations/controllers/current/workflow/mappers/request/current_task_status_request_mapper'
+import { mapCurrentOrganizationTaskStatusMutationApiBody } from '#modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper'
+```
+
+### `app/modules/organizations/controllers/current/workflow/list_task_statuses_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListTaskStatusesQuery from '#modules/organizations/actions/current/workflow/queries/list_task_statuses_query'
+```
+
+### `app/modules/organizations/controllers/current/workflow/mappers/request/current_task_status_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
+```
+
+### `app/modules/organizations/controllers/current/workflow/mappers/response/current_task_status_response_mapper.ts`
+
+```ts
+import type {
+  ResponseRecord,
+  SerializableResponseRecord,
+} from '#modules/organizations/controllers/current/mappers/response/shared'
+import { serializeForCurrentOrganizationResponse } from '#modules/organizations/controllers/current/mappers/response/shared'
+```
+
+### `app/modules/organizations/controllers/delete_organization_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildDeleteOrganizationDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationMutationApiBody } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import DeleteOrganizationCommand from '#modules/organizations/actions/commands/delete_organization_command'
+```
+
+### `app/modules/organizations/controllers/invite_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import InviteUserCommand from '#modules/organizations/actions/commands/invite_user_command'
+```
+
+### `app/modules/organizations/controllers/join_organization_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildJoinOrganizationRequestInput } from './mappers/request/join_organization_request_mapper.js'
+import {
+  getJoinOrganizationSuccessMessage,
+  mapJoinOrganizationSuccessApiBody,
+} from './mappers/response/join_organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
+```
+
+### `app/modules/organizations/controllers/list_members_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import logger from '@adonisjs/core/services/logger'
+import { buildOrganizationMembersPageFilters } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationMembersPageProps } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetOrganizationMembersPageQuery from '#modules/organizations/actions/queries/get_organization_members_page_query'
+```
+
+### `app/modules/organizations/controllers/list_organizations_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildOrganizationsListDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationsIndexPageProps } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetOrganizationsIndexPageQuery from '#modules/organizations/actions/queries/get_organizations_index_page_query'
+```
+
+### `app/modules/organizations/controllers/mappers/organization_actor_context_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActorContext } from '#modules/organizations/application/context/organization_actor_context'
+```
+
+### `app/modules/organizations/controllers/mappers/request/join_organization_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+```
