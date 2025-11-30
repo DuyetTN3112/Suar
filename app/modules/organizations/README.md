@@ -1798,3 +1798,903 @@ import type { OrganizationActorContext } from '#modules/organizations/applicatio
 ```ts
 import type { HttpContext } from '@adonisjs/core/http'
 ```
+
+### `app/modules/organizations/controllers/mappers/request/organization_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
+import { CreateOrganizationDTO } from '#modules/organizations/actions/dtos/request/create_organization_dto'
+import { DeleteOrganizationDTO } from '#modules/organizations/actions/dtos/request/delete_organization_dto'
+import { GetOrganizationsListDTO } from '#modules/organizations/actions/dtos/request/get_organizations_list_dto'
+import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
+import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
+import { UpdateOrganizationDTO } from '#modules/organizations/actions/dtos/request/update_organization_dto'
+import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
+import { ORGANIZATION_PAGINATION as PAGINATION } from '#modules/organizations/application/dtos/common/organization_pagination'
+import { processJoinRequestValidator } from '#modules/organizations/validators/organization'
+```
+
+### `app/modules/organizations/controllers/mappers/response/join_organization_response_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/mappers/response/organization_mutation_api_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/mappers/response/organization_page_props_mapper.ts`
+
+```ts
+import type { OrganizationMembersPageFilters } from '#modules/organizations/actions/queries/get_organization_members_page_query'
+```
+
+### `app/modules/organizations/controllers/mappers/response/organization_response_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/organizations/controllers/pending_requests_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetPendingRequestsPageQuery from '#modules/organizations/actions/queries/get_pending_requests_page_query'
+```
+
+### `app/modules/organizations/controllers/process_join_request_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildValidatedProcessJoinRequestInput } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/process_join_request_command'
+```
+
+### `app/modules/organizations/controllers/remove_member_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildRemoveMemberDTO } from './mappers/request/organization_request_mapper.js'
+import { mapOrganizationSuccessApiBody } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
+```
+
+### `app/modules/organizations/controllers/show_organization_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapOrganizationDetailApiBody } from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { GetOrganizationDetailDTO } from '#modules/organizations/actions/dtos/request/get_organization_detail_dto'
+import GetOrganizationDetailQuery from '#modules/organizations/actions/queries/get_organization_detail_query'
+```
+
+### `app/modules/organizations/controllers/show_organization_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetOrganizationShowPageQuery from '#modules/organizations/actions/queries/get_organization_show_page_query'
+```
+
+### `app/modules/organizations/controllers/switch_and_redirect_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { PageRoutes } from '#modules/http/public_contracts/route_constants'
+import SwitchOrganizationCommand from '#modules/organizations/actions/commands/switch_organization_command'
+```
+
+### `app/modules/organizations/controllers/switch_organization_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import SwitchOrganizationCommand from '#modules/organizations/actions/commands/switch_organization_command'
+```
+
+### `app/modules/organizations/controllers/update_member_role_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
+```
+
+### `app/modules/organizations/controllers/update_organization_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateOrganizationDTO } from './mappers/request/organization_request_mapper.js'
+import {
+  mapOrganizationMutationApiBody,
+  mapOrganizationDetailApiBody,
+} from './mappers/response/organization_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateOrganizationCommand from '#modules/organizations/actions/commands/update_organization_command'
+```
+## Code Snippets
+
+### `start/routes/organizations_current.ts`
+
+```ts
+import router from '@adonisjs/core/services/router'
+
+import { middleware } from '../kernel.js'
+
+/**
+ * Current Organization Admin Routes
+ *
+ * Prefix: /org
+ * Access: Organization Admin/Owner only
+ *
+ * Middleware stack:
+ * - auth() → Ensure authenticated
+ * - requireOrg() → Ensure current_organization_id exists
+ * - requireOrgAdmin() → Check org_role (org_owner or org_admin)
+ * - orgAdminContext() → Set organization context
+ *
+ * ⚠️ IMPORTANT:
+ * These routes are for ORGANIZATION-level management, not system administration.
+ * Organization admin ≠ System admin
+ */
+
+// ================ LAZY-LOADED CONTROLLERS ================
+// Organization Dashboard
+const OrgDashboardController = () =>
+  import('#modules/organizations/controllers/current/dashboard_controller')
+
+// Member Management
+const OrgListMembersController = () =>
+  import('#modules/organizations/controllers/current/members/list_members_controller')
+const OrgInviteMemberController = () =>
+  import('#modules/organizations/controllers/current/members/invite_member_controller')
+const OrgRemoveMemberController = () =>
+  import('#modules/organizations/controllers/current/members/remove_member_controller')
+const OrgUpdateMemberRoleController = () =>
+  import('#modules/organizations/controllers/current/members/update_member_role_controller')
+
+// Invitations & Join Requests
+const OrgListJoinRequestsController = () =>
+  import('#modules/organizations/controllers/current/invitations/list_join_requests_controller')
+const OrgApproveJoinRequestController = () =>
+  import('#modules/organizations/controllers/current/invitations/approve_join_request_controller')
+const OrgListInvitationsController = () =>
+  import('#modules/organizations/controllers/current/invitations/list_invitations_controller')
+
+// Settings
+const OrgShowSettingsController = () =>
+  import('#modules/organizations/controllers/current/settings/show_settings_controller')
+const OrgUpdateSettingsController = () =>
+  import('#modules/organizations/controllers/current/settings/update_settings_controller')
+const OrgShowRolesController = () =>
+  import('#modules/organizations/controllers/current/access/show_roles_controller')
+const OrgShowPermissionsController = () =>
+  import('#modules/organizations/controllers/current/access/show_permissions_controller')
+const OrgShowDepartmentsController = () =>
+  import('#modules/organizations/controllers/current/access/show_departments_controller')
+const OrgUpdateRolesController = () =>
+  import('#modules/organizations/controllers/current/access/update_roles_controller')
+
+// Projects (Organization-level)
+const OrgListProjectsController = () =>
+  import('#modules/organizations/controllers/current/projects/list_projects_controller')
+const OrgCreateProjectController = () =>
+  import('#modules/organizations/controllers/current/projects/create_project_controller')
+const OrgShowProjectController = () =>
+  import('#modules/organizations/controllers/current/projects/show_project_controller')
+
+// Tasks (Organization-level)
+const OrgListTasksController = () =>
+  import('#modules/organizations/controllers/current/tasks/list_tasks_controller')
+const OrgShowTaskController = () =>
+  import('#modules/organizations/controllers/current/tasks/show_task_controller')
+
+// Workflow Customization
+const OrgListTaskStatusesController = () =>
+  import('#modules/organizations/controllers/current/workflow/list_task_statuses_controller')
+const OrgCreateTaskStatusController = () =>
+  import('#modules/organizations/controllers/current/workflow/create_task_status_controller')
+
+// ================ ROUTE DEFINITIONS ================
+
+router
+  .group(() => {
+    // ─── Dashboard ───
+    router.get('/', [OrgDashboardController, 'handle']).as('org.dashboard')
+
+    // ─── Member Management ───
+    router
+      .group(() => {
+        router.get('/', [OrgListMembersController, 'handle']).as('org.members.index')
+        router.post('/invite', [OrgInviteMemberController, 'handle']).as('org.members.invite')
+        router.delete('/:id', [OrgRemoveMemberController, 'handle']).as('org.members.remove')
+        router
+          .put('/:id/role', [OrgUpdateMemberRoleController, 'handle'])
+          .as('org.members.updateRole')
+      })
+      .prefix('/members')
+
+    // ─── Join Requests & Invitations ───
+    router
+      .group(() => {
+        router.get('/requests', [OrgListJoinRequestsController, 'handle']).as('org.requests.index')
+        router
+          .put('/requests/:id/approve', [OrgApproveJoinRequestController, 'handle'])
+          .as('org.requests.approve')
+        router
+          .get('/invitations', [OrgListInvitationsController, 'handle'])
+          .as('org.invitations.index')
+      })
+      .prefix('/invitations')
+
+    // ─── Settings ───
+    router
+      .group(() => {
+        router.get('/', [OrgShowSettingsController, 'handle']).as('org.settings.show')
+        router.put('/', [OrgUpdateSettingsController, 'handle']).as('org.settings.update')
+      })
+      .prefix('/settings')
+
+    router.get('/roles', [OrgShowRolesController, 'handle']).as('org.roles.index')
+    router.put('/roles', [OrgUpdateRolesController, 'handle']).as('org.roles.update')
+    router.get('/permissions', [OrgShowPermissionsController, 'handle']).as('org.permissions.index')
+    router.get('/departments', [OrgShowDepartmentsController, 'handle']).as('org.departments.index')
+
+    // ─── Projects (Organization-level) ───
+    router
+      .group(() => {
+        router.get('/', [OrgListProjectsController, 'handle']).as('org.projects.index')
+        router.post('/', [OrgCreateProjectController, 'handle']).as('org.projects.create')
+        router.get('/:id', [OrgShowProjectController, 'handle']).as('org.projects.show')
+      })
+      .prefix('/projects')
+
+    // ─── Tasks (Organization-level) ───
+    router
+      .group(() => {
+        router.get('/', [OrgListTasksController, 'handle']).as('org.tasks.index')
+        router.get('/:id', [OrgShowTaskController, 'handle']).as('org.tasks.show')
+      })
+      .prefix('/tasks')
+
+    // ─── Workflow Customization ───
+    router
+      .group(() => {
+        router
+          .get('/statuses', [OrgListTaskStatusesController, 'handle'])
+          .as('org.workflow.statuses')
+        router
+          .post('/statuses', [OrgCreateTaskStatusController, 'handle'])
+          .as('org.workflow.createStatus')
+      })
+      .prefix('/workflow')
+  })
+  .prefix('/org')
+  .use([
+    middleware.auth(),
+    middleware.requireOrg(),
+    middleware.requireOrgAdmin(),
+    middleware.orgAdminContext(),
+  ])
+
+```
+
+### `start/routes/organizations.ts`
+
+```ts
+import router from '@adonisjs/core/services/router'
+
+import { middleware } from '../kernel.js'
+
+import { throttle } from '#start/limiter'
+
+// Organization use-case controllers
+const ListOrganizationsController = () =>
+  import('#modules/organizations/controllers/list_organizations_controller')
+const ShowOrganizationController = () =>
+  import('#modules/organizations/controllers/show_organization_controller')
+const CreateOrganizationController = () =>
+  import('#modules/organizations/controllers/create_organization_controller')
+const SwitchAndRedirectController = () =>
+  import('#modules/organizations/controllers/switch_and_redirect_controller')
+const AllOrganizationsController = () =>
+  import('#modules/organizations/controllers/all_organizations_controller')
+const JoinOrganizationController = () =>
+  import('#modules/organizations/controllers/join_organization_controller')
+const ApiListOrganizationsController = () =>
+  import('#modules/organizations/controllers/api_list_organizations_controller')
+const ListMembersController = () =>
+  import('#modules/organizations/controllers/list_members_controller')
+const PendingRequestsController = () =>
+  import('#modules/organizations/controllers/pending_requests_controller')
+const AddMemberController = () => import('#modules/organizations/controllers/add_member_controller')
+const InviteMemberController = () =>
+  import('#modules/organizations/controllers/invite_member_controller')
+const ProcessJoinRequestController = () =>
+  import('#modules/organizations/controllers/process_join_request_controller')
+const AddDirectMemberController = () =>
+  import('#modules/organizations/controllers/add_direct_member_controller')
+const RemoveMemberController = () =>
+  import('#modules/organizations/controllers/remove_member_controller')
+const UpdateMemberRoleController = () =>
+  import('#modules/organizations/controllers/update_member_role_controller')
+const AddUsersController = () => import('#modules/organizations/controllers/add_users_controller')
+
+// Route hiển thị tất cả tổ chức (không phụ thuộc vào người dùng)
+router
+  .get('/all-organizations', [AllOrganizationsController, 'handle'])
+  .as('organizations.all')
+  .use(middleware.auth())
+
+// API endpoint để lấy danh sách tổ chức
+router
+  .get('/api/organizations', [ApiListOrganizationsController, 'handle'])
+  .as('api.organizations.list')
+  .use(middleware.auth())
+
+// Route debug tổ chức - phải đặt trước các route khác
+router
+  .get('/organizations/debug', async ({ inertia }) => {
+    return inertia.render('organizations/organization-debug', {})
+  })
+  .as('organizations.debug')
+  .use(middleware.auth())
+
+// Route tham gia tổ chức
+router
+  .get('/organizations/:id/join', [JoinOrganizationController, 'handle'])
+  .as('organizations.join')
+  .use(middleware.auth())
+
+// Route POST tham gia tổ chức (cho phép tham gia từ API)
+router
+  .post('/organizations/:id/join', [JoinOrganizationController, 'handle'])
+  .as('organizations.join.post')
+  .use(middleware.auth())
+
+// Nhóm route cho tổ chức
+router
+  .group(() => {
+    // Danh sách tổ chức
+    router.get('/', [ListOrganizationsController, 'handle']).as('organizations.index')
+    // Tạo tổ chức mới
+    router.get('/create', [CreateOrganizationController, 'showForm']).as('organizations.create')
+
+    router.post('/', [CreateOrganizationController, 'handle']).as('organizations.store')
+    // Chi tiết tổ chức
+    router.get('/:id', [ShowOrganizationController, 'handle']).as('organizations.show')
+
+    // TODO: Implement edit, update, destroy methods
+    // router.get('/:id/edit', [EditOrganizationController, 'showForm']).as('organizations.edit')
+    // router.post('/:id', [EditOrganizationController, 'handle']).as('organizations.update')
+    // router.delete('/:id', [DeleteOrganizationController, 'handle']).as('organizations.destroy')
+
+    // Chuyển đổi tổ chức hiện tại
+    router
+      .post('/:id/switch', [SwitchAndRedirectController, 'switchOrganization'])
+      .as('organizations.switch')
+
+    // Quản lý thành viên tổ chức — use-case controllers
+    router
+      .group(() => {
+        // Hiển thị danh sách thành viên
+        router.get('/', [ListMembersController, 'handle']).as('organizations.members.index')
+        // Hiển thị yêu cầu tham gia đang chờ
+        router
+          .get('/pending', [PendingRequestsController, 'handle'])
+          .as('organizations.members.pending_requests')
+        // Thêm thành viên mới
+        router.post('/add', [AddMemberController, 'handle']).as('organizations.members.add')
+        // Mời người dùng vào tổ chức
+        router
+          .post('/invite', [InviteMemberController, 'handle'])
+          .as('organizations.members.invite')
+        // Thêm người dùng trực tiếp (cho admin)
+        router
+          .post('/add-direct', [AddDirectMemberController, 'handle'])
+          .as('organizations.members.add_direct')
+        // Xử lý yêu cầu tham gia
+        router
+          .post('/process-request/:userId', [ProcessJoinRequestController, 'handle'])
+          .as('organizations.members.process_request')
+        // Cập nhật vai trò thành viên
+        router
+          .post('/update-role/:userId', [UpdateMemberRoleController, 'handle'])
+          .as('organizations.members.update_role')
+        // Xóa thành viên
+        router
+          .delete('/:userId', [RemoveMemberController, 'handle'])
+          .as('organizations.members.remove')
+      })
+      .prefix('/:id/members')
+  })
+  .prefix('/organizations')
+  .use([middleware.auth(), throttle])
+
+const SwitchOrganizationController = () =>
+  import('#modules/organizations/controllers/switch_organization_controller')
+
+// API chuyển tổ chức
+router
+  .post('/switch-organization', [SwitchOrganizationController, 'handle'])
+  .as('organizations.switch.api')
+  .use(middleware.auth())
+
+// Thêm route GET để xử lý redirect sau khi chuyển tổ chức
+router
+  .get('/organizations/switch/:id', [SwitchAndRedirectController, 'handle'])
+  .as('organizations.switch.redirect')
+  .use(middleware.auth())
+
+// Quản lý thành viên tổ chức (standalone routes)
+router
+  .delete('/organizations/users/:id/remove', [RemoveMemberController, 'handle'])
+  .as('organizations.users.remove')
+  .use(middleware.auth())
+
+// TODO: editPermissions and updatePermissions routes — not yet implemented
+// Uncomment when EditPermissionsController and UpdatePermissionsController are created
+// router.get('/organizations/users/:id/edit-permissions', [EditPermissionsController, 'handle'])
+// router.post('/organizations/users/:id/update-permissions', [UpdatePermissionsController, 'handle'])
+// router.put('/organizations/users/:id/update-permissions', [UpdatePermissionsController, 'handle'])
+
+router
+  .post('/organizations/users/add', [AddUsersController, 'handle'])
+  .as('organizations.users.add')
+  .use(middleware.auth())
+
+```
+
+### `app/modules/organizations/actions/commands/add_member_by_email_command.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+
+/**
+ * Command: Add Member By Email
+ *
+ * Resolves user from email, then delegates to AddMemberCommand.
+ * Controller only needs to pass email + org + role — no User.findBy() in controller.
+ */
+export default class AddMemberByEmailCommand {
+  constructor(protected execCtx: OrganizationActionContext) {}
+
+  async execute(organizationId: string, email: string, roleId: string): Promise<void> {
+    const user = await DefaultOrganizationDependencies.user.findUserByEmail(email)
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng với email này')
+    }
+
+    const addMember = new AddMemberCommand(this.execCtx, notificationPublicApi)
+    const dto = new AddMemberDTO(organizationId, user.id, roleId)
+    await addMember.execute(dto)
+  }
+}
+
+```
+
+### `app/modules/organizations/actions/commands/add_member_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import type { AddMemberDTO } from '../dtos/request/add_member_dto.js'
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canAddMember } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+
+/**
+ * Command: Add Member to Organization
+ *
+ * Pattern: Permission check with notification (learned from Projects module)
+ * Business rules:
+ * - Only Owner (role_id = 1) or Admin (role_id = 2) can add members
+ * - Cannot add member as Owner (role_id = 1)
+ * - Check for duplicate membership
+ * - Send notification to added member
+ *
+ * @example
+ * const command = new AddMemberCommand(ctx, createNotification)
+ * await command.execute(dto)
+ */
+export default class AddMemberCommand {
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private createNotification: NotificationCreator
+  ) {}
+
+  /**
+   * Execute command: Add member to organization
+   *
+   * Steps:
+   * 1. Validate user exists
+   * 2. Check permissions (Owner or Admin)
+   * 3. Check for duplicate membership
+   * 4. Begin transaction
+   * 5. Add member to organization_users
+   * 6. Create audit log
+   * 7. Commit transaction
+   * 8. Send notification (outside transaction)
+   */
+  async execute(dto: AddMemberDTO): Promise<void> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
+    }
+    const trx = await db.transaction()
+
+    try {
+      // 1. Validate user exists
+      const userToAdd = await DefaultOrganizationDependencies.user.findUserIdentity(dto.userId, trx)
+      if (!userToAdd) {
+        throw new BusinessLogicException(`User with ID ${dto.userId} not found`)
+      }
+
+      // 2. Check permissions, role validity, and duplicate membership
+      const actorMembership = await membershipQueries.getMembershipContext(
+        dto.organizationId,
+        userId,
+        trx
+      )
+      const actorOrgRole = actorMembership?.role ?? null
+      const alreadyMember = await membershipQueries.isMember(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
+      enforcePolicy(
+        canAddMember({
+          actorOrgRole,
+          targetRoleId: dto.roleId,
+          isAlreadyMember: alreadyMember,
+        })
+      )
+
+      // 5. Add member to organization → delegate to Model
+      await membershipMutations.addMember(
+        {
+          organization_id: dto.organizationId,
+          user_id: dto.userId,
+          org_role: dto.roleId,
+        },
+        trx
+      )
+
+      // 6. Create audit log
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: 'add_member',
+          entity_type: EntityType.ORGANIZATION,
+          entity_id: dto.organizationId,
+          new_values: {
+            ...dto.toObject(),
+            added_user_id: dto.userId,
+            role: dto.getRoleName(),
+            org_role: dto.roleId,
+          },
+        },
+        this.execCtx
+      )
+
+      await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('organization:member:added', {
+        organizationId: dto.organizationId,
+        userId: dto.userId,
+        org_role: dto.roleId,
+        invitedBy: userId,
+      })
+
+      // Invalidate organization member caches
+      await cacheStore.deleteByPattern(`organization:members:*`)
+      await cacheStore.deleteByPattern(`organization:metadata:*`)
+
+      // 7. Send notification (outside transaction)
+      await this.sendMemberAddedNotification(dto, userId)
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+
+  /**
+   * Helper: Send notification to added member
+   */
+  private async sendMemberAddedNotification(
+    dto: AddMemberDTO,
+    _addedByUserId: string
+  ): Promise<void> {
+    try {
+      await this.createNotification.handle({
+        user_id: dto.userId,
+        title: 'Được thêm vào tổ chức',
+        message: `Bạn đã được thêm vào tổ chức với vai trò ${dto.getRoleNameVi()}`,
+        type: BACKEND_NOTIFICATION_TYPES.MEMBER_ADDED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.ORGANIZATION,
+        related_entity_id: dto.organizationId,
+      })
+    } catch (error) {
+      loggerService.error('[AddMemberCommand] Failed to send notification:', error)
+    }
+  }
+}
+
+```
+
+### `app/modules/organizations/actions/commands/approve_membership.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+
+export async function approveMembershipInternal(
+  organizationId: string,
+  userId: string,
+  trx?: TransactionClientContract
+): Promise<void> {
+  await membershipMutations.updateStatus(
+    organizationId,
+    userId,
+    OrganizationUserStatus.APPROVED,
+    trx
+  )
+}
+
+```
+
+### `app/modules/organizations/actions/commands/bulk_add_members_command.ts`
+
+```ts
+import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddMemberCommand from '#modules/organizations/actions/commands/add_member_command'
+import { AddMemberDTO } from '#modules/organizations/actions/dtos/request/add_member_dto'
+import type { BulkAddMembersDTO } from '#modules/organizations/actions/dtos/request/bulk_add_members_dto'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import { canBulkAddOrganizationMembers } from '#modules/organizations/domain/org_permission_policy'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+
+interface BulkAddResult {
+  user_id: string
+  status: 'added' | 'skipped' | 'failed'
+  message: string
+}
+
+/**
+ * Command: Bulk Add Members to Organization
+ *
+ * Business rules:
+ * - Requester must be org owner (super admin)
+ * - Skips non-existent users
+ * - Skips users already in organization
+ * - Uses AddMemberCommand for each user
+ */
+export default class BulkAddMembersCommand {
+  constructor(protected execCtx: OrganizationActionContext) {}
+
+  async execute(dto: BulkAddMembersDTO): Promise<{
+    results: BulkAddResult[]
+    addedCount: number
+  }> {
+    // 1. Check requester is org owner
+    await this.checkPermission(dto.requesterId, dto.organizationId)
+
+    // 2. Process each user
+    const addMember = new AddMemberCommand(this.execCtx, notificationPublicApi)
+    const defaultRoleId = OrganizationRole.MEMBER
+    const results: BulkAddResult[] = []
+
+    for (const userId of dto.userIds) {
+      try {
+        const targetUser = await DefaultOrganizationDependencies.user.findUserIdentity(userId)
+        if (!targetUser) {
+          results.push({
+            user_id: userId,
+            status: 'skipped',
+            message: 'Không tìm thấy người dùng',
+          })
+          continue
+        }
+
+        // Check not already a member
+        const existingMember = await membershipQueries.findMembership(
+          dto.organizationId,
+          userId
+        )
+
+        if (existingMember) {
+          results.push({
+            user_id: userId,
+            status: 'skipped',
+            message: 'Người dùng đã là thành viên của tổ chức',
+          })
+          continue
+        }
+
+        // Add member using existing command
+        const memberDto = new AddMemberDTO(dto.organizationId, targetUser.id, defaultRoleId)
+        await addMember.execute(memberDto)
+
+        results.push({
+          user_id: userId,
+          status: 'added',
+          message: 'Thêm thành công',
+        })
+      } catch (error: unknown) {
+        loggerService.error(`[BulkAddMembersCommand] Error adding user ${userId}:`, error)
+        results.push({
+          user_id: userId,
+          status: 'failed',
+          message: error instanceof Error ? error.message : 'Lỗi không xác định',
+        })
+      }
+    }
+
+    const addedCount = results.filter((r) => r.status === 'added').length
+
+    return { results, addedCount }
+  }
+
+  private async checkPermission(userId: string, organizationId: string): Promise<void> {
+    const orgUser = await membershipQueries.findMembership(organizationId, userId)
+    enforcePolicy(canBulkAddOrganizationMembers(orgUser?.org_role ?? null))
+  }
+}
+
+```
+
+### `app/modules/organizations/actions/commands/bulk_invite_users_command.ts`
+
+```ts
+import { InviteUserDTO } from '../dtos/request/invite_user_dto.js'
+
+import InviteUserCommand from './invite_user_command.js'
+
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+
+/**
+ * DTO for bulk inviting users
+ */
+export interface BulkInviteUsersDTO {
+  organization_id: string
+  user_emails: string[]
+  org_role: string
+  message?: string
+}
+
+/**
+ * Command: Bulk Invite Users to Organization
+ *
+ * Migrate từ stored procedure: bulk_invite_users_to_organization
+ *
+ * Business rules:
+ * - Loop qua danh sách emails và gọi InviteUserCommand cho từng user
+ * - Collect kết quả success/failure
+ */
+export default class BulkInviteUsersCommand {
+  constructor(protected execCtx: OrganizationActionContext) {}
+
+  async execute(dto: BulkInviteUsersDTO): Promise<{
+    success: string[]
+    failed: { email: string; error: string }[]
+  }> {
+    const success: string[] = []
+    const failed: { email: string; error: string }[] = []
+
+    const inviteCommand = new InviteUserCommand(this.execCtx)
+
+    for (const email of dto.user_emails) {
+      try {
+        const inviteDto = InviteUserDTO.fromValidatedPayload({
+          organization_id: dto.organization_id,
+          email,
+          role_id: dto.org_role,
+          message: dto.message,
+        })
+
+        await inviteCommand.execute(inviteDto)
+        success.push(email)
+      } catch (error) {
+        failed.push({
+          email: email,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        })
+      }
+    }
+
+    return { success, failed }
+  }
+}
+
+```
+
+### `app/modules/organizations/actions/commands/create_join_request_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
+import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+
+/**
+ * Command: Create Join Request
+ *
+ * Persist pending membership, audit log, and post-commit event for a join request.
+ * Eligibility and orchestration stay in RequestOrganizationJoinCommand.
+ */
+export default class CreateJoinRequestCommand {
+  constructor(protected execCtx: OrganizationActionContext) {}
+
+  async execute(organizationId: string): Promise<void> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException('Unauthorized')
+    }
+    const trx = await db.transaction()
+
+    try {
+      const existingMembership = await membershipQueries.findMembership(
+        organizationId,
+        userId,
+        trx
+      )
+
+      if (existingMembership?.status === OrganizationUserStatus.REJECTED) {
+        await membershipMutations.updateStatus(organizationId, userId, 'pending', trx)
+      } else {
+        await membershipMutations.addMember(
