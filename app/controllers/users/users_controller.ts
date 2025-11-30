@@ -284,7 +284,7 @@ export default class UsersController {
         .from('users as u')
         .join('organization_users as ou', 'u.id', 'ou.user_id')
         .leftJoin('user_details as ud', 'u.id', 'ud.user_id')
-        .leftJoin('user_roles as ur', 'u.role_id', 'ur.id')
+        .leftJoin('system_roles as sr', 'u.system_role_id', 'sr.id')
         .leftJoin('user_status as us', 'u.status_id', 'us.id')
         .where('ou.organization_id', organizationId)
         .where('ou.status', 'pending')
@@ -293,8 +293,8 @@ export default class UsersController {
           'u.id',
           'u.email',
           'u.username',
-          'ur.id as role_id',
-          'ur.name as role_name',
+          'sr.id as system_role_id',
+          'sr.name as system_role_name',
           'us.id as status_id',
           'us.name as status_name',
           'u.created_at'
@@ -305,9 +305,9 @@ export default class UsersController {
         id: user.id,
         email: user.email,
         username: user.username,
-        role: {
-          id: user.role_id,
-          name: user.role_name,
+        system_role: {
+          id: user.system_role_id,
+          name: user.system_role_name,
         },
         status: {
           id: user.status_id,
