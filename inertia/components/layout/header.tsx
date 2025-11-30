@@ -44,7 +44,7 @@ export const Header = ({
       <div className="flex items-center gap-2 lg:gap-4">
         <Link href="/" className="flex items-center gap-2 lg:gap-3">
           <span className="flex h-6 w-6 rounded-md bg-primary text-primary-foreground items-center justify-center text-xs font-bold">S</span>
-          <span className="text-lg font-semibold">ShadcnAdmin</span>
+          <span className="text-lg font-semibold">Suar</span>
         </Link>
       </div>
       <div className="flex-1" />
