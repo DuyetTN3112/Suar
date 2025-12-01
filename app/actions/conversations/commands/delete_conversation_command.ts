@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Conversation from '#models/conversation'
 import { DateTime } from 'luxon'
-import { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
+import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
 /**

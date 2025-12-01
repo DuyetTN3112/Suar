@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link, usePage, router } from '@inertiajs/react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -10,8 +11,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.'
-import React, { useEffect } from 'react'
+} from '@/components/ui/dropdown_menu'
+
 
 export function ProfileDropdown() {
   const { auth } = usePage().props as unknown

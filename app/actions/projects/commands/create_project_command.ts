@@ -1,6 +1,6 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import { CreateProjectDTO } from '../dtos/index.js'
+import type { CreateProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
 
 /**

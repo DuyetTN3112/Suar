@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import { useEffect } from 'react'
 import { Check, Moon, Sun, Laptop } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import useTheme from '@/hooks/theme'

@@ -63,7 +63,7 @@ export class DeleteProjectDTO implements DeleteProjectDTOInterface {
   /**
    * Convert to plain object
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       project_id: this.project_id,
       reason: this.reason,

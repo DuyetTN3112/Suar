@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Link } from '@inertiajs/react'
 import { Button } from '@/components/ui/button'
 
@@ -19,4 +19,4 @@ export default function NotFound() {
       </div>
     </div>
   )
-} 
+}

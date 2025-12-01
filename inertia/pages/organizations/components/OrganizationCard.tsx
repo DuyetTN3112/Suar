@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Link } from '@inertiajs/react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -95,4 +95,4 @@ export default function OrganizationCard({
       </CardFooter>
     </Card>
   )
-} 
+}

@@ -52,10 +52,6 @@ export const updateUserValidator = (userId: number) =>
   )
 
 /**
- * NOTE: Removed updatePasswordValidator - no password updates in OAuth-only system
- */
-
-/**
  * Validator cho cập nhật thông tin chi tiết
  */
 export const updateUserDetailValidator = vine.compile(

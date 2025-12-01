@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import ConversationParticipant from '#models/conversation_participant'
 import Conversation from '#models/conversation'
-import { AddParticipantDTO } from '../dtos/add_participant_dto.js'
+import type { AddParticipantDTO } from '../dtos/add_participant_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
 /**

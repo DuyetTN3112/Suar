@@ -1,4 +1,4 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import { Result } from './result.js'
 import type { QueryHandler } from './interfaces.js'
 import CacheService from '#services/cache_service'

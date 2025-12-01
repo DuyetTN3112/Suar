@@ -1,4 +1,4 @@
-import React from 'react'
+
 import OrganizationCard from './OrganizationCard'
 import { Building, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -69,4 +69,4 @@ export default function OrganizationList({
       ))}
     </div>
   )
-} 
+}

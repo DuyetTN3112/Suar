@@ -3,13 +3,13 @@ import Organization from '#models/organization'
 import db from '@adonisjs/lucid/services/db'
 
 // CQRS - Commands
-import CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
-import SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
-import CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
+import type CreateOrganizationCommand from '#actions/organizations/commands/create_organization_command'
+import type SwitchOrganizationCommand from '#actions/organizations/commands/switch_organization_command'
+import type CreateJoinRequestCommand from '#actions/organizations/commands/create_join_request_command'
 
 // CQRS - Queries
-import GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
-import GetOrganizationDetailQuery from '#actions/organizations/queries/get_organization_detail_query'
+import type GetOrganizationsListQuery from '#actions/organizations/queries/get_organizations_list_query'
+import type GetOrganizationDetailQuery from '#actions/organizations/queries/get_organization_detail_query'
 
 // DTOs
 import { CreateOrganizationDTO } from '#actions/organizations/dtos/create_organization_dto'

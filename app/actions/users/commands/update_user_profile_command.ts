@@ -1,5 +1,5 @@
 ﻿import { BaseCommand } from '../../shared/base_command.js'
-import { UpdateUserProfileDTO } from '../dtos/update_user_profile_dto.js'
+import type { UpdateUserProfileDTO } from '../dtos/update_user_profile_dto.js'
 import User from '#models/user'
 
 /**

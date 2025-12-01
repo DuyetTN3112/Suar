@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+
 import { router } from '@inertiajs/react'
 import { Building } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -44,9 +44,9 @@ export default function OrganizationRequiredSimpleDialog({
         </DialogHeader>
 
         <DialogFooter className="sm:justify-center gap-3 mt-6">
-          <Button 
+          <Button
             onClick={handleGoToOrganizations}
-            variant="default" 
+            variant="default"
             size="lg"
             className="w-full"
           >
@@ -57,4 +57,4 @@ export default function OrganizationRequiredSimpleDialog({
       </DialogContent>
     </Dialog>
   )
-} 
+}

@@ -1,18 +1,5 @@
 import type { Command } from '../../shared/interfaces.js'
 
-/**
- * RegisterUserDTO
- *
- * Data Transfer Object for registering a new user in the system.
- * Used by RegisterUserCommand.
- *
- * NOTE: OAuth-only system - no password field
- * User table now only has: username, email, role_id, status_id
- *
- * Validates:
- * - Email format
- * - Username length
- */
 export class RegisterUserDTO implements Command {
   constructor(
     public readonly username: string,

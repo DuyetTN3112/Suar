@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Button } from '@/components/ui/button'
 import { Link } from '@inertiajs/react'
 import { Plus } from 'lucide-react'
@@ -31,4 +31,4 @@ export default function OrganizationHeader({
       )}
     </div>
   )
-} 
+}

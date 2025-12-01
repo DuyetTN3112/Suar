@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import Message from '#models/message'
 import { DateTime } from 'luxon'
-import { RecallMessageDTO } from '../dtos/recall_message_dto.js'
+import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import { Exception } from '@adonisjs/core/exceptions'
 

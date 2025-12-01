@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Conversation from '#models/conversation'
 import redis from '@adonisjs/redis/services/main'
-import { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
+import type { GetConversationDetailDTO } from '../dtos/get_conversation_detail_dto.js'
 import { Exception } from '@adonisjs/core/exceptions'
 import Database from '@adonisjs/lucid/services/db'
 

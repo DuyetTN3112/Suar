@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { CalendarIcon } from 'lucide-react'
 
 interface DueDateCellProps {
@@ -21,4 +21,4 @@ export function DueDateCell({ dueDate, formatDate }: DueDateCellProps) {
       )}
     </div>
   )
-} 
+}

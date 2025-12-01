@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
-import { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
+import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
 /**

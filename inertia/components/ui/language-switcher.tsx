@@ -1,5 +1,5 @@
 // React must be in scope for JSX (classic JSX transform)
-import React from 'react'
+
 import { usePage } from '@inertiajs/react'
 import {
   DropdownMenu,

@@ -1,4 +1,4 @@
-import React from 'react'
+
 import { Clock } from 'lucide-react'
 
 interface DateCellProps {
@@ -17,4 +17,4 @@ export function DateCell({ createdAt, formatDate }: DateCellProps) {
       )}
     </div>
   )
-} 
+}
