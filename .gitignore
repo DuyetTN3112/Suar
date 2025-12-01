@@ -4,7 +4,7 @@ build
 tmp
 
 # Loại trừ file hướng dẫn Copilot
-.github/copilot-instructions.md
+.github
 
 # Loại trừ tài liệu
 docs/
