@@ -1798,3 +1798,493 @@ export interface GetProjectCreatePageResult {
 export default class GetProjectCreatePageQuery {
   constructor(protected execCtx: ProjectActionContext) {}
 
+  async execute(): Promise<GetProjectCreatePageResult> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    const organizations = await organizationPublicApi.listUserOwnedOrganizations(userId)
+
+    return {
+      organizations,
+      statuses: [],
+    }
+  }
+}
+
+```
+
+### `app/modules/projects/actions/queries/get_project_detail_query.ts`
+
+```ts
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { BaseQuery } from '#modules/projects/actions/base_query'
+import {
+  canAccessProjectOrganizationScope,
+  calculateProjectDetailPermissions,
+  canViewProject,
+} from '#modules/projects/domain/project_permission_policy'
+import type { ProjectPermissionContext } from '#modules/projects/domain/project_types'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
+import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
+
+/**
+ * Member interface for query results
+ */
+interface ProjectMemberResult {
+  user_id: string
+  username: string
+  email: string
+  role: string
+  joined_at: Date
+  task_count: number
+}
+
+/**
+ * Query result interface
+ */
+export interface GetProjectDetailResult {
+  project: {
+    id: string
+    name: string
+    description: string | null
+    organization_id: string
+    organization_name: string | null
+    creator_id: string
+    creator_name: string | null
+    manager_id: string | null
+    manager_name: string | null
+    owner_id: string | null
+    owner_name: string | null
+    start_date: string | null
+    end_date: string | null
+    status: string
+    budget: number | null
+    visibility: string | null
+    created_at: string | null
+    updated_at: string | null
+  }
+  members: {
+    user_id: string
+    username: string
+    email: string
+    role: string
+    joined_at: Date
+    task_count: number
+  }[]
+  tasks: {
+    id: string
+    title: string
+    description: string | null
+    status: string
+    task_status_id: string | null
+    priority: string | null
+    assignee_name: string | null
+    due_date: string | null
+  }[]
+  tasks_summary: {
+    total: number
+    pending: number
+    in_progress: number
+    completed: number
+    overdue: number
+  }
+  recent_activity: unknown[]
+  permissions: {
+    isOwner: boolean
+    isManager: boolean
+    isCreator: boolean
+    isMember: boolean
+    canEdit: boolean
+    canDelete: boolean
+    canAddMembers: boolean
+  }
+}
+
+/**
+ * Query to get detailed information about a single project
+ *
+ * Features:
+ * - Full project information with all relations
+ * - List of members with roles and task counts
+ * - Task summary grouped by status
+ * - Recent activity (last 10 audit logs)
+ * - User permissions (what actions user can perform)
+ * - Cached for 5 minutes
+ *
+ * @extends {BaseQuery<number, GetProjectDetailResult>}
+ */
+export default class GetProjectDetailQuery extends BaseQuery<
+  {
+    projectId: string
+    organizationId?: string
+  },
+  GetProjectDetailResult
+> {
+  /**
+   * Execute the query
+   */
+  async handle(input: {
+    projectId: string
+    organizationId?: string
+  }): Promise<GetProjectDetailResult> {
+    const projectId = input.projectId
+    const userId = this.getCurrentUserId()
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    // Load project with relations
+    const project = await projectModelQueries.findDetailWithRelationsRecord(projectId)
+
+    const permissionContext = await this.buildPermissionContext(
+      userId,
+      project,
+      input.organizationId
+    )
+    enforcePolicy(canViewProject(permissionContext))
+
+    // Fetch all related data in parallel
+    const [members, tasks, tasksSummary, recentActivity] = await Promise.all([
+      this.getMembers(projectId),
+      this.getTasks(projectId),
+      this.getTasksSummary(projectId),
+      this.getRecentActivity(projectId),
+    ])
+
+    // Calculate permissions
+    const permissions = calculateProjectDetailPermissions({
+      ...permissionContext,
+      projectManagerId: project.manager_id,
+    })
+
+    return {
+      project: {
+        id: project.id,
+        name: project.name,
+        description: project.description,
+        organization_id: project.organization_id,
+        organization_name: project.organization?.name ?? null,
+        creator_id: project.creator_id,
+        creator_name: project.creator?.username ?? null,
+        manager_id: project.manager_id,
+        manager_name: project.manager?.username ?? null,
+        owner_id: project.owner_id,
+        owner_name: project.owner?.username ?? null,
+        start_date: project.start_date,
+        end_date: project.end_date,
+        status: project.status,
+        budget: project.budget,
+        visibility: project.visibility,
+        created_at: project.created_at,
+        updated_at: project.updated_at,
+      },
+      members,
+      tasks,
+      tasks_summary: tasksSummary,
+      recent_activity: recentActivity,
+      permissions,
+    }
+  }
+
+  private async buildPermissionContext(
+    userId: string,
+    project: ProjectDetailRecord,
+    currentOrganizationId?: string
+  ): Promise<ProjectPermissionContext> {
+    enforcePolicy(
+      canAccessProjectOrganizationScope({
+        requestedOrganizationId: currentOrganizationId ?? null,
+        projectOrganizationId: project.organization_id,
+      })
+    )
+
+    const orgId = currentOrganizationId ?? project.organization_id
+    const [actorSystemRole, actorMembership, actorProjectRole] = await Promise.all([
+      DefaultProjectDependencies.user.getSystemRoleName(userId),
+      DefaultProjectDependencies.organization.getMembershipRole(orgId, userId),
+      projectMemberQueries.getRoleName(project.id, userId).then((role) =>
+        role === 'unknown' ? null : role
+      ),
+    ])
+
+    return {
+      actorId: userId,
+      actorSystemRole,
+      actorOrgRole: actorMembership,
+      actorProjectRole,
+      projectCreatorId: project.creator_id,
+      projectOwnerId: project.owner_id ?? (''),
+      projectOrganizationId: project.organization_id,
+    }
+  }
+
+  /**
+   * Get list of project members with details → delegate to Model
+   */
+  private async getMembers(projectId: string): Promise<ProjectMemberResult[]> {
+    const { data: members } = await projectMemberQueries.getMembersWithDetails(projectId)
+
+    // Get task count for each member via Model
+    const taskCountMap = await DefaultProjectDependencies.task.countByAssignees(projectId)
+
+    return members.map((member) => ({
+      ...member,
+      task_count: taskCountMap.get(member.user_id) ?? 0,
+    }))
+  }
+
+  private async getTasks(projectId: string): Promise<
+    {
+      id: string
+      title: string
+      description: string | null
+      status: string
+      task_status_id: string | null
+      priority: string | null
+      assignee_name: string | null
+      due_date: string | null
+    }[]
+  > {
+    return DefaultProjectDependencies.task.listPreviewByProject(projectId, 8)
+  }
+
+  /**
+   * Get tasks summary grouped by status
+   */
+  private getTasksSummary(projectId: string): Promise<{
+    total: number
+    pending: number
+    in_progress: number
+    completed: number
+    overdue: number
+  }> {
+    return DefaultProjectDependencies.task.getSummaryByProject(projectId)
+  }
+
+  /**
+   * Get recent activity (last 10 audit logs) → delegate to Model
+   */
+  private async getRecentActivity(projectId: string): Promise<
+    {
+      id: string
+      user_id: string | null
+      entity_type: string
+      entity_id: string | null
+      action: string
+      created_at: Date
+      username: string | null
+    }[]
+  > {
+    const logs = await auditPublicApi.listByEntity('project', projectId, 10)
+    const userMap = await auditPublicApi.buildUserMap(logs, ['id', 'username'])
+
+    return logs.map((log) => {
+      const user = userMap.get(String(log.user_id))
+      return {
+        id: log.id,
+        user_id: log.user_id ?? null,
+        entity_type: log.entity_type,
+        entity_id: log.entity_id ?? null,
+        action: log.action,
+        created_at: log.created_at,
+        username: user?.username ?? null,
+      }
+    })
+  }
+
+  /**
+   * Get cache key for this query
+   */
+  protected getCacheKey(projectId: string): string {
+    const userId = this.getCurrentUserId() ?? 0
+    return `projects:detail:${projectId}:user:${userId}`
+  }
+
+  /**
+   * Cache TTL: 5 minutes
+   */
+  protected getCacheTTL(): number {
+    return 5 * 60
+  }
+}
+
+```
+
+### `app/modules/projects/actions/queries/get_project_members_query.ts`
+
+```ts
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { BaseQuery } from '#modules/projects/actions/base_query'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
+import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
+import { canViewProjectMembers } from '#modules/projects/domain/project_permission_policy'
+import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
+import ProjectMemberRepository from '#modules/projects/infra/repositories/project_member_repository'
+
+/**
+ * DTO for GetProjectMembersQuery input
+ */
+export interface GetProjectMembersDTO {
+  project_id: string
+  page?: number
+  limit?: number
+  role?: string
+  search?: string
+}
+
+/**
+ * Query result interface
+ */
+export interface GetProjectMembersResult {
+  data: {
+    user_id: string
+    username: string
+    email: string
+    role: string
+    joined_at: Date
+    task_count: number
+    last_active_at: Date | null
+  }[]
+  pagination: {
+    page: number
+    limit: number
+    total: number
+    totalPages: number
+  }
+}
+
+/**
+ * Query to get paginated list of project members
+ *
+ * Features:
+ * - Pagination support
+ * - Filter by role
+ * - Search by name or email
+ * - Includes task count per member
+ * - Includes last activity timestamp
+ * - Cached for 3 minutes
+ *
+ * @extends {BaseQuery<GetProjectMembersDTO, GetProjectMembersResult>}
+ */
+/**
+ * Member row interface for query results
+ */
+interface MemberRow {
+  user_id: string
+  role: string
+  joined_at: Date
+  username: string
+  email: string
+}
+
+export default class GetProjectMembersQuery extends BaseQuery<
+  GetProjectMembersDTO,
+  GetProjectMembersResult
+> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader()
+  ) {
+    super(execCtx)
+  }
+
+  /**
+   * Execute the query
+   */
+  async handle(dto: GetProjectMembersDTO): Promise<GetProjectMembersResult> {
+    // Validate user has access to this project
+    await this.validateAccess(dto.project_id)
+
+    // Default values
+    const page = dto.page ?? 1
+    const limit = dto.limit ?? PAGINATION.DEFAULT_PER_PAGE
+
+    // Get members → delegate to Model
+    const { data: members, total } = await ProjectMemberRepository.getMembersWithDetails(
+      dto.project_id,
+      {
+        page,
+        limit,
+        role: dto.role,
+        search: dto.search,
+      }
+    )
+
+    // Enrich with task counts and last activity
+    const enrichedMembers = await this.enrichMembers(members, dto.project_id)
+
+    return {
+      data: enrichedMembers,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    }
+  }
+
+  /**
+   * Validate user has access to view project members → delegate to Model
+   */
+  private async validateAccess(projectId: string): Promise<void> {
+    const userId = this.getCurrentUserId()
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    const hasAccess = await ProjectMemberRepository.hasAccess(projectId, userId)
+    enforcePolicy(canViewProjectMembers({ hasProjectAccess: hasAccess }))
+  }
+
+  /**
+   * Enrich members with task counts and last activity → delegate to Model
+   */
+  private async enrichMembers(
+    members: MemberRow[],
+    projectId: string
+  ): Promise<GetProjectMembersResult['data']> {
+    if (members.length === 0) return []
+
+    const userIds = members.map((m) => m.user_id)
+
+    // Get task counts and last activity in parallel → delegate to Model
+    const [taskCountMap, lastActivityMap] = await Promise.all([
+      this.taskStatsReader.countTasksByAssignees(projectId, userIds),
+      auditPublicApi.getLastActivityByUsers('project', projectId, userIds),
+    ])
+
+    // Enrich members
+    return members.map((member) => ({
+      ...member,
+      task_count: taskCountMap.get(member.user_id) ?? 0,
+      last_active_at: lastActivityMap.get(member.user_id) ?? null,
+    }))
+  }
+
+  /**
+   * Get cache key for this query
+   */
+  protected getCacheKey(input: GetProjectMembersDTO): string {
+    return `projects:members:${input.project_id}:${JSON.stringify(input)}`
+  }
+
+  /**
+   * Cache TTL: 3 minutes
+   */
+  protected getCacheTTL(): number {
+    return 3 * 60
+  }
+}
+
+```
