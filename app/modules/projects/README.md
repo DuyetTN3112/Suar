@@ -898,3 +898,903 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
           actorId: userId,
           actorSystemRole: actor?.systemRole ?? null,
           actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          targetRole: dto.project_role,
+          isTargetOrgMember: true,
+          isAlreadyMember: !!existingMember,
+        })
+      )
+
+      // Load user to be added (for audit log)
+      const userToAdd = await this.actorLookup.findProjectActor(dto.user_id, trx)
+
+      // 7. Add user as member
+      await projectMemberMutations.addMember(dto.project_id, dto.user_id, dto.project_role, trx)
+
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+          action: 'add_member',
+          entityId: project.id,
+          oldValues: null,
+          newValues: {
+            user_id: dto.user_id,
+            username: userToAdd?.username ?? null,
+            project_role: dto.project_role,
+          },
+        })
+    })
+
+    await this.projectEventPublisher.publishProjectMemberAdded({
+      projectId: dto.project_id,
+      userId: dto.user_id,
+      project_role: dto.project_role,
+      addedBy: userId,
+    })
+  }
+}
+
+```
+
+### `app/modules/projects/actions/commands/create_project_command.ts`
+
+```ts
+import type { CreateProjectDTO } from '../dtos/request/create_project_dto.js'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import type { ProjectPermissionReader } from '#modules/projects/application/ports/project_permission_reader'
+import { canCreateProject } from '#modules/projects/domain/project_permission_policy'
+import { validateProjectStatus, validateProjectDates } from '#modules/projects/domain/project_state_rules'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { PublicApiProjectPermissionReader } from '#modules/projects/infra/adapters/public_api_project_permission_reader'
+import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
+import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
+import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
+import type { ProjectDetailRecord } from '#modules/projects/types/project_records'
+
+/**
+ * Command to create a new project
+ *
+ * Di chuyển logic từ database triggers:
+ * - before_insert_project: Check permission can_create_project, set owner_id, manager_id
+ * - after_project_insert: Add owner to project_members với project_role_id = 1
+ *
+ * Business Rules:
+ * - Check permission can_create_project (từ trigger before_insert_project)
+ * - Owner mặc định là creator
+ * - Manager mặc định là owner
+ * - Creator tự động thành project_members với role owner (project_role_id = 1)
+ *
+ * @extends {BaseCommand<CreateProjectDTO, ProjectDetailRecord>}
+ */
+export default class CreateProjectCommand extends BaseCommand<
+  CreateProjectDTO,
+  ProjectDetailRecord
+> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly permissionReader: ProjectPermissionReader = new PublicApiProjectPermissionReader(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: CreateProjectDTO): Promise<ProjectDetailRecord> {
+    const userId = this.getCurrentUserId()
+
+    const createdProject = await this.executeInTransaction(async (trx) => {
+      // 1. Check permission can_create_project (logic từ procedure)
+      const hasPermission = await this.permissionReader.checkOrganizationPermission({
+        actorUserId: userId,
+        organizationId: dto.organization_id,
+        permission: 'can_create_project',
+        trx,
+      })
+
+      enforcePolicy(
+        canCreateProject({
+          actorSystemRole: null,
+          isOrgAdminOrOwner: hasPermission,
+        })
+      )
+
+      const isSuperadmin = await this.permissionReader.isSystemSuperadmin(userId, trx)
+
+      // 2. v3: Validate status via pure rule
+      if (dto.status) {
+        enforcePolicy(validateProjectStatus(dto.status))
+      }
+
+      // 3. Validate dates via pure rule
+      if (dto.start_date && dto.end_date) {
+        enforcePolicy(
+          validateProjectDates({
+            startDate: dto.start_date.toISO() ?? null,
+            endDate: dto.end_date.toISO() ?? null,
+          })
+        )
+      }
+
+      // 4. Organization members must be approved unless the actor is a superadmin bypass.
+      if (!isSuperadmin) {
+        await this.organizationAccessReader.ensureApprovedMember(dto.organization_id, userId, trx)
+      }
+
+      // 5. Set owner_id and manager_id
+      const ownerId = userId
+      const managerId = dto.manager_id ?? ownerId
+
+      // 6. Create the project
+      const project = await projectMutations.createRecord(
+        {
+          name: dto.name,
+          description: dto.description ?? null,
+          organization_id: dto.organization_id,
+          creator_id: userId,
+          owner_id: ownerId,
+          manager_id: managerId,
+          status: dto.status,
+          visibility: dto.visibility,
+          start_date: dto.start_date ?? null,
+          end_date: dto.end_date ?? null,
+          budget: dto.budget,
+        },
+        trx
+      )
+
+      // 7. Add owner as project member (from trigger)
+      await projectMemberMutations.addMember(project.id, ownerId, ProjectRole.OWNER, trx)
+
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+        action: 'create',
+        entityId: project.id,
+        oldValues: null,
+        newValues: project,
+      })
+
+      return project
+    })
+
+    const result = await this.loadProjectWithRelations(createdProject.id)
+
+    await this.projectEventPublisher.publishProjectCreated({
+      projectId: result.id,
+      creatorId: userId,
+      organizationId: result.organization_id,
+      name: result.name,
+    })
+
+    return result
+  }
+
+  /**
+   * Load project with all necessary relations
+   */
+  private async loadProjectWithRelations(
+    projectId: string
+  ): Promise<ProjectDetailRecord> {
+    return projectModelQueries.findDetailWithRelationsRecord(projectId)
+  }
+}
+
+```
+
+### `app/modules/projects/actions/commands/delete_project_command.ts`
+
+```ts
+import type { DeleteProjectDTO } from '../dtos/request/delete_project_dto.js'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
+import { canDeleteProject } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
+import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+
+/**
+ * Command to delete a project (soft delete by default)
+ *
+ * Business Rules:
+ * - Only owner or superadmin can delete projects
+ * - Warns if project has incomplete tasks
+ * - Soft delete by default (sets deleted_at timestamp)
+ * - Permanent delete option available (use with caution)
+ *
+ * @extends {BaseCommand<DeleteProjectDTO, void>}
+ */
+export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader(),
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
+  /**
+   * Execute the command
+   *
+   * @param dto - Validated DeleteProjectDTO
+   */
+  async handle(dto: DeleteProjectDTO): Promise<void> {
+    const userId = this.getCurrentUserId()
+
+    const deletedProjectEvent = await this.executeInTransaction(async (trx) => {
+      // 1. Load project
+      const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
+
+      // Optional scope guard for adapters that require current organization context.
+      if (dto.current_organization_id && project.organization_id !== dto.current_organization_id) {
+        enforcePolicy(PR.deny('Dự án không thuộc tổ chức hiện tại'))
+      }
+
+      // 2. Check permissions and incomplete tasks via pure rule
+      const user = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
+        trx
+      )
+      const taskStats = await this.taskStatsReader.getTaskStats(project.id, trx)
+
+      enforcePolicy(
+        canDeleteProject({
+          actorId: userId,
+          actorSystemRole: user?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          incompleteTaskCount: taskStats.incompleteTasks,
+          pendingReviewSessionCount: taskStats.pendingReviewSessions,
+        })
+      )
+
+      // 4. Store old values for audit
+      const oldValues = { ...project }
+
+      // 5. Perform delete (soft or permanent)
+      const deletedProject = dto.isPermanentDelete()
+        ? await projectMutations.hardDeleteByIdRecord(project.id, trx)
+        : await projectMutations.softDeleteByIdRecord(project.id, trx)
+
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+        action: 'delete',
+        entityId: project.id,
+        oldValues,
+        newValues: {
+          deleted_at: deletedProject.deleted_at,
+          reason: dto.reason,
+          permanent: dto.permanent,
+        },
+      })
+
+      return {
+        projectId: project.id,
+        organizationId: project.organization_id,
+      }
+    })
+
+    await this.projectEventPublisher.publishProjectDeleted({
+      projectId: deletedProjectEvent.projectId,
+      organizationId: deletedProjectEvent.organizationId,
+      deletedBy: userId,
+    })
+  }
+}
+
+```
+
+### `app/modules/projects/actions/commands/remove_project_member_command.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type { RemoveProjectMemberDTO } from '../dtos/request/remove_project_member_dto.js'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import type { ProjectTaskAssignmentInvariant } from '#modules/projects/application/ports/project_task_assignment_invariant'
+import { canRemoveProjectMember } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { TasksPublicApiProjectTaskAssignmentInvariant } from '#modules/projects/infra/adapters/tasks_public_api_project_task_assignment_invariant'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as projectModelQueries from '#modules/projects/infra/repositories/read/project_model_queries'
+import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
+
+/**
+ * Command to remove a member from a project
+ *
+ * Business Rules:
+ * - Only owner or superadmin can remove members
+ * - Cannot remove the owner
+ * - Cannot remove the last superadmin
+ * - Tasks assigned to removed member are reassigned to manager or specified user
+ *
+ * @extends {BaseCommand<RemoveProjectMemberDTO, void>}
+ */
+export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjectMemberDTO> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly taskAssignmentInvariant: ProjectTaskAssignmentInvariant = new TasksPublicApiProjectTaskAssignmentInvariant(),
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
+  /**
+   * Execute the command
+   *
+   * @param dto - Validated RemoveProjectMemberDTO
+   */
+  async handle(dto: RemoveProjectMemberDTO): Promise<void> {
+    const userId = this.getCurrentUserId()
+
+    await this.executeInTransaction(async (trx) => {
+      // 1. Load project
+      const project = await projectModelQueries.findActiveOrFail(dto.project_id, trx)
+
+      // 2. Check permissions via pure rule
+      const actor = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
+        trx
+      )
+
+      enforcePolicy(
+        canRemoveProjectMember({
+          actorId: userId,
+          actorSystemRole: actor?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+          projectOwnerId: project.owner_id ?? '',
+          projectCreatorId: project.creator_id,
+          targetUserId: dto.user_id,
+        })
+      )
+
+      // 3. Load user to be removed (for audit log)
+      const userToRemove = await this.actorLookup.findProjectActor(dto.user_id, trx)
+
+      // 5. Get member role before removal
+      const memberRole = await projectMemberQueries.getRoleName(dto.project_id, dto.user_id, trx)
+
+      // 6. Reassign tasks if needed
+      const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
+      if (reassignToUserId === null) {
+        throw new BusinessLogicException(
+          'Không thể phân công lại công việc - không có người dùng hợp lệ'
+        )
+      }
+      await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, userId, trx)
+
+      // 7. Remove member
+      await projectMemberMutations.deleteMember(dto.project_id, dto.user_id, trx)
+
+      await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+        action: 'remove_member',
+        entityId: project.id,
+        oldValues: {
+          user_id: dto.user_id,
+          username: userToRemove?.username ?? null,
+          role: memberRole,
+        },
+        newValues: {
+          reason: dto.reason,
+          reassigned_to: reassignToUserId,
+        },
+      })
+    })
+
+    await this.projectEventPublisher.publishProjectMemberRemoved({
+      projectId: dto.project_id,
+      userId: dto.user_id,
+      removedBy: userId,
+    })
+  }
+
+  /**
+   * Reassign all tasks from removed member → delegate to Model
+   */
+  private async reassignTasks(
+    projectId: string,
+    fromUserId: string,
+    toUserId: string,
+    requestedByUserId: string,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await this.taskAssignmentInvariant.reassignOrUnassignTasksForRemovedMember({
+      projectId,
+      removedUserId: fromUserId,
+      fallbackAssigneeUserId: toUserId,
+      requestedByUserId,
+      trx,
+    })
+  }
+}
+
+```
+
+### `app/modules/projects/actions/commands/transfer_project_ownership_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { DefaultProjectDependencies } from '../ports/project_external_dependencies_impl.js'
+
+import { EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import { canTransferProjectOwnership } from '#modules/projects/domain/project_permission_policy'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as projectMemberMutations from '#modules/projects/infra/repositories/write/project_member_mutations'
+import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+import { ProjectRole } from '#modules/projects/public_contracts/project_constants'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
+
+/**
+ * DTO for transferring project ownership
+ */
+export interface TransferProjectOwnershipDTO {
+  project_id: string
+  new_owner_id: string
+}
+
+interface PersistedProjectOwnershipTransfer {
+  project: ProjectRecord
+  oldOwnerId: string | null
+}
+
+/**
+ * Command: Transfer Project Ownership
+ *
+ * Migrate từ stored procedure: transfer_project_ownership
+ *
+ * Business rules:
+ * - Chỉ owner hoặc org_admin mới có thể transfer
+ * - Không thể transfer cho chính mình
+ * - New owner phải là member của organization
+ * - Thêm new owner vào project_members nếu chưa có
+ * - Cập nhật role: old owner → project_manager, new owner → project_owner
+ */
+export default class TransferProjectOwnershipCommand {
+  constructor(
+    protected execCtx: ProjectActionContext,
+    private createNotification: NotificationCreator
+  ) {}
+
+  async execute(dto: TransferProjectOwnershipDTO): Promise<ProjectRecord> {
+    const actorId = this.requireActorId()
+    const transfer = await this.transferOwnershipInTransaction(dto, actorId)
+    await this.runPostCommitEffects(transfer, actorId, dto)
+    return transfer.project
+  }
+
+  private requireActorId(): string {
+    const currentUserId = this.execCtx.userId
+    if (!currentUserId) {
+      throw new UnauthorizedException()
+    }
+
+    return currentUserId
+  }
+
+  private async loadOwnershipTransferContext(
+    dto: TransferProjectOwnershipDTO,
+    actorId: string,
+    trx: TransactionClientContract
+  ): Promise<{
+    project: ProjectRecord
+    currentOwnerId: string | null
+  }> {
+    const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
+    const currentOwnerId = project.owner_id ?? null
+
+    const actorOrgRole = await DefaultProjectDependencies.organization.getMembershipRole(
+      project.organization_id,
+      actorId,
+      trx
+    )
+    const isNewOwnerOrgMember = await DefaultProjectDependencies.organization.isApprovedMember(
+      project.organization_id,
+      dto.new_owner_id,
+      trx
+    )
+
+    enforcePolicy(
+      canTransferProjectOwnership({
+        actorId,
+        actorOrgRole,
+        projectOwnerId: currentOwnerId ?? '',
+        newOwnerId: dto.new_owner_id,
+        isNewOwnerOrgMember,
+      })
+    )
+
+    const isNewOwnerActive = await DefaultProjectDependencies.user.isActiveUser(
+      dto.new_owner_id,
+      trx
+    )
+    if (!isNewOwnerActive) {
+      throw new BusinessLogicException('Chủ sở hữu mới phải là người dùng active')
+    }
+
+    return { project, currentOwnerId }
+  }
+
+  private async persistOwnershipTransfer(
+    dto: TransferProjectOwnershipDTO,
+    actorId: string,
+    trx: TransactionClientContract
+  ): Promise<PersistedProjectOwnershipTransfer> {
+    const { project, currentOwnerId } = await this.loadOwnershipTransferContext(dto, actorId, trx)
+
+    await this.upsertProjectOwnerMembership(dto, trx)
+    await this.demotePreviousOwner(dto.project_id, currentOwnerId, dto.new_owner_id, trx)
+    const updatedProject = await this.updateProjectOwner(project, dto.new_owner_id, trx)
+    await this.recordOwnershipTransferAudit(currentOwnerId, actorId, dto)
+
+    return {
+      project: updatedProject,
+      oldOwnerId: currentOwnerId,
+    }
+  }
+
+  private async upsertProjectOwnerMembership(
+    dto: TransferProjectOwnershipDTO,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const existingMember = await projectMemberQueries.findMember(
+      dto.project_id,
+      dto.new_owner_id,
+      trx
+    )
+
+    if (!existingMember) {
+      await projectMemberMutations.addMember(
+        dto.project_id,
+        dto.new_owner_id,
+        ProjectRole.OWNER,
+        trx
+      )
+      return
+    }
+
+    await projectMemberMutations.updateRole(
+      dto.project_id,
+      dto.new_owner_id,
+      ProjectRole.OWNER,
+      trx
+    )
+  }
+
+  private async demotePreviousOwner(
+    projectId: string,
+    currentOwnerId: string | null,
+    newOwnerId: string,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    if (!currentOwnerId || currentOwnerId === newOwnerId) {
+      return
+    }
+
+    await projectMemberMutations.updateRole(projectId, currentOwnerId, ProjectRole.MANAGER, trx)
+  }
+
+  private async updateProjectOwner(
+    project: ProjectRecord,
+    newOwnerId: string,
+    trx: TransactionClientContract
+  ): Promise<ProjectRecord> {
+    return projectMutations.updateOwnerRecord(project.id, newOwnerId, trx)
+  }
+
+  private async recordOwnershipTransferAudit(
+    currentOwnerId: string | null,
+    actorId: string,
+    dto: TransferProjectOwnershipDTO
+  ): Promise<void> {
+    await auditPublicApi.log(
+      {
+        user_id: actorId,
+        action: 'transfer_ownership',
+        entity_type: EntityType.PROJECT,
+        entity_id: dto.project_id,
+        old_values: { owner_id: currentOwnerId },
+        new_values: { owner_id: dto.new_owner_id },
+      },
+      this.execCtx
+    )
+  }
+
+  private async transferOwnershipInTransaction(
+    dto: TransferProjectOwnershipDTO,
+    actorId: string
+  ): Promise<PersistedProjectOwnershipTransfer> {
+    const trx: TransactionClientContract = await db.transaction()
+
+    try {
+      const transfer = await this.persistOwnershipTransfer(dto, actorId, trx)
+      await trx.commit()
+      return transfer
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+
+  private async runPostCommitEffects(
+    transfer: PersistedProjectOwnershipTransfer,
+    actorId: string,
+    dto: TransferProjectOwnershipDTO
+  ): Promise<void> {
+    void emitter.emit('project:ownership:transferred', {
+      projectId: dto.project_id,
+      fromUserId: transfer.oldOwnerId ?? '',
+      toUserId: dto.new_owner_id,
+      transferredBy: actorId,
+    })
+
+    if (transfer.oldOwnerId) {
+      await this.sendNotifications(transfer.project, transfer.oldOwnerId, dto.new_owner_id)
+    }
+  }
+
+  private async sendNotifications(
+    project: ProjectRecord,
+    oldOwnerId: string,
+    newOwnerId: string
+  ): Promise<void> {
+    try {
+      await this.createNotification.handle({
+        user_id: newOwnerId,
+        title: 'Bạn đã trở thành project owner',
+        message: `Bạn đã được chuyển giao quyền sở hữu project "${project.name}".`,
+        type: BACKEND_NOTIFICATION_TYPES.PROJECT_OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT,
+        related_entity_id: project.id,
+      })
+
+      await this.createNotification.handle({
+        user_id: oldOwnerId,
+        title: 'Đã chuyển giao quyền sở hữu project',
+        message: `Quyền sở hữu project "${project.name}" đã được chuyển giao.`,
+        type: BACKEND_NOTIFICATION_TYPES.PROJECT_OWNERSHIP_TRANSFERRED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT,
+        related_entity_id: project.id,
+      })
+    } catch (error) {
+      loggerService.error('[TransferProjectOwnershipCommand] Failed to send notifications:', error)
+    }
+  }
+}
+
+```
+
+### `app/modules/projects/actions/commands/update_project_command.ts`
+
+```ts
+import type { UpdateProjectDTO } from '../dtos/request/update_project_dto.js'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { BaseCommand } from '#modules/projects/actions/base_command'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+import type { ProjectActorLookup } from '#modules/projects/application/ports/project_actor_lookup'
+import type { ProjectAuditEventPublisher } from '#modules/projects/application/ports/project_audit_event_publisher'
+import type { ProjectEventPublisher } from '#modules/projects/application/ports/project_event_publisher'
+import type { ProjectOrganizationAccessReader } from '#modules/projects/application/ports/project_organization_access'
+import { canUpdateProjectFields } from '#modules/projects/domain/project_permission_policy'
+import { AuditEventProjectAuditEventPublisher } from '#modules/projects/infra/adapters/audit_event_project_audit_event_publisher'
+import { InProcessProjectEventPublisher } from '#modules/projects/infra/adapters/in_process_project_event_publisher'
+import { OrganizationPublicApiProjectOrganizationAccessReader } from '#modules/projects/infra/adapters/organization_public_api_project_organization_access_reader'
+import { UsersPublicApiProjectActorLookup } from '#modules/projects/infra/adapters/users_public_api_project_actor_lookup'
+import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
+import * as projectMutations from '#modules/projects/infra/repositories/write/project_mutations'
+import type { ProjectRecord } from '#modules/projects/types/project_records'
+
+/**
+ * Command to update an existing project
+ *
+ * Business Rules:
+ * - Owner can update all fields
+ * - Superadmin can update all fields
+ * - Manager can update: description, start_date, end_date, status
+ * - Logs all field changes to audit trail
+ *
+ * @extends {BaseCommand<UpdateProjectDTO, ProjectRecord>}
+ */
+export default class UpdateProjectCommand extends BaseCommand<
+  UpdateProjectDTO,
+  ProjectRecord
+> {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly actorLookup: ProjectActorLookup = new UsersPublicApiProjectActorLookup(),
+    private readonly organizationAccessReader: ProjectOrganizationAccessReader = new OrganizationPublicApiProjectOrganizationAccessReader(),
+    private readonly projectEventPublisher: ProjectEventPublisher = new InProcessProjectEventPublisher(),
+    private readonly projectAuditEventPublisher: ProjectAuditEventPublisher = new AuditEventProjectAuditEventPublisher()
+  ) {
+    super(execCtx)
+  }
+
+  /**
+   * Execute the command
+   *
+   * @param dto - Validated UpdateProjectDTO
+   * @returns Updated project
+   */
+  async handle(dto: UpdateProjectDTO): Promise<ProjectRecord> {
+    const userId = this.getCurrentUserId()
+
+    // Check if there are any updates
+    if (!dto.hasUpdates()) {
+      throw new BusinessLogicException('Không có thay đổi nào để cập nhật')
+    }
+
+    const result = await this.executeInTransaction(async (trx) => {
+      // 1. Load project with lock (prevents concurrent updates)
+      const project = await projectMutations.findActiveForUpdateRecord(dto.project_id, trx)
+
+      // 2. Check permissions via pure rule
+      const actor = await this.actorLookup.findProjectActor(userId, trx)
+      const organizationAccess = await this.organizationAccessReader.findOrganizationAccess(
+        {
+          organizationId: project.organization_id,
+          actorUserId: userId,
+        },
+        trx
+      )
+      const projectMember = await projectMemberQueries.findMember(dto.project_id, userId, trx)
+      const actorProjectRole = projectMember?.project_role ?? null
+
+      const fieldResult = canUpdateProjectFields(
+        {
+          actorId: userId,
+          actorSystemRole: actor?.systemRole ?? null,
+          actorOrgRole: organizationAccess?.actorOrganizationRole ?? null,
+          actorProjectRole,
+          projectCreatorId: project.creator_id,
+          projectOwnerId: project.owner_id ?? '',
+          projectOrganizationId: project.organization_id,
+        },
+        dto.getUpdatedFields()
+      )
+      enforcePolicy(fieldResult)
+
+      // 3. Store old values for audit
+      const oldValues = this.getTrackedFields(project)
+
+      // 4. Update project fields
+      const updateData = dto.toObject()
+      const updatedProject = await projectMutations.updateByIdRecord(project.id, updateData, trx)
+
+      // 5. Get new values
+      const newValues = this.getTrackedFields(updatedProject)
+
+      // 6. Log audit trail for each changed field
+      await this.logFieldChanges(project.id, oldValues, newValues, dto.getUpdatedFields())
+
+      return {
+        project: updatedProject,
+        projectUpdatedEvent: {
+          projectId: project.id,
+          updatedBy: userId,
+          changes: updateData,
+        },
+      }
+    })
+
+    await this.projectEventPublisher.publishProjectUpdated(result.projectUpdatedEvent)
+
+    return result.project
+  }
+
+  /**
+   * Get tracked field values for audit
+   */
+  private getTrackedFields(project: ProjectRecord): Record<string, unknown> {
+    return {
+      name: project.name,
+      description: project.description,
+      status: project.status,
+      start_date: project.start_date,
+      end_date: project.end_date,
+      manager_id: project.manager_id,
+      owner_id: project.owner_id,
+      visibility: project.visibility,
+      budget: project.budget,
+    }
+  }
+
+  /**
+   * Log changes for each updated field
+   */
+  private async logFieldChanges(
+    projectId: string,
+    oldValues: Record<string, unknown>,
+    newValues: Record<string, unknown>,
+    updatedFields: string[]
+  ): Promise<void> {
+    for (const field of updatedFields) {
+      if (oldValues[field] !== newValues[field]) {
+        if (this.execCtx.userId) {
+          await this.projectAuditEventPublisher.publishProjectAudit(this.execCtx, {
+            action: 'update',
+            entityId: projectId,
+            oldValues: { [field]: oldValues[field] },
+            newValues: {
+              [field]: newValues[field],
+            },
+          })
+        }
+      }
+    }
+  }
+}
+
+```
+
+### `app/modules/projects/actions/queries/get_project_create_page_query.ts`
+
+```ts
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
+
+export interface GetProjectCreatePageResult {
+  organizations: Awaited<ReturnType<typeof organizationPublicApi.listUserOwnedOrganizations>>
+  statuses: { id: string; name: string }[]
+}
+
+export default class GetProjectCreatePageQuery {
+  constructor(protected execCtx: ProjectActionContext) {}
+
