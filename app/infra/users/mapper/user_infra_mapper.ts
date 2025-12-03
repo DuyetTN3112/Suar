@@ -10,7 +10,13 @@
 
 import { UserEntity } from '#domain/users/entities/user_entity'
 import type { UserEntityProps } from '#domain/users/entities/user_entity'
-import type User from '#models/user'
+import type User from '#infra/users/models/user'
+import type UserSkill from '#infra/users/models/user_skill'
+import type { UserProfileRecord, UserRecord, UserSkillRecord } from '#types/user_records'
+
+function serializeDateTime(value: { toISO(): string | null } | null | undefined): string | null {
+  return value?.toISO() ?? null
+}
 
 export class UserInfraMapper {
   private readonly __instanceMarker = true
@@ -48,6 +54,73 @@ export class UserInfraMapper {
       updatedAt: model.updated_at.toJSDate(),
     }
     return new UserEntity(props)
+  }
+
+  static toRecord(model: User): UserRecord {
+    return {
+      id: model.id,
+      username: model.username,
+      email: model.email,
+      status: model.status,
+      system_role: model.system_role,
+      current_organization_id: model.current_organization_id,
+      auth_method: model.auth_method,
+      avatar_url: model.avatar_url,
+      bio: model.bio,
+      phone: model.phone,
+      address: model.address,
+      timezone: model.timezone,
+      language: model.language,
+      is_freelancer: model.is_freelancer,
+      freelancer_rating: model.freelancer_rating,
+      freelancer_completed_tasks_count: model.freelancer_completed_tasks_count,
+      profile_settings: model.profile_settings,
+      trust_data: model.trust_data,
+      credibility_data: model.credibility_data,
+      deleted_at: serializeDateTime(model.deleted_at),
+      created_at: serializeDateTime(model.created_at),
+      updated_at: serializeDateTime(model.updated_at),
+    }
+  }
+
+  static toProfileRecord(model: User): UserProfileRecord {
+    const currentOrganization = model.$preloaded.current_organization as
+      | { id: string; name?: string; slug?: string; logo?: string | null }
+      | undefined
+    const skills = model.$preloaded.skills as UserSkill[] | undefined
+
+    return {
+      ...this.toRecord(model),
+      current_organization: currentOrganization
+        ? {
+            id: currentOrganization.id,
+            name: currentOrganization.name,
+            slug: currentOrganization.slug,
+            logo: currentOrganization.logo ?? null,
+          }
+        : null,
+      skills: skills?.map((skill) => this.toSkillRecord(skill)) ?? [],
+    }
+  }
+
+  static toSkillRecord(model: UserSkill): UserSkillRecord {
+    const skill = model.$preloaded.skill as
+      | { skill_name: string; category_code: string }
+      | undefined
+
+    return {
+      id: model.id,
+      user_id: model.user_id,
+      skill_id: model.skill_id,
+      level_code: model.level_code,
+      total_reviews: model.total_reviews,
+      avg_score: model.avg_score,
+      source: model.source,
+      avg_percentage: model.avg_percentage,
+      last_calculated_at: model.last_calculated_at,
+      last_reviewed_at: model.last_reviewed_at,
+      skill,
+    }
   }
 
   /**
