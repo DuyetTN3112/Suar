@@ -898,3 +898,903 @@ import { GetReviewSessionDTO } from '#modules/reviews/actions/dtos/request/revie
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
 import { proficiencyLevelOptions } from '#modules/users/public_contracts/user_constants'
+```
+
+### `app/modules/reviews/actions/queries/get_task_self_assessment_query.ts`
+
+```ts
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import TaskSelfAssessmentRepository from '#modules/reviews/infra/repositories/task_self_assessment_repository'
+import type { TaskSelfAssessmentRecord } from '#modules/reviews/types/review_records'
+```
+
+### `app/modules/reviews/actions/queries/get_user_reviews_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/reviews/actions/base_query'
+import type { GetUserReviewsDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
+```
+
+### `app/modules/reviews/actions/queries/list_admin_review_disputes_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+```
+
+### `app/modules/reviews/actions/queries/list_ai_dispute_evaluations_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { AiDisputeEvaluationResult } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import type { buildAiDisputePayload } from '#modules/reviews/domain/ai_dispute_payload_builder'
+```
+
+### `app/modules/reviews/actions/queries/list_reverse_reviews_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+```
+
+### `app/modules/reviews/actions/queries/list_review_dispute_case_files_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { ReviewDisputeCaseFileResult } from '#modules/reviews/actions/commands/build_review_dispute_case_file_command'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+```
+
+### `app/modules/reviews/actions/queries/list_review_dispute_comments_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  loadReviewDisputeAccessContext,
+  loadReviewDisputeComments,
+} from '#modules/reviews/actions/commands/review_dispute_access'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+```
+
+### `app/modules/reviews/actions/queries/list_review_dispute_evidences_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  loadReviewDisputeAccessContext,
+  loadReviewDisputeEvidences,
+} from '#modules/reviews/actions/commands/review_dispute_access'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+```
+
+### `app/modules/reviews/actions/result.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/reviews/actions/review_action_context.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/reviews/actions/services/review_public_api.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+```
+
+### `app/modules/reviews/controllers/add_review_evidence_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildAddReviewEvidenceDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import AddReviewEvidenceCommand from '#modules/reviews/actions/commands/add_review_evidence_command'
+```
+
+### `app/modules/reviews/controllers/ai_dispute_callback_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
+```
+
+### `app/modules/reviews/controllers/build_review_dispute_case_file_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BuildReviewDisputeCaseFileCommand from '#modules/reviews/actions/commands/build_review_dispute_case_file_command'
+```
+
+### `app/modules/reviews/controllers/confirm_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildConfirmReviewDTO } from './mappers/request/review_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ConfirmReviewCommand from '#modules/reviews/actions/commands/confirm_review_command'
+```
+
+### `app/modules/reviews/controllers/create_reverse_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
+```
+
+### `app/modules/reviews/controllers/create_review_dispute_comment_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import {
+  buildCreateReviewDisputeCommentDTO,
+} from './mappers/request/review_request_mapper.js'
+import { mapReviewDisputeCommentApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import CreateReviewDisputeCommentCommand from '#modules/reviews/actions/commands/create_review_dispute_comment_command'
+```
+
+### `app/modules/reviews/controllers/create_review_dispute_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildCreateReviewDisputeDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import CreateReviewDisputeCommand from '#modules/reviews/actions/commands/create_review_dispute_command'
+```
+
+### `app/modules/reviews/controllers/create_review_dispute_evidence_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewDisputeCommentApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import CreateReviewDisputeEvidenceCommand from '#modules/reviews/actions/commands/create_review_dispute_evidence_command'
+```
+
+### `app/modules/reviews/controllers/create_review_session_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildCreateReviewSessionDTO } from './mappers/request/review_request_mapper.js'
+import { mapCreateReviewSessionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import CreateReviewSessionCommand from '#modules/reviews/actions/commands/create_review_session_command'
+```
+
+### `app/modules/reviews/controllers/get_review_evidences_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewEvidenceCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import GetReviewEvidencesQuery from '#modules/reviews/actions/queries/get_review_evidences_query'
+```
+
+### `app/modules/reviews/controllers/get_task_self_assessment_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapTaskSelfAssessmentApiBody } from './mappers/response/review_response_mapper.js'
+import GetTaskSelfAssessmentQuery from '#modules/reviews/actions/queries/get_task_self_assessment_query'
+```
+
+### `app/modules/reviews/controllers/list_admin_review_disputes_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListAdminReviewDisputesQuery from '#modules/reviews/actions/queries/list_admin_review_disputes_query'
+```
+
+### `app/modules/reviews/controllers/list_ai_dispute_evaluations_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListAiDisputeEvaluationsQuery from '#modules/reviews/actions/queries/list_ai_dispute_evaluations_query'
+```
+
+### `app/modules/reviews/controllers/list_flagged_reviews_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildFlaggedReviewsInput } from './mappers/request/review_request_mapper.js'
+import { mapFlaggedReviewsPageProps } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/get_flagged_reviews_query'
+import { FlaggedReviewStatus } from '#modules/reviews/constants/review_constants'
+```
+
+### `app/modules/reviews/controllers/list_pending_reviews_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildPendingReviewsInput } from './mappers/request/review_request_mapper.js'
+import { mapPendingReviewsPageProps } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetPendingReviewsQuery from '#modules/reviews/actions/queries/get_pending_reviews_query'
+```
+
+### `app/modules/reviews/controllers/list_reverse_reviews_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListReverseReviewsQuery from '#modules/reviews/actions/queries/list_reverse_reviews_query'
+import type { ReverseReviewReadScope } from '#modules/reviews/actions/queries/list_reverse_reviews_query'
+```
+
+### `app/modules/reviews/controllers/list_review_dispute_case_files_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListReviewDisputeCaseFilesQuery from '#modules/reviews/actions/queries/list_review_dispute_case_files_query'
+```
+
+### `app/modules/reviews/controllers/list_review_dispute_comments_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewCommentCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListReviewDisputeCommentsQuery from '#modules/reviews/actions/queries/list_review_dispute_comments_query'
+```
+
+### `app/modules/reviews/controllers/list_review_dispute_evidences_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewCommentCollectionApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListReviewDisputeEvidencesQuery from '#modules/reviews/actions/queries/list_review_dispute_evidences_query'
+```
+
+### `app/modules/reviews/controllers/mappers/request/review_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import {
+  PAGINATION,
+  requireEnumValue,
+  throwInvalidInput,
+  toBoolean,
+  toNumberOrUndefined,
+  toOptionalString,
+  toOptionalStringArray,
+  toPositiveNumber,
+} from './shared.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import type { CreateReviewDisputeDTO } from '#modules/reviews/actions/commands/create_review_dispute_command'
+import type { CreateReviewDisputeCommentDTO } from '#modules/reviews/actions/commands/create_review_dispute_comment_command'
+import type { ResolveFlaggedReviewDTO } from '#modules/reviews/actions/commands/resolve_flagged_review_command'
+import type { ResolveReviewDisputeDTO } from '#modules/reviews/actions/commands/resolve_review_dispute_command'
+import type { RespondToReviewDisputeDTO } from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
+import type { StartAiDisputeEvaluationDTO } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import {
+  AddReviewEvidenceDTO,
+  ConfirmReviewDTO,
+  CreateReviewSessionDTO,
+  GetReviewSessionDTO,
+  GetUserReviewsDTO,
+  SubmitReverseReviewDTO,
+  SubmitSkillReviewDTO,
+  UpsertTaskSelfAssessmentDTO,
+} from '#modules/reviews/actions/dtos/request/review_dtos'
+import {
+  FlaggedReviewStatus,
+  ReverseReviewTargetType,
+  ReviewerType,
+} from '#modules/reviews/constants/review_constants'
+```
+
+### `app/modules/reviews/controllers/mappers/request/shared.ts`
+
+```ts
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { REVIEW_PAGINATION as PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+```
+
+### `app/modules/reviews/controllers/mappers/response/review_response_mapper.ts`
+
+```ts
+import type {
+  ResponseRecord,
+  SerializableResponseRecord,
+  PaginatedControllerResult,
+} from './shared.js'
+import { serializeCollectionForResponse, serializeForResponse } from './shared.js'
+```
+
+### `app/modules/reviews/controllers/mappers/response/shared.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/reviews/controllers/mappers/review_actor_context_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { ReviewActorContext } from '#modules/reviews/application/context/review_actor_context'
+```
+
+### `app/modules/reviews/controllers/my_reviews_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetUserReviewsDTO } from './mappers/request/review_request_mapper.js'
+import { mapMyReviewsPageProps } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetUserReviewsQuery from '#modules/reviews/actions/queries/get_user_reviews_query'
+```
+
+### `app/modules/reviews/controllers/resolve_flagged_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildResolveFlaggedReviewDTO } from './mappers/request/review_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ResolveFlaggedReviewCommand from '#modules/reviews/actions/commands/resolve_flagged_review_command'
+```
+
+### `app/modules/reviews/controllers/resolve_review_dispute_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildResolveReviewDisputeDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ResolveReviewDisputeCommand from '#modules/reviews/actions/commands/resolve_review_dispute_command'
+```
+
+### `app/modules/reviews/controllers/respond_to_review_dispute_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildRespondToReviewDisputeDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDisputeCommentApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import RespondToReviewDisputeCommand from '#modules/reviews/actions/commands/respond_to_review_dispute_command'
+```
+
+### `app/modules/reviews/controllers/show_admin_review_dispute_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
+```
+
+### `app/modules/reviews/controllers/show_reverse_reviews_page_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListReverseReviewsQuery from '#modules/reviews/actions/queries/list_reverse_reviews_query'
+import type {
+  ReverseReviewReadResult,
+  ReverseReviewReadScope,
+} from '#modules/reviews/actions/queries/list_reverse_reviews_query'
+```
+
+### `app/modules/reviews/controllers/show_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapShowReviewPageProps } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetReviewShowPageQuery from '#modules/reviews/actions/queries/get_review_show_page_query'
+```
+
+### `app/modules/reviews/controllers/show_user_dispute_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  loadReviewDisputeAccessContext,
+  loadReviewDisputeComments,
+  loadReviewDisputeEvidences,
+} from '#modules/reviews/actions/commands/review_dispute_access'
+```
+
+### `app/modules/reviews/controllers/start_ai_dispute_evaluation_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildStartAiDisputeEvaluationDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+```
+
+### `app/modules/reviews/controllers/submit_reverse_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildSubmitReverseReviewDTO } from './mappers/request/review_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import SubmitReverseReviewCommand from '#modules/reviews/actions/commands/submit_reverse_review_command'
+```
+
+### `app/modules/reviews/controllers/submit_review_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildSubmitSkillReviewDTO } from './mappers/request/review_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import SubmitSkillReviewCommand from '#modules/reviews/actions/commands/submit_skill_review_command'
+```
+
+### `app/modules/reviews/controllers/upsert_task_self_assessment_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpsertTaskSelfAssessmentDTO } from './mappers/request/review_request_mapper.js'
+import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpsertTaskSelfAssessmentCommand from '#modules/reviews/actions/commands/upsert_task_self_assessment_command'
+```
+
+### `app/modules/reviews/controllers/user_reviews_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetUserReviewsDTO } from './mappers/request/review_request_mapper.js'
+import { mapUserReviewsPageProps } from './mappers/response/review_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUserReviewsQuery from '#modules/reviews/actions/queries/get_user_reviews_query'
+```
+## Code Snippets
+
+### `start/routes/reviews.ts`
+
+```ts
+import router from '@adonisjs/core/services/router'
+
+import { middleware } from '../kernel.js'
+
+import { throttle } from '#start/limiter'
+
+const ListPendingReviewsController = () =>
+  import('#modules/reviews/controllers/list_pending_reviews_controller')
+const ShowReviewController = () => import('#modules/reviews/controllers/show_review_controller')
+const SubmitReviewController = () => import('#modules/reviews/controllers/submit_review_controller')
+const ConfirmReviewController = () =>
+  import('#modules/reviews/controllers/confirm_review_controller')
+const MyReviewsController = () => import('#modules/reviews/controllers/my_reviews_controller')
+const UserReviewsController = () => import('#modules/reviews/controllers/user_reviews_controller')
+const CreateReviewSessionController = () =>
+  import('#modules/reviews/controllers/create_review_session_controller')
+const CreateReviewDisputeController = () =>
+  import('#modules/reviews/controllers/create_review_dispute_controller')
+const ListAdminReviewDisputesController = () =>
+  import('#modules/reviews/controllers/list_admin_review_disputes_controller')
+const CreateReviewDisputeCommentController = () =>
+  import('#modules/reviews/controllers/create_review_dispute_comment_controller')
+const CreateReviewDisputeEvidenceController = () =>
+  import('#modules/reviews/controllers/create_review_dispute_evidence_controller')
+const BuildReviewDisputeCaseFileController = () =>
+  import('#modules/reviews/controllers/build_review_dispute_case_file_controller')
+const ListReviewDisputeCaseFilesController = () =>
+  import('#modules/reviews/controllers/list_review_dispute_case_files_controller')
+const ListReviewDisputeCommentsController = () =>
+  import('#modules/reviews/controllers/list_review_dispute_comments_controller')
+const ListAiDisputeEvaluationsController = () =>
+  import('#modules/reviews/controllers/list_ai_dispute_evaluations_controller')
+const ListReviewDisputeEvidencesController = () =>
+  import('#modules/reviews/controllers/list_review_dispute_evidences_controller')
+const ResolveReviewDisputeController = () =>
+  import('#modules/reviews/controllers/resolve_review_dispute_controller')
+const ShowAdminReviewDisputeController = () =>
+  import('#modules/reviews/controllers/show_admin_review_dispute_controller')
+const ShowUserDisputeController = () =>
+  import('#modules/reviews/controllers/show_user_dispute_controller')
+const StartAiDisputeEvaluationController = () =>
+  import('#modules/reviews/controllers/start_ai_dispute_evaluation_controller')
+
+const SubmitReverseReviewController = () =>
+  import('#modules/reviews/controllers/submit_reverse_review_controller')
+const CreateReverseReviewController = () =>
+  import('#modules/reviews/controllers/create_reverse_review_controller')
+const ListReverseReviewsController = () =>
+  import('#modules/reviews/controllers/list_reverse_reviews_controller')
+const ShowReverseReviewsPageController = () =>
+  import('#modules/reviews/controllers/show_reverse_reviews_page_controller')
+const RespondToReviewDisputeController = () =>
+  import('#modules/reviews/controllers/respond_to_review_dispute_controller')
+const ListFlaggedReviewsController = () =>
+  import('#modules/reviews/controllers/list_flagged_reviews_controller')
+const ResolveFlaggedReviewController = () =>
+  import('#modules/reviews/controllers/resolve_flagged_review_controller')
+const AddReviewEvidenceController = () =>
+  import('#modules/reviews/controllers/add_review_evidence_controller')
+const UpsertTaskSelfAssessmentController = () =>
+  import('#modules/reviews/controllers/upsert_task_self_assessment_controller')
+const GetReviewEvidencesController = () =>
+  import('#modules/reviews/controllers/get_review_evidences_controller')
+const GetTaskSelfAssessmentController = () =>
+  import('#modules/reviews/controllers/get_task_self_assessment_controller')
+
+router
+  .group(() => {
+    // Review session routes
+    router.get('/reviews/pending', [ListPendingReviewsController, 'handle']).as('reviews.pending')
+    router.get('/reviews/:id', [ShowReviewController, 'handle']).as('reviews.show')
+    router.post('/reviews/:id/submit', [SubmitReviewController, 'handle']).as('reviews.submit')
+    router.post('/reviews/:id/confirm', [ConfirmReviewController, 'handle']).as('reviews.confirm')
+    router.get('/reviews/disputes/:id', [ShowUserDisputeController, 'handle']).as('reviews.disputes.show')
+
+    router
+      .get('/reviews/:id/evidences', [GetReviewEvidencesController, 'handle'])
+      .as('reviews.evidences.list')
+    router
+      .post('/reviews/:id/evidences', [AddReviewEvidenceController, 'handle'])
+      .as('reviews.evidences.add')
+    router
+      .get('/reviews/:id/self-assessment', [GetTaskSelfAssessmentController, 'handle'])
+      .as('reviews.self_assessment.get')
+    router
+      .post('/reviews/:id/self-assessment', [UpsertTaskSelfAssessmentController, 'handle'])
+      .as('reviews.self_assessment.upsert')
+
+    // Reverse review (reviewee rates reviewers)
+    router
+      .post('/reviews/:id/reverse', [SubmitReverseReviewController, 'handle'])
+      .as('reviews.reverse')
+    router
+      .post('/api/review-sessions/:sessionId/reverse-reviews', [
+        CreateReverseReviewController,
+        'handle',
+      ])
+      .as('api.review_sessions.reverse_reviews.create')
+    router
+      .get('/api/me/reverse-reviews', [ListReverseReviewsController, 'handle'])
+      .as('api.me.reverse_reviews.list')
+    router
+      .get('/api/org/reverse-reviews', [ListReverseReviewsController, 'handle'])
+      .as('api.org.reverse_reviews.list')
+    router
+      .get('/api/admin/reverse-reviews', [ListReverseReviewsController, 'handle'])
+      .as('api.admin.reverse_reviews.list')
+    router
+      .get('/reviews/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
+      .as('reviews.reverse_reviews')
+    router
+      .get('/org/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
+      .as('org.reverse_reviews')
+    router
+      .get('/admin/reverse-reviews', [ShowReverseReviewsPageController, 'handle'])
+      .as('admin.reverse_reviews')
+    router
+      .post('/api/reviews/disputes', [CreateReviewDisputeController, 'handle'])
+      .as('api.reviews.disputes.create')
+    router
+      .get('/api/reviews/disputes/:id/comments', [ListReviewDisputeCommentsController, 'handle'])
+      .as('api.reviews.disputes.comments.list')
+    router
+      .post('/api/reviews/disputes/:id/comments', [CreateReviewDisputeCommentController, 'handle'])
+      .as('api.reviews.disputes.comments.create')
+    router
+      .get('/api/reviews/disputes/:id/evidences', [ListReviewDisputeEvidencesController, 'handle'])
+      .as('api.reviews.disputes.evidences.list')
+    router
+      .post('/api/reviews/disputes/:id/evidences', [CreateReviewDisputeEvidenceController, 'handle'])
+      .as('api.reviews.disputes.evidences.create')
+    router
+      .post('/api/org/reviews/disputes/:id/respond', [RespondToReviewDisputeController, 'handle'])
+      .as('api.org.reviews.disputes.respond')
+    router
+      .get('/api/admin/reviews/disputes', [ListAdminReviewDisputesController, 'handle'])
+      .as('api.admin.reviews.disputes.list')
+    router
+      .get('/api/admin/reviews/disputes/:id', [ShowAdminReviewDisputeController, 'handle'])
+      .as('api.admin.reviews.disputes.show')
+    router
+      .post('/api/admin/reviews/disputes/:id/resolve', [ResolveReviewDisputeController, 'handle'])
+      .as('api.admin.reviews.disputes.resolve')
+    router
+      .get('/api/admin/reviews/disputes/:id/case-files', [ListReviewDisputeCaseFilesController, 'handle'])
+      .as('api.admin.reviews.disputes.case_files.list')
+    router
+      .post('/api/admin/reviews/disputes/:id/case-files', [
+        BuildReviewDisputeCaseFileController,
+        'handle',
+      ])
+      .as('api.admin.reviews.disputes.case_files.create')
+    router
+      .get('/api/admin/reviews/disputes/:id/ai-evaluations', [
+        ListAiDisputeEvaluationsController,
+        'handle',
+      ])
+      .as('api.admin.reviews.disputes.ai_evaluations.list')
+    router
+      .post('/api/admin/reviews/disputes/:id/ai-evaluations', [
+        StartAiDisputeEvaluationController,
+        'handle',
+      ])
+      .as('api.admin.reviews.disputes.ai_evaluations.create')
+
+    // My reviews (as reviewee)
+    router.get('/my-reviews', [MyReviewsController, 'handle']).as('reviews.mine')
+
+    // User reviews (public profile)
+    router.get('/users/:id/reviews', [UserReviewsController, 'handle']).as('users.reviews')
+
+    // Admin: Flagged reviews
+    router
+      .get('/admin/flagged-reviews', [ListFlaggedReviewsController, 'handle'])
+      .as('admin.flagged_reviews')
+    router
+      .post('/admin/flagged-reviews/:id/resolve', [ResolveFlaggedReviewController, 'handle'])
+      .as('admin.flagged_reviews.resolve')
+
+    // API routes
+    router
+      .post('/api/reviews/sessions', [CreateReviewSessionController, 'handle'])
+      .as('api.reviews.sessions.create')
+  })
+  .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+const AiDisputeCallbackController = () =>
+  import('#modules/reviews/controllers/ai_dispute_callback_controller')
+
+router
+  .post('/api/public/ai-disputes/callback', [AiDisputeCallbackController, 'handle'])
+  .as('api.public.ai_disputes.callback')
+  .use([throttle])
+
+router
+  .post('/api/public/ai/dispute-evaluations/callback', [AiDisputeCallbackController, 'handle'])
+  .as('api.public.ai.dispute_evaluations.callback.legacy')
+  .use([throttle])
+
+```
+
+### `app/modules/reviews/actions/commands/add_review_evidence_command.ts`
+
+```ts
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { canAccessReviewSession, canAddReviewEvidence } from '#modules/reviews/domain/review_policy'
+import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import type { ReviewEvidenceRecord } from '#modules/reviews/types/review_records'
+
+interface AddReviewEvidenceInput {
+  review_session_id: string
+  evidence_type: string
+  url: string | null
+  title: string | null
+  description: string | null
+}
+
+/**
+ * AddReviewEvidenceCommand
+ *
+ * Allows review participants to attach evidences to a review session.
+ */
+export default class AddReviewEvidenceCommand extends BaseCommand<
+  AddReviewEvidenceInput,
+  ReviewEvidenceRecord
+> {
+  async handle(dto: AddReviewEvidenceInput): Promise<ReviewEvidenceRecord> {
+    return await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+
+      const session = await ReviewSessionRepository.findById(dto.review_session_id, trx)
+      enforcePolicy(canAccessReviewSession({ sessionExists: !!session }))
+      if (!session) {
+        throw new Error('Review session must exist after policy enforcement')
+      }
+
+      const submittedReview = await SkillReviewRepository.findBySessionAndReviewer(
+        dto.review_session_id,
+        userId,
+        trx
+      )
+      enforcePolicy(
+        canAddReviewEvidence({
+          actorId: userId,
+          sessionRevieweeId: session.reviewee_id,
+          hasSubmittedReview: !!submittedReview,
+        })
+      )
+
+      const evidence = await ReviewEvidenceRepository.create(
+        {
+          review_session_id: dto.review_session_id,
+          evidence_type: dto.evidence_type,
+          url: dto.url,
+          title: dto.title,
+          description: dto.description,
+          uploaded_by: userId,
+        },
+        trx
+      )
+
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'add_review_evidence',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            evidence_id: evidence.id,
+            evidence_type: evidence.evidence_type,
+          },
+        })
+      }
+
+      return evidence
+    })
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/calculate_performance_score_command.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { calculatePerformanceScore } from '#modules/reviews/domain/review_formulas'
+import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
+
+export interface CalculatePerformanceScoreDTO {
+  userId: string
+}
+
+export interface PerformanceScoreResult {
+  userId: string
+  performanceScore: number
+  qualityScore: number
+  deliveryScore: number
+  difficultyBonus: number
+  consistencyScore: number
+}
+
+interface AssignmentPerformanceRow {
+  id: string
+  completed_at: string | Date | null
+  actual_hours: number | string | null
+  due_date: string | Date | null
+  difficulty: string | null
+}
+
+interface QualityPerformanceRow {
+  overall_quality_score: number | string
+}
+
+interface PerformanceMetrics {
+  totalCompletedAssignments: number
+  totalHoursWorked: number
+  qualityScore: number
+  qualityMean: number
+  deliveryScore: number
+  difficultyBonus: number
+  consistencyScore: number
+  performanceScore: number
+}
+
+/**
+ * CalculatePerformanceScoreCommand
+ *
+ * Computes execution performance score (0-100) from completed assignments +
+ * completed review sessions and stores results in both:
+ * - users.trust_data (compat)
+ * - user_performance_stats (source-of-truth aggregate)
+ */
+export default class CalculatePerformanceScoreCommand extends BaseCommand<
+  CalculatePerformanceScoreDTO,
+  PerformanceScoreResult
+> {
+  private static readonly PERFORMANCE_SCORING_VERSION = 'performance_v1'
+
+  /**
+   * Command flow:
+   * 1. Load completion data from review metrics views.
+   * 2. Derive aggregate performance signals.
+   * 3. Persist compatibility data on users.trust_data.
+   * 4. Upsert the source-of-truth user_performance_stats row.
+   * 5. Emit audit trail and return the normalized result.
+   */
+  async handle(dto: CalculatePerformanceScoreDTO): Promise<PerformanceScoreResult> {
+    return await this.executeInTransaction(async (trx) => {
+      const { assignmentRows, qualityRows } = await this.loadPerformanceInputs(dto.userId, trx)
+      const metrics = this.calculatePerformanceMetrics(assignmentRows, qualityRows)
+
+      await this.persistUserTrustData(dto.userId, metrics, trx)
+      await this.persistUserPerformanceStats(dto.userId, metrics, trx)
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'calculate_performance_score',
+          entity_type: 'user',
+          entity_id: dto.userId,
+          old_values: null,
+          new_values: {
+            performance_score: metrics.performanceScore,
+            quality_score: metrics.qualityScore,
+            delivery_score: metrics.deliveryScore,
+            difficulty_bonus: metrics.difficultyBonus,
+            consistency_score: metrics.consistencyScore,
+            total_completed_assignments: metrics.totalCompletedAssignments,
+            scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+          },
+        })
+      }
+
+      return this.buildResult(dto.userId, metrics)
+    })
+  }
+
+  private mapDifficultyWeight(difficulty: string | null): number {
+    if (!difficulty) return 1.0
+
+    switch (difficulty) {
+      case 'expert':
