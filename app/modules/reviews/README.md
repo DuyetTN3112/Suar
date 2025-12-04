@@ -1798,3 +1798,903 @@ export default class CalculatePerformanceScoreCommand extends BaseCommand<
 
     switch (difficulty) {
       case 'expert':
+        return 4.0
+      case 'hard':
+        return 2.5
+      case 'medium':
+        return 1.5
+      case 'easy':
+      default:
+        return 1.0
+    }
+  }
+
+  private async loadPerformanceInputs(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<{ assignmentRows: AssignmentPerformanceRow[]; qualityRows: QualityPerformanceRow[] }> {
+    const assignmentRows = (await ReviewMetricsRepository.listCompletedAssignmentsForPerformance(
+      userId,
+      trx
+    )) as AssignmentPerformanceRow[]
+
+    const qualityRows = (await ReviewMetricsRepository.listCompletedSessionQualityRows(
+      userId,
+      trx
+    )) as QualityPerformanceRow[]
+
+    return { assignmentRows, qualityRows }
+  }
+
+  private calculatePerformanceMetrics(
+    assignmentRows: AssignmentPerformanceRow[],
+    qualityRows: QualityPerformanceRow[]
+  ): PerformanceMetrics {
+    const totalCompletedAssignments = assignmentRows.length
+    const totalHoursWorked = assignmentRows.reduce((sum, item) => {
+      const value = Number(item.actual_hours ?? 0)
+      return sum + (Number.isFinite(value) ? value : 0)
+    }, 0)
+
+    let onTimeCount = 0
+    let weightedDifficultyTotal = 0
+
+    for (const assignment of assignmentRows) {
+      weightedDifficultyTotal += this.mapDifficultyWeight(assignment.difficulty)
+
+      if (!assignment.completed_at || !assignment.due_date) {
+        continue
+      }
+
+      const completedAt =
+        assignment.completed_at instanceof Date
+          ? DateTime.fromJSDate(assignment.completed_at)
+          : DateTime.fromISO(assignment.completed_at)
+
+      const dueDate =
+        assignment.due_date instanceof Date
+          ? DateTime.fromJSDate(assignment.due_date)
+          : DateTime.fromISO(assignment.due_date)
+
+      if (completedAt.isValid && dueDate.isValid && completedAt.toMillis() <= dueDate.toMillis()) {
+        onTimeCount += 1
+      }
+    }
+
+    const deliveryScore =
+      totalCompletedAssignments > 0 ? (onTimeCount / totalCompletedAssignments) * 100 : 0
+    const difficultyBonus =
+      totalCompletedAssignments > 0
+        ? (weightedDifficultyTotal / totalCompletedAssignments / 4.0) * 100
+        : 0
+
+    const qualityValues = qualityRows
+      .map((row) => Number(row.overall_quality_score))
+      .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5)
+
+    const qualitySum = qualityValues.reduce((sum, value) => sum + value, 0)
+    const qualityMean = qualityValues.length > 0 ? qualitySum / qualityValues.length : 0
+    const qualityScore = qualityValues.length > 0 ? (qualityMean / 5) * 100 : 0
+
+    const qualityVariance =
+      qualityValues.length > 0
+        ? qualityValues.reduce((sum, value) => sum + (value - qualityMean) ** 2, 0) /
+          qualityValues.length
+        : 0
+
+    const consistencyScore = Math.max(0, 100 - Math.sqrt(qualityVariance) * 25)
+    const performanceScore = calculatePerformanceScore({
+      qualityScore,
+      deliveryScore,
+      difficultyBonus,
+      consistencyScore,
+    })
+
+    return {
+      totalCompletedAssignments,
+      totalHoursWorked,
+      qualityScore,
+      qualityMean,
+      deliveryScore,
+      difficultyBonus,
+      consistencyScore,
+      performanceScore,
+    }
+  }
+
+  private async persistUserTrustData(
+    userId: string,
+    metrics: PerformanceMetrics,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const calculatedAt = DateTime.now().toISO()
+
+    await DefaultReviewDependencies.user.mergeTrustData(
+      userId,
+      {
+        scoring_version: CalculatePerformanceScoreCommand.PERFORMANCE_SCORING_VERSION,
+        performance_score: metrics.performanceScore,
+        performance_breakdown: {
+          quality_score: this.roundToTenth(metrics.qualityScore),
+          delivery_score: this.roundToTenth(metrics.deliveryScore),
+          difficulty_bonus: this.roundToTenth(metrics.difficultyBonus),
+          consistency_score: this.roundToTenth(metrics.consistencyScore),
+          calculated_at: calculatedAt,
+        },
+      },
+      trx
+    )
+  }
+
+  private async persistUserPerformanceStats(
+    userId: string,
+    metrics: PerformanceMetrics,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await DefaultReviewDependencies.user.upsertLifetimePerformanceStats(
+      userId,
+      {
+        totalCompletedAssignments: metrics.totalCompletedAssignments,
+        totalHoursWorked: metrics.totalHoursWorked,
+        qualityMean: metrics.qualityMean,
+        deliveryScore: metrics.deliveryScore,
+        performanceScore: metrics.performanceScore,
+        calculatedAt: DateTime.now(),
+      },
+      trx
+    )
+  }
+
+  private buildResult(userId: string, metrics: PerformanceMetrics): PerformanceScoreResult {
+    return {
+      userId,
+      performanceScore: metrics.performanceScore,
+      qualityScore: this.roundToTenth(metrics.qualityScore),
+      deliveryScore: this.roundToTenth(metrics.deliveryScore),
+      difficultyBonus: this.roundToTenth(metrics.difficultyBonus),
+      consistencyScore: this.roundToTenth(metrics.consistencyScore),
+    }
+  }
+
+  private roundToTenth(value: number): number {
+    return Math.round(value * 10) / 10
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/calculate_spider_chart_command.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { getLevelCodeFromPercentage } from '#modules/reviews/domain/review_formulas'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+
+/**
+ * DTO for CalculateSpiderChart
+ */
+export interface CalculateSpiderChartDTO {
+  userId: string
+}
+
+/**
+ * Result of spider chart calculation
+ */
+export interface SpiderChartResult {
+  userId: string
+  skillsCalculated: number
+  totalReviews: number
+}
+
+/**
+ * Command: Calculate Spider Chart Data for a User
+ *
+ * Di chuyển từ database procedure: calculate_spider_chart(p_user_id)
+ *
+ * v3: Spider chart data is now stored inline on user_skills table
+ * (avg_percentage, level_code, last_calculated_at) instead of separate
+ * user_spider_chart_data table.
+ *
+ * Business logic:
+ * 1. Lấy tất cả skills có display_type = 'spider_chart' (soft_skill, delivery)
+ * 2. Với mỗi skill, tính avg_percentage từ skill_reviews
+ * 3. Xác định level tương ứng với avg_percentage
+ * 4. Upsert vào user_skills
+ */
+export default class CalculateSpiderChartCommand extends BaseCommand<
+  CalculateSpiderChartDTO,
+  SpiderChartResult
+> {
+  async handle(dto: CalculateSpiderChartDTO): Promise<SpiderChartResult> {
+    return await this.executeInTransaction(async (trx) => {
+      // 1. Lấy tất cả skills có display_type = 'spider_chart'
+      const skills = await this.getSpiderChartSkills(trx)
+
+      let totalReviewsCount = 0
+
+      // 2. Với mỗi skill, tính và upsert
+      for (const skill of skills) {
+        const { avgPercentage, totalReviews, levelCode } = await this.calculateSkillData(
+          dto.userId,
+          skill.id,
+          trx
+        )
+
+        totalReviewsCount += totalReviews
+
+        // 3. Upsert vào user_skills (v3: inline spider chart data)
+        await this.upsertUserSkillData(
+          dto.userId,
+          skill.id,
+          avgPercentage,
+          levelCode,
+          totalReviews,
+          trx
+        )
+      }
+
+      // 4. Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'calculate_spider_chart',
+          entity_type: 'user_skill',
+          entity_id: dto.userId,
+          old_values: null,
+          new_values: {
+            skills_calculated: skills.length,
+            total_reviews: totalReviewsCount,
+          },
+        })
+      }
+
+      return {
+        userId: dto.userId,
+        skillsCalculated: skills.length,
+        totalReviews: totalReviewsCount,
+      }
+    })
+  }
+
+  /**
+   * Lấy tất cả skills có display_type = 'spider_chart'
+   */
+  private async getSpiderChartSkills(
+    trx: TransactionClientContract
+  ): Promise<{ id: string }[]> {
+    return DefaultReviewDependencies.skill.listSpiderChartSkillIds(trx)
+  }
+
+  /**
+   * Tính average percentage và total reviews cho một skill
+   * v3: uses review formula mapping instead of ProficiencyLevel.findByPercentageRange
+   */
+  private async calculateSkillData(
+    userId: string,
+    skillId: string,
+    trx: TransactionClientContract
+  ): Promise<{ avgPercentage: number; totalReviews: number; levelCode: string }> {
+    // Tính average percentage từ skill_reviews → delegate to SkillReview
+    const { avgPercentage, totalReviews } = await SkillReviewRepository.calculateSkillAvgPercentage(
+      userId,
+      skillId,
+      trx
+    )
+
+    // v3: Tìm level tương ứng từ review formula
+    const levelCode = getLevelCodeFromPercentage(avgPercentage)
+
+    return { avgPercentage, totalReviews, levelCode }
+  }
+
+  /**
+   * v3: Upsert vào user_skills table (replaces user_spider_chart_data)
+   */
+  private async upsertUserSkillData(
+    userId: string,
+    skillId: string,
+    avgPercentage: number,
+    levelCode: string,
+    _totalReviews: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await DefaultReviewDependencies.userSkill.upsertSpiderChartSkillData(
+      userId,
+      skillId,
+      {
+        avgPercentage,
+        levelCode,
+      },
+      trx
+    )
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/calculate_trust_score_command.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import {
+  calculateTrustScoreV2,
+  determineTier,
+  mapLevelCodeToNumber,
+} from '#modules/reviews/domain/review_formulas'
+import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
+
+/**
+ * DTO for CalculateTrustScore
+ */
+export interface CalculateTrustScoreDTO {
+  userId: string
+}
+
+/**
+ * Result of trust score calculation
+ */
+export interface TrustScoreResult {
+  userId: string
+  rawScore: number
+  calculatedScore: number
+  tierCode: string
+  tierName: string
+  totalVerifiedReviews: number
+}
+
+/**
+ * Command: Calculate Trust Score for a User
+ *
+ * v3: Trust score stored as JSONB trust_data on users table.
+ *
+ * Pattern: FETCH → DECIDE (pure formulas) → PERSIST
+ */
+export default class CalculateTrustScoreCommand extends BaseCommand<
+  CalculateTrustScoreDTO,
+  TrustScoreResult
+> {
+  private static readonly TRUST_SCORING_VERSION = 'trust_v2'
+
+  async handle(dto: CalculateTrustScoreDTO): Promise<TrustScoreResult> {
+    return await this.executeInTransaction(async (trx) => {
+      const fetched = await this.fetchTrustScoreData(dto.userId, trx)
+      const computed = this.computeTrustScore(fetched)
+
+      await this.persistTrustScore(dto.userId, computed, trx)
+      await this.logTrustScoreAudit(dto.userId, computed)
+
+      return {
+        userId: dto.userId,
+        rawScore: computed.rawScore,
+        calculatedScore: computed.calculatedScore,
+        tierCode: computed.tierCode,
+        tierName: computed.tierName,
+        totalVerifiedReviews: computed.totalVerifiedReviews,
+      }
+    })
+  }
+
+  private async fetchTrustScoreData(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<TrustScoreFetchResult> {
+    const sessions = (await ReviewMetricsRepository.listCompletedSessionsForTrust(
+      userId,
+      trx
+    )) as TrustScoreSessionRow[]
+
+    const sessionIds = sessions.map((session) => session.id)
+
+    const reviews = sessionIds.length
+      ? ((await ReviewMetricsRepository.listSkillReviewTrustRows(
+          sessionIds,
+          trx
+        )) as TrustScoreReviewRow[])
+      : []
+
+    const evidenceCountResult = sessionIds.length
+      ? await ReviewMetricsRepository.countSessionsWithEvidence(sessionIds, trx)
+      : [{ total: 0 }]
+
+    const sessionsWithEvidence = Number(
+      (evidenceCountResult[0] as TrustScoreEvidenceCountRow).total
+    )
+
+    const organizationIds = await DefaultReviewDependencies.organization.listOrganizationIdsByUser(
+      userId,
+      trx
+    )
+
+    let belongsToPartnerOrg = false
+    if (organizationIds.length > 0) {
+      belongsToPartnerOrg = await DefaultReviewDependencies.organization.hasAnyActivePartnerByIds(
+        organizationIds,
+        trx
+      )
+    }
+
+    return {
+      sessions,
+      reviews,
+      sessionsWithEvidence,
+      organizationIds,
+      belongsToPartnerOrg,
+    }
+  }
+
+  private computeTrustScore(fetched: TrustScoreFetchResult): TrustScoreComputationResult {
+    const totalCompletedSessions = fetched.sessions.length
+    const totalReviews = fetched.reviews.length
+    const recentSessions = this.countRecentSessions(fetched.sessions)
+    const { reviewConsistency, reviewerCredibility } = this.calculateReviewSignals(fetched.reviews)
+
+    const evidenceCoverage =
+      totalCompletedSessions > 0 ? (fetched.sessionsWithEvidence / totalCompletedSessions) * 100 : 0
+    const volumeScore = Math.min(100, totalCompletedSessions * 2)
+    const recencyScore = Math.min(100, recentSessions * 10)
+    const volumeRecency = (volumeScore + recencyScore) / 2
+    const orgPartnerWeight = fetched.belongsToPartnerOrg
+      ? 100
+      : fetched.organizationIds.length > 0
+        ? 70
+        : 30
+
+    const rawScore = calculateTrustScoreV2({
+      reviewConsistency,
+      reviewerCredibility,
+      evidenceCoverage,
+      orgPartnerWeight,
+      volumeRecency,
+    })
+
+    const { tierCode, tierWeight, tierName } = determineTier(
+      fetched.organizationIds.length > 0,
+      fetched.belongsToPartnerOrg
+    )
+
+    // v2: org trust signal already contributes in orgPartnerWeight.
+    // Keep `calculated_score` equal to raw score to avoid double weighting.
+    const calculatedScore = rawScore
+
+    return {
+      rawScore,
+      calculatedScore,
+      tierCode,
+      tierName,
+      tierWeight,
+      totalVerifiedReviews: totalReviews,
+      scoringVersion: CalculateTrustScoreCommand.TRUST_SCORING_VERSION,
+      signals: {
+        reviewConsistency,
+        reviewerCredibility,
+        evidenceCoverage,
+        orgPartnerWeight,
+        volumeRecency,
+      },
+    }
+  }
+
+  private countRecentSessions(sessions: TrustScoreSessionRow[]): number {
+    const recentCutoff = DateTime.now().minus({ days: 90 })
+
+    return sessions.filter((session) => {
+      const createdAt =
+        session.created_at instanceof Date
+          ? DateTime.fromJSDate(session.created_at)
+          : DateTime.fromISO(session.created_at)
+
+      return createdAt.isValid && createdAt.toMillis() >= recentCutoff.toMillis()
+    }).length
+  }
+
+  private calculateReviewSignals(reviews: TrustScoreReviewRow[]): {
+    reviewConsistency: number
+    reviewerCredibility: number
+  } {
+    const reviewConsistencyBySession = new Map<
+      string,
+      { managerLevels: number[]; peerLevels: number[] }
+    >()
+    let reviewerCredibilityTotal = 0
+    let reviewerCredibilityCount = 0
+
+    for (const review of reviews) {
+      const bucket = reviewConsistencyBySession.get(review.review_session_id) ?? {
+        managerLevels: [],
+        peerLevels: [],
+      }
+
+      const levelNum = mapLevelCodeToNumber(review.assigned_level_code)
+      if (review.reviewer_type === 'manager') {
+        bucket.managerLevels.push(levelNum)
+      } else {
+        bucket.peerLevels.push(levelNum)
+      }
+      reviewConsistencyBySession.set(review.review_session_id, bucket)
+
+      reviewerCredibilityTotal += Number(review.reviewer_credibility_score)
+      reviewerCredibilityCount += 1
+    }
+
+    const consistencyScores: number[] = []
+    for (const bucket of reviewConsistencyBySession.values()) {
+      if (bucket.managerLevels.length === 0 || bucket.peerLevels.length === 0) {
+        continue
+      }
+
+      const managerAvg =
+        bucket.managerLevels.reduce((sum, value) => sum + value, 0) / bucket.managerLevels.length
+      const peerAvg =
+        bucket.peerLevels.reduce((sum, value) => sum + value, 0) / bucket.peerLevels.length
+      const delta = Math.abs(managerAvg - peerAvg)
+      consistencyScores.push(Math.max(0, 100 - delta * 15))
+    }
+
+    const reviewConsistency =
+      consistencyScores.length > 0
+        ? consistencyScores.reduce((sum, value) => sum + value, 0) / consistencyScores.length
+        : 50
+
+    const reviewerCredibility =
+      reviewerCredibilityCount > 0 ? reviewerCredibilityTotal / reviewerCredibilityCount : 50
+
+    return { reviewConsistency, reviewerCredibility }
+  }
+
+  private async persistTrustScore(
+    userId: string,
+    computed: TrustScoreComputationResult,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await DefaultReviewDependencies.user.mergeTrustData(
+      userId,
+      {
+        current_tier_code: computed.tierCode,
+        calculated_score: computed.calculatedScore,
+        raw_score: computed.rawScore,
+        total_verified_reviews: computed.totalVerifiedReviews,
+        last_calculated_at: DateTime.now().toISO(),
+        scoring_version: computed.scoringVersion,
+      },
+      trx
+    )
+  }
+
+  private async logTrustScoreAudit(
+    userId: string,
+    computed: TrustScoreComputationResult
+  ): Promise<void> {
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'calculate_trust_score',
+        entity_type: 'user',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          raw_score: computed.rawScore,
+          calculated_score: computed.calculatedScore,
+          tier_code: computed.tierCode,
+          tier_name: computed.tierName,
+          total_reviews: computed.totalVerifiedReviews,
+          v2_signals: {
+            review_consistency: Math.round(computed.signals.reviewConsistency * 10) / 10,
+            reviewer_credibility: Math.round(computed.signals.reviewerCredibility * 10) / 10,
+            evidence_coverage: Math.round(computed.signals.evidenceCoverage * 10) / 10,
+            org_partner_weight: computed.signals.orgPartnerWeight,
+            volume_recency: Math.round(computed.signals.volumeRecency * 10) / 10,
+            tier_weight: computed.tierWeight,
+            scoring_version: computed.scoringVersion,
+          },
+        },
+      })
+    }
+  }
+}
+
+interface TrustScoreSessionRow {
+  id: string
+  created_at: string | Date
+}
+
+interface TrustScoreReviewRow {
+  review_session_id: string
+  reviewer_type: 'manager' | 'peer'
+  assigned_level_code: string
+  reviewer_credibility_score: number | string
+}
+
+interface TrustScoreEvidenceCountRow {
+  total: number | string
+}
+
+interface TrustScoreFetchResult {
+  sessions: TrustScoreSessionRow[]
+  reviews: TrustScoreReviewRow[]
+  sessionsWithEvidence: number
+  organizationIds: string[]
+  belongsToPartnerOrg: boolean
+}
+
+interface TrustScoreComputationResult {
+  rawScore: number
+  calculatedScore: number
+  tierCode: string
+  tierName: string
+  tierWeight: number
+  totalVerifiedReviews: number
+  scoringVersion: string
+  signals: {
+    reviewConsistency: number
+    reviewerCredibility: number
+    evidenceCoverage: number
+    orgPartnerWeight: number
+    volumeRecency: number
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/confirm_review_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { ConfirmReviewDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
+
+/**
+ * ConfirmReviewCommand
+ *
+ * Reviewee confirms or disputes the review results.
+ * v3: Confirmation stored in review_sessions.confirmations JSONB array.
+ * Credibility stored in users.credibility_data JSONB.
+ */
+export default class ConfirmReviewCommand extends BaseCommand<
+  ConfirmReviewDTO,
+  ReviewConfirmationEntry
+> {
+  async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmationEntry> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+
+      // Get review session
+      const session = await ReviewSessionRepository.findCompletedForRevieweeForUpdate(
+        dto.review_session_id,
+        userId,
+        trx
+      )
+
+      if (!session) {
+        throw new ConflictException('Review session không tồn tại hoặc không thể xác nhận')
+      }
+
+      // v3: Check if already confirmed in JSONB confirmations array
+      const confirmations: ReviewConfirmationEntry[] = session.confirmations ?? []
+      const existing = confirmations.find((c) => c.user_id === userId)
+
+      if (existing) {
+        throw new ConflictException('You have already confirmed or disputed this review')
+      }
+
+      // v3: Append to confirmations JSONB array
+      const newConfirmation: ReviewConfirmationEntry = {
+        user_id: userId,
+        action: dto.action,
+        dispute_reason: dto.dispute_reason ?? null,
+        created_at: DateTime.now().toISO(),
+      }
+      confirmations.push(newConfirmation)
+      session.confirmations = confirmations
+
+      // Update session status if disputed
+      if (dto.action === 'disputed') {
+        session.status = 'disputed'
+
+        const assignment = (await trx
+          .from('task_assignments')
+          .where('id', session.task_assignment_id)
+          .first()) as { id: string; task_id: string } | undefined
+
+        if (assignment) {
+          await trx.table('review_disputes').insert({
+            review_session_id: session.id,
+            task_assignment_id: assignment.id,
+            task_id: assignment.task_id,
+            reviewee_id: session.reviewee_id,
+            opened_by: userId,
+            status: 'pending',
+            dispute_reason: dto.dispute_reason?.trim() ?? 'No reason provided',
+            requested_outcome: 'other',
+          })
+        }
+      }
+
+      await ReviewSessionRepository.save(session, trx)
+
+
+      const skillReviews = await SkillReviewRepository.listBySession(session.id, trx)
+      const reviewerIds = [...new Set(skillReviews.map((review) => review.reviewer_id))]
+
+      // Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'confirm_review',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            review_session_id: dto.review_session_id,
+            action: dto.action,
+            dispute_reason: dto.dispute_reason,
+          },
+        })
+      }
+
+      return {
+        confirmation: newConfirmation,
+        cachePattern: `review:session:${dto.review_session_id}`,
+        reviewConfirmedEvent: {
+          confirmationId: newConfirmation.user_id,
+          reviewSessionId: dto.review_session_id,
+          revieweeId: session.reviewee_id,
+          reviewerIds,
+          confirmedBy: userId,
+          action: dto.action,
+        },
+      }
+    })
+
+    await cacheStore.deleteByPattern(result.cachePattern)
+    await emitter.emit('review:confirmed', result.reviewConfirmedEvent)
+
+    return result.confirmation
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/create_review_session_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import type { CreateReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
+
+/**
+ * CreateReviewSessionCommand
+ *
+ * Creates a review session after a task assignment is completed.
+ * This initiates the 360° review process.
+ */
+export default class CreateReviewSessionCommand extends BaseCommand<
+  CreateReviewSessionDTO,
+  ReviewSessionRecord
+> {
+  async handle(dto: CreateReviewSessionDTO): Promise<ReviewSessionRecord> {
+    const result = await this.executeInTransaction(async (trx) => {
+      // Verify task assignment exists and is completed
+      const assignment = await DefaultReviewDependencies.taskAssignment.findCompletedAssignment(
+        dto.task_assignment_id,
+        trx
+      )
+
+      if (!assignment) {
+        throw new BusinessLogicException('Task assignment phải tồn tại và đã hoàn thành')
+      }
+
+      if (assignment.assignee_id !== dto.reviewee_id) {
+        throw new BusinessLogicException('Reviewee must match assignment assignee')
+      }
+
+      // Check if review session already exists
+      const existing = await ReviewSessionRepository.findByTaskAssignment(
+        dto.task_assignment_id,
+        trx
+      )
+
+      if (existing) {
+        throw new ConflictException('Review session already exists for this assignment')
+      }
+
+      // Create review session
+      const session = await ReviewSessionRepository.create(
+        {
+          task_assignment_id: dto.task_assignment_id,
+          reviewee_id: dto.reviewee_id,
+          status: 'pending',
+          manager_review_completed: false,
+          peer_reviews_count: 0,
+          required_peer_reviews: dto.required_peer_reviews,
+        },
+        trx
+      )
+
+      // Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create',
+          entity_type: 'review_session',
+          entity_id: session.id,
+          old_values: null,
+          new_values: {
+            task_assignment_id: dto.task_assignment_id,
+            reviewee_id: dto.reviewee_id,
+          },
+        })
+      }
+
+      return {
+        session,
+        auditEvent: {
+          userId: this.getCurrentUserId(),
+          action: 'create',
+          entityType: 'review_session',
+          entityId: session.id,
+          newValues: {
+            task_assignment_id: dto.task_assignment_id,
+            reviewee_id: dto.reviewee_id,
+          },
+        },
+      }
+    })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.session
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/detect_anomaly_command.ts`
+
+```ts
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import { AnomalyFlagType, AnomalySeverity } from '#modules/reviews/constants/review_constants'
+import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import type { FlaggedReviewRecord, SkillReviewRecord } from '#modules/reviews/types/review_records'
+
+
+/**
+ * Anomaly detection result
+ */
+interface AnomalyDetection {
+  flagType: string
+  severity: string
+  skillReviewId: string
+  notes: string
+}
