@@ -1,0 +1,198 @@
+import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
+import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { DateTime } from 'luxon'
+
+
+import UserOAuthProvider from './user_oauth_provider.js'
+import UserSkill from './user_skill.js'
+
+import { SystemRoleName } from '#constants/user_constants'
+import Organization from '#infra/organizations/models/organization'
+import OrganizationUser from '#infra/organizations/models/organization_user'
+import Project from '#infra/projects/models/project'
+import Task from '#infra/tasks/models/task'
+import type { UserProfileSettings, UserTrustData, UserCredibilityData } from '#types/database'
+
+function parseJsonColumn<T>(value: string | T | null): T | null {
+  if (typeof value !== 'string') {
+    return value
+  }
+
+  const parsed: unknown = JSON.parse(value)
+  return parsed as T
+}
+
+export default class User extends BaseModel {
+  static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
+
+  static override table = 'users'
+
+  @column({ isPrimary: true })
+  declare id: string
+
+  @column()
+  declare username: string
+
+  @column()
+  declare email: string | null
+
+  @column()
+  declare status: string
+
+  /**
+   * v3.0: Inline system_role VARCHAR — replaces system_role_id UUID → system_roles table
+   * CHECK: 'superadmin', 'system_admin', 'registered_user'
+   */
+  @column()
+  declare system_role: string
+
+  @column()
+  declare current_organization_id: string | null
+
+  @column()
+  declare auth_method: 'google' | 'github'
+
+  // ===== Merged from user_details (v2.0) =====
+  @column()
+  declare avatar_url: string | null
+
+  @column()
+  declare bio: string | null
+
+  @column()
+  declare phone: string | null
+
+  @column()
+  declare address: string | null
+
+  @column()
+  declare timezone: string
+
+  @column()
+  declare language: string
+
+  @column()
+  declare is_freelancer: boolean
+
+  @column()
+  declare freelancer_rating: number | null
+
+  @column()
+  declare freelancer_completed_tasks_count: number
+
+  // ===== JSONB columns =====
+
+  /**
+   * v3.0: Merged from public_profile_settings
+   */
+  @column({
+    prepare: (value: UserProfileSettings | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserProfileSettings | null) => parseJsonColumn(value),
+  })
+  declare profile_settings: UserProfileSettings | null
+
+  /**
+   * v3.0: trust_data — current_tier_code string (not UUID)
+   */
+  @column({
+    prepare: (value: UserTrustData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserTrustData | null) => parseJsonColumn(value),
+  })
+  declare trust_data: UserTrustData | null
+
+  /**
+   * v3.0: Merged from reviewer_credibility
+   */
+  @column({
+    prepare: (value: UserCredibilityData | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | UserCredibilityData | null) => parseJsonColumn(value),
+  })
+  declare credibility_data: UserCredibilityData | null
+
+  @column.dateTime()
+  declare deleted_at: DateTime | null
+
+  @column.dateTime({ autoCreate: true })
+  declare created_at: DateTime
+
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
+
+  // ===== Relationships =====
+
+  @belongsTo(() => Organization, {
+    foreignKey: 'current_organization_id',
+  })
+  declare current_organization: BelongsTo<typeof Organization>
+
+  @hasMany(() => Task, {
+    foreignKey: 'creator_id',
+  })
+  declare created_tasks: HasMany<typeof Task>
+
+  @hasMany(() => Task, {
+    foreignKey: 'assigned_to',
+  })
+  declare assigned_tasks: HasMany<typeof Task>
+
+  @hasMany(() => Project, {
+    foreignKey: 'creator_id',
+  })
+  declare created_projects: HasMany<typeof Project>
+
+  @hasMany(() => Project, {
+    foreignKey: 'manager_id',
+  })
+  declare managed_projects: HasMany<typeof Project>
+
+  @hasMany(() => Project, {
+    foreignKey: 'owner_id',
+  })
+  declare owned_projects: HasMany<typeof Project>
+
+  @manyToMany(() => Project, {
+    pivotTable: 'project_members',
+    pivotColumns: ['project_role'],
+    pivotTimestamps: {
+      createdAt: 'created_at',
+      updatedAt: false,
+    },
+  })
+  declare projects: ManyToMany<typeof Project>
+
+  @hasMany(() => UserOAuthProvider, {
+    foreignKey: 'user_id',
+  })
+  declare oauth_providers: HasMany<typeof UserOAuthProvider>
+
+  /**
+   * v3.0: Check isAdmin directly from inline system_role column
+   * No more preloading system_role relationship
+   */
+  get isAdmin() {
+    return [SystemRoleName.SUPERADMIN, SystemRoleName.SYSTEM_ADMIN].includes(
+      this.system_role as SystemRoleName
+    )
+  }
+
+  @manyToMany(() => Organization, {
+    pivotTable: 'organization_users',
+    pivotColumns: ['org_role', 'status', 'invited_by'],
+    pivotTimestamps: true,
+  })
+  declare organizations: ManyToMany<typeof Organization>
+
+  /**
+   * Mối quan hệ trực tiếp đến bảng pivot organization_users
+   */
+  @hasMany(() => OrganizationUser, {
+    foreignKey: 'user_id',
+  })
+  declare organization_users: HasMany<typeof OrganizationUser>
+
+  @hasMany(() => UserSkill, {
+    foreignKey: 'user_id',
+  })
+  declare skills: HasMany<typeof UserSkill>
+}
