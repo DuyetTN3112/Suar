@@ -2698,3 +2698,647 @@ interface AnomalyDetection {
   skillReviewId: string
   notes: string
 }
+
+interface DetectionContext {
+  reviewSessionId: string
+  reviewerId: string
+  skillReviews: SkillReviewRecord[]
+  session: { reviewee_id: string } | null
+  reviewee: { createdAtMillis: number } | null
+}
+
+/**
+ * DetectAnomalyCommand
+ *
+ * Automatic anomaly detection after each review submission.
+ * Checks for 6 fraud patterns:
+ *   1. sudden_spike: Skill increased >2 levels in 30 days
+ *   2. mutual_high: Two users rate each other high >3 times
+ *   3. bulk_same_level: Reviewer assigns same level to >80% of skills
+ *   4. frequency_anomaly: Too many reviews in a short period
+ *   5. new_account_high: Account <30 days receives ≥senior level
+ *   6. ip_collusion: (placeholder — needs IP tracking data)
+ */
+export default class DetectAnomalyCommand extends BaseCommand<
+  { reviewSessionId: string; reviewerId: string },
+  FlaggedReviewRecord[]
+> {
+  async handle(input: {
+    reviewSessionId: string
+    reviewerId: string
+  }): Promise<FlaggedReviewRecord[]> {
+    let flaggedReviews: FlaggedReviewRecord[] = []
+
+    try {
+      const detectionContext = await this.loadDetectionContext(
+        input.reviewSessionId,
+        input.reviewerId
+      )
+      const anomalies = await this.detectAnomalies(detectionContext)
+      flaggedReviews = await this.persistFlags(anomalies)
+      if (flaggedReviews.length > 0) {
+        loggerService.warn('Anomalies detected in review', {
+          reviewSessionId: input.reviewSessionId,
+          reviewerId: input.reviewerId,
+          anomalyCount: flaggedReviews.length,
+          types: anomalies.map((a) => a.flagType),
+        })
+      }
+    } catch (error) {
+      loggerService.error('DetectAnomalyCommand failed', {
+        reviewSessionId: input.reviewSessionId,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    }
+
+    return flaggedReviews
+  }
+
+  private async loadDetectionContext(
+    reviewSessionId: string,
+    reviewerId: string
+  ): Promise<DetectionContext> {
+    const skillReviews = await SkillReviewRepository.listBySessionAndReviewer(
+      reviewSessionId,
+      reviewerId
+    )
+
+    if (skillReviews.length === 0) {
+      return {
+        reviewSessionId,
+        reviewerId,
+        skillReviews,
+        session: null,
+        reviewee: null,
+      }
+    }
+
+    const session = await ReviewSessionRepository.findById(reviewSessionId)
+    if (!session) {
+      return {
+        reviewSessionId,
+        reviewerId,
+        skillReviews,
+        session: null,
+        reviewee: null,
+      }
+    }
+
+    const reviewee = await DefaultReviewDependencies.user.findAccountInfo(session.reviewee_id)
+
+    return {
+      reviewSessionId,
+      reviewerId,
+      skillReviews,
+      session,
+      reviewee,
+    }
+  }
+
+  private async detectAnomalies(context: DetectionContext): Promise<AnomalyDetection[]> {
+    if (context.skillReviews.length === 0 || !context.session) {
+      return []
+    }
+
+    const [bulkSame, newAccountHigh, mutualHigh] = await Promise.all([
+      Promise.resolve(this.checkBulkSameLevel(context.skillReviews)),
+      Promise.resolve(this.checkNewAccountHigh(context)),
+      this.checkMutualHigh(context),
+    ])
+
+    return [...bulkSame, ...newAccountHigh, ...mutualHigh]
+  }
+
+  /**
+   * Pattern 3: bulk_same_level — Reviewer assigns same level to >80% of skills
+   */
+  private checkBulkSameLevel(skillReviews: SkillReviewRecord[]): AnomalyDetection[] {
+    if (skillReviews.length < 3) return []
+
+    const levelCounts: Record<string, number> = {}
+    for (const review of skillReviews) {
+      const level = review.assigned_level_code
+      levelCounts[level] = (levelCounts[level] ?? 0) + 1
+    }
+
+    const maxCount = Math.max(...Object.values(levelCounts))
+    const ratio = maxCount / skillReviews.length
+
+    if (ratio > 0.8) {
+      const dominantLevel =
+        Object.entries(levelCounts).find(([, count]) => count === maxCount)?.[0] ?? 'unknown'
+      const firstReview = skillReviews[0]
+      if (!firstReview) {
+        return []
+      }
+
+      return [
+        {
+          flagType: AnomalyFlagType.BULK_SAME_LEVEL,
+          severity: ratio === 1.0 ? AnomalySeverity.HIGH : AnomalySeverity.MEDIUM,
+          skillReviewId: firstReview.id,
+          notes: `Reviewer assigned "${dominantLevel}" to ${maxCount}/${skillReviews.length} skills (${Math.round(ratio * 100)}%)`,
+        },
+      ]
+    }
+
+    return []
+  }
+
+  /**
+   * Pattern 5: new_account_high — Account <30 days receives ≥senior level
+   */
+  private checkNewAccountHigh(context: DetectionContext): AnomalyDetection[] {
+    const anomalies: AnomalyDetection[] = []
+
+    const reviewee = context.reviewee
+    if (!reviewee) return anomalies
+
+    const accountAgeDays = Math.floor(
+      (Date.now() - reviewee.createdAtMillis) / (1000 * 60 * 60 * 24)
+    )
+
+    if (accountAgeDays < 30) {
+      const highLevels = ['senior', 'lead', 'principal', 'expert', 'master']
+      for (const review of context.skillReviews) {
+        if (highLevels.includes(review.assigned_level_code)) {
+          anomalies.push({
+            flagType: AnomalyFlagType.NEW_ACCOUNT_HIGH,
+            severity: AnomalySeverity.HIGH,
+            skillReviewId: review.id,
+            notes: `Account is ${accountAgeDays} days old but received "${review.assigned_level_code}" level`,
+          })
+        }
+      }
+    }
+
+    return anomalies
+  }
+
+  /**
+   * Pattern 2: mutual_high — Two users rate each other high >3 times
+   */
+  private async checkMutualHigh(context: DetectionContext): Promise<AnomalyDetection[]> {
+    const anomalies: AnomalyDetection[] = []
+
+    const session = context.session
+    if (!session) return anomalies
+
+    const revieweeId = session.reviewee_id
+
+    // Count times the reviewee has also reviewed the reviewer with high scores
+    const mutualCount = await SkillReviewRepository.countCompletedHighReviewsBetweenUsers(
+      revieweeId,
+      context.reviewerId
+    )
+
+    if (mutualCount >= 3) {
+      const firstReview = context.skillReviews[0]
+      if (firstReview) {
+        anomalies.push({
+          flagType: AnomalyFlagType.MUTUAL_HIGH,
+          severity: AnomalySeverity.HIGH,
+          skillReviewId: firstReview.id,
+          notes: `Mutual high rating detected: ${mutualCount} reverse high-level reviews found between these users`,
+        })
+      }
+    }
+
+    return anomalies
+  }
+
+  private async persistFlags(anomalies: AnomalyDetection[]): Promise<FlaggedReviewRecord[]> {
+    const flaggedReviews: FlaggedReviewRecord[] = []
+
+    for (const anomaly of anomalies) {
+      const flagged = await FlaggedReviewRepository.create({
+        skill_review_id: anomaly.skillReviewId,
+        flag_type: anomaly.flagType,
+        severity: anomaly.severity,
+        status: 'pending',
+        notes: anomaly.notes,
+      })
+      flaggedReviews.push(flagged)
+    }
+
+    return flaggedReviews
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { DefaultReviewDependencies } from '../ports/review_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import {
+  calculateSkillConfidence,
+  calculateSkillWeightedScore,
+  mapWeightedScoreToLevelCode,
+} from '#modules/reviews/domain/review_formulas'
+import ReviewMetricsRepository from '#modules/reviews/infra/repositories/review_metrics_repository'
+
+export interface RecalculateRevieweeSkillScoresDTO {
+  userId: string
+}
+
+export interface RecalculateRevieweeSkillScoresResult {
+  userId: string
+  skillsUpdated: number
+}
+
+interface ReviewSkillRow {
+  skill_id: string
+  review_session_id: string
+  reviewer_type: 'manager' | 'peer'
+  assigned_level_code: string
+  reviewer_credibility_score: number | string
+  created_at: string | Date
+}
+
+interface EvidenceCountRow {
+  skill_id: string
+  total: number | string
+}
+
+interface SkillScoreUpdatedEventPayload {
+  userId: string
+  skillId: string
+  oldScore: number | null
+  newScore: number
+}
+
+interface LoadedSkillReviews {
+  reviews: ReviewSkillRow[]
+  evidenceBySkill: Map<string, number>
+}
+
+interface ComputedSkillScore {
+  weightedScore: number
+  levelCode: string
+  avgPercentage: number
+  confidence: number
+  mostRecentReviewAt: DateTime | null
+}
+
+interface RecalculateRevieweeSkillScoresTxResult {
+  userId: string
+  skillsUpdated: number
+  events: SkillScoreUpdatedEventPayload[]
+}
+
+interface PersistedUserSkillResult {
+  oldScore: number | null
+}
+
+/**
+ * RecalculateRevieweeSkillScoresCommand
+ *
+ * Recomputes reviewed skill levels for a user from completed review sessions
+ * using weighted formulas (reviewer type, credibility, recency).
+ */
+export default class RecalculateRevieweeSkillScoresCommand extends BaseCommand<
+  RecalculateRevieweeSkillScoresDTO,
+  RecalculateRevieweeSkillScoresResult
+> {
+  private toCredibilityScore(value: number | string): number {
+    return typeof value === 'number' ? value : Number(value)
+  }
+
+  private toMonthsAgo(value: string | Date): number {
+    if (value instanceof Date) {
+      return Math.max(0, DateTime.now().diff(DateTime.fromJSDate(value), 'months').months)
+    }
+
+    const parsed = DateTime.fromISO(value)
+    if (parsed.isValid) {
+      return Math.max(0, DateTime.now().diff(parsed, 'months').months)
+    }
+
+    return 0
+  }
+
+  private toDateTime(value: string | Date): DateTime {
+    if (value instanceof Date) {
+      return DateTime.fromJSDate(value)
+    }
+
+    const parsed = DateTime.fromISO(value)
+    return parsed.isValid ? parsed : DateTime.now()
+  }
+
+  async handle(
+    dto: RecalculateRevieweeSkillScoresDTO
+  ): Promise<RecalculateRevieweeSkillScoresResult> {
+    const result = await this.executeInTransaction(
+      async (trx): Promise<RecalculateRevieweeSkillScoresTxResult> => {
+        const loaded = await this.loadSkillReviews(dto.userId, trx)
+
+        if (loaded.reviews.length === 0) {
+          return {
+            userId: dto.userId,
+            skillsUpdated: 0,
+            events: [],
+          }
+        }
+
+        const groupedReviews = this.groupReviewsBySkill(loaded.reviews)
+        const events: SkillScoreUpdatedEventPayload[] = []
+        let skillsUpdated = 0
+
+        for (const [skillId, reviews] of groupedReviews.entries()) {
+          const computed = this.computeSkillScore(reviews, loaded.evidenceBySkill.get(skillId) ?? 0)
+          const persisted = await this.persistUserSkill(dto.userId, skillId, reviews, computed, trx)
+
+          events.push({
+            userId: dto.userId,
+            skillId,
+            oldScore: persisted.oldScore,
+            newScore: computed.avgPercentage,
+          })
+
+          await this.logSkillRecalculationAudit(dto.userId, skillId, reviews.length, computed)
+
+          skillsUpdated += 1
+        }
+
+        return {
+          userId: dto.userId,
+          skillsUpdated,
+          events,
+        }
+      }
+    )
+
+    for (const eventPayload of result.events) {
+      void emitter.emit('skill:score:updated', eventPayload)
+    }
+
+    return {
+      userId: result.userId,
+      skillsUpdated: result.skillsUpdated,
+    }
+  }
+
+  private async loadSkillReviews(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<LoadedSkillReviews> {
+    const reviews = (await ReviewMetricsRepository.listCompletedSkillReviewRowsByReviewee(
+      userId,
+      trx
+    )) as unknown as ReviewSkillRow[]
+
+    if (reviews.length === 0) {
+      return { reviews, evidenceBySkill: new Map<string, number>() }
+    }
+
+    const evidenceRows = (await ReviewMetricsRepository.listEvidenceCountsBySkill(
+      userId,
+      trx
+    )) as unknown as EvidenceCountRow[]
+
+    const evidenceBySkill = new Map<string, number>()
+    for (const row of evidenceRows) {
+      evidenceBySkill.set(row.skill_id, Number(row.total))
+    }
+
+    return { reviews, evidenceBySkill }
+  }
+
+  private groupReviewsBySkill(reviews: ReviewSkillRow[]): Map<string, ReviewSkillRow[]> {
+    const grouped = new Map<string, ReviewSkillRow[]>()
+
+    for (const review of reviews) {
+      const list = grouped.get(review.skill_id) ?? []
+      list.push(review)
+      grouped.set(review.skill_id, list)
+    }
+
+    return grouped
+  }
+
+  private computeSkillScore(reviews: ReviewSkillRow[], evidenceCount: number): ComputedSkillScore {
+    const weightedScore = calculateSkillWeightedScore(
+      reviews.map((review) => ({
+        levelCode: review.assigned_level_code,
+        reviewerType: review.reviewer_type,
+        reviewerCredibilityScore: this.toCredibilityScore(review.reviewer_credibility_score),
+        monthsAgo: this.toMonthsAgo(review.created_at),
+      }))
+    )
+
+    const levelCode = mapWeightedScoreToLevelCode(weightedScore)
+    const avgPercentage = Math.max(0, Math.min(100, ((weightedScore - 1) / 7) * 100))
+    const confidence = calculateSkillConfidence({
+      reviewCount: reviews.length,
+      hasManager: reviews.some((review) => review.reviewer_type === 'manager'),
+      hasPeer: reviews.some((review) => review.reviewer_type === 'peer'),
+      evidenceCount,
+      reviewerCredibilityAverage:
+        reviews.reduce(
+          (sum, review) => sum + this.toCredibilityScore(review.reviewer_credibility_score),
+          0
+        ) / reviews.length,
+    })
+
+    const mostRecentReviewAt =
+      reviews
+        .map((review) => this.toDateTime(review.created_at))
+        .sort((a, b) => b.toMillis() - a.toMillis())[0] ?? null
+
+    return {
+      weightedScore,
+      levelCode,
+      avgPercentage: Math.round(avgPercentage * 10) / 10,
+      confidence,
+      mostRecentReviewAt,
+    }
+  }
+
+  private async persistUserSkill(
+    userId: string,
+    skillId: string,
+    reviews: ReviewSkillRow[],
+    computed: ComputedSkillScore,
+    trx: TransactionClientContract
+  ): Promise<PersistedUserSkillResult> {
+    const roundedAverage = computed.avgPercentage
+
+    return DefaultReviewDependencies.userSkill.upsertReviewedSkillScore(
+      userId,
+      skillId,
+      {
+        levelCode: computed.levelCode,
+        totalReviews: reviews.length,
+        avgScore: roundedAverage,
+        avgPercentage: roundedAverage,
+        lastReviewedAt: computed.mostRecentReviewAt,
+      },
+      trx
+    )
+  }
+
+  private async logSkillRecalculationAudit(
+    userId: string,
+    skillId: string,
+    totalReviews: number,
+    computed: ComputedSkillScore
+  ): Promise<void> {
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'recalculate_user_skill_score',
+        entity_type: 'user_skill',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          skill_id: skillId,
+          weighted_score: Math.round(computed.weightedScore * 100) / 100,
+          avg_percentage: computed.avgPercentage,
+          confidence_score: computed.confidence,
+          total_reviews: totalReviews,
+        },
+      })
+    }
+  }
+}
+
+```
+
+### `app/modules/reviews/actions/commands/resolve_flagged_review_command.ts`
+
+```ts
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { BaseCommand } from '#modules/reviews/actions/base_command'
+import RecalculateRevieweeSkillScoresCommand from '#modules/reviews/actions/commands/recalculate_reviewee_skill_scores_command'
+import FlaggedReviewRepository from '#modules/reviews/infra/repositories/flagged_review_repository'
+import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
+import SkillReviewRepository from '#modules/reviews/infra/repositories/skill_review_repository'
+import type { FlaggedReviewRecord } from '#modules/reviews/types/review_records'
+
+/**
+ * ResolveFlaggedReviewDTO
+ */
+export interface ResolveFlaggedReviewDTO {
+  flagged_review_id: string
+  action: 'dismissed' | 'confirmed'
+  notes: string | null
+}
+
+/**
+ * ResolveFlaggedReviewCommand
+ *
+ * Admin resolves a flagged review (dismiss or confirm the anomaly).
+ * Khi confirm fraud:
+ *   - Đánh dấu skill_review là fraud
+ *   - Recalculate reviewee skill scores (loại bỏ review fraud)
+ *   - Recalculate reviewer credibility
+ *   - Audit log đầy đủ
+ */
+export default class ResolveFlaggedReviewCommand extends BaseCommand<
+  ResolveFlaggedReviewDTO,
+  FlaggedReviewRecord
+> {
+  async handle(dto: ResolveFlaggedReviewDTO): Promise<FlaggedReviewRecord> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+
+      const flaggedReview = await FlaggedReviewRepository.findByIdForUpdate(
+        dto.flagged_review_id,
+        trx
+      )
+
+      if (!flaggedReview) {
+        throw new BusinessLogicException('Flagged review không tồn tại')
+      }
+
+      if (flaggedReview.status !== 'pending') {
+        throw new BusinessLogicException('This flagged review has already been resolved')
+      }
+
+      const validActions: ResolveFlaggedReviewDTO['action'][] = ['dismissed', 'confirmed']
+      if (!validActions.includes(dto.action)) {
+        throw new BusinessLogicException('Action must be "dismissed" or "confirmed')
+      }
+
+      flaggedReview.status = dto.action
+      flaggedReview.reviewed_by = userId
+      const luxonModule = await import('luxon')
+      flaggedReview.reviewed_at = luxonModule.DateTime.now()
+      if (dto.notes) {
+        flaggedReview.notes = dto.notes
+      }
+
+      await FlaggedReviewRepository.save(flaggedReview, trx)
+
+      // ── Fraud confirmed: rollback skill scores ────────────────────────
+      if (dto.action === 'confirmed') {
+        await this.rollbackFraudulentReview(flaggedReview.skill_review_id, trx)
+      }
+
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'resolve_flagged_review',
+          entity_type: 'flagged_review',
+          entity_id: flaggedReview.id,
+          old_values: null,
+          new_values: {
+            action: dto.action,
+            notes: dto.notes,
+          },
+        })
+      }
+
+      return {
+        flaggedReview,
+        cachePattern: 'flagged:*',
+      }
+    })
+
+    await cacheStore.deleteByPattern(result.cachePattern)
+    return result.flaggedReview
+  }
+
+  /**
+   * Rollback fraudulent review:
+   * 1. Đánh dấu skill_review là fraud
+   * 2. Recalculate reviewee skill scores
+   */
+  private async rollbackFraudulentReview(
+    skillReviewId: string,
+    trx: import('@adonisjs/lucid/types/database').TransactionClientContract
+  ): Promise<void> {
+    // 1. Load skill review
+    const skillReview = await SkillReviewRepository.findByIdForUpdate(skillReviewId, trx)
+    if (!skillReview) {
+      return
+    }
+
+    // 2. Đánh dấu skill review là fraud
+    skillReview.is_fraud = true
+    await SkillReviewRepository.save(skillReview, trx)
+
+    // 3. Load review session để tìm reviewee
+    const session = await ReviewSessionRepository.findById(skillReview.review_session_id, trx)
+    if (!session) {
+      return
+    }
+
+    // 4. Recalculate reviewee skill scores (sẽ exclude fraud reviews)
+    const recalcCommand = new RecalculateRevieweeSkillScoresCommand(this.execCtx)
+    await recalcCommand.handle({ userId: session.reviewee_id })
+  }
+}
+
+```
