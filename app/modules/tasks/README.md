@@ -898,3 +898,903 @@ import {
 } from '#modules/notifications/public_contracts/notification_constants'
 import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
 import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canRevokeAssignment } from '#modules/tasks/domain/task_assignment_rules'
+import { canRevokeTaskAccess } from '#modules/tasks/domain/task_permission_policy'
+import type { TaskAccessRevokedEvent } from '#modules/tasks/events/task_events'
+import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
+import { AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskAssignmentWithDetailsRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/seed_default_task_statuses.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import { DEFAULT_TASK_STATUSES, DEFAULT_WORKFLOW_TRANSITIONS } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/actions/commands/submit_task_submission_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { TaskStatus, TaskStatusCategory } from '#modules/tasks/constants/task_constants'
+import { canCreateTaskAssignmentSnapshot } from '#modules/tasks/domain/task_assignment_snapshot_rules'
+import {
+  canEditTaskSubmission,
+  canSubmitTaskSubmission,
+  validateTaskSubmissionPayload,
+} from '#modules/tasks/domain/task_submission_rules'
+```
+
+### `app/modules/tasks/actions/commands/task_completion_package_access.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/update_task_command.ts`
+
+```ts
+import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/support/update_task_persistence_support'
+import { runUpdateTaskPostCommitEffects } from '#modules/tasks/actions/support/update_task_post_commit_support'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/update_task_sort_order_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import {
+  buildTaskCollectionAccessContext,
+  buildTaskPermissionContext,
+} from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canReorderTask, canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/update_task_status_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type UpdateTaskStatusDTO from '../dtos/request/update_task_status_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import { notificationPublicApi, type NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canUpdateTaskStatus } from '#modules/tasks/domain/task_permission_policy'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord, TaskDetailRecord, TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/update_task_status_definition_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { UpdateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canEditStatus } from '#modules/tasks/domain/task_status_rules'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/update_task_time_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canUpdateTaskTime } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/update_workflow_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { UpdateWorkflowDTO } from '../dtos/request/task_status_dtos.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/withdraw_application_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/actions/dtos/request/assign_task_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/tasks/actions/dtos/request/create_task_dto.ts`
+
+```ts
+import { DateTime } from 'luxon'
+import {
+  buildCreateTaskDTOState,
+  type CreateTaskDTOInput,
+  type RequiredSkillInput,
+} from './create_task_dto_state_builder.js'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/tasks/actions/dtos/request/create_task_dto_state_builder.ts`
+
+```ts
+import { DateTime } from 'luxon'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/actions/dtos/request/delete_task_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/tasks/actions/dtos/request/get_task_detail_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+```
+
+### `app/modules/tasks/actions/dtos/request/get_tasks_list_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+```
+
+### `app/modules/tasks/actions/dtos/request/task_application_dtos.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import type { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/actions/dtos/request/task_status_dtos.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/dtos/request/update_task_dto.ts`
+
+```ts
+import type { DateTime } from 'luxon'
+import {
+  buildUpdateTaskPayload,
+  type UpdateTaskDTOInput,
+  type UpdateTaskValidatedPayload,
+} from './update_task_dto_payload_builder.js'
+```
+
+### `app/modules/tasks/actions/dtos/request/update_task_dto_payload_builder.ts`
+
+```ts
+import { DateTime } from 'luxon'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/actions/dtos/request/update_task_status_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/tasks/actions/dtos/request/update_task_time_dto.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+```
+
+### `app/modules/tasks/actions/dtos/response/task_response_dtos.ts`
+
+```ts
+import type { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
+```
+
+### `app/modules/tasks/actions/interfaces.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/listeners/task_completion_listener.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import type { TaskAssignmentCommandRepositoryPort } from '../ports/task_assignment_command_repository_port.js'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskStatusChangedEvent } from '#modules/tasks/events/task_events'
+import { taskAssignmentCommandRepository } from '#modules/tasks/infra/repositories/write/task_assignment_command_repository'
+```
+
+### `app/modules/tasks/actions/mapper/task_application_mapper.ts`
+
+```ts
+import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
+import type UpdateTaskDTO from '../dtos/request/update_task_dto.js'
+import {
+  TaskDetailResponseDTO,
+  TaskListItemResponseDTO,
+  TaskSummaryResponseDTO,
+} from '../dtos/response/task_response_dtos.js'
+import { type TaskEntity } from '#modules/tasks/domain/entities/task_entity'
+```
+
+### `app/modules/tasks/actions/mapper/task_query_output_mapper.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/ports/task_assignment_command_repository_port.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+```
+
+### `app/modules/tasks/actions/ports/task_cache_port.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/ports/task_command_repository_port.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { CreateTaskPersistencePayload } from '#modules/tasks/actions/support/task_create_payload_builder'
+import type { CreateTaskRepositoryResult } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/ports/task_external_dependencies.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+```
+
+### `app/modules/tasks/actions/ports/task_public_api_repository_port.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/ports/task_public_api_repository_port_impl.ts`
+
+```ts
+import type {
+  TaskPublicApiRepositoryPort,
+  TaskPublicApiTaskSummary,
+} from './task_public_api_repository_port.js'
+import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
+import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskAssignmentQueries from '#modules/tasks/infra/repositories/read/task_assignment_queries'
+import * as taskAggregateMutations from '#modules/tasks/infra/repositories/write/task_aggregate_mutations'
+```
+
+### `app/modules/tasks/actions/ports/task_query_repository_port.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { TaskDetailRecord, TaskDetailRelation, TaskIdentityRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/ports/task_status_query_repository_port.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/public_api.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/queries/check_task_create_permission_query.ts`
+
+```ts
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import type { TaskPermissionReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
+```
+
+### `app/modules/tasks/actions/queries/get_application_match_score_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import { calculateApplicantMatch, type MatchScoreResult } from '#modules/tasks/domain/match_formulas'
+```
+
+### `app/modules/tasks/actions/queries/get_my_applications_query.ts`
+
+```ts
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_public_tasks_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import type { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import * as publicQueries from '#modules/tasks/infra/repositories/read/public_queries'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_task_applications_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import type { GetTaskApplicationsDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import type { PaginatedTaskApplicationRecords } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_task_applications_ranking_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseQuery } from '#modules/tasks/actions/base_query'
+import { calculateApplicantMatch } from '#modules/tasks/domain/match_formulas'
+```
+
+### `app/modules/tasks/actions/queries/get_task_audit_logs_query.ts`
+
+```ts
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+```
+
+### `app/modules/tasks/actions/queries/get_task_create_page_query.ts`
+
+```ts
+import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
+import GetTaskMetadataQuery from './get_task_metadata_query.js'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/queries/get_task_detail_query.ts`
+
+```ts
+import type GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import { mapTaskDetailOutput, type TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { calculateTaskPermissions, canViewTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import type { TaskDetailRecord, TaskDetailRelation } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_task_edit_page_query.ts`
+
+```ts
+import GetTaskDetailDTO from '../dtos/request/get_task_detail_dto.js'
+import type { TaskQueryRecord } from '../mapper/task_query_output_mapper.js'
+import GetTaskDetailQuery from './get_task_detail_query.js'
+import GetTaskMetadataQuery from './get_task_metadata_query.js'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canAccessTaskEditPage } from '#modules/tasks/domain/task_permission_policy'
+```
+
+### `app/modules/tasks/actions/queries/get_task_metadata_query.ts`
+
+```ts
+import GetTaskProjectsQuery from './get_task_projects_query.js'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import { TaskLabel, TaskPriority } from '#modules/tasks/public_contracts/task_constants'
+import { ProficiencyScaleRepository } from '#modules/skills/infra/repositories/proficiency_scale_repository'
+```
+
+### `app/modules/tasks/actions/queries/get_task_projects_query.ts`
+
+```ts
+import type { TaskProjectReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+```
+
+### `app/modules/tasks/actions/queries/get_task_statistics_query.ts`
+
+```ts
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import * as statisticsQueries from '#modules/tasks/infra/repositories/read/statistics_queries'
+```
+
+### `app/modules/tasks/actions/queries/get_task_status_board_page_query.ts`
+
+```ts
+import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import GetTasksListQuery from './get_tasks_list_query.js'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/queries/get_tasks_grouped_query.ts`
+
+```ts
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_tasks_index_page_query.ts`
+
+```ts
+import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import CheckTaskCreatePermissionQuery from './check_task_create_permission_query.js'
+import GetTaskProjectsQuery from './get_task_projects_query.js'
+import GetTasksPageQuery from './get_tasks_page_query.js'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/queries/get_tasks_list_query.ts`
+
+```ts
+import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import { mapTaskListOutput, type TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+```
+
+### `app/modules/tasks/actions/queries/get_tasks_page_query.ts`
+
+```ts
+import type GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import type { TaskListQueryRecord } from '../mapper/task_query_output_mapper.js'
+import GetTaskMetadataQuery from './get_task_metadata_query.js'
+import GetTasksListQuery from './get_tasks_list_query.js'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/queries/get_tasks_timeline_query.ts`
+
+```ts
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/get_user_tasks_query.ts`
+
+```ts
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import * as listQueries from '#modules/tasks/infra/repositories/read/list_queries'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/list_task_statuses_query.ts`
+
+```ts
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/queries/list_workflow_query.ts`
+
+```ts
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import type { TaskWorkflowTransitionRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/result.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/services/task_public_api.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import CreateTaskStatusCommand from '../commands/create_task_status_command.js'
+import GetTasksListDTO from '../dtos/request/get_tasks_list_dto.js'
+import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+import type { TaskPublicApiRepositoryPort } from '../ports/task_public_api_repository_port.js'
+import {
+  taskPublicApiRepository,
+} from '../ports/task_public_api_repository_port_impl.js'
+import GetTasksIndexPageQuery, {
+  type GetTasksIndexPageInput,
+  type GetTasksIndexPageResult,
+} from '../queries/get_tasks_index_page_query.js'
+import GetTasksListQuery from '../queries/get_tasks_list_query.js'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/services/task_requirement_version_service.ts`
+
+```ts
+import {
+  TaskRequirementRepository,
+  type TaskRequirementVersion,
+  type RequirementVersionReason,
+} from '#modules/tasks/infra/repositories/task_requirement_repository'
+```
+
+### `app/modules/tasks/actions/services/task_skill_requirement_service.ts`
+
+```ts
+import {
+  TaskRequirementRepository,
+  type TaskRequiredSkill,
+} from '#modules/tasks/infra/repositories/task_requirement_repository'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+```
+
+### `app/modules/tasks/actions/support/task_create_payload_builder.ts`
+
+```ts
+import type { DateTime } from 'luxon'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+```
+
+### `app/modules/tasks/actions/support/task_create_persistence_support.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskCommandRepositoryPort } from '#modules/tasks/actions/ports/task_command_repository_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildCreateTaskPersistencePayload } from '#modules/tasks/actions/support/task_create_payload_builder'
+import {
+  ensureTaskCreationPreconditions,
+  resolveTaskStatusForCreation,
+} from '#modules/tasks/actions/support/task_create_preconditions'
+import { persistTaskRequiredSkills } from '#modules/tasks/actions/support/task_required_skill_persistence'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskCommandRepository } from '#modules/tasks/infra/repositories/write/task_command_repository'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/support/task_create_post_commit.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import logger from '@adonisjs/core/services/logger'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskUserReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/support/task_create_preconditions.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskIdentityQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/task_status_query_repository_port'
+import { buildTaskCreatePermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import { validateTaskCreationFields } from '#modules/tasks/domain/task_assignment_rules'
+import { canCreateTask } from '#modules/tasks/domain/task_permission_policy'
+import { taskIdentityQueryRepository } from '#modules/tasks/infra/repositories/read/task_identity_query_repository'
+import { taskStatusQueryRepository } from '#modules/tasks/infra/repositories/read/task_status_query_repository'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/support/task_permission_context_builder.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { TaskPermissionReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type {
+  TaskCollectionAccessContext,
+  TaskCollectionScopeFallback,
+  TaskCreatePermissionContext,
+  TaskPermissionContext,
+} from '#modules/tasks/domain/task_types'
+import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
+```
+
+### `app/modules/tasks/actions/support/task_permission_filter_builder.ts`
+
+```ts
+import { resolveTaskCollectionReadScope } from '#modules/tasks/domain/task_permission_policy'
+import type { TaskCollectionScopeFallback } from '#modules/tasks/domain/task_types'
+import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/shared'
+```
+
+### `app/modules/tasks/actions/support/task_required_skill_persistence.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import type CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import type { TaskSkillReader } from '#modules/tasks/actions/ports/task_external_dependencies'
+import TaskRequiredSkillRepository from '#modules/tasks/infra/repositories/task_required_skill_repository'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+```
+
+### `app/modules/tasks/actions/support/task_version_snapshot.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/actions/support/update_task_persistence_support.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type {
+  TaskExternalDependencies,
+  TaskOrgReader,
+  TaskProjectReader,
+  TaskUserReader,
+} from '../ports/task_external_dependencies.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi, type AuditLogData } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import {
+  hasTaskVersionRelevantChanges,
+} from '#modules/tasks/actions/support/task_version_snapshot'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
+import { canUpdateTaskFields } from '#modules/tasks/domain/task_permission_policy'
+import TaskVersionRepository from '#modules/tasks/infra/repositories/task_version_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/support/update_task_post_commit_support.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import type { TaskUserReader } from '../ports/task_external_dependencies.js'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+```
+
+### `app/modules/tasks/actions/task_action_context.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/controllers/apply_for_task_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapApplyForTaskApiBody } from './mappers/response/task_application_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeApplyForTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/apply_for_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildApplyForTaskDTO } from './mappers/request/task_application_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeApplyForTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/batch_update_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeBatchUpdateTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/check_create_permission_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import CheckTaskCreatePermissionQuery from '#modules/tasks/actions/queries/check_task_create_permission_query'
+import { getTaskPermissionReader } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/create_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildCreateTaskDTO } from './mappers/request/task_request_mapper.js'
+import { mapTaskCreateApiBody } from './mappers/response/task_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  makeCreateTaskCommand,
+  makeGetTaskCreatePageQuery,
+} from '#modules/tasks/bootstrap/task_action_factory'
+```
+
