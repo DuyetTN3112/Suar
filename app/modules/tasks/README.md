@@ -1,0 +1,900 @@
+# tasks Backend Module
+
+### Kiến trúc lõi & Phân tích nghiệp vụ
+- **Task Workflow**: Dựa trên cấu trúc trạng thái động `task_status_id` (trỏ tới bảng `task_statuses`). Cột `status` cũ trong bảng `tasks` được coi là legacy và chỉ dùng để duy trì tương thích ngược.
+- **Required Skills**: Mỗi task quy định kĩ năng tối thiểu (`minimum_required_level`) và mức trần đánh giá (`assessment_ceiling_level`). Thông tin này được snapshot lại theo phiên bản khi task bắt đầu (`task_requirement_versions`).
+- **Task Submission & Evidence**: Giao nộp kết quả công việc qua submission package (`task_submissions` và `task_submission_evidences`), cho phép tải lên URL bằng chứng thực tế và khóa lại (`locked`) để ngăn chặn chỉnh sửa sau khi nộp.
+
+## Module Path
+
+```text
+app/modules/tasks
+```
+
+## Folder And File Inventory
+
+```text
+./ README.md index.ts
+actions/ base_command.ts base_query.ts interfaces.ts public_api.ts result.ts task_action_context.ts
+actions/bootstrap/ org_task_bootstrap.ts
+actions/commands/ add_task_submission_evidence_command.ts apply_for_task_command.ts assign_task_command.ts batch_update_task_status_command.ts create_task_assignment_snapshot_command.ts create_task_attachment_command.ts create_task_command.ts create_task_comment_command.ts create_task_status_command.ts delete_task_attachment_command.ts delete_task_command.ts delete_task_comment_command.ts delete_task_status_command.ts delete_task_submission_evidence_command.ts patch_task_status_board_poc_command.ts process_application_command.ts revoke_task_access_command.ts seed_default_task_statuses.ts submit_task_submission_command.ts task_completion_package_access.ts update_task_command.ts update_task_sort_order_command.ts update_task_status_command.ts update_task_status_definition_command.ts update_task_time_command.ts update_workflow_command.ts withdraw_application_command.ts
+actions/dtos/request/ assign_task_dto.ts create_task_dto.ts create_task_dto_state_builder.ts delete_task_dto.ts get_task_detail_dto.ts get_tasks_list_dto.ts task_application_dtos.ts task_status_dtos.ts update_task_dto.ts update_task_dto_payload_builder.ts update_task_status_dto.ts update_task_time_dto.ts
+actions/dtos/response/ task_response_dtos.ts
+actions/listeners/ task_completion_listener.ts
+actions/mapper/ task_application_mapper.ts task_query_output_mapper.ts
+actions/ports/ task_assignment_command_repository_port.ts task_cache_port.ts task_command_repository_port.ts task_external_dependencies.ts task_public_api_repository_port.ts task_public_api_repository_port_impl.ts task_query_repository_port.ts task_status_query_repository_port.ts
+actions/queries/ check_task_create_permission_query.ts get_application_match_score_query.ts get_my_applications_query.ts get_public_tasks_query.ts get_task_applications_query.ts get_task_applications_ranking_query.ts get_task_audit_logs_query.ts get_task_create_page_query.ts get_task_detail_query.ts get_task_edit_page_query.ts get_task_metadata_query.ts get_task_projects_query.ts get_task_statistics_query.ts get_task_status_board_page_query.ts get_tasks_grouped_query.ts get_tasks_index_page_query.ts get_tasks_list_query.ts get_tasks_page_query.ts get_tasks_timeline_query.ts get_user_tasks_query.ts list_task_statuses_query.ts list_workflow_query.ts
+actions/services/ task_public_api.ts task_requirement_version_service.ts task_skill_requirement_service.ts
+actions/support/ task_create_payload_builder.ts task_create_persistence_support.ts task_create_post_commit.ts task_create_preconditions.ts task_permission_context_builder.ts task_permission_filter_builder.ts task_required_skill_persistence.ts task_version_snapshot.ts update_task_persistence_support.ts update_task_post_commit_support.ts
+application/context/ task_actor_context.ts
+application/dtos/common/ task_pagination.ts
+application/events/ .gitkeep
+application/ports/ task_actor_lookup.ts task_event_publisher.ts task_organization_membership.ts task_project_access.ts task_review_session_creator.ts
+bootstrap/adapters/ monolith_task_org_reader.ts monolith_task_permission_reader.ts monolith_task_project_reader.ts monolith_task_review_reader.ts monolith_task_skill_reader.ts monolith_task_user_reader.ts
+bootstrap/ task_action_factory.ts task_composition_root.ts
+constants/ task_constants.ts
+controllers/ apply_for_task_api_controller.ts apply_for_task_controller.ts batch_update_task_status_controller.ts check_create_permission_controller.ts create_task_controller.ts create_task_status_controller.ts delete_task_controller.ts delete_task_status_controller.ts edit_task_controller.ts get_task_audit_logs_controller.ts list_public_tasks_api_controller.ts list_public_tasks_controller.ts list_task_applications_controller.ts list_task_statuses_controller.ts list_tasks_controller.ts list_tasks_grouped_controller.ts list_tasks_timeline_controller.ts list_workflow_controller.ts match_scores_controller.ts my_applications_controller.ts patch_task_status_board_poc_controller.ts process_application_controller.ts show_task_controller.ts show_task_status_board_controller.ts task_command_initializers.ts task_submission_controller.ts update_task_sort_order_controller.ts update_task_status_controller.ts update_task_status_definition_controller.ts update_task_time_controller.ts update_workflow_controller.ts withdraw_application_controller.ts
+controllers/mappers/request/ shared.ts task_application_request_mapper.ts task_request_mapper.ts task_status_request_mapper.ts
+controllers/mappers/response/ public_task_response_mapper.ts shared.ts task_application_response_mapper.ts task_response_mapper.ts task_status_response_mapper.ts
+controllers/mappers/ task_actor_context_mapper.ts
+controllers/v1/ add_task_requirement_controller.ts create_task_status_controller.ts delete_task_status_controller.ts list_task_requirement_versions_controller.ts list_task_requirements_controller.ts list_task_statuses_controller.ts prefill_task_requirements_from_role_controller.ts remove_task_requirement_controller.ts show_task_status_controller.ts update_task_requirement_controller.ts update_task_status_controller.ts
+domain/entities/ task_entity.ts
+domain/mapper/ task_domain_mapper.ts
+domain/ match_formulas.ts role_contracts.ts task_assignment_rules.ts task_assignment_snapshot_rules.ts task_permission_policy.ts task_state_machine.ts task_status_mirror.ts task_status_rules.ts task_submission_rules.ts task_types.ts
+domain/repositories/ task_repository_interface.ts
+events/ task_events.ts
+infra/adapters/ .gitkeep
+infra/cache/ task_cache_invalidator.ts
+infra/mapper/ task_infra_mapper.ts
+infra/models/ task.ts task_application.ts task_assignment.ts task_assignment_snapshot.ts task_attachment.ts task_comment.ts task_required_skill.ts task_requirement_version.ts task_requirement_version_item.ts task_self_assessment.ts task_status.ts task_submission.ts task_submission_evidence.ts task_version.ts task_workflow_transition.ts
+infra/repositories/read/ aggregate_queries.ts detail_queries.ts list_queries.ts public_queries.ts shared.ts statistics_queries.ts task_application_queries.ts task_assignment_queries.ts task_detail_query_repository.ts task_identity_query_repository.ts task_status_query_repository.ts task_workflow_transition_queries.ts
+infra/repositories/ task_application_repository.ts task_assignment_repository.ts task_repository_impl.ts task_required_skill_repository.ts task_requirement_repository.ts task_status_repository.ts task_version_repository.ts task_workflow_transition_repository.ts
+infra/repositories/write/ task_aggregate_mutations.ts task_application_mutations.ts task_assignment_command_repository.ts task_assignment_mutations.ts task_command_repository.ts task_mutations.ts task_required_skill_mutations.ts task_version_mutations.ts task_workflow_transition_mutations.ts
+public_contracts/schemas/ task_events_v1.schema.ts
+public_contracts/ task_assignment_commands_v1.ts task_assignment_facts_v1.ts task_constants.ts task_events_v1.ts task_public_api.ts task_status_dtos.ts
+types/ task_records.ts
+validators/rules/ database.ts
+validators/ task.ts task_status.ts
+```
+
+## Route Evidence
+
+```text
+start/routes/api.ts
+start/routes/api_v1.ts
+start/routes/skills.ts
+start/routes/tasks.ts
+```
+
+## Symbol Evidence
+
+| Kind | Symbol | File | Line |
+|---|---|---|---:|
+| interface | `OrgTaskBootstrap` | `app/modules/tasks/actions/bootstrap/org_task_bootstrap.ts` | 6 |
+| const | `orgTaskBootstrap` | `app/modules/tasks/actions/bootstrap/org_task_bootstrap.ts` | 13 |
+| interface | `AddTaskSubmissionEvidenceDTO` | `app/modules/tasks/actions/commands/add_task_submission_evidence_command.ts` | 12 |
+| interface | `TaskSubmissionEvidenceResult` | `app/modules/tasks/actions/commands/add_task_submission_evidence_command.ts` | 29 |
+| class | `AddTaskSubmissionEvidenceCommand` | `app/modules/tasks/actions/commands/add_task_submission_evidence_command.ts` | 34 |
+| class | `ApplyForTaskCommand` | `app/modules/tasks/actions/commands/apply_for_task_command.ts` | 25 |
+| class | `AssignTaskCommand` | `app/modules/tasks/actions/commands/assign_task_command.ts` | 44 |
+| class | `BatchUpdateTaskStatusCommand` | `app/modules/tasks/actions/commands/batch_update_task_status_command.ts` | 30 |
+| interface | `CreateTaskAssignmentSnapshotDTO` | `app/modules/tasks/actions/commands/create_task_assignment_snapshot_command.ts` | 7 |
+| interface | `TaskAssignmentSnapshotResult` | `app/modules/tasks/actions/commands/create_task_assignment_snapshot_command.ts` | 13 |
+| class | `CreateTaskAssignmentSnapshotCommand` | `app/modules/tasks/actions/commands/create_task_assignment_snapshot_command.ts` | 53 |
+| interface | `CreateTaskAttachmentDTO` | `app/modules/tasks/actions/commands/create_task_attachment_command.ts` | 10 |
+| interface | `TaskAttachmentResult` | `app/modules/tasks/actions/commands/create_task_attachment_command.ts` | 19 |
+| class | `CreateTaskAttachmentCommand` | `app/modules/tasks/actions/commands/create_task_attachment_command.ts` | 24 |
+| class | `CreateTaskCommand` | `app/modules/tasks/actions/commands/create_task_command.ts` | 41 |
+| interface | `CreateTaskCommentDTO` | `app/modules/tasks/actions/commands/create_task_comment_command.ts` | 10 |
+| interface | `TaskCommentResult` | `app/modules/tasks/actions/commands/create_task_comment_command.ts` | 18 |
+| class | `CreateTaskCommentCommand` | `app/modules/tasks/actions/commands/create_task_comment_command.ts` | 23 |
+| class | `CreateTaskStatusCommand` | `app/modules/tasks/actions/commands/create_task_status_command.ts` | 22 |
+| interface | `DeleteTaskAttachmentDTO` | `app/modules/tasks/actions/commands/delete_task_attachment_command.ts` | 11 |
+| class | `DeleteTaskAttachmentCommand` | `app/modules/tasks/actions/commands/delete_task_attachment_command.ts` | 15 |
+| class | `DeleteTaskCommand` | `app/modules/tasks/actions/commands/delete_task_command.ts` | 38 |
+| interface | `DeleteTaskCommentDTO` | `app/modules/tasks/actions/commands/delete_task_comment_command.ts` | 11 |
+| class | `DeleteTaskCommentCommand` | `app/modules/tasks/actions/commands/delete_task_comment_command.ts` | 15 |
+| class | `DeleteTaskStatusCommand` | `app/modules/tasks/actions/commands/delete_task_status_command.ts` | 28 |
+| interface | `DeleteTaskSubmissionEvidenceDTO` | `app/modules/tasks/actions/commands/delete_task_submission_evidence_command.ts` | 11 |
+| class | `DeleteTaskSubmissionEvidenceCommand` | `app/modules/tasks/actions/commands/delete_task_submission_evidence_command.ts` | 15 |
+| interface | `PatchTaskStatusBoardPocInput` | `app/modules/tasks/actions/commands/patch_task_status_board_poc_command.ts` | 8 |
+| interface | `PatchTaskStatusBoardPocResult` | `app/modules/tasks/actions/commands/patch_task_status_board_poc_command.ts` | 14 |
+| class | `PatchTaskStatusBoardPocCommand` | `app/modules/tasks/actions/commands/patch_task_status_board_poc_command.ts` | 25 |
+| class | `ProcessApplicationCommand` | `app/modules/tasks/actions/commands/process_application_command.ts` | 30 |
+| interface | `RevokeTaskAccessDTO` | `app/modules/tasks/actions/commands/revoke_task_access_command.ts` | 30 |
+| class | `RevokeTaskAccessCommand` | `app/modules/tasks/actions/commands/revoke_task_access_command.ts` | 64 |
+| interface | `TaskSubmissionEvidenceInput` | `app/modules/tasks/actions/commands/submit_task_submission_command.ts` | 24 |
+| interface | `SubmitTaskSubmissionDTO` | `app/modules/tasks/actions/commands/submit_task_submission_command.ts` | 40 |
+| interface | `TaskSubmissionResult` | `app/modules/tasks/actions/commands/submit_task_submission_command.ts` | 53 |
+| class | `SubmitTaskSubmissionCommand` | `app/modules/tasks/actions/commands/submit_task_submission_command.ts` | 100 |
+| interface | `TaskCompletionAccessTask` | `app/modules/tasks/actions/commands/task_completion_package_access.ts` | 9 |
+| function | `requireTaskActionUser` | `app/modules/tasks/actions/commands/task_completion_package_access.ts` | 16 |
+| function | `assertHttpUrl` | `app/modules/tasks/actions/commands/task_completion_package_access.ts` | 68 |
+| class | `UpdateTaskCommand` | `app/modules/tasks/actions/commands/update_task_command.ts` | 44 |
+| class | `UpdateTaskSortOrderCommand` | `app/modules/tasks/actions/commands/update_task_sort_order_command.ts` | 36 |
+| class | `UpdateTaskStatusCommand` | `app/modules/tasks/actions/commands/update_task_status_command.ts` | 52 |
+| class | `UpdateTaskStatusDefinitionCommand` | `app/modules/tasks/actions/commands/update_task_status_definition_command.ts` | 26 |
+| class | `UpdateTaskTimeCommand` | `app/modules/tasks/actions/commands/update_task_time_command.ts` | 38 |
+| class | `UpdateWorkflowCommand` | `app/modules/tasks/actions/commands/update_workflow_command.ts` | 26 |
+| class | `WithdrawApplicationCommand` | `app/modules/tasks/actions/commands/withdraw_application_command.ts` | 20 |
+| class | `AssignTaskDTO` | `app/modules/tasks/actions/dtos/request/assign_task_dto.ts` | 17 |
+| interface | `CreateTaskCoreInput` | `app/modules/tasks/actions/dtos/request/create_task_dto.ts` | 11 |
+| interface | `CreateTaskSpecificationInput` | `app/modules/tasks/actions/dtos/request/create_task_dto.ts` | 27 |
+| class | `CreateTaskDTO` | `app/modules/tasks/actions/dtos/request/create_task_dto.ts` | 65 |
+| interface | `RequiredSkillInput` | `app/modules/tasks/actions/dtos/request/create_task_dto_state_builder.ts` | 6 |
+| interface | `CreateTaskDTOInput` | `app/modules/tasks/actions/dtos/request/create_task_dto_state_builder.ts` | 11 |
+| interface | `CreateTaskDTOState` | `app/modules/tasks/actions/dtos/request/create_task_dto_state_builder.ts` | 45 |
+| function | `buildCreateTaskDTOState` | `app/modules/tasks/actions/dtos/request/create_task_dto_state_builder.ts` | 314 |
+| class | `DeleteTaskDTO` | `app/modules/tasks/actions/dtos/request/delete_task_dto.ts` | 14 |
+| class | `GetTaskDetailDTO` | `app/modules/tasks/actions/dtos/request/get_task_detail_dto.ts` | 18 |
+| class | `GetTasksListDTO` | `app/modules/tasks/actions/dtos/request/get_tasks_list_dto.ts` | 206 |
+| class | `ApplyForTaskDTO` | `app/modules/tasks/actions/dtos/request/task_application_dtos.ts` | 10 |
+| class | `ProcessApplicationDTO` | `app/modules/tasks/actions/dtos/request/task_application_dtos.ts` | 52 |
+| class | `WithdrawApplicationDTO` | `app/modules/tasks/actions/dtos/request/task_application_dtos.ts` | 97 |
+| class | `GetTaskApplicationsDTO` | `app/modules/tasks/actions/dtos/request/task_application_dtos.ts` | 114 |
+| class | `GetPublicTasksDTO` | `app/modules/tasks/actions/dtos/request/task_application_dtos.ts` | 152 |
+| class | `UpdateTaskDTO` | `app/modules/tasks/actions/dtos/request/update_task_dto.ts` | 13 |
+| interface | `UpdateTaskDTOInput` | `app/modules/tasks/actions/dtos/request/update_task_dto_payload_builder.ts` | 6 |
+| interface | `UpdateTaskValidatedPayload` | `app/modules/tasks/actions/dtos/request/update_task_dto_payload_builder.ts` | 20 |
+| interface | `UpdateTaskNormalizedPayload` | `app/modules/tasks/actions/dtos/request/update_task_dto_payload_builder.ts` | 24 |
+| function | `buildUpdateTaskPayload` | `app/modules/tasks/actions/dtos/request/update_task_dto_payload_builder.ts` | 126 |
+| class | `UpdateTaskStatusDTO` | `app/modules/tasks/actions/dtos/request/update_task_status_dto.ts` | 14 |
+| class | `UpdateTaskTimeDTO` | `app/modules/tasks/actions/dtos/request/update_task_time_dto.ts` | 13 |
+| interface | `TaskDetailResponseDTOProps` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 10 |
+| interface | `TaskListItemResponseDTOProps` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 37 |
+| interface | `TaskSummaryResponseDTOProps` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 52 |
+| class | `TaskDetailResponseDTO` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 124 |
+| class | `TaskListItemResponseDTO` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 189 |
+| class | `TaskSummaryResponseDTO` | `app/modules/tasks/actions/dtos/response/task_response_dtos.ts` | 230 |
+| interface | `CommandHandler` | `app/modules/tasks/actions/interfaces.ts` | 7 |
+| interface | `QueryHandler` | `app/modules/tasks/actions/interfaces.ts` | 22 |
+| interface | `Command` | `app/modules/tasks/actions/interfaces.ts` | 36 |
+| interface | `Query` | `app/modules/tasks/actions/interfaces.ts` | 43 |
+| class | `TaskApplicationMapper` | `app/modules/tasks/actions/mapper/task_application_mapper.ts` | 21 |
+| type | `TaskQueryRecord` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 5 |
+| type | `TaskListQueryRecord` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 10 |
+| function | `mapTaskDetailOutput` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 40 |
+| function | `mapTaskListOutput` | `app/modules/tasks/actions/mapper/task_query_output_mapper.ts` | 50 |
+| interface | `CompleteAssignmentsForCompletedTaskInput` | `app/modules/tasks/actions/ports/task_assignment_command_repository_port.ts` | 4 |
+| interface | `CompletedTaskAssignmentRecord` | `app/modules/tasks/actions/ports/task_assignment_command_repository_port.ts` | 10 |
+| interface | `TaskAssignmentCommandRepositoryPort` | `app/modules/tasks/actions/ports/task_assignment_command_repository_port.ts` | 15 |
+| interface | `TaskCachePort` | `app/modules/tasks/actions/ports/task_cache_port.ts` | 1 |
+| interface | `TaskCommandRepositoryPort` | `app/modules/tasks/actions/ports/task_command_repository_port.ts` | 6 |
+| interface | `TaskProjectOption` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 4 |
+| interface | `TaskUserOption` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 9 |
+| interface | `TaskUserIdentity` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 15 |
+| interface | `TaskSkillOption` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 21 |
+| interface | `TaskOrgReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 26 |
+| interface | `TaskProjectReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 39 |
+| interface | `TaskUserReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 52 |
+| interface | `TaskReviewReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 68 |
+| interface | `TaskSkillReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 77 |
+| interface | `TaskPermissionReader` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 86 |
+| interface | `TaskExternalDependencies` | `app/modules/tasks/actions/ports/task_external_dependencies.ts` | 102 |
+| interface | `TaskPublicApiTaskSummary` | `app/modules/tasks/actions/ports/task_public_api_repository_port.ts` | 5 |
+| interface | `TaskPublicApiCompletedAssignment` | `app/modules/tasks/actions/ports/task_public_api_repository_port.ts` | 13 |
+| interface | `TaskPublicApiRepositoryPort` | `app/modules/tasks/actions/ports/task_public_api_repository_port.ts` | 19 |
+| const | `taskPublicApiRepository` | `app/modules/tasks/actions/ports/task_public_api_repository_port_impl.ts` | 13 |
+| interface | `TaskIdentityQueryRepositoryPort` | `app/modules/tasks/actions/ports/task_query_repository_port.ts` | 5 |
+| interface | `TaskDetailQueryRepositoryPort` | `app/modules/tasks/actions/ports/task_query_repository_port.ts` | 12 |
+| interface | `TaskStatusQueryRepositoryPort` | `app/modules/tasks/actions/ports/task_status_query_repository_port.ts` | 5 |
+| class | `CheckTaskCreatePermissionQuery` | `app/modules/tasks/actions/queries/check_task_create_permission_query.ts` | 12 |
+| interface | `GetApplicationMatchScoreDTO` | `app/modules/tasks/actions/queries/get_application_match_score_query.ts` | 41 |
+| class | `GetApplicationMatchScoreQuery` | `app/modules/tasks/actions/queries/get_application_match_score_query.ts` | 46 |
+| interface | `GetMyApplicationsInput` | `app/modules/tasks/actions/queries/get_my_applications_query.ts` | 6 |
+| class | `GetMyApplicationsQuery` | `app/modules/tasks/actions/queries/get_my_applications_query.ts` | 18 |
+| class | `GetPublicTasksQuery` | `app/modules/tasks/actions/queries/get_public_tasks_query.ts` | 22 |
+| class | `GetTaskApplicationsQuery` | `app/modules/tasks/actions/queries/get_task_applications_query.ts` | 12 |
+| interface | `GetTaskApplicationsRankingDTO` | `app/modules/tasks/actions/queries/get_task_applications_ranking_query.ts` | 7 |
+| interface | `RankedApplication` | `app/modules/tasks/actions/queries/get_task_applications_ranking_query.ts` | 11 |
+| class | `GetTaskApplicationsRankingQuery` | `app/modules/tasks/actions/queries/get_task_applications_ranking_query.ts` | 24 |
+| interface | `GetTaskAuditLogsInput` | `app/modules/tasks/actions/queries/get_task_audit_logs_query.ts` | 8 |
+| class | `GetTaskAuditLogsQuery` | `app/modules/tasks/actions/queries/get_task_audit_logs_query.ts` | 26 |
+| interface | `GetTaskCreatePageInput` | `app/modules/tasks/actions/queries/get_task_create_page_query.ts` | 9 |
+| interface | `GetTaskCreatePageResult` | `app/modules/tasks/actions/queries/get_task_create_page_query.ts` | 14 |
+| class | `GetTaskCreatePageQuery` | `app/modules/tasks/actions/queries/get_task_create_page_query.ts` | 18 |
+| interface | `TaskDetailResult` | `app/modules/tasks/actions/queries/get_task_detail_query.ts` | 25 |
+| class | `GetTaskDetailQuery` | `app/modules/tasks/actions/queries/get_task_detail_query.ts` | 47 |
+| interface | `TaskEditPageResult` | `app/modules/tasks/actions/queries/get_task_edit_page_query.ts` | 12 |
+| class | `GetTaskEditPageQuery` | `app/modules/tasks/actions/queries/get_task_edit_page_query.ts` | 37 |
+| class | `GetTaskMetadataQuery` | `app/modules/tasks/actions/queries/get_task_metadata_query.ts` | 25 |
+| class | `GetTaskProjectsQuery` | `app/modules/tasks/actions/queries/get_task_projects_query.ts` | 6 |
+| class | `GetTaskStatisticsQuery` | `app/modules/tasks/actions/queries/get_task_statistics_query.ts` | 30 |
+| interface | `GetTaskStatusBoardPageResult` | `app/modules/tasks/actions/queries/get_task_status_board_page_query.ts` | 11 |
+| class | `GetTaskStatusBoardPageQuery` | `app/modules/tasks/actions/queries/get_task_status_board_page_query.ts` | 22 |
+| class | `GetTasksGroupedQuery` | `app/modules/tasks/actions/queries/get_tasks_grouped_query.ts` | 20 |
+| interface | `GetTasksIndexPageInput` | `app/modules/tasks/actions/queries/get_tasks_index_page_query.ts` | 13 |
+| interface | `GetTasksIndexPageResult` | `app/modules/tasks/actions/queries/get_tasks_index_page_query.ts` | 28 |
+| class | `GetTasksIndexPageQuery` | `app/modules/tasks/actions/queries/get_tasks_index_page_query.ts` | 59 |
+| class | `GetTasksListQuery` | `app/modules/tasks/actions/queries/get_tasks_list_query.ts` | 35 |
+| interface | `TasksPageResult` | `app/modules/tasks/actions/queries/get_tasks_page_query.ts` | 10 |
+| class | `GetTasksPageQuery` | `app/modules/tasks/actions/queries/get_tasks_page_query.ts` | 51 |
+| class | `GetTasksTimelineQuery` | `app/modules/tasks/actions/queries/get_tasks_timeline_query.ts` | 21 |
+| class | `GetUserTasksQuery` | `app/modules/tasks/actions/queries/get_user_tasks_query.ts` | 26 |
+| class | `ListTaskStatusesQuery` | `app/modules/tasks/actions/queries/list_task_statuses_query.ts` | 7 |
+| class | `ListWorkflowQuery` | `app/modules/tasks/actions/queries/list_workflow_query.ts` | 8 |
+| class | `Result` | `app/modules/tasks/actions/result.ts` | 5 |
+| interface | `TaskListPublicOptions` | `app/modules/tasks/actions/services/task_public_api.ts` | 22 |
+| class | `TaskPublicApi` | `app/modules/tasks/actions/services/task_public_api.ts` | 35 |
+| const | `taskPublicApi` | `app/modules/tasks/actions/services/task_public_api.ts` | 138 |
+| class | `TaskRequirementVersionService` | `app/modules/tasks/actions/services/task_requirement_version_service.ts` | 11 |
+| class | `TaskSkillRequirementService` | `app/modules/tasks/actions/services/task_skill_requirement_service.ts` | 52 |
+| interface | `CreateTaskPersistencePayload` | `app/modules/tasks/actions/support/task_create_payload_builder.ts` | 11 |
+| function | `buildCreateTaskPersistencePayload` | `app/modules/tasks/actions/support/task_create_payload_builder.ts` | 46 |
+| interface | `CreateTaskPersistenceInput` | `app/modules/tasks/actions/support/task_create_persistence_support.ts` | 27 |
+| interface | `CreateTaskPersistenceDependencies` | `app/modules/tasks/actions/support/task_create_persistence_support.ts` | 35 |
+| type | `ResolvedCreateTaskStatus` | `app/modules/tasks/actions/support/task_create_preconditions.ts` | 17 |
+| function | `buildTaskPermissionFilter` | `app/modules/tasks/actions/support/task_permission_filter_builder.ts` | 5 |
+| function | `assertRequiredSkillsPresent` | `app/modules/tasks/actions/support/task_required_skill_persistence.ts` | 12 |
+| function | `findInvalidRequiredSkill` | `app/modules/tasks/actions/support/task_required_skill_persistence.ts` | 18 |
+| function | `buildTaskRequiredSkillRows` | `app/modules/tasks/actions/support/task_required_skill_persistence.ts` | 25 |
+| interface | `TaskVersionSnapshotPayload` | `app/modules/tasks/actions/support/task_version_snapshot.ts` | 16 |
+| function | `hasTaskVersionRelevantChanges` | `app/modules/tasks/actions/support/task_version_snapshot.ts` | 74 |
+| function | `buildTaskVersionSnapshot` | `app/modules/tasks/actions/support/task_version_snapshot.ts` | 81 |
+| interface | `TaskUpdateRepositoryPort` | `app/modules/tasks/actions/support/update_task_persistence_support.ts` | 26 |
+| interface | `TaskVersionRepositoryPort` | `app/modules/tasks/actions/support/update_task_persistence_support.ts` | 38 |
+| interface | `PersistedTaskUpdate` | `app/modules/tasks/actions/support/update_task_persistence_support.ts` | 61 |
+| interface | `UpdateTaskPersistenceInput` | `app/modules/tasks/actions/support/update_task_persistence_support.ts` | 68 |
+| interface | `UpdateTaskPersistenceDependencies` | `app/modules/tasks/actions/support/update_task_persistence_support.ts` | 77 |
+| function | `buildTaskUpdateNotificationRequests` | `app/modules/tasks/actions/support/update_task_post_commit_support.ts` | 51 |
+| interface | `TaskActionContext` | `app/modules/tasks/actions/task_action_context.ts` | 1 |
+| interface | `AuthenticatedTaskActionContext` | `app/modules/tasks/actions/task_action_context.ts` | 8 |
+| function | `makeSystemTaskActionContext` | `app/modules/tasks/actions/task_action_context.ts` | 12 |
+| interface | `TaskActorContext` | `app/modules/tasks/application/context/task_actor_context.ts` | 1 |
+| const | `TASK_PAGINATION` | `app/modules/tasks/application/dtos/common/task_pagination.ts` | 1 |
+| interface | `TaskActor` | `app/modules/tasks/application/ports/task_actor_lookup.ts` | 1 |
+| interface | `TaskActorLookup` | `app/modules/tasks/application/ports/task_actor_lookup.ts` | 8 |
+| type | `TaskPublicEventV1` | `app/modules/tasks/application/ports/task_event_publisher.ts` | 8 |
+| interface | `TaskEventPublisher` | `app/modules/tasks/application/ports/task_event_publisher.ts` | 14 |
+| interface | `TaskOrganizationMembership` | `app/modules/tasks/application/ports/task_organization_membership.ts` | 1 |
+| interface | `TaskOrganizationMembershipReader` | `app/modules/tasks/application/ports/task_organization_membership.ts` | 8 |
+| interface | `TaskProjectAccessSnapshot` | `app/modules/tasks/application/ports/task_project_access.ts` | 1 |
+| interface | `TaskProjectAccessReader` | `app/modules/tasks/application/ports/task_project_access.ts` | 8 |
+| interface | `TaskReviewSessionCreatorInput` | `app/modules/tasks/application/ports/task_review_session_creator.ts` | 3 |
+| interface | `TaskReviewSessionCreator` | `app/modules/tasks/application/ports/task_review_session_creator.ts` | 12 |
+| class | `MonolithTaskOrgReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_org_reader.ts` | 6 |
+| class | `MonolithTaskPermissionReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_permission_reader.ts` | 8 |
+| class | `MonolithTaskProjectReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_project_reader.ts` | 9 |
+| class | `MonolithTaskReviewReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_review_reader.ts` | 6 |
+| class | `MonolithTaskSkillReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_skill_reader.ts` | 9 |
+| class | `MonolithTaskUserReader` | `app/modules/tasks/bootstrap/adapters/monolith_task_user_reader.ts` | 10 |
+| function | `makeApplyForTaskCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 35 |
+| function | `makeProcessApplicationCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 39 |
+| function | `makeWithdrawApplicationCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 43 |
+| function | `makeBatchUpdateTaskStatusCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 47 |
+| function | `makeCreateTaskCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 53 |
+| function | `makeUpdateTaskCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 57 |
+| function | `makeAssignTaskCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 61 |
+| function | `makeDeleteTaskCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 68 |
+| function | `makeDeleteTaskStatusCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 72 |
+| function | `makePatchTaskStatusBoardPocCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 76 |
+| function | `makeRevokeTaskAccessCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 82 |
+| function | `makeUpdateTaskSortOrderCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 89 |
+| function | `makeUpdateTaskStatusCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 95 |
+| function | `makeUpdateTaskTimeCommand` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 99 |
+| function | `getTaskPermissionReader` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 103 |
+| function | `makeGetTaskDetailQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 107 |
+| function | `makeGetTaskCreatePageQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 111 |
+| function | `makeGetTaskEditPageQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 115 |
+| function | `makeGetTaskMetadataQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 119 |
+| function | `makeGetTaskProjectsQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 123 |
+| function | `makeGetTaskStatisticsQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 127 |
+| function | `makeGetTaskStatusBoardPageQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 131 |
+| function | `makeGetTasksGroupedQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 137 |
+| function | `makeGetTasksListQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 141 |
+| function | `makeGetTasksIndexPageQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 145 |
+| function | `makeGetTasksPageQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 149 |
+| function | `makeGetTasksTimelineQuery` | `app/modules/tasks/bootstrap/task_action_factory.ts` | 153 |
+| const | `taskExternalDeps` | `app/modules/tasks/bootstrap/task_composition_root.ts` | 10 |
+| enum | `TaskStatus` | `app/modules/tasks/constants/task_constants.ts` | 27 |
+| enum | `TaskStatusCategory` | `app/modules/tasks/constants/task_constants.ts` | 49 |
+| const | `DEFAULT_TASK_STATUSES` | `app/modules/tasks/constants/task_constants.ts` | 60 |
+| const | `DEFAULT_WORKFLOW_TRANSITIONS` | `app/modules/tasks/constants/task_constants.ts` | 138 |
+| const | `INCOMPLETE_TASK_STATUSES` | `app/modules/tasks/constants/task_constants.ts` | 163 |
+| const | `TERMINAL_TASK_STATUSES` | `app/modules/tasks/constants/task_constants.ts` | 174 |
+| const | `TERMINAL_STATUS_CATEGORIES` | `app/modules/tasks/constants/task_constants.ts` | 179 |
+| enum | `TaskLabel` | `app/modules/tasks/constants/task_constants.ts` | 192 |
+| enum | `TaskPriority` | `app/modules/tasks/constants/task_constants.ts` | 207 |
+| enum | `TaskDifficulty` | `app/modules/tasks/constants/task_constants.ts` | 222 |
+| enum | `TaskVisibility` | `app/modules/tasks/constants/task_constants.ts` | 237 |
+| enum | `ApplicationStatus` | `app/modules/tasks/constants/task_constants.ts` | 251 |
+| enum | `ApplicationSource` | `app/modules/tasks/constants/task_constants.ts` | 262 |
+| enum | `AssignmentStatus` | `app/modules/tasks/constants/task_constants.ts` | 276 |
+| enum | `AssignmentType` | `app/modules/tasks/constants/task_constants.ts` | 286 |
+| class | `ApplyForTaskApiController` | `app/modules/tasks/controllers/apply_for_task_api_controller.ts` | 14 |
+| class | `ApplyForTaskController` | `app/modules/tasks/controllers/apply_for_task_controller.ts` | 11 |
+| class | `BatchUpdateTaskStatusController` | `app/modules/tasks/controllers/batch_update_task_status_controller.ts` | 12 |
+| class | `CheckCreatePermissionController` | `app/modules/tasks/controllers/check_create_permission_controller.ts` | 10 |
+| class | `CreateTaskController` | `app/modules/tasks/controllers/create_task_controller.ts` | 19 |
+| class | `CreateTaskStatusController` | `app/modules/tasks/controllers/create_task_status_controller.ts` | 16 |
+| class | `DeleteTaskController` | `app/modules/tasks/controllers/delete_task_controller.ts` | 14 |
+| class | `DeleteTaskStatusController` | `app/modules/tasks/controllers/delete_task_status_controller.ts` | 16 |
+| class | `EditTaskController` | `app/modules/tasks/controllers/edit_task_controller.ts` | 22 |
+| class | `GetTaskAuditLogsController` | `app/modules/tasks/controllers/get_task_audit_logs_controller.ts` | 11 |
+| class | `ListPublicTasksApiController` | `app/modules/tasks/controllers/list_public_tasks_api_controller.ts` | 13 |
+| class | `ListPublicTasksController` | `app/modules/tasks/controllers/list_public_tasks_controller.ts` | 13 |
+| class | `ListTaskApplicationsController` | `app/modules/tasks/controllers/list_task_applications_controller.ts` | 13 |
+| class | `ListTaskStatusesController` | `app/modules/tasks/controllers/list_task_statuses_controller.ts` | 11 |
+| class | `ListTasksController` | `app/modules/tasks/controllers/list_tasks_controller.ts` | 16 |
+| class | `ListTasksGroupedController` | `app/modules/tasks/controllers/list_tasks_grouped_controller.ts` | 12 |
+| class | `ListTasksTimelineController` | `app/modules/tasks/controllers/list_tasks_timeline_controller.ts` | 12 |
+| class | `ListWorkflowController` | `app/modules/tasks/controllers/list_workflow_controller.ts` | 11 |
+| const | `TASKS_DEFAULT_LIMIT` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 7 |
+| function | `toOptionalString` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 13 |
+| function | `toOptionalNullableString` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 17 |
+| function | `toPositiveNumber` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 25 |
+| function | `toTaskSortBy` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 40 |
+| function | `toSortOrder` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 46 |
+| function | `toOptionalNumericValue` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 50 |
+| function | `toOptionalStringArray` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 63 |
+| function | `toApplicationStatusFilter` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 82 |
+| function | `toPublicTaskSortBy` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 88 |
+| function | `toPublicTaskSortOrder` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 94 |
+| function | `toOptionalRecordArray` | `app/modules/tasks/controllers/mappers/request/shared.ts` | 98 |
+| function | `buildGetTaskApplicationsDTO` | `app/modules/tasks/controllers/mappers/request/task_application_request_mapper.ts` | 54 |
+| function | `buildGetPublicTasksDTO` | `app/modules/tasks/controllers/mappers/request/task_application_request_mapper.ts` | 71 |
+| function | `buildGetMyApplicationsInput` | `app/modules/tasks/controllers/mappers/request/task_application_request_mapper.ts` | 91 |
+| function | `buildGetTasksIndexPageInput` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 29 |
+| function | `buildUpdateTaskStatusDTO` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 125 |
+| function | `buildUpdateTaskTimeDTO` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 136 |
+| function | `buildDeleteTaskDTO` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 147 |
+| function | `buildPatchTaskStatusBoardPocInput` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 158 |
+| function | `buildGetTaskAuditLogsInput` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 169 |
+| function | `buildGetTaskDetailDTO` | `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts` | 182 |
+| function | `buildCreateTaskStatusDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 67 |
+| function | `buildOrganizationWorkflowCreateTaskStatusDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 93 |
+| function | `buildUpdateTaskStatusDefinitionDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 104 |
+| function | `buildDeleteTaskStatusDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 127 |
+| function | `buildUpdateWorkflowDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 137 |
+| function | `buildWithdrawApplicationDTO` | `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts` | 151 |
+| interface | `PublicTaskFiltersResponse` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 9 |
+| function | `mapPublicTaskCollectionResponse` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 19 |
+| function | `mapPublicTasksPageProps` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 25 |
+| function | `mapPublicTasksApiBody` | `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts` | 44 |
+| type | `ResponseRecord` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 1 |
+| interface | `SerializableResponseRecord` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 3 |
+| interface | `PaginationMeta` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 7 |
+| interface | `PaginatedControllerResult` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 14 |
+| function | `serializeForResponse` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 31 |
+| function | `serializeCollectionForResponse` | `app/modules/tasks/controllers/mappers/response/shared.ts` | 41 |
+| function | `mapApplyForTaskApiBody` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 101 |
+| function | `mapTaskApplicationsPageProps` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 108 |
+| function | `mapMyApplicationsPageProps` | `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts` | 121 |
+| interface | `TaskDetailPageResult` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 4 |
+| interface | `TaskEditPageResult` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 21 |
+| function | `mapTaskCreateApiBody` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 40 |
+| function | `mapTaskUpdateApiBody` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 47 |
+| function | `mapTaskStatusApiBody` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 54 |
+| function | `mapTaskSortOrderApiBody` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 65 |
+| function | `mapTaskDetailPageProps` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 72 |
+| function | `mapScopedTaskDetailPageProps` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 80 |
+| function | `mapTaskEditPageProps` | `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts` | 91 |
+| function | `mapTaskStatusDefinitionApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 4 |
+| function | `mapTaskWorkflowApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 11 |
+| function | `mapTaskStatusSuccessApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 18 |
+| function | `mapTaskStatusMutationApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 22 |
+| function | `mapTaskStatusDeleteApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 26 |
+| function | `mapWorkflowUpdateApiBody` | `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts` | 30 |
+| function | `taskActorContextFromHttp` | `app/modules/tasks/controllers/mappers/task_actor_context_mapper.ts` | 6 |
+| class | `MatchScoresController` | `app/modules/tasks/controllers/match_scores_controller.ts` | 7 |
+| class | `MyApplicationsController` | `app/modules/tasks/controllers/my_applications_controller.ts` | 13 |
+| class | `PatchTaskStatusBoardPocController` | `app/modules/tasks/controllers/patch_task_status_board_poc_controller.ts` | 14 |
+| class | `ProcessApplicationController` | `app/modules/tasks/controllers/process_application_controller.ts` | 11 |
+| class | `ShowTaskController` | `app/modules/tasks/controllers/show_task_controller.ts` | 14 |
+| class | `ShowTaskStatusBoardController` | `app/modules/tasks/controllers/show_task_status_board_controller.ts` | 12 |
+| class | `TaskSubmissionController` | `app/modules/tasks/controllers/task_submission_controller.ts` | 56 |
+| class | `UpdateTaskSortOrderController` | `app/modules/tasks/controllers/update_task_sort_order_controller.ts` | 13 |
+| class | `UpdateTaskStatusController` | `app/modules/tasks/controllers/update_task_status_controller.ts` | 15 |
+| class | `UpdateTaskStatusDefinitionController` | `app/modules/tasks/controllers/update_task_status_definition_controller.ts` | 16 |
+| class | `UpdateTaskTimeController` | `app/modules/tasks/controllers/update_task_time_controller.ts` | 12 |
+| class | `UpdateWorkflowController` | `app/modules/tasks/controllers/update_workflow_controller.ts` | 16 |
+| class | `AddTaskRequirementController` | `app/modules/tasks/controllers/v1/add_task_requirement_controller.ts` | 25 |
+| class | `CreateTaskStatusController` | `app/modules/tasks/controllers/v1/create_task_status_controller.ts` | 27 |
+| class | `DeleteTaskStatusController` | `app/modules/tasks/controllers/v1/delete_task_status_controller.ts` | 10 |
+| class | `ListTaskRequirementVersionsController` | `app/modules/tasks/controllers/v1/list_task_requirement_versions_controller.ts` | 5 |
+| class | `ListTaskRequirementsController` | `app/modules/tasks/controllers/v1/list_task_requirements_controller.ts` | 5 |
+| class | `ListTaskStatusesController` | `app/modules/tasks/controllers/v1/list_task_statuses_controller.ts` | 8 |
+| class | `PrefillTaskRequirementsFromRoleController` | `app/modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller.ts` | 16 |
+| class | `RemoveTaskRequirementController` | `app/modules/tasks/controllers/v1/remove_task_requirement_controller.ts` | 5 |
+| class | `ShowTaskStatusController` | `app/modules/tasks/controllers/v1/show_task_status_controller.ts` | 9 |
+| class | `UpdateTaskRequirementController` | `app/modules/tasks/controllers/v1/update_task_requirement_controller.ts` | 22 |
+| class | `UpdateTaskStatusController` | `app/modules/tasks/controllers/v1/update_task_status_controller.ts` | 51 |
+| class | `WithdrawApplicationController` | `app/modules/tasks/controllers/withdraw_application_controller.ts` | 11 |
+| type | `TaskStatus` | `app/modules/tasks/domain/entities/task_entity.ts` | 9 |
+| type | `TaskLabel` | `app/modules/tasks/domain/entities/task_entity.ts` | 10 |
+| type | `TaskPriority` | `app/modules/tasks/domain/entities/task_entity.ts` | 11 |
+| type | `TaskDifficulty` | `app/modules/tasks/domain/entities/task_entity.ts` | 12 |
+| type | `TaskVisibility` | `app/modules/tasks/domain/entities/task_entity.ts` | 13 |
+| interface | `TaskEntityProps` | `app/modules/tasks/domain/entities/task_entity.ts` | 15 |
+| class | `TaskEntity` | `app/modules/tasks/domain/entities/task_entity.ts` | 43 |
+| class | `TaskDomainMapper` | `app/modules/tasks/domain/mapper/task_domain_mapper.ts` | 18 |
+| interface | `TaskRequiredSkill` | `app/modules/tasks/domain/match_formulas.ts` | 12 |
+| interface | `TaskMatchInput` | `app/modules/tasks/domain/match_formulas.ts` | 19 |
+| interface | `UserSkillInput` | `app/modules/tasks/domain/match_formulas.ts` | 26 |
+| interface | `UserWorkHistoryInput` | `app/modules/tasks/domain/match_formulas.ts` | 32 |
+| interface | `ApplicantMatchInput` | `app/modules/tasks/domain/match_formulas.ts` | 39 |
+| interface | `MatchScoreResult` | `app/modules/tasks/domain/match_formulas.ts` | 45 |
+| function | `calculateApplicantMatch` | `app/modules/tasks/domain/match_formulas.ts` | 55 |
+| interface | `TaskRepository` | `app/modules/tasks/domain/repositories/task_repository_interface.ts` | 12 |
+| const | `TaskOrgRole` | `app/modules/tasks/domain/role_contracts.ts` | 3 |
+| const | `TaskProjectRole` | `app/modules/tasks/domain/role_contracts.ts` | 9 |
+| const | `TaskSystemRole` | `app/modules/tasks/domain/role_contracts.ts` | 16 |
+| function | `canApplyForTask` | `app/modules/tasks/domain/task_assignment_rules.ts` | 27 |
+| function | `validateAssignee` | `app/modules/tasks/domain/task_assignment_rules.ts` | 64 |
+| function | `canRevokeAssignment` | `app/modules/tasks/domain/task_assignment_rules.ts` | 93 |
+| function | `validateBatchStatusUpdate` | `app/modules/tasks/domain/task_assignment_rules.ts` | 116 |
+| function | `validateTaskCreationFields` | `app/modules/tasks/domain/task_assignment_rules.ts` | 148 |
+| function | `canProcessApplication` | `app/modules/tasks/domain/task_assignment_rules.ts` | 185 |
+| type | `SnapshotPayloadPolicyResult` | `app/modules/tasks/domain/task_assignment_snapshot_rules.ts` | 6 |
+| function | `canCreateTaskAssignmentSnapshot` | `app/modules/tasks/domain/task_assignment_snapshot_rules.ts` | 8 |
+| function | `validateTaskAssignmentSnapshotPayload` | `app/modules/tasks/domain/task_assignment_snapshot_rules.ts` | 38 |
+| function | `canUpdateTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 61 |
+| function | `canUpdateTaskStatus` | `app/modules/tasks/domain/task_permission_policy.ts` | 76 |
+| function | `canUpdateTaskTime` | `app/modules/tasks/domain/task_permission_policy.ts` | 87 |
+| function | `canAssignTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 102 |
+| function | `canDeleteTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 123 |
+| function | `canRevokeTaskAccess` | `app/modules/tasks/domain/task_permission_policy.ts` | 148 |
+| function | `canUpdateTaskFields` | `app/modules/tasks/domain/task_permission_policy.ts` | 166 |
+| function | `canPermanentDeleteTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 223 |
+| function | `canViewTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 240 |
+| function | `canReorderTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 251 |
+| function | `resolveTaskCollectionReadScope` | `app/modules/tasks/domain/task_permission_policy.ts` | 257 |
+| function | `calculateTaskPermissions` | `app/modules/tasks/domain/task_permission_policy.ts` | 282 |
+| function | `canCreateTask` | `app/modules/tasks/domain/task_permission_policy.ts` | 311 |
+| function | `canManageTaskStatusBoard` | `app/modules/tasks/domain/task_permission_policy.ts` | 321 |
+| function | `canAccessTaskEditPage` | `app/modules/tasks/domain/task_permission_policy.ts` | 330 |
+| interface | `TransitionContext` | `app/modules/tasks/domain/task_state_machine.ts` | 61 |
+| function | `validateTransition` | `app/modules/tasks/domain/task_state_machine.ts` | 73 |
+| function | `isTerminalStatus` | `app/modules/tasks/domain/task_state_machine.ts` | 110 |
+| function | `getAllowedTransitions` | `app/modules/tasks/domain/task_state_machine.ts` | 118 |
+| interface | `TaskStatusMirrorSource` | `app/modules/tasks/domain/task_status_mirror.ts` | 1 |
+| function | `toLegacyTaskStatusMirror` | `app/modules/tasks/domain/task_status_mirror.ts` | 9 |
+| function | `canEditStatus` | `app/modules/tasks/domain/task_status_rules.ts` | 28 |
+| function | `canDeleteStatus` | `app/modules/tasks/domain/task_status_rules.ts` | 48 |
+| function | `isValidSlug` | `app/modules/tasks/domain/task_status_rules.ts` | 67 |
+| function | `isValidCategory` | `app/modules/tasks/domain/task_status_rules.ts` | 75 |
+| interface | `WorkflowTransitionContext` | `app/modules/tasks/domain/task_status_rules.ts` | 83 |
+| function | `validateWorkflowTransition` | `app/modules/tasks/domain/task_status_rules.ts` | 104 |
+| function | `canEditTaskSubmission` | `app/modules/tasks/domain/task_submission_rules.ts` | 15 |
+| function | `canSubmitTaskSubmission` | `app/modules/tasks/domain/task_submission_rules.ts` | 36 |
+| function | `validateTaskSubmissionPayload` | `app/modules/tasks/domain/task_submission_rules.ts` | 61 |
+| interface | `TaskPermissionContext` | `app/modules/tasks/domain/task_types.ts` | 16 |
+| type | `TaskCollectionScopeFallback` | `app/modules/tasks/domain/task_types.ts` | 37 |
+| interface | `TaskCollectionAccessContext` | `app/modules/tasks/domain/task_types.ts` | 39 |
+| interface | `TaskCreatePermissionContext` | `app/modules/tasks/domain/task_types.ts` | 46 |
+| type | `TaskCollectionReadScope` | `app/modules/tasks/domain/task_types.ts` | 53 |
+| type | `UpdateFieldsResult` | `app/modules/tasks/domain/task_types.ts` | 64 |
+| interface | `TaskCreatedEvent` | `app/modules/tasks/events/task_events.ts` | 2 |
+| interface | `TaskFieldChange` | `app/modules/tasks/events/task_events.ts` | 9 |
+| interface | `TaskUpdatedEvent` | `app/modules/tasks/events/task_events.ts` | 15 |
+| interface | `TaskStatusChangedEvent` | `app/modules/tasks/events/task_events.ts` | 22 |
+| interface | `TaskAssignmentCompletedEvent` | `app/modules/tasks/events/task_events.ts` | 32 |
+| interface | `TaskAssignedEvent` | `app/modules/tasks/events/task_events.ts` | 38 |
+| interface | `TaskAccessRevokedEvent` | `app/modules/tasks/events/task_events.ts` | 45 |
+| interface | `TaskApplicationSubmittedEvent` | `app/modules/tasks/events/task_events.ts` | 52 |
+| interface | `TaskApplicationReviewedEvent` | `app/modules/tasks/events/task_events.ts` | 60 |
+| class | `TaskCacheInvalidator` | `app/modules/tasks/infra/cache/task_cache_invalidator.ts` | 4 |
+| class | `TaskInfraMapper` | `app/modules/tasks/infra/mapper/task_infra_mapper.ts` | 31 |
+| class | `Task` | `app/modules/tasks/infra/models/task.ts` | 39 |
+| class | `TaskApplication` | `app/modules/tasks/infra/models/task_application.ts` | 21 |
+| class | `TaskAssignment` | `app/modules/tasks/infra/models/task_assignment.ts` | 20 |
+| class | `TaskAssignmentSnapshot` | `app/modules/tasks/infra/models/task_assignment_snapshot.ts` | 22 |
+| class | `TaskAttachment` | `app/modules/tasks/infra/models/task_attachment.ts` | 10 |
+| class | `TaskComment` | `app/modules/tasks/infra/models/task_comment.ts` | 10 |
+| class | `TaskRequiredSkill` | `app/modules/tasks/infra/models/task_required_skill.ts` | 18 |
+| type | `RequirementVersionReason` | `app/modules/tasks/infra/models/task_requirement_version.ts` | 7 |
+| class | `TaskRequirementVersion` | `app/modules/tasks/infra/models/task_requirement_version.ts` | 15 |
+| class | `TaskRequirementVersionItem` | `app/modules/tasks/infra/models/task_requirement_version_item.ts` | 6 |
+| class | `TaskSelfAssessment` | `app/modules/tasks/infra/models/task_self_assessment.ts` | 10 |
+| class | `TaskStatus` | `app/modules/tasks/infra/models/task_status.ts` | 7 |
+| class | `TaskSubmission` | `app/modules/tasks/infra/models/task_submission.ts` | 12 |
+| class | `TaskSubmissionEvidence` | `app/modules/tasks/infra/models/task_submission_evidence.ts` | 10 |
+| class | `TaskVersion` | `app/modules/tasks/infra/models/task_version.ts` | 16 |
+| class | `TaskWorkflowTransition` | `app/modules/tasks/infra/models/task_workflow_transition.ts` | 10 |
+| const | `countIncompleteByProject` | `app/modules/tasks/infra/repositories/read/aggregate_queries.ts` | 13 |
+| const | `getTasksSummaryByProject` | `app/modules/tasks/infra/repositories/read/aggregate_queries.ts` | 30 |
+| const | `countByAssignees` | `app/modules/tasks/infra/repositories/read/aggregate_queries.ts` | 89 |
+| const | `countByProjectIds` | `app/modules/tasks/infra/repositories/read/aggregate_queries.ts` | 116 |
+| const | `countByTaskStatusId` | `app/modules/tasks/infra/repositories/read/aggregate_queries.ts` | 140 |
+| const | `findActiveTaskIdentity` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 11 |
+| const | `findActiveOrFail` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 22 |
+| const | `findActiveOrFailAsRecord` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 35 |
+| const | `findActiveByIdsInOrganization` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 43 |
+| const | `findActiveByIdsInOrganizationAsRecords` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 58 |
+| const | `findByIdWithDetailRelations` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 67 |
+| const | `findByIdWithDetailRecord` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 95 |
+| const | `findByIdWithWriteRelations` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 104 |
+| const | `findByIdWithStatusRelations` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 123 |
+| const | `listPreviewByProject` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 137 |
+| const | `listPreviewByProjectAsRecords` | `app/modules/tasks/infra/repositories/read/detail_queries.ts` | 152 |
+| const | `findRootTasksForKanban` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 20 |
+| const | `findRootTasksForKanbanAsRecords` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 47 |
+| const | `findTasksForTimeline` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 56 |
+| const | `findTasksForTimelineAsRecords` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 77 |
+| const | `paginateByOrganization` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 86 |
+| const | `getListStatsByOrganization` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 166 |
+| const | `paginateByUser` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 198 |
+| const | `paginateByUserAsRecords` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 240 |
+| const | `findRootTasksByOrganization` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 256 |
+| const | `paginateOrganizationTasks` | `app/modules/tasks/infra/repositories/read/list_queries.ts` | 270 |
+| const | `paginatePublicTasks` | `app/modules/tasks/infra/repositories/read/public_queries.ts` | 9 |
+| const | `paginatePublicTasksAsRecords` | `app/modules/tasks/infra/repositories/read/public_queries.ts` | 113 |
+| const | `LEGACY_TASK_STATUS` | `app/modules/tasks/infra/repositories/read/shared.ts` | 6 |
+| const | `TERMINAL_TASK_STATUS_VALUES` | `app/modules/tasks/infra/repositories/read/shared.ts` | 13 |
+| const | `STATUS_CATEGORY_SQL` | `app/modules/tasks/infra/repositories/read/shared.ts` | 18 |
+| const | `getRecordField` | `app/modules/tasks/infra/repositories/read/shared.ts` | 24 |
+| const | `getExtraField` | `app/modules/tasks/infra/repositories/read/shared.ts` | 31 |
+| const | `toNumberValue` | `app/modules/tasks/infra/repositories/read/shared.ts` | 39 |
+| type | `TaskPermissionFilter` | `app/modules/tasks/infra/repositories/read/shared.ts` | 50 |
+| const | `applyPermissionFilter` | `app/modules/tasks/infra/repositories/read/shared.ts` | 56 |
+| const | `baseQuery` | `app/modules/tasks/infra/repositories/read/shared.ts` | 77 |
+| const | `getStatisticsByOrganization` | `app/modules/tasks/infra/repositories/read/statistics_queries.ts` | 138 |
+| const | `taskDetailQueryRepository` | `app/modules/tasks/infra/repositories/read/task_detail_query_repository.ts` | 7 |
+| const | `taskIdentityQueryRepository` | `app/modules/tasks/infra/repositories/read/task_identity_query_repository.ts` | 6 |
+| const | `taskStatusQueryRepository` | `app/modules/tasks/infra/repositories/read/task_status_query_repository.ts` | 4 |
+| class | `TaskRepositoryImpl` | `app/modules/tasks/infra/repositories/task_repository_impl.ts` | 16 |
+| class | `TaskRequirementRepository` | `app/modules/tasks/infra/repositories/task_requirement_repository.ts` | 15 |
+| class | `TaskStatusRepository` | `app/modules/tasks/infra/repositories/task_status_repository.ts` | 35 |
+| const | `reassignByUser` | `app/modules/tasks/infra/repositories/write/task_aggregate_mutations.ts` | 11 |
+| const | `unassignByUserInProjects` | `app/modules/tasks/infra/repositories/write/task_aggregate_mutations.ts` | 27 |
+| const | `taskAssignmentCommandRepository` | `app/modules/tasks/infra/repositories/write/task_assignment_command_repository.ts` | 6 |
+| const | `taskCommandRepository` | `app/modules/tasks/infra/repositories/write/task_command_repository.ts` | 7 |
+| const | `lockForUpdate` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 9 |
+| const | `findActiveForUpdate` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 16 |
+| const | `findActiveForUpdateAsRecord` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 22 |
+| const | `updateTask` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 35 |
+| const | `create` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 46 |
+| const | `save` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 53 |
+| const | `hardDelete` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 61 |
+| const | `hardDeleteById` | `app/modules/tasks/infra/repositories/write/task_mutations.ts` | 72 |
+| const | `taskAssignedV1Schema` | `app/modules/tasks/public_contracts/schemas/task_events_v1.schema.ts` | 3 |
+| const | `taskAssignmentCompletedV1Schema` | `app/modules/tasks/public_contracts/schemas/task_events_v1.schema.ts` | 13 |
+| interface | `ReassignOrUnassignTasksForRemovedMemberV1` | `app/modules/tasks/public_contracts/task_assignment_commands_v1.ts` | 1 |
+| interface | `TaskAssignmentFactsV1` | `app/modules/tasks/public_contracts/task_assignment_facts_v1.ts` | 1 |
+| interface | `TaskAssignedV1` | `app/modules/tasks/public_contracts/task_events_v1.ts` | 1 |
+| interface | `TaskUnassignedV1` | `app/modules/tasks/public_contracts/task_events_v1.ts` | 11 |
+| interface | `TaskStatusChangedV1` | `app/modules/tasks/public_contracts/task_events_v1.ts` | 21 |
+| interface | `TaskAssignmentCompletedV1` | `app/modules/tasks/public_contracts/task_events_v1.ts` | 32 |
+| class | `CreateTaskStatusDTO` | `app/modules/tasks/public_contracts/task_status_dtos.ts` | 5 |
+| class | `UpdateTaskStatusDTO` | `app/modules/tasks/public_contracts/task_status_dtos.ts` | 86 |
+| class | `DeleteTaskStatusDTO` | `app/modules/tasks/public_contracts/task_status_dtos.ts` | 180 |
+| class | `UpdateWorkflowDTO` | `app/modules/tasks/public_contracts/task_status_dtos.ts` | 204 |
+| type | `SerializedDateTime` | `app/modules/tasks/types/task_records.ts` | 2 |
+| interface | `TaskRecord` | `app/modules/tasks/types/task_records.ts` | 4 |
+| interface | `TaskIdentityRecord` | `app/modules/tasks/types/task_records.ts` | 59 |
+| type | `TaskDetailRecord` | `app/modules/tasks/types/task_records.ts` | 64 |
+| type | `TaskListRecord` | `app/modules/tasks/types/task_records.ts` | 65 |
+| type | `TaskAuditValues` | `app/modules/tasks/types/task_records.ts` | 66 |
+| type | `TaskDetailRelation` | `app/modules/tasks/types/task_records.ts` | 67 |
+| interface | `CreateTaskRepositoryResult` | `app/modules/tasks/types/task_records.ts` | 69 |
+| interface | `TaskStatusRecord` | `app/modules/tasks/types/task_records.ts` | 74 |
+| interface | `TaskApplicationRecord` | `app/modules/tasks/types/task_records.ts` | 91 |
+| interface | `PaginatedTaskApplicationRecords` | `app/modules/tasks/types/task_records.ts` | 109 |
+| interface | `TaskWorkflowTransitionRecord` | `app/modules/tasks/types/task_records.ts` | 119 |
+| interface | `TaskAssignmentWithDetailsRecord` | `app/modules/tasks/types/task_records.ts` | 130 |
+| const | `taskIdRule` | `app/modules/tasks/validators/rules/database.ts` | 15 |
+| const | `userIdRule` | `app/modules/tasks/validators/rules/database.ts` | 16 |
+| const | `createTaskValidator` | `app/modules/tasks/validators/task.ts` | 11 |
+| const | `createTaskRequestValidator` | `app/modules/tasks/validators/task.ts` | 29 |
+| const | `updateTaskValidator` | `app/modules/tasks/validators/task.ts` | 72 |
+| const | `updateTaskRequestValidator` | `app/modules/tasks/validators/task.ts` | 90 |
+| const | `updateTaskStatusValidator` | `app/modules/tasks/validators/task.ts` | 108 |
+| const | `updateTaskTimeValidator` | `app/modules/tasks/validators/task.ts` | 117 |
+| const | `taskFilterValidator` | `app/modules/tasks/validators/task.ts` | 126 |
+| const | `applyForTaskValidator` | `app/modules/tasks/validators/task.ts` | 143 |
+| const | `applyForTaskRequestValidator` | `app/modules/tasks/validators/task.ts` | 155 |
+| const | `processApplicationValidator` | `app/modules/tasks/validators/task.ts` | 167 |
+| const | `processApplicationRequestValidator` | `app/modules/tasks/validators/task.ts` | 179 |
+| const | `listTaskApplicationsValidator` | `app/modules/tasks/validators/task.ts` | 191 |
+| const | `createTaskStatusValidator` | `app/modules/tasks/validators/task_status.ts` | 11 |
+| const | `updateTaskStatusValidator` | `app/modules/tasks/validators/task_status.ts` | 34 |
+| const | `updateWorkflowValidator` | `app/modules/tasks/validators/task_status.ts` | 59 |
+
+## Import Evidence
+
+### `app/modules/tasks/actions/base_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { CommandHandler } from './interfaces.js'
+import { Result } from './result.js'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/base_query.ts`
+
+```ts
+import type { QueryHandler } from './interfaces.js'
+import { Result } from './result.js'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/bootstrap/org_task_bootstrap.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { seedDefaultTaskStatuses } from '../commands/seed_default_task_statuses.js'
+```
+
+### `app/modules/tasks/actions/commands/add_task_submission_evidence_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import {
+  assertHttpUrl,
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/apply_for_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { ApplyForTaskDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/assign_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
+import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/batch_update_task_status_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { validateBatchStatusUpdate } from '#modules/tasks/domain/task_assignment_rules'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/create_task_assignment_snapshot_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { canCreateTaskAssignmentSnapshot } from '#modules/tasks/domain/task_assignment_snapshot_rules'
+```
+
+### `app/modules/tasks/actions/commands/create_task_attachment_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/create_task_command.ts`
+
+```ts
+import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
+import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/support/task_create_post_commit'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskDetailQueryRepository } from '#modules/tasks/infra/repositories/read/task_detail_query_repository'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/create_task_comment_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/create_task_status_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/delete_task_attachment_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/delete_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { getErrorMessage } from '#modules/http/errors/error_utils'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+```
+
+### `app/modules/tasks/actions/commands/delete_task_comment_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/delete_task_status_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canDeleteStatus } from '#modules/tasks/domain/task_status_rules'
+import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+```
+
+### `app/modules/tasks/actions/commands/delete_task_submission_evidence_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+```
+
+### `app/modules/tasks/actions/commands/patch_task_status_board_poc_command.ts`
+
+```ts
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canManageTaskStatusBoard } from '#modules/tasks/domain/task_permission_policy'
+```
+
+### `app/modules/tasks/actions/commands/process_application_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { ProcessApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import TaskAssignmentRepository from '#modules/tasks/infra/repositories/task_assignment_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { ApplicationStatus, AssignmentStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
+```
+
+### `app/modules/tasks/actions/commands/revoke_task_access_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { projectPublicApi } from '#modules/projects/public_contracts/project_public_api'
