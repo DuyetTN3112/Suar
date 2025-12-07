@@ -2698,3 +2698,903 @@ import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_c
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { validateAssignee } from '#modules/tasks/domain/task_assignment_rules'
+import { canAssignTask } from '#modules/tasks/domain/task_permission_policy'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
+
+interface PersistedTaskAssignment {
+  task: TaskRecord
+  oldAssignedTo: string | null
+}
+
+/**
+ * Command để giao task cho người dùng
+ *
+ * Business Rules:
+ * - Assign/Reassign/Unassign
+ * - User phải thuộc cùng organization hoặc là freelancer
+ * - Notification gửi cho assignee mới (và có thể old assignee)
+ * - Audit log đầy đủ
+ *
+ * Pattern: FETCH → DECIDE → PERSIST → POST-COMMIT
+ */
+export default class AssignTaskCommand {
+  constructor(
+    protected execCtx: TaskActionContext,
+    private createNotification: NotificationCreator,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
+  ) {}
+
+  async execute(dto: AssignTaskDTO): Promise<TaskDetailRecord> {
+    const userId = this.requireUserId()
+    const assignmentResult = await this.persistAssignmentInTransaction(dto, userId)
+    await this.runPostCommitEffects(assignmentResult, dto, userId)
+    return await detailQueries.findByIdWithDetailRecord(assignmentResult.task.id)
+  }
+
+  private requireUserId(): string {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    return userId
+  }
+
+  private async loadTaskForAssignment(
+    taskId: string,
+    trx: TransactionClientContract
+  ): Promise<TaskRecord> {
+    return taskMutations.findActiveForUpdateAsRecord(taskId, trx)
+  }
+
+  private async ensureAssignmentPreconditions(
+    userId: string,
+    dto: AssignTaskDTO,
+    task: TaskRecord,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const permissionContext = await buildTaskPermissionContext(
+      userId,
+      task,
+      trx,
+      this.taskExternalDependencies.permission
+    )
+    enforcePolicy(canAssignTask(permissionContext))
+
+    if (!dto.isAssigning() || dto.assigned_to === null) {
+      return
+    }
+
+    const assignee = await this.taskExternalDependencies.user.findUserIdentity(
+      dto.assigned_to,
+      trx
+    )
+    if (!assignee) {
+      throw new NotFoundException('Người được giao không tồn tại')
+    }
+
+    const isMember = await this.taskExternalDependencies.org.isApprovedMember(
+      dto.assigned_to,
+      task.organization_id,
+      trx
+    )
+    const isFreelancer = await this.taskExternalDependencies.user.isFreelancer(
+      dto.assigned_to,
+      trx
+    )
+
+    enforcePolicy(
+      validateAssignee({
+        isOrgMember: isMember,
+        isFreelancer,
+        taskVisibility: task.task_visibility ?? 'public',
+      })
+    )
+  }
+
+  private async persistAssignment(
+    task: TaskRecord,
+    dto: AssignTaskDTO,
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<PersistedTaskAssignment> {
+    const oldAssignedTo = task.assigned_to
+    const oldValues = { ...task }
+
+    const updatedTask = await taskMutations.updateTask(
+      task.id,
+      {
+        assigned_to: dto.assigned_to,
+        updated_by: userId,
+      },
+      trx
+    )
+
+    await auditPublicApi.log(
+      {
+        user_id: userId,
+        action: dto.isUnassigning() ? AuditAction.UNASSIGN : AuditAction.ASSIGN,
+        entity_type: EntityType.TASK,
+        entity_id: dto.task_id,
+        old_values: oldValues,
+        new_values: { ...updatedTask },
+      },
+      this.execCtx
+    )
+
+    return {
+      task: updatedTask,
+      oldAssignedTo,
+    }
+  }
+
+  private async persistAssignmentInTransaction(
+    dto: AssignTaskDTO,
+    userId: string
+  ): Promise<PersistedTaskAssignment> {
+    const trx = await db.transaction()
+
+    try {
+      const task = await this.loadTaskForAssignment(dto.task_id, trx)
+      await this.ensureAssignmentPreconditions(userId, dto, task, trx)
+      const result = await this.persistAssignment(task, dto, userId, trx)
+      await trx.commit()
+      return result
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+
+  private async runPostCommitEffects(
+    result: PersistedTaskAssignment,
+    dto: AssignTaskDTO,
+    userId: string
+  ): Promise<void> {
+    if (dto.isAssigning() && dto.assigned_to !== null) {
+      void emitter.emit('task:assigned', {
+        taskId: dto.task_id,
+        assigneeId: dto.assigned_to,
+        assignedBy: userId,
+        assignmentType: 'assign',
+      })
+    }
+
+    await this.cache.invalidateAfterTaskAssigned(dto.task_id)
+
+    if (dto.shouldNotify()) {
+      await this.sendAssignmentNotifications(result.task, userId, dto, result.oldAssignedTo)
+    }
+  }
+
+  /**
+   * Send notifications cho assignment
+   */
+  private async sendAssignmentNotifications(
+    task: TaskRecord,
+    assignerId: string,
+    dto: AssignTaskDTO,
+    oldAssignedTo: string | null
+  ): Promise<void> {
+    try {
+      const assigner = await this.taskExternalDependencies.user.findUserIdentity(assignerId)
+      if (!assigner) return
+
+      const assignerName = assigner.username
+
+      if (dto.isUnassigning() && oldAssignedTo && oldAssignedTo !== assigner.id) {
+        const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+          oldAssignedTo
+        )
+        if (oldAssignee) {
+          await this.createNotification.handle({
+            user_id: oldAssignee.id,
+            title: 'Cập nhật nhiệm vụ',
+            message: dto.getNotificationMessage(task.title, assignerName),
+            type: BACKEND_NOTIFICATION_TYPES.TASK_UNASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+            related_entity_id: task.id,
+          })
+        }
+      }
+
+      if (dto.isAssigning() && dto.assigned_to !== null && dto.assigned_to !== assigner.id) {
+        const newAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+          dto.assigned_to
+        )
+        if (newAssignee) {
+          await this.createNotification.handle({
+            user_id: newAssignee.id,
+            title: 'Bạn có nhiệm vụ mới',
+            message: dto.getNotificationMessage(task.title, assignerName),
+            type: BACKEND_NOTIFICATION_TYPES.TASK_ASSIGNED,
+            related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+            related_entity_id: task.id,
+          })
+        }
+
+        if (oldAssignedTo && oldAssignedTo !== dto.assigned_to && oldAssignedTo !== assigner.id) {
+          const oldAssignee = await this.taskExternalDependencies.user.findUserIdentity(
+            oldAssignedTo
+          )
+          if (oldAssignee) {
+            await this.createNotification.handle({
+              user_id: oldAssignee.id,
+              title: 'Cập nhật nhiệm vụ',
+              message: `${assignerName} đã chuyển nhiệm vụ "${task.title}" cho người khác`,
+              type: BACKEND_NOTIFICATION_TYPES.TASK_REASSIGNED,
+              related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+              related_entity_id: task.id,
+            })
+          }
+        }
+      }
+    } catch (error) {
+      this.logError('Failed to send assignment notifications', error)
+    }
+  }
+
+  /**
+   * Log error
+   */
+  private logError(message: string, error: unknown): void {
+    loggerService.error(`[AssignTaskCommand] ${message}`, error)
+  }
+
+}
+
+```
+
+### `app/modules/tasks/actions/commands/batch_update_task_status_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { validateBatchStatusUpdate } from '#modules/tasks/domain/task_assignment_rules'
+import { toLegacyTaskStatusMirror } from '#modules/tasks/domain/task_status_mirror'
+import { validateWorkflowTransition } from '#modules/tasks/domain/task_status_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import TaskWorkflowTransitionRepository from '#modules/tasks/infra/repositories/task_workflow_transition_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import type { TaskRecord } from '#modules/tasks/types/task_records'
+
+/**
+ * Command để batch update status cho nhiều tasks cùng lúc
+ *
+ * v4: Uses DB-driven workflow validation via task_workflow_transitions.
+ * Accepts task_status_id (UUID) instead of status string.
+ *
+ * Used by: Multi-select → bulk status change
+ *
+ * Pattern: FETCH → DECIDE → PERSIST (per task)
+ */
+export default class BatchUpdateTaskStatusCommand {
+  constructor(
+    protected execCtx: TaskActionContext,
+    private cache: TaskCachePort
+  ) {}
+
+  async execute(
+    taskIds: string[],
+    newTaskStatusId: string,
+    organizationId: string
+  ): Promise<{ updated: number; failed: string[] }> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    // Validate batch request via pure rule
+    enforcePolicy(
+      validateBatchStatusUpdate({
+        taskCount: taskIds.length,
+        newStatusId: newTaskStatusId,
+        maxBatchSize: 50,
+      })
+    )
+
+    const trx = await db.transaction()
+    try {
+      // Verify the target status exists and belongs to this org
+      const newStatus = await TaskStatusRepository.findByIdAndOrgActive(
+        newTaskStatusId,
+        organizationId,
+        trx
+      )
+
+      if (!newStatus) {
+        throw new BusinessLogicException(
+          'Trạng thái mới không tồn tại hoặc không thuộc tổ chức này'
+        )
+      }
+
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const tasks = await detailQueries.findActiveByIdsInOrganizationAsRecords(
+        taskIds,
+        organizationId,
+        trx
+      )
+
+      // Atomic mode: if any requested task is missing from organization scope, fail the whole batch.
+      if (tasks.length !== taskIds.length) {
+        const foundIds = new Set(tasks.map((task) => task.id))
+        const missingIds = taskIds.filter((id) => !foundIds.has(id))
+        throw new ConflictException(
+          `Không thể cập nhật hàng loạt vì có task không hợp lệ hoặc ngoài phạm vi tổ chức: ${missingIds.join(', ')}`
+        )
+      }
+
+      // ── DECIDE + PERSIST (per task) ────────────────────────────────────
+      let updated = 0
+      const eventsToEmit: { task: TaskRecord; oldStatus: string }[] = []
+      const workflowTransitions = await TaskWorkflowTransitionRepository.findByOrganization(
+        organizationId,
+        trx
+      )
+      const workflowConfigured = workflowTransitions.length > 0
+
+      for (const task of tasks) {
+        const currentStatusId = task.task_status_id
+
+        if (!currentStatusId) {
+          throw new ConflictException(
+            `Không thể cập nhật task ${task.id} vì thiếu task_status_id hợp lệ`
+          )
+        }
+
+        const transitions = workflowTransitions.filter(
+          (transition) => transition.from_status_id === currentStatusId
+        )
+
+        const matchingTransition = transitions.find((t) => t.to_status_id === newTaskStatusId)
+
+        const result = validateWorkflowTransition({
+          currentStatusId,
+          newStatusId: newTaskStatusId,
+          allowedTargetIds: transitions.map((t) => t.to_status_id),
+          workflowConfigured,
+          conditions: matchingTransition?.conditions ?? {},
+          isAssigned: task.assigned_to !== null,
+        })
+
+        if (!result.allowed) {
+          throw new ConflictException(
+            `Không thể chuyển trạng thái task ${task.id} theo workflow hiện tại`
+          )
+        }
+
+        if (newStatus.category === 'done') {
+          const bypassTypes = [
+            'research_spike',
+            'poc',
+            'prototype',
+            'technical_writing',
+            'documentation',
+            'knowledge_transfer',
+            'mentoring',
+            'product_management',
+          ]
+          if (!(task.task_type && bypassTypes.includes(task.task_type))) {
+            const submission = (await trx
+              .from('task_submissions')
+              .where('task_id', task.id)
+              .whereIn('status', ['submitted', 'accepted_for_review', 'locked'])
+              .first()) as Record<string, unknown> | null | undefined
+
+            if (!submission) {
+              throw new ConflictException(
+                `Không thể chuyển trạng thái task ${task.id} sang DONE vì thiếu submission hợp lệ`
+              )
+            }
+          }
+        }
+
+        const oldStatus = task.status
+        const oldTaskStatusId = task.task_status_id
+        
+        const updatedTask = await taskMutations.updateTask(
+          task.id,
+          {
+            task_status_id: newTaskStatusId,
+            status: toLegacyTaskStatusMirror(newStatus),
+            updated_by: userId,
+          },
+          trx
+        )
+        updated++
+
+        // Queue event and emit after commit.
+        if (oldTaskStatusId !== newTaskStatusId) {
+          eventsToEmit.push({ task: updatedTask, oldStatus })
+        }
+      }
+
+      await trx.commit()
+
+      for (const event of eventsToEmit) {
+        void emitter.emit('task:status:changed', {
+          taskId: event.task.id,
+          assignedTo: event.task.assigned_to,
+          oldStatus: event.oldStatus,
+          newStatusId: newTaskStatusId,
+          newStatus: newStatus.slug,
+          newStatusCategory: newStatus.category,
+          changedBy: userId,
+        })
+      }
+
+      await this.cache.invalidateAfterTaskCreated()
+      for (const taskId of taskIds) {
+        await this.cache.invalidateAfterTaskUpdated(taskId)
+      }
+
+      return { updated, failed: [] }
+    } catch (error) {
+      await trx.rollback()
+      if (error instanceof ConflictException) {
+        loggerService.warn('[BatchUpdateTaskStatusCommand] Conflict:', error.message)
+      } else {
+        loggerService.error('[BatchUpdateTaskStatusCommand] Error:', error)
+      }
+      throw error
+    }
+  }
+}
+
+```
+
+### `app/modules/tasks/actions/commands/create_task_command.ts`
+
+```ts
+import type CreateTaskDTO from '../dtos/request/create_task_dto.js'
+
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskDetailQueryRepositoryPort } from '#modules/tasks/actions/ports/task_query_repository_port'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
+import { runTaskCreatedPostCommitEffects } from '#modules/tasks/actions/support/task_create_post_commit'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { taskDetailQueryRepository } from '#modules/tasks/infra/repositories/read/task_detail_query_repository'
+import type { TaskDetailRecord } from '#modules/tasks/types/task_records'
+
+interface CreateTaskCommandDependencies {
+  persistTaskCreateWithinTransaction: typeof persistTaskCreateWithinTransaction
+  runTaskCreatedPostCommitEffects: typeof runTaskCreatedPostCommitEffects
+  taskRepository: TaskDetailQueryRepositoryPort
+}
+
+const defaultDependencies: CreateTaskCommandDependencies = {
+  persistTaskCreateWithinTransaction,
+  runTaskCreatedPostCommitEffects,
+  taskRepository: taskDetailQueryRepository,
+}
+
+/**
+ * Command để tạo task mới
+ *
+ * Business Rules:
+ * - organization_id là bắt buộc (từ session)
+ * - creator_id tự động set từ auth.user
+ * - Notification gửi cho assignee nếu task được giao
+ * - Audit log đầy đủ
+ * - Transaction để ensure data consistency
+ *
+ * Permissions:
+ * - User phải đăng nhập
+ * - User phải thuộc organization
+ * - Có thể thêm permission check (admin/member) nếu cần
+ */
+export default class CreateTaskCommand extends BaseCommand<CreateTaskDTO, TaskDetailRecord> {
+  constructor(
+    execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private createNotification: NotificationCreator,
+    private cache: TaskCachePort,
+    private dependencies: CreateTaskCommandDependencies = defaultDependencies
+  ) {
+    super(execCtx)
+  }
+
+  /**
+   * Execute command để tạo task
+   *
+   * Di chuyển logic từ database procedure create_task:
+   * 1. Check creator active
+   * 2. Check org exists
+   * 3. Check permission (admin/owner OR project_manager)
+   * 4. Validate project thuộc org
+   * 5. Validate status/label/priority exists
+   * 6. Validate due_date not past
+   */
+  async handle(dto: CreateTaskDTO): Promise<TaskDetailRecord> {
+    const userId = this.getCurrentUserId()
+    const newTask = await this.executeInTransaction((trx) =>
+      this.dependencies.persistTaskCreateWithinTransaction({
+        execCtx: this.execCtx,
+        dto,
+        userId,
+        trx,
+        externalDependencies: this.taskExternalDependencies,
+      })
+    )
+    await this.dependencies.runTaskCreatedPostCommitEffects(
+      newTask,
+      dto,
+      userId,
+      this.createNotification,
+      this.taskExternalDependencies.user,
+      this.cache
+    )
+    return await this.dependencies.taskRepository.findByIdWithDetailRecord(newTask.id)
+  }
+
+  async execute(dto: CreateTaskDTO): Promise<TaskDetailRecord> {
+    return await this.handle(dto)
+  }
+
+}
+
+```
+
+### `app/modules/tasks/actions/commands/create_task_status_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+
+import type { CreateTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+import type { TaskStatusRecord } from '#modules/tasks/types/task_records'
+
+/**
+ * Command: Create a new task status for an organization.
+ *
+ * Business rules:
+ * - Slug must be unique within organization
+ * - If is_default=true, unset other defaults
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
+ */
+export default class CreateTaskStatusCommand {
+  constructor(protected execCtx: TaskActionContext) {}
+
+  async execute(dto: CreateTaskStatusDTO): Promise<TaskStatusRecord> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    const trx = await db.transaction()
+
+    try {
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const slugExists = await TaskStatusRepository.slugExists(
+        dto.organization_id,
+        dto.slug,
+        undefined,
+        trx
+      )
+
+      // ── DECIDE ─────────────────────────────────────────────────────────
+      if (slugExists) {
+        throw new ConflictException(`Slug '${dto.slug}' đã tồn tại trong tổ chức này`)
+      }
+
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const status = await TaskStatusRepository.create(
+        {
+          organization_id: dto.organization_id,
+          name: dto.name,
+          slug: dto.slug,
+          category: dto.category,
+          color: dto.color,
+          icon: dto.icon ?? null,
+          description: dto.description ?? null,
+          sort_order: dto.sort_order,
+          is_default: false,
+          is_system: false,
+        },
+        trx
+      )
+
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: AuditAction.CREATE,
+          entity_type: EntityType.TASK_STATUS,
+          entity_id: status.id,
+          new_values: status,
+        },
+        this.execCtx
+      )
+
+      await trx.commit()
+      return status
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+}
+
+```
+
+### `app/modules/tasks/actions/commands/delete_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import { DateTime } from 'luxon'
+
+import type DeleteTaskDTO from '../dtos/request/delete_task_dto.js'
+
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { getErrorMessage } from '#modules/http/errors/error_utils'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canDeleteTask, canPermanentDeleteTask } from '#modules/tasks/domain/task_permission_policy'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+
+/**
+ * Command để xóa task
+ *
+ * Business Rules:
+ * - Soft delete mặc định (set deleted_at)
+ * - Hard delete chỉ dành cho Superadmin (optional feature)
+ * - Không thể xóa task đã có actual hours (cần revoke trước)
+ * - Không thể xóa task đã có review session
+ * - Notify assignee và creator
+ * - Audit log đầy đủ
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
+ */
+export default class DeleteTaskCommand {
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private createNotification: NotificationCreator,
+    private cache: TaskCachePort
+  ) {}
+
+  /**
+   * Execute command để xóa task
+   */
+  async execute(dto: DeleteTaskDTO): Promise<{ success: boolean; message: string }> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      return {
+        success: false,
+        message: 'Bạn cần đăng nhập để thực hiện hành động này',
+      }
+    }
+
+    const trx = await db.transaction()
+    try {
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
+
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const permissionContext = await buildTaskPermissionContext(
+        userId,
+        task,
+        trx,
+        this.taskExternalDependencies.permission
+      )
+      enforcePolicy(
+        canDeleteTask({
+          ...permissionContext,
+          isActorOrgMember: permissionContext.actorOrgRole !== null,
+        })
+      )
+
+      // Hard delete requires superadmin (pure rule)
+      if (dto.isPermanentDelete()) {
+        enforcePolicy(
+          canPermanentDeleteTask({ actorSystemRole: permissionContext.actorSystemRole })
+        )
+      }
+
+      // ── Business rule: không thể xóa task đã có actual hours ──────────
+      if (task.actual_time && task.actual_time > 0) {
+        throw new BusinessLogicException(
+          'Không thể xóa task đã có actual hours. Cần revoke task trước khi xóa.'
+        )
+      }
+
+      // ── Business rule: không thể xóa task đã có review session ────────
+      const hasReviewSession = await this.taskExternalDependencies.review.hasAnyReviewForTask(
+        task.id,
+        trx
+      )
+      if (hasReviewSession) {
+        throw new BusinessLogicException(
+          'Không thể xóa task đã có review session. Cần xử lý review trước khi xóa.'
+        )
+      }
+
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const taskData = { ...task }
+
+      if (dto.isPermanentDelete()) {
+        await taskMutations.hardDeleteById(dto.task_id, trx)
+      } else {
+        await taskMutations.updateTask(
+          dto.task_id,
+          { deleted_at: DateTime.now().toISO() },
+          trx
+        )
+      }
+
+      await auditPublicApi.log(
+        {
+          user_id: userId,
+          action: dto.isPermanentDelete() ? AuditAction.HARD_DELETE : AuditAction.DELETE,
+          entity_type: EntityType.TASK,
+          entity_id: dto.task_id,
+          old_values: taskData,
+        },
+        this.execCtx
+      )
+
+      await trx.commit()
+
+      // Emit cache invalidation event
+      void emitter.emit('cache:invalidate', {
+        entityType: 'task',
+        entityId: dto.task_id,
+      })
+
+      await this.cache.invalidateAfterTaskDeleted(dto.task_id)
+
+      // Send notifications (after transaction)
+      if (taskData.assigned_to && taskData.assigned_to !== userId) {
+        await this.createNotification.handle({
+          user_id: taskData.assigned_to,
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
+          title: 'Nhiệm vụ đã bị xóa',
+          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+          related_entity_id: dto.task_id,
+        })
+      }
+
+      if (taskData.creator_id !== userId && taskData.creator_id !== taskData.assigned_to) {
+        await this.createNotification.handle({
+          user_id: taskData.creator_id,
+          type: BACKEND_NOTIFICATION_TYPES.TASK_DELETED,
+          title: 'Nhiệm vụ đã bị xóa',
+          message: `Nhiệm vụ "${taskData.title}" đã bị xóa${dto.hasReason() ? ` (${dto.reason ?? ''})` : ''}`,
+          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
+          related_entity_id: dto.task_id,
+        })
+      }
+
+      return {
+        success: true,
+        message: dto.isPermanentDelete()
+          ? 'Nhiệm vụ đã được xóa vĩnh viễn'
+          : 'Nhiệm vụ đã được xóa',
+      }
+    } catch (error: unknown) {
+      await trx.rollback()
+      loggerService.error('[DeleteTaskCommand] Error:', error)
+      return {
+        success: false,
+        message: getErrorMessage(error, 'Có lỗi xảy ra khi xóa nhiệm vụ'),
+      }
+    }
+  }
+}
+
+```
+
+### `app/modules/tasks/actions/commands/delete_task_status_command.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+
+
+import type { DeleteTaskStatusDTO } from '../dtos/request/task_status_dtos.js'
+
+
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canDeleteStatus } from '#modules/tasks/domain/task_status_rules'
+import * as aggregateQueries from '#modules/tasks/infra/repositories/read/aggregate_queries'
+import TaskStatusRepository from '#modules/tasks/infra/repositories/task_status_repository'
+
+/**
+ * Command: Soft-delete a task status definition.
+ *
+ * Business rules:
+ * - System statuses cannot be deleted
+ * - Statuses with tasks assigned cannot be deleted
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
+ */
+export default class DeleteTaskStatusCommand {
+  constructor(
+    protected execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies
+  ) {}
+
+  async execute(dto: DeleteTaskStatusDTO): Promise<void> {
+    const userId = this.execCtx.userId
+    if (!userId) {
+      throw new UnauthorizedException()
+    }
+
+    const trx = await db.transaction()
+
+    try {
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const status = await TaskStatusRepository.findByIdAndOrgForUpdate(
+        dto.status_id,
+        dto.organization_id,
+        trx
+      )
+
+      if (!status) {
+        throw new NotFoundException('Trạng thái task không tồn tại')
+      }
+
+      // Count tasks using this status
+      const count = await aggregateQueries.countByTaskStatusId(dto.status_id, trx)
+
+      if (status.category === 'done' && count > 0) {
+        if (
+          await this.taskExternalDependencies.review.hasAnyReviewForTasksWithStatus(dto.status_id, trx)
+        ) {
+          throw new BusinessLogicException(
+            'Không thể xóa trạng thái hoàn thành vì đã có task gắn review'
+          )
+        }
+      }
