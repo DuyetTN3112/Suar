@@ -1798,3 +1798,903 @@ import {
 } from '#modules/tasks/bootstrap/task_action_factory'
 ```
 
+### `app/modules/tasks/controllers/create_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildCreateTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import CreateTaskStatusCommand from '#modules/tasks/actions/commands/create_task_status_command'
+```
+
+### `app/modules/tasks/controllers/delete_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildDeleteTaskDTO } from './mappers/request/task_request_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeDeleteTaskCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/delete_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildDeleteTaskStatusDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusDeleteApiBody } from './mappers/response/task_status_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeDeleteTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/edit_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateTaskDTO } from './mappers/request/task_request_mapper.js'
+import {
+  mapTaskEditPageProps,
+  mapTaskUpdateApiBody,
+} from './mappers/response/task_response_mapper.js'
+import { ErrorMessages, HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import {
+  makeGetTaskEditPageQuery,
+  makeUpdateTaskCommand,
+} from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/get_task_audit_logs_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetTaskAuditLogsInput } from './mappers/request/task_request_mapper.js'
+import GetTaskAuditLogsQuery from '#modules/tasks/actions/queries/get_task_audit_logs_query'
+```
+
+### `app/modules/tasks/controllers/list_public_tasks_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetPublicTasksDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapPublicTasksApiBody } from './mappers/response/public_task_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
+```
+
+### `app/modules/tasks/controllers/list_public_tasks_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetPublicTasksDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapPublicTasksPageProps } from './mappers/response/public_task_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetPublicTasksQuery from '#modules/tasks/actions/queries/get_public_tasks_query'
+```
+
+### `app/modules/tasks/controllers/list_task_applications_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetTaskApplicationsDTO } from './mappers/request/task_application_request_mapper.js'
+import { mapTaskApplicationsPageProps } from './mappers/response/task_application_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetTaskApplicationsQuery from '#modules/tasks/actions/queries/get_task_applications_query'
+```
+
+### `app/modules/tasks/controllers/list_task_statuses_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ListTaskStatusesQuery from '#modules/tasks/actions/queries/list_task_statuses_query'
+```
+
+### `app/modules/tasks/controllers/list_tasks_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetTasksIndexPageInput } from './mappers/request/task_request_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTasksIndexPageQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/list_tasks_grouped_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTasksGroupedQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/list_tasks_timeline_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTasksTimelineQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/list_workflow_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ListWorkflowQuery from '#modules/tasks/actions/queries/list_workflow_query'
+```
+
+### `app/modules/tasks/controllers/mappers/request/shared.ts`
+
+```ts
+import ValidationException from '#modules/http/exceptions/validation_exception'
+import type { GetPublicTasksDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/controllers/mappers/request/task_application_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import {
+  PAGINATION,
+  toApplicationStatusFilter,
+  toOptionalNumericValue,
+  toOptionalString,
+  toOptionalStringArray,
+  toPositiveNumber,
+  toPublicTaskSortBy,
+  toPublicTaskSortOrder,
+} from './shared.js'
+import {
+  ApplyForTaskDTO,
+  GetPublicTasksDTO,
+  GetTaskApplicationsDTO,
+  ProcessApplicationDTO,
+} from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { GetMyApplicationsInput } from '#modules/tasks/actions/queries/get_my_applications_query'
+import {
+  applyForTaskRequestValidator,
+  processApplicationRequestValidator,
+} from '#modules/tasks/validators/task'
+```
+
+### `app/modules/tasks/controllers/mappers/request/task_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import {
+  PAGINATION,
+  TASKS_DEFAULT_LIMIT,
+  toOptionalNullableString,
+  toOptionalNumericValue,
+  toOptionalRecordArray,
+  toOptionalString,
+  toPositiveNumber,
+  toSortOrder,
+  toTaskSortBy,
+} from './shared.js'
+import type { PatchTaskStatusBoardPocInput } from '#modules/tasks/actions/commands/patch_task_status_board_poc_command'
+import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
+import DeleteTaskDTO from '#modules/tasks/actions/dtos/request/delete_task_dto'
+import GetTaskDetailDTO from '#modules/tasks/actions/dtos/request/get_task_detail_dto'
+import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
+import UpdateTaskStatusDTO from '#modules/tasks/actions/dtos/request/update_task_status_dto'
+import UpdateTaskTimeDTO from '#modules/tasks/actions/dtos/request/update_task_time_dto'
+import type { GetTaskAuditLogsInput } from '#modules/tasks/actions/queries/get_task_audit_logs_query'
+import type { GetTasksIndexPageInput } from '#modules/tasks/actions/queries/get_tasks_index_page_query'
+import {
+  createTaskRequestValidator,
+  updateTaskRequestValidator,
+} from '#modules/tasks/validators/task'
+```
+
+### `app/modules/tasks/controllers/mappers/request/task_status_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { WithdrawApplicationDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import {
+  CreateTaskStatusDTO,
+  DeleteTaskStatusDTO,
+  UpdateTaskStatusDTO,
+  UpdateWorkflowDTO,
+} from '#modules/tasks/actions/dtos/request/task_status_dtos'
+import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
+```
+
+### `app/modules/tasks/controllers/mappers/response/public_task_response_mapper.ts`
+
+```ts
+import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from './shared.js'
+import { serializeCollectionForResponse } from './shared.js'
+```
+
+### `app/modules/tasks/controllers/mappers/response/shared.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/controllers/mappers/response/task_application_response_mapper.ts`
+
+```ts
+import type { PaginationMeta, ResponseRecord, SerializableResponseRecord } from './shared.js'
+import { serializeForResponse } from './shared.js'
+```
+
+### `app/modules/tasks/controllers/mappers/response/task_response_mapper.ts`
+
+```ts
+import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
+import { serializeForResponse } from './shared.js'
+```
+
+### `app/modules/tasks/controllers/mappers/response/task_status_response_mapper.ts`
+
+```ts
+import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
+import { serializeForResponse } from './shared.js'
+```
+
+### `app/modules/tasks/controllers/mappers/task_actor_context_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { TaskActorContext } from '#modules/tasks/application/context/task_actor_context'
+```
+
+### `app/modules/tasks/controllers/match_scores_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetApplicationMatchScoreQuery from '#modules/tasks/actions/queries/get_application_match_score_query'
+import GetTaskApplicationsRankingQuery from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
+```
+
+### `app/modules/tasks/controllers/my_applications_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetMyApplicationsInput } from './mappers/request/task_application_request_mapper.js'
+import { mapMyApplicationsPageProps } from './mappers/response/task_application_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetMyApplicationsQuery from '#modules/tasks/actions/queries/get_my_applications_query'
+```
+
+### `app/modules/tasks/controllers/patch_task_status_board_poc_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildPatchTaskStatusBoardPocInput } from './mappers/request/task_request_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makePatchTaskStatusBoardPocCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/process_application_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildProcessApplicationDTO } from './mappers/request/task_application_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeProcessApplicationCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/show_task_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetTaskDetailDTO } from './mappers/request/task_request_mapper.js'
+import { mapTaskDetailPageProps } from './mappers/response/task_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeGetTaskDetailQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/show_task_status_board_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeGetTaskStatusBoardPageQuery } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/task_command_initializers.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/tasks/controllers/task_submission_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import AddTaskSubmissionEvidenceCommand, {
+  type AddTaskSubmissionEvidenceDTO,
+} from '#modules/tasks/actions/commands/add_task_submission_evidence_command'
+import CreateTaskAttachmentCommand, {
+  type CreateTaskAttachmentDTO,
+} from '#modules/tasks/actions/commands/create_task_attachment_command'
+import CreateTaskCommentCommand, {
+  type CreateTaskCommentDTO,
+} from '#modules/tasks/actions/commands/create_task_comment_command'
+import DeleteTaskAttachmentCommand from '#modules/tasks/actions/commands/delete_task_attachment_command'
+import DeleteTaskCommentCommand from '#modules/tasks/actions/commands/delete_task_comment_command'
+import DeleteTaskSubmissionEvidenceCommand from '#modules/tasks/actions/commands/delete_task_submission_evidence_command'
+import SubmitTaskSubmissionCommand, {
+  type SubmitTaskSubmissionDTO,
+  type TaskSubmissionEvidenceInput,
+} from '#modules/tasks/actions/commands/submit_task_submission_command'
+import {
+  assertTaskCompletionPackageAccess,
+  loadTaskForCompletionPackage,
+} from '#modules/tasks/actions/commands/task_completion_package_access'
+```
+
+### `app/modules/tasks/controllers/update_task_sort_order_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapTaskSortOrderApiBody } from './mappers/response/task_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import { makeUpdateTaskSortOrderCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/update_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateTaskStatusDTO } from './mappers/request/task_request_mapper.js'
+import { mapTaskStatusApiBody } from './mappers/response/task_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeUpdateTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/update_task_status_definition_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateTaskStatusDefinitionDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapTaskStatusMutationApiBody } from './mappers/response/task_status_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UpdateTaskStatusDefinitionCommand from '#modules/tasks/actions/commands/update_task_status_definition_command'
+```
+
+### `app/modules/tasks/controllers/update_task_time_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateTaskTimeDTO } from './mappers/request/task_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeUpdateTaskTimeCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/update_workflow_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateWorkflowDTO } from './mappers/request/task_status_request_mapper.js'
+import { mapWorkflowUpdateApiBody } from './mappers/response/task_status_response_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UpdateWorkflowCommand from '#modules/tasks/actions/commands/update_workflow_command'
+```
+
+### `app/modules/tasks/controllers/v1/add_task_requirement_controller.ts`
+
+```ts
+import vine from '@vinejs/vine'
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
+```
+
+### `app/modules/tasks/controllers/v1/create_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { mapApiV1TaskStatusResponse } from '#modules/http/api_v1/response_mappers'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import CreateTaskStatusCommand from '#modules/tasks/actions/commands/create_task_status_command'
+import { CreateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
+```
+
+### `app/modules/tasks/controllers/v1/delete_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildDeleteTaskStatusDTO } from '../mappers/request/task_status_request_mapper.js'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { makeDeleteTaskStatusCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+
+### `app/modules/tasks/controllers/v1/list_task_requirement_versions_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskRequirementVersionService } from '#modules/tasks/actions/services/task_requirement_version_service'
+```
+
+### `app/modules/tasks/controllers/v1/list_task_requirements_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
+```
+
+### `app/modules/tasks/controllers/v1/list_task_statuses_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { mapApiV1TaskStatusResponse } from '#modules/http/api_v1/response_mappers'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ListTaskStatusesQuery from '#modules/tasks/actions/queries/list_task_statuses_query'
+```
+
+### `app/modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller.ts`
+
+```ts
+import vine from '@vinejs/vine'
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
+```
+
+### `app/modules/tasks/controllers/v1/remove_task_requirement_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
+```
+
+### `app/modules/tasks/controllers/v1/show_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { mapApiV1TaskStatusResponse } from '#modules/http/api_v1/response_mappers'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { taskStatusQueryRepository } from '#modules/tasks/infra/repositories/read/task_status_query_repository'
+```
+
+### `app/modules/tasks/controllers/v1/update_task_requirement_controller.ts`
+
+```ts
+import vine from '@vinejs/vine'
+import type { HttpContext } from '@adonisjs/core/http'
+import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
+```
+
+### `app/modules/tasks/controllers/v1/update_task_status_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { mapApiV1TaskStatusResponse } from '#modules/http/api_v1/response_mappers'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import UpdateTaskStatusDefinitionCommand from '#modules/tasks/actions/commands/update_task_status_definition_command'
+import { UpdateTaskStatusDTO } from '#modules/tasks/public_contracts/task_status_dtos'
+```
+
+### `app/modules/tasks/controllers/withdraw_application_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildWithdrawApplicationDTO } from './mappers/request/task_status_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import { makeWithdrawApplicationCommand } from '#modules/tasks/bootstrap/task_action_factory'
+```
+## Code Snippets
+
+### `start/routes/tasks.ts`
+
+```ts
+import router from '@adonisjs/core/services/router'
+
+import { middleware } from '../kernel.js'
+
+import { throttle } from '#start/limiter'
+
+// Task use-case controllers
+const ListTasksController = () => import('#modules/tasks/controllers/list_tasks_controller')
+const CreateTaskController = () => import('#modules/tasks/controllers/create_task_controller')
+const ShowTaskStatusBoardController = () =>
+  import('#modules/tasks/controllers/show_task_status_board_controller')
+const ShowTaskController = () => import('#modules/tasks/controllers/show_task_controller')
+const EditTaskController = () => import('#modules/tasks/controllers/edit_task_controller')
+const DeleteTaskController = () => import('#modules/tasks/controllers/delete_task_controller')
+const UpdateTaskStatusController = () =>
+  import('#modules/tasks/controllers/update_task_status_controller')
+const UpdateTaskTimeController = () =>
+  import('#modules/tasks/controllers/update_task_time_controller')
+const GetTaskAuditLogsController = () =>
+  import('#modules/tasks/controllers/get_task_audit_logs_controller')
+const TaskSubmissionController = () =>
+  import('#modules/tasks/controllers/task_submission_controller')
+const MatchScoresController = () =>
+  import('#modules/tasks/controllers/match_scores_controller')
+
+// Task Application use-case controllers
+const ListTaskApplicationsController = () =>
+  import('#modules/tasks/controllers/list_task_applications_controller')
+const ApplyForTaskController = () => import('#modules/tasks/controllers/apply_for_task_controller')
+const ProcessApplicationController = () =>
+  import('#modules/tasks/controllers/process_application_controller')
+const WithdrawApplicationController = () =>
+  import('#modules/tasks/controllers/withdraw_application_controller')
+const MyApplicationsController = () =>
+  import('#modules/tasks/controllers/my_applications_controller')
+const ListPublicTasksController = () =>
+  import('#modules/tasks/controllers/list_public_tasks_controller')
+const ListPublicTasksApiController = () =>
+  import('#modules/tasks/controllers/list_public_tasks_api_controller')
+const ApplyForTaskApiController = () =>
+  import('#modules/tasks/controllers/apply_for_task_api_controller')
+const CheckCreatePermissionController = () =>
+  import('#modules/tasks/controllers/check_create_permission_controller')
+const ListTasksGroupedController = () =>
+  import('#modules/tasks/controllers/list_tasks_grouped_controller')
+const ListTasksTimelineController = () =>
+  import('#modules/tasks/controllers/list_tasks_timeline_controller')
+const UpdateTaskSortOrderController = () =>
+  import('#modules/tasks/controllers/update_task_sort_order_controller')
+const BatchUpdateTaskStatusController = () =>
+  import('#modules/tasks/controllers/batch_update_task_status_controller')
+const PatchTaskStatusBoardPocController = () =>
+  import('#modules/tasks/controllers/patch_task_status_board_poc_controller')
+
+// Task Status + Workflow controllers (Phase 4)
+const ListTaskStatusesController = () =>
+  import('#modules/tasks/controllers/list_task_statuses_controller')
+const CreateTaskStatusController = () =>
+  import('#modules/tasks/controllers/create_task_status_controller')
+const UpdateTaskStatusDefinitionController = () =>
+  import('#modules/tasks/controllers/update_task_status_definition_controller')
+const DeleteTaskStatusController = () =>
+  import('#modules/tasks/controllers/delete_task_status_controller')
+const ListWorkflowController = () => import('#modules/tasks/controllers/list_workflow_controller')
+const UpdateWorkflowController = () =>
+  import('#modules/tasks/controllers/update_workflow_controller')
+
+router
+  .group(() => {
+    // Tasks routes — use-case controllers
+    router.get('/tasks', [ListTasksController, 'handle']).as('tasks.index')
+
+    // API routes for task management views
+    router
+      .get('/api/tasks/check-create-permission', [CheckCreatePermissionController, 'handle'])
+      .as('api.tasks.check_create_permission')
+    router.get('/api/tasks/grouped', [ListTasksGroupedController, 'handle']).as('api.tasks.grouped')
+    router
+      .get('/api/tasks/timeline', [ListTasksTimelineController, 'handle'])
+      .as('api.tasks.timeline')
+    router
+      .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
+      .as('api.tasks.batch_status')
+    router
+      .patch('/api/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
+      .as('api.tasks.status_board')
+    router
+      .patch('/api/tasks/:id/sort-order', [UpdateTaskSortOrderController, 'handle'])
+      .as('api.tasks.sort_order')
+    router
+      .get('/api/tasks/:id/submission', [TaskSubmissionController, 'show'])
+      .as('api.tasks.submission.show')
+    router
+      .post('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
+      .as('api.tasks.submission.store')
+    router
+      .patch('/api/tasks/:id/submission', [TaskSubmissionController, 'saveDraft'])
+      .as('api.tasks.submission.update')
+    router
+      .post('/api/tasks/:id/submission/submit', [TaskSubmissionController, 'submit'])
+      .as('api.tasks.submission.submit')
+    router
+      .post('/api/tasks/:id/submission/lock', [TaskSubmissionController, 'lock'])
+      .as('api.tasks.submission.lock')
+    router
+      .get('/api/task-submissions/:submissionId/evidences', [
+        TaskSubmissionController,
+        'listEvidences',
+      ])
+      .as('api.task_submissions.evidences.index')
+    router
+      .post('/api/task-submissions/:submissionId/evidences', [
+        TaskSubmissionController,
+        'addEvidence',
+      ])
+      .as('api.task_submissions.evidences.store')
+    router
+      .delete('/api/task-submissions/:submissionId/evidences/:evidenceId', [
+        TaskSubmissionController,
+        'deleteEvidence',
+      ])
+      .as('api.task_submissions.evidences.destroy')
+    router
+      .get('/api/tasks/:taskId/comments', [TaskSubmissionController, 'listComments'])
+      .as('api.tasks.comments.index')
+    router
+      .post('/api/tasks/:taskId/comments', [TaskSubmissionController, 'createComment'])
+      .as('api.tasks.comments.store')
+    router
+      .patch('/api/tasks/:taskId/comments/:commentId', [
+        TaskSubmissionController,
+        'updateComment',
+      ])
+      .as('api.tasks.comments.update')
+    router
+      .delete('/api/tasks/:taskId/comments/:commentId', [
+        TaskSubmissionController,
+        'deleteComment',
+      ])
+      .as('api.tasks.comments.destroy')
+    router
+      .get('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'listAttachments'])
+      .as('api.tasks.attachments.index')
+    router
+      .post('/api/tasks/:taskId/attachments', [TaskSubmissionController, 'createAttachment'])
+      .as('api.tasks.attachments.store')
+    router
+      .delete('/api/tasks/:taskId/attachments/:attachmentId', [
+        TaskSubmissionController,
+        'deleteAttachment',
+      ])
+      .as('api.tasks.attachments.destroy')
+
+    router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
+    router
+      .get('/tasks/status-board', [ShowTaskStatusBoardController, 'handle'])
+      .as('tasks.status_board')
+    router.post('/tasks', [CreateTaskController, 'handle']).as('tasks.store')
+    router.get('/tasks/:id', [ShowTaskController, 'handle']).as('tasks.show')
+    router.get('/tasks/:id/edit', [EditTaskController, 'showForm']).as('tasks.edit')
+    router.put('/tasks/:id', [EditTaskController, 'handle']).as('tasks.update')
+    router
+      .put('/tasks/:id/status', [UpdateTaskStatusController, 'handle'])
+      .as('tasks.update.status')
+    router.patch('/tasks/:id/time', [UpdateTaskTimeController, 'handle']).as('tasks.update.time')
+    router.delete('/tasks/:id', [DeleteTaskController, 'handle']).as('tasks.destroy')
+    // Audit logs routes for tasks
+    router
+      .get('/tasks/:id/audit-logs', [GetTaskAuditLogsController, 'handle'])
+      .as('tasks.audit_logs')
+
+    // Task Applications - for project owners
+    router
+      .get('/tasks/:taskId/applications', [ListTaskApplicationsController, 'handle'])
+      .as('tasks.applications')
+    router.post('/tasks/:taskId/apply', [ApplyForTaskController, 'handle']).as('tasks.apply')
+
+    router
+      .get('/api/tasks/:taskId/applications/:applicationId/match', [MatchScoresController, 'show'])
+      .as('api.tasks.applications.match')
+    router
+      .get('/api/tasks/:taskId/applications/ranking', [MatchScoresController, 'ranking'])
+      .as('api.tasks.applications.ranking')
+
+    // Application processing
+    router
+      .post('/applications/:id/process', [ProcessApplicationController, 'handle'])
+      .as('applications.process')
+    router
+      .post('/applications/:id/withdraw', [WithdrawApplicationController, 'handle'])
+      .as('applications.withdraw')
+
+    // My applications - for freelancers
+    router.get('/my-applications', [MyApplicationsController, 'handle']).as('applications.mine')
+
+    // ── Task Status CRUD (Phase 4) ──────────────────────────────────────
+    router
+      .get('/api/task-statuses', [ListTaskStatusesController, 'handle'])
+      .as('api.task_statuses.index')
+    router
+      .post('/api/task-statuses', [CreateTaskStatusController, 'handle'])
+      .as('api.task_statuses.store')
+    router
+      .put('/api/task-statuses/:id', [UpdateTaskStatusDefinitionController, 'handle'])
+      .as('api.task_statuses.update')
+    router
+      .delete('/api/task-statuses/:id', [DeleteTaskStatusController, 'handle'])
+      .as('api.task_statuses.destroy')
+
+    // ── Workflow Transitions (Phase 4) ──────────────────────────────────
+    router.get('/api/workflow', [ListWorkflowController, 'handle']).as('api.workflow.index')
+    router.put('/api/workflow', [UpdateWorkflowController, 'handle']).as('api.workflow.update')
+  })
+  .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+// Marketplace routes - public tasks for freelancers
+router
+  .group(() => {
+    router.get('/marketplace/tasks', [ListPublicTasksController, 'handle']).as('marketplace.tasks')
+    router
+      .get('/api/marketplace/tasks', [ListPublicTasksApiController, 'handle'])
+      .as('api.marketplace.tasks')
+    router
+      .post('/api/tasks/:taskId/apply', [ApplyForTaskApiController, 'handle'])
+      .as('api.tasks.apply')
+  })
+  .use([middleware.auth()])
+
+```
+
+### `app/modules/tasks/actions/commands/apply_for_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import { DateTime } from 'luxon'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { BaseCommand } from '#modules/tasks/actions/base_command'
+import type { ApplyForTaskDTO } from '#modules/tasks/actions/dtos/request/task_application_dtos'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
+import { canApplyForTask } from '#modules/tasks/domain/task_assignment_rules'
+import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
+import TaskApplicationRepository from '#modules/tasks/infra/repositories/task_application_repository'
+import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
+import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
+import type { TaskApplicationRecord } from '#modules/tasks/types/task_records'
+
+/**
+ * ApplyForTaskCommand
+ *
+ * Allows a freelancer to apply for a public task.
+ *
+ * Pattern: FETCH → DECIDE → PERSIST
+ */
+export default class ApplyForTaskCommand extends BaseCommand<
+  ApplyForTaskDTO,
+  TaskApplicationRecord
+> {
+  constructor(
+    execCtx: TaskActionContext,
+    private taskExternalDependencies: TaskExternalDependencies,
+    private cache: TaskCachePort
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: ApplyForTaskDTO): Promise<TaskApplicationRecord> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+      await this.taskExternalDependencies.user.ensureActiveUser(userId, trx)
+
+      // ── FETCH ──────────────────────────────────────────────────────────
+      const task = await detailQueries.findActiveOrFailAsRecord(dto.task_id, trx)
+
+      const existingApplication =
+        await TaskApplicationRepository.findExistingNonWithdrawnByTaskAndApplicant(
+          dto.task_id,
+          userId,
+          trx
+        )
+
+      // ── DECIDE (pure, sync) ────────────────────────────────────────────
+      const applicationDeadline = task.application_deadline
+      enforcePolicy(
+        canApplyForTask({
+          actorId: userId,
+          taskCreatorId: task.creator_id,
+          taskVisibility: task.task_visibility ?? '',
+          isTaskAlreadyAssigned: task.assigned_to !== null,
+          isApplicationDeadlinePassed:
+            typeof applicationDeadline === 'string' &&
+            new Date(applicationDeadline).getTime() <= DateTime.now().toMillis(),
+          hasExistingApplication: !!existingApplication,
+        })
+      )
+
+      // ── PERSIST ────────────────────────────────────────────────────────
+      const application = await TaskApplicationRepository.create(
+        {
+          task_id: dto.task_id,
+          applicant_id: userId,
+          application_status: ApplicationStatus.PENDING,
+          application_source: dto.application_source,
+          message: dto.message,
+          expected_rate: dto.expected_rate,
+          portfolio_links: dto.portfolio_links,
+        },
+        trx
+      )
+
+      // Update task's application count
+      await taskMutations.updateTask(
+        dto.task_id,
+        { external_applications_count: (task.external_applications_count ?? 0) + 1 },
+        trx
+      )
+
+      // Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'apply_task',
+          entity_type: 'task_application',
+          entity_id: application.id,
+          old_values: null,
+          new_values: {
+            task_id: dto.task_id,
+            task_title: task.title,
+            expected_rate: dto.expected_rate,
+          },
+        })
+      }
+
+      return {
+        application,
+        taskId: dto.task_id,
+        applicationSubmittedEvent: {
+          applicationId: application.id,
+          taskId: dto.task_id,
+          applicantId: userId,
+          projectId: task.project_id ?? '',
+          ownerId: task.creator_id,
+        },
+      }
+    })
+
+    await this.cache.invalidateAfterTaskApplicationChanged(result.taskId)
+    void emitter.emit('task:application:submitted', result.applicationSubmittedEvent)
+
+    return result.application
+  }
+}
+
+```
+
+### `app/modules/tasks/actions/commands/assign_task_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import type AssignTaskDTO from '../dtos/request/assign_task_dto.js'
+
+import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
