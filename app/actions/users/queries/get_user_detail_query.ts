@@ -28,8 +28,9 @@ export default class GetUserDetailQuery extends BaseQuery<GetUserDetailDTO, User
       const user = await User.query()
         .where('id', dto.id)
         .whereNull('deleted_at')
-        .preload('role')
+        .preload('system_role')
         .preload('status')
+        .preload('detail')
         .firstOrFail()
 
       return user

@@ -1,6 +1,6 @@
 import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo, hasMany, manyToMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, belongsTo, hasMany, hasOne, manyToMany } from '@adonisjs/lucid/orm'
+import type { BelongsTo, HasMany, HasOne, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { DbRememberMeTokensProvider } from '@adonisjs/auth/session'
 import SystemRole from './system_role.js'
 import UserStatus from './user_status.js'
@@ -12,6 +12,9 @@ import AuditLog from './audit_log.js'
 import Notification from './notification.js'
 import OrganizationUser from './organization_user.js'
 import UserOAuthProvider from './user_oauth_provider.js'
+import UserDetail from './user_detail.js'
+import UserSkill from './user_skill.js'
+import UserSpiderChartData from './user_spider_chart_data.js'
 
 export default class User extends BaseModel {
   static rememberMeTokens = DbRememberMeTokensProvider.forModel(User)
@@ -134,4 +137,20 @@ export default class User extends BaseModel {
     foreignKey: 'user_id',
   })
   declare organization_users: HasMany<typeof OrganizationUser>
+
+  // ===== Profile Relationships =====
+  @hasOne(() => UserDetail, {
+    foreignKey: 'user_id',
+  })
+  declare detail: HasOne<typeof UserDetail>
+
+  @hasMany(() => UserSkill, {
+    foreignKey: 'user_id',
+  })
+  declare skills: HasMany<typeof UserSkill>
+
+  @hasMany(() => UserSpiderChartData, {
+    foreignKey: 'user_id',
+  })
+  declare spider_chart_data: HasMany<typeof UserSpiderChartData>
 }
