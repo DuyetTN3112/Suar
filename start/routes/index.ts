@@ -11,6 +11,7 @@ import './api.js'
 import './organizations.js'
 import './projects.js'
 import './errors.js'
+import './reviews.js'
 
 // Health checks controller
 const HealthChecksController = () => import('#controllers/health_checks_controller')
