@@ -27,9 +27,10 @@ import AuditLog from '#models/audit_log'
  * }
  * ```
  */
-export abstract class BaseCommand<TInput, TOutput = void>
-  implements CommandHandler<TInput, TOutput>
-{
+export abstract class BaseCommand<TInput, TOutput = void> implements CommandHandler<
+  TInput,
+  TOutput
+> {
   constructor(protected ctx: HttpContext) {}
 
   /**
