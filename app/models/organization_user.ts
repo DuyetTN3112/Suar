@@ -3,10 +3,11 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 import Organization from './organization.js'
+import OrganizationRole from './organization_role.js'
 
 // Class chứa thông tin quan hệ giữa User và Organization
 export default class OrganizationUser extends BaseModel {
-  static table = 'organization_users'
+  static override table = 'organization_users'
 
   // Composite Primary Key
   @column({ isPrimary: true })
@@ -44,6 +45,11 @@ export default class OrganizationUser extends BaseModel {
     foreignKey: 'invited_by',
   })
   declare inviter: BelongsTo<typeof User>
+
+  @belongsTo(() => OrganizationRole, {
+    foreignKey: 'role_id',
+  })
+  declare organization_role: BelongsTo<typeof OrganizationRole>
 
   // Helper methods
   isApproved(): boolean {

@@ -5,7 +5,7 @@ import Project from './project.js'
 import ProjectMember from './project_member.js'
 
 export default class ProjectRole extends BaseModel {
-  static table = 'project_roles'
+  static override table = 'project_roles'
 
   @column({ isPrimary: true })
   declare id: number

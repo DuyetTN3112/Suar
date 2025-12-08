@@ -4,7 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 
 export default class AuditLog extends BaseModel {
-  static table = 'audit_logs'
+  static override table = 'audit_logs'
 
   // Turn off timestamps since we only need created_at
   static $timestamps = false

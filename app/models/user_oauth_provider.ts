@@ -4,7 +4,7 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 
 export default class UserOAuthProvider extends BaseModel {
-  static table = 'user_oauth_providers'
+  static override table = 'user_oauth_providers'
 
   @column({ isPrimary: true })
   declare id: number

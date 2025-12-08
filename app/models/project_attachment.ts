@@ -5,7 +5,7 @@ import Project from './project.js'
 import User from './user.js'
 
 export default class ProjectAttachment extends BaseModel {
-  static table = 'project_attachments'
+  static override table = 'project_attachments'
 
   @column({ isPrimary: true })
   declare id: number

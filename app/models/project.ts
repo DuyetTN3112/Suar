@@ -8,7 +8,7 @@ import ProjectRole from './project_role.js'
 import ProjectMember from './project_member.js'
 
 export default class Project extends BaseModel {
-  static table = 'projects'
+  static override table = 'projects'
 
   @column({ isPrimary: true })
   declare id: number

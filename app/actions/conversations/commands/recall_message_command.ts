@@ -8,13 +8,13 @@ import { Exception } from '@adonisjs/core/exceptions'
 
 // Custom exceptions
 class NotFoundError extends Exception {
-  static status = 404
-  static code = 'E_NOT_FOUND'
+  static override status = 404
+  static override code = 'E_NOT_FOUND'
 }
 
 class UnauthorizedError extends Exception {
-  static status = 401
-  static code = 'E_UNAUTHORIZED'
+  static override status = 401
+  static override code = 'E_UNAUTHORIZED'
 }
 
 /**

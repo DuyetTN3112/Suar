@@ -107,7 +107,7 @@ export default class OrganizationsController {
       const members = await db
         .from('users')
         .join('organization_users', 'users.id', '=', 'organization_users.user_id')
-        .join('user_roles', 'user_roles.id', '=', 'organization_users.role_id')
+        .leftJoin('organization_roles', 'organization_roles.id', '=', 'organization_users.role_id')
         .where('organization_users.organization_id', params.id)
         .whereNull('users.deleted_at')
         .select(
@@ -115,7 +115,7 @@ export default class OrganizationsController {
           'users.username',
           'users.email',
           'organization_users.role_id',
-          'user_roles.name as role_name'
+          'organization_roles.name as role_name'
         )
 
       // Get user's role

@@ -6,7 +6,7 @@ import Project from './project.js'
 import type { ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
 
 export default class Organization extends BaseModel {
-  static table = 'organizations'
+  static override table = 'organizations'
 
   @column({ isPrimary: true })
   declare id: number

@@ -4,7 +4,7 @@ import type { HasMany } from '@adonisjs/lucid/types/relations'
 import User from './user.js'
 
 export default class SystemRole extends BaseModel {
-  static table = 'system_roles'
+  static override table = 'system_roles'
 
   @column({ isPrimary: true })
   declare id: number

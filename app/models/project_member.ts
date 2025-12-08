@@ -6,7 +6,7 @@ import User from './user.js'
 import ProjectRole from './project_role.js'
 
 export default class ProjectMember extends BaseModel {
-  static table = 'project_members'
+  static override table = 'project_members'
 
   // Composite Primary Key - Lucid treats both as primary
   @column({ isPrimary: true })

@@ -5,7 +5,7 @@ import User from './user.js'
 import Conversation from './conversation.js'
 
 export default class Message extends BaseModel {
-  static table = 'messages'
+  static override table = 'messages'
 
   @column({ isPrimary: true })
   declare id: number
@@ -79,7 +79,7 @@ export default class Message extends BaseModel {
   /**
    * Chuyển đổi model thành JSON để trả về cho client
    */
-  toJSON() {
+  override toJSON() {
     return {
       id: this.id,
       conversation_id: this.conversation_id,
