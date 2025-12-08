@@ -32,9 +32,24 @@ router
       .get('/api/system-users', [UsersController, 'systemUsersApi'])
       .as('api.users.system_users')
 
-    // Profile routes
+    // Profile routes - Enhanced with CQRS
     router.get('/profile', [ProfileController, 'show']).as('profile.show')
-    router.put('/profile', [ProfileController, 'update']).as('profile.update')
+    router.get('/profile/edit', [ProfileController, 'edit']).as('profile.edit')
+    router.put('/profile/details', [ProfileController, 'updateDetails']).as('profile.updateDetails')
+
+    // Profile skills management
+    router.post('/profile/skills', [ProfileController, 'addSkill']).as('profile.skills.add')
+    router
+      .put('/profile/skills/:id', [ProfileController, 'updateSkill'])
+      .as('profile.skills.update')
+    router
+      .delete('/profile/skills/:id', [ProfileController, 'removeSkill'])
+      .as('profile.skills.remove')
+
+    // View other user's public profile
+    router.get('/users/:id/profile', [ProfileController, 'viewUser']).as('profile.viewUser')
+
+    // @deprecated - Settings moved to settings controller
     router
       .put('/profile/settings', [ProfileController, 'updateSettings'])
       .as('profile.update_settings')
