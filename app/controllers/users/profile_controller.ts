@@ -1,13 +1,21 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import GetUserProfileQuery, { GetUserProfileDTO } from '#actions/users/queries/get_user_profile_query'
+import GetUserProfileQuery, {
+  GetUserProfileDTO,
+} from '#actions/users/queries/get_user_profile_query'
 import GetUserSkillsQuery, { GetUserSkillsDTO } from '#actions/users/queries/get_user_skills_query'
-import GetSpiderChartDataQuery, { GetSpiderChartDataDTO } from '#actions/users/queries/get_spider_chart_data_query'
+import GetSpiderChartDataQuery, {
+  GetSpiderChartDataDTO,
+} from '#actions/users/queries/get_spider_chart_data_query'
 import UpdateUserDetailsCommand from '#actions/users/commands/update_user_details_command'
 import AddUserSkillCommand from '#actions/users/commands/add_user_skill_command'
 import RemoveUserSkillCommand from '#actions/users/commands/remove_user_skill_command'
 import UpdateUserSkillCommand from '#actions/users/commands/update_user_skill_command'
 import { UpdateUserDetailsDTO } from '#actions/users/dtos/update_user_details_dto'
-import { AddUserSkillDTO, UpdateUserSkillDTO, RemoveUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import {
+  AddUserSkillDTO,
+  UpdateUserSkillDTO,
+  RemoveUserSkillDTO,
+} from '#actions/users/dtos/user_skill_dtos'
 import Skill from '#models/skill'
 import SkillCategory from '#models/skill_category'
 import ProficiencyLevel from '#models/proficiency_level'
@@ -44,7 +52,10 @@ export default class ProfileController {
     const user = await query.handle(new GetUserProfileDTO(userId))
 
     // Get available skills grouped by category
-    const skills = await Skill.query().where('is_active', true).preload('category').orderBy('skill_name')
+    const skills = await Skill.query()
+      .where('is_active', true)
+      .preload('category')
+      .orderBy('skill_name')
 
     // Get skill categories
     const categories = await SkillCategory.query().where('is_active', true).orderBy('display_order')
@@ -119,10 +130,7 @@ export default class ProfileController {
     const { request, response, session, params } = ctx
 
     try {
-      const dto = new UpdateUserSkillDTO(
-        Number(params.id),
-        request.input('proficiency_level_id')
-      )
+      const dto = new UpdateUserSkillDTO(Number(params.id), request.input('proficiency_level_id'))
       const command = new UpdateUserSkillCommand(ctx)
       await command.handle(dto)
 
@@ -183,7 +191,7 @@ export default class ProfileController {
   /**
    * Calculate profile completeness percentage
    */
-  private calculateProfileCompleteness(user: any): number {
+  private calculateProfileCompleteness(user: unknown): number {
     const fields = [
       user.username,
       user.email,
