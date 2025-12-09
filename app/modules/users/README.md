@@ -898,3 +898,903 @@ import type { DateTime } from 'luxon'
 
 ### `app/modules/users/actions/ports/user_external_dependencies_impl.ts`
 
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type {
+  PendingApprovalUser,
+  UserActiveSkillInfo,
+  UserExternalDependencies,
+  UserOrganizationMembershipInfo,
+  UserOrganizationMembershipReaderWriter,
+  UserPermissionReader,
+  UserSkillDetail,
+  UserSkillReader,
+} from './user_external_dependencies.js'
+import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import { userPublicApi } from '#modules/users/public_contracts/user_public_api'
+```
+
+### `app/modules/users/actions/public_api.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/actions/queries/check_super_admin_permission_query.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/actions/queries/get_current_profile_snapshot_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/get_featured_reviews_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
+import type { TopReviewedSkillRow } from '#modules/users/infra/repositories/read/types'
+```
+
+### `app/modules/users/actions/queries/get_pending_approval_users_query.ts`
+
+```ts
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+```
+
+### `app/modules/users/actions/queries/get_profile_edit_page_query.ts`
+
+```ts
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+import GetUserSkillsQuery, { GetUserSkillsDTO } from './get_user_skills_query.js'
+import { skillPublicApi } from '#modules/skills/public_contracts/skill_public_api'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import { proficiencyLevelOptions, skillCategoryOptions } from '#modules/users/public_contracts/user_constants'
+```
+
+### `app/modules/users/actions/queries/get_profile_show_page_query.ts`
+
+```ts
+import GetCurrentProfileSnapshotQuery, {
+  GetCurrentProfileSnapshotDTO,
+} from './get_current_profile_snapshot_query.js'
+import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
+import GetSpiderChartDataQuery, { GetSpiderChartDataDTO } from './get_spider_chart_data_query.js'
+import GetUserDeliveryMetricsQuery, {
+  GetUserDeliveryMetricsDTO,
+} from './get_user_delivery_metrics_query.js'
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+```
+
+### `app/modules/users/actions/queries/get_profile_snapshot_history_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/get_profile_view_page_query.ts`
+
+```ts
+import GetFeaturedReviewsQuery, { GetFeaturedReviewsDTO } from './get_featured_reviews_query.js'
+import GetSpiderChartDataQuery, { GetSpiderChartDataDTO } from './get_spider_chart_data_query.js'
+import GetUserDeliveryMetricsQuery, {
+  GetUserDeliveryMetricsDTO,
+} from './get_user_delivery_metrics_query.js'
+import GetUserProfileQuery, { GetUserProfileDTO } from './get_user_profile_query.js'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+```
+
+### `app/modules/users/actions/queries/get_public_profile_snapshot_query.ts`
+
+```ts
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import type { UserProfileSnapshotRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/get_spider_chart_data_query.ts`
+
+```ts
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import { BaseQuery } from '#modules/users/actions/base_query'
+```
+
+### `app/modules/users/actions/queries/get_talent_directory_page_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import SearchTalentsQuery, { type SearchTalentsDTO, type TalentSearchResult } from './search_talents_query.js'
+import { BaseQuery } from '#modules/users/actions/base_query'
+```
+
+### `app/modules/users/actions/queries/get_user_delivery_metrics_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/users/actions/base_query'
+import {
+  calculateDeliveryMetrics,
+  calculateSkillAggregation,
+  calculateYearsOfExperience,
+  formatJoinedDate,
+} from '#modules/users/domain/profile_metrics_rules'
+import type {
+  DeliveryMetricsResult,
+  SkillAggregationResult,
+  TaskAssignmentData,
+  UserSkillData,
+} from '#modules/users/domain/profile_metrics_types'
+import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
+```
+
+### `app/modules/users/actions/queries/get_user_detail_query.ts`
+
+```ts
+import { inject } from '@adonisjs/core'
+import { BaseQuery } from '../base_query.js'
+import type { GetUserDetailDTO } from '../dtos/request/get_user_detail_dto.js'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import type { UserRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/get_user_profile_query.ts`
+
+```ts
+import { BaseQuery } from '#modules/users/actions/base_query'
+import { calculateProfileCompleteness } from '#modules/users/actions/utils/profile_completeness'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import type { UserProfileRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/get_user_skills_query.ts`
+
+```ts
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+import { BaseQuery } from '#modules/users/actions/base_query'
+import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+```
+
+### `app/modules/users/actions/queries/get_users_list_query.ts`
+
+```ts
+import { inject } from '@adonisjs/core'
+import { BaseQuery } from '../base_query.js'
+import type { GetUsersListDTO } from '../dtos/request/get_users_list_dto.js'
+import { UserPaginatedResult } from '#modules/users/application/dtos/common/user_action_dtos'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import type { UserRecord } from '#modules/users/types/user_records'
+```
+
+### `app/modules/users/actions/queries/list_recruiter_bookmarks_workspace_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import { BaseQuery } from '#modules/users/actions/base_query'
+```
+
+### `app/modules/users/actions/queries/search_talents_query.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import { calculateApplicantMatch } from '../../../tasks/domain/match_formulas.js'
+import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import { BaseQuery } from '#modules/users/actions/base_query'
+```
+
+### `app/modules/users/actions/result.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/actions/services/user_public_api.ts`
+
+```ts
+import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+import type { UpdateUserProfileDTO } from '../dtos/request/update_user_profile_dto.js'
+import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import type { UserSettingData } from '#modules/settings/types/user_setting'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import UserRepository from '#modules/users/infra/repositories/user_repository'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
+import * as performanceStatMutations from '#modules/users/infra/repositories/write/user_performance_stat_mutations'
+import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+import { canToggleAdminMode as canToggleAdminModePolicy } from '#modules/users/public_contracts/user_management_rules'
+import type { UserCredibilityData, UserTrustData } from '#modules/users/types/user_profile_data'
+import type { UserRecord } from '#modules/users/types/user_records'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+```
+
+### `app/modules/users/actions/support/user_query_cache_keys.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/actions/user_action_context.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/actions/utils/profile_completeness.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/controllers/add_profile_skill_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildAddUserSkillDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
+```
+
+### `app/modules/users/controllers/approve_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildApproveUserDTO } from './mappers/request/user_request_mapper.js'
+import { mapSuccessMessageApiBody } from './mappers/response/user_response_mapper.js'
+import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ApproveUserCommand from '#modules/users/actions/commands/approve_user_command'
+```
+
+### `app/modules/users/controllers/create_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapUserMetadataPageProps } from './mappers/response/user_response_mapper.js'
+import GetUserMetadata from '#modules/users/actions/get_user_metadata'
+```
+
+### `app/modules/users/controllers/delete_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildDeleteUserInput } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import DeleteUser from '#modules/users/actions/delete_user'
+```
+
+### `app/modules/users/controllers/edit_profile_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapProfileEditPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetProfileEditPageQuery from '#modules/users/actions/queries/get_profile_edit_page_query'
+```
+
+### `app/modules/users/controllers/edit_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetUserDetailDTO } from './mappers/request/user_request_mapper.js'
+import { mapEditUserPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUserMetadata from '#modules/users/actions/get_user_metadata'
+import GetUserDetailQuery from '#modules/users/actions/queries/get_user_detail_query'
+```
+
+### `app/modules/users/controllers/get_current_profile_snapshot_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetCurrentProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
+import { mapCurrentProfileSnapshotApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetCurrentProfileSnapshotQuery from '#modules/users/actions/queries/get_current_profile_snapshot_query'
+```
+
+### `app/modules/users/controllers/get_profile_snapshot_history_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetProfileSnapshotHistoryDTO } from './mappers/request/user_request_mapper.js'
+import { mapProfileSnapshotHistoryApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetProfileSnapshotHistoryQuery from '#modules/users/actions/queries/get_profile_snapshot_history_query'
+```
+
+### `app/modules/users/controllers/get_public_profile_snapshot_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetPublicProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
+import { mapPublicProfileSnapshotApiBody } from './mappers/response/user_response_mapper.js'
+import { optionalActionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetPublicProfileSnapshotQuery from '#modules/users/actions/queries/get_public_profile_snapshot_query'
+```
+
+### `app/modules/users/controllers/list_users_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUsersListDTO } from './mappers/request/user_request_mapper.js'
+import { mapUsersIndexPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUserMetadata from '#modules/users/actions/get_user_metadata'
+import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
+import { USER_PAGINATION as PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+```
+
+### `app/modules/users/controllers/mappers/request/shared.ts`
+
+```ts
+import { USER_PAGINATION as PAGINATION } from '#modules/users/application/dtos/common/user_pagination'
+```
+
+### `app/modules/users/controllers/mappers/request/user_request_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import {
+  PAGINATION,
+  toBoolean,
+  toOptionalBoolean,
+  toOptionalNullableString,
+  toOptionalNumber,
+  toOptionalString,
+  toPositiveNumber,
+} from './shared.js'
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { ApproveUserDTO } from '#modules/users/actions/dtos/request/approve_user_dto'
+import { ChangeUserRoleDTO } from '#modules/users/actions/dtos/request/change_user_role_dto'
+import { GetUserDetailDTO } from '#modules/users/actions/dtos/request/get_user_detail_dto'
+import { GetUsersListDTO, UserFiltersDTO } from '#modules/users/actions/dtos/request/get_users_list_dto'
+import { RegisterUserDTO } from '#modules/users/actions/dtos/request/register_user_dto'
+import { UpdateUserDetailsDTO } from '#modules/users/actions/dtos/request/update_user_details_dto'
+import { UpdateUserProfileDTO } from '#modules/users/actions/dtos/request/update_user_profile_dto'
+import {
+  AddUserSkillDTO,
+  RemoveUserSkillDTO,
+  UpdateUserSkillDTO,
+} from '#modules/users/actions/dtos/request/user_skill_dtos'
+import { GetCurrentProfileSnapshotDTO } from '#modules/users/actions/queries/get_current_profile_snapshot_query'
+import { GetFeaturedReviewsDTO } from '#modules/users/actions/queries/get_featured_reviews_query'
+import { GetProfileSnapshotHistoryDTO } from '#modules/users/actions/queries/get_profile_snapshot_history_query'
+import { GetPublicProfileSnapshotDTO } from '#modules/users/actions/queries/get_public_profile_snapshot_query'
+import { GetSpiderChartDataDTO } from '#modules/users/actions/queries/get_spider_chart_data_query'
+import { GetUserDeliveryMetricsDTO } from '#modules/users/actions/queries/get_user_delivery_metrics_query'
+import { GetUserProfileDTO } from '#modules/users/actions/queries/get_user_profile_query'
+import { GetUserSkillsDTO } from '#modules/users/actions/queries/get_user_skills_query'
+import { UserPaginationDTO } from '#modules/users/application/dtos/common/user_action_dtos'
+import { UserStatusName } from '#modules/users/public_contracts/user_constants'
+```
+
+### `app/modules/users/controllers/mappers/response/shared.ts`
+
+```ts
+// no imports
+```
+
+### `app/modules/users/controllers/mappers/response/user_response_mapper.ts`
+
+```ts
+import type { ResponseRecord, SerializableResponseRecord } from './shared.js'
+import {
+  normalizePaginationMeta,
+  sanitizePublicSnapshot,
+  serializeCollectionForResponse,
+  serializeForResponse,
+  serializeNullableForResponse,
+} from './shared.js'
+```
+
+### `app/modules/users/controllers/mappers/user_actor_context_mapper.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import type { UserActorContext } from '#modules/users/application/context/user_actor_context'
+```
+
+### `app/modules/users/controllers/pending_approval_count_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapPendingApprovalCountApiBody } from './mappers/response/user_response_mapper.js'
+import { requireSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import GetPendingApprovalUsersQuery from '#modules/users/actions/queries/get_pending_approval_users_query'
+```
+
+### `app/modules/users/controllers/pending_approval_users_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapPendingApprovalUsersApiBody } from './mappers/response/user_response_mapper.js'
+import { requireSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import GetPendingApprovalUsersQuery from '#modules/users/actions/queries/get_pending_approval_users_query'
+```
+
+### `app/modules/users/controllers/pending_approval_users_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildPendingApprovalUsersListDTO } from './mappers/request/user_request_mapper.js'
+import { mapPendingApprovalUsersPageProps } from './mappers/response/user_response_mapper.js'
+import { resolveSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUserMetadata from '#modules/users/actions/get_user_metadata'
+import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
+```
+
+### `app/modules/users/controllers/publish_profile_snapshot_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildPublishUserProfileSnapshotDTO } from './mappers/request/user_request_mapper.js'
+import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import PublishUserProfileSnapshotCommand from '#modules/users/actions/commands/publish_user_profile_snapshot_command'
+```
+
+### `app/modules/users/controllers/recruiter_bookmarks_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import db from '@adonisjs/lucid/services/db'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import CreateRecruiterBookmarkCommand from '#modules/users/actions/commands/create_recruiter_bookmark_command'
+import DeleteRecruiterBookmarkCommand from '#modules/users/actions/commands/delete_recruiter_bookmark_command'
+import UpdateRecruiterBookmarkCommand from '#modules/users/actions/commands/update_recruiter_bookmark_command'
+```
+
+### `app/modules/users/controllers/recruiter_bookmarks_workspace_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import ListRecruiterBookmarksWorkspaceQuery from '#modules/users/actions/queries/list_recruiter_bookmarks_workspace_query'
+```
+
+### `app/modules/users/controllers/remove_profile_skill_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildRemoveUserSkillDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import RemoveUserSkillCommand from '#modules/users/actions/commands/remove_user_skill_command'
+```
+
+### `app/modules/users/controllers/rotate_profile_snapshot_share_link_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildRotateProfileSnapshotShareLinkDTO } from './mappers/request/user_request_mapper.js'
+import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import RotateProfileSnapshotShareLinkCommand from '#modules/users/actions/commands/rotate_profile_snapshot_share_link_command'
+```
+
+### `app/modules/users/controllers/show_profile_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapProfileShowPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import GetProfileShowPageQuery from '#modules/users/actions/queries/get_profile_show_page_query'
+```
+
+### `app/modules/users/controllers/show_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildGetUserDetailDTO } from './mappers/request/user_request_mapper.js'
+import { mapShowUserPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUserDetailQuery from '#modules/users/actions/queries/get_user_detail_query'
+```
+
+### `app/modules/users/controllers/store_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildRegisterUserDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import RegisterUserCommand from '#modules/users/actions/commands/register_user_command'
+```
+
+### `app/modules/users/controllers/system_users_api_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildSystemUsersListDTO } from './mappers/request/user_request_mapper.js'
+import { mapSystemUsersApiBody } from './mappers/response/user_response_mapper.js'
+import { requireSystemUserAdminAccess } from '#modules/authorization/controllers/require_system_user_admin_access'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetUsersListQuery from '#modules/users/actions/queries/get_users_list_query'
+```
+
+### `app/modules/users/controllers/talent_detail_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapProfileViewApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
+```
+
+### `app/modules/users/controllers/talent_directory_page_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetTalentDirectoryPageQuery from '#modules/users/actions/queries/get_talent_directory_page_query'
+```
+
+### `app/modules/users/controllers/talents_search_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import SearchTalentsQuery from '#modules/users/actions/queries/search_talents_query'
+```
+
+### `app/modules/users/controllers/update_profile_details_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateUserDetailsDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateUserDetailsCommand from '#modules/users/actions/commands/update_user_details_command'
+```
+
+### `app/modules/users/controllers/update_profile_skill_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateUserSkillDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateUserSkillCommand from '#modules/users/actions/commands/update_user_skill_command'
+```
+
+### `app/modules/users/controllers/update_profile_snapshot_access_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateProfileSnapshotAccessDTO } from './mappers/request/user_request_mapper.js'
+import { mapSnapshotMutationApiBody } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateProfileSnapshotAccessCommand from '#modules/users/actions/commands/update_profile_snapshot_access_command'
+```
+
+### `app/modules/users/controllers/update_user_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildUpdateUserProfileDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UpdateUserProfileCommand from '#modules/users/actions/commands/update_user_profile_command'
+```
+
+### `app/modules/users/controllers/update_user_role_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { buildChangeUserRoleDTO } from './mappers/request/user_request_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ChangeUserRoleCommand from '#modules/users/actions/commands/change_user_role_command'
+```
+
+### `app/modules/users/controllers/view_user_profile_controller.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import { mapProfileViewPageProps } from './mappers/response/user_response_mapper.js'
+import { actionContextFromHttp } from '#modules/http/adapters/http_execution_context_adapter'
+import GetProfileViewPageQuery from '#modules/users/actions/queries/get_profile_view_page_query'
+```
+## Code Snippets
+
+### `start/routes/users.ts`
+
+```ts
+import type { HttpContext } from '@adonisjs/core/http'
+import router from '@adonisjs/core/services/router'
+
+import { middleware } from '../kernel.js'
+
+import { throttle } from '#start/limiter'
+
+// Users — use-case controllers
+const ListUsersController = () => import('#modules/users/controllers/list_users_controller')
+const CreateUserController = () => import('#modules/users/controllers/create_user_controller')
+const StoreUserController = () => import('#modules/users/controllers/store_user_controller')
+const ShowUserController = () => import('#modules/users/controllers/show_user_controller')
+const EditUserController = () => import('#modules/users/controllers/edit_user_controller')
+const UpdateUserController = () => import('#modules/users/controllers/update_user_controller')
+const DeleteUserController = () => import('#modules/users/controllers/delete_user_controller')
+const ApproveUserController = () => import('#modules/users/controllers/approve_user_controller')
+const UpdateUserRoleController = () =>
+  import('#modules/users/controllers/update_user_role_controller')
+const PendingApprovalUsersController = () =>
+  import('#modules/users/controllers/pending_approval_users_controller')
+const PendingApprovalUsersApiController = () =>
+  import('#modules/users/controllers/pending_approval_users_api_controller')
+const PendingApprovalCountApiController = () =>
+  import('#modules/users/controllers/pending_approval_count_api_controller')
+const SystemUsersApiController = () =>
+  import('#modules/users/controllers/system_users_api_controller')
+const TalentsSearchController = () =>
+  import('#modules/users/controllers/talents_search_controller')
+const TalentDetailController = () =>
+  import('#modules/users/controllers/talent_detail_controller')
+const TalentDirectoryPageController = () =>
+  import('#modules/users/controllers/talent_directory_page_controller')
+const RecruiterBookmarksWorkspaceController = () =>
+  import('#modules/users/controllers/recruiter_bookmarks_workspace_controller')
+const RecruiterBookmarksController = () =>
+  import('#modules/users/controllers/recruiter_bookmarks_controller')
+
+// Profile — use-case controllers
+const ShowProfileController = () => import('#modules/users/controllers/show_profile_controller')
+const EditProfileController = () => import('#modules/users/controllers/edit_profile_controller')
+const UpdateProfileDetailsController = () =>
+  import('#modules/users/controllers/update_profile_details_controller')
+const AddProfileSkillController = () =>
+  import('#modules/users/controllers/add_profile_skill_controller')
+const UpdateProfileSkillController = () =>
+  import('#modules/users/controllers/update_profile_skill_controller')
+const RemoveProfileSkillController = () =>
+  import('#modules/users/controllers/remove_profile_skill_controller')
+const ViewUserProfileController = () =>
+  import('#modules/users/controllers/view_user_profile_controller')
+const PublishProfileSnapshotController = () =>
+  import('#modules/users/controllers/publish_profile_snapshot_controller')
+const GetPublicProfileSnapshotController = () =>
+  import('#modules/users/controllers/get_public_profile_snapshot_controller')
+const GetCurrentProfileSnapshotController = () =>
+  import('#modules/users/controllers/get_current_profile_snapshot_controller')
+const GetProfileSnapshotHistoryController = () =>
+  import('#modules/users/controllers/get_profile_snapshot_history_controller')
+const UpdateProfileSnapshotAccessController = () =>
+  import('#modules/users/controllers/update_profile_snapshot_access_controller')
+const RotateProfileSnapshotShareLinkController = () =>
+  import('#modules/users/controllers/rotate_profile_snapshot_share_link_controller')
+
+router
+  .group(() => {
+    // Users routes (use-case controllers)
+    router.get('/users', [ListUsersController, 'handle']).as('users.index')
+    router.get('/users/create', [CreateUserController, 'handle']).as('users.create')
+    router
+      .get('/users/pending-approval', [PendingApprovalUsersController, 'handle'])
+      .as('users.pending_approval')
+    router.post('/users', [StoreUserController, 'handle']).as('users.store')
+    router.get('/users/:id', [ShowUserController, 'handle']).as('users.show')
+    router.get('/users/:id/edit', [EditUserController, 'handle']).as('users.edit')
+    router.put('/users/:id', [UpdateUserController, 'handle']).as('users.update')
+    router.delete('/users/:id', [DeleteUserController, 'handle']).as('users.destroy')
+    router.put('/users/:id/approve', [ApproveUserController, 'handle']).as('users.approve')
+    router.put('/users/:id/role', [UpdateUserRoleController, 'handle']).as('users.update_role')
+
+    router
+      .get('/marketplace/talents', [TalentDirectoryPageController, 'handle'])
+      .as('marketplace.talents')
+    router
+      .get('/marketplace/bookmarks', [RecruiterBookmarksWorkspaceController, 'handle'])
+      .as('marketplace.bookmarks')
+
+    // API routes
+    router
+      .get('/api/users/pending-approval', [PendingApprovalUsersApiController, 'handle'])
+      .as('api.users.pending_approval')
+    router
+      .get('/api/users/pending-approval/count', [PendingApprovalCountApiController, 'handle'])
+      .as('api.users.pending_approval_count')
+    router
+      .get('/api/system-users', [SystemUsersApiController, 'handle'])
+      .as('api.users.system_users')
+    router
+      .get('/api/talents/search', [TalentsSearchController, 'handle'])
+      .as('api.talents.search')
+    router
+      .get('/api/org/talents/search', [TalentsSearchController, 'handle'])
+      .as('api.org.talents.search')
+    router
+      .get('/api/org/talents/:userId', [TalentDetailController, 'handle'])
+      .as('api.org.talents.show')
+    router
+      .get('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.recruiter_bookmarks.index')
+    router
+      .post('/api/recruiter-bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.recruiter_bookmarks.store')
+    router
+      .patch('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'update'])
+      .as('api.recruiter_bookmarks.update')
+    router
+      .delete('/api/recruiter-bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
+      .as('api.recruiter_bookmarks.destroy')
+    router
+      .get('/api/recruiters/bookmarks', [RecruiterBookmarksController, 'index'])
+      .as('api.recruiters.bookmarks.index')
+    router
+      .post('/api/recruiters/bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.recruiters.bookmarks.store')
+    router
+      .patch('/api/recruiters/bookmarks/:id', [RecruiterBookmarksController, 'update'])
+      .as('api.recruiters.bookmarks.update')
+    router
+      .delete('/api/recruiters/bookmarks/:id', [RecruiterBookmarksController, 'destroy'])
+      .as('api.recruiters.bookmarks.destroy')
+    router
+      .post('/api/org/talents/:userId/bookmarks', [RecruiterBookmarksController, 'store'])
+      .as('api.org.talents.bookmarks.store')
+    router
+      .delete('/api/org/talents/:userId/bookmarks', [
+        RecruiterBookmarksController,
+        'destroyByTalent',
+      ])
+      .as('api.org.talents.bookmarks.destroy')
+
+    // Profile routes (use-case controllers)
+    router.get('/profile', [ShowProfileController, 'handle']).as('profile.show')
+    router.get('/profile/edit', [EditProfileController, 'handle']).as('profile.edit')
+    router
+      .put('/profile/details', [UpdateProfileDetailsController, 'handle'])
+      .as('profile.updateDetails')
+
+    // Profile skills management
+    router.post('/profile/skills', [AddProfileSkillController, 'handle']).as('profile.skills.add')
+    router
+      .put('/profile/skills/:id', [UpdateProfileSkillController, 'handle'])
+      .as('profile.skills.update')
+    router
+      .delete('/profile/skills/:id', [RemoveProfileSkillController, 'handle'])
+      .as('profile.skills.remove')
+
+    // View other user's public profile
+    router.get('/users/:id/profile', [ViewUserProfileController, 'handle']).as('profile.viewUser')
+
+    // Profile snapshots
+    router
+      .post('/profile/snapshots/publish', [PublishProfileSnapshotController, 'handle'])
+      .as('profile.snapshots.publish')
+    router
+      .post('/api/me/profile-snapshots', [PublishProfileSnapshotController, 'handle'])
+      .as('api.me.profile_snapshots.publish')
+    router
+      .get('/profile/snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
+      .as('profile.snapshots.current')
+    router
+      .get('/api/me/profile-snapshots/current', [GetCurrentProfileSnapshotController, 'handle'])
+      .as('api.me.profile_snapshots.current')
+    router
+      .get('/profile/snapshots/history', [GetProfileSnapshotHistoryController, 'handle'])
+      .as('profile.snapshots.history')
+    router
+      .get('/api/me/profile-snapshots', [GetProfileSnapshotHistoryController, 'handle'])
+      .as('api.me.profile_snapshots.index')
+    router
+      .patch('/profile/snapshots/:id/access', [UpdateProfileSnapshotAccessController, 'handle'])
+      .as('profile.snapshots.access')
+    router
+      .patch('/api/me/profile-snapshots/:id/access', [
+        UpdateProfileSnapshotAccessController,
+        'handle',
+      ])
+      .as('api.me.profile_snapshots.access')
+    router
+      .post('/profile/snapshots/:id/rotate-link', [
+        RotateProfileSnapshotShareLinkController,
+        'handle',
+      ])
+      .as('profile.snapshots.rotate_link')
+    router
+      .post('/api/me/profile-snapshots/:id/rotate-link', [
+        RotateProfileSnapshotShareLinkController,
+        'handle',
+      ])
+      .as('api.me.profile_snapshots.rotate_link')
+
+    // @deprecated - Settings moved to settings controller
+    router
+      .put('/profile/settings', ({ response, session }: HttpContext) => {
+        session.flash('info', 'This feature has been moved to the settings page')
+        response.redirect().toRoute('settings.index')
+      })
+      .as('profile.update_settings')
+  })
+  .use([middleware.auth(), middleware.requireOrg(), throttle])
+
+// Public snapshot route (no auth required)
+router
+  .get('/profiles/:slug', [GetPublicProfileSnapshotController, 'handle'])
+  .as('profile.snapshot.public')
+
+```
+
+### `app/modules/users/actions/commands/add_user_skill_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/http/exceptions/conflict_exception'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import type { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
+import {
+  buildUserProfileCacheKeys,
+  buildUserSkillsCacheKeys,
+} from '#modules/users/actions/support/user_query_cache_keys'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+import { ProficiencyLevel } from '#modules/users/public_contracts/user_constants'
+import type { UserSkillRecord } from '#modules/users/types/user_records'
+import { skillPublicApi } from '#modules/skills/actions/services/skill_public_api'
+
+/**
+ * Command to add a skill to user's profile
+ * Creates a UserSkill record with initial proficiency level
+ * Source mặc định = 'imported' (self-declared bởi user)
+ */
+export default class AddUserSkillCommand extends BaseCommand<
+  AddUserSkillDTO,
+  UserSkillRecord
+> {
+  async handle(dto: AddUserSkillDTO): Promise<UserSkillRecord> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+
+      // Verify skill exists and is active
+      const skill = await DefaultUserDependencies.skill.findActiveSkillById(dto.skill_id, trx)
+
+      if (!skill) {
+        throw new BusinessLogicException('Skill không tồn tại hoặc đã bị vô hiệu hóa')
+      }
+
+      // v3: Validate proficiency level code against enum
+      const validLevels = Object.values(ProficiencyLevel) as string[]
+      if (!validLevels.includes(dto.level_code)) {
+        throw new BusinessLogicException(`Mức độ thành thạo không hợp lệ: ${dto.level_code}`)
+      }
+
+      // Check if user already has this skill
+      const existing = await userSkillQueries.findByUserAndSkill(userId, dto.skill_id, trx)
+
+      if (existing) {
+        throw new ConflictException('User already has this skill')
+      }
+
+      const activeScale = await skillPublicApi.proficiencyScale.getActiveScaleWithLevels(trx)
+      const matchedLevel = activeScale?.levels.find((level) => level.code === dto.level_code)
+      const proficiencyLevelId = matchedLevel ? matchedLevel.id : null
+
+      // Create user skill (v3: level_code instead of proficiency_level_id)
+      // v3.1: source = 'imported' (self-declared, có thể update bởi user)
+      const userSkill = await userSkillMutations.create(
+        {
+          user_id: userId,
+          skill_id: dto.skill_id,
+          level_code: dto.level_code,
+          proficiency_level_id: proficiencyLevelId,
