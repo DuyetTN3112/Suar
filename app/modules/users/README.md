@@ -1798,3 +1798,903 @@ export default class AddUserSkillCommand extends BaseCommand<
           skill_id: dto.skill_id,
           level_code: dto.level_code,
           proficiency_level_id: proficiencyLevelId,
+          total_reviews: 0,
+          avg_score: null,
+          source: 'imported' as const,
+        },
+        trx
+      )
+
+      // Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'add_skill',
+          entity_type: 'user_skill',
+          entity_id: userSkill.id,
+          old_values: null,
+          new_values: {
+            skill_id: dto.skill_id,
+            skill_name: skill.skill_name,
+            level_code: dto.level_code,
+            source: 'imported',
+          },
+        })
+      }
+
+      return {
+        userSkill: userSkillQueries.toRecord(userSkill),
+        cacheKeys: [
+          ...buildUserProfileCacheKeys(userId),
+          ...buildUserSkillsCacheKeys(userId, [skill.category_code]),
+        ],
+        skillScoreUpdatedEvent: {
+          userId,
+          skillId: dto.skill_id,
+          oldScore: null,
+          newScore: 0,
+        },
+      }
+    })
+
+    for (const cacheKey of result.cacheKeys) {
+      await deleteCacheKey(cacheKey)
+    }
+    void emitter.emit('skill:score:updated', result.skillScoreUpdatedEvent)
+
+    return result.userSkill
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/approve_user_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+
+import { BaseCommand } from '../base_command.js'
+import type { ApproveUserDTO } from '../dtos/request/approve_user_dto.js'
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import { canApproveUser } from '#modules/users/public_contracts/user_management_rules'
+
+/**
+ * ApproveUserCommand
+ *
+ * Approves a pending user in an organization.
+ * Changes user status from 'pending' to 'approved' in organization_users table.
+ *
+ * This is a Command (Write operation) that changes system state.
+ *
+ * Business Rules:
+ * - Org owner or org admin (has 'can_approve_members' permission) can approve users
+ * - System superadmin can approve users
+ * - User must be in 'pending' status
+ * - Audit log is created
+ */
+export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
+  /**
+   * Main handler - approves a user in organization
+   */
+  async handle(dto: ApproveUserDTO): Promise<void> {
+    const result = await this.executeInTransaction(async (trx) => {
+      // 1-2. Verify permission and status via pure rule
+      const hasPermission = await DefaultUserDependencies.permission.checkOrgPermission(
+        dto.approverId,
+        dto.organizationId,
+        'can_approve_members',
+        trx
+      )
+      const membership = await DefaultUserDependencies.organizationMembership.findMembershipStatus(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
+
+      enforcePolicy(
+        canApproveUser({
+          hasApprovePermission: hasPermission,
+          targetMembershipStatus: membership?.status ?? null,
+        })
+      )
+
+      // 3. Update user status to approved
+      await DefaultUserDependencies.organizationMembership.approveMembership(
+        dto.userId,
+        dto.organizationId,
+        trx
+      )
+
+      // 4. Log the approval
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'approve',
+          entity_type: 'user',
+          entity_id: dto.userId,
+          old_values: undefined,
+          new_values: {
+            organization_id: dto.organizationId,
+            approved_by: dto.approverId,
+          },
+        })
+      }
+
+      // Return event data for post-commit emission
+      return {
+        userApprovedEvent: {
+          userId: dto.userId,
+          approvedBy: dto.approverId,
+          organizationId: dto.organizationId,
+        },
+      }
+    })
+
+    // Side-effects are post-commit to avoid firing on rollback.
+    void emitter.emit('user:approved', result.userApprovedEvent)
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/build_user_work_history_command.ts`
+
+```ts
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import {
+  buildKnowledgeArtifacts,
+  calculateAverageScore,
+  calculateWorkHistoryDeliveryTiming,
+} from '#modules/users/domain/profile_aggregate_rules'
+import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+import UserAnalyticsRepository from '#modules/users/infra/repositories/user_analytics_repository'
+import * as workHistoryMutations from '#modules/users/infra/repositories/write/user_work_history_mutations'
+
+export interface BuildUserWorkHistoryDTO {
+  userId: string
+  fullRebuild?: boolean
+}
+
+export interface BuildUserWorkHistoryResult {
+  userId: string
+  totalCompletedAssignments: number
+  inserted: number
+  updated: number
+}
+
+interface AssignmentSnapshotRow {
+  task_assignment_id: string
+  task_id: string
+  organization_id: string | null
+  project_id: string | null
+  task_title: string
+  task_type: string | null
+  business_domain: string | null
+  problem_category: string | null
+  role_in_task: string | null
+  autonomy_level: string | null
+  collaboration_type: string | null
+  tech_stack: unknown
+  domain_tags: unknown
+  difficulty: string | null
+  estimated_time: number | string | null
+  actual_time: number | string | null
+  assignment_estimated_hours: number | string | null
+  assignment_actual_hours: number | string | null
+  due_date: Date | string | null
+  completed_at: Date | string | null
+  measurable_outcomes: unknown
+  impact_scope: string | null
+}
+
+interface CompletedReviewSessionRow {
+  id: string
+  overall_quality_score: number | null
+}
+
+interface SkillReviewSummaryRow {
+  skill_id: string
+  skill_name: string | null
+  assigned_level_code: string
+  reviewer_type: string
+  comment: string | null
+}
+
+interface ReviewEvidenceSummaryRow {
+  id: string
+  evidence_type: string
+  url: string | null
+  title: string | null
+}
+
+interface SelfAssessmentNarrativeRow {
+  what_went_well: string | null
+  what_would_do_different: string | null
+}
+
+interface AssignmentAnalytics {
+  completedAt: DateTime | null
+  overallQualityScore: number | null
+  skillScores: Record<string, unknown>[]
+  evidenceLinks: Record<string, unknown>[]
+  knowledgeArtifacts: Record<string, unknown>[]
+}
+
+interface WorkHistoryPayload {
+  task_id: string
+  task_assignment_id: string
+  organization_id: string | null
+  project_id: string | null
+  task_title: string
+  task_type: string | null
+  business_domain: string | null
+  problem_category: string | null
+  role_in_task: string | null
+  autonomy_level: string | null
+  collaboration_type: string | null
+  tech_stack: string[]
+  domain_tags: string[]
+  difficulty: string | null
+  estimated_hours: number | null
+  actual_hours: number | null
+  was_on_time: boolean | null
+  days_early_or_late: number | null
+  measurable_outcomes: Record<string, unknown>[]
+  estimated_business_value: string | null
+  knowledge_artifacts: Record<string, unknown>[]
+  overall_quality_score: number | null
+  skill_scores: Record<string, unknown>[]
+  evidence_links: Record<string, unknown>[]
+  completed_at: DateTime | null
+  is_featured: boolean
+  is_public: boolean
+}
+
+interface MaterializedWorkHistoryBatch {
+  inserted: number
+  updated: number
+}
+
+export default class BuildUserWorkHistoryCommand extends BaseCommand<
+  BuildUserWorkHistoryDTO,
+  BuildUserWorkHistoryResult
+> {
+  async handle(dto: BuildUserWorkHistoryDTO): Promise<BuildUserWorkHistoryResult> {
+    return await this.executeInTransaction(async (trx) => {
+      const assignmentRows = await this.loadAssignmentSnapshots(dto.userId, trx)
+
+      if (dto.fullRebuild) {
+        await this.deleteExistingWorkHistory(dto.userId, trx)
+      }
+
+      const materialized = await this.materializeWorkHistory(dto.userId, assignmentRows, trx)
+
+      await this.auditBuildSummary(
+        dto.userId,
+        dto.fullRebuild ?? false,
+        assignmentRows.length,
+        materialized.inserted,
+        materialized.updated
+      )
+
+      return {
+        userId: dto.userId,
+        totalCompletedAssignments: assignmentRows.length,
+        inserted: materialized.inserted,
+        updated: materialized.updated,
+      }
+    })
+  }
+
+  private toDateTime(value: Date | string | null): DateTime | null {
+    if (!value) return null
+
+    if (value instanceof Date) {
+      return DateTime.fromJSDate(value)
+    }
+
+    const parsed = DateTime.fromISO(value)
+    return parsed.isValid ? parsed : null
+  }
+
+  private toNumber(value: number | string | null): number | null {
+    if (value === null) return null
+    const converted = Number(value)
+    return Number.isFinite(converted) ? converted : null
+  }
+
+  private toStringArray(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string')
+    }
+
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown
+        return Array.isArray(parsed)
+          ? parsed.filter((item): item is string => typeof item === 'string')
+          : []
+      } catch {
+        return []
+      }
+    }
+
+    return []
+  }
+
+  private toObjectArray(value: unknown): Record<string, unknown>[] {
+    if (Array.isArray(value)) {
+      return value.filter(
+        (item): item is Record<string, unknown> => typeof item === 'object' && item !== null
+      )
+    }
+
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value) as unknown
+        return Array.isArray(parsed)
+          ? parsed.filter(
+              (item): item is Record<string, unknown> => typeof item === 'object' && item !== null
+            )
+          : []
+      } catch {
+        return []
+      }
+    }
+
+    return []
+  }
+
+  private async loadAssignmentSnapshots(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<AssignmentSnapshotRow[]> {
+    return (await UserAnalyticsRepository.listCompletedAssignmentSnapshots(
+      userId,
+      trx
+    )) as AssignmentSnapshotRow[]
+  }
+
+  private async deleteExistingWorkHistory(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await workHistoryMutations.deleteByUser(userId, trx)
+  }
+
+  private async loadAssignmentAnalytics(
+    userId: string,
+    assignment: AssignmentSnapshotRow,
+    trx: TransactionClientContract
+  ): Promise<AssignmentAnalytics> {
+    const completedAt = this.toDateTime(assignment.completed_at)
+    const reviewSessions = (await UserAnalyticsRepository.listCompletedReviewSessionsForAssignment(
+      assignment.task_assignment_id,
+      userId,
+      trx
+    )) as CompletedReviewSessionRow[]
+
+    const sessionIds = reviewSessions.map((session) => session.id)
+    const qualityValues = reviewSessions
+      .map((session) => session.overall_quality_score)
+      .filter((value): value is number => typeof value === 'number')
+
+    const overallQualityScore = calculateAverageScore(qualityValues)
+
+    const skillScores =
+      sessionIds.length > 0
+        ? (
+            (await UserAnalyticsRepository.listSkillReviewSummariesBySessionIds(
+              sessionIds,
+              trx
+            )) as SkillReviewSummaryRow[]
+          ).map((item) => ({
+            skill_id: item.skill_id,
+            skill_name: item.skill_name,
+            assigned_level_code: item.assigned_level_code,
+            reviewer_type: item.reviewer_type,
+            comment: item.comment,
+          }))
+        : []
+
+    const evidenceLinks =
+      sessionIds.length > 0
+        ? (
+            (await UserAnalyticsRepository.listReviewEvidenceSummariesBySessionIds(
+              sessionIds,
+              trx
+            )) as ReviewEvidenceSummaryRow[]
+          ).map((item) => ({
+            evidence_id: item.id,
+            evidence_type: item.evidence_type,
+            url: item.url,
+            title: item.title,
+          }))
+        : []
+
+    const selfAssessment = (await UserAnalyticsRepository.findSelfAssessmentNarrative(
+      assignment.task_assignment_id,
+      userId,
+      trx
+    )) as SelfAssessmentNarrativeRow | undefined
+
+    return {
+      completedAt,
+      overallQualityScore,
+      skillScores,
+      evidenceLinks,
+      knowledgeArtifacts: buildKnowledgeArtifacts({
+        whatWentWell: selfAssessment?.what_went_well ?? null,
+        whatWouldDoDifferent: selfAssessment?.what_would_do_different ?? null,
+      }),
+    }
+  }
+
+  private buildWorkHistoryPayload(
+    assignment: AssignmentSnapshotRow,
+    analytics: AssignmentAnalytics
+  ): WorkHistoryPayload {
+    const dueDate = this.toDateTime(assignment.due_date)
+    const { wasOnTime, daysEarlyOrLate } = calculateWorkHistoryDeliveryTiming({
+      dueDate: dueDate?.toJSDate() ?? null,
+      completedAt: analytics.completedAt?.toJSDate() ?? null,
+    })
+
+    return {
+      task_id: assignment.task_id,
+      task_assignment_id: assignment.task_assignment_id,
+      organization_id: assignment.organization_id,
+      project_id: assignment.project_id,
+      task_title: assignment.task_title,
+      task_type: assignment.task_type,
+      business_domain: assignment.business_domain,
+      problem_category: assignment.problem_category,
+      role_in_task: assignment.role_in_task,
+      autonomy_level: assignment.autonomy_level,
+      collaboration_type: assignment.collaboration_type,
+      tech_stack: this.toStringArray(assignment.tech_stack),
+      domain_tags: this.toStringArray(assignment.domain_tags),
+      difficulty: assignment.difficulty,
+      estimated_hours:
+        this.toNumber(assignment.assignment_estimated_hours) ??
+        this.toNumber(assignment.estimated_time),
+      actual_hours:
+        this.toNumber(assignment.assignment_actual_hours) ?? this.toNumber(assignment.actual_time),
+      was_on_time: wasOnTime,
+      days_early_or_late: daysEarlyOrLate,
+      measurable_outcomes: this.toObjectArray(assignment.measurable_outcomes),
+      estimated_business_value: assignment.impact_scope,
+      knowledge_artifacts: analytics.knowledgeArtifacts,
+      overall_quality_score: analytics.overallQualityScore,
+      skill_scores: analytics.skillScores,
+      evidence_links: analytics.evidenceLinks,
+      completed_at: analytics.completedAt,
+      is_featured: false,
+      is_public: false,
+    }
+  }
+
+  private async upsertWorkHistoryRow(
+    userId: string,
+    payload: WorkHistoryPayload,
+    trx: TransactionClientContract
+  ): Promise<'inserted' | 'updated'> {
+    const existing = await workHistoryQueries.findByUserAndAssignment(
+      userId,
+      payload.task_assignment_id,
+      trx
+    )
+
+    if (existing) {
+      existing.merge(payload)
+      await workHistoryMutations.save(existing, trx)
+      return 'updated'
+    }
+
+    await workHistoryMutations.create(
+      {
+        user_id: userId,
+        ...payload,
+      },
+      trx
+    )
+    return 'inserted'
+  }
+
+  private async materializeWorkHistory(
+    userId: string,
+    assignmentRows: AssignmentSnapshotRow[],
+    trx: TransactionClientContract
+  ): Promise<MaterializedWorkHistoryBatch> {
+    let inserted = 0
+    let updated = 0
+
+    for (const assignment of assignmentRows) {
+      const analytics = await this.loadAssignmentAnalytics(userId, assignment, trx)
+      const payload = this.buildWorkHistoryPayload(assignment, analytics)
+      const outcome = await this.upsertWorkHistoryRow(userId, payload, trx)
+
+      if (outcome === 'inserted') {
+        inserted += 1
+      } else {
+        updated += 1
+      }
+    }
+
+    return { inserted, updated }
+  }
+
+  private async auditBuildSummary(
+    userId: string,
+    fullRebuild: boolean,
+    totalCompletedAssignments: number,
+    inserted: number,
+    updated: number
+  ): Promise<void> {
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'build_user_work_history',
+        entity_type: 'user_work_history',
+        entity_id: userId,
+        old_values: null,
+        new_values: {
+          full_rebuild: fullRebuild,
+          total_completed_assignments: totalCompletedAssignments,
+          inserted,
+          updated,
+        },
+      })
+    }
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/change_user_role_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+
+import { BaseCommand } from '../base_command.js'
+import type { ChangeUserRoleDTO } from '../dtos/request/change_user_role_dto.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
+import { canChangeUserRole } from '#modules/users/public_contracts/user_management_rules'
+
+/**
+ * ChangeUserRoleCommand (v3)
+ *
+ * Changes a user's system role.
+ * v3: system_role is inline VARCHAR on users table.
+ * newRoleId in DTO is now a role name string (e.g. 'superadmin', 'system_admin').
+ *
+ * Business Rules:
+ * - Only superadmin can change roles
+ * - Cannot change own role
+ * - Target user must exist and not be deleted
+ */
+export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
+  async handle(dto: ChangeUserRoleDTO): Promise<void> {
+    // Verify permissions via pure rule
+    const isSuperadmin = await userModelQueries.isSuperadmin(dto.changerId)
+    enforcePolicy(
+      canChangeUserRole({
+        actorId: dto.changerId,
+        targetUserId: dto.targetUserId,
+        isActorSuperadmin: isSuperadmin,
+        newRole: dto.newRoleId,
+      })
+    )
+
+    // Verify target user exists and not deleted
+    const targetUser = await userModelQueries.findNotDeletedOrFailRecord(dto.targetUserId)
+
+    // Get old role for audit log
+    const oldRole = targetUser.system_role
+
+    // v3: Update inline system_role string
+    await userMutations.updateSystemRoleRecord(dto.targetUserId, dto.newRoleId)
+
+    // Log the action
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'change_user_role',
+        entity_type: 'user',
+        entity_id: dto.targetUserId,
+        old_values: { system_role: oldRole },
+        new_values: { system_role: dto.newRoleId },
+      })
+    }
+
+    // Emit audit event
+    void emitter.emit('audit:log', {
+      userId: dto.changerId,
+      action: 'change_user_role',
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      oldValues: { system_role: oldRole },
+      newValues: { system_role: dto.newRoleId },
+    })
+
+    // Invalidate permission cache
+    void emitter.emit('cache:invalidate', {
+      entityType: 'user',
+      entityId: dto.targetUserId,
+      patterns: [`*user:${dto.targetUserId}:*`],
+    })
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/deactivate_user_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+import db from '@adonisjs/lucid/services/db'
+
+import { DefaultUserDependencies } from '../ports/user_external_dependencies_impl.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/logger_service'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { NotificationCreator } from '#modules/notifications/public_contracts/notification_creator'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
+import { UserStatusName } from '#modules/users/public_contracts/user_constants'
+import { canDeactivateUser } from '#modules/users/public_contracts/user_management_rules'
+import type { UserRecord } from '#modules/users/types/user_records'
+
+/**
+ * DTO for deactivating a user
+ */
+export interface DeactivateUserDTO {
+  user_id: string
+  reason?: string
+}
+
+/**
+ * Command: Deactivate User
+ *
+ * Migrate từ stored procedure: deactivate_user
+ *
+ * Business rules:
+ * - Chỉ superadmin mới có thể deactivate users
+ * - Không thể deactivate chính mình
+ * - Set user.status_id = 2 (inactive)
+ * - Gửi notification cho user
+ */
+export default class DeactivateUserCommand {
+  constructor(
+    protected execCtx: UserActionContext,
+    private createNotification: NotificationCreator
+  ) {}
+
+  async execute(dto: DeactivateUserDTO): Promise<UserRecord> {
+    const adminUserId = this.execCtx.userId
+    if (!adminUserId) {
+      throw new UnauthorizedException()
+    }
+    const trx = await db.transaction()
+
+    try {
+      // 1-2. Check permissions via pure rule
+      const isSuperadmin = await DefaultUserDependencies.permission.isSystemSuperadmin(
+        adminUserId,
+        trx
+      )
+      enforcePolicy(
+        canDeactivateUser({
+          actorId: adminUserId,
+          targetUserId: dto.user_id,
+          isActorSuperadmin: isSuperadmin,
+        })
+      )
+
+      const user = await userModelQueries.findNotDeletedOrFailRecord(dto.user_id, trx)
+
+      // Save old status
+      const oldStatus = user.status
+
+      // 4. Update user status to inactive
+      const updatedUser = await userMutations.updateStatusRecord(
+        dto.user_id,
+        UserStatusName.INACTIVE,
+        trx
+      )
+
+      // 5. Create audit log
+      await auditPublicApi.log(
+        {
+          user_id: adminUserId,
+          action: 'deactivate_user',
+          entity_type: 'users',
+          entity_id: dto.user_id,
+          old_values: { status: oldStatus },
+          new_values: { status: UserStatusName.INACTIVE, reason: dto.reason },
+        },
+        this.execCtx
+      )
+
+      await trx.commit()
+
+      // Emit domain event
+      void emitter.emit('user:deactivated', {
+        userId: dto.user_id,
+        deactivatedBy: adminUserId,
+        reason: dto.reason,
+      })
+
+      // 6. Send notification
+      await this.sendNotification(dto.user_id, dto.reason)
+
+      return updatedUser
+    } catch (error) {
+      await trx.rollback()
+      throw error
+    }
+  }
+
+  private async sendNotification(userId: string, reason?: string): Promise<void> {
+    try {
+      await this.createNotification.handle({
+        user_id: userId,
+        title: 'Tài khoản đã bị vô hiệu hóa',
+        message: `Tài khoản của bạn đã bị vô hiệu hóa. Lý do: ${reason ?? 'Không có lý do cụ thể'}`,
+        type: BACKEND_NOTIFICATION_TYPES.ACCOUNT_DEACTIVATED,
+        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.USER,
+        related_entity_id: userId,
+      })
+    } catch (error) {
+      loggerService.error('[DeactivateUserCommand] Failed to send notification:', error)
+    }
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/publish_user_profile_snapshot_command.ts`
+
+```ts
+import { randomBytes } from 'node:crypto'
+
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
+
+import RefreshUserProfileAggregatesCommand from './refresh_user_profile_aggregates_command.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import {
+  buildProfileSnapshotSlug,
+  pickTopFrequencyKeys,
+} from '#modules/users/domain/profile_snapshot_rules'
+import * as userModelQueries from '#modules/users/infra/repositories/read/model_queries'
+import * as domainExpertiseQueries from '#modules/users/infra/repositories/read/user_domain_expertise_queries'
+import * as performanceStatQueries from '#modules/users/infra/repositories/read/user_performance_stat_queries'
+import * as profileSnapshotQueries from '#modules/users/infra/repositories/read/user_profile_snapshot_queries'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import * as workHistoryQueries from '#modules/users/infra/repositories/read/user_work_history_queries'
+import * as profileSnapshotMutations from '#modules/users/infra/repositories/write/user_profile_snapshot_mutations'
+import type {
+  UserDomainExpertiseRecord,
+  UserPerformanceStatRecord,
+  UserProfileSnapshotRecord,
+  UserRecord,
+  UserSkillRecord,
+  UserWorkHistoryRecord,
+} from '#modules/users/types/user_records'
+
+export interface PublishUserProfileSnapshotDTO {
+  snapshotName?: string
+  isPublic?: boolean
+  expiresInDays?: number | null
+}
+
+export interface PublishUserProfileSnapshotResult {
+  snapshotId: string
+  version: number
+  shareableSlug: string | null
+  shareableToken: string | null
+  isPublic: boolean
+}
+
+interface LoadedSnapshotReadModel {
+  user: UserRecord
+  skills: UserSkillRecord[]
+  performanceStatsRow: UserPerformanceStatRecord | null
+  domainExpertiseRow: UserDomainExpertiseRecord | null
+  latestHighlights: UserWorkHistoryRecord[]
+}
+
+interface LoadedSnapshotInputs {
+  lastSnapshot: UserProfileSnapshotRecord | null
+  readModel: LoadedSnapshotReadModel
+}
+
+interface BuiltSnapshotContent {
+  nextVersion: number
+  isPublic: boolean
+  shareableSlug: string | null
+  shareableToken: string | null
+  summary: SnapshotSummary
+  performanceMetrics: SnapshotPerformanceMetrics
+  trustMetrics: SnapshotTrustMetrics
+  verifiedSkills: SnapshotVerifiedSkill[]
+  workHighlights: SnapshotWorkHighlight[]
+}
+
+interface PersistedUserProfileSnapshot {
+  snapshot: UserProfileSnapshotRecord
+  content: BuiltSnapshotContent
+}
+
+interface SnapshotSummary extends Record<string, unknown> {
+  user_id: string
+  username: string
+  total_verified_skills: number
+  total_tasks_completed: number
+  trust_score: number
+  trust_tier: string | null
+  performance_score: number
+  generated_at: string | null
+}
+
+interface SnapshotPerformanceMetrics extends Record<string, unknown> {
+  period_start: string | null
+  period_end: string | null
+  total_tasks_completed: number
+  total_hours_worked: number
+  avg_quality_score: number | null
+  on_time_delivery_rate: number | null
+  avg_days_early_or_late: number | null
+  performance_score: number | null
+  tasks_by_type: Record<string, number>
+  tasks_by_domain: Record<string, number>
+  tasks_by_difficulty: Record<string, number>
+  tasks_as_lead: number
+  tasks_as_sole_contributor: number
+  tasks_mentoring_others: number
+  longest_on_time_streak: number
+  current_on_time_streak: number
+  self_assessment_accuracy: number | null
+  trust_data: unknown
+}
+
+interface SnapshotDomainExpertiseSummary extends Record<string, unknown> {
+  tech_stack_frequency: Record<string, number>
+  domain_frequency: Record<string, number>
+  problem_category_frequency: Record<string, number>
+  top_skills: Record<string, unknown>[]
+}
+
+interface SnapshotTrustMetrics extends Record<string, unknown> {
+  trust_data: unknown
+  domain_expertise: SnapshotDomainExpertiseSummary
+  tech_stack: string[]
+}
+
+interface SnapshotVerifiedSkill extends Record<string, unknown> {
+  skill_id: string
+  skill_name: string
+  level_code: string
