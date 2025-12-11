@@ -2698,3 +2698,603 @@ interface SnapshotVerifiedSkill extends Record<string, unknown> {
   skill_id: string
   skill_name: string
   level_code: string
+  total_reviews: number
+  avg_percentage: number | null
+  avg_score: number | null
+  last_reviewed_at: string | null
+}
+
+interface SnapshotWorkHighlight extends Record<string, unknown> {
+  task_assignment_id: string
+  task_id: string
+  task_title: string
+  task_type: string | null
+  business_domain: string | null
+  problem_category: string | null
+  role_in_task: string | null
+  collaboration_type: string | null
+  difficulty: string | null
+  overall_quality_score: number | null
+  was_on_time: boolean | null
+  completed_at: string | null
+}
+
+type VerifiedSkillSource = UserSkillRecord & {
+  skill: {
+    skill_name: string
+    category_code: string
+  }
+}
+
+/**
+ * Rate limit: max 3 snapshots per user per 24 hours
+ */
+const SNAPSHOT_RATE_LIMIT_MAX = 3
+const SNAPSHOT_RATE_LIMIT_WINDOW_HOURS = 24
+
+export default class PublishUserProfileSnapshotCommand extends BaseCommand<
+  PublishUserProfileSnapshotDTO,
+  PublishUserProfileSnapshotResult
+> {
+  async handle(dto: PublishUserProfileSnapshotDTO): Promise<PublishUserProfileSnapshotResult> {
+    const userId = this.getCurrentUserId()
+
+    // Guard: user phải active và không suspended
+    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    if (user.status === 'suspended') {
+      throw new BusinessLogicException('Tài khoản bị suspended không thể publish profile snapshot')
+    }
+    const userIsActive = await userModelQueries.isActive(userId)
+    if (!userIsActive) {
+      throw new BusinessLogicException('Tài khoản không active nên không thể publish profile snapshot')
+    }
+
+    // Guard: rate limit - max 3 snapshots per 24 hours
+    await this.enforceRateLimit(userId)
+
+    await this.refreshAggregates(userId)
+    const readModel = await this.loadSnapshotReadModel(userId)
+
+    return await this.executeInTransaction(async (trx) => {
+      const inputs: LoadedSnapshotInputs = {
+        lastSnapshot: await this.loadLastSnapshot(userId, trx),
+        readModel,
+      }
+      const content = this.buildSnapshotContent(userId, dto, inputs)
+      const persisted = await this.persistSnapshot(userId, dto, readModel.user, content, trx)
+      this.registerPostCommitCacheInvalidation(trx, userId, persisted.content.shareableSlug)
+      return this.toResult(persisted)
+    })
+  }
+
+  /**
+   * Rate limit: kiểm tra số lượng snapshot trong 24h qua
+   */
+  private async enforceRateLimit(userId: string): Promise<void> {
+    const since = DateTime.now().minus({ hours: SNAPSHOT_RATE_LIMIT_WINDOW_HOURS })
+    const recentCount = await profileSnapshotQueries.countByUserSince(userId, since)
+    if (recentCount >= SNAPSHOT_RATE_LIMIT_MAX) {
+      throw new BusinessLogicException(
+        `Đã vượt quá giới hạn publish snapshot (${SNAPSHOT_RATE_LIMIT_MAX} lần/${SNAPSHOT_RATE_LIMIT_WINDOW_HOURS}h). Vui lòng thử lại sau.`
+      )
+    }
+  }
+
+  private async refreshAggregates(userId: string): Promise<void> {
+    await new RefreshUserProfileAggregatesCommand(this.execCtx).handle({
+      userId,
+      fullRebuild: false,
+    })
+  }
+
+  private async loadSnapshotReadModel(userId: string): Promise<LoadedSnapshotReadModel> {
+    const user = await userModelQueries.findNotDeletedOrFailRecord(userId)
+    const skills = await userSkillQueries.listByUserWithSkill(userId)
+    const performanceStatsRow = await performanceStatQueries.findLatestLifetimeByUser(userId)
+    const domainExpertiseRow = await domainExpertiseQueries.findByUser(userId)
+    const latestHighlights = await workHistoryQueries.listRecentByUser(userId, 6)
+
+    return {
+      user,
+      skills,
+      performanceStatsRow,
+      domainExpertiseRow,
+      latestHighlights,
+    }
+  }
+
+  private async loadLastSnapshot(
+    userId: string,
+    trx: TransactionClientContract
+  ): Promise<UserProfileSnapshotRecord | null> {
+    return profileSnapshotQueries.findLatestByUser(userId, trx)
+  }
+
+  private buildSnapshotContent(
+    userId: string,
+    dto: PublishUserProfileSnapshotDTO,
+    inputs: LoadedSnapshotInputs
+  ): BuiltSnapshotContent {
+    const nextVersion = (inputs.lastSnapshot?.version ?? 0) + 1
+    const verifiedSkills = this.buildVerifiedSkills(inputs.readModel.skills)
+    const performanceMetrics = this.buildPerformanceMetrics(
+      inputs.readModel.user,
+      inputs.readModel.performanceStatsRow
+    )
+    const domainExpertiseSummary = this.buildDomainExpertiseSummary(
+      inputs.readModel.domainExpertiseRow
+    )
+    const workHighlights = this.buildWorkHighlights(inputs.readModel.latestHighlights)
+    const isPublic = dto.isPublic ?? true
+
+    return {
+      nextVersion,
+      isPublic,
+      shareableSlug: isPublic
+        ? buildProfileSnapshotSlug({
+            username: inputs.readModel.user.username,
+            userId,
+            version: nextVersion,
+            suffix: Date.now().toString(36),
+          })
+        : null,
+      shareableToken: isPublic ? randomBytes(16).toString('hex') : null,
+      summary: this.buildSummary(
+        userId,
+        inputs.readModel.user,
+        verifiedSkills.length,
+        inputs,
+        workHighlights
+      ),
+      performanceMetrics,
+      trustMetrics: this.buildTrustMetrics(inputs.readModel.user, domainExpertiseSummary),
+      verifiedSkills,
+      workHighlights,
+    }
+  }
+
+  private buildVerifiedSkills(skills: LoadedSnapshotReadModel['skills']): SnapshotVerifiedSkill[] {
+    return skills
+      .filter((skill): skill is VerifiedSkillSource => skill.total_reviews > 0 && !!skill.skill)
+      .map((skill) => ({
+        skill_id: skill.skill_id,
+        skill_name: skill.skill.skill_name,
+        level_code: skill.level_code,
+        total_reviews: skill.total_reviews,
+        avg_percentage: skill.avg_percentage,
+        avg_score: skill.avg_score,
+        last_reviewed_at: skill.last_reviewed_at?.toISO() ?? null,
+      }))
+  }
+
+  private buildSummary(
+    userId: string,
+    user: UserRecord,
+    totalVerifiedSkills: number,
+    inputs: LoadedSnapshotInputs,
+    workHighlights: SnapshotWorkHighlight[]
+  ): SnapshotSummary {
+    return {
+      user_id: userId,
+      username: user.username,
+      total_verified_skills: totalVerifiedSkills,
+      total_tasks_completed:
+        inputs.readModel.performanceStatsRow?.total_tasks_completed ?? workHighlights.length,
+      trust_score: user.trust_data?.calculated_score ?? 0,
+      trust_tier: user.trust_data?.current_tier_code ?? null,
+      performance_score:
+        inputs.readModel.performanceStatsRow?.performance_score ??
+        user.trust_data?.performance_score ??
+        0,
+      generated_at: DateTime.now().toISO(),
+    }
+  }
+
+  private buildPerformanceMetrics(
+    user: UserRecord,
+    performanceStatsRow: LoadedSnapshotReadModel['performanceStatsRow']
+  ): SnapshotPerformanceMetrics {
+    return {
+      period_start: performanceStatsRow?.period_start?.toISO() ?? null,
+      period_end: performanceStatsRow?.period_end?.toISO() ?? null,
+      total_tasks_completed: performanceStatsRow?.total_tasks_completed ?? 0,
+      total_hours_worked: performanceStatsRow?.total_hours_worked ?? 0,
+      avg_quality_score: performanceStatsRow?.avg_quality_score ?? null,
+      on_time_delivery_rate: performanceStatsRow?.on_time_delivery_rate ?? null,
+      avg_days_early_or_late: performanceStatsRow?.avg_days_early_or_late ?? null,
+      performance_score:
+        performanceStatsRow?.performance_score ?? user.trust_data?.performance_score ?? null,
+      tasks_by_type: performanceStatsRow?.tasks_by_type ?? {},
+      tasks_by_domain: performanceStatsRow?.tasks_by_domain ?? {},
+      tasks_by_difficulty: performanceStatsRow?.tasks_by_difficulty ?? {},
+      tasks_as_lead: performanceStatsRow?.tasks_as_lead ?? 0,
+      tasks_as_sole_contributor: performanceStatsRow?.tasks_as_sole_contributor ?? 0,
+      tasks_mentoring_others: performanceStatsRow?.tasks_mentoring_others ?? 0,
+      longest_on_time_streak: performanceStatsRow?.longest_on_time_streak ?? 0,
+      current_on_time_streak: performanceStatsRow?.current_on_time_streak ?? 0,
+      self_assessment_accuracy: performanceStatsRow?.self_assessment_accuracy ?? null,
+      trust_data: user.trust_data ?? null,
+    }
+  }
+
+  private buildDomainExpertiseSummary(
+    domainExpertiseRow: LoadedSnapshotReadModel['domainExpertiseRow']
+  ): SnapshotDomainExpertiseSummary {
+    return {
+      tech_stack_frequency: domainExpertiseRow?.tech_stack_frequency ?? {},
+      domain_frequency: domainExpertiseRow?.domain_frequency ?? {},
+      problem_category_frequency: domainExpertiseRow?.problem_category_frequency ?? {},
+      top_skills: domainExpertiseRow?.top_skills ?? [],
+    }
+  }
+
+  private buildTrustMetrics(
+    user: UserRecord,
+    domainExpertiseSummary: SnapshotDomainExpertiseSummary
+  ): SnapshotTrustMetrics {
+    return {
+      trust_data: user.trust_data ?? null,
+      domain_expertise: domainExpertiseSummary,
+      tech_stack: pickTopFrequencyKeys(domainExpertiseSummary.tech_stack_frequency, 10),
+    }
+  }
+
+  private buildWorkHighlights(
+    latestHighlights: LoadedSnapshotReadModel['latestHighlights']
+  ): SnapshotWorkHighlight[] {
+    return latestHighlights.map((item) => ({
+      task_assignment_id: item.task_assignment_id,
+      task_id: item.task_id,
+      task_title: item.task_title,
+      task_type: item.task_type,
+      business_domain: item.business_domain,
+      problem_category: item.problem_category,
+      role_in_task: item.role_in_task,
+      collaboration_type: item.collaboration_type,
+      difficulty: item.difficulty,
+      overall_quality_score: item.overall_quality_score,
+      was_on_time: item.was_on_time,
+      completed_at: item.completed_at?.toISO() ?? null,
+    }))
+  }
+
+  private async persistSnapshot(
+    userId: string,
+    dto: PublishUserProfileSnapshotDTO,
+    user: UserRecord,
+    content: BuiltSnapshotContent,
+    trx: TransactionClientContract
+  ): Promise<PersistedUserProfileSnapshot> {
+    await profileSnapshotMutations.unsetCurrentByUser(userId, trx)
+
+    const snapshot = await profileSnapshotMutations.create(
+      {
+        user_id: userId,
+        version: content.nextVersion,
+        snapshot_name: dto.snapshotName?.trim() ?? null,
+        is_current: true,
+        is_public: content.isPublic,
+        shareable_slug: content.shareableSlug,
+        shareable_token: content.shareableToken,
+        summary: content.summary,
+        skills_verified: content.verifiedSkills,
+        work_highlights: content.workHighlights,
+        performance_metrics: content.performanceMetrics,
+        trust_metrics: content.trustMetrics,
+        scoring_version: user.trust_data?.scoring_version ?? 'v1',
+      },
+      trx
+    )
+
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'publish_profile_snapshot',
+        entity_type: 'user_profile_snapshot',
+        entity_id: snapshot.id,
+        old_values: null,
+        new_values: {
+          snapshot_id: snapshot.id,
+          version: content.nextVersion,
+          is_public: content.isPublic,
+          shareable_slug: content.shareableSlug,
+        },
+      })
+    }
+
+    return {
+      snapshot,
+      content,
+    }
+  }
+
+  private registerPostCommitCacheInvalidation(
+    trx: TransactionClientContract,
+    userId: string,
+    shareableSlug: string | null
+  ): void {
+    void trx.on('commit', () => {
+      void cacheStore.deleteByPattern(`*profile:snapshot:current*${userId}*`)
+      void cacheStore.deleteByPattern(`*profile:snapshot:history*${userId}*`)
+
+      if (shareableSlug) {
+        void cacheStore.deleteByPattern(`*profile:snapshot:public*${shareableSlug}*`)
+      }
+    })
+  }
+
+  private toResult(persisted: PersistedUserProfileSnapshot): PublishUserProfileSnapshotResult {
+    return {
+      snapshotId: persisted.snapshot.id,
+      version: persisted.content.nextVersion,
+      shareableSlug: persisted.content.shareableSlug,
+      shareableToken: persisted.content.shareableToken,
+      isPublic: persisted.content.isPublic,
+    }
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/refresh_user_profile_aggregates_command.ts`
+
+```ts
+import BuildUserWorkHistoryCommand from './build_user_work_history_command.js'
+import UpsertUserDomainExpertiseCommand from './upsert_user_domain_expertise_command.js'
+import UpsertUserPerformanceStatsCommand from './upsert_user_performance_stats_command.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { BaseCommand } from '#modules/users/actions/base_command'
+
+export interface RefreshUserProfileAggregatesDTO {
+  userId: string
+  fullRebuild?: boolean
+  periodStart?: string | null
+  periodEnd?: string | null
+}
+
+export interface RefreshUserProfileAggregatesResult {
+  userId: string
+  workHistory: {
+    totalCompletedAssignments: number
+    inserted: number
+    updated: number
+  }
+  performance: {
+    statsId: string
+    totalTasksCompleted: number
+    performanceScore: number | null
+  }
+  domainExpertise: {
+    expertiseId: string
+    topSkillsCount: number
+  }
+}
+
+export default class RefreshUserProfileAggregatesCommand extends BaseCommand<
+  RefreshUserProfileAggregatesDTO,
+  RefreshUserProfileAggregatesResult
+> {
+  async handle(dto: RefreshUserProfileAggregatesDTO): Promise<RefreshUserProfileAggregatesResult> {
+    const workHistoryResult = await new BuildUserWorkHistoryCommand(this.execCtx).handle({
+      userId: dto.userId,
+      fullRebuild: dto.fullRebuild ?? false,
+    })
+
+    const performanceResult = await new UpsertUserPerformanceStatsCommand(this.execCtx).handle({
+      userId: dto.userId,
+      periodStart: dto.periodStart ?? null,
+      periodEnd: dto.periodEnd ?? null,
+    })
+
+    const domainExpertiseResult = await new UpsertUserDomainExpertiseCommand(this.execCtx).handle({
+      userId: dto.userId,
+    })
+
+    if (this.execCtx.userId) {
+      await auditPublicApi.write(this.execCtx, {
+        user_id: this.execCtx.userId,
+        action: 'refresh_user_profile_aggregates',
+        entity_type: 'user',
+        entity_id: dto.userId,
+        old_values: null,
+        new_values: {
+          full_rebuild: dto.fullRebuild ?? false,
+          work_history_total: workHistoryResult.totalCompletedAssignments,
+          performance_score: performanceResult.performanceScore,
+          top_skills_count: domainExpertiseResult.topSkillsCount,
+        },
+      })
+    }
+
+    return {
+      userId: dto.userId,
+      workHistory: {
+        totalCompletedAssignments: workHistoryResult.totalCompletedAssignments,
+        inserted: workHistoryResult.inserted,
+        updated: workHistoryResult.updated,
+      },
+      performance: {
+        statsId: performanceResult.statsId,
+        totalTasksCompleted: performanceResult.totalTasksCompleted,
+        performanceScore: performanceResult.performanceScore,
+      },
+      domainExpertise: {
+        expertiseId: domainExpertiseResult.expertiseId,
+        topSkillsCount: domainExpertiseResult.topSkillsCount,
+      },
+    }
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/register_user_command.ts`
+
+```ts
+import { inject } from '@adonisjs/core'
+import emitter from '@adonisjs/core/services/emitter'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+import { BaseCommand } from '../base_command.js'
+import type { RegisterUserDTO } from '../dtos/request/register_user_dto.js'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import * as userMutations from '#modules/users/infra/repositories/write/user_mutations'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
+import type { UserRecord } from '#modules/users/types/user_records'
+
+/**
+ * RegisterUserCommand
+ *
+ * Registers a new user in the system.
+ *
+ * This is a Command (Write operation) that changes system state.
+ * Follows the User Intent: "Register a new user" (not just "Create User")
+ *
+ * @example
+ * ```typescript
+ * const dto = new RegisterUserDTO('johndoe', 'john@example.com', 2, 1)
+ * const user = await registerUserCommand.handle(dto)
+ * ```
+ */
+@inject()
+export default class RegisterUserCommand extends BaseCommand<RegisterUserDTO, UserRecord> {
+  /**
+   * Main handler - creates user account
+   * Uses transaction to ensure data consistency
+   */
+  async handle(dto: RegisterUserDTO): Promise<UserRecord> {
+    const result = await this.executeInTransaction(async (trx) => {
+      // Create user account
+      const user = await this.createUserAccount(dto, trx)
+
+      // Log audit trail
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'create',
+          entity_type: 'user',
+          entity_id: user.id,
+          old_values: undefined,
+          new_values: user,
+        })
+      }
+
+      return {
+        user,
+        auditEvent: {
+          userId: user.id,
+          action: 'create',
+          entityType: 'user',
+          entityId: user.id,
+          newValues: { username: dto.username, email: dto.email },
+        },
+      }
+    })
+
+    void emitter.emit('audit:log', result.auditEvent)
+
+    return result.user
+  }
+
+  /**
+   * Private subtask: Create user account
+   */
+  private async createUserAccount(
+    dto: RegisterUserDTO,
+    trx: TransactionClientContract
+  ): Promise<UserRecord> {
+    return await userMutations.createRecord(
+      {
+        username: dto.username,
+        email: dto.email,
+        system_role: dto.roleId || SystemRoleName.REGISTERED_USER,
+        status: dto.statusId,
+      },
+      trx
+    )
+  }
+}
+
+```
+
+### `app/modules/users/actions/commands/remove_user_skill_command.ts`
+
+```ts
+import emitter from '@adonisjs/core/services/emitter'
+
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { BaseCommand } from '#modules/users/actions/base_command'
+import type { RemoveUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
+import {
+  buildUserProfileCacheKeys,
+  buildUserSkillsCacheKeys,
+} from '#modules/users/actions/support/user_query_cache_keys'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
+import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+
+/**
+ * Command to remove a skill from user's profile
+ */
+export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO> {
+  async handle(dto: RemoveUserSkillDTO): Promise<void> {
+    const result = await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUserId()
+
+      // Find and verify ownership of the user skill
+      const userSkill = await userSkillQueries.findOwnedByIdWithSkill(
+        dto.user_skill_id,
+        userId,
+        trx
+      )
+
+      if (!userSkill) {
+        throw new BusinessLogicException('User skill không tồn tại')
+      }
+
+      const skillInfo = {
+        skill_id: userSkill.skill_id,
+        skill_name: userSkill.skill.skill_name,
+        level_code: userSkill.level_code,
+      }
+
+      // Delete the user skill
+      await userSkillMutations.delete(userSkill, trx)
+
+      // Log audit
+      if (this.execCtx.userId) {
+        await auditPublicApi.write(this.execCtx, {
+          user_id: this.execCtx.userId,
+          action: 'remove_skill',
+          entity_type: 'user_skill',
+          entity_id: dto.user_skill_id,
+          old_values: skillInfo,
+          new_values: null,
+        })
+      }
+
+      return {
+        cacheKeys: [
+          ...buildUserProfileCacheKeys(userId),
+          ...buildUserSkillsCacheKeys(userId, [userSkill.skill.category_code]),
+        ],
+        skillScoreUpdatedEvent: {
+          userId,
+          skillId: userSkill.skill_id,
+          oldScore: null,
+          newScore: 0,
+        },
+      }
+    })
+
+    for (const cacheKey of result.cacheKeys) {
+      await deleteCacheKey(cacheKey)
+    }
+    void emitter.emit('skill:score:updated', result.skillScoreUpdatedEvent)
+  }
+}
+
+```
