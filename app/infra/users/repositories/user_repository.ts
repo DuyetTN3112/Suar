@@ -1,9 +1,11 @@
-import * as analyticsQueries from './user_repository/analytics_queries.js'
-import * as modelQueries from './user_repository/model_queries.js'
+import * as analyticsQueries from './read/analytics_queries.js'
+import * as modelQueries from './read/model_queries.js'
+import * as userMutations from './write/user_mutations.js'
 
 const UserRepository = {
   ...modelQueries,
   ...analyticsQueries,
+  ...userMutations,
 }
 
 export type {
@@ -12,6 +14,6 @@ export type {
   TopReviewedSkillRow,
   UserCreatedAtRow,
   UserSkillAggregationRow,
-} from './user_repository/types.js'
+} from './read/types.js'
 
 export default UserRepository
