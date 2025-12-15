@@ -43,6 +43,9 @@ Thumbs.db
 # SQL dumps và dữ liệu
 *.sql
 suar.sql
+suar_copy
+.sql
+
 *.dump
 
 # Docker volumes

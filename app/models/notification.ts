@@ -30,12 +30,6 @@ export default class Notification extends BaseModel {
   @column()
   declare related_entity_id: string | null
 
-  @column()
-  declare metadata: string | null
-
-  @column.dateTime()
-  declare read_at: DateTime | null
-
   @column.dateTime({ autoCreate: true })
   declare created_at: DateTime
 

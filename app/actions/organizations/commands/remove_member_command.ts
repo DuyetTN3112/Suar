@@ -22,7 +22,7 @@ export default class RemoveMemberCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) {}
+  ) { }
 
   /**
    * Execute command: Remove member from organization
@@ -65,7 +65,12 @@ export default class RemoveMemberCommand {
       // 4. Handle task reassignment (unassign all tasks)
       await this.unassignMemberTasks(dto.organizationId, dto.userId, trx)
 
-      // 5. Remove member from organization
+      // 5. Remove from conversation_participants (logic từ after_organization_user_update trigger)
+      // Trigger: DELETE FROM conversation_participants WHERE user_id = NEW.user_id 
+      //          AND conversation_id IN (SELECT id FROM conversations WHERE organization_id = NEW.organization_id)
+      await this.removeFromConversations(dto.organizationId, dto.userId, trx)
+
+      // 6. Remove member from organization
       await db
         .from('organization_users')
         .where('organization_id', dto.organizationId)
@@ -81,11 +86,11 @@ export default class RemoveMemberCommand {
           entity_type: 'organization',
           entity_id: dto.organizationId,
           old_values: targetMembership,
-          metadata: JSON.stringify({
+          new_values: {
             removed_user_id: dto.userId,
             removed_user_role: this.getRoleName(targetMembership.role_id),
             reason: dto.getNormalizedReason(),
-          }),
+          },
           ip_address: this.ctx.request.ip(),
           user_agent: this.ctx.request.header('user-agent') || '',
         },
@@ -154,6 +159,38 @@ export default class RemoveMemberCommand {
         assigned_to: null,
         updated_at: new Date(),
       })
+  }
+
+  /**
+   * Helper: Remove user from all organization conversations
+   * Logic từ after_organization_user_update trigger:
+   *   DELETE FROM conversation_participants 
+   *   WHERE user_id = NEW.user_id 
+   *   AND conversation_id IN (SELECT id FROM conversations WHERE organization_id = NEW.organization_id)
+   */
+  private async removeFromConversations(
+    organizationId: number,
+    userId: number,
+    trx: any
+  ): Promise<void> {
+    // Get all conversation IDs in this organization
+    const conversations = await db
+      .from('conversations')
+      .where('organization_id', organizationId)
+      .select('id')
+      .useTransaction(trx)
+
+    if (conversations.length === 0) return
+
+    const conversationIds = conversations.map((c) => c.id)
+
+    // Delete user from these conversations
+    await db
+      .from('conversation_participants')
+      .where('user_id', userId)
+      .whereIn('conversation_id', conversationIds)
+      .useTransaction(trx)
+      .delete()
   }
 
   /**

@@ -32,10 +32,14 @@ export default class UpdateTaskCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) {}
+  ) { }
 
   /**
    * Execute command để cập nhật task
+   *
+   * Di chuyển logic từ database triggers:
+   * - before_task_update: Validate assignee thuộc org
+   * - task_version_after_update: Tạo version history khi có thay đổi
    */
   async execute(taskId: number, dto: UpdateTaskDTO): Promise<Task> {
     const user = this.ctx.auth.user!
@@ -62,10 +66,15 @@ export default class UpdateTaskCommand {
         throw new Error('Task không thuộc tổ chức hiện tại')
       }
 
+      // Validate assignee thuộc org (logic từ before_task_update trigger)
+      if (dto.assigned_to !== undefined && dto.assigned_to !== null) {
+        await this.validateAssigneeInOrg(dto.assigned_to, existingTask.organization_id, trx)
+      }
+
       // Check permission
       await this.validateUpdatePermission(user, existingTask, dto)
 
-      // Save old values for audit
+      // Save old values for audit and version history
       const oldValues = existingTask.toJSON()
       const oldAssignedTo = existingTask.assigned_to
       const oldStatusId = existingTask.status_id
@@ -89,6 +98,9 @@ export default class UpdateTaskCommand {
         },
         { client: trx }
       )
+
+      // Create task version (logic từ task_version_after_update trigger)
+      await this.createTaskVersion(existingTask, oldValues, user.id, trx)
 
       // Store old values for notifications (outside transaction)
       existingTask.$extras.oldAssignedTo = oldAssignedTo
@@ -249,4 +261,92 @@ export default class UpdateTaskCommand {
   private logError(message: string, error: unknown): void {
     console.error(`[UpdateTaskCommand] ${message}`, error)
   }
+
+  /**
+   * Validate assignee thuộc organization
+   * Logic từ before_task_update trigger:
+   *   IF NEW.assigned_to IS NOT NULL THEN
+   *     IF NOT EXISTS (SELECT 1 FROM organization_users WHERE user_id = NEW.assigned_to AND organization_id = NEW.organization_id)
+   *     THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Người được gán phải thuộc cùng tổ chức'
+   */
+  private async validateAssigneeInOrg(
+    assigneeId: number,
+    organizationId: number,
+    trx: any
+  ): Promise<void> {
+    const membership = await db
+      .from('organization_users')
+      .where('organization_id', organizationId)
+      .where('user_id', assigneeId)
+      .where('status', 'approved')
+      .useTransaction(trx)
+      .first()
+
+    if (!membership) {
+      // Check if freelancer (like in CreateTaskCommand)
+      const isFreelancer = await db
+        .from('user_details')
+        .where('user_id', assigneeId)
+        .where('is_freelancer', true)
+        .useTransaction(trx)
+        .first()
+
+      if (!isFreelancer) {
+        throw new Error('Người được gán phải thuộc cùng tổ chức hoặc là freelancer')
+      }
+    }
+  }
+
+  /**
+   * Create task version when task is updated
+   * Logic từ task_version_after_update trigger:
+   *   IF NOT (NEW.title <=> OLD.title) OR NOT (NEW.description <=> OLD.description) OR ...
+   *   THEN INSERT INTO task_versions (task_id, title, description, status_id, ...)
+   */
+  private async createTaskVersion(
+    task: Task,
+    oldValues: Record<string, any>,
+    changedBy: number,
+    trx: any
+  ): Promise<void> {
+    // Check if any tracked field changed
+    const trackedFields = [
+      'title',
+      'description',
+      'status_id',
+      'label_id',
+      'priority_id',
+      'assigned_to',
+      'due_date',
+      'parent_task_id',
+      'estimated_time',
+      'actual_time',
+      'organization_id',
+    ]
+
+    const hasChanges = trackedFields.some((field) => {
+      const oldVal = oldValues[field]
+      const newVal = task[field as keyof Task]
+      return oldVal !== newVal
+    })
+
+    if (!hasChanges) return
+
+    // Insert into task_versions
+    await db
+      .table('task_versions')
+      .insert({
+        task_id: oldValues.id,
+        title: oldValues.title,
+        description: oldValues.description,
+        status_id: oldValues.status_id,
+        label_id: oldValues.label_id,
+        priority_id: oldValues.priority_id,
+        assigned_to: oldValues.assigned_to,
+        changed_by: changedBy,
+        created_at: new Date(),
+      })
+      .useTransaction(trx)
+  }
 }
+

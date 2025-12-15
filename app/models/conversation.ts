@@ -30,6 +30,9 @@ export default class Conversation extends BaseModel {
   @column()
   declare organization_id: number | null
 
+  @column.dateTime()
+  declare last_message_at: DateTime | null
+
   @hasMany(() => Message)
   declare messages: HasMany<typeof Message>
 

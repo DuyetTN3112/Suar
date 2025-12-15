@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
-import { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -11,7 +11,10 @@ import CacheService from '#services/cache_service'
  * Submits skill reviews for a review session.
  * Updates session status based on review completion.
  */
-export default class SubmitSkillReviewCommand extends BaseCommand<SubmitSkillReviewDTO, SkillReview[]> {
+export default class SubmitSkillReviewCommand extends BaseCommand<
+  SubmitSkillReviewDTO,
+  SkillReview[]
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
