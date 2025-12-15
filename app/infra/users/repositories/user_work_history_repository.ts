@@ -1,6 +1,6 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import UserWorkHistory from '#models/user_work_history'
+import UserWorkHistory from '#infra/users/models/user_work_history'
 import type { DatabaseId } from '#types/database'
 
 export default class UserWorkHistoryRepository {
