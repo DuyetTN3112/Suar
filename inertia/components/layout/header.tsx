@@ -26,7 +26,7 @@ export const Header = ({
     document.addEventListener('scroll', onScroll, { passive: true })
 
     // Clean up the event listener on unmount
-    return () => document.removeEventListener('scroll', onScroll)
+    return () => { document.removeEventListener('scroll', onScroll); }
   }, [])
 
   return (

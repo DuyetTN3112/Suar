@@ -92,7 +92,7 @@ export default class ReviewsController {
       session.flash('error', errorMessage)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -122,7 +122,7 @@ export default class ReviewsController {
       session.flash('error', errorMessage)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -187,16 +187,19 @@ export default class ReviewsController {
       const command = new CreateReviewSessionCommand(ctx)
       const session = await command.handle(dto)
 
-      return response.status(201).json({
+      response.status(201).json({
         success: true,
         data: session.serialize(),
       })
+      return
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create review session'
-      return response.status(400).json({
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to create review session'
+      response.status(400).json({
         success: false,
         message: errorMessage,
       })
+      return
     }
   }
 }

@@ -70,7 +70,7 @@ export default function ProjectShow({ project, members, tasks, permissions }: Pr
             ) : null}
 
             <Button
-              onClick={() => router.visit('/projects')}
+              onClick={() => { router.visit('/projects'); }}
               variant="outline"
             >
               {t('common.back', {}, 'Quay lại')}
@@ -159,7 +159,7 @@ export default function ProjectShow({ project, members, tasks, permissions }: Pr
                             id="email"
                             type="email"
                             value={newMemberEmail}
-                            onChange={(e) => setNewMemberEmail(e.target.value)}
+                            onChange={(e) => { setNewMemberEmail(e.target.value); }}
                             placeholder="email@example.com"
                             required
                           />
@@ -199,7 +199,7 @@ export default function ProjectShow({ project, members, tasks, permissions }: Pr
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{t('project.tasks', {}, 'Công việc')}</CardTitle>
-                <Button size="sm" onClick={() => router.visit('/tasks')}>
+                <Button size="sm" onClick={() => { router.visit('/tasks'); }}>
                   {t('project.view_all_tasks', {}, 'Xem tất cả công việc')}
                 </Button>
               </CardHeader>

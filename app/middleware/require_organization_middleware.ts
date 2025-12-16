@@ -85,10 +85,11 @@ export default class RequireOrganizationMiddleware {
 
       // Nếu là API request, vẫn trả về lỗi JSON
       if (request.accepts(['html', 'json']) === 'json') {
-        return response.status(403).json({
+        response.status(403).json({
           error: 'Bạn cần tham gia một tổ chức trước khi thực hiện thao tác này',
           redirectTo: '/organizations',
         })
+        return
       }
       // Đối với yêu cầu HTML, cho phép tiếp tục để xử lý modal trong frontend
       return next()

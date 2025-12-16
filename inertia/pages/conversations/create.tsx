@@ -43,7 +43,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
       participants: selectedParticipants,
       initial_message: initialMessage
     }, {
-      onFinish: () => setLoading(false)
+      onFinish: () => { setLoading(false); }
     })
   }
 
@@ -98,7 +98,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
                     id="title"
                     placeholder={t('conversation.title_placeholder', {}, 'Nhập tiêu đề cuộc trò chuyện')}
                     value={title}
-                    onChange={(e) => setTitle(e.target.value)}
+                    onChange={(e) => { setTitle(e.target.value); }}
                   />
                   <p className="text-sm text-muted-foreground">
                     {t('conversation.title_help', {}, 'Nếu không nhập tiêu đề, tên cuộc trò chuyện sẽ là tên của những người tham gia.')}
@@ -115,7 +115,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
                             <Checkbox
                               id={`user-${user.id}`}
                               checked={selectedParticipants.includes(user.id)}
-                              onCheckedChange={() => toggleParticipant(user.id)}
+                              onCheckedChange={() => { toggleParticipant(user.id); }}
                             />
                             <div className="flex items-center gap-2 flex-1">
                               <Avatar className="h-8 w-8">
@@ -149,7 +149,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
                     id="initial_message"
                     placeholder={t('conversation.first_message_placeholder', {}, 'Nhập tin nhắn đầu tiên của bạn...')}
                     value={initialMessage}
-                    onChange={(e) => setInitialMessage(e.target.value)}
+                    onChange={(e) => { setInitialMessage(e.target.value); }}
                     rows={4}
                   />
                   {errors?.initial_message && (
@@ -158,7 +158,7 @@ export default function CreateConversation({ metadata, errors }: Props) {
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button variant="outline" type="button" onClick={() => router.visit('/conversations')}>
+                <Button variant="outline" type="button" onClick={() => { router.visit('/conversations'); }}>
                   {t('common.cancel', {}, 'Hủy')}
                 </Button>
                 <Button type="submit" disabled={selectedParticipants.length === 0 || !initialMessage.trim() || loading}>

@@ -74,15 +74,17 @@ export default class NotificationsController {
         }
       })
 
-      return response.json({
+      response.json({
         notifications: notificationsData,
         unread_count: result.unread_count,
       })
+      return
     } catch (error) {
       console.error('Error in latest notifications:', error)
-      return response.status(500).json({
+      response.status(500).json({
         error: error.message || 'Có lỗi xảy ra khi tải thông báo',
       })
+      return
     }
   }
 
@@ -94,12 +96,14 @@ export default class NotificationsController {
       // Cập nhật trạng thái đã đọc
       notification.is_read = true
       await notification.save()
-      return response.json({ success: true })
+      response.json({ success: true })
+      return
     } catch (error) {
-      return response.status(404).json({
+      response.status(404).json({
         success: false,
         message: error.message || 'Thông báo không tồn tại',
       })
+      return
     }
   }
 
@@ -112,12 +116,14 @@ export default class NotificationsController {
         .where('user_id', user.id)
         .where('is_read', false)
         .update({ is_read: true })
-      return response.json({ success: true })
+      response.json({ success: true })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi đánh dấu đã đọc',
       })
+      return
     }
   }
 
@@ -127,12 +133,14 @@ export default class NotificationsController {
       // Tìm và xóa thông báo
       const notification = await Notification.findOrFail(params.id)
       await notification.delete()
-      return response.json({ success: true })
+      response.json({ success: true })
+      return
     } catch (error) {
-      return response.status(404).json({
+      response.status(404).json({
         success: false,
         message: error.message || 'Thông báo không tồn tại',
       })
+      return
     }
   }
 
@@ -142,12 +150,14 @@ export default class NotificationsController {
       const user = auth.user!
       // Xóa tất cả thông báo đã đọc của người dùng
       await Notification.query().where('user_id', user.id).where('is_read', true).delete()
-      return response.json({ success: true })
+      response.json({ success: true })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: error.message || 'Có lỗi xảy ra khi xóa thông báo',
       })
+      return
     }
   }
 }

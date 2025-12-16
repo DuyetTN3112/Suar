@@ -155,7 +155,7 @@ export default function Users({ users, filters }: UsersProps) {
               placeholder={t('user.search_users', {}, "Tìm kiếm người dùng...")}
               className="max-w-sm"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => { setSearch(e.target.value); }}
             />
             <Button variant="outline" type="submit">{t('common.search', {}, "Tìm kiếm")}</Button>
           </form>
@@ -185,7 +185,7 @@ export default function Users({ users, filters }: UsersProps) {
 
         <DeleteUserModal
           open={deleteModalOpen}
-          onClose={() => setDeleteModalOpen(false)}
+          onClose={() => { setDeleteModalOpen(false); }}
           user={userToDelete}
           isDeleting={isDeleting}
           onConfirm={handleDeleteUser}
@@ -193,7 +193,7 @@ export default function Users({ users, filters }: UsersProps) {
 
         <ApprovalModal
           open={approvalModalOpen}
-          onClose={() => setApprovalModalOpen(false)}
+          onClose={() => { setApprovalModalOpen(false); }}
           pendingUsers={pendingUsers}
           isLoadingPendingUsers={isLoadingPendingUsers}
           isApprovingUser={isApprovingUser}
@@ -203,7 +203,7 @@ export default function Users({ users, filters }: UsersProps) {
 
         <AddUserModal
           open={addUserModalOpen}
-          onClose={() => setAddUserModalOpen(false)}
+          onClose={() => { setAddUserModalOpen(false); }}
           allSystemUsers={allSystemUsers}
           selectedUserIds={selectedUserIds}
           searchUserTerm={searchUserTerm}

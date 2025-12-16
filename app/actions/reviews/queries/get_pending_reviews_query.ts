@@ -22,7 +22,10 @@ interface PendingReviewsResult {
  *
  * Fetches review sessions that need the current user's review.
  */
-export default class GetPendingReviewsQuery extends BaseQuery<PendingReviewsDTO, PendingReviewsResult> {
+export default class GetPendingReviewsQuery extends BaseQuery<
+  PendingReviewsDTO,
+  PendingReviewsResult
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }

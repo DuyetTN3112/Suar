@@ -4,6 +4,7 @@ import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { CreateOrganizationDTO } from '../dtos/create_organization_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Create Organization
@@ -25,7 +26,7 @@ export default class CreateOrganizationCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) { }
+  ) {}
 
   /**
    * Execute command: Create new organization
@@ -40,7 +41,10 @@ export default class CreateOrganizationCommand {
    * 7. Send welcome notification (outside transaction)
    */
   async execute(dto: CreateOrganizationDTO): Promise<Organization> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -114,7 +118,10 @@ export default class CreateOrganizationCommand {
    *   WHERE u.id = p_creator_id AND u.deleted_at IS NULL AND us.name = 'active')
    *   THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Creator không tồn tại hoặc không active'
    */
-  private async validateCreatorActive(userId: number, trx: any): Promise<void> {
+  private async validateCreatorActive(
+    userId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
     const user = await db
       .from('users')
       .join('user_status', 'users.status_id', 'user_status.id')
@@ -150,7 +157,7 @@ export default class CreateOrganizationCommand {
    *     SET v_slug_counter = v_slug_counter + 1;
    *   END WHILE;
    */
-  private async getUniqueSlug(baseSlug: string, trx: any): Promise<string> {
+  private async getUniqueSlug(baseSlug: string, trx: TransactionClientContract): Promise<string> {
     let slug = baseSlug
     let counter = 1
 
@@ -192,4 +199,3 @@ export default class CreateOrganizationCommand {
     }
   }
 }
-

@@ -63,10 +63,12 @@ export default class ConversationsController {
       const conversation = await createConversationCommand.execute(dto)
 
       session.flash('success', 'Cuộc trò chuyện đã được tạo thành công')
-      return response.redirect().toRoute('conversations.show', { id: conversation.id })
+      response.redirect().toRoute('conversations.show', { id: conversation.id })
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi tạo cuộc trò chuyện')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 }

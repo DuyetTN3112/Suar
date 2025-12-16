@@ -62,7 +62,7 @@ export function TasksFilters({
       }
     }, 300);
 
-    return () => clearTimeout(timer);
+    return () => { clearTimeout(timer); };
   }, [debouncedQuery, onSearch]);
 
   // Xử lý thay đổi giá trị tìm kiếm

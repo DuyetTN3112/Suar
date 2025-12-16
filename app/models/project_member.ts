@@ -38,23 +38,14 @@ export default class ProjectMember extends BaseModel {
 
   // Helper methods for composite key queries
   static async findMember(projectId: number, userId: number) {
-    return await this.query()
-      .where('project_id', projectId)
-      .where('user_id', userId)
-      .first()
+    return await this.query().where('project_id', projectId).where('user_id', userId).first()
   }
 
   static async findMemberOrFail(projectId: number, userId: number) {
-    return await this.query()
-      .where('project_id', projectId)
-      .where('user_id', userId)
-      .firstOrFail()
+    return await this.query().where('project_id', projectId).where('user_id', userId).firstOrFail()
   }
 
   static async deleteMember(projectId: number, userId: number) {
-    return await this.query()
-      .where('project_id', projectId)
-      .where('user_id', userId)
-      .delete()
+    return await this.query().where('project_id', projectId).where('user_id', userId).delete()
   }
 }

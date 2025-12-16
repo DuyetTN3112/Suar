@@ -62,7 +62,7 @@ export default function PendingApprovalTable({ users, filters }: PendingApproval
                   </TableCell>
                   <TableCell className="text-right">
                     <Button
-                      onClick={() => approveUser(user)}
+                      onClick={() => { approveUser(user); }}
                       disabled={isSubmitting[user.id]}
                     >
                       {isSubmitting[user.id] ? 'Đang xử lý...' : 'Phê duyệt'}

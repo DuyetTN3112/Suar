@@ -315,7 +315,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
               id="title"
               placeholder={t('conversation.title_placeholder', {}, 'Nhập tiêu đề cuộc trò chuyện')}
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => { setTitle(e.target.value); }}
             />
             <p className="text-sm text-muted-foreground">
               {t('conversation.title_help', {}, 'Nếu không nhập tiêu đề, tên cuộc trò chuyện sẽ là tên của những người tham gia.')}
@@ -333,7 +333,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
                       className={`flex items-center space-x-2 p-2 rounded cursor-pointer ${
                         selectedParticipants.includes(user.id) ? 'bg-accent' : 'hover:bg-accent/50'
                       }`}
-                      onClick={() => toggleParticipant(user.id)}
+                      onClick={() => { toggleParticipant(user.id); }}
                     >
                       <div className="flex items-center gap-2 flex-1">
                         <Avatar className="h-8 w-8">
@@ -387,7 +387,7 @@ export function CreateConversationDialog({ trigger, onClose, onConversationCreat
           </div>
 
           <DialogFooter>
-            <Button variant="outline" type="button" onClick={() => setOpen(false)}>
+            <Button variant="outline" type="button" onClick={() => { setOpen(false); }}>
               {t('common.cancel', {}, 'Hủy')}
             </Button>
             <Button type="submit" disabled={selectedParticipants.length === 0 || loading}>

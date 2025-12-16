@@ -25,12 +25,13 @@ export default class GuestMiddleware {
   ) {
     // Removed all debug logs in this section
     // Kiểm tra người dùng đã đăng nhập chưa, nếu rồi thì chuyển hướng
-    for (let guard of options.guards || [ctx.auth.defaultGuard]) {
+    for (const guard of options.guards || [ctx.auth.defaultGuard]) {
       if (await ctx.auth.use(guard).check()) {
         if (ctx.request.header('x-inertia')) {
           return ctx.inertia.location(this.redirectTo)
         }
-        return ctx.response.redirect(this.redirectTo)
+        ctx.response.redirect(this.redirectTo)
+        return
       }
     }
 

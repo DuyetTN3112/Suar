@@ -144,7 +144,7 @@ export function TaskDetailFields({
               <>
                 <Select
                   value={getStatusIdValue()}
-                  onValueChange={(value) => handleSelectChange('status_id', value)}
+                  onValueChange={(value) => { handleSelectChange('status_id', value); }}
                 >
                   <SelectTrigger id="status_id" className={errors.status_id ? 'border-red-500' : ''}>
                     <SelectValue placeholder={t('task.select_status', {}, 'Chọn trạng thái')} />
@@ -186,7 +186,7 @@ export function TaskDetailFields({
             {isEditing ? (
               <Select
                 value={getPriorityIdValue()}
-                onValueChange={(value) => handleSelectChange('priority_id', value)}
+                onValueChange={(value) => { handleSelectChange('priority_id', value); }}
               >
                 <SelectTrigger id="priority_id">
                   <SelectValue placeholder={t('task.select_priority', {}, 'Chọn độ ưu tiên')} />
@@ -227,7 +227,7 @@ export function TaskDetailFields({
             {isEditing ? (
               <Select
                 value={getLabelIdValue()}
-                onValueChange={(value) => handleSelectChange('label_id', value)}
+                onValueChange={(value) => { handleSelectChange('label_id', value); }}
               >
                 <SelectTrigger id="label_id">
                   <SelectValue placeholder={t('task.select_label', {}, 'Chọn nhãn')} />
@@ -265,7 +265,7 @@ export function TaskDetailFields({
             {isEditing ? (
               <Select
                 value={getAssignedToValue()}
-                onValueChange={(value) => handleSelectChange('assigned_to', value)}
+                onValueChange={(value) => { handleSelectChange('assigned_to', value); }}
               >
                 <SelectTrigger id="assigned_to">
                   <SelectValue placeholder={t('task.select_assignee', {}, 'Chọn người thực hiện')} />

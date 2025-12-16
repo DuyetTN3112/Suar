@@ -24,7 +24,10 @@ interface MyApplicationsResult {
  * Fetches applications submitted by the current user.
  * Used by freelancers to track their applications.
  */
-export default class GetMyApplicationsQuery extends BaseQuery<MyApplicationsDTO, MyApplicationsResult> {
+export default class GetMyApplicationsQuery extends BaseQuery<
+  MyApplicationsDTO,
+  MyApplicationsResult
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }

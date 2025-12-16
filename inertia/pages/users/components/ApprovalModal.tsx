@@ -83,7 +83,7 @@ export default function ApprovalModal({
                         <TableCell className="text-right">
                           <Button
                             size="sm"
-                            onClick={() => onApproveUser(user)}
+                            onClick={() => { onApproveUser(user); }}
                             disabled={isApprovingUser[user.id]}
                           >
                             {isApprovingUser[user.id] ? t('common.processing', {}, 'Đang xử lý...') : t('user.approve', {}, 'Phê duyệt')}

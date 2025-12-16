@@ -28,7 +28,8 @@ router.get('/health', [HealthChecksController]).use((ctx, next) => {
   const expectedApiKey = process.env.HEALTH_CHECK_API_KEY
 
   if (apiKey !== expectedApiKey) {
-    return ctx.response.unauthorized({ message: 'API key không hợp lệ' })
+    ctx.response.unauthorized({ message: 'API key không hợp lệ' })
+    return
   }
   return next()
 })

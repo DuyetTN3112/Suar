@@ -54,9 +54,7 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
 
       if (dto.include_skills) {
         query.preload('skills', (skillsQuery) => {
-          skillsQuery
-            .preload('skill', (sq) => sq.preload('category'))
-            .preload('proficiency_level')
+          skillsQuery.preload('skill', (sq) => sq.preload('category')).preload('proficiency_level')
         })
       }
 

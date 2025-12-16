@@ -3,7 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import Skill from '#models/skill'
 import ProficiencyLevel from '#models/proficiency_level'
-import { AddUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import type { AddUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -17,7 +17,7 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
 
   async handle(dto: AddUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Verify skill exists and is active
       const skill = await Skill.query({ client: trx })

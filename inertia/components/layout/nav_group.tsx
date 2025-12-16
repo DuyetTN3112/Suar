@@ -127,7 +127,7 @@ const SidebarMenuLink = ({ item, href }: { item: NavLink; href: string }) => {
           href={item.url}
           onClick={(e) => {
             e.preventDefault()
-            handleNavigation(item.url, () => setOpenMobile(false))
+            handleNavigation(item.url, () => { setOpenMobile(false); })
           }}
         >
           {item.icon && <item.icon />}
@@ -185,7 +185,7 @@ const SidebarMenuCollapsible = ({
                       href={subItem.url}
                       onClick={(e) => {
                         e.preventDefault()
-                        handleNavigation(subItem.url, () => setOpenMobile(false))
+                        handleNavigation(subItem.url, () => { setOpenMobile(false); })
                       }}
                     >
                       {subItem.icon && <subItem.icon />}
@@ -254,7 +254,7 @@ const SidebarMenuCollapsedDropdown = ({
                 href={subItem.url}
                 onClick={(e) => {
                   e.preventDefault()
-                  handleNavigation(subItem.url, () => setOpenMobile(false))
+                  handleNavigation(subItem.url, () => { setOpenMobile(false); })
                 }}
               >
                 {subItem.icon && <subItem.icon />}

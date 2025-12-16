@@ -32,7 +32,10 @@ export class MarkAsReadCommand {
    * 4. Invalidate cache
    */
   async execute(dto: MarkAsReadDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     try {
       // Verify user is participant
@@ -72,21 +75,21 @@ export class MarkAsReadCommand {
   private async invalidateCache(conversationId: number, userId: number): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
-      const listPattern = `user:${userId}:conversations:*`
+      const listPattern = `user:${String(userId)}:conversations:*`
       const listKeys = await redis.keys(listPattern)
       if (listKeys.length > 0) {
         await redis.del(...listKeys)
       }
 
       // Invalidate messages cache
-      const messagesPattern = `conversation:${conversationId}:messages:*`
+      const messagesPattern = `conversation:${String(conversationId)}:messages:*`
       const messagesKeys = await redis.keys(messagesPattern)
       if (messagesKeys.length > 0) {
         await redis.del(...messagesKeys)
       }
 
       // Invalidate conversation detail cache
-      const detailKey = `conversation:${conversationId}:detail`
+      const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
       console.error('[MarkAsReadCommand.invalidateCache] Error:', error)
@@ -122,7 +125,10 @@ export class MarkMessagesAsReadCommand {
    * 4. Invalidate cache
    */
   async execute(dto: MarkMessagesAsReadDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     try {
       // Verify user is participant
@@ -163,21 +169,21 @@ export class MarkMessagesAsReadCommand {
   private async invalidateCache(conversationId: number, userId: number): Promise<void> {
     try {
       // Invalidate conversation list cache (unread count changed)
-      const listPattern = `user:${userId}:conversations:*`
+      const listPattern = `user:${String(userId)}:conversations:*`
       const listKeys = await redis.keys(listPattern)
       if (listKeys.length > 0) {
         await redis.del(...listKeys)
       }
 
       // Invalidate messages cache
-      const messagesPattern = `conversation:${conversationId}:messages:*`
+      const messagesPattern = `conversation:${String(conversationId)}:messages:*`
       const messagesKeys = await redis.keys(messagesPattern)
       if (messagesKeys.length > 0) {
         await redis.del(...messagesKeys)
       }
 
       // Invalidate conversation detail cache
-      const detailKey = `conversation:${conversationId}:detail`
+      const detailKey = `conversation:${String(conversationId)}:detail`
       await redis.del(detailKey)
     } catch (error) {
       console.error('[MarkMessagesAsReadCommand.invalidateCache] Error:', error)

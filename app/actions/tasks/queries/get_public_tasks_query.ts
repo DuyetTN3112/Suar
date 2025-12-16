@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import Task from '#models/task'
-import { GetPublicTasksDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { GetPublicTasksDTO } from '#actions/tasks/dtos/task_application_dtos'
 
 interface PublicTaskListResult {
   data: Task[]
@@ -19,7 +19,10 @@ interface PublicTaskListResult {
  * Fetches public tasks (marketplace).
  * Freelancers can browse and apply to these tasks.
  */
-export default class GetPublicTasksQuery extends BaseQuery<GetPublicTasksDTO, PublicTaskListResult> {
+export default class GetPublicTasksQuery extends BaseQuery<
+  GetPublicTasksDTO,
+  PublicTaskListResult
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }

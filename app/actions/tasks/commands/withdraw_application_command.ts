@@ -2,7 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import Task from '#models/task'
-import { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { WithdrawApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -11,14 +11,14 @@ import CacheService from '#services/cache_service'
  * Allows an applicant to withdraw their application.
  * Can only withdraw pending applications.
  */
-export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO, void> {
+export default class WithdrawApplicationCommand extends BaseCommand<WithdrawApplicationDTO> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
 
   async handle(dto: WithdrawApplicationDTO): Promise<void> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+    await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUser().id
 
       // Get application
       const application = await TaskApplication.query({ client: trx })

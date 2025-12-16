@@ -39,7 +39,10 @@ export default class CreateConversationCommand {
    * 8. Return conversation
    */
   async execute(dto: CreateConversationDTO): Promise<Conversation> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     // Get all participants including creator
     const allParticipantIds = dto.getAllParticipantIds(user.id)
@@ -144,7 +147,7 @@ export default class CreateConversationCommand {
         if (!participantsByConversation.has(row.conversation_id)) {
           participantsByConversation.set(row.conversation_id, new Set())
         }
-        participantsByConversation.get(row.conversation_id)!.add(row.user_id)
+        participantsByConversation.get(row.conversation_id)?.add(row.user_id)
       })
 
       // Find conversation with exactly these 2 users
@@ -207,7 +210,7 @@ export default class CreateConversationCommand {
         if (!participantsByConversation.has(row.conversation_id)) {
           participantsByConversation.set(row.conversation_id, new Set())
         }
-        participantsByConversation.get(row.conversation_id)!.add(row.user_id)
+        participantsByConversation.get(row.conversation_id)?.add(row.user_id)
       })
 
       // Find exact match

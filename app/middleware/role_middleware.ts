@@ -21,10 +21,11 @@ export default class RoleMiddleware {
        * Đối với AJAX request, trả về lỗi 401
        */
       if (ctx.request.ajax()) {
-        return ctx.response.status(401).json({
+        ctx.response.status(401).json({
           error: 'Unauthorized',
           message: 'Bạn cần đăng nhập để thực hiện hành động này',
         })
+        return
       }
 
       /**
@@ -37,7 +38,8 @@ export default class RoleMiddleware {
       /**
        * Chuyển hướng về trang đăng nhập
        */
-      return ctx.response.redirect().toRoute('login')
+      ctx.response.redirect().toRoute('login')
+      return
     }
 
     /**
@@ -50,30 +52,33 @@ export default class RoleMiddleware {
          * Đối với AJAX request, trả về lỗi 403
          */
         if (ctx.request.ajax()) {
-          return ctx.response.status(403).json({
+          ctx.response.status(403).json({
             error: 'Forbidden',
             message: 'Bạn không có quyền thực hiện hành động này',
           })
+          return
         }
 
         /**
          * Đối với Inertia request, hiển thị trang lỗi 403
          */
         if (ctx.request.header('X-Inertia')) {
-          return ctx.response.status(403).json({
+          ctx.response.status(403).json({
             component: 'errors/Forbidden',
             props: {
               status: 403,
               message: 'Bạn không có quyền thực hiện hành động này',
             },
           })
+          return
         }
 
         /**
          * Chuyển hướng về trang tasks hoặc hiển thị thông báo lỗi
          */
         ctx.session.flash('error', 'Bạn không có quyền thực hiện hành động này')
-        return ctx.response.redirect().toRoute('tasks.index')
+        ctx.response.redirect().toRoute('tasks.index')
+        return
       }
     }
 

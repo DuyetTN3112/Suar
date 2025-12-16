@@ -36,7 +36,10 @@ interface SpiderChartResult {
  *
  * Uses caching for performance (5 min TTL)
  */
-export default class GetSpiderChartDataQuery extends BaseQuery<GetSpiderChartDataDTO, SpiderChartResult> {
+export default class GetSpiderChartDataQuery extends BaseQuery<
+  GetSpiderChartDataDTO,
+  SpiderChartResult
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }

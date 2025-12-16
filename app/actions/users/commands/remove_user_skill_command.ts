@@ -2,19 +2,19 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import CacheService from '#services/cache_service'
-import { RemoveUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import type { RemoveUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 
 /**
  * Command to remove a skill from user's profile
  */
-export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO, void> {
+export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillDTO> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
 
   async handle(dto: RemoveUserSkillDTO): Promise<void> {
-    return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+    await this.executeInTransaction(async (trx) => {
+      const userId = this.getCurrentUser().id
 
       // Find and verify ownership of the user skill
       const userSkill = await UserSkill.query({ client: trx })

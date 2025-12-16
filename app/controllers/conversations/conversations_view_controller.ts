@@ -77,16 +77,18 @@ export default class ConversationsViewController {
       const getConversationMessagesQuery = new GetConversationMessagesQuery(ctx)
       const messagesResult = await getConversationMessagesQuery.execute(messagesDto)
 
-      return response.json({
+      response.json({
         success: true,
         conversation,
         messages: messagesResult,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         error: error.message || 'Có lỗi xảy ra khi tải cuộc trò chuyện',
       })
+      return
     }
   }
 }

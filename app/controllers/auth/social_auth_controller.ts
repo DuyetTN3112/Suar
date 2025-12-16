@@ -59,15 +59,18 @@ export default class SocialAuthController {
     // Xử lý các trường hợp lỗi
     if (socialAuth.accessDenied()) {
       AuthLogger.oauthStateError(provider, 'access_denied')
-      return response.redirect().withQs({ error: 'Truy cập bị từ chối' }).toPath('/login')
+      response.redirect().withQs({ error: 'Truy cập bị từ chối' }).toPath('/login')
+      return
     }
     if (socialAuth.stateMisMatch()) {
       AuthLogger.oauthStateError(provider, 'state_mismatch')
-      return response.redirect().withQs({ error: 'Phiên xác thực không hợp lệ' }).toPath('/login')
+      response.redirect().withQs({ error: 'Phiên xác thực không hợp lệ' }).toPath('/login')
+      return
     }
     if (socialAuth.hasError()) {
       AuthLogger.oauthError(provider, socialAuth.getError(), 'callback-error')
-      return response.redirect().withQs({ error: socialAuth.getError() }).toPath('/login')
+      response.redirect().withQs({ error: socialAuth.getError() }).toPath('/login')
+      return
     }
 
     try {
@@ -106,7 +109,8 @@ export default class SocialAuthController {
           }
           await auth.use('web').login(user)
           AuthLogger.userLogin(user.id, user.email, provider)
-          return response.redirect('/tasks')
+          response.redirect('/tasks')
+          return
         }
       }
       // Tìm người dùng với email từ xã hội
@@ -150,7 +154,8 @@ export default class SocialAuthController {
         // Đăng nhập người dùng hiện có
         await auth.use('web').login(user)
         AuthLogger.userLogin(user.id, user.email, provider)
-        return response.redirect('/tasks') // Chuyển hướng đến trang chính sau khi đăng nhập
+        response.redirect('/tasks')
+        return // Chuyển hướng đến trang chính sau khi đăng nhập
       }
       // Nếu chưa có user, tạo mới
       AuthLogger.dbTransaction('create-new-user-start', true, { provider, email: socialUser.email })
@@ -254,17 +259,20 @@ export default class SocialAuthController {
         // Đăng nhập người dùng mới
         await auth.use('web').login(user!)
         AuthLogger.userLogin(user!.id, user!.email, provider)
-        return response.redirect('/organizations') // Chuyển hướng để tạo tổ chức mới
+        response.redirect('/organizations')
+        return // Chuyển hướng để tạo tổ chức mới
       } catch (error) {
         AuthLogger.oauthError(provider, error, 'create-user-transaction')
-        return response.redirect().withQs({ error: 'Lỗi khi tạo tài khoản mới' }).toPath('/login')
+        response.redirect().withQs({ error: 'Lỗi khi tạo tài khoản mới' }).toPath('/login')
+        return
       }
     } catch (error) {
       AuthLogger.oauthError(provider, error, 'callback-outer')
-      return response
+      response
         .redirect()
         .withQs({ error: 'Đã xảy ra lỗi trong quá trình xác thực' })
         .toPath('/login')
+      return
     }
   }
 }

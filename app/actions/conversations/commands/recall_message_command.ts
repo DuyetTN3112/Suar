@@ -49,7 +49,10 @@ export default class RecallMessageCommand {
    * 7. Invalidate cache
    */
   async execute(dto: RecallMessageDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new UnauthorizedError('Unauthorized')
+    }
 
     // Find message
     const message = await Message.find(dto.messageId)
@@ -113,7 +116,7 @@ export default class RecallMessageCommand {
 
       // Invalidate conversation list cache
       for (const userId of participantIds) {
-        const pattern = `user:${userId}:conversations:*`
+        const pattern = `user:${String(userId)}:conversations:*`
         const keys = await redis.keys(pattern)
         if (keys.length > 0) {
           await redis.del(...keys)
@@ -121,14 +124,14 @@ export default class RecallMessageCommand {
       }
 
       // Invalidate messages cache
-      const messagesPattern = `conversation:${conversationId}:messages:*`
+      const messagesPattern = `conversation:${String(conversationId)}:messages:*`
       const messagesKeys = await redis.keys(messagesPattern)
       if (messagesKeys.length > 0) {
         await redis.del(...messagesKeys)
       }
 
       // Invalidate conversation detail cache
-      const detailPattern = `conversation:${conversationId}:detail`
+      const detailPattern = `conversation:${String(conversationId)}:detail`
       await redis.del(detailPattern)
     } catch (error) {
       console.error('[RecallMessageCommand.invalidateCache] Error:', error)

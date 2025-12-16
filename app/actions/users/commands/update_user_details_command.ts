@@ -1,6 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
-import { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
+import type { UpdateUserDetailsDTO } from '../dtos/update_user_details_dto.js'
 import UserDetail from '#models/user_detail'
 
 /**
@@ -15,7 +15,10 @@ import UserDetail from '#models/user_detail'
  * - Uses transaction for data consistency
  * - Logs audit trail for tracking changes
  */
-export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDetailsDTO, UserDetail> {
+export default class UpdateUserDetailsCommand extends BaseCommand<
+  UpdateUserDetailsDTO,
+  UserDetail
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
@@ -31,9 +34,7 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
 
     return await this.executeInTransaction(async (trx) => {
       // Try to find existing user detail
-      let userDetail = await UserDetail.query({ client: trx })
-        .where('user_id', user.id)
-        .first()
+      let userDetail = await UserDetail.query({ client: trx }).where('user_id', user.id).first()
 
       const oldValues = userDetail ? { ...userDetail.$attributes } : null
 
@@ -46,7 +47,8 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
           address: dto.address !== undefined ? dto.address : userDetail.address,
           timezone: dto.timezone !== undefined ? dto.timezone : userDetail.timezone,
           language: dto.language !== undefined ? dto.language : userDetail.language,
-          is_freelancer: dto.is_freelancer !== undefined ? dto.is_freelancer : userDetail.is_freelancer,
+          is_freelancer:
+            dto.is_freelancer !== undefined ? dto.is_freelancer : userDetail.is_freelancer,
         })
         await userDetail.useTransaction(trx).save()
       } else {
@@ -69,13 +71,9 @@ export default class UpdateUserDetailsCommand extends BaseCommand<UpdateUserDeta
       }
 
       // Log audit
-      await this.logAudit(
-        oldValues ? 'update' : 'create',
-        'user_detail',
-        user.id,
-        oldValues,
-        { ...dto }
-      )
+      await this.logAudit(oldValues ? 'update' : 'create', 'user_detail', user.id, oldValues, {
+        ...dto,
+      })
 
       return userDetail
     })

@@ -129,7 +129,7 @@ export function TaskDetailActions({
           <Button
             type="button"
             variant="outline"
-            onClick={() => alert('Chức năng này đang được phát triển')}
+            onClick={() => { alert('Chức năng này đang được phát triển'); }}
             disabled={submitting}
             className="border-orange-500 text-orange-500 hover:bg-orange-50"
           >

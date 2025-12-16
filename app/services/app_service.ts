@@ -91,7 +91,7 @@ export default class AppService {
    */
   static slugify(text: string): string {
     if (!text) return ''
-    let slug = text
+    const slug = text
       .toLowerCase()
       .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, 'a')
       .replace(/[èéẹẻẽêềếệểễ]/g, 'e')

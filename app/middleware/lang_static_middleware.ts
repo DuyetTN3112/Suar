@@ -23,7 +23,8 @@ export default class LangStaticMiddleware {
         // Đảm bảo định dạng URL hợp lệ: /lang/{locale}/{file.json}
         if (parts.length < 4) {
           // Removed debug log: console.log(`[LangStaticMiddleware] Invalid URL format: ${url}`)
-          return response.status(404).send('Not Found')
+          response.status(404).send('Not Found')
+          return
         }
 
         const locale = parts[2]
@@ -32,7 +33,8 @@ export default class LangStaticMiddleware {
         // Kiểm tra tệp có hợp lệ không
         if (!file.endsWith('.json')) {
           // Removed debug log: console.log(`[LangStaticMiddleware] Not a JSON file: ${file}`)
-          return response.status(404).send('Not Found')
+          response.status(404).send('Not Found')
+          return
         }
 
         // Tạo đường dẫn tới tệp ngôn ngữ
@@ -42,17 +44,20 @@ export default class LangStaticMiddleware {
         // Kiểm tra tệp có tồn tại không
         if (!existsSync(langPath)) {
           // Removed debug log: console.log(`[LangStaticMiddleware] File not found: ${langPath}`)
-          return response.status(404).send('Not Found')
+          response.status(404).send('Not Found')
+          return
         }
 
         // Đặt header Content-Type phù hợp
         response.header('Content-Type', 'application/json')
         // Phục vụ file ngôn ngữ
-        return response.download(langPath)
+        response.download(langPath)
+        return
       } catch (error) {
         // Keep error logging for actual errors
         console.error(`[LangStaticMiddleware] Error:`, error)
-        return response.status(500).send('Internal Server Error')
+        response.status(500).send('Internal Server Error')
+        return
       }
     }
     // Chuyển tiếp cho middleware tiếp theo nếu không phải yêu cầu file ngôn ngữ

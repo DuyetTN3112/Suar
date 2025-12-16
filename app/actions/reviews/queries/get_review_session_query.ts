@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSession from '#models/review_session'
-import { GetReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
+import type { GetReviewSessionDTO } from '#actions/reviews/dtos/review_dtos'
 
 /**
  * GetReviewSessionQuery

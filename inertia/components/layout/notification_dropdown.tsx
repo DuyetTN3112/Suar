@@ -158,7 +158,7 @@ export function NotificationDropdown({ className }: NotificationDropdownProps) {
                   className={`flex flex-col items-start p-4 focus:bg-muted/50 ${
                     notification.is_read ? 'bg-muted/50' : 'bg-background'
                   }`}
-                  onSelect={(e) => e.preventDefault()}
+                  onSelect={(e) => { e.preventDefault(); }}
                 >
                   <div className="w-full">
                     <div className="flex justify-between items-start">

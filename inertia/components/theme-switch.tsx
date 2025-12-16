@@ -41,7 +41,7 @@ export function ThemeSwitch() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align='end' className="min-w-[180px]">
-                <DropdownMenuItem onClick={() => setTheme('light')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => { setTheme('light'); }} className="cursor-pointer">
                   <Sun className="mr-2 h-4 w-4" />
                   <span>Sáng</span>
                   <Check
@@ -49,7 +49,7 @@ export function ThemeSwitch() {
                     className={cn('ml-auto', theme !== 'light' && 'invisible')}
                   />
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('dark')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => { setTheme('dark'); }} className="cursor-pointer">
                   <Moon className="mr-2 h-4 w-4" />
                   <span>Tối</span>
                   <Check
@@ -57,7 +57,7 @@ export function ThemeSwitch() {
                     className={cn('ml-auto', theme !== 'dark' && 'invisible')}
                   />
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setTheme('system')} className="cursor-pointer">
+                <DropdownMenuItem onClick={() => { setTheme('system'); }} className="cursor-pointer">
                   <Laptop className="mr-2 h-4 w-4" />
                   <span>Hệ thống</span>
                   <Check

@@ -53,4 +53,3 @@ export default class FlaggedReview extends BaseModel {
   @belongsTo(() => User, { foreignKey: 'reviewed_by' })
   declare reviewer: BelongsTo<typeof User>
 }
-

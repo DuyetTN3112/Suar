@@ -3,7 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import TaskApplication from '#models/task_application'
 import TaskAssignment from '#models/task_assignment'
 import Task from '#models/task'
-import { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
+import type { ProcessApplicationDTO } from '#actions/tasks/dtos/task_application_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -18,14 +18,17 @@ import CacheService from '#services/cache_service'
  * - Records rejection reason
  * - Notifies applicant
  */
-export default class ProcessApplicationCommand extends BaseCommand<ProcessApplicationDTO, TaskApplication> {
+export default class ProcessApplicationCommand extends BaseCommand<
+  ProcessApplicationDTO,
+  TaskApplication
+> {
   constructor(protected override ctx: HttpContext) {
     super(ctx)
   }
 
   async handle(dto: ProcessApplicationDTO): Promise<TaskApplication> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Get application with task
       const application = await TaskApplication.query({ client: trx })
@@ -93,11 +96,17 @@ export default class ProcessApplicationCommand extends BaseCommand<ProcessApplic
       }
 
       // Log audit
-      await this.logAudit('process_application', 'task_application', application.id, { status: oldStatus }, {
-        status: application.application_status,
-        action: dto.action,
-        rejection_reason: dto.rejection_reason,
-      })
+      await this.logAudit(
+        'process_application',
+        'task_application',
+        application.id,
+        { status: oldStatus },
+        {
+          status: application.application_status,
+          action: dto.action,
+          rejection_reason: dto.rejection_reason,
+        }
+      )
 
       // Invalidate cache
       await CacheService.deleteByPattern(`task:${task.id}:*`)

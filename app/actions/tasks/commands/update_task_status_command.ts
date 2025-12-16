@@ -31,7 +31,10 @@ export default class UpdateTaskStatusCommand {
    * Execute command để update status
    */
   async execute(dto: UpdateTaskStatusDTO): Promise<Task> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
 
     // Start transaction
     const trx = await db.transaction()
@@ -84,15 +87,12 @@ export default class UpdateTaskStatusCommand {
       }
 
       // Load relations
-      await task.load((loader) => {
-        loader
-          .load('status')
-          .load('label')
-          .load('priority')
-          .load('assignee')
-          .load('creator')
-          .load('updater')
-      })
+      await task.load('status')
+      await task.load('label')
+      await task.load('priority')
+      await task.load('assignee')
+      await task.load('creator')
+      await task.load('updater')
 
       return task
     } catch (error) {
@@ -105,22 +105,22 @@ export default class UpdateTaskStatusCommand {
    * Validate permission
    */
   private async validateUpdatePermission(user: User, task: Task): Promise<void> {
-    // Load user role
-    await user.load('role')
+    // Load user system_role
+    await user.load('system_role')
 
     // 1. Superadmin/Admin
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(user.system_role?.name?.toLowerCase() ?? '')
     if (isSuperAdmin) {
       return
     }
 
     // 2. Creator
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // 3. Assignee
-    if (task.assigned_to && Number(task.assigned_to) === Number(user.id)) {
+    if (task.assigned_to && task.assigned_to === user.id) {
       return
     }
 
@@ -131,7 +131,7 @@ export default class UpdateTaskStatusCommand {
       .where('user_id', user.id)
       .first()
 
-    if (orgUser && [1, 2].includes(orgUser.role_id)) {
+    if (orgUser && [1, 2].includes(orgUser.role_id as number)) {
       return
     }
 

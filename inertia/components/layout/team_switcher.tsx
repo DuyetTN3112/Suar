@@ -245,7 +245,7 @@ export function TeamSwitcher() {
                 {organizations.map((organization) => (
                   <DropdownMenuItem
                     key={organization.id || organization.name}
-                    onSelect={() => handleSelect(organization)}
+                    onSelect={() => { handleSelect(organization); }}
                     className={cn(
                       "flex items-center gap-2 px-2 py-1.5 text-left text-sm",
                       selectedTeam?.id === organization.id && "bg-secondary"

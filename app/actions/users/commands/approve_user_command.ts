@@ -16,7 +16,7 @@ import { DateTime } from 'luxon'
  * - User must be in 'pending' status
  * - Audit log is created
  */
-export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO, void> {
+export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   /**
    * Main handler - approves a user in organization
    */

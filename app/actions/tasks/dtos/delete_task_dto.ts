@@ -47,7 +47,7 @@ export default class DeleteTaskDTO {
    * Kiểm tra xem có phải là xóa vĩnh viễn không
    */
   public isPermanentDelete(): boolean {
-    return this.permanent === true
+    return this.permanent
   }
 
   /**

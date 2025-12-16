@@ -19,7 +19,9 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   // Default role: project_member (id = 3)
   private static readonly DEFAULT_ROLE_ID = 3
 
-  constructor(data: Partial<AddProjectMemberDTOInterface> & { project_id: number; user_id: number }) {
+  constructor(
+    data: Partial<AddProjectMemberDTOInterface> & { project_id: number; user_id: number }
+  ) {
     this.validateInput(data)
 
     this.project_id = data.project_id

@@ -18,7 +18,7 @@ import db from '@adonisjs/lucid/services/db'
  *
  * @extends {BaseCommand<AddProjectMemberDTO, void>}
  */
-export default class AddProjectMemberCommand extends BaseCommand<AddProjectMemberDTO, void> {
+export default class AddProjectMemberCommand extends BaseCommand<AddProjectMemberDTO> {
   constructor(ctx: HttpContext) {
     super(ctx)
   }
@@ -166,11 +166,14 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     projectRoleId: number,
     trx: unknown
   ): Promise<void> {
-    await db.table('project_members').useTransaction(trx as any).insert({
-      project_id: projectId,
-      user_id: userId,
-      project_role_id: projectRoleId,
-      created_at: new Date(),
-    })
+    await db
+      .table('project_members')
+      .useTransaction(trx as any)
+      .insert({
+        project_id: projectId,
+        user_id: userId,
+        project_role_id: projectRoleId,
+        created_at: new Date(),
+      })
   }
 }

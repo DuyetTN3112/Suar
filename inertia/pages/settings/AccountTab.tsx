@@ -21,7 +21,7 @@ export function AccountTab({ form, onSubmit, processing }: AccountTabProps) {
             <Input
               id="email"
               value={form.data.email}
-              onChange={e => form.setData('email', e.target.value)}
+              onChange={e => { form.setData('email', e.target.value); }}
             />
             {form.errors.email && (
               <p className="text-sm text-destructive">{form.errors.email}</p>

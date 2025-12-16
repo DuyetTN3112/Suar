@@ -11,14 +11,14 @@ const TasksController = () => import('#controllers/tasks/tasks_controller')
 router
   .group(() => {
     // API routes cho search và module
-    router.get('/search', async ({ response }) => {
+    router.get('/search', ({ response }) => {
       // Tìm kiếm
-      return response.json({ results: [] })
+      response.json({ results: [] })
     })
 
-    router.get('/modules/:id/posts', async ({ response }) => {
+    router.get('/modules/:id/posts', ({ response }) => {
       // Lấy bài viết của module
-      return response.json({ posts: [] })
+      response.json({ posts: [] })
     })
 
     // API route cho audit logs
@@ -44,10 +44,11 @@ router
         // Lấy thông tin tổ chức
         const organization = await db.default.from('organizations').where('id', id).first()
         if (!organization) {
-          return response.status(404).json({
+          response.status(404).json({
             success: false,
             message: 'Không tìm thấy tổ chức',
           })
+          return
         }
         // Lấy danh sách thành viên của tổ chức
         const members = await db.default
@@ -78,18 +79,21 @@ router
             email: member.email,
           },
         }))
-        return response.json({
+        response.json({
           success: true,
           organization,
           members: formattedMembers,
         })
+        return
       } catch (error) {
-        console.error('Lỗi khi lấy danh sách thành viên tổ chức:', error)
-        return response.status(500).json({
+        const err = error as Error
+        console.error('Lỗi khi lấy danh sách thành viên tổ chức:', err)
+        response.status(500).json({
           success: false,
           message: 'Lỗi khi lấy danh sách thành viên tổ chức',
-          error: error.message,
+          error: err.message,
         })
+        return
       }
     })
 
@@ -103,20 +107,22 @@ router
     router.get('/users-in-organization', async ({ auth, response, session }) => {
       try {
         if (!auth.user) {
-          return response.status(401).json({
+          response.status(401).json({
             success: false,
             message: 'Chưa đăng nhập',
           })
+          return
         }
 
         // Sử dụng ID tổ chức từ session nếu ID từ user không có
         const organizationId =
           auth.user.current_organization_id || session.get('current_organization_id')
         if (!organizationId) {
-          return response.status(400).json({
+          response.status(400).json({
             success: false,
             message: 'Người dùng chưa chọn tổ chức',
           })
+          return
         }
 
         const db = await import('@adonisjs/lucid/services/db')
@@ -135,18 +141,21 @@ router
           username: user.username,
           email: user.email,
         }))
-        return response.json({
+        response.json({
           success: true,
           users: formattedUsers,
         })
+        return
       } catch (error) {
-        console.error('API: Lỗi khi lấy danh sách người dùng trong tổ chức:', error)
-        return response.status(500).json({
+        const err = error as Error
+        console.error('API: Lỗi khi lấy danh sách người dùng trong tổ chức:', err)
+        response.status(500).json({
           success: false,
           message: 'Lỗi khi lấy danh sách người dùng trong tổ chức',
-          error: error.message,
-          stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+          error: err.message,
+          stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
         })
+        return
       }
     })
 
@@ -161,19 +170,21 @@ router
       }) => {
         try {
           if (!auth.user) {
-            return response.status(401).json({
+            response.status(401).json({
               success: false,
               message: 'Chưa đăng nhập',
             })
+            return
           }
 
           const { participants } = request.body()
 
           if (!participants || !Array.isArray(participants) || participants.length === 0) {
-            return response.status(400).json({
+            response.status(400).json({
               success: false,
               message: 'Danh sách người tham gia không hợp lệ',
             })
+            return
           }
 
           // Sắp xếp ID người tham gia để đảm bảo so sánh chính xác
@@ -185,10 +196,11 @@ router
           const organizationId = auth.user.current_organization_id
 
           if (!organizationId) {
-            return response.status(400).json({
+            response.status(400).json({
               success: false,
               message: 'Không tìm thấy ID tổ chức hiện tại',
             })
+            return
           }
 
           // Lấy tất cả cuộc hội thoại mà người dùng hiện tại tham gia
@@ -221,32 +233,36 @@ router
               sortedIds.length === sortedParticipantIds.length &&
               JSON.stringify(sortedIds) === JSON.stringify(sortedParticipantIds)
             ) {
-              return response.json({
+              response.json({
                 exists: true,
                 conversation: {
                   id: conversation.id,
                   title: conversation.title || 'Cuộc hội thoại không có tiêu đề',
                 },
               })
+              return
             } else {
             }
           }
 
           // Không tìm thấy cuộc hội thoại trùng khớp
-          return response.json({
+          response.json({
             exists: false,
           })
+          return
         } catch (error) {
+          const err = error as Error
           console.error('=== API ERROR: KIỂM TRA HỘI THOẠI TỒN TẠI ===')
-          console.error('API: Lỗi khi kiểm tra cuộc hội thoại đã tồn tại:', error)
-          console.error('API: Stack trace:', error.stack)
+          console.error('API: Lỗi khi kiểm tra cuộc hội thoại đã tồn tại:', err)
+          console.error('API: Stack trace:', err.stack)
 
-          return response.status(500).json({
+          response.status(500).json({
             success: false,
             message: 'Lỗi khi kiểm tra cuộc hội thoại đã tồn tại',
-            error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+            error: err.message,
+            stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
           })
+          return
         }
       }
     )
@@ -256,10 +272,11 @@ router
       try {
         const user = auth.user
         if (!user) {
-          return response.status(401).json({
+          response.status(401).json({
             success: false,
             message: 'Chưa đăng nhập',
           })
+          return
         }
         // Lấy thông tin từ session
         const sessionOrgId = session.get('current_organization_id')
@@ -271,7 +288,7 @@ router
           .join('organizations as o', 'ou.organization_id', 'o.id')
           .where('ou.user_id', user.id)
           .select('o.*', 'ou.role_id')
-        return response.json({
+        response.json({
           success: true,
           debug: {
             user_id: user.id,
@@ -281,12 +298,15 @@ router
             organizations: userOrganizations,
           },
         })
+        return
       } catch (error) {
-        return response.status(500).json({
+        const err = error as Error
+        response.status(500).json({
           success: false,
           message: 'Lỗi khi lấy thông tin debug',
-          error: error.message,
+          error: err.message,
         })
+        return
       }
     })
   })

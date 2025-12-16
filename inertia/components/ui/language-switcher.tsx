@@ -99,7 +99,7 @@ export function LanguageSwitcher() {
           {supportedLocales?.map((code) => (
             <DropdownMenuItem
               key={code}
-              onClick={() => switchLanguage(code)}
+              onClick={() => { switchLanguage(code); }}
               className={locale === code ? 'bg-accent' : ''}
             >
               {getLanguageName(code)}

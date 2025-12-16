@@ -38,7 +38,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
             placeholder={t('conversations.search', {}, 'Tìm kiếm cuộc trò chuyện...')}
             className="pl-9"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); }}
           />
         </form>
       </div>
@@ -88,7 +88,7 @@ export const ConversationList: React.FC<ConversationListProps> = ({
               return (
                 <div
                   key={conversation.id}
-                  onClick={() => onSelectConversation(conversation)}
+                  onClick={() => { onSelectConversation(conversation); }}
                   className={`p-4 hover:bg-muted/50 transition-colors flex items-center gap-3 cursor-pointer ${
                     selectedId === conversation.id ? 'bg-muted/50' : ''
                   }`}

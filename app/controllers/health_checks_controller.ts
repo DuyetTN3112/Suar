@@ -31,9 +31,11 @@ export default class HealthChecksController {
       }
       // Trả về trạng thái dựa trên sức khỏe của hệ thống
       if (report.isHealthy) {
-        return response.ok(fullReport)
+        response.ok(fullReport)
+        return
       }
-      return response.serviceUnavailable(fullReport)
+      response.serviceUnavailable(fullReport)
+      return
     } catch (error) {
       // Xử lý lỗi khi thực hiện health check
       const errorReport = {
@@ -43,7 +45,8 @@ export default class HealthChecksController {
         timestamp: new Date().toISOString(),
         executionTime: `${Date.now() - startTime}ms`,
       }
-      return response.serviceUnavailable(errorReport)
+      response.serviceUnavailable(errorReport)
+      return
     }
   }
 }

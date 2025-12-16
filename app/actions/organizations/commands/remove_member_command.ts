@@ -3,6 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { RemoveMemberDTO } from '../dtos/remove_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Remove Member from Organization
@@ -22,7 +23,7 @@ export default class RemoveMemberCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) { }
+  ) {}
 
   /**
    * Execute command: Remove member from organization
@@ -38,7 +39,10 @@ export default class RemoveMemberCommand {
    * 8. Send notification
    */
   async execute(dto: RemoveMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -66,7 +70,7 @@ export default class RemoveMemberCommand {
       await this.unassignMemberTasks(dto.organizationId, dto.userId, trx)
 
       // 5. Remove from conversation_participants (logic từ after_organization_user_update trigger)
-      // Trigger: DELETE FROM conversation_participants WHERE user_id = NEW.user_id 
+      // Trigger: DELETE FROM conversation_participants WHERE user_id = NEW.user_id
       //          AND conversation_id IN (SELECT id FROM conversations WHERE organization_id = NEW.organization_id)
       await this.removeFromConversations(dto.organizationId, dto.userId, trx)
 
@@ -113,7 +117,7 @@ export default class RemoveMemberCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
     const membership = await db
       .from('organization_users')
@@ -134,7 +138,7 @@ export default class RemoveMemberCommand {
   private async unassignMemberTasks(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
     // Find all projects in this organization
     const projects = await db
@@ -164,14 +168,14 @@ export default class RemoveMemberCommand {
   /**
    * Helper: Remove user from all organization conversations
    * Logic từ after_organization_user_update trigger:
-   *   DELETE FROM conversation_participants 
-   *   WHERE user_id = NEW.user_id 
+   *   DELETE FROM conversation_participants
+   *   WHERE user_id = NEW.user_id
    *   AND conversation_id IN (SELECT id FROM conversations WHERE organization_id = NEW.organization_id)
    */
   private async removeFromConversations(
     organizationId: number,
     userId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     // Get all conversation IDs in this organization
     const conversations = await db

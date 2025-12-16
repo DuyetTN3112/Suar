@@ -2,6 +2,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import db from '@adonisjs/lucid/services/db'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * DTO for revoking task access
@@ -22,7 +23,7 @@ export interface RevokeTaskAccessDTO {
  * - Phải cung cấp lý do
  * - Notify cho assignee và project managers
  */
-export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAccessDTO, void> {
+export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAccessDTO> {
   private notificationService: CreateNotification
 
   constructor(ctx: HttpContext, createNotification: CreateNotification) {
@@ -114,7 +115,7 @@ export default class RevokeTaskAccessCommand extends BaseCommand<RevokeTaskAcces
   private async checkRevokePermission(
     userId: number,
     projectId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<boolean> {
     // Check if project manager or owner
     const projectMember = await db

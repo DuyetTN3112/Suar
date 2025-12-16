@@ -97,7 +97,7 @@ export default class ProfileController {
       session.flash('error', message)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -120,7 +120,7 @@ export default class ProfileController {
       session.flash('error', message)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -140,7 +140,7 @@ export default class ProfileController {
       session.flash('error', message)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -160,7 +160,7 @@ export default class ProfileController {
       session.flash('error', message)
     }
 
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   /**
@@ -211,6 +211,6 @@ export default class ProfileController {
   async updateSettings(ctx: HttpContext) {
     const { response, session } = ctx
     session.flash('info', 'This feature has been moved to the settings page')
-    return response.redirect().toRoute('settings.index')
+    response.redirect().toRoute('settings.index')
   }
 }

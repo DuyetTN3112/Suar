@@ -23,7 +23,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
 
   async handle(dto: SubmitSkillReviewDTO): Promise<SkillReview[]> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Get review session
       const session = await ReviewSession.query({ client: trx })

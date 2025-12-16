@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import ReviewSession from '#models/review_session'
-import { GetUserReviewsDTO } from '#actions/reviews/dtos/review_dtos'
+import type { GetUserReviewsDTO } from '#actions/reviews/dtos/review_dtos'
 
 interface UserReviewsResult {
   data: ReviewSession[]
@@ -39,9 +39,7 @@ export default class GetUserReviewsQuery extends BaseQuery<GetUserReviewsDTO, Us
           })
         })
         .preload('skill_reviews', (reviewQuery) => {
-          reviewQuery
-            .preload('skill')
-            .preload('assigned_level')
+          reviewQuery.preload('skill').preload('assigned_level')
         })
         .preload('confirmations')
         .orderBy('completed_at', 'desc')

@@ -93,7 +93,7 @@ export function SidebarProvider({
     }
 
     window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
+    return () => { window.removeEventListener('keydown', handleKeyDown); }
   }, [toggleSidebar])
 
   // Đảm bảo state được set đúng

@@ -20,7 +20,7 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
             <Input
               id="username"
               value={form.data.username}
-              onChange={e => form.setData('username', e.target.value)}
+              onChange={e => { form.setData('username', e.target.value); }}
             />
             {form.errors.username && (
               <p className="text-sm text-destructive">{form.errors.username}</p>
@@ -32,7 +32,7 @@ export function ProfileTab({ form, onSubmit, processing }: ProfileTabProps) {
               id="email"
               type="email"
               value={form.data.email}
-              onChange={e => form.setData('email', e.target.value)}
+              onChange={e => { form.setData('email', e.target.value); }}
             />
             {form.errors.email && (
               <p className="text-sm text-destructive">{form.errors.email}</p>

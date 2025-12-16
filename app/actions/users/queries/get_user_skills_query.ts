@@ -54,7 +54,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
     })
 
     return await this.executeWithCache(cacheKey, 300, async () => {
-      let query = UserSkill.query()
+      const query = UserSkill.query()
         .where('user_id', dto.user_id)
         .preload('skill', (skillQuery) => {
           skillQuery.preload('category')

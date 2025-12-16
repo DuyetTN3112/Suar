@@ -72,7 +72,7 @@ export function TaskListRow({
           <Checkbox
             id={`select-task-${task.id}`}
             checked={isTaskSelected(task.id)}
-            onCheckedChange={(checked) => handleSelectTask(task.id, !!checked)}
+            onCheckedChange={(checked) => { handleSelectTask(task.id, !!checked); }}
             className="h-4 w-4"
           />
         </TableCell>

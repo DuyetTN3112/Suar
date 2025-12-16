@@ -23,7 +23,7 @@ export const LabelField: React.FC<LabelFieldProps> = ({
       {canEdit ? (
         <Select
           value={String(formData.label_id || '')}
-          onValueChange={(value) => handleSelectChange('label_id', value)}
+          onValueChange={(value) => { handleSelectChange('label_id', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn nhãn" />

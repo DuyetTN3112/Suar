@@ -22,7 +22,7 @@ export default class SettingsController {
     const data = request.only(['theme', 'notifications_enabled', 'display_mode'])
     await updateUserSettings.handle({ data })
     session.flash('success', 'Cài đặt đã được cập nhật thành công')
-    return response.redirect().back()
+    response.redirect().back()
   }
 
   async updateProfile(ctx: HttpContext) {
@@ -33,10 +33,12 @@ export default class SettingsController {
       const data = request.only(['username', 'email'])
       await user.merge(data).save()
       session.flash('success', 'Thông tin hồ sơ đã được cập nhật thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật hồ sơ')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -54,10 +56,12 @@ export default class SettingsController {
         .save()
 
       session.flash('success', 'Thông tin tài khoản đã được cập nhật thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật tài khoản')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -71,10 +75,12 @@ export default class SettingsController {
       const data = request.only(['theme', 'font'])
       await updateUserSettings.handle({ data })
       session.flash('success', 'Giao diện đã được cập nhật thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật giao diện')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -88,10 +94,12 @@ export default class SettingsController {
       const data = request.only(['layout', 'density', 'animations_enabled', 'custom_scrollbars'])
       await updateUserSettings.handle({ data })
       session.flash('success', 'Tùy chọn hiển thị đã được cập nhật thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật tùy chọn hiển thị')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -112,10 +120,12 @@ export default class SettingsController {
         },
       })
       session.flash('success', 'Cài đặt thông báo đã được cập nhật thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi cập nhật cài đặt thông báo')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 }

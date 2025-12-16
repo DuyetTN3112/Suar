@@ -22,7 +22,7 @@ export const AssigneeField: React.FC<AssigneeFieldProps> = ({
       {canEdit ? (
         <Select
           value={String(formData.assigned_to || '')}
-          onValueChange={(value) => handleSelectChange('assigned_to', value)}
+          onValueChange={(value) => { handleSelectChange('assigned_to', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn người được giao" />

@@ -9,36 +9,36 @@ import User from './user.js'
  * Mô tả: Recruiters bookmark talents để theo dõi
  */
 export default class RecruiterBookmark extends BaseModel {
-    static override table = 'recruiter_bookmarks'
+  static override table = 'recruiter_bookmarks'
 
-    @column({ isPrimary: true })
-    declare id: number
+  @column({ isPrimary: true })
+  declare id: number
 
-    @column()
-    declare recruiter_user_id: number
+  @column()
+  declare recruiter_user_id: number
 
-    @column()
-    declare talent_user_id: number
+  @column()
+  declare talent_user_id: number
 
-    @column()
-    declare notes: string | null
+  @column()
+  declare notes: string | null
 
-    @column()
-    declare folder: string | null // Default: 'General'
+  @column()
+  declare folder: string | null // Default: 'General'
 
-    @column()
-    declare rating: number | null // 1-5
+  @column()
+  declare rating: number | null // 1-5
 
-    @column.dateTime({ autoCreate: true })
-    declare created_at: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare created_at: DateTime
 
-    @column.dateTime({ autoCreate: true, autoUpdate: true })
-    declare updated_at: DateTime
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updated_at: DateTime
 
-    // Relations
-    @belongsTo(() => User, { foreignKey: 'recruiter_user_id' })
-    declare recruiter: BelongsTo<typeof User>
+  // Relations
+  @belongsTo(() => User, { foreignKey: 'recruiter_user_id' })
+  declare recruiter: BelongsTo<typeof User>
 
-    @belongsTo(() => User, { foreignKey: 'talent_user_id' })
-    declare talent: BelongsTo<typeof User>
+  @belongsTo(() => User, { foreignKey: 'talent_user_id' })
+  declare talent: BelongsTo<typeof User>
 }

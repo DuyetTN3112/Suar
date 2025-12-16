@@ -12,9 +12,10 @@ export default class DevController {
   async restart({ response, logger }: HttpContext) {
     // Kiểm tra môi trường
     if (process.env.NODE_ENV !== 'development') {
-      return response.status(403).json({
+      response.status(403).json({
         error: 'Chỉ có thể khởi động lại server trong môi trường development',
       })
+      return
     }
 
     try {
@@ -40,16 +41,18 @@ export default class DevController {
         }
       }, 1000)
 
-      return response.json({
+      response.json({
         success: true,
         message: 'Đang khởi động lại dev server...',
       })
+      return
     } catch (error) {
       logger.error('Lỗi khi xử lý yêu cầu khởi động lại:', error)
-      return response.status(500).json({
+      response.status(500).json({
         error: 'Không thể khởi động lại server',
         details: error.message,
       })
+      return
     }
   }
 }

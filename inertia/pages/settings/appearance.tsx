@@ -125,7 +125,7 @@ export default function Appearance() {
                     <Label>Font</Label>
                     <Select
                       value={form.data.font}
-                      onValueChange={(value) => form.setData('font', value)}
+                      onValueChange={(value) => { form.setData('font', value); }}
                     >
                       <SelectTrigger className="w-[200px]">
                         <SelectValue placeholder="Chọn font" />
@@ -152,7 +152,7 @@ export default function Appearance() {
                       {/* Light theme */}
                       <div
                         className={`flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary ${selectedTheme === 'light' ? 'border-primary' : 'border-border'}`}
-                        onClick={() => handleThemeChange('light')}
+                        onClick={() => { handleThemeChange('light'); }}
                       >
                         <div className="w-full rounded-md border border-border p-4 bg-background">
                           <div className="space-y-2">
@@ -167,7 +167,7 @@ export default function Appearance() {
                       {/* Dark theme */}
                       <div
                         className={`flex flex-col items-center gap-2 rounded-md border-2 p-4 cursor-pointer hover:border-primary ${selectedTheme === 'dark' ? 'border-primary' : 'border-border'}`}
-                        onClick={() => handleThemeChange('dark')}
+                        onClick={() => { handleThemeChange('dark'); }}
                       >
                         <div className="w-full rounded-md border border-border p-4 bg-zinc-950">
                           <div className="space-y-2">

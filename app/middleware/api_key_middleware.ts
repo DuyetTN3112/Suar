@@ -14,11 +14,12 @@ export default class ApiKeyMiddleware {
     const expectedApiKey = env.get('HEALTH_CHECK_API_KEY')
 
     if (apiKey !== expectedApiKey) {
-      return ctx.response.unauthorized({
+      ctx.response.unauthorized({
         message: 'API key không hợp lệ hoặc bị thiếu',
         error: 'unauthorized_access',
         status: 401,
       })
+      return
     }
 
     await next()

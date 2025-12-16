@@ -12,16 +12,18 @@ export default class RedisController {
   async testConnection({ response }: HttpContext) {
     try {
       await Redis.ping()
-      return response.json({
+      response.json({
         success: true,
         message: 'Redis connection successful',
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Redis connection failed',
         error: error.message,
       })
+      return
     }
   }
 
@@ -32,17 +34,19 @@ export default class RedisController {
     try {
       const pattern = request.input('pattern', '*')
       const keys = await Redis.keys(pattern)
-      return response.json({
+      response.json({
         success: true,
         count: keys.length,
         keys,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Failed to list Redis keys',
         error: error.message,
       })
+      return
     }
   }
 
@@ -55,24 +59,27 @@ export default class RedisController {
       const value = request.input('value')
       const ttl = request.input('ttl', 3600)
       if (!key || value === undefined) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Key and value are required',
         })
+        return
       }
       await CacheService.set(key, value, ttl)
-      return response.json({
+      response.json({
         success: true,
         message: 'Cache set successfully',
         key,
         ttl,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Failed to set cache',
         error: error.message,
       })
+      return
     }
   }
 
@@ -83,30 +90,34 @@ export default class RedisController {
     try {
       const key = params.key
       if (!key) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Key is required',
         })
+        return
       }
       const value = await CacheService.get(key)
       if (value === null) {
-        return response.status(404).json({
+        response.status(404).json({
           success: false,
           message: 'Key not found in cache',
           key,
         })
+        return
       }
-      return response.json({
+      response.json({
         success: true,
         key,
         value,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Failed to get cache',
         error: error.message,
       })
+      return
     }
   }
 
@@ -117,23 +128,26 @@ export default class RedisController {
     try {
       const key = params.key
       if (!key) {
-        return response.status(400).json({
+        response.status(400).json({
           success: false,
           message: 'Key is required',
         })
+        return
       }
       await CacheService.delete(key)
-      return response.json({
+      response.json({
         success: true,
         message: 'Cache cleared successfully',
         key,
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Failed to clear cache',
         error: error.message,
       })
+      return
     }
   }
 
@@ -143,16 +157,18 @@ export default class RedisController {
   async flushCache({ response }: HttpContext) {
     try {
       await CacheService.flush()
-      return response.json({
+      response.json({
         success: true,
         message: 'Cache flushed successfully',
       })
+      return
     } catch (error) {
-      return response.status(500).json({
+      response.status(500).json({
         success: false,
         message: 'Failed to flush cache',
         error: error.message,
       })
+      return
     }
   }
 }

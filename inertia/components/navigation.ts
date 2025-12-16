@@ -117,7 +117,7 @@ export const mainNavigation: NavGroup[] = navigationData.map((group) => ({
   titleKey: group.titleKey,
   items: group.items.map((item) => ({
     ...item,
-    icon: getIconByName(item.iconName as string),
+    icon: getIconByName(item.iconName),
   })),
 }))
 

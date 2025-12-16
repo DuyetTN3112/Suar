@@ -13,5 +13,5 @@ router.get(
 
 // Fallback route cho 404
 router.any('*', ({ response }) => {
-  return response.redirect('/errors/not-found')
+  response.redirect('/errors/not-found')
 })

@@ -6,6 +6,7 @@ import type CreateNotification from '#actions/common/create_notification'
 import logger from '@adonisjs/core/services/logger'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command để tạo task mới
@@ -26,7 +27,7 @@ export default class CreateTaskCommand {
   constructor(
     protected ctx: HttpContext,
     private createNotification: CreateNotification
-  ) { }
+  ) {}
 
   /**
    * Execute command để tạo task
@@ -40,7 +41,10 @@ export default class CreateTaskCommand {
    * 6. Validate due_date not past
    */
   async execute(dto: CreateTaskDTO): Promise<Task> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -125,17 +129,14 @@ export default class CreateTaskCommand {
       }
 
       // Load relations for return
-      await newTask.load((loader: unknown) => {
-        loader
-          .load('status')
-          .load('label')
-          .load('priority')
-          .load('assignee')
-          .load('creator')
-          .load('organization')
-          .load('project')
-          .load('parentTask')
-      })
+      await newTask.load('status')
+      await newTask.load('label')
+      await newTask.load('priority')
+      await newTask.load('assignee')
+      await newTask.load('creator')
+      await newTask.load('organization')
+      await newTask.load('project')
+      await newTask.load('parentTask')
 
       return newTask
     } catch (error) {
@@ -153,7 +154,7 @@ export default class CreateTaskCommand {
   private async validateCreatorInOrganization(
     userId: number,
     organizationId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     const membership = await db
       .from('organization_users')
@@ -176,7 +177,7 @@ export default class CreateTaskCommand {
   private async validateProjectOrganization(
     projectId: number,
     organizationId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     const project = await db
       .from('projects')
@@ -203,7 +204,7 @@ export default class CreateTaskCommand {
   private async validateAssignee(
     assigneeId: number,
     organizationId: number,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     // Check if assignee is approved org member
     const isMember = await db
@@ -269,7 +270,10 @@ export default class CreateTaskCommand {
    * Validate creator active
    * Logic từ procedure: Check user deleted_at IS NULL AND status = 'active'
    */
-  private async validateCreatorActive(userId: number, trx: any): Promise<void> {
+  private async validateCreatorActive(
+    userId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
     const user = await db
       .from('users')
       .join('user_status', 'users.status_id', 'user_status.id')
@@ -288,7 +292,7 @@ export default class CreateTaskCommand {
    * Validate org exists
    * Logic từ procedure: Check org deleted_at IS NULL
    */
-  private async validateOrgExists(orgId: number, trx: any): Promise<void> {
+  private async validateOrgExists(orgId: number, trx: TransactionClientContract): Promise<void> {
     const org = await db
       .from('organizations')
       .where('id', orgId)
@@ -309,7 +313,7 @@ export default class CreateTaskCommand {
     userId: number,
     orgId: number,
     projectId: number | null | undefined,
-    trx: any
+    trx: TransactionClientContract
   ): Promise<void> {
     // Check if org admin/owner
     const isOrgAdmin = await db
@@ -346,12 +350,11 @@ export default class CreateTaskCommand {
   /**
    * Validate status exists
    */
-  private async validateStatusExists(statusId: number, trx: any): Promise<void> {
-    const status = await db
-      .from('task_status')
-      .where('id', statusId)
-      .useTransaction(trx)
-      .first()
+  private async validateStatusExists(
+    statusId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const status = await db.from('task_status').where('id', statusId).useTransaction(trx).first()
 
     if (!status) {
       throw new Error('Status ID không hợp lệ')
@@ -361,7 +364,10 @@ export default class CreateTaskCommand {
   /**
    * Validate label exists
    */
-  private async validateLabelExists(labelId: number, trx: any): Promise<void> {
+  private async validateLabelExists(
+    labelId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
     const label = await db.from('task_labels').where('id', labelId).useTransaction(trx).first()
 
     if (!label) {
@@ -372,7 +378,10 @@ export default class CreateTaskCommand {
   /**
    * Validate priority exists
    */
-  private async validatePriorityExists(priorityId: number, trx: any): Promise<void> {
+  private async validatePriorityExists(
+    priorityId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
     const priority = await db
       .from('task_priorities')
       .where('id', priorityId)
@@ -384,4 +393,3 @@ export default class CreateTaskCommand {
     }
   }
 }
-

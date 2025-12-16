@@ -48,7 +48,7 @@ export function ChildTaskRow({
           <Checkbox
             id={`select-subtask-${childTask.id}`}
             checked={isTaskSelected(childTask.id)}
-            onCheckedChange={(checked) => handleSelectTask(childTask.id, !!checked)}
+            onCheckedChange={(checked) => { handleSelectTask(childTask.id, !!checked); }}
             className="h-4 w-4"
           />
         </TableCell>

@@ -213,8 +213,8 @@ export function useErrorLogs() {
   const [logs, setLogs] = useState<ErrorLog[]>(getErrorLogs());
 
   useEffect(() => {
-    const handleNewError = () => setLogs(getErrorLogs());
-    const handleClearedErrors = () => setLogs([]);
+    const handleNewError = () => { setLogs(getErrorLogs()); };
+    const handleClearedErrors = () => { setLogs([]); };
 
     window.addEventListener('error-logged', handleNewError);
     window.addEventListener('errors-cleared', handleClearedErrors);
@@ -244,7 +244,7 @@ export function ErrorDisplay() {
       setPluginDetails(scanReactPlugin());
     }, 5000);
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); };
   }, []);
 
   // Tách các loại lỗi
@@ -281,7 +281,7 @@ export function ErrorDisplay() {
           alignItems: 'center',
           cursor: 'pointer',
         }}
-        onClick={() => setIsVisible(!isVisible)}
+        onClick={() => { setIsVisible(!isVisible); }}
       >
         <div>
           <strong>Log Viewer ({logs.length} lỗi)</strong> - Click để {isVisible ? 'ẩn' : 'hiện'} chi tiết
@@ -334,7 +334,7 @@ export function ErrorDisplay() {
             borderBottom: '1px solid #555'
           }}>
             <button
-              onClick={() => setActiveTab('errors')}
+              onClick={() => { setActiveTab('errors'); }}
               style={{
                 padding: '8px 15px',
                 backgroundColor: activeTab === 'errors' ? '#555' : 'transparent',
@@ -347,7 +347,7 @@ export function ErrorDisplay() {
               Lỗi ({otherLogs.length})
             </button>
             <button
-              onClick={() => setActiveTab('viteCheck')}
+              onClick={() => { setActiveTab('viteCheck'); }}
               style={{
                 padding: '8px 15px',
                 backgroundColor: activeTab === 'viteCheck' ? '#555' : 'transparent',

@@ -15,7 +15,7 @@ import db from '@adonisjs/lucid/services/db'
  * - Uses stored procedure: change_user_role_with_permission
  * - Audit log is created automatically by stored procedure
  */
-export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO, void> {
+export default class ChangeUserRoleCommand extends BaseCommand<ChangeUserRoleDTO> {
   /**
    * Main handler - changes user role using stored procedure
    */

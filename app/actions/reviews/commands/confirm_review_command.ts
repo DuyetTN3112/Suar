@@ -3,7 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import ReviewConfirmation from '#models/review_confirmation'
 import ReviewerCredibility from '#models/reviewer_credibility'
-import { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
+import type { ConfirmReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
 
 /**
@@ -22,7 +22,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
 
   async handle(dto: ConfirmReviewDTO): Promise<ReviewConfirmation> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Get review session
       const session = await ReviewSession.query({ client: trx })

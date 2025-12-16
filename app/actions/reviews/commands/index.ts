@@ -7,7 +7,7 @@ export { default as CalculateTrustScoreCommand } from './calculate_trust_score_c
 
 // Export DTOs and types
 export type {
-    CalculateSpiderChartDTO,
-    SpiderChartResult,
+  CalculateSpiderChartDTO,
+  SpiderChartResult,
 } from './calculate_spider_chart_command.js'
 export type { CalculateTrustScoreDTO, TrustScoreResult } from './calculate_trust_score_command.js'

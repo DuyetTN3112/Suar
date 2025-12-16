@@ -31,7 +31,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
   TInput,
   TOutput
 > {
-  constructor(protected ctx: HttpContext) { }
+  constructor(protected ctx: HttpContext) {}
 
   /**
    * Main handler method - must be implemented by subclasses
@@ -261,9 +261,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
 
     // 5. Check JSON_CONTAINS permissions
     const permissions =
-      typeof result.permissions === 'string'
-        ? JSON.parse(result.permissions)
-        : result.permissions
+      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }
@@ -419,9 +417,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     // 4. Check permissions
     if (!result.permissions) return false
     const permissions =
-      typeof result.permissions === 'string'
-        ? JSON.parse(result.permissions)
-        : result.permissions
+      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }
@@ -468,9 +464,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     if (!result || !result.permissions) return false
 
     const permissions =
-      typeof result.permissions === 'string'
-        ? JSON.parse(result.permissions)
-        : result.permissions
+      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }

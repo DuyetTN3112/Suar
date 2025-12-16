@@ -98,10 +98,12 @@ export default class ProjectsController {
       const project = await command.handle(dto)
 
       session.flash('success', 'Dự án đã được tạo thành công')
-      return response.redirect().toRoute('projects.show', { id: project.id })
+      response.redirect().toRoute('projects.show', { id: project.id })
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi tạo dự án')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -118,7 +120,8 @@ export default class ProjectsController {
       return inertia.render('projects/show', result)
     } catch (error) {
       session.flash('error', error.message || 'Không thể tìm thấy dự án')
-      return response.redirect().toRoute('projects.index')
+      response.redirect().toRoute('projects.index')
+      return
     }
   }
 
@@ -138,10 +141,12 @@ export default class ProjectsController {
       await command.handle(dto)
 
       session.flash('success', 'Dự án đã được xóa thành công')
-      return response.redirect().toRoute('projects.index')
+      response.redirect().toRoute('projects.index')
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi xóa dự án')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 
@@ -163,10 +168,12 @@ export default class ProjectsController {
       await command.handle(dto)
 
       session.flash('success', 'Đã thêm thành viên vào dự án thành công')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     } catch (error) {
       session.flash('error', error.message || 'Có lỗi xảy ra khi thêm thành viên')
-      return response.redirect().back()
+      response.redirect().back()
+      return
     }
   }
 

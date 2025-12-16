@@ -109,7 +109,7 @@ const AddMemberForm = ({ organization, roles, onSuccess }: { organization: Organ
           type="email"
           placeholder="Email người dùng cần thêm"
           value={data.email}
-          onChange={(e) => setData('email', e.target.value)}
+          onChange={(e) => { setData('email', e.target.value); }}
           required
         />
         {errors.email && <div className="text-red-500 text-sm">{errors.email}</div>}
@@ -119,7 +119,7 @@ const AddMemberForm = ({ organization, roles, onSuccess }: { organization: Organ
         <Label htmlFor="roleId">Vai trò</Label>
         <Select
           value={data.roleId}
-          onValueChange={(value) => setData('roleId', value)}
+          onValueChange={(value) => { setData('roleId', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn vai trò" />
@@ -172,7 +172,7 @@ const InviteUserForm = ({ organization, roles, onSuccess }: { organization: Orga
           type="email"
           placeholder="Email người dùng cần mời"
           value={data.email}
-          onChange={(e) => setData('email', e.target.value)}
+          onChange={(e) => { setData('email', e.target.value); }}
           required
         />
         {errors.email && <div className="text-red-500 text-sm">{errors.email}</div>}
@@ -182,7 +182,7 @@ const InviteUserForm = ({ organization, roles, onSuccess }: { organization: Orga
         <Label htmlFor="roleId">Vai trò</Label>
         <Select
           value={data.roleId}
-          onValueChange={(value) => setData('roleId', value)}
+          onValueChange={(value) => { setData('roleId', value); }}
         >
           <SelectTrigger>
             <SelectValue placeholder="Chọn vai trò" />
@@ -301,7 +301,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
             {isSuperAdmin && pendingRequestsCount > 0 && (
               <Button
                 variant="destructive"
-                onClick={() => setShowPendingRequestsDialog(true)}
+                onClick={() => { setShowPendingRequestsDialog(true); }}
                 className="font-medium"
               >
                 <UserCheck className="h-5 w-5 mr-2" />
@@ -312,12 +312,12 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
               </Button>
             )}
 
-            <Button onClick={() => setShowInviteDialog(true)}>
+            <Button onClick={() => { setShowInviteDialog(true); }}>
               <Mail className="h-4 w-4 mr-2" />
               Mời người dùng
             </Button>
 
-            <Button onClick={() => setShowAddMemberDialog(true)}>
+            <Button onClick={() => { setShowAddMemberDialog(true); }}>
               <Plus className="h-4 w-4 mr-2" />
               Thêm thành viên
             </Button>
@@ -352,7 +352,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                     <TableCell>
                       <Select
                         defaultValue={member.role_id.toString()}
-                        onValueChange={(value) => handleUpdateRole(member.id, value)}
+                        onValueChange={(value) => { handleUpdateRole(member.id, value); }}
                         disabled={userRole !== 1} // Chỉ superadmin mới có thể thay đổi vai trò
                       >
                         <SelectTrigger className="w-32">
@@ -375,7 +375,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleRemoveMember(member.id)}
+                        onClick={() => { handleRemoveMember(member.id); }}
                         disabled={userRole !== 1 || member.id === userRole} // Chỉ superadmin mới có thể xóa và không thể tự xóa mình
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -477,7 +477,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleProcessRequest(request.user_id, 'reject')}
+                            onClick={() => { handleProcessRequest(request.user_id, 'reject'); }}
                           >
                             <XCircle className="w-4 h-4 mr-2" />
                             Từ chối
@@ -486,7 +486,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
                             size="sm"
                             variant="default"
                             className="bg-green-600 hover:bg-green-700"
-                            onClick={() => handleProcessRequest(request.user_id, 'approve')}
+                            onClick={() => { handleProcessRequest(request.user_id, 'approve'); }}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Phê duyệt
@@ -500,7 +500,7 @@ const MembersIndex = ({ organization, members = [], roles, userRole, pendingRequ
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowPendingRequestsDialog(false)}>Đóng</Button>
+              <Button variant="outline" onClick={() => { setShowPendingRequestsDialog(false); }}>Đóng</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

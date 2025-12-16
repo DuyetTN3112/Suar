@@ -10,7 +10,8 @@ export default class AuthorizeRoleMiddleware {
     // Kiểm tra người dùng đã đăng nhập chưa
     if (!auth.user) {
       session.flash('error', 'Bạn cần đăng nhập để truy cập trang này')
-      return response.redirect().toRoute('auth.login')
+      response.redirect().toRoute('auth.login')
+      return
     }
 
     // Nếu không yêu cầu vai trò cụ thể, cho phép truy cập
@@ -36,6 +37,6 @@ export default class AuthorizeRoleMiddleware {
 
     // Nếu không có quyền, chuyển hướng đến trang lỗi
     session.flash('error', 'Bạn không có quyền truy cập chức năng này')
-    return response.redirect().back()
+    response.redirect().back()
   }
 }

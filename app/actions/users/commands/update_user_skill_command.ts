@@ -3,7 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import UserSkill from '#models/user_skill'
 import ProficiencyLevel from '#models/proficiency_level'
 import CacheService from '#services/cache_service'
-import { UpdateUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
+import type { UpdateUserSkillDTO } from '#actions/users/dtos/user_skill_dtos'
 
 /**
  * Command to update a user's skill proficiency level
@@ -15,7 +15,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
 
   async handle(dto: UpdateUserSkillDTO): Promise<UserSkill> {
     return await this.executeInTransaction(async (trx) => {
-      const userId = this.getCurrentUser()!.id
+      const userId = this.getCurrentUser().id
 
       // Find and verify ownership of the user skill
       const userSkill = await UserSkill.query({ client: trx })
