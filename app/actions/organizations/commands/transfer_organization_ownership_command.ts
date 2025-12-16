@@ -3,6 +3,7 @@ import db from '@adonisjs/lucid/services/db'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * DTO for transferring organization ownership
@@ -10,6 +11,19 @@ import type CreateNotification from '#actions/common/create_notification'
 export interface TransferOrganizationOwnershipDTO {
   organization_id: number
   new_owner_id: number
+}
+
+interface MembershipRecord {
+  user_id: number
+  organization_id: number
+  role_id: number
+  status: string
+}
+
+interface RoleRecord {
+  id: number
+  name: string
+  role_name?: string
 }
 
 /**
@@ -35,7 +49,10 @@ export default class TransferOrganizationOwnershipCommand {
   ) {}
 
   async execute(dto: TransferOrganizationOwnershipDTO): Promise<Organization> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
@@ -57,44 +74,42 @@ export default class TransferOrganizationOwnershipCommand {
       }
 
       // 4. Validate new owner is approved member
-      const newOwnerMembership = await db
+      const newOwnerMembership = (await trx
         .from('organization_users')
         .where('user_id', dto.new_owner_id)
         .where('organization_id', dto.organization_id)
         .where('status', 'approved')
-        .useTransaction(trx as any)
-        .first()
+        .first()) as MembershipRecord | null
 
       if (!newOwnerMembership) {
         throw new Error('Owner mới phải là member approved của tổ chức')
       }
 
       // 5. Validate new owner has at least org_admin role
-      const newOwnerRole = await db
+      const newOwnerRole = (await trx
         .from('organization_users')
         .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
         .where('organization_users.user_id', dto.new_owner_id)
         .where('organization_users.organization_id', dto.organization_id)
         .select('organization_roles.name as role_name')
-        .useTransaction(trx as any)
-        .first()
+        .first()) as RoleRecord | null
 
-      if (!['org_owner', 'org_admin'].includes(newOwnerRole?.role_name)) {
+      if (!newOwnerRole || !['org_owner', 'org_admin'].includes(newOwnerRole.role_name ?? '')) {
         throw new Error('Owner mới phải có vai trò ít nhất là org_admin')
       }
 
       // 6. Get role IDs
-      const orgOwnerRole = await db
+      const orgOwnerRole = (await trx
         .from('organization_roles')
         .where('name', 'org_owner')
         .whereNull('organization_id')
-        .first()
+        .first()) as RoleRecord | null
 
-      const orgAdminRole = await db
+      const orgAdminRole = (await trx
         .from('organization_roles')
         .where('name', 'org_admin')
         .whereNull('organization_id')
-        .first()
+        .first()) as RoleRecord | null
 
       if (!orgOwnerRole || !orgAdminRole) {
         throw new Error('Không tìm thấy roles trong hệ thống')
@@ -108,26 +123,10 @@ export default class TransferOrganizationOwnershipCommand {
       await organization.useTransaction(trx).save()
 
       // 8. Demote old owner to org_admin
-      await db
-        .from('organization_users')
-        .where('user_id', currentUser.id)
-        .where('organization_id', dto.organization_id)
-        .update({
-          role_id: orgAdminRole.id,
-          updated_at: new Date(),
-        })
-        .useTransaction(trx as any)
+      await this.updateUserRole(currentUser.id, dto.organization_id, orgAdminRole.id, trx)
 
       // 9. Promote new owner to org_owner
-      await db
-        .from('organization_users')
-        .where('user_id', dto.new_owner_id)
-        .where('organization_id', dto.organization_id)
-        .update({
-          role_id: orgOwnerRole.id,
-          updated_at: new Date(),
-        })
-        .useTransaction(trx as any)
+      await this.updateUserRole(dto.new_owner_id, dto.organization_id, orgOwnerRole.id, trx)
 
       // 10. Create audit log
       await AuditLog.create(
@@ -154,6 +153,25 @@ export default class TransferOrganizationOwnershipCommand {
       await trx.rollback()
       throw error
     }
+  }
+
+  /**
+   * Helper: Update user's role in organization
+   */
+  private async updateUserRole(
+    userId: number,
+    organizationId: number,
+    roleId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await trx
+      .from('organization_users')
+      .where('user_id', userId)
+      .where('organization_id', organizationId)
+      .update({
+        role_id: roleId,
+        updated_at: new Date(),
+      })
   }
 
   /**

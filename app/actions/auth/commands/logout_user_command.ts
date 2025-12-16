@@ -1,12 +1,7 @@
 import { BaseCommand } from '../../shared/base_command.js'
 import type { LogoutUserDTO } from '../dtos/logout_user_dto.js'
-import type { HttpContext } from '@adonisjs/core/http'
 
 export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   async handle(dto: LogoutUserDTO): Promise<void> {
     await this.logAudit('logout', 'user', dto.userId, null, {
       timestamp: new Date(),

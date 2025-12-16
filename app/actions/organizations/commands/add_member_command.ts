@@ -5,6 +5,7 @@ import AuditLog from '#models/audit_log'
 import OrganizationRole from '#models/organization_role'
 import type { AddMemberDTO } from '../dtos/add_member_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Add Member to Organization
@@ -40,14 +41,17 @@ export default class AddMemberCommand {
    * 8. Send notification (outside transaction)
    */
   async execute(dto: AddMemberDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Validate user exists
       const userToAdd = await User.find(dto.userId)
       if (!userToAdd) {
-        throw new Error(`User with ID ${dto.userId} not found`)
+        throw new Error(`User with ID ${String(dto.userId)} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -60,7 +64,7 @@ export default class AddMemberCommand {
       await this.checkDuplicateMembership(dto.organizationId, dto.userId, trx)
 
       // 5. Add member to organization
-      await db.table('organization_users').useTransaction(trx).insert({
+      await trx.insertQuery().table('organization_users').insert({
         organization_id: dto.organizationId,
         user_id: dto.userId,
         role_id: dto.roleId,
@@ -104,14 +108,13 @@ export default class AddMemberCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .whereIn('role_id', [1, 2]) // Owner or Admin
-      .useTransaction(trx as any)
       .first()
 
     if (!membership) {
@@ -125,13 +128,12 @@ export default class AddMemberCommand {
   private async checkDuplicateMembership(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const existingMembership = await db
+    const existingMembership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
-      .useTransaction(trx as any)
       .first()
 
     if (existingMembership) {
@@ -143,13 +145,11 @@ export default class AddMemberCommand {
    * Helper: Validate role_id exists in organization_roles
    * (FK validation - organization_users.role_id -> organization_roles.id)
    */
-  private async validateRoleId(roleId: number, trx: unknown): Promise<void> {
-    const role = await OrganizationRole.query({ client: trx as any })
-      .where('id', roleId)
-      .first()
+  private async validateRoleId(roleId: number, trx: TransactionClientContract): Promise<void> {
+    const role = await OrganizationRole.query({ client: trx }).where('id', roleId).first()
 
     if (!role) {
-      throw new Error(`Organization role with ID ${roleId} does not exist`)
+      throw new Error(`Organization role with ID ${String(roleId)} does not exist`)
     }
   }
 

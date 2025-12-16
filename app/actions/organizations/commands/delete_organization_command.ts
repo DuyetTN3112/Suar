@@ -4,6 +4,7 @@ import { DateTime } from 'luxon'
 import Organization from '#models/organization'
 import AuditLog from '#models/audit_log'
 import type { DeleteOrganizationDTO } from '../dtos/delete_organization_dto.js'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command: Delete Organization
@@ -35,14 +36,17 @@ export default class DeleteOrganizationCommand {
    * 7. Commit transaction
    */
   async execute(dto: DeleteOrganizationDTO): Promise<void> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Find organization
       const organization = await Organization.find(dto.organizationId)
       if (!organization) {
-        throw new Error(`Organization with ID ${dto.organizationId} not found`)
+        throw new Error(`Organization with ID ${String(dto.organizationId)} not found`)
       }
 
       // 2. Check permissions (Owner only)
@@ -96,14 +100,13 @@ export default class DeleteOrganizationCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .where('role_id', 1) // Owner only
-      .useTransaction(trx)
       .first()
 
     if (!membership) {
@@ -115,19 +118,24 @@ export default class DeleteOrganizationCommand {
    * Helper: Check for active projects
    * Cannot delete organization with active projects
    */
-  private async checkActiveProjects(organizationId: number, trx: unknown): Promise<void> {
-    const activeProjectsCount = await db
+  private async checkActiveProjects(
+    organizationId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    interface CountResult {
+      total: number | string
+    }
+    const activeProjectsCount = (await trx
       .from('projects')
       .where('organization_id', organizationId)
       .whereNull('deleted_at')
-      .useTransaction(trx)
       .count('* as total')
-      .first()
+      .first()) as CountResult | null
 
-    const total = Number(activeProjectsCount?.total || 0)
+    const total = Number(activeProjectsCount?.total ?? 0)
     if (total > 0) {
       throw new Error(
-        `Cannot delete organization with ${total} active project(s). Please delete or archive all projects first.`
+        `Cannot delete organization with ${String(total)} active project(s). Please delete or archive all projects first.`
       )
     }
   }

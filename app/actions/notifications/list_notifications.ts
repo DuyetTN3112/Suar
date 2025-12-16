@@ -36,11 +36,11 @@ export default class ListNotifications {
     const query = Notification.query().where('user_id', user.id).orderBy('created_at', 'desc')
 
     if (isRead !== undefined) {
-      query.where('is_read', isRead)
+      void query.where('is_read', isRead)
     }
 
     if (type) {
-      query.where('type', type)
+      void query.where('type', type)
     }
 
     const paginator = await query.paginate(page, limit)

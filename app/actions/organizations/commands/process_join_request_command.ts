@@ -3,6 +3,14 @@ import db from '@adonisjs/lucid/services/db'
 import AuditLog from '#models/audit_log'
 import type { ProcessJoinRequestDTO } from '../dtos/process_join_request_dto.js'
 import type CreateNotification from '#actions/common/create_notification'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+
+interface JoinRequest {
+  id: number
+  organization_id: number
+  user_id: number
+  status: string
+}
 
 /**
  * Command: Process Join Request (Approve or Reject)
@@ -39,19 +47,21 @@ export default class ProcessJoinRequestCommand {
    * 9. Send notification
    */
   async execute(dto: ProcessJoinRequestDTO): Promise<void> {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      throw new Error('Unauthorized')
+    }
     const trx = await db.transaction()
 
     try {
       // 1. Get join request
-      const joinRequest = await db
+      const joinRequest = (await trx
         .from('organization_join_requests')
         .where('id', dto.requestId)
-        .useTransaction(trx)
-        .first()
+        .first()) as JoinRequest | null
 
       if (!joinRequest) {
-        throw new Error(`Join request with ID ${dto.requestId} not found`)
+        throw new Error(`Join request with ID ${String(dto.requestId)} not found`)
       }
 
       // 2. Check permissions (Owner or Admin)
@@ -65,11 +75,10 @@ export default class ProcessJoinRequestCommand {
       // 4. If approved, add user as member (role_id = 4: Member)
       if (dto.isApproval()) {
         // Check if user is already a member
-        const existingMembership = await db
+        const existingMembership: unknown = await trx
           .from('organization_users')
           .where('organization_id', joinRequest.organization_id)
           .where('user_id', joinRequest.user_id)
-          .useTransaction(trx)
           .first()
 
         if (existingMembership) {
@@ -77,7 +86,7 @@ export default class ProcessJoinRequestCommand {
         }
 
         // Add user as member
-        await db.table('organization_users').useTransaction(trx).insert({
+        await trx.insertQuery().table('organization_users').insert({
           organization_id: joinRequest.organization_id,
           user_id: joinRequest.user_id,
           role_id: 4, // Member
@@ -87,10 +96,9 @@ export default class ProcessJoinRequestCommand {
       }
 
       // 5. Update request status
-      await db
+      await trx
         .from('organization_join_requests')
         .where('id', dto.requestId)
-        .useTransaction(trx)
         .update({
           ...dto.toObject(),
           processed_by: currentUser.id,
@@ -133,14 +141,13 @@ export default class ProcessJoinRequestCommand {
   private async checkPermissions(
     organizationId: number,
     userId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    const membership = await db
+    const membership: unknown = await trx
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', userId)
       .whereIn('role_id', [1, 2]) // Owner or Admin
-      .useTransaction(trx)
       .first()
 
     if (!membership) {
@@ -153,13 +160,13 @@ export default class ProcessJoinRequestCommand {
    */
   private async sendProcessedNotification(
     dto: ProcessJoinRequestDTO,
-    joinRequest: unknown
+    joinRequest: JoinRequest
   ): Promise<void> {
     try {
       const title = dto.isApproval() ? 'Yêu cầu được chấp nhận' : 'Yêu cầu bị từ chối'
       const message = dto.isApproval()
         ? 'Yêu cầu tham gia tổ chức của bạn đã được chấp nhận'
-        : `Yêu cầu tham gia tổ chức của bạn đã bị từ chối${dto.hasReason() ? `: ${dto.getNormalizedReason()}` : ''}`
+        : `Yêu cầu tham gia tổ chức của bạn đã bị từ chối${dto.hasReason() ? `: ${dto.getNormalizedReason() ?? ''}` : ''}`
 
       await this.createNotification.handle({
         user_id: joinRequest.user_id,
