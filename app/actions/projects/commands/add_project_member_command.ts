@@ -3,6 +3,7 @@ import { BaseCommand } from '#actions/shared/base_command'
 import type { AddProjectMemberDTO } from '../dtos/index.js'
 import Project from '#models/project'
 import User from '#models/user'
+import ProjectRole from '#models/project_role'
 import db from '@adonisjs/lucid/services/db'
 
 /**
@@ -12,6 +13,7 @@ import db from '@adonisjs/lucid/services/db'
  * - Only owner or superadmin can add members
  * - User must be in the same organization
  * - User cannot already be a member
+ * - Validates project_role_id exists (FK validation)
  * - Sends notification to the added user
  *
  * @extends {BaseCommand<AddProjectMemberDTO, void>}
@@ -42,23 +44,24 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
       // 3. Load user to be added
       const userToAdd = await User.findOrFail(dto.user_id)
 
-      // 4. Check user is in same organization
+      // 4. Validate project_role_id exists (FK validation)
+      const role = await this.validateProjectRoleId(dto.project_role_id, trx)
+
+      // 5. Check user is in same organization
       await this.validateSameOrganization(dto.user_id, project.organization_id, trx)
 
-      // 5. Check user is not already a member
+      // 6. Check user is not already a member
       await this.checkNotAlreadyMember(dto.project_id, dto.user_id, trx)
 
-      // 6. Add user as member
-      await this.addMember(dto.project_id, dto.user_id, dto.role, trx)
-
-      // 7. Send notification to added user
-      // await this.sendNotification(userToAdd, project) // TODO: Implement notification
+      // 7. Add user as member
+      await this.addMember(dto.project_id, dto.user_id, dto.project_role_id, trx)
 
       // 8. Log audit trail
       await this.logAudit('add_member', 'project', project.id, null, {
         user_id: dto.user_id,
         username: userToAdd.username,
-        role: dto.role,
+        project_role_id: dto.project_role_id,
+        role_name: role.name,
       })
     })
   }
@@ -98,6 +101,22 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   }
 
   /**
+   * Validate project_role_id exists in project_roles
+   * (FK validation - project_members.project_role_id -> project_roles.id)
+   */
+  private async validateProjectRoleId(roleId: number, trx: unknown): Promise<ProjectRole> {
+    const role = await ProjectRole.query({ client: trx as any })
+      .where('id', roleId)
+      .first()
+
+    if (!role) {
+      throw new Error(`Project role với ID ${roleId} không tồn tại`)
+    }
+
+    return role
+  }
+
+  /**
    * Validate user is in the same organization as the project
    */
   private async validateSameOrganization(
@@ -105,11 +124,12 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     organizationId: number,
     trx: unknown
   ): Promise<void> {
-    const result = await trx
+    const result = await db
       .from('organization_users')
       .where('user_id', userId)
       .where('organization_id', organizationId)
       .where('status', 'approved')
+      .useTransaction(trx as any)
       .first()
 
     if (!result) {
@@ -125,10 +145,11 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
     userId: number,
     trx: unknown
   ): Promise<void> {
-    const existing = await trx
+    const existing = await db
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
+      .useTransaction(trx as any)
       .first()
 
     if (existing) {
@@ -142,13 +163,13 @@ export default class AddProjectMemberCommand extends BaseCommand<AddProjectMembe
   private async addMember(
     projectId: number,
     userId: number,
-    role: string,
+    projectRoleId: number,
     trx: unknown
   ): Promise<void> {
-    await trx.table('project_members').insert({
+    await db.table('project_members').useTransaction(trx as any).insert({
       project_id: projectId,
       user_id: userId,
-      role: role,
+      project_role_id: projectRoleId,
       created_at: new Date(),
     })
   }

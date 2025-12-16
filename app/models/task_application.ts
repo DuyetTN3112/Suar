@@ -39,7 +39,10 @@ export default class TaskApplication extends BaseModel {
   @column()
   declare expected_rate: number | null
 
-  @column()
+  @column({
+    prepare: (value: string[] | null) => (value ? JSON.stringify(value) : null),
+    consume: (value: string | null) => (value ? JSON.parse(value) : null),
+  })
   declare portfolio_links: string[] | null
 
   @column.dateTime({ autoCreate: true })

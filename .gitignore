@@ -56,4 +56,3 @@ logs
 *.log
 
 package-lock.json
-suar.sql

@@ -2,6 +2,8 @@ import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
+import Skill from '#models/skill'
+import ProficiencyLevel from '#models/proficiency_level'
 import type { SubmitSkillReviewDTO } from '#actions/reviews/dtos/review_dtos'
 import CacheService from '#services/cache_service'
 
@@ -38,6 +40,9 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       if (existingReview) {
         throw new Error('You have already submitted a review for this session')
       }
+
+      // Validate FK: skill_id and assigned_level_id for all ratings
+      await this.validateForeignKeys(dto.skill_ratings, trx)
 
       // Create skill reviews
       const skillReviews: SkillReview[] = []
@@ -89,5 +94,31 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
 
       return skillReviews
     })
+  }
+
+  /**
+   * Validate FK: skill_id -> skills.id and assigned_level_id -> proficiency_levels.id
+   */
+  private async validateForeignKeys(
+    ratings: { skill_id: number; assigned_level_id: number }[],
+    trx: unknown
+  ): Promise<void> {
+    for (const rating of ratings) {
+      // Validate skill_id
+      const skill = await Skill.query({ client: trx as any })
+        .where('id', rating.skill_id)
+        .first()
+      if (!skill) {
+        throw new Error(`Skill với ID ${rating.skill_id} không tồn tại`)
+      }
+
+      // Validate assigned_level_id
+      const level = await ProficiencyLevel.query({ client: trx as any })
+        .where('id', rating.assigned_level_id)
+        .first()
+      if (!level) {
+        throw new Error(`Proficiency level với ID ${rating.assigned_level_id} không tồn tại`)
+      }
+    }
   }
 }
