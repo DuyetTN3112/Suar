@@ -31,7 +31,7 @@ export class CreateConversationDTO {
    */
   private validate(): void {
     // Participant IDs validation (required, at least 1 participant)
-    if (!this.participantIds || !Array.isArray(this.participantIds)) {
+    if (!Array.isArray(this.participantIds)) {
       throw new Error('Participant IDs must be an array')
     }
 
@@ -41,17 +41,13 @@ export class CreateConversationDTO {
 
     // Validate each participant ID
     for (const participantId of this.participantIds) {
-      if (typeof participantId !== 'number' || participantId <= 0) {
-        throw new Error(`Invalid participant ID: ${participantId}`)
+      if (participantId <= 0) {
+        throw new Error(`Invalid participant ID: ${String(participantId)}`)
       }
     }
 
     // Initial message validation (optional, max length)
-    if (this.initialMessage !== undefined && this.initialMessage !== null) {
-      if (typeof this.initialMessage !== 'string') {
-        throw new Error('Initial message must be a string')
-      }
-
+    if (this.initialMessage !== undefined) {
       if (this.initialMessage.trim().length === 0) {
         throw new Error('Initial message cannot be empty if provided')
       }
@@ -62,15 +58,10 @@ export class CreateConversationDTO {
     }
 
     // Title validation (optional for 1-1, recommended for groups)
-    if (this.title !== undefined && this.title !== null) {
-      if (typeof this.title !== 'string') {
-        throw new Error('Title must be a string')
-      }
-
+    if (this.title !== undefined) {
       if (this.title.trim().length === 0) {
         throw new Error('Title cannot be empty if provided')
       }
-
       if (this.title.length > 255) {
         throw new Error('Title cannot exceed 255 characters')
       }
@@ -83,10 +74,8 @@ export class CreateConversationDTO {
     }
 
     // Organization ID validation (optional)
-    if (this.organizationId !== undefined && this.organizationId !== null) {
-      if (typeof this.organizationId !== 'number' || this.organizationId <= 0) {
-        throw new Error('Organization ID must be a positive number')
-      }
+    if (this.organizationId !== undefined && this.organizationId <= 0) {
+      throw new Error('Organization ID must be a positive number')
     }
 
     // Check for duplicate participant IDs

@@ -4,6 +4,11 @@ import { DateTime } from 'luxon'
 import type { MarkAsReadDTO, MarkMessagesAsReadDTO } from '../dtos/mark_as_read_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
+interface ParticipantCheck {
+  conversation_id: number
+  user_id: number
+}
+
 /**
  * Command: Mark Conversation As Read
  *
@@ -39,11 +44,11 @@ export class MarkAsReadCommand {
 
     try {
       // Verify user is participant
-      const isParticipant = await db
+      const isParticipant = (await db
         .from('conversation_participants')
         .where('conversation_id', dto.conversationId)
         .where('user_id', user.id)
-        .first()
+        .first()) as ParticipantCheck | undefined
 
       if (!isParticipant) {
         throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')
@@ -132,11 +137,11 @@ export class MarkMessagesAsReadCommand {
 
     try {
       // Verify user is participant
-      const isParticipant = await db
+      const isParticipant = (await db
         .from('conversation_participants')
         .where('conversation_id', dto.conversationId)
         .where('user_id', user.id)
-        .first()
+        .first()) as ParticipantCheck | undefined
 
       if (!isParticipant) {
         throw new Error('Bạn không có quyền truy cập cuộc trò chuyện này')

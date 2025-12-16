@@ -109,7 +109,9 @@ export default class UpdateTaskStatusCommand {
     await user.load('system_role')
 
     // 1. Superadmin/Admin
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.system_role?.name?.toLowerCase() ?? '')
+    const isSuperAdmin = ['superadmin', 'admin'].includes(
+      user.system_role?.name?.toLowerCase() ?? ''
+    )
     if (isSuperAdmin) {
       return
     }

@@ -5,6 +5,10 @@ import { DateTime } from 'luxon'
 import type { DeleteConversationDTO } from '../dtos/delete_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
+interface ParticipantResult {
+  user_id: number
+}
+
 /**
  * Command: Delete Conversation (Soft Delete)
  *
@@ -44,7 +48,7 @@ export default class DeleteConversationCommand {
         .where('id', dto.conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (builder) => {
-          builder.where('user_id', user.id)
+          void builder.where('user_id', user.id)
         })
         .firstOrFail()
 
@@ -66,10 +70,10 @@ export default class DeleteConversationCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 

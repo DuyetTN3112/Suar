@@ -3,6 +3,57 @@ import Database from '@adonisjs/lucid/services/db'
 import redis from '@adonisjs/redis/services/main'
 import type { ListConversationsDTO } from '../dtos/list_conversations_dto.js'
 
+// Database result interfaces
+interface ConversationRow {
+  id: number
+  title: string | null
+  created_at: string
+  updated_at: string
+}
+
+interface CountResult {
+  total: number | string | bigint
+}
+
+interface UnreadCountRow {
+  conversation_id: number
+  count: number | string | bigint
+}
+
+interface ParticipantRow {
+  conversation_id: number
+  user_id: number
+  username: string | null
+  email: string | null
+}
+
+interface LastMessageRow {
+  id: number
+  conversation_id: number
+  message: string
+  sender_id: number
+  is_recalled: boolean
+  recall_scope: string | null
+  created_at: string
+  sender_name: string | null
+}
+
+// Response interfaces
+interface ParticipantInfo {
+  id: number
+  username: string | null
+  email: string | null
+}
+
+interface LastMessageInfo {
+  id: number
+  message: string
+  sender_id: number
+  sender_name: string | null
+  is_recalled: boolean
+  created_at: string
+}
+
 interface ConversationListItem {
   id: number
   title: string | null
@@ -10,19 +61,8 @@ interface ConversationListItem {
   updated_at: string
   unread_count: number
   participant_count: number
-  participants: Array<{
-    id: number
-    username: string | null
-    email: string | null
-  }>
-  last_message: {
-    id: number
-    message: string
-    sender_id: number
-    sender_name: string | null
-    is_recalled: boolean
-    created_at: string
-  } | null
+  participants: ParticipantInfo[]
+  last_message: LastMessageInfo | null
 }
 
 interface PaginatedConversations {
@@ -52,17 +92,20 @@ export default class ListConversationsQuery {
   constructor(protected ctx: HttpContext) {}
 
   async execute(dto: ListConversationsDTO): Promise<PaginatedConversations> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('Unauthorized')
+    }
     const { page, limit } = dto
 
     try {
       // Build cache key
-      const searchParam = dto.hasSearch ? `:search:${dto.trimmedSearch}` : ''
-      const cacheKey = `user:${user.id}:conversations:page:${page}:limit:${limit}${searchParam}`
+      const searchParam = dto.hasSearch ? `:search:${dto.trimmedSearch ?? ''}` : ''
+      const cacheKey = `user:${String(user.id)}:conversations:page:${String(page)}:limit:${String(limit)}${searchParam}`
       const cached = await redis.get(cacheKey)
 
       if (cached) {
-        return JSON.parse(cached)
+        return JSON.parse(cached) as PaginatedConversations
       }
 
       // Base query: get conversations where user is participant
@@ -85,19 +128,21 @@ export default class ListConversationsQuery {
 
       // Apply search filter
       if (dto.hasSearch) {
-        const searchTerm = `%${dto.trimmedSearch}%`
+        const searchTerm = `%${dto.trimmedSearch ?? ''}%`
         conversationsQuery = conversationsQuery.where((builder) => {
-          builder.where('conversations.title', 'like', searchTerm).orWhereExists((subQuery) => {
-            subQuery
-              .from('conversation_participants as cp2')
-              .join('users', 'cp2.user_id', 'users.id')
-              .whereRaw('cp2.conversation_id = conversations.id')
-              .where((nameBuilder) => {
-                nameBuilder
-                  .where('users.username', 'like', searchTerm)
-                  .orWhere('users.email', 'like', searchTerm)
-              })
-          })
+          void builder
+            .where('conversations.title', 'like', searchTerm)
+            .orWhereExists((subQuery) => {
+              void subQuery
+                .from('conversation_participants as cp2')
+                .join('users', 'cp2.user_id', 'users.id')
+                .whereRaw('cp2.conversation_id = conversations.id')
+                .where((nameBuilder) => {
+                  void nameBuilder
+                    .where('users.username', 'like', searchTerm)
+                    .orWhere('users.email', 'like', searchTerm)
+                })
+            })
         })
       }
 
@@ -113,35 +158,40 @@ export default class ListConversationsQuery {
         .countDistinct('conversations.id as total')
 
       if (dto.hasSearch) {
-        const searchTerm = `%${dto.trimmedSearch}%`
-        countQuery.where((builder) => {
-          builder.where('conversations.title', 'like', searchTerm).orWhereExists((subQuery) => {
-            subQuery
-              .from('conversation_participants as cp2')
-              .join('users', 'cp2.user_id', 'users.id')
-              .whereRaw('cp2.conversation_id = conversations.id')
-              .where((nameBuilder) => {
-                nameBuilder
-                  .where('users.username', 'like', searchTerm)
-                  .orWhere('users.email', 'like', searchTerm)
-              })
-          })
+        const searchTerm = `%${dto.trimmedSearch ?? ''}%`
+        void countQuery.where((builder) => {
+          void builder
+            .where('conversations.title', 'like', searchTerm)
+            .orWhereExists((subQuery) => {
+              void subQuery
+                .from('conversation_participants as cp2')
+                .join('users', 'cp2.user_id', 'users.id')
+                .whereRaw('cp2.conversation_id = conversations.id')
+                .where((nameBuilder) => {
+                  void nameBuilder
+                    .where('users.username', 'like', searchTerm)
+                    .orWhere('users.email', 'like', searchTerm)
+                })
+            })
         })
       }
 
-      const [conversations, countResult] = await Promise.all([
+      const promiseResults: [unknown, unknown] = await Promise.all([
         conversationsQuery.offset(dto.offset).limit(limit),
         countQuery.first(),
       ])
 
-      const total = Number(countResult?.total || 0)
+      const conversations = promiseResults[0] as ConversationRow[]
+      const countResult = promiseResults[1] as CountResult | undefined
+
+      const total = Number(countResult?.total ?? 0)
       const lastPage = Math.ceil(total / limit)
 
       // For each conversation, get:
       // 1. Unread count
       // 2. Participants
       // 3. Last message
-      const conversationIds = conversations.map((c: unknown) => c.id)
+      const conversationIds = conversations.map((c) => c.id)
 
       if (conversationIds.length === 0) {
         return {
@@ -157,17 +207,17 @@ export default class ListConversationsQuery {
       ])
 
       // Build result
-      const data: ConversationListItem[] = conversations.map((conversation: unknown) => {
+      const data: ConversationListItem[] = conversations.map((conversation) => {
         const conversationId = conversation.id
         return {
           id: conversationId,
           title: conversation.title,
           created_at: conversation.created_at,
           updated_at: conversation.updated_at,
-          unread_count: unreadCounts.get(conversationId) || 0,
-          participant_count: participants.get(conversationId)?.length || 0,
-          participants: participants.get(conversationId) || [],
-          last_message: lastMessages.get(conversationId) || null,
+          unread_count: unreadCounts.get(conversationId) ?? 0,
+          participant_count: participants.get(conversationId)?.length ?? 0,
+          participants: participants.get(conversationId) ?? [],
+          last_message: lastMessages.get(conversationId) ?? null,
         }
       })
 
@@ -199,7 +249,7 @@ export default class ListConversationsQuery {
     conversationIds: number[],
     userId: number
   ): Promise<Map<number, number>> {
-    const results = await Database.from('messages')
+    const resultsRaw: unknown = await Database.from('messages')
       .select('messages.conversation_id')
       .count('* as count')
       .whereIn('messages.conversation_id', conversationIds)
@@ -211,10 +261,11 @@ export default class ListConversationsQuery {
       )
       .groupBy('messages.conversation_id')
 
+    const results = resultsRaw as UnreadCountRow[]
     const map = new Map<number, number>()
-    results.forEach((result: unknown) => {
+    for (const result of results) {
       map.set(result.conversation_id, Number(result.count))
-    })
+    }
 
     return map
   }
@@ -222,8 +273,10 @@ export default class ListConversationsQuery {
   /**
    * Get participants for conversations
    */
-  private async getParticipants(conversationIds: number[]): Promise<Map<number, unknown[]>> {
-    const results = await Database.from('conversation_participants')
+  private async getParticipants(
+    conversationIds: number[]
+  ): Promise<Map<number, ParticipantInfo[]>> {
+    const resultsRaw: unknown = await Database.from('conversation_participants')
       .select(
         'conversation_participants.conversation_id',
         'conversation_participants.user_id',
@@ -233,20 +286,24 @@ export default class ListConversationsQuery {
       .join('users', 'conversation_participants.user_id', 'users.id')
       .whereIn('conversation_participants.conversation_id', conversationIds)
 
-    const map = new Map<number, unknown[]>()
+    const results = resultsRaw as ParticipantRow[]
+    const map = new Map<number, ParticipantInfo[]>()
 
-    results.forEach((result: unknown) => {
+    for (const result of results) {
       const conversationId = result.conversation_id
       if (!map.has(conversationId)) {
         map.set(conversationId, [])
       }
 
-      map.get(conversationId)!.push({
-        id: result.user_id,
-        username: result.username,
-        email: result.email,
-      })
-    })
+      const participantsList = map.get(conversationId)
+      if (participantsList) {
+        participantsList.push({
+          id: result.user_id,
+          username: result.username,
+          email: result.email,
+        })
+      }
+    }
 
     return map
   }
@@ -258,9 +315,9 @@ export default class ListConversationsQuery {
   private async getLastMessages(
     conversationIds: number[],
     userId: number
-  ): Promise<Map<number, unknown>> {
+  ): Promise<Map<number, LastMessageInfo>> {
     // Get latest message for each conversation using subquery
-    const results = await Database.from('messages')
+    const resultsRaw: unknown = await Database.from('messages')
       .select(
         'messages.id',
         'messages.conversation_id',
@@ -286,9 +343,10 @@ export default class ListConversationsQuery {
         [userId]
       )
 
-    const map = new Map<number, unknown>()
+    const results = resultsRaw as LastMessageRow[]
+    const map = new Map<number, LastMessageInfo>()
 
-    results.forEach((result: unknown) => {
+    for (const result of results) {
       // If recalled for everyone, show replacement text
       const message =
         result.is_recalled && result.recall_scope === 'all'
@@ -300,10 +358,10 @@ export default class ListConversationsQuery {
         message,
         sender_id: result.sender_id,
         sender_name: result.sender_name,
-        is_recalled: Boolean(result.is_recalled),
+        is_recalled: result.is_recalled,
         created_at: result.created_at,
       })
-    })
+    }
 
     return map
   }

@@ -6,6 +6,21 @@ import { DateTime } from 'luxon'
 import type { CreateConversationDTO } from '../dtos/create_conversation_dto.js'
 import redis from '@adonisjs/redis/services/main'
 
+interface ParticipantData {
+  conversation_id: number
+  user_id: number
+}
+
+interface ConversationWithCount {
+  id: number
+  participant_count: number
+}
+
+interface StoredProcedureResult {
+  'id'?: number
+  'LAST_INSERT_ID()'?: number
+}
+
 /**
  * Command: Create Conversation
  *
@@ -111,7 +126,7 @@ export default class CreateConversationCommand {
   ): Promise<Conversation | null> {
     try {
       // Find conversations with exactly 2 participants
-      const conversationsWithCount = await db.rawQuery<Array<{ id: number }>>(
+      const rawResult: unknown = await db.rawQuery(
         `
         SELECT c.id, COUNT(cp.user_id) as participant_count
         FROM conversations c
@@ -121,17 +136,16 @@ export default class CreateConversationCommand {
         HAVING participant_count = 2
       `
       )
+      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
 
-      if (!conversationsWithCount || conversationsWithCount.length === 0) {
+      if (conversationsWithCount.length === 0) {
         return null
       }
 
       const potentialIds = conversationsWithCount.map((row) => row.id)
 
       // Find conversations with both users
-      const participantsData = await db.rawQuery<
-        Array<{ conversation_id: number; user_id: number }>
-      >(
+      const participantsRaw: unknown = await db.rawQuery(
         `
         SELECT conversation_id, user_id
         FROM conversation_participants
@@ -140,15 +154,16 @@ export default class CreateConversationCommand {
       `,
         [...potentialIds, userId1, userId2]
       )
+      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
 
       // Group by conversation
       const participantsByConversation = new Map<number, Set<number>>()
-      participantsData.forEach((row) => {
+      for (const row of participantsData) {
         if (!participantsByConversation.has(row.conversation_id)) {
           participantsByConversation.set(row.conversation_id, new Set())
         }
         participantsByConversation.get(row.conversation_id)?.add(row.user_id)
-      })
+      }
 
       // Find conversation with exactly these 2 users
       for (const [conversationId, participants] of participantsByConversation.entries()) {
@@ -174,7 +189,7 @@ export default class CreateConversationCommand {
       const sortedIds = [...participantIds].sort((a, b) => a - b)
 
       // Find conversations with exact participant count
-      const conversationsWithCount = await db.rawQuery<Array<{ id: number }>>(
+      const rawResult: unknown = await db.rawQuery(
         `
         SELECT c.id, COUNT(cp.user_id) as participant_count
         FROM conversations c
@@ -185,17 +200,16 @@ export default class CreateConversationCommand {
       `,
         [sortedIds.length]
       )
+      const conversationsWithCount = (rawResult as [ConversationWithCount[], unknown])[0]
 
-      if (!conversationsWithCount || conversationsWithCount.length === 0) {
+      if (conversationsWithCount.length === 0) {
         return null
       }
 
       const potentialIds = conversationsWithCount.map((row) => row.id)
 
       // Get all participants for these conversations
-      const participantsData = await db.rawQuery<
-        Array<{ conversation_id: number; user_id: number }>
-      >(
+      const participantsRaw: unknown = await db.rawQuery(
         `
         SELECT conversation_id, user_id
         FROM conversation_participants
@@ -203,15 +217,16 @@ export default class CreateConversationCommand {
       `,
         [...potentialIds]
       )
+      const participantsData = (participantsRaw as [ParticipantData[], unknown])[0]
 
       // Group by conversation
       const participantsByConversation = new Map<number, Set<number>>()
-      participantsData.forEach((row) => {
+      for (const row of participantsData) {
         if (!participantsByConversation.has(row.conversation_id)) {
           participantsByConversation.set(row.conversation_id, new Set())
         }
         participantsByConversation.get(row.conversation_id)?.add(row.user_id)
-      })
+      }
 
       // Find exact match
       for (const [conversationId, participants] of participantsByConversation.entries()) {
@@ -250,14 +265,16 @@ export default class CreateConversationCommand {
     const participantIdsString = participantIds.join(',')
 
     // Call stored procedure
-    const result = await db.rawQuery('CALL create_conversation(?, ?, ?)', [
+    const result: unknown = await db.rawQuery('CALL create_conversation(?, ?, ?)', [
       creatorId,
-      organizationId || null,
+      organizationId ?? null,
       participantIdsString,
     ])
 
     // Get conversation ID from result
-    const conversationId = result[0][0]?.id || result[0][0]?.LAST_INSERT_ID()
+    const typedResult = result as [[StoredProcedureResult], unknown]
+    const firstRow = typedResult[0][0]
+    const conversationId = firstRow.id ?? firstRow['LAST_INSERT_ID()']
 
     if (!conversationId) {
       throw new Error('Failed to create conversation - no ID returned')
@@ -297,7 +314,7 @@ export default class CreateConversationCommand {
    */
   private async invalidateCache(participantIds: number[]): Promise<void> {
     try {
-      const cacheKeys = participantIds.map((userId) => `user:${userId}:conversations:*`)
+      const cacheKeys = participantIds.map((userId) => `user:${String(userId)}:conversations:*`)
 
       for (const pattern of cacheKeys) {
         const keys = await redis.keys(pattern)

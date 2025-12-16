@@ -45,11 +45,7 @@ export class ListConversationsDTO {
     }
 
     // Search validation (optional, max length)
-    if (this.search !== undefined && this.search !== null) {
-      if (typeof this.search !== 'string') {
-        throw new Error('Search query must be a string')
-      }
-
+    if (this.search !== undefined) {
       if (this.search.trim().length === 0) {
         // Empty search is same as no search
         // We can ignore this case

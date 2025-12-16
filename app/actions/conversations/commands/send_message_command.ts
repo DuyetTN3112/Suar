@@ -7,6 +7,10 @@ import type { SendMessageDTO } from '../dtos/send_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import Logger from '@adonisjs/core/services/logger'
 
+interface ParticipantResult {
+  user_id: number
+}
+
 /**
  * Command: Send Message
  *
@@ -49,7 +53,7 @@ export default class SendMessageCommand {
         .where('id', dto.conversationId)
         .whereNull('deleted_at')
         .whereHas('participants', (builder) => {
-          builder.where('user_id', user.id)
+          void builder.where('user_id', user.id)
         })
         .firstOrFail()
 
@@ -70,8 +74,9 @@ export default class SendMessageCommand {
       } catch (dbError: unknown) {
         // Log detailed error for debugging
         const errorMessage = dbError instanceof Error ? dbError.message : 'Unknown error'
-        const errorCode = (dbError as { code?: string })?.code ?? 'UNKNOWN'
-        const errorSqlState = (dbError as { sqlState?: string })?.sqlState ?? 'UNKNOWN'
+        const errorObj = dbError as { code?: string; sqlState?: string }
+        const errorCode = errorObj.code ?? 'UNKNOWN'
+        const errorSqlState = errorObj.sqlState ?? 'UNKNOWN'
 
         Logger.error(`[SendMessageCommand] Database error for user ${String(user.id)}:`, {
           error: errorMessage,
@@ -115,10 +120,10 @@ export default class SendMessageCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants of this conversation
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 

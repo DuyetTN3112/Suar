@@ -6,6 +6,10 @@ import type { RecallMessageDTO } from '../dtos/recall_message_dto.js'
 import redis from '@adonisjs/redis/services/main'
 import { Exception } from '@adonisjs/core/exceptions'
 
+interface ParticipantResult {
+  user_id: number
+}
+
 // Custom exceptions
 class NotFoundError extends Exception {
   static override status = 404
@@ -107,10 +111,10 @@ export default class RecallMessageCommand {
   private async invalidateCache(conversationId: number): Promise<void> {
     try {
       // Get all participants
-      const participants = await db
+      const participants = (await db
         .from('conversation_participants')
         .where('conversation_id', conversationId)
-        .select('user_id')
+        .select('user_id')) as ParticipantResult[]
 
       const participantIds = participants.map((p) => p.user_id)
 
