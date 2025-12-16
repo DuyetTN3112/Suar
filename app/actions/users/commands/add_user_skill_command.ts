@@ -60,7 +60,7 @@ export default class AddUserSkillCommand extends BaseCommand<AddUserSkillDTO, Us
       })
 
       // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${userId}`)
+      await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
 
       return userSkill
     })

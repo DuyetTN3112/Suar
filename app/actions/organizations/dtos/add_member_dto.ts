@@ -117,6 +117,6 @@ export class AddMemberDTO {
    * Pattern: Audit logging description (learned from Tasks module)
    */
   getSummary(): string {
-    return `Added user ${this.userId} as ${this.getRoleName()} to organization ${this.organizationId}`
+    return `Added user ${String(this.userId)} as ${this.getRoleName()} to organization ${String(this.organizationId)}`
   }
 }

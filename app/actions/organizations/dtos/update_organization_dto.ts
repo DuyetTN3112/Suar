@@ -40,7 +40,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Name validation (optional, 3-100 characters if provided)
-    if (this.name !== undefined && this.name !== null) {
+    if (this.name !== undefined) {
       if (typeof this.name !== 'string') {
         throw new Error('Organization name must be a string')
       }
@@ -58,7 +58,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Slug validation (optional, but must be valid if provided)
-    if (this.slug !== undefined && this.slug !== null) {
+    if (this.slug !== undefined) {
       if (typeof this.slug !== 'string') {
         throw new Error('Organization slug must be a string')
       }
@@ -90,7 +90,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Description validation (optional, max 500 characters)
-    if (this.description !== undefined && this.description !== null) {
+    if (this.description !== undefined) {
       if (typeof this.description !== 'string') {
         throw new Error('Organization description must be a string')
       }
@@ -101,7 +101,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Logo validation (optional, must be valid URL)
-    if (this.logo !== undefined && this.logo !== null) {
+    if (this.logo !== undefined) {
       if (typeof this.logo !== 'string') {
         throw new Error('Organization logo must be a string')
       }
@@ -113,7 +113,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Website validation (optional, must be valid URL)
-    if (this.website !== undefined && this.website !== null) {
+    if (this.website !== undefined) {
       if (typeof this.website !== 'string') {
         throw new Error('Organization website must be a string')
       }
@@ -125,7 +125,7 @@ export class UpdateOrganizationDTO {
     }
 
     // Plan validation (optional, must be valid plan type)
-    if (this.plan !== undefined && this.plan !== null) {
+    if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
         throw new Error('Organization plan must be a string')
       }
@@ -171,14 +171,14 @@ export class UpdateOrganizationDTO {
   toObject(): Record<string, unknown> {
     const updates: Record<string, unknown> = {}
 
-    if (this.name !== undefined && this.name !== null) {
+    if (this.name !== undefined) {
       const trimmed = this.name.trim()
       if (trimmed.length > 0) {
         updates.name = trimmed
       }
     }
 
-    if (this.slug !== undefined && this.slug !== null) {
+    if (this.slug !== undefined) {
       const trimmed = this.slug.trim()
       if (trimmed.length > 0) {
         updates.slug = trimmed
@@ -186,18 +186,18 @@ export class UpdateOrganizationDTO {
     }
 
     if (this.description !== undefined) {
-      updates.description = this.description?.trim() || null
+      updates.description = this.description.trim() || null
     }
 
     if (this.logo !== undefined) {
-      updates.logo = this.logo?.trim() || null
+      updates.logo = this.logo.trim() || null
     }
 
     if (this.website !== undefined) {
-      updates.website = this.website?.trim() || null
+      updates.website = this.website.trim() || null
     }
 
-    if (this.plan !== undefined && this.plan !== null) {
+    if (this.plan !== undefined) {
       updates.plan = this.plan.toLowerCase()
     }
 
@@ -242,8 +242,8 @@ export class UpdateOrganizationDTO {
   getChangesSummary(): string {
     const fields = this.getChangedFields()
     if (fields.length === 0) return 'No changes'
-    if (fields.length === 1) return `Updated ${fields[0]}`
-    if (fields.length === 2) return `Updated ${fields[0]} and ${fields[1]}`
-    return `Updated ${fields.length} fields: ${fields.join(', ')}`
+    if (fields.length === 1) return `Updated ${fields[0] ?? ''}`
+    if (fields.length === 2) return `Updated ${fields[0] ?? ''} and ${fields[1] ?? ''}`
+    return `Updated ${String(fields.length)} fields: ${fields.join(', ')}`
   }
 }

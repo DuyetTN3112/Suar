@@ -25,7 +25,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
 
       const skillInfo = {
         skill_id: userSkill.skill_id,
-        skill_name: userSkill.skill?.skill_name,
+        skill_name: userSkill.skill.skill_name,
         proficiency_level_id: userSkill.proficiency_level_id,
       }
 
@@ -36,7 +36,7 @@ export default class RemoveUserSkillCommand extends BaseCommand<RemoveUserSkillD
       await this.logAudit('remove_skill', 'user_skill', dto.user_skill_id, skillInfo, null)
 
       // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${userId}`)
+      await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
     })
   }
 }

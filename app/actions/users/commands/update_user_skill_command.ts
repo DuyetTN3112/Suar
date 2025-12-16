@@ -27,7 +27,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
 
       const oldValues = {
         proficiency_level_id: userSkill.proficiency_level_id,
-        proficiency_level_name: userSkill.proficiency_level?.level_name_en,
+        proficiency_level_name: userSkill.proficiency_level.level_name_en,
       }
 
       // Verify new proficiency level exists
@@ -46,7 +46,7 @@ export default class UpdateUserSkillCommand extends BaseCommand<UpdateUserSkillD
       })
 
       // Invalidate user profile cache
-      await CacheService.deleteByPattern(`user:profile:${userId}`)
+      await CacheService.deleteByPattern(`user:profile:${String(userId)}`)
 
       return userSkill
     })

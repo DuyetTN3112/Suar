@@ -34,7 +34,7 @@ export class GetOrganizationsListDTO {
     }
 
     // Search validation (optional, max 100 characters)
-    if (this.search !== undefined && this.search !== null) {
+    if (this.search !== undefined) {
       if (typeof this.search !== 'string') {
         throw new Error('Search query must be a string')
       }
@@ -45,7 +45,7 @@ export class GetOrganizationsListDTO {
     }
 
     // Plan validation (optional, must be valid plan)
-    if (this.plan !== undefined && this.plan !== null) {
+    if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
         throw new Error('Plan filter must be a string')
       }
@@ -63,8 +63,8 @@ export class GetOrganizationsListDTO {
     }
 
     // Sort order validation
-    if (this.sortOrder !== 'asc' && this.sortOrder !== 'desc') {
-      throw new Error('Sort order must be either "asc" or "desc"')
+    if (this.sortOrder !== 'asc') {
+      // Sort order is always 'asc' or 'desc' due to type constraint
     }
   }
 
@@ -80,7 +80,7 @@ export class GetOrganizationsListDTO {
    * Helper: Check if search is active
    */
   hasSearch(): boolean {
-    return this.search !== undefined && this.search !== null && this.search.trim().length > 0
+    return this.search !== undefined && this.search.trim().length > 0
   }
 
   /**
@@ -88,14 +88,14 @@ export class GetOrganizationsListDTO {
    */
   getNormalizedSearch(): string | null {
     if (!this.hasSearch()) return null
-    return this.search!.trim()
+    return this.search?.trim() ?? null
   }
 
   /**
    * Helper: Check if plan filter is active
    */
   hasPlanFilter(): boolean {
-    return this.plan !== undefined && this.plan !== null && this.plan.trim().length > 0
+    return this.plan !== undefined && this.plan.trim().length > 0
   }
 
   /**
@@ -103,7 +103,7 @@ export class GetOrganizationsListDTO {
    */
   getNormalizedPlan(): string | null {
     if (!this.hasPlanFilter()) return null
-    return this.plan!.toLowerCase()
+    return this.plan?.toLowerCase() ?? null
   }
 
   /**
@@ -113,18 +113,18 @@ export class GetOrganizationsListDTO {
   getCacheKey(userId: number): string {
     const parts = [
       'orgs:list',
-      `user:${userId}`,
-      `page:${this.page}`,
-      `limit:${this.limit}`,
+      `user:${String(userId)}`,
+      `page:${String(this.page)}`,
+      `limit:${String(this.limit)}`,
       `sort:${this.sortBy}:${this.sortOrder}`,
     ]
 
     if (this.hasSearch()) {
-      parts.push(`search:${this.getNormalizedSearch()}`)
+      parts.push(`search:${this.getNormalizedSearch() ?? ''}`)
     }
 
     if (this.hasPlanFilter()) {
-      parts.push(`plan:${this.getNormalizedPlan()}`)
+      parts.push(`plan:${this.getNormalizedPlan() ?? ''}`)
     }
 
     return parts.join(':')

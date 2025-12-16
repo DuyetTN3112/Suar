@@ -8,7 +8,7 @@ import type { HttpContext } from '@adonisjs/core/http'
 export default class GetUserSettings {
   constructor(protected ctx: HttpContext) {}
 
-  async handle() {
+  handle() {
     // Return default settings for SSR
     // Actual settings are managed client-side
     return {

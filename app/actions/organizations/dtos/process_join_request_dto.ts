@@ -38,7 +38,7 @@ export class ProcessJoinRequestDTO {
     }
 
     // Reason validation (optional, but recommended for rejection)
-    if (this.reason !== undefined && this.reason !== null) {
+    if (this.reason !== undefined) {
       if (typeof this.reason !== 'string') {
         throw new Error('Processing reason must be a string')
       }
@@ -70,7 +70,7 @@ export class ProcessJoinRequestDTO {
    * Helper: Check if processing reason is provided
    */
   hasReason(): boolean {
-    return this.reason !== undefined && this.reason !== null && this.reason.trim().length > 0
+    return this.reason !== undefined && this.reason.trim().length > 0
   }
 
   /**
@@ -78,7 +78,7 @@ export class ProcessJoinRequestDTO {
    */
   getNormalizedReason(): string | null {
     if (!this.hasReason()) return null
-    return this.reason!.trim()
+    return this.reason?.trim() ?? null
   }
 
   /**
@@ -119,7 +119,7 @@ export class ProcessJoinRequestDTO {
    */
   getSummary(): string {
     const action = this.getActionVerb()
-    const reason = this.hasReason() ? ` (${this.getNormalizedReason()})` : ''
-    return `${action} join request ${this.requestId}${reason}`
+    const reason = this.hasReason() ? ` (${this.getNormalizedReason() ?? ''})` : ''
+    return `${action} join request ${String(this.requestId)}${reason}`
   }
 }

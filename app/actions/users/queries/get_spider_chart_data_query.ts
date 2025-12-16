@@ -48,13 +48,13 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
    * Execute the query to get spider chart data
    */
   async handle(dto: GetSpiderChartDataDTO): Promise<SpiderChartResult> {
-    const cacheKey = `users:spider_chart:${dto.user_id}`
+    const cacheKey = `users:spider_chart:${String(dto.user_id)}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       const data = await UserSpiderChartData.query()
         .where('user_id', dto.user_id)
         .preload('skill', (skillQuery) => {
-          skillQuery.preload('category')
+          void skillQuery.preload('category')
         })
         .preload('avg_level')
 
@@ -64,12 +64,12 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
       }
 
       for (const item of data) {
-        const categoryCode = item.skill?.category?.category_code
+        const categoryCode = item.skill.category?.category_code
 
         const point: SpiderChartPoint = {
           skill_id: item.skill_id,
-          skill_name: item.skill?.skill_name || '',
-          skill_code: item.skill?.skill_code || '',
+          skill_name: item.skill.skill_name || '',
+          skill_code: item.skill.skill_code || '',
           category_code: categoryCode || '',
           avg_percentage: item.avg_percentage,
           level_name: item.avg_level?.level_name_en || null,

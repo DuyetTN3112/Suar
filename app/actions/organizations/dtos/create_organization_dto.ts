@@ -39,7 +39,7 @@ export class CreateOrganizationDTO {
     }
 
     // Slug validation (optional, but must be valid if provided)
-    if (this.slug !== undefined && this.slug !== null) {
+    if (this.slug !== undefined) {
       if (typeof this.slug !== 'string') {
         throw new Error('Organization slug must be a string')
       }
@@ -74,7 +74,7 @@ export class CreateOrganizationDTO {
     }
 
     // Description validation (optional, max 500 characters)
-    if (this.description !== undefined && this.description !== null) {
+    if (this.description !== undefined) {
       if (typeof this.description !== 'string') {
         throw new Error('Organization description must be a string')
       }
@@ -85,7 +85,7 @@ export class CreateOrganizationDTO {
     }
 
     // Logo validation (optional, must be valid URL)
-    if (this.logo !== undefined && this.logo !== null) {
+    if (this.logo !== undefined) {
       if (typeof this.logo !== 'string') {
         throw new Error('Organization logo must be a string')
       }
@@ -97,7 +97,7 @@ export class CreateOrganizationDTO {
     }
 
     // Website validation (optional, must be valid URL)
-    if (this.website !== undefined && this.website !== null) {
+    if (this.website !== undefined) {
       if (typeof this.website !== 'string') {
         throw new Error('Organization website must be a string')
       }
@@ -109,7 +109,7 @@ export class CreateOrganizationDTO {
     }
 
     // Plan validation (optional, must be valid plan type)
-    if (this.plan !== undefined && this.plan !== null) {
+    if (this.plan !== undefined) {
       if (typeof this.plan !== 'string') {
         throw new Error('Organization plan must be a string')
       }

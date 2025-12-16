@@ -151,6 +151,6 @@ export class UpdateMemberRoleDTO {
    */
   getSummary(currentRoleName?: string): string {
     const action = currentRoleName ? `from ${currentRoleName} to` : 'to'
-    return `Updated user ${this.userId}'s role ${action} ${this.getRoleName()} in organization ${this.organizationId}`
+    return `Updated user ${String(this.userId)}'s role ${action} ${this.getRoleName()} in organization ${String(this.organizationId)}`
   }
 }
