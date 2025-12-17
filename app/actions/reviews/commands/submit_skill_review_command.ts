@@ -1,4 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import SkillReview from '#models/skill_review'
@@ -74,7 +76,7 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
         session.peer_reviews_count >= session.required_peer_reviews
       ) {
         session.status = 'completed'
-        session.completed_at = new Date() as any
+        session.completed_at = DateTime.now()
       } else if (session.status === 'pending') {
         session.status = 'in_progress'
       }
@@ -89,8 +91,8 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`user:${session.reviewee_id}:*`)
-      await CacheService.deleteByPattern(`review:session:${session.id}`)
+      await CacheService.deleteByPattern(`user:${String(session.reviewee_id)}:*`)
+      await CacheService.deleteByPattern(`review:session:${String(session.id)}`)
 
       return skillReviews
     })
@@ -101,23 +103,23 @@ export default class SubmitSkillReviewCommand extends BaseCommand<
    */
   private async validateForeignKeys(
     ratings: { skill_id: number; assigned_level_id: number }[],
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
     for (const rating of ratings) {
       // Validate skill_id
-      const skill = await Skill.query({ client: trx as any })
-        .where('id', rating.skill_id)
-        .first()
+      const skill = await Skill.query({ client: trx }).where('id', rating.skill_id).first()
       if (!skill) {
-        throw new Error(`Skill với ID ${rating.skill_id} không tồn tại`)
+        throw new Error(`Skill với ID ${String(rating.skill_id)} không tồn tại`)
       }
 
       // Validate assigned_level_id
-      const level = await ProficiencyLevel.query({ client: trx as any })
+      const level = await ProficiencyLevel.query({ client: trx })
         .where('id', rating.assigned_level_id)
         .first()
       if (!level) {
-        throw new Error(`Proficiency level với ID ${rating.assigned_level_id} không tồn tại`)
+        throw new Error(
+          `Proficiency level với ID ${String(rating.assigned_level_id)} không tồn tại`
+        )
       }
     }
   }

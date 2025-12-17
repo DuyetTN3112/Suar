@@ -1,4 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
+import { DateTime } from 'luxon'
 import { BaseCommand } from '#actions/shared/base_command'
 import ReviewSession from '#models/review_session'
 import ReviewConfirmation from '#models/review_confirmation'
@@ -91,7 +92,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
           credibility.credibility_score = Math.max(0, credibility.credibility_score - 5)
         }
 
-        credibility.last_calculated_at = new Date() as any
+        credibility.last_calculated_at = DateTime.now()
         await credibility.useTransaction(trx).save()
       }
 
@@ -103,7 +104,7 @@ export default class ConfirmReviewCommand extends BaseCommand<
       })
 
       // Invalidate cache
-      await CacheService.deleteByPattern(`review:session:${dto.review_session_id}`)
+      await CacheService.deleteByPattern(`review:session:${String(dto.review_session_id)}`)
 
       return confirmation
     })

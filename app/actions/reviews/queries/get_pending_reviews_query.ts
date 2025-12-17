@@ -31,7 +31,14 @@ export default class GetPendingReviewsQuery extends BaseQuery<
   }
 
   async handle(dto: PendingReviewsDTO): Promise<PendingReviewsResult> {
-    const userId = this.getCurrentUser()!.id
+    const currentUser = this.getCurrentUser()
+    if (!currentUser) {
+      return {
+        data: [],
+        meta: { total: 0, per_page: dto.per_page, current_page: dto.page, last_page: 1 },
+      }
+    }
+    const userId = currentUser.id
 
     const cacheKey = this.generateCacheKey('user:pending_reviews', {
       userId,
@@ -43,14 +50,16 @@ export default class GetPendingReviewsQuery extends BaseQuery<
       const query = ReviewSession.query()
         .whereIn('status', ['pending', 'in_progress'])
         .whereDoesntHave('skill_reviews', (subQuery) => {
-          subQuery.where('reviewer_id', userId)
+          void subQuery.where('reviewer_id', userId)
         })
         .preload('reviewee', (userQuery) => {
-          userQuery.select(['id', 'username', 'email']).preload('detail')
+          void userQuery.select(['id', 'username', 'email'])
+          void userQuery.preload('detail')
         })
         .preload('task_assignment', (assignmentQuery) => {
-          assignmentQuery.preload('task', (taskQuery) => {
-            taskQuery.select(['id', 'title', 'project_id']).preload('project')
+          void assignmentQuery.preload('task', (taskQuery) => {
+            void taskQuery.select(['id', 'title', 'project_id'])
+            void taskQuery.preload('project')
           })
         })
         .orderBy('created_at', 'asc')

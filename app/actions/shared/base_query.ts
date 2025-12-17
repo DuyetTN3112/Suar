@@ -68,7 +68,7 @@ export abstract class BaseQuery<TInput, TOutput> implements QueryHandler<TInput,
   protected generateCacheKey(prefix: string, params: Record<string, unknown>): string {
     const sortedParams = Object.keys(params)
       .sort()
-      .map((key) => `${key}:${params[key]}`)
+      .map((key) => `${key}:${String(params[key])}`)
       .join(':')
 
     return `${prefix}:${sortedParams}`
@@ -87,7 +87,7 @@ export abstract class BaseQuery<TInput, TOutput> implements QueryHandler<TInput,
    * Returns null if not found
    */
   protected getCurrentOrganizationId(): number | null {
-    const organizationId = this.ctx.session.get('current_organization_id')
+    const organizationId: unknown = this.ctx.session.get('current_organization_id')
     return organizationId ? Number(organizationId) : null
   }
 

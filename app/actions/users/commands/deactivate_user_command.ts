@@ -93,16 +93,15 @@ export default class DeactivateUserCommand {
     userId: number,
     trx: TransactionClientContract
   ): Promise<boolean> {
-    const user = await db
+    const result = await trx
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .where('system_roles.name', 'superadmin')
-      .useTransaction(trx)
-      .first()
+      .select('users.id')
 
-    return !!user
+    return Array.isArray(result) && result.length > 0
   }
 
   private async sendNotification(userId: number, reason?: string): Promise<void> {

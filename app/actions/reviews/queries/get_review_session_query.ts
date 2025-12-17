@@ -22,16 +22,18 @@ export default class GetReviewSessionQuery extends BaseQuery<GetReviewSessionDTO
       const session = await ReviewSession.query()
         .where('id', dto.review_session_id)
         .preload('reviewee', (userQuery) => {
-          userQuery.preload('detail')
+          void userQuery.preload('detail')
         })
         .preload('task_assignment', (assignmentQuery) => {
-          assignmentQuery.preload('task')
+          void assignmentQuery.preload('task')
         })
         .preload('skill_reviews', (reviewQuery) => {
-          reviewQuery
-            .preload('skill', (skillQuery) => skillQuery.preload('category'))
-            .preload('assigned_level')
-            .preload('reviewer', (userQuery) => userQuery.select(['id', 'username', 'email']))
+          void reviewQuery.preload('skill', (skillQuery) => void skillQuery.preload('category'))
+          void reviewQuery.preload('assigned_level')
+          void reviewQuery.preload(
+            'reviewer',
+            (userQuery) => void userQuery.select(['id', 'username', 'email'])
+          )
         })
         .preload('confirmations')
         .firstOrFail()

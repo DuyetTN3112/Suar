@@ -40,15 +40,15 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     organizationId: number,
     approverId: number
   ): Promise<void> {
-    const isSuperAdmin = await db
+    const result = await db
       .from('organization_users')
       .where('organization_id', organizationId)
       .where('user_id', approverId)
       .where('role_id', 1) // role_id = 1 is superadmin
       .where('status', 'approved')
-      .first()
+      .select('user_id')
 
-    if (!isSuperAdmin) {
+    if (!Array.isArray(result) || result.length === 0) {
       throw new Error('Chỉ superadmin mới có thể phê duyệt người dùng')
     }
   }
@@ -57,7 +57,7 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
    * Update user status from pending to approved
    */
   private async approveUserInOrganization(dto: ApproveUserDTO): Promise<void> {
-    const updated = await db
+    const updateResult = await db
       .from('organization_users')
       .where('organization_id', dto.organizationId)
       .where('user_id', dto.userId)
@@ -67,7 +67,9 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
         updated_at: DateTime.now().toSQL(),
       })
 
-    if (!updated) {
+    // update() returns affected rows count (number) in MySQL or array in PostgreSQL
+    const affectedRows = Array.isArray(updateResult) ? updateResult.length : Number(updateResult)
+    if (affectedRows === 0) {
       throw new Error(
         'Không tìm thấy yêu cầu phê duyệt người dùng này hoặc người dùng đã được phê duyệt'
       )

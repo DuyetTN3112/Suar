@@ -64,15 +64,17 @@ export default class GetSpiderChartDataQuery extends BaseQuery<
       }
 
       for (const item of data) {
-        const categoryCode = item.skill.category?.category_code
+        // category is preloaded so it will exist as an object
+        const categoryCode = item.skill.category.category_code
 
         const point: SpiderChartPoint = {
           skill_id: item.skill_id,
-          skill_name: item.skill.skill_name || '',
-          skill_code: item.skill.skill_code || '',
-          category_code: categoryCode || '',
+          skill_name: item.skill.skill_name,
+          skill_code: item.skill.skill_code,
+          category_code: categoryCode,
           avg_percentage: item.avg_percentage,
-          level_name: item.avg_level?.level_name_en || null,
+          // avg_level is preloaded - if avg_level_id was null, this would need runtime handling
+          level_name: item.avg_level.level_name_en,
           total_reviews: item.total_reviews,
         }
 

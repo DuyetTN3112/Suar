@@ -57,7 +57,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
       const query = UserSkill.query()
         .where('user_id', dto.user_id)
         .preload('skill', (skillQuery) => {
-          skillQuery.preload('category')
+          void skillQuery.preload('category')
         })
         .preload('proficiency_level')
 
@@ -67,7 +67,7 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
       let filteredSkills = userSkills
       if (dto.category_code) {
         filteredSkills = userSkills.filter(
-          (us) => us.skill?.category?.category_code === dto.category_code
+          (us) => us.skill.category.category_code === dto.category_code
         )
       }
 
@@ -75,17 +75,17 @@ export default class GetUserSkillsQuery extends BaseQuery<GetUserSkillsDTO, User
       return filteredSkills.map((us) => ({
         id: us.id,
         skill_id: us.skill_id,
-        skill_name: us.skill?.skill_name || '',
-        skill_code: us.skill?.skill_code || '',
-        category_name: us.skill?.category?.category_name || '',
-        category_code: us.skill?.category?.category_code || '',
+        skill_name: us.skill.skill_name,
+        skill_code: us.skill.skill_code,
+        category_name: us.skill.category.category_name,
+        category_code: us.skill.category.category_code,
         proficiency_level_id: us.proficiency_level_id,
-        level_name: us.proficiency_level?.level_name_en || '',
-        level_order: us.proficiency_level?.level_order || 0,
-        level_color: us.proficiency_level?.color_hex || '#6B7280',
+        level_name: us.proficiency_level.level_name_en,
+        level_order: us.proficiency_level.level_order,
+        level_color: us.proficiency_level.color_hex || '#6B7280',
         total_reviews: us.total_reviews,
         avg_score: us.avg_score,
-        last_reviewed_at: us.last_reviewed_at?.toISO() || null,
+        last_reviewed_at: us.last_reviewed_at?.toISO() ?? null,
       }))
     })
   }

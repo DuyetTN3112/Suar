@@ -85,19 +85,19 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     userId: number,
     trx: TransactionClientContract
   ): Promise<{ rawScore: number; totalReviews: number }> {
-    const result = await db
+    const result = await trx
       .from('user_spider_chart_data')
       .where('user_id', userId)
       .select(
         db.raw('COALESCE(AVG(avg_percentage), 0) as raw_score'),
         db.raw('COUNT(*) as total_reviews')
       )
-      .useTransaction(trx)
       .first()
 
+    const row = result as { raw_score?: unknown; total_reviews?: unknown } | null
     return {
-      rawScore: Number(result?.raw_score || 0),
-      totalReviews: Number(result?.total_reviews || 0),
+      rawScore: Number(row?.raw_score || 0),
+      totalReviews: Number(row?.total_reviews || 0),
     }
   }
 
@@ -114,7 +114,7 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     trx: TransactionClientContract
   ): Promise<{ tierId: number; tierWeight: number; tierName: string }> {
     // Check nếu user thuộc verified partner
-    const partnerCheck = await db
+    const partnerCheck = await trx
       .from('organization_users')
       .join('organizations', 'organization_users.organization_id', 'organizations.id')
       .join('verified_partners', (join) => {
@@ -125,7 +125,6 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
       .where('organization_users.user_id', userId)
       .where('organization_users.status', 'approved')
       .select('verified_partners.id')
-      .useTransaction(trx)
       .first()
 
     if (partnerCheck) {
@@ -138,11 +137,10 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     }
 
     // Check nếu user thuộc organization
-    const orgCheck = await db
+    const orgCheck = await trx
       .from('organization_users')
       .where('user_id', userId)
       .where('status', 'approved')
-      .useTransaction(trx)
       .first()
 
     if (orgCheck) {
@@ -176,41 +174,30 @@ export default class CalculateTrustScoreCommand extends BaseCommand<
     const now = new Date()
 
     // Check if exists
-    const existing = await db
-      .from('user_trust_scores')
-      .where('user_id', userId)
-      .useTransaction(trx)
-      .first()
+    const existing = await trx.from('user_trust_scores').where('user_id', userId).first()
 
     if (existing) {
       // Update
-      await db
-        .from('user_trust_scores')
-        .where('user_id', userId)
-        .update({
-          current_tier_id: tierId,
-          calculated_score: calculatedScore,
-          raw_score: rawScore,
-          total_verified_reviews: totalReviews,
-          last_calculated_at: now,
-          updated_at: now,
-        })
-        .useTransaction(trx)
+      await trx.from('user_trust_scores').where('user_id', userId).update({
+        current_tier_id: tierId,
+        calculated_score: calculatedScore,
+        raw_score: rawScore,
+        total_verified_reviews: totalReviews,
+        last_calculated_at: now,
+        updated_at: now,
+      })
     } else {
       // Insert
-      await db
-        .table('user_trust_scores')
-        .insert({
-          user_id: userId,
-          current_tier_id: tierId,
-          calculated_score: calculatedScore,
-          raw_score: rawScore,
-          total_verified_reviews: totalReviews,
-          last_calculated_at: now,
-          created_at: now,
-          updated_at: now,
-        })
-        .useTransaction(trx)
+      await trx.table('user_trust_scores').insert({
+        user_id: userId,
+        current_tier_id: tierId,
+        calculated_score: calculatedScore,
+        raw_score: rawScore,
+        total_verified_reviews: totalReviews,
+        last_calculated_at: now,
+        created_at: now,
+        updated_at: now,
+      })
     }
   }
 }

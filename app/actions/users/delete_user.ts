@@ -7,7 +7,13 @@ export default class DeleteUser {
   constructor(protected ctx: HttpContext) {}
 
   async handle({ id }: { id: number }) {
-    const currentUser = this.ctx.auth.user!
+    const currentUser = this.ctx.auth.user
+    if (!currentUser) {
+      return {
+        success: false,
+        message: 'Unauthorized',
+      }
+    }
     // Kiểm tra không thể xóa chính mình
     if (currentUser.id === id) {
       return {
@@ -33,10 +39,11 @@ export default class DeleteUser {
         success: true,
         message: 'Người dùng đã được xóa thành công',
       }
-    } catch (error: unknown) {
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Không có quyền xóa người dùng này'
       return {
         success: false,
-        message: error.message || 'Không có quyền xóa người dùng này',
+        message: errorMessage,
       }
     }
   }

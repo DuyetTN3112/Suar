@@ -72,7 +72,13 @@ export default class UpdateUserDetailsCommand extends BaseCommand<
 
       // Log audit
       await this.logAudit(oldValues ? 'update' : 'create', 'user_detail', user.id, oldValues, {
-        ...dto,
+        avatar_url: dto.avatar_url,
+        bio: dto.bio,
+        phone: dto.phone,
+        address: dto.address,
+        timezone: dto.timezone,
+        language: dto.language,
+        is_freelancer: dto.is_freelancer,
       })
 
       return userDetail

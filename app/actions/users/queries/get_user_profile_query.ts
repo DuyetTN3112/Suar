@@ -53,14 +53,16 @@ export default class GetUserProfileQuery extends BaseQuery<GetUserProfileDTO, Us
         .preload('current_organization')
 
       if (dto.include_skills) {
-        query.preload('skills', (skillsQuery) => {
-          skillsQuery.preload('skill', (sq) => sq.preload('category')).preload('proficiency_level')
+        void query.preload('skills', (skillsQuery) => {
+          void skillsQuery.preload('skill', (sq) => void sq.preload('category'))
+          void skillsQuery.preload('proficiency_level')
         })
       }
 
       if (dto.include_spider_chart) {
-        query.preload('spider_chart_data', (chartQuery) => {
-          chartQuery.preload('skill', (sq) => sq.preload('category')).preload('avg_level')
+        void query.preload('spider_chart_data', (chartQuery) => {
+          void chartQuery.preload('skill', (sq) => void sq.preload('category'))
+          void chartQuery.preload('avg_level')
         })
       }
 

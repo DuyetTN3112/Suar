@@ -101,7 +101,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
    * Throws error if not found
    */
   protected getCurrentOrganizationId(): number {
-    const organizationId = this.ctx.session.get('current_organization_id')
+    const organizationId: unknown = this.ctx.session.get('current_organization_id')
     if (!organizationId) {
       throw new Error('Current organization not found in session')
     }
@@ -135,7 +135,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     const user = this.ctx.auth.user
     if (!user) return false
 
-    const userData = await db
+    const userData: unknown = await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
       .where('users.id', user.id)
@@ -143,7 +143,8 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
       .select('system_roles.name as role_name')
       .first()
 
-    return userData?.role_name === 'superadmin'
+    const row = userData as { role_name?: string } | null
+    return row?.role_name === 'superadmin'
   }
 
   /**
@@ -155,19 +156,19 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     organizationId: number,
     trx?: TransactionClientContract
   ): Promise<{ role_id: number; role_name: string } | null> {
-    let query = db
+    const client = trx || db
+    const rawResult: unknown = await client
       .from('organization_users')
       .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
       .where('organization_users.user_id', userId)
       .where('organization_users.organization_id', organizationId)
       .where('organization_users.status', 'approved')
       .select('organization_roles.id as role_id', 'organization_roles.name as role_name')
+      .first()
 
-    if (trx) {
-      query = query.useTransaction(trx)
-    }
-
-    return await query.first()
+    const result = rawResult as { role_id?: unknown; role_name?: unknown } | null
+    if (!result) return null
+    return { role_id: Number(result.role_id), role_name: String(result.role_name) }
   }
 
   /**
@@ -228,40 +229,45 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists (theo database)
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    const userExists = await userQuery.first()
+    const userExists: unknown = await client
+      .from('users')
+      .where('id', userId)
+      .whereNull('deleted_at')
+      .first()
     if (!userExists) return false
 
     // 2. Check organization exists (theo database)
-    let orgQuery = db.from('organizations').where('id', organizationId).whereNull('deleted_at')
-    if (trx) orgQuery = orgQuery.useTransaction(trx)
-    const orgExists = await orgQuery.first()
+    const orgExists: unknown = await client
+      .from('organizations')
+      .where('id', organizationId)
+      .whereNull('deleted_at')
+      .first()
     if (!orgExists) return false
 
     // 3. Superadmin có tất cả quyền
     if (await this.isSystemSuperadmin()) return true
 
     // 4. Check membership status = 'approved'
-    let query = db
+    const queryResult: unknown = await client
       .from('organization_users')
       .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
       .where('organization_users.user_id', userId)
       .where('organization_users.organization_id', organizationId)
       .where('organization_users.status', 'approved')
       .select('organization_roles.permissions')
+      .first()
 
-    if (trx) {
-      query = query.useTransaction(trx)
-    }
-
-    const result = await query.first()
-    if (!result || !result.permissions) return false
+    const row = queryResult as { permissions?: unknown } | null
+    if (!row?.permissions) return false
 
     // 5. Check JSON_CONTAINS permissions
     const permissions =
-      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
+      typeof row.permissions === 'string'
+        ? (JSON.parse(row.permissions) as unknown[])
+        : (row.permissions as unknown[])
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }
@@ -277,26 +283,24 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     projectId: number,
     trx?: TransactionClientContract
   ): Promise<number> {
-    let query = db
+    const client = trx || db
+    const membershipResult: unknown = await client
       .from('project_members')
       .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
       .where('project_members.user_id', userId)
       .where('project_members.project_id', projectId)
       .select('project_roles.name as role_name')
+      .first()
 
-    if (trx) {
-      query = query.useTransaction(trx)
-    }
-
-    const membership = await query.first()
-    if (!membership) return 0
+    const row = membershipResult as { role_name?: string } | null
+    if (!row) return 0
 
     const roleLevels: Record<string, number> = {
       project_owner: 2,
       project_manager: 1,
     }
 
-    return roleLevels[membership.role_name] || 0
+    return roleLevels[row.role_name || ''] || 0
   }
 
   /**
@@ -326,27 +330,35 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     organizationId: number,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 2. Check organization exists
-    let orgQuery = db.from('organizations').where('id', organizationId).whereNull('deleted_at')
-    if (trx) orgQuery = orgQuery.useTransaction(trx)
-    if (!(await orgQuery.first())) return false
+    if (
+      !(await client
+        .from('organizations')
+        .where('id', organizationId)
+        .whereNull('deleted_at')
+        .first())
+    ) {
+      return false
+    }
 
     // 3. Check org_users với role_name = 'org_owner'
-    let query = db
+    const orgOwnerResult: unknown = await client
       .from('organization_users')
       .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
       .where('organization_users.user_id', userId)
       .where('organization_users.organization_id', organizationId)
       .where('organization_roles.name', 'org_owner')
       .where('organization_users.status', 'approved')
-    if (trx) query = query.useTransaction(trx)
+      .first()
 
-    return !!(await query.first())
+    return !!orgOwnerResult
   }
 
   /**
@@ -363,20 +375,22 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     projectId: number,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 2. Check project exists and user is owner
-    let query = db
+    const projectResult: unknown = await client
       .from('projects')
       .where('id', projectId)
       .where('owner_id', userId)
       .whereNull('deleted_at')
-    if (trx) query = query.useTransaction(trx)
+      .first()
 
-    return !!(await query.first())
+    return !!projectResult
   }
 
   /**
@@ -394,30 +408,34 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 2. Get system_role
-    let query = db
+    const queryResult: unknown = await client
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .select('system_roles.name as role_name', 'system_roles.permissions')
-    if (trx) query = query.useTransaction(trx)
+      .first()
 
-    const result = await query.first()
-    if (!result) return false
+    const row = queryResult as { role_name?: string; permissions?: unknown } | null
+    if (!row) return false
 
     // 3. Superadmin → return true
-    if (result.role_name === 'superadmin') return true
+    if (row.role_name === 'superadmin') return true
 
     // 4. Check permissions
-    if (!result.permissions) return false
+    if (!row.permissions) return false
     const permissions =
-      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
+      typeof row.permissions === 'string'
+        ? (JSON.parse(row.permissions) as unknown[])
+        : (row.permissions as unknown[])
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }
@@ -438,33 +456,37 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     permission: string,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 2. Check project exists
-    let projectQuery = db.from('projects').where('id', projectId).whereNull('deleted_at')
-    if (trx) projectQuery = projectQuery.useTransaction(trx)
-    if (!(await projectQuery.first())) return false
+    if (!(await client.from('projects').where('id', projectId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 3. Superadmin → return true
     if (await this.isSystemSuperadmin()) return true
 
     // 4. Check membership và permissions
-    let query = db
+    const queryResult: unknown = await client
       .from('project_members')
       .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
       .where('project_members.user_id', userId)
       .where('project_members.project_id', projectId)
       .select('project_roles.permissions')
-    if (trx) query = query.useTransaction(trx)
+      .first()
 
-    const result = await query.first()
-    if (!result || !result.permissions) return false
+    const row = queryResult as { permissions?: unknown } | null
+    if (!row?.permissions) return false
 
     const permissions =
-      typeof result.permissions === 'string' ? JSON.parse(result.permissions) : result.permissions
+      typeof row.permissions === 'string'
+        ? (JSON.parse(row.permissions) as unknown[])
+        : (row.permissions as unknown[])
 
     return Array.isArray(permissions) && permissions.includes(permission)
   }
@@ -487,38 +509,45 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     taskId: number,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user active (deleted_at IS NULL và status = 'active')
-    let userQuery = db
+    const userActiveResult: unknown = await client
       .from('users')
       .join('user_status', 'users.status_id', 'user_status.id')
       .where('users.id', userId)
       .whereNull('users.deleted_at')
       .where('user_status.name', 'active')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+      .first()
+    if (!userActiveResult) return false
 
     // 2. Get task info
-    let taskQuery = db
+    const taskRaw: unknown = await client
       .from('tasks')
       .where('id', taskId)
       .whereNull('deleted_at')
       .select('project_id', 'organization_id', 'creator_id')
-    if (trx) taskQuery = taskQuery.useTransaction(trx)
-    const task = await taskQuery.first()
-    if (!task || !task.organization_id) return false
+      .first()
+
+    const task = taskRaw as {
+      project_id?: number | null
+      organization_id?: number | null
+      creator_id?: number | null
+    } | null
+    if (!task?.organization_id) return false
 
     // 3. Check superadmin
     if (await this.isSystemSuperadmin()) return true
 
     // 4. Check creator + org member approved
     if (task.creator_id === userId) {
-      let creatorOrgQuery = db
+      const creatorOrgResult: unknown = await client
         .from('organization_users')
         .where('user_id', userId)
         .where('organization_id', task.organization_id)
         .where('status', 'approved')
-      if (trx) creatorOrgQuery = creatorOrgQuery.useTransaction(trx)
-      if (await creatorOrgQuery.first()) return true
+        .first()
+      if (creatorOrgResult) return true
     }
 
     // 5. Check project manager/owner (nếu task thuộc project)
@@ -530,13 +559,13 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     if (await this.isOrgAdminOrOwner(userId, task.organization_id, trx)) return true
 
     // 7. Check active task_assignment
-    let assignmentQuery = db
+    const assignmentResult: unknown = await client
       .from('task_assignments')
       .where('task_id', taskId)
       .where('assignee_id', userId)
       .where('assignment_status', 'active')
-    if (trx) assignmentQuery = assignmentQuery.useTransaction(trx)
-    if (await assignmentQuery.first()) return true
+      .first()
+    if (assignmentResult) return true
 
     return false
   }
@@ -552,19 +581,27 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     taskId: number,
     trx?: TransactionClientContract
   ): Promise<boolean> {
+    const client = trx || db
+
     // 1. Check user exists
-    let userQuery = db.from('users').where('id', userId).whereNull('deleted_at')
-    if (trx) userQuery = userQuery.useTransaction(trx)
-    if (!(await userQuery.first())) return false
+    if (!(await client.from('users').where('id', userId).whereNull('deleted_at').first())) {
+      return false
+    }
 
     // 2. Get task info
-    let taskQuery = db
+    const taskRaw: unknown = await client
       .from('tasks')
       .where('id', taskId)
       .whereNull('deleted_at')
       .select('project_id', 'organization_id', 'creator_id', 'is_public_listing')
-    if (trx) taskQuery = taskQuery.useTransaction(trx)
-    const task = await taskQuery.first()
+      .first()
+
+    const task = taskRaw as {
+      project_id?: number | null
+      organization_id?: number | null
+      creator_id?: number | null
+      is_public_listing?: boolean | null
+    } | null
     if (!task) return false
 
     // 3. Public task → anyone can view
@@ -574,22 +611,24 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     if (await this.isSystemSuperadmin()) return true
 
     // 5. Check org member
-    let orgMemberQuery = db
-      .from('organization_users')
-      .where('user_id', userId)
-      .where('organization_id', task.organization_id)
-      .where('status', 'approved')
-    if (trx) orgMemberQuery = orgMemberQuery.useTransaction(trx)
-    if (await orgMemberQuery.first()) return true
+    if (task.organization_id) {
+      const orgMemberResult: unknown = await client
+        .from('organization_users')
+        .where('user_id', userId)
+        .where('organization_id', task.organization_id)
+        .where('status', 'approved')
+        .first()
+      if (orgMemberResult) return true
+    }
 
     // 6. Check project member
     if (task.project_id) {
-      let projectMemberQuery = db
+      const projectMemberResult: unknown = await client
         .from('project_members')
         .where('user_id', userId)
         .where('project_id', task.project_id)
-      if (trx) projectMemberQuery = projectMemberQuery.useTransaction(trx)
-      if (await projectMemberQuery.first()) return true
+        .first()
+      if (projectMemberResult) return true
     }
 
     return false

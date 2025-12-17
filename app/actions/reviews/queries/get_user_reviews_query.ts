@@ -34,12 +34,13 @@ export default class GetUserReviewsQuery extends BaseQuery<GetUserReviewsDTO, Us
         .where('reviewee_id', dto.user_id)
         .whereIn('status', ['completed', 'disputed'])
         .preload('task_assignment', (assignmentQuery) => {
-          assignmentQuery.preload('task', (taskQuery) => {
-            taskQuery.select(['id', 'title'])
+          void assignmentQuery.preload('task', (taskQuery) => {
+            void taskQuery.select(['id', 'title'])
           })
         })
         .preload('skill_reviews', (reviewQuery) => {
-          reviewQuery.preload('skill').preload('assigned_level')
+          void reviewQuery.preload('skill')
+          void reviewQuery.preload('assigned_level')
         })
         .preload('confirmations')
         .orderBy('completed_at', 'desc')
