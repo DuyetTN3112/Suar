@@ -7,6 +7,7 @@ import { DefaultProjectDependencies } from '../ports/project_external_dependenci
 import { EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import loggerService from '#modules/logger/public_contracts/logger_service'
 import {
@@ -100,6 +101,14 @@ export default class TransferProjectOwnershipCommand {
         isNewOwnerOrgMember,
       })
     )
+
+    const isNewOwnerActive = await DefaultProjectDependencies.user.isActiveUser(
+      dto.new_owner_id,
+      trx
+    )
+    if (!isNewOwnerActive) {
+      throw new BusinessLogicException('Chủ sở hữu mới phải là người dùng active')
+    }
 
     return { project, currentOwnerId }
   }

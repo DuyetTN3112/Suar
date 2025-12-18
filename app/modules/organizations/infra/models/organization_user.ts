@@ -3,10 +3,11 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
 
+import User from '../../../users/infra/models/user.js'
+
 import Organization from './organization.js'
 
 import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
-import User from '#modules/users/infra/models/user'
 
 
 // Class chứa thông tin quan hệ giữa User và Organization

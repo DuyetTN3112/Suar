@@ -76,6 +76,7 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
           projectOwnerId: project.owner_id ?? '',
           projectCreatorId: project.creator_id,
           incompleteTaskCount: taskStats.incompleteTasks,
+          pendingReviewSessionCount: taskStats.pendingReviewSessions,
         })
       )
 

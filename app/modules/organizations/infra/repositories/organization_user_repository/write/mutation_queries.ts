@@ -37,7 +37,13 @@ export const updateStatus = async (
     .where('user_id', userId)
     .update({ status, updated_at: new Date() })
 
-  return Array.isArray(result) ? result.length : Number(result)
+  if (Array.isArray(result)) {
+    if (result.length === 1 && typeof result[0] === 'number') {
+      return result[0]
+    }
+    return result.length
+  }
+  return Number(result)
 }
 
 export const addMember = async (

@@ -6,6 +6,7 @@ import { DefaultOrganizationDependencies } from '../ports/organization_external_
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
 import NotFoundException from '#modules/http/exceptions/not_found_exception'
 import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
 import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
@@ -69,6 +70,11 @@ export default class SwitchOrganizationCommand {
 
       if (!user) {
         throw NotFoundException.resource('Người dùng', userId)
+      }
+
+      const isActiveUser = await DefaultOrganizationDependencies.user.isActiveUser(userId, trx)
+      if (!isActiveUser) {
+        throw new ForbiddenException('Suspended users cannot switch organization')
       }
 
       enforcePolicy(canSwitchOrganization(actorOrgRole))

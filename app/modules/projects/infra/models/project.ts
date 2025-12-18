@@ -3,12 +3,14 @@ import type { BelongsTo, HasMany, ManyToMany } from '@adonisjs/lucid/types/relat
 import { DateTime } from 'luxon'
 
 
+
+import Organization from '../../../organizations/infra/models/organization.js'
+import Task from '../../../tasks/infra/models/task.js'
+import User from '../../../users/infra/models/user.js'
+
 import ProjectMember from './project_member.js'
 
-import Organization from '#modules/organizations/infra/models/organization'
 import type { ProjectCustomRoleDefinition as CustomRoleDefinition } from '#modules/projects/types/custom_role_definition'
-import Task from '#modules/tasks/infra/models/task'
-import User from '#modules/users/infra/models/user'
 
 export default class Project extends BaseModel {
   static override table = 'projects'
