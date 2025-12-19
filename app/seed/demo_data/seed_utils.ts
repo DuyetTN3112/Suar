@@ -1,14 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import mongoose from 'mongoose'
 
 import type { SeedRow, SeedWhereValue } from './types.js'
-
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import MongoNotification from '#modules/notifications/infra/models/notification'
-import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
-import env from '#start/env'
-
 
 export type SeedQuery = ReturnType<TransactionClientContract['from']>
 
@@ -31,7 +24,10 @@ export async function findRow<T extends SeedRow = SeedRow>(
   return (await applyWhere(trx.from(table), where).first()) as T | null
 }
 
-export async function deleteTableIfExists(trx: TransactionClientContract, table: string): Promise<void> {
+export async function deleteTableIfExists(
+  trx: TransactionClientContract,
+  table: string
+): Promise<void> {
   const exists = (await trx
     .from('information_schema.tables')
     .where('table_schema', 'public')
@@ -49,6 +45,7 @@ export async function resetPostgres(trx: TransactionClientContract): Promise<voi
   const tables = [
     'flagged_reviews',
     'reverse_reviews',
+    'skill_review_evidence_links',
     'skill_reviews',
     'review_evidences',
     'task_self_assessments',
@@ -61,6 +58,8 @@ export async function resetPostgres(trx: TransactionClientContract): Promise<voi
     'recruiter_bookmarks',
     'user_subscriptions',
     'messages',
+    'task_requirement_version_items',
+    'task_requirement_versions',
     'task_required_skills',
     'task_versions',
     'task_assignments',
@@ -70,11 +69,21 @@ export async function resetPostgres(trx: TransactionClientContract): Promise<voi
     'tasks',
     'task_workflow_transitions',
     'task_statuses',
+    'project_professional_role_skills',
+    'project_professional_roles',
+    'professional_role_template_skills',
+    'professional_role_templates',
+    'project_skills',
+    'skill_rubric_levels',
+    'skill_rubric_versions',
+    'skill_aliases',
     'organization_users',
     'projects',
     'organizations',
     'user_oauth_providers',
     'skills',
+    'proficiency_levels',
+    'proficiency_scales',
     'remember_me_tokens',
     'users',
   ]
@@ -84,46 +93,6 @@ export async function resetPostgres(trx: TransactionClientContract): Promise<voi
   }
 }
 
-export async function resetMongo(): Promise<void> {
-  if (!env.get('MONGODB_URL', '')) {
-    return
-  }
-
-  await Promise.all([
-    MongoNotification.deleteMany({}),
-    MongoAuditLogModel.deleteMany({}),
-    MongoUserActivityLog.deleteMany({}),
-  ])
-}
-
-export async function ensureMongoConnection(): Promise<void> {
-  const mongoUrl = env.get('MONGODB_URL', '')
-  if (!mongoUrl) {
-    return
-  }
-
-  const connection = mongoose.connection
-  const readyState = connection.readyState as 0 | 1 | 2 | 3
-
-  if (readyState === 1) {
-    return
-  }
-
-  if (readyState === 2) {
-    await connection.asPromise()
-    return
-  }
-
-  await mongoose.connect(mongoUrl)
-}
-
 export async function closeSeedConnections(): Promise<void> {
-  const connection = mongoose.connection
-  const readyState = connection.readyState as 0 | 1 | 2 | 3
-
-  if (readyState === 1 || readyState === 2) {
-    await mongoose.disconnect()
-  }
-
   await db.manager.closeAll()
 }
