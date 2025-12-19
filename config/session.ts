@@ -4,7 +4,7 @@ import { defineConfig, stores } from '@adonisjs/session'
 import env from '#start/env'
 
 export default defineConfig({
-  age: '2h',
+  age: '30d',
   enabled: true,
   cookieName: 'adonis-session',
   clearWithBrowser: false,

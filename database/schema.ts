@@ -7,6 +7,132 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class AiDisputeEvaluationSchema extends BaseModel {
+  static $columns = ['caseFileId', 'completedAt', 'confidenceScore', 'createdAt', 'disputeId', 'errorMessage', 'externalRunId', 'id', 'provider', 'recommendation', 'requestPayload', 'responsePayload', 'status', 'summary'] as const
+  $columns = AiDisputeEvaluationSchema.$columns
+  @column()
+  declare caseFileId: string
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare confidenceScore: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disputeId: string
+  @column()
+  declare errorMessage: string | null
+  @column()
+  declare externalRunId: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare provider: string
+  @column()
+  declare recommendation: string | null
+  @column()
+  declare requestPayload: any
+  @column()
+  declare responsePayload: any
+  @column()
+  declare status: string
+  @column()
+  declare summary: string | null
+}
+
+export class AiDisputeFeedbackSchema extends BaseModel {
+  static $columns = ['adminId', 'adminNotes', 'aiCorrectPoints', 'aiEvaluationId', 'aiMissedPoints', 'aiWasHelpful', 'createdAt', 'disputeId', 'feedbackType', 'finalDecision', 'finalRationale', 'id'] as const
+  $columns = AiDisputeFeedbackSchema.$columns
+  @column()
+  declare adminId: string
+  @column()
+  declare adminNotes: string | null
+  @column()
+  declare aiCorrectPoints: any
+  @column()
+  declare aiEvaluationId: string
+  @column()
+  declare aiMissedPoints: any
+  @column()
+  declare aiWasHelpful: boolean
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disputeId: string
+  @column()
+  declare feedbackType: string
+  @column()
+  declare finalDecision: string
+  @column()
+  declare finalRationale: string
+  @column({ isPrimary: true })
+  declare id: string
+}
+
+export class AuditEventSchema extends BaseModel {
+  static $columns = ['action', 'createdAt', 'entityId', 'entityType', 'id', 'ipAddress', 'newValues', 'occurredAt', 'oldValues', 'userAgent', 'userId'] as const
+  $columns = AuditEventSchema.$columns
+  @column()
+  declare action: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare entityId: string | null
+  @column()
+  declare entityType: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare ipAddress: string | null
+  @column()
+  declare newValues: any | null
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare oldValues: any | null
+  @column()
+  declare userAgent: string | null
+  @column()
+  declare userId: string | null
+}
+
+export class ErrorEventSchema extends BaseModel {
+  static $columns = ['actorOrgId', 'actorUserId', 'code', 'correlationId', 'createdAt', 'details', 'id', 'ipAddress', 'message', 'method', 'requestId', 'safeMessage', 'severity', 'status', 'url', 'userAgent'] as const
+  $columns = ErrorEventSchema.$columns
+  @column()
+  declare actorOrgId: string | null
+  @column()
+  declare actorUserId: string | null
+  @column()
+  declare code: string
+  @column()
+  declare correlationId: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare details: any | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare ipAddress: string | null
+  @column()
+  declare message: string
+  @column()
+  declare method: string | null
+  @column()
+  declare requestId: string | null
+  @column()
+  declare safeMessage: string | null
+  @column()
+  declare severity: string
+  @column()
+  declare status: number
+  @column()
+  declare url: string | null
+  @column()
+  declare userAgent: string | null
+}
+
 export class FlaggedReviewSchema extends BaseModel {
   static $columns = ['createdAt', 'detectedAt', 'flagType', 'id', 'notes', 'reviewedAt', 'reviewedBy', 'severity', 'skillReviewId', 'status', 'updatedAt'] as const
   $columns = FlaggedReviewSchema.$columns
@@ -32,6 +158,35 @@ export class FlaggedReviewSchema extends BaseModel {
   declare status: string
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+}
+
+export class NotificationSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'isRead', 'message', 'metadata', 'readAt', 'relatedEntityId', 'relatedEntityType', 'title', 'type', 'updatedAt', 'userId'] as const
+  $columns = NotificationSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isRead: boolean
+  @column()
+  declare message: string
+  @column()
+  declare metadata: any | null
+  @column.dateTime()
+  declare readAt: DateTime | null
+  @column()
+  declare relatedEntityId: string | null
+  @column()
+  declare relatedEntityType: string | null
+  @column()
+  declare title: string
+  @column()
+  declare type: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare userId: string
 }
 
 export class OrganizationUserSchema extends BaseModel {

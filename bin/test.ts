@@ -1,11 +1,22 @@
+import 'reflect-metadata'
+import { authApiClient } from '@adonisjs/auth/plugins/api_client'
 import { Ignitor, prettyPrintError } from '@adonisjs/core'
+import { sessionApiClient } from '@adonisjs/session/plugins/api_client'
+import { apiClient } from '@japa/api-client'
 import { assert } from '@japa/assert'
 import { fileSystem } from '@japa/file-system'
+import { pluginAdonisJS } from '@japa/plugin-adonisjs'
 import { configure, processCLIArgs, run } from '@japa/runner'
 import { SpecReporter } from '@japa/spec-reporter'
 
+import {
+  applyTestDatastoreOverrides,
+  assertSafeTestDatastores,
+} from '../tests/helpers/test_datastore_guard.js'
+
 process.env.NODE_ENV = 'test'
 process.env.LOG_LEVEL = 'silent'
+process.env.SESSION_DRIVER = 'memory'
 
 /**
  * URL to the application root. AdonisJS need it to resolve
@@ -30,7 +41,7 @@ const createSpecReporter = (...args: Parameters<SpecReporter['boot']>) => {
   reporter.boot(...args)
 }
 
-const KNOWN_SUITES = new Set(['unit', 'integration'])
+const KNOWN_SUITES = new Set(['unit', 'integration', 'contract'])
 
 const parseRequestedSuites = (argv: string[]): Set<string> | null => {
   const requestedSuites = new Set<string>()
@@ -143,6 +154,18 @@ const runWithFilteredJapaProcessListeners = async <T>(callback: () => Promise<T>
 }
 
 try {
+  const cliArgs = process.argv.slice(2)
+  const requestedSuites = parseRequestedSuites(cliArgs)
+  const shouldStartRuntimeProviders =
+    requestedSuites === null ||
+    requestedSuites.has('integration') ||
+    requestedSuites.has('contract')
+
+  if (shouldStartRuntimeProviders) {
+    applyTestDatastoreOverrides()
+    await assertSafeTestDatastores()
+  }
+
   const ignitor = new Ignitor(APP_ROOT, { importer: IMPORTER })
 
   /**
@@ -156,19 +179,23 @@ try {
     app.listenIf(app.managedByPm2, 'SIGINT', () => void app.terminate())
   })
 
-  const app = ignitor.createApp('console')
+  const app = ignitor.createApp('web')
   await app.init()
   await app.boot()
-
-  const cliArgs = process.argv.slice(2)
-  const requestedSuites = parseRequestedSuites(cliArgs)
-  const shouldStartRuntimeProviders = requestedSuites === null || requestedSuites.has('integration')
-
   let runtimeStarted = false
   if (shouldStartRuntimeProviders) {
     await app.start(() => undefined)
     runtimeStarted = true
   }
+
+  const server = await app.container.make('server')
+  await server.boot()
+
+  const routerService = await app.container.make('router')
+  routerService.commit()
+  const routerJson = routerService.toJSON()
+  const rootRoutesCount = routerJson.root ? routerJson.root.length : 0
+  console.log('bin/test.ts router routes compiled: domains =', Object.keys(routerJson).length, 'root routes =', rootRoutesCount)
 
   try {
     /**
@@ -195,8 +222,12 @@ try {
           name: 'integration',
           files: ['tests/integration/**/*.spec.ts'],
         },
+        {
+          name: 'contract',
+          files: ['tests/contract/**/*.ts'],
+        },
       ],
-      plugins: [assert(), fileSystem()],
+      plugins: [assert(), fileSystem(), apiClient('http://localhost:3333'), pluginAdonisJS(app), sessionApiClient(app), authApiClient(app)],
       reporters: {
         activated: ['spec'],
         list: [
@@ -206,7 +237,7 @@ try {
           },
         ],
       },
-      forceExit: false,
+      forceExit: true,
       importer: IMPORTER,
     })
 
