@@ -233,6 +233,12 @@ export default configApp(
 
   {
     files: ['tests/**/*.ts'],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.json', './inertia/tsconfig.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+    },
     rules: {
       'no-console': 'off',
     },
@@ -307,6 +313,32 @@ export default configApp(
           caughtErrorsIgnorePattern: '^_',
         },
       ],
+    },
+  },
+
+  {
+    files: [
+      'inertia/components/confirm_dialog.svelte',
+      'inertia/components/ui/dialog.svelte',
+      'inertia/components/ui/alert_dialog.svelte',
+      'inertia/components/ui/sheet.svelte',
+      'inertia/components/ui/select.svelte',
+      'inertia/components/ui/skill_search_combobox.svelte',
+      'inertia/components/ui/checkbox.svelte',
+      'inertia/components/ui/collapsible.svelte',
+      'inertia/components/ui/dropdown_menu.svelte',
+      'inertia/components/ui/radio_group.svelte',
+      'inertia/components/ui/switch.svelte',
+      'inertia/components/ui/input.svelte',
+      'inertia/components/ui/popover.svelte',
+      'inertia/components/ui/command_input.svelte',
+      'inertia/components/ui/textarea.svelte',
+      'inertia/components/ui/level_range_selector.svelte',
+      'inertia/components/layout/control_sidebar.svelte',
+      'inertia/pages/tasks/components/modals/task_status_management_dialogs.svelte',
+    ],
+    rules: {
+      'prefer-const': 'off',
     },
   },
 

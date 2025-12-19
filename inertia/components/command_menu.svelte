@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { ArrowRightIcon } from 'lucide-svelte'
 
   import { mainNavigation } from '@/components/navigation.svelte'
@@ -15,9 +15,28 @@
   import { useSearch } from '@/stores/search.svelte'
   import { useTheme } from '@/stores/theme.svelte'
 
-  const sidebarData = {
-    navGroups: mainNavigation,
+  type NavGroups = typeof mainNavigation
+
+  function filterNavigationByRole(role: string | null): NavGroups {
+    const canRecruit = role === 'org_owner' || role === 'org_admin'
+
+    return mainNavigation.map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        if (!('url' in item)) return true
+        if (item.url === '/marketplace/talents' || item.url === '/marketplace/bookmarks') {
+          return canRecruit
+        }
+        return true
+      }),
+    }))
   }
+
+  const currentOrgRole = $derived(
+    (page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props
+      .auth?.user?.current_organization_role ?? null
+  )
+  const navGroups = $derived(filterNavigationByRole(currentOrgRole))
 
   const { setTheme } = useTheme()
   const search = useSearch()
@@ -39,6 +58,10 @@
     command()
   }
 
+  function getItemUrl(item: { url?: string }): string {
+    return typeof item.url === 'string' ? item.url : '/'
+  }
+
   function handleDialogOpenChange(open: boolean) {
     if (open) {
       search.open()
@@ -58,16 +81,15 @@
   <CommandList>
     <ScrollArea class="h-72 pr-1">
       <CommandEmpty>Không tìm thấy kết quả.</CommandEmpty>
-      {#each sidebarData.navGroups as group}
+      {#each navGroups as group}
         <CommandGroup heading={group.title}>
           {#each group.items as navItem}
             {#if navItem.url}
               <CommandItem
                 value={navItem.title}
                 onSelect={() => {
-                  const targetUrl = navItem.url
                   runCommand(() => {
-                    router.visit(targetUrl, {
+                    router.visit(getItemUrl(navItem), {
                       preserveState: true,
                       preserveScroll: true
                     })
@@ -84,9 +106,8 @@
                 <CommandItem
                   value={subItem.title}
                   onSelect={() => {
-                    const targetUrl = subItem.url
                     runCommand(() => {
-                      router.visit(targetUrl, {
+                      router.visit(getItemUrl(subItem), {
                         preserveState: true,
                         preserveScroll: true
                       })
