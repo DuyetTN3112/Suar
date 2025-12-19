@@ -3,6 +3,8 @@ import { ExceptionHandler } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
+import Youch from 'youch'
+import YouchTerminal from 'youch-terminal'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -32,7 +34,93 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * response to the client
    */
   override async handle(error: unknown, ctx: HttpContext) {
-    const { request, response, session, inertia } = ctx
+    const { request, response, session, inertia, auth } = ctx
+
+    // Nếu ở development mode và có lỗi thực sự, hiển thị với Youch
+    if (!app.inProduction && error instanceof Error) {
+      // Kiểm tra nếu là API request hoặc không phải Inertia request
+      const isApiRequest = request.url().startsWith('/api/')
+      const isInertiaRequest = request.header('X-Inertia')
+
+      if (!isInertiaRequest || isApiRequest) {
+        const youch = new Youch(error, request.request)
+
+        // Thêm metadata về request
+        youch.group('Request', {
+          info: [
+            { key: 'URL', value: request.url() },
+            { key: 'Method', value: request.method() },
+            { key: 'IP', value: request.ip() },
+            { key: 'User Agent', value: request.header('user-agent') || 'N/A' },
+          ],
+        })
+
+        // Thêm headers
+        const headers = request.headers()
+        youch.group('Request', {
+          headers: Object.entries(headers).map(([key, value]) => ({
+            key,
+            value: String(value),
+          })),
+        })
+
+        // Thêm query params nếu có
+        const queryParams = request.qs()
+        if (Object.keys(queryParams).length > 0) {
+          youch.group('Request', {
+            queryParams: Object.entries(queryParams).map(([key, value]) => ({
+              key,
+              value: JSON.stringify(value),
+            })),
+          })
+        }
+
+        // Thêm body nếu có (và không phải file upload)
+        const body = request.all()
+        if (Object.keys(body).length > 0) {
+          youch.group('Request', {
+            body: Object.entries(body)
+              .filter(([key]) => !key.toLowerCase().includes('password'))
+              .map(([key, value]) => ({
+                key,
+                value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+              })),
+          })
+        }
+
+        // Thêm thông tin user nếu đã đăng nhập
+        if (auth.user) {
+          youch.group('Auth', {
+            user: [
+              { key: 'ID', value: String(auth.user.id) },
+              { key: 'Email', value: auth.user.email },
+              { key: 'Name', value: auth.user.fullName || 'N/A' },
+            ],
+          })
+        }
+
+        // Thêm session data
+        if (session) {
+          const sessionData = session.all()
+          if (Object.keys(sessionData).length > 0) {
+            youch.group('Session', {
+              data: Object.entries(sessionData)
+                .filter(([key]) => !key.includes('_token') && !key.includes('password'))
+                .map(([key, value]) => ({
+                  key,
+                  value: typeof value === 'object' ? JSON.stringify(value) : String(value),
+                })),
+            })
+          }
+        }
+
+        const html = await youch.toHTML({
+          title: error.message,
+          ide: process.env.IDE || process.env.EDITOR || 'vscode',
+        })
+        return response.status(500).header('content-type', 'text/html').send(html)
+      }
+    }
 
     // Xử lý lỗi token CSRF hết hạn
     if (typeof error === 'object' && error !== null && 'status' in error && error.status === 419) {
@@ -65,6 +153,13 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * Report error to logging service or other monitoring tools
    */
   override async report(error: unknown, ctx: HttpContext) {
+    // In lỗi đẹp ra terminal trong development mode
+    if (!app.inProduction && error instanceof Error) {
+      const youch = new Youch(error, ctx.request.request)
+      const output = await youch.toJSON()
+      console.log(YouchTerminal(output))
+    }
+
     return super.report(error, ctx)
   }
 }
