@@ -18,7 +18,7 @@ export function getErrorMessage(error: unknown, fallbackMessage = 'Có lỗi x�
   }
 
   if (error && typeof error === 'object' && 'message' in error) {
-    const message = (error as { message: unknown }).message
+    const message = (error).message
     if (typeof message === 'string') {
       return message
     }
@@ -33,7 +33,7 @@ export function getErrorCode(error: unknown): string | undefined {
   }
 
   if (error && typeof error === 'object' && 'code' in error) {
-    const code = (error as { code: unknown }).code
+    const code = (error).code
     if (typeof code === 'string') {
       return code
     }
@@ -50,12 +50,12 @@ export function getErrorStatusCode(error: unknown, fallbackStatus = 500): number
   if (error && typeof error === 'object') {
     if (
       'statusCode' in error &&
-      typeof (error as { statusCode: unknown }).statusCode === 'number'
+      typeof (error).statusCode === 'number'
     ) {
       return (error as { statusCode: number }).statusCode
     }
 
-    if ('status' in error && typeof (error as { status: unknown }).status === 'number') {
+    if ('status' in error && typeof (error).status === 'number') {
       return (error as { status: number }).status
     }
   }
