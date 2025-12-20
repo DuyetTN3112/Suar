@@ -1,25 +1,12 @@
-<!--
-  AlertDialogTitle Component - Svelte 5
--->
-
 <script lang="ts">
-  import { AlertDialog as AlertDialogPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
-
-  interface Props {
-    class?: string
-    children?: Snippet
-  }
-
+  import { cn } from "$lib/utils-svelte"
+  type Props = HTMLAttributes<HTMLHeadingElement> & { class?: string; children?: Snippet }
   const { class: className, children, ...restProps }: Props = $props()
 </script>
 
-<AlertDialogPrimitive.Title
-  data-slot="alert-dialog-title"
-  class={cn('text-lg font-semibold', className)}
-  {...restProps}
->
+<h2 class={cn("text-lg font-semibold", className)} {...restProps}>
   {@render children?.()}
-</AlertDialogPrimitive.Title>
+</h2>
