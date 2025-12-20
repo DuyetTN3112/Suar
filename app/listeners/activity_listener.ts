@@ -1,14 +1,16 @@
 import emitter from '@adonisjs/core/services/emitter'
 
+import { auditPublicApi } from '#actions/audit/public_api'
+import { userActivityPublicApi } from '#actions/user_activity/public_api'
 import type { UserLoginEvent, UserLogoutEvent } from '#events/event_types'
 import loggerService from '#infra/logger/logger_service'
-import { RepositoryFactory } from '#infra/shared/repositories/index'
+import type { ExecutionContext } from '#types/execution_context'
 
 /**
  * Activity Listener — Sprint 7
  *
  * Handles user login/logout events:
- *   1. Creates audit log entry via repository
+ *   1. Creates audit log entry via public API
  *   2. Updates user.last_login_at on login
  *   3. Logs activity to user_activity_logs for analytics
  */
@@ -17,20 +19,23 @@ import { RepositoryFactory } from '#infra/shared/repositories/index'
 emitter.on('user:login', async (event: UserLoginEvent) => {
   try {
     // 1. Audit log
-    const auditRepo = await RepositoryFactory.getAuditLogRepository()
-    await auditRepo.create({
-      user_id: event.userId,
+    const execCtx: ExecutionContext = {
+      userId: event.userId,
+      ip: event.ip,
+      userAgent: event.userAgent,
+      organizationId: null,
+    }
+
+    await auditPublicApi.write(execCtx, {
       action: 'login',
       entity_type: 'user',
       entity_id: event.userId,
-      ip_address: event.ip,
-      user_agent: event.userAgent,
+      user_id: event.userId,
       new_values: { method: event.method },
     })
 
     // 2. Activity log
-    const activityRepo = await RepositoryFactory.getUserActivityLogRepository()
-    await activityRepo.create({
+    await userActivityPublicApi.create({
       user_id: event.userId,
       action_type: 'login',
       action_data: { method: event.method },
@@ -53,17 +58,21 @@ emitter.on('user:login', async (event: UserLoginEvent) => {
 // === User Logout ===
 emitter.on('user:logout', async (event: UserLogoutEvent) => {
   try {
-    const auditRepo = await RepositoryFactory.getAuditLogRepository()
-    await auditRepo.create({
-      user_id: event.userId,
+    const execCtx: ExecutionContext = {
+      userId: event.userId,
+      ip: event.ip,
+      userAgent: '',
+      organizationId: null,
+    }
+
+    await auditPublicApi.write(execCtx, {
       action: 'logout',
       entity_type: 'user',
       entity_id: event.userId,
-      ip_address: event.ip,
+      user_id: event.userId,
     })
 
-    const activityRepo = await RepositoryFactory.getUserActivityLogRepository()
-    await activityRepo.create({
+    await userActivityPublicApi.create({
       user_id: event.userId,
       action_type: 'logout',
       ip_address: event.ip,
