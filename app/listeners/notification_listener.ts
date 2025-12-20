@@ -1,5 +1,6 @@
 import emitter from '@adonisjs/core/services/emitter'
 
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import {
   BACKEND_NOTIFICATION_ENTITY_TYPES,
   BACKEND_NOTIFICATION_TYPES,
@@ -9,22 +10,19 @@ import type {
   TaskApplicationReviewedEvent,
 } from '#events/event_types'
 import loggerService from '#infra/logger/logger_service'
-import { RepositoryFactory } from '#infra/shared/repositories/index'
 
 /**
  * Notification Listener — Sprint 7
  *
  * Creates notifications for task application events.
- * Uses NotificationRepository (mysql/mongodb/both via RepositoryFactory).
+ * Uses the notifications public API.
  */
 
 // === Task Application Submitted ===
 // Notify the project owner when someone applies to a task
 emitter.on('task:application:submitted', async (event: TaskApplicationSubmittedEvent) => {
   try {
-    const repo = await RepositoryFactory.getNotificationRepository()
-
-    await repo.create({
+    await notificationPublicApi.create({
       user_id: event.ownerId,
       title: 'Yêu cầu tham gia task mới',
       message: `Có người đã đăng ký tham gia task của bạn.`,
@@ -50,15 +48,13 @@ emitter.on('task:application:submitted', async (event: TaskApplicationSubmittedE
 // Notify the applicant when their application is approved/rejected
 emitter.on('task:application:reviewed', async (event: TaskApplicationReviewedEvent) => {
   try {
-    const repo = await RepositoryFactory.getNotificationRepository()
-
     const isApproved = event.status === 'approved'
     const title = isApproved ? 'Yêu cầu được chấp nhận' : 'Yêu cầu bị từ chối'
     const message = isApproved
       ? 'Yêu cầu tham gia task của bạn đã được chấp nhận.'
       : 'Yêu cầu tham gia task của bạn đã bị từ chối.'
 
-    await repo.create({
+    await notificationPublicApi.create({
       user_id: event.applicantId,
       title,
       message,
