@@ -9,14 +9,14 @@ import loggerService from '#infra/logger/logger_service'
  * Thay thế MySQL stored procedure: log_audit()
  * Pattern: Event-driven, non-blocking, fire-and-forget
  *
- * Uses Repository Pattern (Sprint 5):
- *   - RepositoryFactory resolves implementation based on env var AUDIT_STORAGE
- *   - Supports mysql | mongodb | both (DualWrite)
+ * Uses the audit module repository provider.
  */
 emitter.on('audit:log', async (event: AuditLogEvent) => {
   try {
-    const { RepositoryFactory } = await import('#infra/shared/repositories/index')
-    const repo = await RepositoryFactory.getAuditLogRepository()
+    const { auditRepositoryProvider } = await import(
+      '#infra/audit/repositories/audit_repository_provider'
+    )
+    const repo = auditRepositoryProvider.getAuditLogRepository()
 
     await repo.create({
       user_id: event.userId,
