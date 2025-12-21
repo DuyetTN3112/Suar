@@ -24,41 +24,27 @@
         warning:     "border-orange/40 bg-orange-06 text-foreground",
       },
     },
+    defaultVariants: { variant: "default" },
   })
-
   export type BadgeVariants = VariantProps<typeof badgeVariants>
 </script>
 
 <script lang="ts">
-  import type { HTMLAttributes } from 'svelte/elements'
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  type Props = HTMLAttributes<HTMLSpanElement> & Omit<BadgeVariants, 'variant'> & {
-    variant?: string
+  type Props = HTMLAttributes<HTMLSpanElement> & {
+    variant?: BadgeVariants["variant"]
     class?: string
   }
 
-  const {
-    class: className,
-    variant = 'default',
-    children,
-    ...restProps
-  }: Props = $props()
-
-  const safeVariant = $derived(
-    variant === 'secondary' ||
-      variant === 'destructive' ||
-      variant === 'outline' ||
-      variant === 'default'
-      ? variant
-      : 'default'
-  )
+  const { class: className, variant = "default", children, ...restProps }: Props = $props()
 </script>
 
 <span
   data-slot="badge"
-  class={cn(badgeVariants({ variant: safeVariant }), className)}
+  class={cn(badgeVariants({ variant }), className)}
   {...restProps}
 >
   {@render children?.()}

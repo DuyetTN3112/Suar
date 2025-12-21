@@ -1,16 +1,20 @@
 <script lang="ts">
-  import { Collapsible as CollapsiblePrimitive, type CollapsibleContentProps } from 'bits-ui'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  type Props = CollapsibleContentProps
+  import { cn } from "$lib/utils-svelte"
 
-  const props: Props = $props()
-  const children = $derived(props.children)
-  const restProps = $derived.by(() => {
-    const { children: _children, ...rest } = props
-    return rest
-  })
+  type Props = HTMLAttributes<HTMLDivElement> & {
+    class?: string
+    children?: Snippet
+    open?: boolean
+  }
+
+  const { class: className, children, open = false, ...restProps }: Props = $props()
 </script>
 
-<CollapsiblePrimitive.Content data-slot="collapsible-content" {...restProps}>
+{#if open}
+<div class={cn(className)} {...restProps}>
   {@render children?.()}
-</CollapsiblePrimitive.Content>
+</div>
+{/if}
