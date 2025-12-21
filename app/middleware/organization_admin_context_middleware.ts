@@ -1,9 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
+import { organizationPublicApi } from '#actions/organizations/public_api'
 import { canAccessOrganizationAdminShell } from '#domain/organizations/org_permission_policy'
 import type { OrgRole } from '#domain/organizations/org_types'
-import OrganizationUserRepository from '#infra/organizations/repositories/organization_user_repository'
 
 /**
  * OrganizationAdminContextMiddleware
@@ -45,10 +45,7 @@ export default class OrganizationAdminContextMiddleware {
     const currentOrgId = user?.current_organization_id
 
     if (currentOrgId) {
-      const membershipContext = await OrganizationUserRepository.getMembershipContext(
-        currentOrgId,
-        user.id
-      )
+      const membershipContext = await organizationPublicApi.getMembershipContext(currentOrgId, user.id)
       orgRole = membershipContext?.role ?? null
 
       if (orgRole) {
