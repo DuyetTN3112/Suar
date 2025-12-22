@@ -1,14 +1,7 @@
 <script lang="ts">
-  import { router, Link  } from '@inertiajs/svelte'
+  import { Link, router } from '@inertiajs/svelte'
+  import { Search } from 'lucide-svelte'
 
-  import Button from '@/components/ui/button.svelte'
-  import Card from '@/components/ui/card.svelte'
-  import CardContent from '@/components/ui/card_content.svelte'
-  import CardDescription from '@/components/ui/card_description.svelte'
-  import CardHeader from '@/components/ui/card_header.svelte'
-  import CardTitle from '@/components/ui/card_title.svelte'
-  import Input from '@/components/ui/input.svelte'
-  
   interface User {
     id: string
     username: string
@@ -34,24 +27,51 @@
   }
 
   const { users, meta, filters }: Props = $props()
+
   let searchValue = $state('')
+  let systemRoleValue = $state('')
+  let statusValue = $state('')
+
+  const pageFrom = $derived(meta.total > 0 ? (meta.currentPage - 1) * meta.perPage + 1 : 0)
+  const pageTo = $derived(Math.min(meta.currentPage * meta.perPage, meta.total))
 
   $effect(() => {
     searchValue = filters.search ?? ''
+    systemRoleValue = filters.systemRole ?? ''
+    statusValue = filters.status ?? ''
   })
 
-  function handleSearch(event: SubmitEvent) {
-    event.preventDefault()
+  function handleSearch(event?: SubmitEvent) {
+    event?.preventDefault()
     router.get(
       '/admin/users',
       {
         search: searchValue || undefined,
+        system_role: systemRoleValue || undefined,
+        status: statusValue || undefined,
+        page: 1,
       },
       {
         preserveState: true,
         preserveScroll: true,
       }
     )
+  }
+
+  function pageHref(page: number): string {
+    const params = new URLSearchParams()
+    if (searchValue) params.set('search', searchValue)
+    if (systemRoleValue) params.set('system_role', systemRoleValue)
+    if (statusValue) params.set('status', statusValue)
+    params.set('page', String(page))
+    return `/admin/users?${params.toString()}`
+  }
+
+  function goToPage(page: number) {
+    router.visit(pageHref(page), {
+      preserveScroll: true,
+      preserveState: true,
+    })
   }
 
   function roleLabel(role: string): string {
@@ -79,13 +99,6 @@
   }
 
   function roleClass(role: string): string {
-    switch (role) {
-      case 'superadmin':
-        return 'neo-pill-magenta'
-      case 'system_admin':
-        return 'neo-pill-orange'
-      default:
-        return 'neo-pill-soft'
     }
   }
 
