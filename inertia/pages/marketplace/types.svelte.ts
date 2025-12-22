@@ -52,7 +52,15 @@ export interface MarketplaceTask {
   due_date?: string | null
   application_deadline?: string | null
   estimated_budget?: number | null
-  task_visibility: 'external' | 'all'
+  task_visibility: 'internal' | 'external' | 'all'
+  match_score?: number
+  acceptance_criteria?: string | null
+  verification_method?: string | null
+  context_background?: string | null
+  role_in_task?: string | null
+  business_domain?: string | null
+  tech_stack?: string[]
+  domain_tags?: string[]
   created_at: string
   updated_at?: string
   parent_task_id?: string | null
@@ -63,6 +71,10 @@ export interface MarketplaceTask {
   required_skills_rel?: SerializedRequiredSkill[]
   /** Count of current user's applications (0 = not applied, >0 = applied) */
   user_applied?: number
+  current_user_application?: {
+    id: string
+    status: 'pending' | 'approved' | 'rejected'
+  }
   [key: string]: unknown
 }
 
@@ -79,7 +91,7 @@ export interface MarketplaceFilters {
   difficulty?: string | null
   min_budget?: number | null
   max_budget?: number | null
-  sort_by: 'created_at' | 'budget' | 'due_date'
+  sort_by: 'created_at' | 'due_date'
   sort_order: 'asc' | 'desc'
 }
 
@@ -94,16 +106,15 @@ export interface MarketplaceTasksProps {
 
 export const DIFFICULTY_CONFIG: Record<
   TaskDifficulty,
-  { label: string; labelVi: string; color: string }
+  { label: string; labelVi: string; marker: string }
 > = {
-  easy: { label: 'Easy', labelVi: 'Dễ', color: 'bg-blue-100 text-blue-800' },
-  medium: { label: 'Medium', labelVi: 'Trung bình', color: 'bg-fuchsia-100 text-fuchsia-800' },
-  hard: { label: 'Hard', labelVi: 'Khó', color: 'bg-orange-100 text-orange-800' },
-  expert: { label: 'Expert', labelVi: 'Chuyên gia', color: 'bg-red-100 text-red-800' },
+  easy: { label: 'Easy', labelVi: 'Cơ bản', marker: '◇' },
+  medium: { label: 'Medium', labelVi: 'Trung bình', marker: '◆' },
+  hard: { label: 'Hard', labelVi: 'Nâng cao', marker: '◆◆' },
+  expert: { label: 'Expert', labelVi: 'Chuyên gia', marker: '◆◆◆' },
 }
 
 export const SORT_OPTIONS = [
   { value: 'created_at', label: 'Mới nhất' },
-  { value: 'budget', label: 'Ngân sách' },
   { value: 'due_date', label: 'Hạn chót' },
 ] as const
