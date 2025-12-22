@@ -96,11 +96,11 @@
 <div class="space-y-6">
   <div class="flex items-end justify-between gap-4">
     <div>
-      <p class="neo-kicker">Admin / Subscription Dashboard</p>
+      <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Subscription Dashboard</p>
       <h1 class="text-4xl font-bold tracking-tight">Dashboard gói đăng ký</h1>
       <p class="mt-2 text-sm text-muted-foreground">Theo dõi adoption của gói theo user account để phát hiện rủi ro churn và cơ hội upsell.</p>
     </div>
-    <a href="/admin/packages" class="neo-surface-soft px-4 py-2 text-sm font-bold">
+    <a href="/admin/packages" class="border border-border rounded-lg px-4 py-2 bg-white text-sm font-medium">
       Mở màn quản lý gói
     </a>
   </div>
@@ -124,22 +124,22 @@
       subtitle="Phan bo subscription theo plan"
       segments={planDistribution}
     />
-    <div class="neo-surface-soft p-5">
-      <h2 class="neo-kicker">Core KPIs</h2>
+    <div class="border border-border rounded-lg p-5 bg-white">
+      <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Core KPIs</h2>
       <dl class="mt-4 grid gap-3 sm:grid-cols-2">
-        <div class="neo-surface-soft p-3 shadow-none">
+        <div class="border border-border rounded-lg p-3 bg-white shadow-none">
           <dt class="text-xs uppercase tracking-wide text-muted-foreground">Total</dt>
           <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.total}</dd>
         </div>
-        <div class="neo-surface-soft p-3 shadow-none">
+        <div class="border border-border rounded-lg p-3 bg-white shadow-none">
           <dt class="text-xs uppercase tracking-wide text-muted-foreground">Active</dt>
-          <dd class="mt-1 text-2xl font-bold neo-text-blue">{subscriptionStats.active}</dd>
+          <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.active}</dd>
         </div>
-        <div class="neo-surface-soft p-3 shadow-none">
+        <div class="border border-border rounded-lg p-3 bg-white shadow-none">
           <dt class="text-xs uppercase tracking-wide text-muted-foreground">Expiring soon</dt>
-          <dd class="mt-1 text-2xl font-bold neo-text-orange">{subscriptionStats.expiringSoon}</dd>
+          <dd class="mt-1 text-2xl font-bold text-primary">{subscriptionStats.expiringSoon}</dd>
         </div>
-        <div class="neo-surface-soft p-3 shadow-none">
+        <div class="border border-border rounded-lg p-3 bg-white shadow-none">
           <dt class="text-xs uppercase tracking-wide text-muted-foreground">Cancelled</dt>
           <dd class="mt-1 text-2xl font-bold text-foreground">{subscriptionStats.cancelled}</dd>
         </div>
@@ -147,10 +147,10 @@
     </div>
   </section>
 
-  <section class="neo-surface-soft p-5">
-    <h2 class="neo-kicker">Recent subscription accounts</h2>
+  <section class="border border-border rounded-lg p-5 bg-white">
+    <h2 class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Recent subscription accounts</h2>
     <div class="mt-3 overflow-x-auto">
-      <table class="neo-data-table text-sm">
+      <table class="w-full border-collapse text-sm">
         <thead>
           <tr>
             <th>User</th>

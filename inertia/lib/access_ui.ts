@@ -1,14 +1,14 @@
 const BUILT_IN_ROLE_LABELS: Record<string, string> = {
-  superadmin: 'Superadmin',
-  system_admin: 'System Admin',
-  registered_user: 'Registered User',
-  org_owner: 'Owner Org',
-  org_admin: 'Org Admin',
-  org_member: 'Org Member',
-  project_owner: 'Project Owner',
-  project_manager: 'Project Manager',
-  project_member: 'Project Member',
-  project_viewer: 'Project Viewer',
+  superadmin: 'Superadmin hệ thống',
+  system_admin: 'Quản trị hệ thống',
+  registered_user: 'Người dùng thành viên',
+  org_owner: 'Chủ sở hữu tổ chức',
+  org_admin: 'Quản trị viên tổ chức',
+  org_member: 'Thành viên tổ chức',
+  project_owner: 'Chủ sở hữu dự án',
+  project_manager: 'Quản lý dự án',
+  project_member: 'Thành viên dự án',
+  project_viewer: 'Người xem dự án',
 }
 
 export function normalizeRoleCode(value: string): string {

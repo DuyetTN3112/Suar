@@ -4,7 +4,6 @@
   import NavBar from '@/components/layout/nav_bar.svelte'
   import OrganizationSidebar from '@/components/layout/organization_sidebar.svelte'
   import NotificationDialog from '@/components/notification_dialog.svelte'
-  import SidebarProvider from '@/components/ui/sidebar/sidebar_provider.svelte'
 
   interface Props {
     title?: string
@@ -12,6 +11,8 @@
   }
 
   const { title = 'Organization Admin - Suar', children }: Props = $props()
+
+  let sidebarOpen = $state(false)
 </script>
 
 <svelte:head>
@@ -23,19 +24,17 @@
 
 <NotificationDialog />
 
-<SidebarProvider defaultOpen={true}>
-  <div class="relative flex min-h-screen w-full bg-background text-foreground">
-    <OrganizationSidebar />
+<div class="flex min-h-screen bg-background">
+  <OrganizationSidebar open={sidebarOpen} onClose={() => { sidebarOpen = false }} />
 
-    <div class="neo-shell-main flex min-h-screen min-w-0 flex-1 flex-col transition-all duration-300 ease-in-out">
-      <NavBar />
-      <main class="flex-1 p-6">
-        {@render children()}
-      </main>
+  <div class="flex-1 flex flex-col min-w-0">
+    <NavBar onMenuClick={() => { sidebarOpen = true }} />
+    <main class="flex-1 p-6 lg:p-8">
+      {@render children()}
+    </main>
 
-      <footer class="border-t-2 border-border bg-card/95 px-6 py-4 text-center text-xs uppercase tracking-[0.18em] text-muted-foreground">
-        <p>Organization Admin Panel</p>
-      </footer>
-    </div>
+    <footer class="control-footer">
+      <p>Organization Admin Panel</p>
+    </footer>
   </div>
-</SidebarProvider>
+</div>
