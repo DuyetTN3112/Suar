@@ -1,13 +1,16 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
-  import { ChevronLeft, ChevronRight } from 'lucide-svelte'
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import Button from './button.svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  interface Props {
-    currentPage: number
-    totalPages: number
-    baseUrl: string
+  type Props = HTMLAttributes<HTMLElement> & {
+    class?: string
+    children?: Snippet
+    currentPage?: number
+    totalPages?: number
+    onPageChange?: (page: number) => void
+    baseUrl?: string
     queryParams?: Record<string, unknown>
   }
 
