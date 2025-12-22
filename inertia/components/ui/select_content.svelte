@@ -1,46 +1,42 @@
-<!--
-  SelectContent Component - Svelte 5
--->
-
 <script lang="ts">
-  import { Select as SelectPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import { getContext } from "svelte"
+  import type { Snippet } from "svelte"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
+
+  import { SELECT_CONTEXT, type SelectContext } from "./select_context"
 
   interface Props {
     class?: string
-    position?: 'popper' | 'item-aligned'
     children?: Snippet
+    align?: "start" | "center" | "end"
+    side?: "top" | "right" | "bottom" | "left"
+    sideOffset?: number
   }
 
-  const {
-    class: className,
-    position = 'popper',
-    children,
-    ...restProps
-  }: Props = $props()
+  const { class: className, children, align = "center", side = "bottom", sideOffset = 4, ...restProps }: Props = $props()
+  const select = getContext<SelectContext | undefined>(SELECT_CONTEXT)
+  const alignmentClass = $derived(
+    align === "start" ? "origin-top-left" : align === "end" ? "origin-top-right" : "origin-top"
+  )
+  const sideClass = $derived(side === "top" ? "bottom-full mb-1" : "top-full mt-1")
+  const sideStyle = $derived(
+    side === "top" ? `margin-bottom: ${sideOffset}px;` : `margin-top: ${sideOffset}px;`
+  )
 </script>
 
-<SelectPrimitive.Portal>
-  <SelectPrimitive.Content
-    data-slot="select-content"
+{#if (select?.open ?? false) || !(select?.hasOpened ?? false)}
+  <div
     class={cn(
-      'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-96 min-w-[8rem] overflow-hidden rounded-md border-2 border-border shadow-neo',
-      position === 'popper' &&
-        'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+      "absolute left-0 z-50 max-h-60 min-w-[8rem] overflow-y-auto rounded-md border border-border bg-popover p-1 shadow-md",
+      alignmentClass,
+      sideClass,
+      !select?.open && "hidden",
       className
     )}
+    style={sideStyle}
     {...restProps}
   >
-    <SelectPrimitive.Viewport
-      class={cn(
-        'p-1',
-        position === 'popper' &&
-          'h-[var(--bits-select-trigger-height)] w-full min-w-[var(--bits-select-trigger-width)] scroll-my-1'
-      )}
-    >
-      {@render children?.()}
-    </SelectPrimitive.Viewport>
-  </SelectPrimitive.Content>
-</SelectPrimitive.Portal>
+    {@render children?.()}
+  </div>
+{/if}

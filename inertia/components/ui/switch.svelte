@@ -1,18 +1,12 @@
-<!--
-  Switch Component - Svelte 5
-
-  Port từ shadcn/ui React switch.
-  Uses Bits UI Switch primitive.
--->
-
 <script lang="ts">
-  import { Switch as SwitchPrimitive } from 'bits-ui'
+  import { untrack } from "svelte"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
   interface Props {
     class?: string
     checked?: boolean
+    onCheckedChange?: (checked: boolean) => void
     disabled?: boolean
     required?: boolean
     name?: string
