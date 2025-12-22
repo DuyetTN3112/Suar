@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
   import { Building } from 'lucide-svelte'
 
   import Button from '@/components/ui/button.svelte'
@@ -12,6 +12,7 @@
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
 
@@ -89,15 +90,18 @@
     router.visit('/organizations')
   }
 
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Tạo tổ chức mới</title>
 </svelte:head>
 
-<AppLayout title="Tạo tổ chức mới">
+<Layout title="Tạo tổ chức mới">
   <div class="p-4 sm:p-6 max-w-3xl mx-auto">
-    <Card class="border-2 shadow-neo">
+    <Card class="border border-border shadow-xs">
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <Building class="h-5 w-5" />
@@ -195,4 +199,4 @@
       </CardFooter>
     </Card>
   </div>
-</AppLayout>
+</Layout>

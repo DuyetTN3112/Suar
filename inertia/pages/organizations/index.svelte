@@ -1,11 +1,13 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
-  import { Plus, Clock, CircleAlert } from 'lucide-svelte'
+  import { page, router } from '@inertiajs/svelte'
+  import { Plus, Building2, FolderKanban, SquareCheckBig, Star, ArrowRight } from 'lucide-svelte'
 
-  import Button from '@/components/ui/button.svelte'
-  import { FRONTEND_PAGINATION } from '@/constants/pagination'
-  import { FRONTEND_ROUTES } from '@/constants/routes'
+  import Tabs from '@/components/ui/tabs.svelte'
+  import TabsContent from '@/components/ui/tabs_content.svelte'
+  import TabsList from '@/components/ui/tabs_list.svelte'
+  import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { notificationStore } from '@/stores/notification_store.svelte'
 
   import OrganizationAvailableSection from './components/organization_available_section.svelte'
@@ -29,26 +31,35 @@
   }
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     organizations: Organization[]
     allOrganizations?: Organization[]
     currentOrganizationId: string | null
   }
 
   const { organizations, allOrganizations = [], currentOrganizationId }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 
-  let searchTerm = $state('')
+  const searchTerm = $state<string>('')
   let allOrgsPage = $state(1)
   let userOrgsPage = $state(1)
   let selectedOrg = $state<Organization | null>(null)
   let showDetailDialog = $state(false)
   let localCurrentOrgId = $state<string | null>(null)
+  let activeTab = $state<'joined' | 'available'>('joined')
   const orgMembershipStatus = $state<Partial<Record<string, { status: string | null }>>>({})
 
   $effect(() => {
     localCurrentOrgId = currentOrganizationId
   })
 
-  const ITEMS_PER_PAGE = FRONTEND_PAGINATION.ORGANIZATIONS_ITEMS_PER_PAGE
+  $effect(() => {
+    if (organizations.length === 0) {
+      activeTab = 'available'
+    }
+  })
 
   async function handleJoinOrganization(id: string) {
     try {
@@ -82,7 +93,7 @@
     if (!id || id === localCurrentOrgId) return
 
     try {
-      const { ok, data } = await switchOrganizationRequest(FRONTEND_ROUTES.SWITCH_ORGANIZATION, id)
+      const { ok, data } = await switchOrganizationRequest('/organizations/switch', id)
       if (!ok || !data.success) {
         notificationStore.error(data.message ?? 'Có lỗi xảy ra khi chuyển đổi tổ chức')
         return
@@ -93,7 +104,7 @@
         showDetailDialog = false
       }
       notificationStore.success(data.message ?? 'Đã chuyển đổi tổ chức thành công')
-      router.visit(data.redirect ?? FRONTEND_ROUTES.TASKS, {
+      router.visit(data.redirect ?? '/tasks', {
         preserveState: false,
         preserveScroll: false,
         replace: true,
@@ -101,10 +112,6 @@
     } catch {
       notificationStore.error('Có lỗi xảy ra khi chuyển đổi tổ chức')
     }
-  }
-
-  function handleAllOrgsSearchInput() {
-    allOrgsPage = 1
   }
 
   function handleShowDetails(org: Organization) {
@@ -119,23 +126,16 @@
     )
   )
 
-  const totalAllOrgsPages = $derived(Math.ceil(filteredOrganizations.length / ITEMS_PER_PAGE))
-  const paginatedAllOrgs = $derived(
-    filteredOrganizations.slice(
-      (allOrgsPage - 1) * ITEMS_PER_PAGE,
-      allOrgsPage * ITEMS_PER_PAGE
-    )
-  )
-
-  const totalUserOrgsPages = $derived(Math.ceil(organizations.length / ITEMS_PER_PAGE))
-  const paginatedUserOrgs = $derived(
-    organizations.slice(
-      (userOrgsPage - 1) * ITEMS_PER_PAGE,
-      userOrgsPage * ITEMS_PER_PAGE
-    )
-  )
-
   const hasOrganizations = $derived(organizations.length > 0)
+  const totalAllOrgsPages = $derived(Math.max(1, Math.ceil(filteredOrganizations.length / 10)))
+  const totalUserOrgsPages = $derived(Math.max(1, Math.ceil(organizations.length / 10)))
+  const paginatedAllOrgs = $derived(filteredOrganizations.slice((allOrgsPage - 1) * 10, allOrgsPage * 10))
+  const paginatedUserOrgs = $derived(organizations.slice((userOrgsPage - 1) * 10, userOrgsPage * 10))
+  const stats = $derived({
+    organizations: organizations.length,
+    projects: organizations.reduce((sum, org) => sum + (org.project_count ?? 0), 0),
+    reviews: filteredOrganizations.length,
+  })
 
   function checkMembershipStatus(orgId: string) {
     if (organizations.some((org) => org.id === orgId)) {
@@ -146,7 +146,7 @@
       return { isMember: false, status: orgMembershipStatus[orgId].status }
     }
 
-    const org = allOrganizations.find((o) => o.id === orgId)
+    const org = allOrganizations.find((item) => item.id === orgId)
     if (org?.membership_status) {
       return { isMember: org.membership_status === 'approved', status: org.membership_status }
     }
@@ -162,19 +162,17 @@
         return {
           variant: 'outline' as const,
           disabled: true,
-          icon: null,
           text: 'Hiện tại',
         }
-      } else {
-        return {
-          variant: 'default' as const,
-          disabled: false,
-          icon: null,
-          text: 'Chuyển đổi',
-          onClick: () => {
-            void handleSwitchOrganization(org.id)
-          },
-        }
+      }
+
+      return {
+        variant: 'default' as const,
+        disabled: false,
+        text: 'Chuyển đổi',
+        onClick: () => {
+          void handleSwitchOrganization(org.id)
+        },
       }
     }
 
@@ -182,7 +180,6 @@
       return {
         variant: 'outline' as const,
         disabled: true,
-        icon: Clock,
         text: 'Đang chờ duyệt',
       }
     }
@@ -191,9 +188,8 @@
       return {
         variant: 'outline' as const,
         disabled: false,
-        icon: CircleAlert,
         text: 'Gửi lại yêu cầu',
-        className: 'bg-amber-50',
+        className: '!bg-[#ffe4da] hover:!bg-[#ffe4da]',
         onClick: () => handleJoinOrganization(org.id),
       }
     }
@@ -201,28 +197,16 @@
     return {
       variant: 'default' as const,
       disabled: false,
-      icon: null,
       text: 'Tham gia',
       onClick: () => handleJoinOrganization(org.id),
     }
   }
-
 </script>
 
 <svelte:head>
   <title>Danh sách tổ chức</title>
 </svelte:head>
 
-<AppLayout title="Tổ chức">
-  <div class="container px-4 py-4 space-y-4 md:px-6">
-    <div class="flex justify-between items-center">
-      <h1 class="text-2xl font-bold">Danh sách tổ chức</h1>
-      <Button>
-        <a href="/organizations/create">
-          <Plus class="mr-2 h-4 w-4" />
-          Tạo tổ chức mới
-        </a>
-      </Button>
     </div>
 
     {#if hasOrganizations}

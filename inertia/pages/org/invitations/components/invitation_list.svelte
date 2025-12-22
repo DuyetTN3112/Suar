@@ -13,10 +13,10 @@
     id: string
     email: string
     org_role: string
-    invited_by: {
+    invited_by?: {
       id: string
       username: string
-    }
+    } | string | null
     status: 'pending' | 'accepted' | 'declined' | 'expired'
     invited_at: string
     expires_at: string
@@ -45,6 +45,12 @@
     formatDate,
     onInviteClick,
   }: Props = $props()
+
+  function inviterLabel(invitedBy: Invitation['invited_by']): string {
+    if (typeof invitedBy === 'string' && invitedBy.trim()) return invitedBy
+    if (invitedBy && typeof invitedBy === 'object' && invitedBy.username) return invitedBy.username
+    return 'Hệ thống'
+  }
 </script>
 
 <div class="grid gap-4">
@@ -65,7 +71,7 @@
                 <Badge variant="outline">{roleLabel(invitation.org_role)}</Badge>
               </div>
               <div class="mt-1 text-sm text-muted-foreground">
-                Gửi bởi {invitation.invited_by.username} • {formatDate(invitation.invited_at)}
+                Gửi bởi {inviterLabel(invitation.invited_by)} • {formatDate(invitation.invited_at)}
               </div>
               {#if invitation.status === 'pending'}
                 <div class="mt-1 text-xs text-muted-foreground">
