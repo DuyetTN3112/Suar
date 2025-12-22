@@ -1,46 +1,51 @@
-<!--
-  Tabs Component - Svelte 5
-
-  Port từ shadcn/ui React tabs.
-  Uses Bits UI Tabs primitive.
--->
-
-<script lang="ts" module>
-  export { default as Tabs } from './tabs.svelte'
-  export { default as TabsList } from './tabs_list.svelte'
-  export { default as TabsTrigger } from './tabs_trigger.svelte'
-  export { default as TabsContent } from './tabs_content.svelte'
-</script>
-
 <script lang="ts">
-  import { Tabs as TabsPrimitive } from 'bits-ui'
-  import type { Snippet } from 'svelte'
+  import { setContext } from "svelte"
+  import type { Snippet } from "svelte"
+  import type { HTMLAttributes } from "svelte/elements"
 
-  import { cn } from '$lib/utils-svelte'
+  import { cn } from "$lib/utils-svelte"
 
-  interface Props {
+  import { TABS_CONTEXT, type TabsContext } from "./tabs_context"
+
+  type Props = HTMLAttributes<HTMLDivElement> & {
     class?: string
     value?: string
     onValueChange?: (value: string) => void
-    orientation?: 'horizontal' | 'vertical'
     children?: Snippet
   }
 
   const {
     class: className,
-    value,
+    value = '',
     onValueChange,
     children,
     ...restProps
   }: Props = $props()
+
+  let currentValue = $state('')
+  const tabsId = `tabs-${Math.random().toString(36).slice(2, 10)}`
+
+  $effect(() => {
+    currentValue = value
+  })
+
+  setContext<TabsContext>(TABS_CONTEXT, {
+    get value() {
+      return currentValue
+    },
+    setValue(nextValue: string) {
+      currentValue = nextValue
+      onValueChange?.(nextValue)
+    },
+    getTriggerId(tabValue: string) {
+      return `${tabsId}-trigger-${tabValue}`
+    },
+    getContentId(tabValue: string) {
+      return `${tabsId}-content-${tabValue}`
+    },
+  })
 </script>
 
-<TabsPrimitive.Root
-  {value}
-  {onValueChange}
-  data-slot="tabs"
-  class={cn('flex flex-col gap-2', className)}
-  {...restProps}
->
+<div class={cn("w-full", className)} {...restProps}>
   {@render children?.()}
-</TabsPrimitive.Root>
+</div>
