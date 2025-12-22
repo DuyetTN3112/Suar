@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from '@inertiajs/svelte'
+  import { Link, router } from '@inertiajs/svelte'
 
   import Button from '@/components/ui/button.svelte'
   import Card from '@/components/ui/card.svelte'
@@ -25,6 +25,17 @@
   }
 
   const { user }: Props = $props()
+
+  const userActionPath = $derived(
+    user.status === 'suspended'
+      ? `/admin/users/${user.id}/activate`
+      : `/admin/users/${user.id}/suspend`
+  )
+  const userActionLabel = $derived(
+    user.status === 'suspended' ? 'Khôi phục tài khoản' : 'Tạm khóa tài khoản'
+  )
+  const userActionTone = $derived(user.status === 'suspended' ? 'outline' : 'destructive')
+  const auditLogsHref = $derived(`/admin/audit-logs?user_id=${encodeURIComponent(user.id)}`)
 
   function roleLabel(role: string): string {
     switch (role) {
@@ -53,32 +64,44 @@
   function roleClass(role: string): string {
     switch (role) {
       case 'superadmin':
-        return 'neo-pill-magenta'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-fuchsia-600 text-white'
       case 'system_admin':
-        return 'neo-pill-orange'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-white'
       default:
-        return 'neo-pill-soft'
+        return 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground'
     }
   }
 
   function statusClass(status: string): string {
     switch (status) {
       case 'active':
-        return 'neo-pill-blue'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground'
       case 'suspended':
-        return 'neo-pill-ink'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-secondary text-secondary-foreground'
       case 'pending':
-        return 'neo-pill-orange'
+        return 'rounded-full px-3 py-1 text-xs font-medium bg-primary text-white'
       default:
-        return 'neo-pill-soft'
+        return 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground'
     }
+  }
+
+  function handleUserStatusAction() {
+    router.post(
+      userActionPath,
+      {
+        _method: 'PUT',
+      },
+      {
+        preserveScroll: true,
+      }
+    )
   }
 </script>
 
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Admin / User Detail</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / User Detail</p>
         <h1 class="text-4xl font-bold tracking-tight">{user.username}</h1>
         <p class="mt-2 text-sm text-muted-foreground">Thông tin tài khoản ở cấp platform.</p>
       </div>
@@ -138,7 +161,7 @@
               <dt class="text-sm font-medium text-muted-foreground">Tổ chức đang chọn</dt>
               <dd class="mt-1 text-sm text-foreground">
                 {#if user.current_organization_id}
-                  <Link href="/admin/organizations/{user.current_organization_id}" class="neo-text-blue hover:underline">
+                  <Link href="/admin/organizations/{user.current_organization_id}" class="text-foreground hover:underline">
                     {user.current_organization_id}
                   </Link>
                 {:else}
@@ -149,7 +172,7 @@
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Loại tài khoản làm việc</dt>
               <dd class="mt-1">
-                <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {user.is_freelancer ? 'neo-pill-magenta' : 'neo-pill-soft'}">
+                <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide {user.is_freelancer ? 'rounded-full px-3 py-1 text-xs font-medium bg-fuchsia-600 text-white' : 'border border-border rounded-full px-3 py-1 text-xs font-medium bg-white text-foreground'}">
                   {user.is_freelancer ? 'Freelancer' : 'Người dùng thường'}
                 </span>
               </dd>
@@ -173,14 +196,20 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>Ghi chú vận hành</CardTitle>
-        <CardDescription>Một số thao tác nhạy cảm vẫn nên đi qua flow backend hoặc màn admin chuyên biệt khác.</CardDescription>
+        <CardTitle>Điều khiển vận hành</CardTitle>
+        <CardDescription>Thao tác trực tiếp ở cấp platform và truy vết audit cho tài khoản này.</CardDescription>
       </CardHeader>
       <CardContent>
         <div class="flex flex-wrap gap-2">
           <Link href="/admin/users">
             <Button variant="outline">Quay lại danh sách</Button>
           </Link>
+          <Button variant={userActionTone} onclick={handleUserStatusAction}>
+            {userActionLabel}
+          </Button>
+          <a href={auditLogsHref}>
+            <Button variant="outline">Mở audit logs</Button>
+          </a>
           {#if user.current_organization_id}
             <Link href="/admin/organizations/{user.current_organization_id}">
               <Button variant="outline">Mở tổ chức hiện tại</Button>
@@ -188,7 +217,7 @@
           {/if}
         </div>
         <p class="mt-2 text-xs text-muted-foreground">
-          Frontend hiện ưu tiên hiển thị đúng ngữ cảnh 3 namespace. Các thao tác như đổi role hệ thống hoặc suspend nên đi bằng flow admin thật thay vì nút giả.
+          Hành động khóa hoặc khôi phục dùng flow admin thật và có thể đối chiếu lại bằng audit log đã lọc theo user.
         </p>
       </CardContent>
     </Card>
