@@ -37,7 +37,7 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <p class="neo-kicker">Admin / Organization Detail</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">Admin / Organization Detail</p>
         <h1 class="text-4xl font-bold tracking-tight">{organization.name}</h1>
         <p class="mt-2 text-sm text-muted-foreground">Thông tin tổng quan của tổ chức ở góc nhìn system admin.</p>
       </div>
@@ -74,7 +74,7 @@
               <div>
                 <dt class="text-sm font-medium text-muted-foreground">Partner Type</dt>
                 <dd class="mt-1">
-                  <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide neo-pill-orange">
+                  <span class="inline-flex items-center rounded-full px-2 py-1 text-[11px] font-bold uppercase tracking-wide rounded-full px-3 py-1 text-xs font-medium bg-primary text-white">
                     {organization.partner_type}
                   </span>
                 </dd>
@@ -94,7 +94,7 @@
             <div>
               <dt class="text-sm font-medium text-muted-foreground">Owner</dt>
               <dd class="mt-1">
-                <Link href={`/admin/users/${organization.owner.id}`} class="neo-text-blue hover:underline">
+                <Link href={`/admin/users/${organization.owner.id}`} class="text-foreground hover:underline">
                   {organization.owner.username}
                 </Link>
               </dd>
