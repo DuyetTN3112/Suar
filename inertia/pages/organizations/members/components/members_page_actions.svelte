@@ -26,7 +26,7 @@
     <Button variant="destructive" onclick={onOpenPendingRequests} class="font-medium">
       <UserCheck class="h-5 w-5 mr-2" />
       Phê duyệt thành viên
-      <Badge class="ml-2 bg-white text-red-600 hover:bg-white">{pendingRequestsCount}</Badge>
+      <Badge class="ml-2 bg-white text-destructive hover:bg-white">{pendingRequestsCount}</Badge>
     </Button>
   {/if}
 
