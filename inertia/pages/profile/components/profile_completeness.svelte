@@ -18,7 +18,7 @@
 
   const color = $derived(
     completeness >= 80
-      ? 'text-blue-500'
+      ? 'text-foreground'
       : completeness >= 50
         ? 'text-orange-500'
         : 'text-rose-500'

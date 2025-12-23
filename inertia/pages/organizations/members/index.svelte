@@ -224,7 +224,7 @@ import OrganizationLayout from '@/layouts/organization_layout.svelte'
   <title>Quản lý thành viên - {organization.name}</title>
 </svelte:head>
 
-<AppLayout title={`Quản lý thành viên - ${organization.name}`}>
+<Layout title={`Quản lý thành viên - ${organization.name}`}>
   <div class="container py-4 space-y-4">
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Quản lý thành viên tổ chức</h1>
@@ -315,4 +315,4 @@ import OrganizationLayout from '@/layouts/organization_layout.svelte'
       }}
     />
   {/if}
-</AppLayout>
+</Layout>

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Link } from '@inertiajs/svelte'
+  import { Link, page  } from '@inertiajs/svelte'
   import { ArrowLeft, Building, Mail, MapPin, Phone, Globe, Calendar } from 'lucide-svelte'
 
   import Avatar from '@/components/ui/avatar.svelte'
@@ -22,6 +22,7 @@
   import TabsList from '@/components/ui/tabs_list.svelte'
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { formatDate } from '@/lib/utils'
 
   interface Organization {
@@ -46,12 +47,16 @@
   }
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     organization: Organization
     members: Member[]
     userRole: string
   }
 
   const { organization, members, userRole }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 
   // Check if user has admin permissions
   const isAdmin = $derived(userRole === 'org_owner' || userRole === 'org_admin')
@@ -63,7 +68,7 @@
   <title>{organization.name}</title>
 </svelte:head>
 
-<AppLayout title="Chi tiết tổ chức">
+<Layout title="Chi tiết tổ chức">
   <div class="container py-6">
     <div class="mb-6">
       <Button variant="ghost" class="pl-0">
@@ -220,4 +225,4 @@
       </div>
     </div>
   </div>
-</AppLayout>
+</Layout>
