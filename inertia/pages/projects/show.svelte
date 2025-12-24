@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
+  import axios from 'axios'
 
   import Avatar from '@/components/ui/avatar.svelte'
   import AvatarFallback from '@/components/ui/avatar_fallback.svelte'
@@ -24,18 +25,95 @@
   import TabsContent from '@/components/ui/tabs_content.svelte'
   import TabsList from '@/components/ui/tabs_list.svelte'
   import TabsTrigger from '@/components/ui/tabs_trigger.svelte'
-   import { FRONTEND_ROUTES } from '@/constants'
+  import Textarea from '@/components/ui/textarea.svelte'
+  import { FRONTEND_ROUTES } from '@/constants'
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { formatDate } from '@/lib/utils'
+  import { notificationStore } from '@/stores/notification_store.svelte'
 
+  import ProjectRolesTab from './components/project_roles_tab.svelte'
+  import ProjectSkillsTab from './components/project_skills_tab.svelte'
   import type { ProjectShowProps } from './types'
 
-  const { project, members, tasks, permissions }: ProjectShowProps = $props()
+  const {
+    project,
+    members,
+    tasks,
+    permissions,
+    shellMode = 'app',
+    baseRoute = FRONTEND_ROUTES.PROJECTS,
+  }: ProjectShowProps = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const safeTasks = $derived(tasks)
   const safeMembers = $derived(members)
 
   let addMemberOpen = $state(false)
-  let newMemberEmail = $state('')
+  let newMemberUserId = $state('')
+  let newMemberRole = $state('project_member')
+  let memberCandidates = $state<{ user_id: string; username: string; email: string; org_role: string }[]>([])
+  let memberSearch = $state('')
+  let loadingCandidates = $state(false)
+  let editing = $state(false)
+  let saving = $state(false)
+  let deleting = $state(false)
+  let projectState = $state<ProjectShowProps['project']>({
+    id: '',
+    name: '',
+    organization_id: '',
+    creator_id: '',
+    created_at: '',
+    updated_at: '',
+    description: '',
+    organization_name: '',
+    creator_name: '',
+    manager_id: '',
+    manager_name: '',
+    start_date: '',
+    end_date: '',
+    status: 'pending',
+    budget: 0,
+    visibility: 'team',
+  })
+  const editForm = $state({
+    name: '',
+    description: '',
+    status: 'pending',
+  })
+
+  $effect(() => {
+    if (!projectState.id || projectState.id !== project.id) {
+      projectState = { ...project }
+    }
+
+    if (!editing) {
+      editForm.name = projectState.name
+      editForm.description = projectState.description ?? ''
+      editForm.status = projectState.status ?? 'pending'
+    }
+  })
+
+  $effect(() => {
+    if (addMemberOpen && project.id) {
+      void loadMemberCandidates()
+    }
+  })
+
+  async function loadMemberCandidates() {
+    loadingCandidates = true
+    try {
+      const params = new URLSearchParams()
+      if (memberSearch.trim()) params.set('search', memberSearch.trim())
+      const resp = await fetch(`/projects/${project.id}/member-candidates?${params}`)
+      const result = await resp.json() as { data: [{ user_id: string; username: string; email: string; org_role: string }] }
+      memberCandidates = result.data
+    } catch {
+      memberCandidates = []
+    } finally {
+      loadingCandidates = false
+    }
+  }
 
   function getMemberInitials(member: (typeof safeMembers)[number]): string {
     const fromUsername = member.username ? member.username.charAt(0).toUpperCase() : ''
@@ -43,45 +121,119 @@
     return fromUsername || fromEmail || '?'
   }
 
-  function handleDeleteProject() {
-    if (confirm('Bạn có chắc chắn muốn xóa?')) {
-      router.delete(`/projects/${project.id}`, {
-        preserveState: true,
-        preserveScroll: true,
+  async function handleDeleteProject() {
+    if (!confirm('Bạn có chắc chắn muốn xóa?')) return
+
+    deleting = true
+    try {
+      await axios.delete(`/api/projects/${project.id}`)
+      router.visit(baseRoute)
+    } catch {
+      notificationStore.error('Không thể xóa dự án')
+    } finally {
+      deleting = false
+    }
+  }
+
+  async function handleSaveProject() {
+    if (!editForm.name.trim()) {
+      notificationStore.error('Tên dự án là bắt buộc')
+      return
+    }
+
+    saving = true
+    try {
+      await axios.put(`/api/projects/${project.id}`, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || null,
+        status: editForm.status,
       })
+      projectState = {
+        ...projectState,
+        name: editForm.name.trim(),
+        description: editForm.description.trim() || undefined,
+        status: editForm.status,
+      }
+      editing = false
+      notificationStore.success('Đã cập nhật dự án')
+    } catch {
+      notificationStore.error('Không thể cập nhật dự án')
+    } finally {
+      saving = false
     }
   }
 
   function handleAddMember(e: Event) {
     e.preventDefault()
-    router.post('/projects/members', {
-      project_id: project.id,
-      email: newMemberEmail
-    }, {
-      preserveState: true,
-      preserveScroll: true,
-    })
-    newMemberEmail = ''
-    addMemberOpen = false
+    const userId = newMemberUserId.trim()
+    if (!userId) return
+
+    router.post(
+      '/projects/members',
+      {
+        project_id: project.id,
+        user_id: userId,
+        project_role: newMemberRole,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+        onSuccess: () => {
+          newMemberUserId = ''
+          newMemberRole = 'project_member'
+          addMemberOpen = false
+        },
+      }
+    )
   }
 
+  function handleUpdateMemberRole(userId: string, newRole: string) {
+    router.put(
+      `/projects/members/${userId}`,
+      {
+        project_id: project.id,
+        project_role: newRole,
+      },
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
+  }
+
+  function handleRemoveMember(userId: string) {
+    if (!confirm('Bạn có chắc chắn muốn xóa thành viên này khỏi dự án?')) return
+
+    router.delete(
+      `/projects/members/${userId}`,
+      {
+        data: {
+          project_id: project.id,
+        },
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
+  }
+
+  // Skills & roles are now handled by ProjectSkillsTab and ProjectRolesTab components
 </script>
 
 <svelte:head>
-  <title>{project.name}</title>
+  <title>{projectState.name}</title>
 </svelte:head>
 
-<AppLayout title={project.name}>
-  <div class="p-4 sm:p-6 space-y-6">
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-2xl font-bold">{project.name}</h1>
-        <p class="text-muted-foreground">{project.organization_name}</p>
+<Layout title={projectState.name}>
+  <div class="space-y-6 p-4 sm:p-6">
+    <div class="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+          {shellMode === 'organization' ? 'Org project detail' : 'User project detail'}
+        </p>
+        <h1 class="mt-2 truncate text-3xl font-black tracking-tight sm:text-4xl">{projectState.name}</h1>
+        <p class="mt-2 text-sm text-muted-foreground">{projectState.organization_name}</p>
       </div>
 
-      <div class="flex items-center gap-2">
-        {#if permissions.isCreator || permissions.isManager}
-          <Button variant="destructive" onclick={handleDeleteProject}>
             Xóa
           </Button>
         {/if}
