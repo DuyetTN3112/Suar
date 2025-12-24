@@ -31,17 +31,14 @@
   const { store, metadata }: Props = $props()
   const { t } = useTranslation()
 
-  let showFilters = $state(false)
   let showDisplayProperties = $state(false)
 </script>
 
-<div class="space-y-3">
-  <!-- Top Bar -->
-  <div class="flex items-center justify-between gap-4">
-    <!-- Title -->
-    <h1 class="text-xl font-semibold shrink-0">
-      {t('task.task_list', {}, 'Quản lý nhiệm vụ')}
-    </h1>
+<div class="task-board-header-consolidated">
+  <!-- Inline filters permanently visible -->
+  <div class="task-filters-section">
+    <TaskFiltersBar {store} {metadata} />
+  </div>
 
     <div class="flex items-center gap-2">
       <!-- Filter Toggle -->

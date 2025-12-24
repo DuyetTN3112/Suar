@@ -161,7 +161,7 @@
         <span class="text-muted-foreground">{t('task.due_date', {}, 'Hạn chót')}</span>
         {#if task.due_date}
           <div class="text-right">
-            <div class="inline-flex items-center gap-1.5 text-xs {isOverdue ? 'text-red-500' : ''}">
+            <div class="inline-flex items-center gap-1.5 text-xs {isOverdue ? 'text-destructive' : ''}">
               <Calendar class="h-3.5 w-3.5" />
               {formatDate(task.due_date)}
             </div>
@@ -181,6 +181,23 @@
           {task.estimated_time ? `${task.estimated_time}h` : '—'}
         </span>
       </div>
+
+      {#if task.task_visibility}
+        <div class="flex items-center justify-between gap-3">
+          <span class="text-muted-foreground">{t('task.visibility', {}, 'Hiển thị')}</span>
+          <span class="inline-flex items-center gap-1.5 text-xs rounded-md bg-muted px-2 py-1 font-bold">
+            {#if task.task_visibility === 'all'}
+              Công khai (All)
+            {:else if task.task_visibility === 'external'}
+              Ngoài dự án (External)
+            {:else if task.task_visibility === 'internal'}
+              Chỉ nội bộ (Internal)
+            {:else}
+              {task.task_visibility}
+            {/if}
+          </span>
+        </div>
+      {/if}
 
       <div class="flex items-center justify-between gap-3">
         <span class="text-muted-foreground">{t('task.created_at', {}, 'Ngày tạo')}</span>
