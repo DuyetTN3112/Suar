@@ -234,11 +234,28 @@
         <p class="mt-2 text-sm text-muted-foreground">{projectState.organization_name}</p>
       </div>
 
+      <div class="flex flex-wrap items-center gap-2">
+        {#if permissions.canEdit}
+          {#if editing}
+            <Button variant="outline" onclick={() => { editing = false }} disabled={saving || deleting}>
+              Hủy sửa
+            </Button>
+            <Button onclick={() => { void handleSaveProject() }} disabled={saving || deleting}>
+              {saving ? 'Đang lưu...' : 'Lưu'}
+            </Button>
+          {:else}
+            <Button variant="outline" onclick={() => { editing = true }} disabled={deleting}>
+              Sửa
+            </Button>
+          {/if}
+        {/if}
+        {#if permissions.canDelete}
+          <Button variant="destructive" onclick={() => { void handleDeleteProject() }} disabled={deleting || saving}>
             Xóa
           </Button>
         {/if}
 
-        <Button onclick={() => { router.get('/projects'); }} variant="outline">
+        <Button onclick={() => { router.visit(baseRoute) }} variant="outline">
           Quay lại
         </Button>
       </div>
@@ -249,44 +266,78 @@
         <TabsTrigger value="details">Chi tiết</TabsTrigger>
         <TabsTrigger value="members">Thành viên</TabsTrigger>
         <TabsTrigger value="tasks">Công việc</TabsTrigger>
+        <TabsTrigger value="skills">Skills Catalog</TabsTrigger>
+        <TabsTrigger value="roles">Professional Roles</TabsTrigger>
       </TabsList>
 
       <TabsContent value="details" class="mt-4">
         <Card>
           <CardContent class="pt-6">
+            <h2 class="mb-4 text-lg font-semibold">Thông tin dự án</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Mô tả</h3>
-                <p>{project.description ?? 'Không có'}</p>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Mô tả</p>
+                {#if editing}
+                  <Textarea
+                    value={editForm.description}
+                    rows={4}
+                    oninput={(event: Event) => {
+                      editForm.description = (event.currentTarget as HTMLTextAreaElement).value
+                    }}
+                  />
+                {:else}
+                  <p>{projectState.description ?? 'Không có'}</p>
+                {/if}
               </div>
 
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Trạng thái</h3>
-                <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                  {project.status ?? 'Không có'}
-                </div>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Trạng thái</p>
+                {#if editing}
+                  <select bind:value={editForm.status} class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                    <option value="pending">Chờ duyệt</option>
+                    <option value="in_progress">Đang thực hiện</option>
+                    <option value="completed">Hoàn thành</option>
+                    <option value="cancelled">Đã hủy</option>
+                  </select>
+                {:else}
+                  <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ink-06 text-foreground">
+                    {projectState.status ?? 'Không có'}
+                  </div>
+                {/if}
               </div>
 
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Ngày bắt đầu</h3>
-                <p>{project.start_date ? formatDate(project.start_date) : 'Không có'}</p>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Ngày bắt đầu</p>
+                <p>{projectState.start_date ? formatDate(projectState.start_date) : 'Không có'}</p>
               </div>
 
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Ngày kết thúc</h3>
-                <p>{project.end_date ? formatDate(project.end_date) : 'Không có'}</p>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Ngày kết thúc</p>
+                <p>{projectState.end_date ? formatDate(projectState.end_date) : 'Không có'}</p>
               </div>
 
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Người tạo</h3>
-                <p>{project.creator_name ?? 'Không có'}</p>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Người tạo</p>
+                <p>{projectState.creator_name ?? 'Không có'}</p>
               </div>
 
               <div>
-                <h3 class="text-sm font-medium text-muted-foreground mb-1">Quản lý</h3>
-                <p>{project.manager_name ?? 'Không có'}</p>
+                <p class="mb-1 text-sm font-medium text-foreground/80">Quản lý</p>
+                <p>{projectState.manager_name ?? 'Không có'}</p>
               </div>
             </div>
+            {#if editing}
+              <div class="mt-4 space-y-2">
+                <Label for="project-name">Tên dự án</Label>
+                <Input
+                  id="project-name"
+                  value={editForm.name}
+                  oninput={(event: Event) => {
+                    editForm.name = (event.currentTarget as HTMLInputElement).value
+                  }}
+                />
+              </div>
+            {/if}
           </CardContent>
         </Card>
       </TabsContent>
@@ -296,26 +347,66 @@
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Thành viên</CardTitle>
             {#if permissions.isCreator || permissions.isManager}
-              <Dialog bind:open={addMemberOpen}>
-                <Button size="sm" onclick={() => { addMemberOpen = true }}>
-                  Thêm thành viên
-                </Button>
+              <Button size="sm" onclick={() => { addMemberOpen = true }}>
+                Thêm thành viên
+              </Button>
+              <Dialog open={addMemberOpen}>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Thêm thành viên</DialogTitle>
                   </DialogHeader>
                   <form onsubmit={handleAddMember} class="space-y-4">
                     <div class="space-y-2">
-                      <Label for="email">Email</Label>
+                      <Label for="member_search">Tìm thành viên tổ chức</Label>
                       <Input
-                        id="email"
-                        type="email"
-                        bind:value={newMemberEmail}
-                        placeholder="email@example.com"
-                        required
+                        id="member_search"
+                        type="text"
+                        value={memberSearch}
+                        oninput={(event: Event) => {
+                          memberSearch = (event.currentTarget as HTMLInputElement).value
+                          void loadMemberCandidates()
+                        }}
+                        placeholder="Tìm theo tên hoặc email..."
                       />
                     </div>
-                    <Button type="submit">Thêm</Button>
+                    <div class="space-y-2">
+                      <Label for="user_id">Chọn thành viên</Label>
+                      <select
+                        id="user_id"
+                        bind:value={newMemberUserId}
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        required
+                      >
+                        <option value="">-- Chọn thành viên --</option>
+                        {#if loadingCandidates}
+                          <option disabled>Đang tải...</option>
+                        {:else}
+                          {#each memberCandidates as candidate}
+                            <option value={candidate.user_id}>
+                              {candidate.username} ({candidate.email}) — {candidate.org_role}
+                            </option>
+                          {/each}
+                          {#if memberCandidates.length === 0}
+                            <option disabled>Không có thành viên khả dụng</option>
+                          {/if}
+                        {/if}
+                      </select>
+                    </div>
+                    <div class="space-y-2">
+                      <Label for="project_role">Vai trò trong dự án</Label>
+                      <select
+                        id="project_role"
+                        bind:value={newMemberRole}
+                        class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="project_viewer">Viewer</option>
+                        <option value="project_member">Member</option>
+                        <option value="project_manager">Manager</option>
+                      </select>
+                    </div>
+                    <Button type="submit" disabled={!newMemberUserId}>
+                      Thêm
+                    </Button>
                   </form>
                 </DialogContent>
               </Dialog>
@@ -328,15 +419,43 @@
                   Chưa có thành viên nào
                 </p>
               {:else}
-                {#each safeMembers as member, index (`${member.user_id ?? member.email}-${index}`)}
-                  <div class="flex items-center space-x-3 p-3 border rounded-md">
-                    <Avatar>
-                      <AvatarFallback>{getMemberInitials(member)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p class="font-medium">{member.username || member.email}</p>
-                      <p class="text-sm text-muted-foreground">{member.email}</p>
-                      <p class="text-xs text-muted-foreground">{member.role}</p>
+                {#each safeMembers as member, index (`${member.user_id ?? ''}-${index}`)}
+                  <div class="flex items-center justify-between space-x-3 p-3 border rounded-md">
+                    <div class="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarFallback>{getMemberInitials(member)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p class="font-medium">{member.username || member.email}</p>
+                        <p class="text-sm text-muted-foreground">{member.email}</p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      {#if permissions.isCreator || permissions.isManager}
+                        <select
+                          value={member.role}
+                          onchange={(event: Event) => {
+                            const target = event.currentTarget as HTMLSelectElement
+                            handleUpdateMemberRole(member.user_id ?? '', target.value)
+                          }}
+                          class="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                        >
+                          <option value="project_viewer">Viewer</option>
+                          <option value="project_member">Member</option>
+                          <option value="project_manager">Manager</option>
+                        </select>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onclick={() => { handleRemoveMember(member.user_id ?? ''); }}
+                        >
+                          Xóa
+                        </Button>
+                      {:else}
+                        <span class="text-xs text-muted-foreground px-2 py-1 bg-muted rounded">
+                          {member.role}
+                        </span>
+                      {/if}
                     </div>
                   </div>
                 {/each}
@@ -350,7 +469,15 @@
         <Card>
           <CardHeader class="flex flex-row items-center justify-between">
             <CardTitle>Công việc</CardTitle>
-              <Button size="sm" onclick={() => { router.get(FRONTEND_ROUTES.TASKS, { project_id: project.id }); }}>
+            <Button
+              size="sm"
+              onclick={() => {
+                router.get(
+                  shellMode === 'organization' ? '/org/tasks' : FRONTEND_ROUTES.TASKS,
+                  { project_id: project.id }
+                )
+              }}
+            >
               Xem tất cả công việc
             </Button>
           </CardHeader>
@@ -368,7 +495,7 @@
               <TableBody>
                 {#if safeTasks.length === 0}
                   <TableRow>
-                    <TableCell colspan={5} class="text-center py-4">
+                    <TableCell class="text-center py-4" colspan={5}>
                       Chưa có công việc nào
                     </TableCell>
                   </TableRow>
@@ -377,7 +504,7 @@
                     <TableRow>
                       <TableCell class="font-medium">{task.title}</TableCell>
                       <TableCell>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-ink-06 text-foreground">
                           {task.status}
                         </span>
                       </TableCell>
@@ -396,6 +523,34 @@
           </CardContent>
         </Card>
       </TabsContent>
+
+      <TabsContent value="skills" class="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Skills Catalog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectSkillsTab
+              projectId={project.id}
+              canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="roles" class="mt-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Professional Roles</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ProjectRolesTab
+              projectId={project.id}
+              canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
+            />
+          </CardContent>
+        </Card>
+      </TabsContent>
     </Tabs>
   </div>
-</AppLayout>
+</Layout>

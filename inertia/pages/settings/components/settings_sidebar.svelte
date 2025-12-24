@@ -20,7 +20,7 @@
 </script>
 
 <div class="col-span-3">
-  <nav class="flex flex-col space-y-1">
+  <nav class="flex flex-col space-y-1" aria-label="Settings">
     {#each sidebarItems as item}
       <Link
         href={item.href}

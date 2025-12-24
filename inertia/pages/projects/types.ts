@@ -63,12 +63,14 @@ export interface Project {
 export interface ProjectsIndexProps {
   projects: Project[]
   auth: {
-    user: User
+    user?: User | null
   }
   showOrganizationRequiredModal?: boolean
 }
 
 export interface ProjectShowProps {
+  shellMode?: 'app' | 'organization'
+  baseRoute?: string
   project: Project
   members: ProjectMember[]
   tasks: Task[]
@@ -89,7 +91,7 @@ export interface ProjectShowProps {
     canAddMembers?: boolean
   }
   auth: {
-    user: User
+    user?: User | null
   }
 }
 
@@ -97,6 +99,6 @@ export interface ProjectCreateProps {
   organizations: Organization[]
   statuses: ProjectStatus[]
   auth: {
-    user: User
+    user?: User | null
   }
 }

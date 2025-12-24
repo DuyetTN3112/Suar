@@ -8,7 +8,8 @@
 
   import Card from '@/components/ui/card.svelte'
   import CardContent from '@/components/ui/card_content.svelte'
-  import AppLayout from '@/layouts/app_layout.svelte'
+import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import SimplePagination from './components/simple_pagination.svelte'
@@ -23,6 +24,8 @@
   } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     flaggedReviews: FlaggedReviewsProps['flaggedReviews']
     meta: FlaggedReviewsProps['meta']
     statuses: FlaggedReviewsProps['statuses']
@@ -30,6 +33,8 @@
   }
 
   const { flaggedReviews, meta, statuses, currentStatus }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
   void page
 
@@ -86,7 +91,7 @@
   <title>{pageTitle}</title>
 </svelte:head>
 
-<AppLayout title={pageTitle}>
+<Layout title={pageTitle}>
   <div class="p-4 sm:p-6 space-y-6 max-w-6xl mx-auto">
     <!-- Flash messages -->
     {#if flash?.success}
@@ -95,7 +100,7 @@
       </div>
     {/if}
     {#if flash?.error}
-      <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+      <div class="rounded-lg border border-border bg-orange-03 px-4 py-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
         {flash.error}
       </div>
     {/if}
@@ -139,7 +144,7 @@
     <!-- Content -->
     {#if flaggedReviews.length === 0}
       <div class="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
-        <CircleCheck class="h-12 w-12 mb-4 opacity-50 text-green-500" />
+        <CircleCheck class="h-12 w-12 mb-4 opacity-50 text-foreground" />
         <p class="text-lg font-medium">Không có flagged reviews</p>
         <p class="text-sm mt-1">Hệ thống chưa phát hiện bất thường nào</p>
       </div>
@@ -168,7 +173,7 @@
                       {flag.status === 'pending' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
                        flag.status === 'confirmed' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
                        flag.status === 'dismissed' ? 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200' :
-                       'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'}">
+                       'bg-ink-06 text-foreground dark:bg-blue-900 dark:text-blue-200'}">
                       {FLAGGED_STATUS_CONFIG[flag.status].labelVi}
                     </span>
                   </div>
@@ -221,7 +226,7 @@
                             type="button"
                             class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors
                               {resolveAction === 'confirmed'
-                                ? 'bg-red-600 text-white'
+                                ? 'bg-orange text-white'
                                 : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'}"
                             onclick={() => (resolveAction = 'confirmed')}
                           >
@@ -279,4 +284,4 @@
       <SimplePagination {meta} baseUrl="/admin/flagged-reviews" />
     {/if}
   </div>
-</AppLayout>
+</Layout>
