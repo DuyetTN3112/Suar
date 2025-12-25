@@ -51,6 +51,6 @@
     </PopoverContent>
   </Popover>
   {#if error}
-    <p class="text-xs text-red-500">{error}</p>
+    <p class="text-xs text-destructive">{error}</p>
   {/if}
 </div>

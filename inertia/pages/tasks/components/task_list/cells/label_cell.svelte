@@ -9,7 +9,7 @@
 
   const labelStyles: Record<string, string> = {
     bug: 'border border-red-300 bg-red-100 text-red-900',
-    feature: 'border border-blue-300 bg-blue-100 text-blue-900',
+    feature: 'border border-blue-300 bg-ink-06 text-blue-900',
     enhancement: 'border border-fuchsia-300 bg-fuchsia-100 text-fuchsia-900',
     documentation: 'border border-orange-300 bg-orange-100 text-orange-900',
   }

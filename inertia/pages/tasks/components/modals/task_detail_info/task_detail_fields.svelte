@@ -94,10 +94,10 @@
           value={formData.title ?? ''}
           oninput={handleChange}
           placeholder={t('task.enter_title', {}, 'Nhập tiêu đề nhiệm vụ')}
-          class={errors.title ? 'border-red-500' : ''}
+          class={errors.title ? 'border-destructive' : ''}
         />
         {#if errors.title}
-          <p class="text-xs text-red-500">{errors.title}</p>
+          <p class="text-xs text-destructive">{errors.title}</p>
         {/if}
       {:else}
         <p class="text-sm border px-3 py-2 rounded-md bg-muted/20">{formData.title}</p>
