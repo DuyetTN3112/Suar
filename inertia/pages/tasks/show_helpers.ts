@@ -1,6 +1,8 @@
 import type { Task } from './types.svelte'
 
 export interface TaskShowProps {
+  shellMode?: 'app' | 'organization'
+  baseRoute?: string
   task: Task
   permissions: {
     canEdit: boolean
