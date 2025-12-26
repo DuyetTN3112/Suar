@@ -27,7 +27,8 @@ export const throttle = limiter.define('global', (ctx: HttpContext) => {
  * 60 requests mỗi phút cho mỗi IP
  */
 export const apiThrottle = limiter.define('api', (ctx: HttpContext) => {
-  return limiter.allowRequests(60).every('1 minute').usingKey(`api:${ctx.request.ip()}`)
+  const key = ctx.auth.user ? `api:user:${ctx.auth.user.id}` : `api:ip:${ctx.request.ip()}`
+  return limiter.allowRequests(60).every('1 minute').usingKey(key)
 })
 
 /**

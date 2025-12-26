@@ -2,6 +2,7 @@ import router from '@adonisjs/core/services/router'
 
 import { middleware } from '../kernel.js'
 
+import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
 import { loginThrottle } from '#start/limiter'
 
 // Auth controllers - Only OAuth and Logout
@@ -22,4 +23,5 @@ router
   .get('/login', ({ inertia }) => {
     return inertia.render('auth/login', {})
   })
+  .as('auth.login')
   .use(loginThrottle)
