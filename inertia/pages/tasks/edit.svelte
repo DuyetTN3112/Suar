@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
 
   import Badge from '@/components/ui/badge.svelte'
   import Button from '@/components/ui/button.svelte'
@@ -12,6 +12,7 @@
   import Label from '@/components/ui/label.svelte'
   import Textarea from '@/components/ui/textarea.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+  import OrganizationLayout from '@/layouts/organization_layout.svelte'
   import { useTranslation } from '@/stores/translation.svelte'
 
   import TaskAssignmentFields from './components/forms/task_assignment_fields.svelte'
@@ -19,6 +20,8 @@
   import type { Task } from './types.svelte'
 
   interface Props {
+    shellMode?: 'app' | 'organization'
+    auth?: { user?: { current_organization_role?: string | null } }
     task: Task
     metadata: {
       statuses: { value: string; label: string }[]
@@ -36,10 +39,40 @@
     }
   }
 
+  interface TaskEditFormData {
+    title: string
+    description: string
+    priority: string
+    label: string
+    project_id: string
+    assigned_to: string
+    due_date: string
+    estimated_time: string
+    actual_time: string
+    parent_task_id: string
+    task_type: string
+    verification_method: string
+    acceptance_criteria: string
+    context_background: string
+    tech_stack_text: string
+    learning_objectives_text: string
+    domain_tags_text: string
+    environment: string
+    collaboration_type: string
+    complexity_notes: string
+    role_in_task: string
+    autonomy_level: string
+    problem_category: string
+    business_domain: string
+    estimated_users_affected: string
+  }
+
   const { task, metadata, permissions }: Props = $props()
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
   const { t } = useTranslation()
 
-  const buildInitialFormData = () => ({
+  const buildInitialFormData = (): TaskEditFormData => ({
     title: task.title,
     description: task.description ?? '',
     priority: task.priority,
@@ -50,6 +83,21 @@
     estimated_time: task.estimated_time != null ? String(task.estimated_time) : '',
     actual_time: task.actual_time != null ? String(task.actual_time) : '',
     parent_task_id: task.parent_task_id ?? '',
+    task_type: task.task_type ?? '',
+    verification_method: task.verification_method ?? '',
+    acceptance_criteria: task.acceptance_criteria ?? '',
+    context_background: task.context_background ?? '',
+    tech_stack_text: task.tech_stack ? task.tech_stack.join(', ') : '',
+    learning_objectives_text: task.learning_objectives ? task.learning_objectives.join('\n') : '',
+    domain_tags_text: task.domain_tags ? task.domain_tags.join(', ') : '',
+    environment: task.environment ?? '',
+    collaboration_type: task.collaboration_type ?? '',
+    complexity_notes: task.complexity_notes ?? '',
+    role_in_task: task.role_in_task ?? '',
+    autonomy_level: task.autonomy_level ?? '',
+    problem_category: task.problem_category ?? '',
+    business_domain: task.business_domain ?? '',
+    estimated_users_affected: task.estimated_users_affected != null ? String(task.estimated_users_affected) : '',
   })
 
   let formData = $state(buildInitialFormData())
