@@ -65,6 +65,19 @@ const PRIORITY_ORDER: Record<string, number> = {
   low: 3,
 }
 
+function isTaskDebugEnabled(): boolean {
+  if (import.meta.env.DEV) return true
+  if (typeof window === 'undefined') return false
+
+  return window.localStorage.getItem('tasks:kanban:debug') === '1'
+}
+
+function debugTaskStore(message: string, payload?: Record<string, unknown>) {
+  if (!isTaskDebugEnabled()) return
+
+  console.warn(`[TaskStore] ${message}`, payload ?? {})
+}
+
 // ============================================================================
 // Store Factory
 // ============================================================================
@@ -318,11 +331,23 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
   /** Move task to new status (optimistic update for Kanban drag) */
   async function moveTaskStatus(taskId: string, newStatusId: TaskStatus, newSortOrder?: number) {
     const task = getTaskById(taskId)
-    if (!task) return
+    if (!task) {
+      debugTaskStore('moveTaskStatus ignored: task not found', { taskId, newStatusId })
+      return
+    }
     if (isTaskMutating(taskId)) {
+      debugTaskStore('moveTaskStatus ignored: task mutating', { taskId, newStatusId })
       notificationStore.info('Task đang đồng bộ', 'Vui lòng đợi thao tác hiện tại hoàn tất.')
       return
     }
+
+    debugTaskStore('moveTaskStatus started', {
+      taskId,
+      fromStatus: task.status,
+      fromTaskStatusId: task.task_status_id,
+      newStatusId,
+      newSortOrder,
+    })
 
     beginOptimistic()
     setTaskMutating(taskId, true)
@@ -341,6 +366,13 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
     }
 
     try {
+      debugTaskStore('moveTaskStatus patch request', {
+        taskId,
+        url: `/api/tasks/${taskId}/sort-order`,
+        sort_order: newSortOrder ?? task.sort_order ?? 0,
+        task_status_id: newStatusId,
+      })
+
       const response = await axios.patch<{ success: boolean; data: Task }>(
         `/api/tasks/${taskId}/sort-order`,
         {
@@ -353,11 +385,25 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
         ...tasksMap,
         [taskId]: response.data.data,
       }
+
+      debugTaskStore('moveTaskStatus patch success', {
+        taskId,
+        responseStatusId: response.data.data.task_status_id,
+        responseSortOrder: response.data.data.sort_order,
+      })
     } catch (error: unknown) {
       const normalizedError = normalizeTaskMutationError(
         error,
         'Không thể chuyển trạng thái task theo workflow hiện tại.'
       )
+
+      debugTaskStore('moveTaskStatus patch failed', {
+        taskId,
+        newStatusId,
+        message: normalizedError.message,
+        isConflict: normalizedError.isConflict,
+        error,
+      })
 
       notificationStore.error('Cập nhật trạng thái thất bại', normalizedError.message)
 
@@ -378,6 +424,7 @@ export function createTaskStore(options: TaskStoreOptions = {}) {
     } finally {
       setTaskMutating(taskId, false)
       endOptimistic()
+      debugTaskStore('moveTaskStatus finished', { taskId, newStatusId })
     }
   }
 

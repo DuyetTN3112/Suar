@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { router, page  } from '@inertiajs/svelte'
 
   import Button from '@/components/ui/button.svelte'
   import AppLayout from '@/layouts/app_layout.svelte'
+import OrganizationLayout from '@/layouts/organization_layout.svelte'
 
   import PendingApprovalTable from './components/PendingApprovalTable.svelte'
   import UserSearchForm from './components/UserSearchForm.svelte'
@@ -32,13 +33,16 @@
     const queryString = queryParams.toString()
     router.get(`/users/pending-approval${queryString ? `?${queryString}` : ''}`)
   }
+
+  const currentOrgRole = $derived((page as { props: { auth?: { user?: { current_organization_role?: string | null } } } }).props.auth?.user?.current_organization_role ?? null)
+  const Layout = $derived(currentOrgRole === 'org_owner' || currentOrgRole === 'org_admin' ? OrganizationLayout : AppLayout)
 </script>
 
 <svelte:head>
   <title>Phê duyệt người dùng</title>
 </svelte:head>
 
-<AppLayout title="Phê duyệt người dùng">
+<Layout title="Phê duyệt người dùng">
   <div class="container py-8">
     <div class="flex items-center justify-between">
       <h1 class="text-3xl font-bold">Phê duyệt người dùng</h1>
@@ -62,4 +66,4 @@
       />
     </div>
   </div>
-</AppLayout>
+</Layout>
