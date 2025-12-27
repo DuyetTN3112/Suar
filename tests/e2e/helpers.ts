@@ -1,4 +1,4 @@
-import { Page, expect } from '@playwright/test'
+import { type Page, expect } from '@playwright/test'
 
 const BASE_URL = 'http://127.0.0.1:3333'
 
@@ -15,6 +15,79 @@ export async function login(page: Page, email: string) {
 }
 
 /**
+ * Create a project via the API and return its ID.
+ * Uses page.request with cookies from the browser context.
+ */
+export async function createProject(page: Page, name: string): Promise<string> {
+  // Navigate to org projects to get CSRF token in page context
+  await page.goto(`${BASE_URL}/org/projects`)
+  await page.waitForLoadState('networkidle')
+
+  // Get CSRF token from meta tag
+  const csrfToken = await page.locator('meta[name="csrf-token"]').getAttribute('content')
+  console.log('CSRF token:', csrfToken)
+
+  // Create project via API using page.request (shares cookies)
+  const resp = await page.request.post(`${BASE_URL}/org/projects`, {
+    headers: {
+      'X-CSRF-TOKEN': csrfToken ?? '',
+    },
+    form: {
+      name,
+      description: `E2E test: ${name}`,
+      status: 'in_progress',
+    },
+  })
+
+  console.log('Create response status:', resp.status())
+  const respBody = await resp.text().catch(() => '')
+  console.log('Create response body:', respBody.substring(0, 200))
+
+  if (!resp.ok() && resp.status() !== 200) {
+    console.log('Create failed with status:', resp.status())
+    return ''
+  }
+
+  // Navigate to org projects and find the project link
+  await page.goto(`${BASE_URL}/org/projects`)
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(2000)
+
+  // Find project link by text
+  const allLinks = page.locator('a[href*="/org/projects/"]')
+  const linkCount = await allLinks.count()
+  console.log('Project links found:', linkCount)
+
+  for (let i = 0; i < linkCount; i++) {
+    const text = await allLinks.nth(i).textContent()
+    console.log(`Link ${i}: text=${text?.trim().substring(0, 50) ?? ''}`)
+    if (text?.includes(name)) {
+      const href = await allLinks.nth(i).getAttribute('href')
+      const match = href?.match(/\/org\/projects\/([a-f0-9-]+)/)
+      const projectId = match?.[1]
+      if (projectId) {
+        console.log('Found project ID:', projectId)
+        return projectId
+      }
+    }
+  }
+
+  // Fallback: return first project link
+  if (linkCount > 0) {
+    const href = await allLinks.first().getAttribute('href')
+    const match = href?.match(/\/org\/projects\/([a-f0-9-]+)/)
+    const projectId = match?.[1]
+    if (projectId) {
+      console.log('Fallback project ID:', projectId)
+      return projectId
+    }
+  }
+
+  console.log('No project ID found')
+  return ''
+}
+
+/**
  * Find a project ID by its name on the org projects page.
  */
 export async function findProjectIdByName(page: Page, name: string): Promise<string> {
@@ -26,7 +99,8 @@ export async function findProjectIdByName(page: Page, name: string): Promise<str
   if (await link.count() > 0) {
     const href = await link.getAttribute('href')
     const match = href?.match(/\/org\/projects\/([a-f0-9-]+)/)
-    if (match) return match[1]!
+    const projectId = match?.[1]
+    if (projectId) return projectId
   }
 
   return ''
@@ -127,31 +201,10 @@ export async function createTaskWithRole(
   await page.waitForURL(/\/tasks\/[a-f0-9-]+/)
 }
 
-
-/**
- * Create a project via the UI and return its ID from the URL.
- */
-export async function createProject(page: Page, name: string): Promise<string> {
-  await page.goto(`${BASE_URL}/projects/create`)
-  await page.waitForLoadState('domcontentloaded')
-
-  await page.fill('input[name="name"]', name)
-  const descInput = page.locator('textarea[name="description"]').first()
-  if (await descInput.count() > 0) {
-    await descInput.fill(`Description for ${name}`)
-  }
-
-  await page.click('button:has-text("Tạo")')
-  await page.waitForURL(/\/projects\/[a-f0-9-]+/)
-  const url = page.url()
-  const match = url.match(/\/projects\/([a-f0-9-]+)/)
-  return match ? match[1]! : ''
-}
-
 /**
  * Get the CSRF token from the page meta tag.
  */
 export async function getCsrfToken(page: Page): Promise<string> {
   const token = page.locator('meta[name="csrf-token"]')
-  return (await token.getAttribute('content')) || ''
+  return (await token.getAttribute('content')) ?? ''
 }

@@ -72,6 +72,11 @@ export default class TaskStatusScenario {
       creator_id: owner.id,
       owner_id: owner.id,
     })
+    await ProjectMemberFactory.create({
+      project_id: project.id,
+      user_id: owner.id,
+      project_role: 'project_owner',
+    })
 
     return new TaskStatusScenario(org.id, owner.id, project)
   }

@@ -2,29 +2,23 @@ import db from '@adonisjs/lucid/services/db'
 
 import { assertSafeTestDatastores } from '../test_datastore_guard.js'
 
-import { MongoAuditLogModel } from '#modules/audit/infra/models/audit_log'
-import MongoNotification from '#modules/notifications/infra/models/notification'
-import MongoUserActivityLog from '#modules/user_activity/infra/models/user_activity_log'
 
 export async function cleanupTestData(): Promise<void> {
   await assertSafeTestDatastores()
 
-  try {
-    await MongoAuditLogModel.deleteMany({})
-  } catch {
-  }
-
-  try {
-    await MongoNotification.deleteMany({})
-  } catch {
-  }
-
-  try {
-    await MongoUserActivityLog.deleteMany({})
-  } catch {
-  }
+  // PG operational tables (Mongo-era data now lives in PostgreSQL)
+  await db.from('audit_events').delete()
+  await db.from('notifications').delete()
+  await db.from('user_activity_events').delete()
+  await db.from('error_events').delete()
 
   await db.from('flagged_reviews').delete()
+  await db.from('ai_dispute_feedback').delete()
+  await db.from('ai_dispute_evaluations').delete()
+  await db.from('review_dispute_case_files').delete()
+  await db.from('review_dispute_evidences').delete()
+  await db.from('review_dispute_comments').delete()
+  await db.from('review_disputes').delete()
   await db.from('reverse_reviews').delete()
   await db.from('skill_reviews').delete()
   await db.from('review_sessions').delete()
