@@ -1798,3 +1798,245 @@ describe('task i18n source guard', () => {
         'bg-amber-500/10',
         'text-amber-600',
         'border-amber-500/30',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review header, results, and manager form copy through translations', () => {
+    for (const sourcePath of reviewShowHeaderSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.reviews.header.confirmed'",
+        'task.reviews.header.governance_rule',
+        "t('task.reviews.header.review_overdue_at'",
+        "t('task.reviews.header.pending_reviewers'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+      expect(source).not.toContain("toLocaleString('vi-VN'")
+    }
+
+    for (const sourcePath of reviewResultsSectionSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        'currentDocumentLocale',
+        'Intl.DateTimeFormat',
+        "t('task.reviews.results.manager_summary'",
+        "t('task.reviews.results.review_results'",
+        "t('task.reviews.results.confirmation_history'",
+        "t('task.reviews.results.action_confirmed'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+      expect(source).not.toContain("toLocaleDateString('vi-VN'")
+    }
+
+    for (const sourcePath of managerReviewSectionSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.reviews.manager_form.title'",
+        "t('task.reviews.manager_form.delivery_timeliness'",
+        "t('task.reviews.manager_form.would_work_with_again'",
+        "t('task.reviews.manager_form.strengths_placeholder'",
+        "t('task.reviews.manager_form.areas_placeholder'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes review dispute response tab copy through translations', () => {
+    for (const sourcePath of reviewDisputeResponseTabSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        'useTranslation()',
+        "t('task.disputes.detail.response_tab.title'",
+        "t('task.disputes.detail.response_tab.subtitle'",
+        "t('task.disputes.detail.response_tab.close'",
+        "t('task.disputes.detail.response_tab.open'",
+        "t('task.disputes.detail.response_tab.position_label'",
+        "t('task.disputes.detail.response_tab.agree_title'",
+        "t('task.disputes.detail.response_tab.disagree_title'",
+        "t('task.disputes.detail.response_tab.summary_label'",
+        "t('task.disputes.detail.response_tab.summary_help'",
+        "t('task.disputes.detail.response_tab.summary_placeholder'",
+        "t('task.disputes.detail.response_tab.submitting'",
+        "t('task.disputes.detail.response_tab.submit'",
+        "t('task.disputes.detail.response_tab.closed_hint'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      for (const forbidden of [
+        'Giải trình của tổ chức',
+        'Đại diện tổ chức',
+        'Đóng',
+        'Mở',
+        'Quan điểm của tổ chức',
+        'Đồng ý điều chỉnh',
+        'Chấp nhận có điểm',
+        'Giữ nguyên điểm',
+        'Bảo vệ kết quả review',
+        'Bản giải trình',
+        'Nêu rõ timeline',
+        'Nhập giải trình',
+        'Đang gửi',
+        'Gửi giải trình',
+        'Mở panel để gửi',
+      ]) {
+        expect(source).not.toContain(forbidden)
+      }
+
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes admin dispute resolve tab copy and dates through translations', () => {
+    for (const sourcePath of adminDisputeResolveSources) {
+      const source = readSource(sourcePath)
+      const expectedKeys = sourcePath.endsWith('dispute_resolve_tab.svelte')
+        ? [
+            'useTranslation()',
+            'currentDocumentLocale',
+            "t('task.disputes.admin_detail.resolve.resolution_status'",
+            "t('task.disputes.admin_detail.resolve.created_at'",
+            "t('task.disputes.admin_detail.resolve.runtime_context'",
+            "t('task.disputes.admin_detail.resolve.decision_readiness'",
+            "t('task.disputes.admin_detail.resolve.ai_support_count'",
+          ]
+        : sourcePath.endsWith('dispute_evidence_list.svelte')
+          ? [
+              'useTranslation()',
+              'currentDocumentLocale',
+              "t('task.disputes.admin_detail.resolve.evidence_snapshot'",
+              "t('task.disputes.admin_detail.resolve.case_file_count'",
+              "t('task.disputes.admin_detail.resolve.missing_data'",
+              "t('task.disputes.admin_detail.resolve.task_comments_in_case_file'",
+              "t('task.disputes.admin_detail.resolve.evidence_in_dossier'",
+            ]
+          : [
+              'useTranslation()',
+              "t('task.disputes.admin_detail.resolve.form.final_decision'",
+              "t('task.disputes.admin_detail.resolve.form.rationale'",
+              "t('task.disputes.admin_detail.resolve.form.resolve'",
+            ]
+
+      for (const key of expectedKeys) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toContain("toLocaleString('vi-VN'")
+      expect(source).not.toContain("toLocaleDateString('vi-VN'")
+      expect(source).not.toMatch(/[À-ỹ]/)
+    }
+  })
+
+  it('routes organization dispute index copy through translations', () => {
+    const source = readSource(orgDisputeIndexSource)
+
+    for (const key of [
+      'useTranslation()',
+      "t('task.disputes.org_index.page_title'",
+      "t('task.disputes.org_index.title'",
+      "t('task.disputes.org_index.filter_title'",
+      "t('task.disputes.org_index.all_statuses'",
+      "t('task.disputes.org_index.search_placeholder'",
+      "t('task.disputes.org_index.created_at_start'",
+      "t('task.disputes.org_index.created_at_end'",
+      "t('task.disputes.org_index.filter_results'",
+      "t('task.disputes.org_index.clear_filters'",
+      "t('task.disputes.org_index.list_title'",
+      "t('task.disputes.org_index.empty'",
+      "t('task.disputes.org_index.untitled_task'",
+      "t('task.disputes.org_index.reviewee_fallback'",
+      "t('task.disputes.org_index.comment_count'",
+      "t('task.disputes.org_index.evidence_count'",
+      "t('task.disputes.org_index.view_detail'",
+      '`task.disputes.index.status.${status}`',
+      '`task.disputes.index.requested_outcome.${outcome}`',
+    ]) {
+      expect(source).toContain(key)
+    }
+
+    for (const forbidden of [
+      'Hàng đợi khiếu nại đánh giá',
+      'Bộ lọc',
+      'Lọc trạng thái khiếu nại',
+      'Tất cả',
+      'Chờ xử lý',
+      'Đang thu thập minh chứng',
+      'Điều chỉnh điểm',
+      'Tìm theo task hoặc lý do',
+      'Ngày tạo từ',
+      'Ngày tạo đến',
+      'Lọc kết quả',
+      'Xóa filter',
+      'Danh sách tranh chấp',
+      'Không có tranh chấp phù hợp.',
+      'Task chưa đặt tên',
+      'Người được review',
+      'bình luận',
+      'minh chứng',
+      'Xem chi tiết',
+    ]) {
+      expect(source).not.toContain(forbidden)
+    }
+  })
+
+  it('routes task status-management controller copy through translations', () => {
+    for (const sourcePath of taskStatusManagementSources) {
+      const source = readSource(sourcePath)
+
+      for (const key of [
+        "useTranslation()",
+        "t('task.workflow.permission_title'",
+        "t('task.workflow.board_sync_title'",
+        "t('task.workflow.manage_wait_message'",
+        "t('task.workflow.no_permission_error'",
+        "t('task.workflow.board_sync_retry_error'",
+        "t('task.workflow.status_name_required'",
+        "t('task.workflow.status_name_invalid'",
+        "t('task.workflow.status_group_required'",
+        "t('task.workflow.create_success'",
+        "t('task.workflow.create_failed'",
+        "t('task.workflow.delete_success'",
+        "t('task.workflow.delete_failed'",
+      ]) {
+        expect(source).toContain(key)
+      }
+
+      expect(source).not.toContain("notificationStore.error('Bạn không đủ quyền")
+      expect(source).not.toContain("notificationStore.success('Đã tạo trạng thái")
+      expect(source).not.toContain("createStatusError = 'Tên trạng thái là bắt buộc'")
+    }
+
+    const orgSource = readSource('inertia/apps/org/modules/tasks/stores/status_management_controller.svelte.ts')
+    for (const key of [
+      "t('task.workflow.rename_success'",
+      "t('task.workflow.rename_failed'",
+      "t('task.workflow.reorder_success'",
+      "t('task.workflow.reorder_failed'",
+    ]) {
+      expect(orgSource).toContain(key)
+    }
+  })
+})
