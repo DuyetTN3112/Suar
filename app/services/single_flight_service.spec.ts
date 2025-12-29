@@ -1,5 +1,5 @@
 import { test } from '@japa/runner'
-import SingleFlightService from '#services/single_flight_service'
+import * as SingleFlightService from '#services/single_flight_service'
 
 test.group('SingleFlightService', (group) => {
   // Clear all in-flight requests before each test
@@ -70,9 +70,15 @@ test.group('SingleFlightService', (group) => {
 
     // Execute multiple requests concurrently with the same key
     const promises = [
-      SingleFlightService.execute('error-key', failingOperation).catch((err) => err.message),
-      SingleFlightService.execute('error-key', failingOperation).catch((err) => err.message),
-      SingleFlightService.execute('error-key', failingOperation).catch((err) => err.message),
+      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+        err instanceof Error ? err.message : String(err)
+      ),
+      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+        err instanceof Error ? err.message : String(err)
+      ),
+      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+        err instanceof Error ? err.message : String(err)
+      ),
     ]
 
     const results = await Promise.all(promises)

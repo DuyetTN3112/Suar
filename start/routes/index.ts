@@ -22,16 +22,17 @@ router.get('/test', async ({ inertia }) => {
 })
 
 // Health check route
-router.get('/health', [HealthChecksController]).use((ctx, next) => {
+router.get('/health', [HealthChecksController]).use(async (ctx, next) => {
   // Kiểm tra API key từ header hoặc từ query parameter
-  const apiKey = ctx.request.header('x-api-key') || ctx.request.qs().key
+  const apiKey: string | undefined =
+    ctx.request.header('x-api-key') ?? (ctx.request.qs() as Record<string, string | undefined>).key
   const expectedApiKey = process.env.HEALTH_CHECK_API_KEY
 
   if (apiKey !== expectedApiKey) {
     ctx.response.unauthorized({ message: 'API key không hợp lệ' })
     return
   }
-  return next()
+  await next()
 })
 
 // Thêm routes cho dev tools

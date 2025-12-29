@@ -1,7 +1,33 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseQuery } from '#actions/shared/base_query'
 import Project from '#models/project'
 import db from '@adonisjs/lucid/services/db'
+
+/**
+ * Count result interface for aggregate queries
+ */
+interface CountResult {
+  count?: string | number
+}
+
+/**
+ * Member interface for query results
+ */
+interface ProjectMember {
+  user_id: number
+  username: string
+  email: string
+  role: string
+  joined_at: Date
+  task_count: number
+}
+
+/**
+ * Task count row interface
+ */
+interface TaskCountRow {
+  user_id: number
+  count: string | number
+}
 
 /**
  * Query result interface
@@ -49,17 +75,16 @@ export interface GetProjectDetailResult {
  * @extends {BaseQuery<number, GetProjectDetailResult>}
  */
 export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectDetailResult> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the query
    *
    * @param projectId - ID of the project to fetch
    */
   async handle(projectId: number): Promise<GetProjectDetailResult> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('User not authenticated')
+    }
 
     // Load project with relations
     const project = await Project.query()
@@ -106,11 +131,11 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
     }
 
     // Check if user is a member
-    const isMember = await db
+    const isMember = (await db
       .from('project_members')
       .where('project_id', project.id)
       .where('user_id', userId)
-      .first()
+      .first()) as { user_id: number } | null
 
     if (!isMember) {
       throw new Error('Bạn không có quyền truy cập dự án này')
@@ -120,28 +145,34 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   /**
    * Get list of project members with details
    */
-  private async getMembers(projectId: number): Promise<unknown[]> {
-    const members = await db
+  private async getMembers(projectId: number): Promise<ProjectMember[]> {
+    const members = (await db
       .from('project_members as pm')
       .select('pm.user_id', 'pm.role', 'pm.created_at as joined_at', 'u.username', 'u.email')
       .leftJoin('users as u', 'pm.user_id', 'u.id')
       .where('pm.project_id', projectId)
-      .orderBy('pm.created_at', 'asc')
+      .orderBy('pm.created_at', 'asc')) as Array<{
+      user_id: number
+      role: string
+      joined_at: Date
+      username: string
+      email: string
+    }>
 
     // Get task count for each member
-    const taskCounts = await db
+    const taskCounts = (await db
       .from('tasks')
       .select('assigned_to as user_id')
       .count('* as count')
       .where('project_id', projectId)
       .whereNull('deleted_at')
-      .groupBy('assigned_to')
+      .groupBy('assigned_to')) as TaskCountRow[]
 
     const taskCountMap = new Map(taskCounts.map((t) => [t.user_id, Number(t.count)]))
 
     return members.map((member) => ({
       ...member,
-      task_count: taskCountMap.get(member.user_id) || 0,
+      task_count: taskCountMap.get(member.user_id) ?? 0,
     }))
   }
 
@@ -157,7 +188,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   }> {
     const now = new Date()
 
-    const [total, pending, inProgress, completed, overdue] = await Promise.all([
+    const [total, pending, inProgress, completed, overdue] = (await Promise.all([
       db.from('tasks').where('project_id', projectId).whereNull('deleted_at').count('* as count'),
       db
         .from('tasks')
@@ -184,7 +215,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
         .where('due_date', '<', now)
         .whereNull('deleted_at')
         .count('* as count'),
-    ])
+    ])) as [CountResult[], CountResult[], CountResult[], CountResult[], CountResult[]]
 
     return {
       total: Number(total[0]?.count || 0),
@@ -198,15 +229,33 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   /**
    * Get recent activity (last 10 audit logs)
    */
-  private async getRecentActivity(projectId: number): Promise<unknown[]> {
-    const activities = await db
+  private async getRecentActivity(projectId: number): Promise<
+    Array<{
+      id: number
+      user_id: number | null
+      entity_type: string
+      entity_id: number
+      action: string
+      created_at: Date
+      username: string | null
+    }>
+  > {
+    const activities = (await db
       .from('audit_logs')
       .select('audit_logs.*', 'users.username as username')
       .leftJoin('users', 'audit_logs.user_id', 'users.id')
       .where('entity_type', 'project')
       .where('entity_id', projectId)
       .orderBy('created_at', 'desc')
-      .limit(10)
+      .limit(10)) as Array<{
+      id: number
+      user_id: number | null
+      entity_type: string
+      entity_id: number
+      action: string
+      created_at: Date
+      username: string | null
+    }>
 
     return activities
   }
@@ -217,7 +266,7 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
   private calculatePermissions(
     userId: number,
     project: Project,
-    members: unknown[]
+    members: ProjectMember[]
   ): {
     isOwner: boolean
     isManager: boolean
@@ -247,8 +296,8 @@ export default class GetProjectDetailQuery extends BaseQuery<number, GetProjectD
    * Get cache key for this query
    */
   protected getCacheKey(projectId: number): string {
-    const user = this.ctx.auth.user!
-    return `projects:detail:${projectId}:user:${user.id}`
+    const userId = this.ctx.auth.user?.id ?? 0
+    return `projects:detail:${projectId}:user:${userId}`
   }
 
   /**

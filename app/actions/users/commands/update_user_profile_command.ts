@@ -1,4 +1,5 @@
-﻿import { BaseCommand } from '../../shared/base_command.js'
+﻿import { inject } from '@adonisjs/core'
+import { BaseCommand } from '../../shared/base_command.js'
 import type { UpdateUserProfileDTO } from '../dtos/update_user_profile_dto.js'
 import User from '#models/user'
 
@@ -8,6 +9,7 @@ import User from '#models/user'
  * Updates user profile information (username, email only).
  * This command handles partial updates - only provided fields are updated.
  */
+@inject()
 export default class UpdateUserProfileCommand extends BaseCommand<UpdateUserProfileDTO, User> {
   async handle(dto: UpdateUserProfileDTO): Promise<User> {
     return await this.executeInTransaction(async (_trx) => {

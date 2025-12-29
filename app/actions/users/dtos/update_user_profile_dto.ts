@@ -1,4 +1,5 @@
 import type { Command } from '../../shared/interfaces.js'
+import type User from '#models/user'
 
 /**
  * UpdateUserProfileDTO
@@ -6,7 +7,7 @@ import type { Command } from '../../shared/interfaces.js'
  * Data Transfer Object for updating user profile information (username, email).
  * Used by UpdateUserProfileCommand.
  */
-export class UpdateUserProfileDTO implements Command {
+export class UpdateUserProfileDTO implements Command, Partial<Pick<User, 'username' | 'email'>> {
   constructor(
     public readonly userId: number,
     public readonly username?: string,

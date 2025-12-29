@@ -74,7 +74,7 @@ export class AddProjectMemberDTO implements AddProjectMemberDTOInterface {
   /**
    * Convert to plain object for database insertion
    */
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return {
       project_id: this.project_id,
       user_id: this.user_id,

@@ -1,4 +1,4 @@
-import type { HttpContext } from '@adonisjs/core/http'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { DeleteProjectDTO } from '../dtos/index.js'
 import Project from '#models/project'
@@ -17,10 +17,6 @@ import db from '@adonisjs/lucid/services/db'
  * @extends {BaseCommand<DeleteProjectDTO, void>}
  */
 export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the command
    *
@@ -100,8 +96,11 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
   /**
    * Check for incomplete tasks and warn user
    */
-  private async checkIncompleteTasks(projectId: number, trx: unknown): Promise<void> {
-    const incompleteTasks = await trx
+  private async checkIncompleteTasks(
+    projectId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const incompleteTasks = (await trx
       .from('tasks')
       .where('project_id', projectId)
       .whereNull('deleted_at')
@@ -112,13 +111,13 @@ export default class DeleteProjectCommand extends BaseCommand<DeleteProjectDTO> 
         4, // cancelled
       ])
       .count('* as total')
-      .first()
+      .first()) as { total?: string | number } | null
 
-    const count = incompleteTasks?.total || 0
+    const count = Number(incompleteTasks?.total ?? 0)
 
     if (count > 0) {
       throw new Error(
-        `Dự án có ${count} công việc chưa hoàn thành. ` +
+        `Dự án có ${String(count)} công việc chưa hoàn thành. ` +
           `Vui lòng hoàn thành hoặc hủy các công việc trước khi xóa dự án.`
       )
     }

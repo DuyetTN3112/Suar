@@ -78,7 +78,7 @@ export class RemoveProjectMemberDTO implements RemoveProjectMemberDTOInterface {
     let message = `Xóa ${userInfo} khỏi dự án`
 
     if (this.hasReason()) {
-      message += ` - Lý do: ${this.reason}`
+      message += ` - Lý do: ${String(this.reason)}`
     }
 
     if (this.shouldReassignTasks() && reassignUserName) {

@@ -8,10 +8,10 @@ import env from '#start/env'
 export default class DebugMiddleware {
   private isDevMode = env.get('NODE_ENV') === 'development'
 
-  // private log(...args: any[]) { /* unused */ }
+  // private log(...args: unknown[]) { /* unused */ }
 
-  async handle(ctx: HttpContext, next: NextFn) {
-    if (this.isDevMode) {
+  handle(ctx: HttpContext, next: NextFn): Promise<void> {
+    if (this.isDevMode && ctx.auth?.isAuthenticated && ctx.auth.user) {
       // Removed all debug logs in this section
       // Log tổng quan các header thay vì chi tiết
       // const headerKeys = Object.keys(ctx.request.headers()) // unused
@@ -19,15 +19,8 @@ export default class DebugMiddleware {
       // const cookieKeys = Object.keys(ctx.request.cookiesList()) // unused
       // Log session keys thay vì toàn bộ session
       // const sessionKeys = Object.keys(ctx.session.all()) // unused
-      if (ctx.auth) {
-        if (ctx.auth.isAuthenticated && ctx.auth.user) {
-          // Removed user info log
-        }
-      } else {
-        // Removed auth status log
-      }
     }
 
-    return next()
+    return next() as Promise<void>
   }
 }

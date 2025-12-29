@@ -14,6 +14,8 @@
     "test:watch": "node --loader ts-node-maintained/esm bin/test.ts --watch",
     "debug": "node vite-debug.js",
     "lint": "eslint .",
+    "lint:backend": "eslint ./app ./start ./config ./server.ts",
+    "lint:frontend": "eslint ./inertia",
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "docker:install": "npm install --no-package-lock --omit=optional && node ./scripts/install-native-modules.js"

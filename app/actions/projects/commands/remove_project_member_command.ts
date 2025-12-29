@@ -1,9 +1,9 @@
-import type { HttpContext } from '@adonisjs/core/http'
 import { BaseCommand } from '#actions/shared/base_command'
 import type { RemoveProjectMemberDTO } from '../dtos/index.js'
 import Project from '#models/project'
 import User from '#models/user'
 import db from '@adonisjs/lucid/services/db'
+import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 /**
  * Command to remove a member from a project
@@ -17,10 +17,6 @@ import db from '@adonisjs/lucid/services/db'
  * @extends {BaseCommand<RemoveProjectMemberDTO, void>}
  */
 export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjectMemberDTO> {
-  constructor(ctx: HttpContext) {
-    super(ctx)
-  }
-
   /**
    * Execute the command
    *
@@ -49,8 +45,8 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
       const memberRole = await this.getMemberRole(dto.project_id, dto.user_id, trx)
 
       // 6. Reassign tasks if needed
-      const reassignToUserId = dto.reassign_to || project.manager_id || project.owner_id
-      await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId!, trx)
+      const reassignToUserId = dto.reassign_to ?? project.manager_id ?? project.owner_id
+      await this.reassignTasks(dto.project_id, dto.user_id, reassignToUserId, trx)
 
       // 7. Remove member
       await this.removeMember(dto.project_id, dto.user_id, trx)
@@ -123,14 +119,21 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
   /**
    * Get member role
    */
-  private async getMemberRole(projectId: number, userId: number, trx: unknown): Promise<string> {
-    const member = await trx
+  private async getMemberRole(
+    projectId: number,
+    userId: number,
+    trx: TransactionClientContract
+  ): Promise<string> {
+    const member = await db
       .from('project_members')
-      .where('project_id', projectId)
-      .where('user_id', userId)
+      .join('project_roles', 'project_members.project_role_id', 'project_roles.id')
+      .where('project_members.project_id', projectId)
+      .where('project_members.user_id', userId)
+      .select('project_roles.name as role')
+      .useTransaction(trx)
       .first()
 
-    return member?.role || 'unknown'
+    return (member as { role?: string } | null)?.role ?? 'unknown'
   }
 
   /**
@@ -140,9 +143,9 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
     projectId: number,
     fromUserId: number,
     toUserId: number,
-    trx: unknown
+    trx: TransactionClientContract
   ): Promise<void> {
-    await trx
+    await db
       .from('tasks')
       .where('project_id', projectId)
       .where('assigned_to', fromUserId)
@@ -151,16 +154,22 @@ export default class RemoveProjectMemberCommand extends BaseCommand<RemoveProjec
         assigned_to: toUserId,
         updated_at: new Date(),
       })
+      .useTransaction(trx)
   }
 
   /**
    * Remove member from project
    */
-  private async removeMember(projectId: number, userId: number, trx: unknown): Promise<void> {
-    await trx
+  private async removeMember(
+    projectId: number,
+    userId: number,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    await db
       .from('project_members')
       .where('project_id', projectId)
       .where('user_id', userId)
       .delete()
+      .useTransaction(trx)
   }
 }

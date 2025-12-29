@@ -9,9 +9,13 @@ export default class CurrentOrganizationMiddleware {
     try {
       // Chỉ xử lý khi người dùng đã đăng nhập
       if (await auth.check()) {
-        const user = auth.user!
+        const user = auth.user
+        if (!user) {
+          await next()
+          return
+        }
         // Lấy current_organization_id từ session và database
-        const sessionOrgId = session.get('current_organization_id')
+        const sessionOrgId = session.get('current_organization_id') as number | string | undefined
         const dbOrgId = user.current_organization_id
 
         // Nếu cả session và database đều không có organization_id, điều này là hợp lệ
@@ -24,7 +28,7 @@ export default class CurrentOrganizationMiddleware {
           // Kiểm tra xem người dùng có quyền truy cập organization_id trong session không
           const hasAccess = await db
             .from('organization_users')
-            .where('organization_id', sessionOrgId)
+            .where('organization_id', String(sessionOrgId))
             .where('user_id', user.id)
             .first()
           if (hasAccess) {
@@ -34,11 +38,11 @@ export default class CurrentOrganizationMiddleware {
               const orgIdNumeric = Number(sessionOrgId)
               await user.merge({ current_organization_id: orgIdNumeric }).save()
               await user.refresh() // Làm mới thông tin user sau khi cập nhật
-            } catch (error) {
+            } catch (_error) {
               // Only log actual errors in production
               if (!this.isDevMode) {
                 console.error(
-                  `Người dùng không có quyền truy cập tổ chức ${sessionOrgId} trong session, đang xóa khỏi session`
+                  `Người dùng không có quyền truy cập tổ chức ${String(sessionOrgId)} trong session, đang xóa khỏi session`
                 )
               }
             }
@@ -46,7 +50,7 @@ export default class CurrentOrganizationMiddleware {
             // Only log actual errors in production
             if (!this.isDevMode) {
               console.error(
-                `Người dùng không có quyền truy cập tổ chức ${sessionOrgId} trong session, đang xóa khỏi session`
+                `Người dùng không có quyền truy cập tổ chức ${String(sessionOrgId)} trong session, đang xóa khỏi session`
               )
             }
             // Xóa organization_id không hợp lệ khỏi session
@@ -67,13 +71,13 @@ export default class CurrentOrganizationMiddleware {
             session.forget('current_organization_id')
             await session.commit()
             // Cập nhật session với organization_id từ database (lưu dưới dạng kiểu số)
-            session.put('current_organization_id', Number(dbOrgId))
+            session.put('current_organization_id', dbOrgId)
             await session.commit()
           } else {
             // Only log actual errors in production
             if (!this.isDevMode) {
               console.error(
-                `Người dùng không có quyền truy cập tổ chức ${dbOrgId} trong database, đang xóa khỏi database và session`
+                `Người dùng không có quyền truy cập tổ chức ${String(dbOrgId)} trong database, đang xóa khỏi database và session`
               )
             }
             // Xóa organization_id không hợp lệ khỏi database
@@ -83,19 +87,19 @@ export default class CurrentOrganizationMiddleware {
               // Đảm bảo session cũng không có organization_id
               session.forget('current_organization_id')
               await session.commit()
-            } catch (error) {
+            } catch (_error) {
               // Only log actual errors in production
               if (!this.isDevMode) {
-                console.error('Lỗi khi xóa current_organization_id từ database:', error)
+                console.error('Lỗi khi xóa current_organization_id từ database:', _error)
               }
             }
           }
         }
       }
-    } catch (error) {
+    } catch (_error) {
       // Only log actual errors in production
       if (!this.isDevMode) {
-        console.error('Lỗi trong middleware:', error)
+        console.error('Lỗi trong middleware:', _error)
       }
     }
     await next()

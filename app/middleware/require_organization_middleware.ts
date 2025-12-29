@@ -47,7 +47,10 @@ export default class RequireOrganizationMiddleware {
       }
     }
 
-    const user = auth.user!
+    const user = auth.user
+    if (!user) {
+      return next()
+    }
     // Kiểm tra xem người dùng có current_organization_id hay không
     if (user.current_organization_id) {
       // Xác minh rằng current_organization_id là hợp lệ
@@ -96,7 +99,7 @@ export default class RequireOrganizationMiddleware {
     } else {
       // Người dùng đã có tổ chức nhưng chưa đặt current_organization_id
       // Đặt tổ chức đầu tiên làm tổ chức hiện tại
-      const firstOrgId = anyOrganization.organization_id
+      const firstOrgId = anyOrganization.organization_id as number
       // Cập nhật current_organization_id trong database và session
       await user.merge({ current_organization_id: firstOrgId }).save()
       session.put('current_organization_id', firstOrgId)

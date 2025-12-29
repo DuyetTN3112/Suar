@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import { BaseCommand } from '../../shared/base_command.js'
 import type { ApproveUserDTO } from '../dtos/index.js'
 import db from '@adonisjs/lucid/services/db'
@@ -16,6 +17,7 @@ import { DateTime } from 'luxon'
  * - User must be in 'pending' status
  * - Audit log is created
  */
+@inject()
 export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
   /**
    * Main handler - approves a user in organization
@@ -27,9 +29,10 @@ export default class ApproveUserCommand extends BaseCommand<ApproveUserDTO> {
     // 2. Update user status to approved
     await this.approveUserInOrganization(dto)
 
-    // 3. Log the approval action
-    await this.logAudit('approve_user', 'user', dto.userId, null, {
-      status: 'approved',
+    // 3. Log the approval    // Ghi log hành động
+    await this.logAudit('approve', 'user', dto.userId, undefined, {
+      organization_id: dto.organizationId,
+      approved_by: dto.approverId,
     })
   }
 

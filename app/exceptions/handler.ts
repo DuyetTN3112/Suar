@@ -118,7 +118,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
           title: error.message,
           ide: process.env.IDE || process.env.EDITOR || 'vscode',
         })
-        return response.status(500).header('content-type', 'text/html').send(html)
+        response.status(500).header('content-type', 'text/html').send(html)
+        return
       }
     }
 

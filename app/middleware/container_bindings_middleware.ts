@@ -8,12 +8,12 @@ import type { NextFn } from '@adonisjs/core/types/http'
  * và các dịch vụ khác trong request lifecycle
  */
 export default class ContainerBindingsMiddleware {
-  handle(ctx: HttpContext, next: NextFn) {
+  handle(ctx: HttpContext, next: NextFn): Promise<void> {
     // Bind HttpContext instance vào container
     ctx.containerResolver.bindValue(HttpContext, ctx)
     // Bind Logger instance vào container
     ctx.containerResolver.bindValue(Logger, ctx.logger)
 
-    return next()
+    return next() as Promise<void>
   }
 }

@@ -19,7 +19,7 @@ export default class SilentAuthMiddleware {
     ctx: HttpContext,
     next: NextFn,
     options: { guards?: (keyof Authenticators)[] } = {}
-  ) {
+  ): Promise<void> {
     // const startTime = this.isDevMode ? Date.now() : 0
     try {
       // Kiểm tra xác thực nhưng không bắt buộc
@@ -31,15 +31,16 @@ export default class SilentAuthMiddleware {
         } else {
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // Keep error logging for actual errors
-      this.log('Silent auth check error:', error.message)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      this.log('Silent auth check error:', errorMessage)
     } finally {
       if (this.isDevMode) {
         // Removed debug log: this.log('--- [SILENT AUTH MIDDLEWARE END] --- Duration:', Date.now() - startTime, 'ms')
       }
     }
 
-    return next()
+    await next()
   }
 }

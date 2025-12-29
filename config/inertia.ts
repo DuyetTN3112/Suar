@@ -88,7 +88,7 @@ const inertiaConfig = defineConfig({
 
   sharedData: {
     // Thêm CSRF token vào shared props
-    async csrfToken(ctx: HttpContext) {
+    csrfToken(ctx: HttpContext) {
       return ctx.request.csrfToken
     },
 
@@ -115,7 +115,10 @@ const inertiaConfig = defineConfig({
         }
         if (ctx.auth && (await ctx.auth.check())) {
           // Mở rộng thông tin user để đảm bảo các thông tin quan trọng được gửi đến client
-          const user = ctx.auth.user!
+          const user = ctx.auth.user
+          if (!user) {
+            return { auth: { user: null } }
+          }
           if (shouldLogInfo) {
             inertiaLog('minimal', 'Đã tìm thấy người dùng đã xác thực:', user.id)
           }
@@ -159,12 +162,12 @@ const inertiaConfig = defineConfig({
             }
             await user.load('organizations')
             if (shouldLogInfo) {
-              inertiaLog('minimal', `Đã tải được ${user.organizations?.length || 0} tổ chức`)
+              inertiaLog('minimal', `Đã tải được ${user.organizations.length} tổ chức`)
               // Chỉ log chi tiết ở mức verbose
               inertiaLog('verbose', 'Dữ liệu tổ chức thô:', user.organizations)
             }
 
-            if (user.organizations && user.organizations.length > 0) {
+            if (user.organizations.length > 0) {
               userData.organizations = user.organizations.map((org) => ({
                 id: org.id,
                 name: org.name,
@@ -177,11 +180,13 @@ const inertiaConfig = defineConfig({
             } else if (shouldLogInfo) {
               inertiaLog('minimal', 'Người dùng không có tổ chức nào')
             }
-          } catch (error) {
+          } catch (orgError) {
+            const errMessage = orgError instanceof Error ? orgError.message : String(orgError)
+            const errStack = orgError instanceof Error ? orgError.stack : undefined
             if (shouldLogInfo) {
               inertiaLog('minimal', 'LỖI: Không thể tải thông tin tổ chức')
-              inertiaLog('normal', 'Chi tiết lỗi:', error.message)
-              inertiaLog('verbose', 'Stack trace:', error.stack)
+              inertiaLog('normal', 'Chi tiết lỗi:', errMessage)
+              inertiaLog('verbose', 'Stack trace:', errStack)
             }
             // Vẫn giữ mảng rỗng cho organizations nếu có lỗi
           }
@@ -205,10 +210,12 @@ const inertiaConfig = defineConfig({
             inertiaLog('minimal', '===== KẾT THÚC INERTIA SHARED DATA =====')
           }
         }
-      } catch (error) {
-        inertiaLog('minimal', 'LỖI NGHIÊM TRỌNG khi kiểm tra xác thực:', error)
-        inertiaLog('normal', 'Chi tiết lỗi:', error.message)
-        inertiaLog('verbose', 'Stack trace:', error.stack)
+      } catch (authError) {
+        const errMessage = authError instanceof Error ? authError.message : String(authError)
+        const errStack = authError instanceof Error ? authError.stack : undefined
+        inertiaLog('minimal', 'LỖI NGHIÊM TRỌNG khi kiểm tra xác thực:', authError)
+        inertiaLog('normal', 'Chi tiết lỗi:', errMessage)
+        inertiaLog('verbose', 'Stack trace:', errStack)
       }
       // Trả về null nếu người dùng chưa đăng nhập
       return { auth: { user: null } }

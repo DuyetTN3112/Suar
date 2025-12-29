@@ -25,12 +25,10 @@ export default class LogoutUserCommand extends BaseCommand<LogoutUserDTO> {
   }
 
   private clearInertiaAuthProps(): void {
-    if (this.ctx.inertia) {
-      this.ctx.inertia.share({
-        auth: {
-          user: null,
-        },
-      })
-    }
+    this.ctx.inertia.share({
+      auth: {
+        user: null,
+      },
+    })
   }
 }

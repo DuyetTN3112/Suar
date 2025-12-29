@@ -56,7 +56,7 @@ export default class DeleteTaskDTO {
   public getAuditMessage(): string {
     let message = this.isPermanentDelete() ? 'Xóa vĩnh viễn task' : 'Xóa task (soft delete)'
 
-    if (this.hasReason()) {
+    if (this.hasReason() && this.reason) {
       message += `: ${this.reason}`
     }
 

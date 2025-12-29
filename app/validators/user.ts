@@ -24,12 +24,12 @@ export const updateUserValidator = (userId: number) =>
         .string()
         .maxLength(50)
         .unique(async (db, value) => {
-          const exists = await db
+          const exists = (await db
             .from('users')
             .where('username', value)
             .whereNot('id', userId)
             .select('id')
-            .first()
+            .first()) as { id: number } | null
           return !exists
         }),
       email: vine
@@ -38,12 +38,12 @@ export const updateUserValidator = (userId: number) =>
         .email()
         .normalizeEmail()
         .unique(async (db, value) => {
-          const exists = await db
+          const exists = (await db
             .from('users')
             .where('email', value)
             .whereNot('id', userId)
             .select('id')
-            .first()
+            .first()) as { id: number } | null
           return !exists
         }),
       statusId: vine.number(),

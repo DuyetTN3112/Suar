@@ -1,11 +1,11 @@
 import type { HttpContext } from '@adonisjs/core/http'
 // New CQRS Commands and Queries
-import RegisterUserCommand from '#actions/users/commands/register_user_command'
-import UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
-import ApproveUserCommand from '#actions/users/commands/approve_user_command'
-import ChangeUserRoleCommand from '#actions/users/commands/change_user_role_command'
-import GetUsersListQuery from '#actions/users/queries/get_users_list_query'
-import GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
+import type RegisterUserCommand from '#actions/users/commands/register_user_command'
+import type UpdateUserProfileCommand from '#actions/users/commands/update_user_profile_command'
+import type ApproveUserCommand from '#actions/users/commands/approve_user_command'
+import type ChangeUserRoleCommand from '#actions/users/commands/change_user_role_command'
+import type GetUsersListQuery from '#actions/users/queries/get_users_list_query'
+import type GetUserDetailQuery from '#actions/users/queries/get_user_detail_query'
 // DTOs
 import { RegisterUserDTO } from '#actions/users/dtos/register_user_dto'
 import { UpdateUserProfileDTO } from '#actions/users/dtos/update_user_profile_dto'
@@ -15,8 +15,8 @@ import { GetUsersListDTO, UserFiltersDTO } from '#actions/users/dtos/get_users_l
 import { GetUserDetailDTO } from '#actions/users/dtos/get_user_detail_dto'
 import { PaginationDTO } from '#actions/shared/index'
 // Old actions (to be replaced gradually)
-import DeleteUser from '#actions/users/delete_user'
-import GetUserMetadata from '#actions/users/get_user_metadata'
+import type DeleteUser from '#actions/users/delete_user'
+import type GetUserMetadata from '#actions/users/get_user_metadata'
 import db from '@adonisjs/lucid/services/db'
 
 /**
@@ -35,12 +35,12 @@ export default class UsersController {
    * Display paginated list of users for current organization
    * Route: GET /users
    */
-  async index(ctx: HttpContext) {
+  async index(
+    ctx: HttpContext,
+    getUsersListQuery: GetUsersListQuery,
+    getUserMetadata: GetUserMetadata
+  ) {
     const { request, inertia, auth } = ctx
-
-    // Manual instantiation to avoid DI decorator conflicts
-    const getUsersListQuery = new GetUsersListQuery(ctx)
-    const getUserMetadata = new GetUserMetadata(ctx)
 
     // Build DTO for GetUsersListQuery
     const dto = this.buildGetUsersListDTO(request, auth)
@@ -70,16 +70,13 @@ export default class UsersController {
    * Route: GET /api/users/system
    * Permission: Superadmin only
    */
-  async systemUsersApi(ctx: HttpContext) {
+  async systemUsersApi(ctx: HttpContext, getUsersListQuery: GetUsersListQuery) {
     const { request, response, auth } = ctx
 
     try {
       // Check permission first
       const hasPermission = await this.checkSuperAdminPermission(auth, response)
       if (!hasPermission) return // Response already sent
-
-      // Manual instantiation
-      const getUsersListQuery = new GetUsersListQuery(ctx)
 
       // Build DTO with exclude_organization_members flag
       const dto = this.buildSystemUsersListDTO(request, auth)
@@ -106,11 +103,8 @@ export default class UsersController {
    * Show create user form
    * Route: GET /users/create
    */
-  async create(ctx: HttpContext) {
+  async create(ctx: HttpContext, getUserMetadata: GetUserMetadata) {
     const { inertia } = ctx
-
-    // Manual instantiation
-    const getUserMetadata = new GetUserMetadata(ctx)
 
     const metadata = await getUserMetadata.handle()
     return inertia.render('users/create', { metadata })
@@ -120,11 +114,8 @@ export default class UsersController {
    * Store new user (Register)
    * Route: POST /users
    */
-  async store(ctx: HttpContext) {
+  async store(ctx: HttpContext, registerUserCommand: RegisterUserCommand) {
     const { request, response, session, i18n } = ctx
-
-    // Manual instantiation
-    const registerUserCommand = new RegisterUserCommand(ctx)
 
     // Build DTO from request
     const dto = this.buildRegisterUserDTO(request)
@@ -142,11 +133,8 @@ export default class UsersController {
    * Show user detail
    * Route: GET /users/:id
    */
-  async show(ctx: HttpContext) {
+  async show(ctx: HttpContext, getUserDetailQuery: GetUserDetailQuery) {
     const { params, inertia } = ctx
-
-    // Manual instantiation
-    const getUserDetailQuery = new GetUserDetailQuery(ctx)
 
     // Build DTO
     const dto = new GetUserDetailDTO(Number(params.id))
@@ -161,12 +149,12 @@ export default class UsersController {
    * Show edit user form
    * Route: GET /users/:id/edit
    */
-  async edit(ctx: HttpContext) {
+  async edit(
+    ctx: HttpContext,
+    getUserDetailQuery: GetUserDetailQuery,
+    getUserMetadata: GetUserMetadata
+  ) {
     const { params, inertia } = ctx
-
-    // Manual instantiation
-    const getUserDetailQuery = new GetUserDetailQuery(ctx)
-    const getUserMetadata = new GetUserMetadata(ctx)
 
     // Build DTO
     const dto = new GetUserDetailDTO(Number(params.id))
@@ -187,11 +175,8 @@ export default class UsersController {
    * - ChangeUserRoleCommand
    * - ChangeUserStatusCommand
    */
-  async update(ctx: HttpContext) {
+  async update(ctx: HttpContext, updateUserProfileCommand: UpdateUserProfileCommand) {
     const { params, request, response, session, i18n } = ctx
-
-    // Manual instantiation
-    const updateUserProfileCommand = new UpdateUserProfileCommand(ctx)
 
     // Build DTO from request (only profile fields)
     const dto = this.buildUpdateUserProfileDTO(Number(params.id), request)
@@ -210,11 +195,8 @@ export default class UsersController {
    * Route: DELETE /users/:id
    * TODO: Create RemoveUserCommand to replace DeleteUser action
    */
-  async destroy(ctx: HttpContext) {
+  async destroy(ctx: HttpContext, deleteUser: DeleteUser) {
     const { params, response, session } = ctx
-
-    // Manual instantiation
-    const deleteUser = new DeleteUser(ctx)
 
     const result = await deleteUser.handle({ id: Number(params.id) })
     session.flash(result.success ? 'success' : 'error', result.message)
@@ -226,20 +208,21 @@ export default class UsersController {
    * Route: GET /users/pending-approval
    * Permission: Superadmin only
    */
-  async pendingApproval(ctx: HttpContext) {
+  async pendingApproval(
+    ctx: HttpContext,
+    getUsersListQuery: GetUsersListQuery,
+    getUserMetadata: GetUserMetadata
+  ) {
     const { request, inertia, auth } = ctx
 
     // Check superadmin permission
-    const isSuperAdmin = auth.user?.$extras?.organization_role?.id === 1
+    const userExtras = auth.user?.$extras as { organization_role?: { id: number } } | undefined
+    const isSuperAdmin = userExtras?.organization_role?.id === 1
 
     if (!isSuperAdmin) {
       // Redirect to users list if not superadmin
       return inertia.location('/users')
     }
-
-    // Manual instantiation
-    const getUsersListQuery = new GetUsersListQuery(ctx)
-    const getUserMetadata = new GetUserMetadata(ctx)
 
     // Build DTO for pending users
     const dto = this.buildPendingUsersListDTO(request, auth)
@@ -283,7 +266,7 @@ export default class UsersController {
 
       // Query pending users directly (complex query not yet in GetUsersListQuery)
       // TODO: Move this to a dedicated GetPendingUsersQuery
-      const pendingUsers = await db
+      const pendingUsers = (await db
         .from('users as u')
         .join('organization_users as ou', 'u.id', 'ou.user_id')
         .leftJoin('user_details as ud', 'u.id', 'ud.user_id')
@@ -300,8 +283,19 @@ export default class UsersController {
           'sr.name as system_role_name',
           'us.id as status_id',
           'us.name as status_name',
-          'u.created_at'
-        )
+          'u.created_at',
+          'ud.avatar_url'
+        )) as Array<{
+        id: number
+        email: string
+        username: string
+        system_role_id: number
+        system_role_name: string
+        status_id: number
+        status_name: string
+        created_at: string
+        avatar_url: string | null
+      }>
 
       // Format response
       const formattedUsers = pendingUsers.map((user) => ({
@@ -364,18 +358,16 @@ export default class UsersController {
       }
 
       // Count pending users
-      const result = await db
-        .from('users as u')
-        .join('organization_users as ou', 'u.id', 'ou.user_id')
-        .where('ou.organization_id', organizationId)
-        .where('ou.status', 'pending')
-        .whereNull('u.deleted_at')
-        .count('u.id as count')
-        .first()
+      const result = (await db
+        .from('organization_users')
+        .where('organization_id', organizationId)
+        .where('status', 'pending')
+        .count('user_id as count')
+        .first()) as { count: number | string } | null
 
       response.json({
         success: true,
-        count: result?.count || 0,
+        count: Number(result?.count || 0),
       })
       return
     } catch (error) {
@@ -393,13 +385,10 @@ export default class UsersController {
    * Route: PUT /users/:id/approve
    * Permission: Superadmin only
    */
-  async approve(ctx: HttpContext) {
+  async approve(ctx: HttpContext, approveUserCommand: ApproveUserCommand) {
     const { params, response, auth } = ctx
 
     try {
-      // Manual instantiation
-      const approveUserCommand = new ApproveUserCommand(ctx)
-
       const organizationId = auth.user?.current_organization_id
       if (!organizationId) {
         response.status(400).json({
@@ -438,18 +427,20 @@ export default class UsersController {
    * Route: PUT /users/:id/role
    * Permission: Superadmin only (checked by stored procedure)
    */
-  async updateRole(ctx: HttpContext) {
+  async updateRole(ctx: HttpContext, changeUserRoleCommand: ChangeUserRoleCommand) {
     const { params, request, response, auth, session, i18n } = ctx
 
     try {
-      // Manual instantiation
-      const changeUserRoleCommand = new ChangeUserRoleCommand(ctx)
+      const changerId = auth.user?.id
+      if (!changerId) {
+        throw new Error('User not authenticated')
+      }
 
       // Build DTO
       const dto = new ChangeUserRoleDTO(
         Number(params.id), // targetUserId
         Number(request.input('role_id')), // newRoleId
-        auth.user!.id // changerId
+        changerId // changerId
       )
 
       // Execute Command (uses stored procedure with permission checks)
@@ -479,16 +470,16 @@ export default class UsersController {
     request: HttpContext['request'],
     auth: HttpContext['auth']
   ): GetUsersListDTO {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
+    const page = Number(request.input('page', 1))
+    const limit = Number(request.input('limit', 10))
     const pagination = new PaginationDTO(page, limit)
 
-    const organizationId = auth.user?.current_organization_id || 0
+    const organizationId = auth.user?.current_organization_id ?? 0
 
     const filters = new UserFiltersDTO(
-      request.input('search'),
-      request.input('role_id'),
-      request.input('status_id'),
+      request.input('search') as string | undefined,
+      request.input('role_id') as number | undefined,
+      request.input('status_id') as number | undefined,
       2, // exclude_status_id: Don't show inactive users (status_id = 2)
       'approved' // organization_user_status: Only show approved members
     )
@@ -503,14 +494,14 @@ export default class UsersController {
     request: HttpContext['request'],
     auth: HttpContext['auth']
   ): GetUsersListDTO {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
+    const page = Number(request.input('page', 1))
+    const limit = Number(request.input('limit', 10))
     const pagination = new PaginationDTO(page, limit)
 
-    const organizationId = auth.user?.current_organization_id || 0
+    const organizationId = auth.user?.current_organization_id ?? 0
 
     const filters = new UserFiltersDTO(
-      request.input('search', ''),
+      request.input('search', '') as string | undefined,
       undefined, // role_id
       undefined, // status_id
       undefined, // exclude_status_id
@@ -528,14 +519,14 @@ export default class UsersController {
     request: HttpContext['request'],
     auth: HttpContext['auth']
   ): GetUsersListDTO {
-    const page = request.input('page', 1)
-    const limit = request.input('limit', 10)
+    const page = Number(request.input('page', 1))
+    const limit = Number(request.input('limit', 10))
     const pagination = new PaginationDTO(page, limit)
 
-    const organizationId = auth.user?.current_organization_id || 0
+    const organizationId = auth.user?.current_organization_id ?? 0
 
     const filters = new UserFiltersDTO(
-      request.input('search'),
+      request.input('search') as string | undefined,
       undefined, // role_id
       undefined, // status_id
       undefined, // exclude_status_id
@@ -550,8 +541,8 @@ export default class UsersController {
    */
   private buildRegisterUserDTO(request: HttpContext['request']): RegisterUserDTO {
     return new RegisterUserDTO(
-      request.input('username'),
-      request.input('email'),
+      request.input('username') as string,
+      request.input('email') as string,
       Number(request.input('role_id')),
       Number(request.input('status_id'))
     )
@@ -567,7 +558,11 @@ export default class UsersController {
     userId: number,
     request: HttpContext['request']
   ): UpdateUserProfileDTO {
-    return new UpdateUserProfileDTO(userId, request.input('username'), request.input('email'))
+    return new UpdateUserProfileDTO(
+      userId,
+      request.input('username') as string | undefined,
+      request.input('email') as string | undefined
+    )
   }
 
   /**
@@ -587,8 +582,8 @@ export default class UsersController {
       return false
     }
 
-    const organizationId = user.current_organization_id
-    if (!organizationId) {
+    const organizationId = user.current_organization_id ?? 0
+    if (organizationId === 0) {
       response.status(400).json({
         success: false,
         message: 'Không tìm thấy tổ chức hiện tại',
@@ -605,7 +600,7 @@ export default class UsersController {
       .where('status', 'approved')
       .first()
 
-    if (!isSuperAdmin) {
+    if (isSuperAdmin === null || isSuperAdmin === undefined) {
       response.status(403).json({
         success: false,
         message: 'Bạn không có quyền truy cập tài nguyên này',

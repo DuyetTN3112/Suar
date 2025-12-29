@@ -17,7 +17,10 @@ function detectZalgoText(str: string): boolean {
 
 function countSpecialUnicode(str: string): number {
   // Đếm số lượng ký tự Unicode ngoài phạm vi thông thường
-  return Array.from(str).filter((ch) => ch.codePointAt(0)! > 0xffff).length
+  return Array.from(str).filter((ch) => {
+    const codePoint = ch.codePointAt(0)
+    return codePoint !== undefined && codePoint > 0xffff
+  }).length
 }
 
 /**
@@ -60,28 +63,17 @@ function sanitizeMessage(str: string): string {
   // Loại bỏ các ký tự kết hợp quá nhiều, giữ lại tối đa 1 ký tự kết hợp cho mỗi ký tự cơ bản
   str = str.replace(
     /(.)([\u0300-\u036F\u1AB0-\u1AFF\u1DC0-\u1DFF\u20D0-\u20FF\uFE20-\uFE2F]{1,})/gu,
-    (
-      // match
-      base,
-      combining
-    ) => base + combining.substring(0, 1)
+    (_match: string, base: string, combining: string) => base + combining.substring(0, 1)
   )
   // Giới hạn độ dài của chuỗi lặp lại
-  str = str.replace(
-    /(.)(\1{10,})/g,
-    (
-      // match,
-      char
-      //  repeats
-    ) => char.repeat(10)
-  )
+  str = str.replace(/(.)(\1{10,})/g, (_match: string, char: string) => char.repeat(10))
 
   return str
 }
 
 export default class MessageSanitizer {
   public async handle({ request, response }: HttpContext, next: () => Promise<void>) {
-    const message = request.input('message')
+    const message = request.input('message') as unknown
     if (typeof message !== 'string') {
       response.badRequest('Tin nhắn không hợp lệ.')
       return

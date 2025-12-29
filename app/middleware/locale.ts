@@ -22,7 +22,9 @@ export default class LocaleMiddleware {
   async handle(ctx: HttpContext, next: () => Promise<void>) {
     const { request, session } = ctx
     // Lấy locale từ query string hoặc session hoặc mặc định là 'en'
-    const locale = request.input('locale') || session.get('locale') || 'en'
+    const localeFromInput = request.input('locale') as string | undefined
+    const localeFromSession = session.get('locale') as string | undefined
+    const locale = localeFromInput ?? localeFromSession ?? 'en'
     // Chỉ lấy locale được hỗ trợ
     const selectedLocale = this.supportedLocales.includes(locale) ? locale : 'en'
     // Lưu locale vào session
@@ -41,16 +43,19 @@ export default class LocaleMiddleware {
   /**
    * Lấy thông tin cơ bản về ngôn ngữ từ file index.json
    */
-  private getLanguageInfo(locale: string) {
+  private getLanguageInfo(locale: string): Record<string, string> {
     const resourcesPath = app.makePath('resources')
     const langPath = join(resourcesPath, 'lang', locale)
     const indexFilePath = join(langPath, this.indexFile)
     if (existsSync(indexFilePath)) {
       try {
         const fileContent = readFileSync(indexFilePath, 'utf-8')
-        return JSON.parse(fileContent)
-      } catch (error) {
-        console.error(`Failed to read language info for locale ${locale}:`, error)
+        const parsed: unknown = JSON.parse(fileContent)
+        if (parsed && typeof parsed === 'object') {
+          return parsed as Record<string, string>
+        }
+      } catch (_error) {
+        console.error(`Failed to read language info for locale ${locale}:`, _error)
       }
     }
     return { name: locale, code: locale }

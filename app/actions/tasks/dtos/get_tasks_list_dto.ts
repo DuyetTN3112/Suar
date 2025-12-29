@@ -222,36 +222,36 @@ export default class GetTasksListDTO {
       `limit:${this.limit}`,
     ]
 
-    if (this.hasStatusFilter()) {
-      filterParts.push(`status:${this.status}`)
+    if (this.hasStatusFilter() && this.status !== undefined) {
+      filterParts.push(`status:${String(this.status)}`)
     }
 
-    if (this.hasPriorityFilter()) {
-      filterParts.push(`priority:${this.priority}`)
+    if (this.hasPriorityFilter() && this.priority !== undefined) {
+      filterParts.push(`priority:${String(this.priority)}`)
     }
 
-    if (this.hasLabelFilter()) {
-      filterParts.push(`label:${this.label}`)
+    if (this.hasLabelFilter() && this.label !== undefined) {
+      filterParts.push(`label:${String(this.label)}`)
     }
 
-    if (this.hasAssigneeFilter()) {
-      filterParts.push(`assignee:${this.assigned_to}`)
+    if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
+      filterParts.push(`assignee:${String(this.assigned_to)}`)
     }
 
-    if (this.hasParentFilter()) {
-      filterParts.push(`parent:${this.parent_task_id}`)
+    if (this.hasParentFilter() && this.parent_task_id !== undefined) {
+      filterParts.push(`parent:${String(this.parent_task_id)}`)
     }
 
-    if (this.hasProjectFilter()) {
-      filterParts.push(`project:${this.project_id}`)
+    if (this.hasProjectFilter() && this.project_id !== undefined) {
+      filterParts.push(`project:${String(this.project_id)}`)
     }
 
-    if (this.hasSearch()) {
+    if (this.hasSearch() && this.search) {
       // Hash search term để tránh cache key quá dài
-      filterParts.push(`search:${this.hashString(this.search!)}`)
+      filterParts.push(`search:${this.hashString(this.search)}`)
     }
 
-    filterParts.push(`sort:${this.sort_by}:${this.sort_order}`)
+    filterParts.push(`sort:${String(this.sort_by)}:${String(this.sort_order)}`)
 
     return `tasks:list:${filterParts.join(':')}`
   }
@@ -300,39 +300,43 @@ export default class GetTasksListDTO {
 
     const filters: string[] = []
 
-    if (this.hasStatusFilter()) {
-      filters.push(`Status: ${this.status}`)
+    if (this.hasStatusFilter() && this.status !== undefined) {
+      filters.push(`Status: ${String(this.status)}`)
     }
 
-    if (this.hasPriorityFilter()) {
-      filters.push(`Priority: ${this.priority}`)
+    if (this.hasPriorityFilter() && this.priority !== undefined) {
+      filters.push(`Priority: ${String(this.priority)}`)
     }
 
-    if (this.hasLabelFilter()) {
-      filters.push(`Label: ${this.label}`)
+    if (this.hasLabelFilter() && this.label !== undefined) {
+      filters.push(`Label: ${String(this.label)}`)
     }
 
-    if (this.hasAssigneeFilter()) {
-      filters.push(`Assignee: ${this.assigned_to}`)
+    if (this.hasAssigneeFilter() && this.assigned_to !== undefined) {
+      filters.push(`Assignee: ${String(this.assigned_to)}`)
     }
 
-    if (this.isSubtasksOnly()) {
-      filters.push(`Subtasks of: ${this.parent_task_id}`)
+    if (
+      this.isSubtasksOnly() &&
+      this.parent_task_id !== undefined &&
+      this.parent_task_id !== null
+    ) {
+      filters.push(`Subtasks of: ${String(this.parent_task_id)}`)
     }
 
     if (this.isRootTasksOnly()) {
       filters.push('Root tasks only')
     }
 
-    if (this.hasProjectFilter() && this.project_id !== null) {
-      filters.push(`Project: ${this.project_id}`)
+    if (this.hasProjectFilter() && this.project_id !== null && this.project_id !== undefined) {
+      filters.push(`Project: ${String(this.project_id)}`)
     }
 
     if (this.isWithoutProject()) {
       filters.push('No project')
     }
 
-    if (this.hasSearch()) {
+    if (this.hasSearch() && this.search) {
       filters.push(`Search: "${this.search}"`)
     }
 

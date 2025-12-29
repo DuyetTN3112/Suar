@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import { BaseQuery, PaginatedResult } from '../../shared/index.js'
 import type { GetUsersListDTO, UserFiltersDTO } from '../dtos/get_users_list_dto.js'
 import User from '#models/user'
@@ -29,6 +30,7 @@ type UserQueryBuilder = ModelQueryBuilderContract<typeof User, User>
  * const result = await getUsersListQuery.handle(dto)
  * ```
  */
+@inject()
 export default class GetUsersListQuery extends BaseQuery<GetUsersListDTO, PaginatedResult<User>> {
   /**
    * Main handler - executes the query with caching

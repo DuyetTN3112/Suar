@@ -11,7 +11,10 @@ export class ApplyForTaskDTO {
   declare application_source: 'public_listing' | 'invitation' | 'referral'
 
   constructor(data: Partial<ApplyForTaskDTO>) {
-    this.task_id = data.task_id!
+    if (data.task_id === undefined) {
+      throw new Error('task_id is required')
+    }
+    this.task_id = data.task_id
     this.message = data.message ?? null
     this.expected_rate = data.expected_rate ?? null
     this.portfolio_links = data.portfolio_links ?? null
@@ -32,8 +35,14 @@ export class ProcessApplicationDTO {
   declare estimated_hours: number | null
 
   constructor(data: Partial<ProcessApplicationDTO>) {
-    this.application_id = data.application_id!
-    this.action = data.action!
+    if (data.application_id === undefined) {
+      throw new Error('application_id is required')
+    }
+    if (data.action === undefined) {
+      throw new Error('action is required')
+    }
+    this.application_id = data.application_id
+    this.action = data.action
     this.rejection_reason = data.rejection_reason ?? null
     this.assignment_type = data.assignment_type ?? 'freelancer'
     this.estimated_hours = data.estimated_hours ?? null
@@ -65,7 +74,10 @@ export class GetTaskApplicationsDTO {
   declare per_page: number
 
   constructor(data: Partial<GetTaskApplicationsDTO>) {
-    this.task_id = data.task_id!
+    if (data.task_id === undefined) {
+      throw new Error('task_id is required')
+    }
+    this.task_id = data.task_id
     this.status = data.status ?? 'all'
     this.page = data.page ?? 1
     this.per_page = data.per_page ?? 20

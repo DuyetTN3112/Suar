@@ -27,7 +27,10 @@ export default class UpdateTaskTimeCommand {
    * Execute command để update time
    */
   async execute(dto: UpdateTaskTimeDTO): Promise<Task> {
-    const user = this.ctx.auth.user!
+    const user = this.ctx.auth.user
+    if (!user) {
+      throw new Error('User must be authenticated')
+    }
 
     // Start transaction
     const trx = await db.transaction()
@@ -91,30 +94,33 @@ export default class UpdateTaskTimeCommand {
    */
   private async validateUpdatePermission(user: User, task: Task): Promise<void> {
     // Load user role
-    await user.load('role')
+    await user.load('system_role')
 
     // 1. Superadmin/Admin
-    const isSuperAdmin = ['superadmin', 'admin'].includes(user.role?.name?.toLowerCase() || '')
-    if (isSuperAdmin) {
-      return
+    if (user.system_role) {
+      const roleName = user.system_role.name
+      const isSuperAdmin = ['superadmin', 'admin'].includes(roleName.toLowerCase())
+      if (isSuperAdmin) {
+        return
+      }
     }
 
     // 2. Creator
-    if (Number(task.creator_id) === Number(user.id)) {
+    if (task.creator_id === user.id) {
       return
     }
 
     // 3. Assignee (especially for actual_time)
-    if (task.assigned_to && Number(task.assigned_to) === Number(user.id)) {
+    if (task.assigned_to && task.assigned_to === user.id) {
       return
     }
 
     // 4. Org Owner/Manager
-    const orgUser = await db
+    const orgUser = (await db
       .from('organization_users')
       .where('organization_id', task.organization_id)
       .where('user_id', user.id)
-      .first()
+      .first()) as { role_id: number } | null
 
     if (orgUser && [1, 2].includes(orgUser.role_id)) {
       return

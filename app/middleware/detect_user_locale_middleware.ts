@@ -106,9 +106,9 @@ export default class DetectUserLocaleMiddleware {
    *
    * If a locale is found from URL, it's stored in session for future requests
    */
-  protected getRequestLocale(ctx: HttpContext) {
+  protected getRequestLocale(ctx: HttpContext): string | undefined {
     // Kiểm tra tham số locale trong URL (ưu tiên cao nhất)
-    const localeFromUrl = ctx.request.input('locale')
+    const localeFromUrl = ctx.request.input('locale') as string | undefined
     if (localeFromUrl && this.isValidLocale(localeFromUrl)) {
       // Lưu vào session cho các request sau
       if (ctx.session) {
@@ -117,12 +117,14 @@ export default class DetectUserLocaleMiddleware {
       return localeFromUrl
     }
     // Kiểm tra locale trong session
-    if (ctx.session && ctx.session.get('locale')) {
-      const localeFromSession = ctx.session.get('locale')
-      if (this.isValidLocale(localeFromSession)) {
-        return localeFromSession
-      } else {
-        ctx.session.forget('locale')
+    if (ctx.session) {
+      const localeFromSession = ctx.session.get('locale') as string | undefined
+      if (localeFromSession) {
+        if (this.isValidLocale(localeFromSession)) {
+          return localeFromSession
+        } else {
+          ctx.session.forget('locale')
+        }
       }
     }
 
@@ -132,7 +134,7 @@ export default class DetectUserLocaleMiddleware {
     return supportedLocale
   }
 
-  async handle(ctx: HttpContext, next: NextFn) {
+  async handle(ctx: HttpContext, next: NextFn): Promise<void> {
     // Chỉ log các request quan trọng - không log tài nguyên tĩnh
     // const url = ctx.request.url() // unused
     // const isStaticResource =
@@ -152,7 +154,7 @@ export default class DetectUserLocaleMiddleware {
      * Finding user language
      */
     const language = this.getRequestLocale(ctx)
-    const locale = language || i18nManager.defaultLocale
+    const locale = language ?? i18nManager.defaultLocale
     // Removed debug log: i18nLog('normal', `Selected locale: ${locale}`)
 
     /**
@@ -184,7 +186,7 @@ export default class DetectUserLocaleMiddleware {
       })
     }
 
-    return next()
+    await next()
   }
 }
 

@@ -29,7 +29,7 @@ export default class AuthMiddleware {
     ctx: HttpContext,
     next: NextFn,
     options: { guards?: (keyof Authenticators)[] } = {}
-  ) {
+  ): Promise<void> {
     const startTime = performance.now()
 
     try {
@@ -46,29 +46,30 @@ export default class AuthMiddleware {
         await ctx.auth.user.load('system_role')
         await ctx.auth.user.load('organizations')
         // Kiểm tra vai trò và thiết lập isAdmin
+        const systemRoleName = ctx.auth.user.system_role?.name?.toLowerCase()
         const isAdmin =
-          ctx.auth.user.system_role?.name?.toLowerCase() === 'superadmin' ||
-          ctx.auth.user.system_role?.name?.toLowerCase() === 'system_admin' ||
+          systemRoleName === 'superadmin' ||
+          systemRoleName === 'system_admin' ||
           [1, 2].includes(ctx.auth.user.system_role_id ?? 0)
 
         // Lấy current_organization_id từ session hoặc từ model user
-        const currentOrganizationId =
-          ctx.session.get('current_organization_id') || ctx.auth.user.current_organization_id
+        const currentOrganizationId = (ctx.session.get('current_organization_id') ??
+          ctx.auth.user.current_organization_id) as number | undefined
 
         // Nếu có current_organization_id, load thêm thông tin về vai trò trong tổ chức hiện tại
         let organizationUsers: unknown[] = []
-        if (currentOrganizationId) {
+        if (currentOrganizationId !== undefined) {
           await ctx.auth.user.load('organization_users', (query) => {
             void query.where('organization_id', currentOrganizationId)
           })
-          organizationUsers = ctx.auth.user.organization_users || []
+          organizationUsers = ctx.auth.user.organization_users ?? []
         }
 
         // Chia sẻ thông tin người dùng với inertia
         ctx.inertia?.share({
           auth: {
             user: {
-              ...ctx.auth.user?.serialize(),
+              ...ctx.auth.user.serialize(),
               username: ctx.auth.user.username,
               email: ctx.auth.user.email,
               system_role: ctx.auth.user.system_role?.serialize(),
@@ -92,9 +93,10 @@ export default class AuthMiddleware {
         duration: `${Math.round(performance.now() - startTime)}ms`,
       })
 
-      return next()
-    } catch (error) {
-      loggerService.error('Lỗi xác thực:', error.message)
+      await next()
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      loggerService.error('Lỗi xác thực:', errorMessage)
 
       // Lưu URL hiện tại để chuyển hướng sau khi đăng nhập
       ctx.session.put('intended_url', ctx.request.url())
@@ -106,11 +108,11 @@ export default class AuthMiddleware {
       })
 
       if (ctx.request.header('x-inertia')) {
-        return ctx.inertia.location(this.redirectTo)
+        ctx.inertia.location(this.redirectTo)
+        return
       }
 
       ctx.response.redirect().toPath(this.redirectTo)
-      return
     }
   }
 }

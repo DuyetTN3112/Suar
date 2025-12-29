@@ -27,7 +27,7 @@ import AuditLog from '#models/audit_log'
  * }
  * ```
  */
-export abstract class BaseCommand<TInput, TOutput = void> implements CommandHandler<
+export abstract class BaseCommand<TInput extends object, TOutput = void> implements CommandHandler<
   TInput,
   TOutput
 > {
@@ -63,7 +63,7 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
    * @param newValues - New values
    */
   protected async logAudit(
-    action: string,
+    action: 'create' | 'update' | 'delete' | 'restore' | 'approve',
     entityType: string,
     entityId: number,
     oldValues?: object | null,
@@ -135,16 +135,15 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     const user = this.ctx.auth.user
     if (!user) return false
 
-    const userData: unknown = await db
+    const userData = (await db
       .from('users')
       .join('system_roles', 'users.system_role_id', 'system_roles.id')
       .where('users.id', user.id)
       .whereNull('users.deleted_at')
       .select('system_roles.name as role_name')
-      .first()
+      .first()) as { role_name?: string } | null
 
-    const row = userData as { role_name?: string } | null
-    return row?.role_name === 'superadmin'
+    return userData?.role_name === 'superadmin'
   }
 
   /**
@@ -157,18 +156,16 @@ export abstract class BaseCommand<TInput, TOutput = void> implements CommandHand
     trx?: TransactionClientContract
   ): Promise<{ role_id: number; role_name: string } | null> {
     const client = trx || db
-    const rawResult: unknown = await client
+    const result = (await client
       .from('organization_users')
       .join('organization_roles', 'organization_users.role_id', 'organization_roles.id')
       .where('organization_users.user_id', userId)
       .where('organization_users.organization_id', organizationId)
       .where('organization_users.status', 'approved')
       .select('organization_roles.id as role_id', 'organization_roles.name as role_name')
-      .first()
+      .first()) as { role_id: number; role_name: string } | null
 
-    const result = rawResult as { role_id?: unknown; role_name?: unknown } | null
-    if (!result) return null
-    return { role_id: Number(result.role_id), role_name: String(result.role_name) }
+    return result
   }
 
   /**

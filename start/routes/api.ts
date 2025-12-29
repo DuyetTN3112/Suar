@@ -1,6 +1,38 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '../kernel.js'
 
+// Type definitions for database query results
+interface OrganizationMemberRow {
+  id: number
+  user_id: number
+  role_id: number
+  joined_at: Date
+  role_name: string
+  username: string
+  email: string
+}
+
+interface UserRow {
+  id: number
+  username: string
+  email: string
+}
+
+interface ConversationRow {
+  id: number
+  title: string | null
+}
+
+interface ParticipantRow {
+  user_id: number
+}
+
+interface OrganizationRow {
+  id: number
+  name: string
+  [key: string]: unknown
+}
+
 // Redis controllers
 const RedisController = () => import('#controllers/http/redis_controller')
 // Task controller
@@ -42,7 +74,10 @@ router
         const { id } = params
         const db = await import('@adonisjs/lucid/services/db')
         // Lấy thông tin tổ chức
-        const organization = await db.default.from('organizations').where('id', id).first()
+        const organization = (await db.default
+          .from('organizations')
+          .where('id', id)
+          .first()) as OrganizationRow | null
         if (!organization) {
           response.status(404).json({
             success: false,
@@ -51,7 +86,7 @@ router
           return
         }
         // Lấy danh sách thành viên của tổ chức
-        const members = await db.default
+        const members = (await db.default
           .query()
           .from('organization_users as ou')
           .join('users as u', 'ou.user_id', 'u.id')
@@ -67,8 +102,8 @@ router
             'u.username',
             'u.email'
           )
-          .orderBy('u.username', 'asc')
-        const formattedMembers = members.map((member) => ({
+          .orderBy('u.username', 'asc')) as OrganizationMemberRow[]
+        const formattedMembers = members.map((member: OrganizationMemberRow) => ({
           id: member.id,
           role_id: member.role_id,
           role_name: member.role_name,
@@ -127,14 +162,14 @@ router
 
         const db = await import('@adonisjs/lucid/services/db')
         // Lấy danh sách người dùng trong tổ chức hiện tại (ngoại trừ người dùng hiện tại)
-        const users = await db.default
+        const users = (await db.default
           .query()
           .from('users as u')
           .join('organization_users as ou', 'u.id', 'ou.user_id')
           .where('ou.organization_id', organizationId)
           .whereNot('u.id', auth.user.id) // Loại trừ người dùng hiện tại
           .select('u.id', 'u.username', 'u.email')
-          .orderBy('u.username', 'asc')
+          .orderBy('u.username', 'asc')) as UserRow[]
         // Format lại dữ liệu trả về
         const formattedUsers = users.map((user) => ({
           id: user.id.toString(),
@@ -204,26 +239,28 @@ router
           }
 
           // Lấy tất cả cuộc hội thoại mà người dùng hiện tại tham gia
-          const conversations = await db.default
+          const conversations = (await db.default
             .query()
             .from('conversations as c')
             .join('conversation_participants as cp', 'c.id', 'cp.conversation_id')
             .where('c.organization_id', organizationId)
             .where('cp.user_id', auth.user.id)
             .select('c.id', 'c.title')
-            .distinct()
+            .distinct()) as ConversationRow[]
 
           // Với mỗi cuộc hội thoại, kiểm tra xem nó có cùng danh sách người tham gia không
           for (const conversation of conversations) {
             // Lấy danh sách người tham gia của cuộc hội thoại
-            const conversationParticipants = await db.default
+            const conversationParticipants = (await db.default
               .query()
               .from('conversation_participants')
               .where('conversation_id', conversation.id)
-              .select('user_id')
+              .select('user_id')) as ParticipantRow[]
 
             // Chuyển đổi thành mảng ID
-            const participantIds = conversationParticipants.map((p) => p.user_id.toString())
+            const participantIds = conversationParticipants.map((p: ParticipantRow) =>
+              p.user_id.toString()
+            )
 
             // Sắp xếp để so sánh
             const sortedIds = [...participantIds].sort()
@@ -282,12 +319,12 @@ router
         const sessionOrgId = session.get('current_organization_id')
         // Lấy thông tin về user và các tổ chức
         const db = await import('@adonisjs/lucid/services/db')
-        const userOrganizations = await db.default
+        const userOrganizations = (await db.default
           .query()
           .from('organization_users as ou')
           .join('organizations as o', 'ou.organization_id', 'o.id')
           .where('ou.user_id', user.id)
-          .select('o.*', 'ou.role_id')
+          .select('o.*', 'ou.role_id')) as OrganizationRow[]
         response.json({
           success: true,
           debug: {
