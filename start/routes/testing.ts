@@ -898,3 +898,1803 @@ router
 
       const projectRole = await skillPublicApi.createCustomProjectRole({
         projectId: project.id,
+        code: 'qa_engineer',
+        name: 'QA Engineer',
+        description: demoNames
+          ? 'Checklist, evidence, release.'
+          : 'Owns test checklist, evidence, and release confidence.',
+        createdBy: owner.id,
+      })
+
+      const roleSkillInputs: TestingRoleSkillInput[] = demoNames
+        ? [
+            {
+              skill_name: 'TypeScript QA Automation',
+              category_code: 'technology',
+              importance: 'high',
+            },
+            { skill_name: 'QA Strategy', category_code: 'engineering', importance: 'critical' },
+            { skill_name: 'Clear Communication', category_code: 'soft_skill', importance: 'high' },
+            { skill_name: 'Release Ownership', category_code: 'delivery', importance: 'critical' },
+          ]
+        : [
+            {
+              skill_name: `Seed Technology ${seedKey}`,
+              category_code: 'technology',
+              importance: 'critical',
+            },
+            {
+              skill_name: `Seed Engineering ${seedKey}`,
+              category_code: 'engineering',
+              importance: 'high',
+            },
+            {
+              skill_name: `Seed Soft Skill ${seedKey}`,
+              category_code: 'soft_skill',
+              importance: 'high',
+            },
+            {
+              skill_name: `Seed Delivery ${seedKey}`,
+              category_code: 'delivery',
+              importance: 'critical',
+            },
+          ]
+
+      const levelsByCode = await ensureTestingCanonicalProficiencyLevels()
+      const minimumLevelId = levelsByCode.get('l3') ?? null
+      const targetLevelId = levelsByCode.get('l7') ?? null
+      const assessmentCeilingLevelId = targetLevelId
+      const roleSkills = []
+      for (const [index, roleSkillInput] of roleSkillInputs.entries()) {
+        const skill = await SkillFactory.create({
+          skill_name: roleSkillInput.skill_name,
+          category_code: roleSkillInput.category_code,
+          sort_order: index + 1,
+        })
+        const projectSkill = await skillPublicApi.addSkillToProject({
+          projectId: project.id,
+          skillId: skill.id,
+          addedBy: owner.id,
+        })
+        await skillPublicApi.addSkillToProjectRole({
+          projectProfessionalRoleId: projectRole.id,
+          projectSkillId: projectSkill.id,
+          minimumLevelId,
+          targetLevelId,
+          assessmentCeilingLevelId,
+          isMandatory: index < 3,
+          importance: roleSkillInput.importance,
+          weight: index < 3 ? 1 : 0.75,
+          sortOrder: index + 1,
+          notes: null,
+        })
+        roleSkills.push(skill)
+      }
+
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: member.id,
+        project_role: 'project_member',
+        project_professional_role_id: projectRole.id,
+      })
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        project_id: project.id,
+        status: 'todo',
+        title: demoNames ? 'Verify checkout release' : `Seed Task ${seedKey}`,
+      })
+
+      response.status(201).json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          taskId: task.id,
+          ownerEmail,
+          memberEmail,
+          candidateEmail,
+          ownerId: owner.id,
+          memberId: member.id,
+          candidateId: candidate.id,
+          skills: roleSkills.map((skill) => ({
+            id: skill.id,
+            name: skill.skill_name,
+            categoryCode: skill.category_code,
+          })),
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-task-review-board-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-review-owner-${seedKey}@test.com`
+      const workerEmail = `seed-review-worker-${seedKey}@test.com`
+      const managerEmail = `seed-review-manager-${seedKey}@test.com`
+      const peerEmail = `seed-review-peer-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Review Demo Org ${seedKey}`, slug: `review-demo-org-${seedKey}` },
+        { email: ownerEmail, username: `review_owner_${seedKey.replace(/-/g, '_')}` }
+      )
+      const worker = await UserFactory.create({
+        email: workerEmail,
+        username: `review_worker_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const manager = await UserFactory.create({
+        email: managerEmail,
+        username: `review_manager_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const peer = await UserFactory.create({
+        email: peerEmail,
+        username: `review_peer_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+
+      for (const user of [worker, manager, peer]) {
+        await OrganizationUserFactory.create({
+          organization_id: org.id,
+          user_id: user.id,
+          org_role: 'org_member',
+          status: 'approved',
+        })
+      }
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        name: `Review Board Project ${seedKey}`,
+      })
+
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: manager.id,
+        project_role: 'project_manager',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: worker.id,
+        project_role: 'project_member',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: peer.id,
+        project_role: 'project_member',
+      })
+
+      const workerTask = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: worker.id,
+        project_id: project.id,
+        status: 'done',
+        title: 'Review checkout evidence package',
+        description: 'Task done by worker. Manager and peer must review before profile update.',
+      })
+      await TaskAssignmentFactory.create({
+        task_id: workerTask.id,
+        assignee_id: worker.id,
+        assigned_by: owner.id,
+        assignment_status: 'completed',
+        assignment_type: 'member',
+      })
+
+      const ownerTask = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: owner.id,
+        project_id: project.id,
+        status: 'done',
+        title: 'Owner done task remains visible',
+        description: 'Own done task should also appear in review board.',
+      })
+      await TaskAssignmentFactory.create({
+        task_id: ownerTask.id,
+        assignee_id: owner.id,
+        assigned_by: owner.id,
+        assignment_status: 'completed',
+        assignment_type: 'member',
+      })
+
+      response.status(201).json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          ownerEmail,
+          workerEmail,
+          managerEmail,
+          peerEmail,
+          ownerId: owner.id,
+          workerId: worker.id,
+          managerId: manager.id,
+          peerId: peer.id,
+          workerTaskId: workerTask.id,
+          ownerTaskId: ownerTask.id,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-task-create-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const withSecondProjectTask = request.input('withSecondProjectTask', false) === true
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-task-create-owner-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Seed Task Create Org ${seedKey}`, slug: `seed-task-create-org-${seedKey}` },
+        { email: ownerEmail, username: `seed_task_create_owner_${seedKey.replace(/-/g, '_')}` }
+      )
+      await owner.merge({ current_organization_id: org.id }).save()
+      await db.transaction(async (trx) => {
+        await taskPublicApi.seedDefaultStatuses(org.id, trx)
+      })
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        name: `Seed Task Create Project ${seedKey}`,
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      const projectTask = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: owner.id,
+        project_id: project.id,
+        status: 'todo',
+        title: `Seed Scope Project A Task ${seedKey}`,
+        description: 'Seeded for org-wide task scope E2E',
+      })
+
+      let secondProject = null
+      let secondProjectTask = null
+      if (withSecondProjectTask) {
+        secondProject = await ProjectFactory.create({
+          organization_id: org.id,
+          creator_id: owner.id,
+          owner_id: owner.id,
+          name: `Seed Task Create Second Project ${seedKey}`,
+        })
+        await ProjectMemberFactory.create({
+          project_id: secondProject.id,
+          user_id: owner.id,
+          project_role: 'project_owner',
+        })
+        secondProjectTask = await TaskFactory.create({
+          organization_id: org.id,
+          creator_id: owner.id,
+          assigned_to: owner.id,
+          project_id: secondProject.id,
+          status: 'todo',
+          title: `Seed Scope Project B Task ${seedKey}`,
+          description: 'Seeded for org-wide task scope E2E',
+        })
+      }
+
+      const skillInputs = [
+        { skill_name: `Seed Technology ${seedKey}`, category_code: 'technology' },
+        { skill_name: `Seed Engineering ${seedKey}`, category_code: 'engineering' },
+        { skill_name: `Seed Soft Skill ${seedKey}`, category_code: 'soft_skill' },
+        { skill_name: `Seed Delivery ${seedKey}`, category_code: 'delivery' },
+      ]
+      const skills = await Promise.all(
+        skillInputs.map((skill, index) =>
+          SkillFactory.create({
+            ...skill,
+            sort_order: index + 1,
+          })
+        )
+      )
+
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          projectName: project.name,
+          projectTaskId: projectTask.id,
+          projectTaskTitle: projectTask.title,
+          secondProjectId: secondProject?.id ?? null,
+          secondProjectName: secondProject?.name ?? null,
+          secondProjectTaskId: secondProjectTask?.id ?? null,
+          secondProjectTaskTitle: secondProjectTask?.title ?? null,
+          ownerEmail,
+          skills: skills.map((skill) => ({
+            id: skill.id,
+            name: skill.skill_name,
+            categoryCode: skill.category_code,
+          })),
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-organization-invitation-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const withPendingInvitation = request.input('withPendingInvitation', false) === true
+      const withForeignUser = request.input('withForeignUser', false) === true
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-invite-owner-${seedKey}@test.com`
+      const inviteeEmail = `seed-invitee-${seedKey}@test.com`
+      const foreignUserEmail = `seed-invite-foreign-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Seed Invite Org ${seedKey}`, slug: `seed-invite-org-${seedKey}` },
+        { email: ownerEmail, username: `seed_invite_owner_${seedKey.replace(/-/g, '_')}` }
+      )
+
+      const invitee = await UserFactory.create({
+        email: inviteeEmail,
+        username: `seed_invitee_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: null,
+      })
+
+      if (withPendingInvitation) {
+        const inviteeWorkspace = await OrganizationFactory.create({
+          name: `Seed Invitee Workspace ${seedKey}`,
+          slug: `seed-invitee-workspace-${seedKey}`,
+          owner_id: invitee.id,
+        })
+        await OrganizationUserFactory.create({
+          organization_id: inviteeWorkspace.id,
+          user_id: invitee.id,
+          org_role: 'org_owner',
+          status: 'approved',
+        })
+        invitee.current_organization_id = inviteeWorkspace.id
+        await invitee.save()
+
+        await OrganizationUserFactory.create({
+          organization_id: org.id,
+          user_id: invitee.id,
+          org_role: 'org_member',
+          status: 'pending',
+          invited_by: owner.id,
+        })
+      }
+
+      let foreignUser = null
+      let foreignWorkspace = null
+      if (withForeignUser) {
+        foreignUser = await UserFactory.create({
+          email: foreignUserEmail,
+          username: `seed_invite_foreign_${seedKey.replace(/-/g, '_')}`,
+          current_organization_id: null,
+        })
+        foreignWorkspace = await OrganizationFactory.create({
+          name: `Seed Invite Foreign Workspace ${seedKey}`,
+          slug: `seed-invite-foreign-workspace-${seedKey}`,
+          owner_id: foreignUser.id,
+        })
+        await OrganizationUserFactory.create({
+          organization_id: foreignWorkspace.id,
+          user_id: foreignUser.id,
+          org_role: 'org_owner',
+          status: 'approved',
+        })
+        foreignUser.current_organization_id = foreignWorkspace.id
+        await foreignUser.save()
+      }
+
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          organizationName: org.name,
+          ownerEmail,
+          inviteeEmail,
+          foreignUserEmail: foreignUser?.email ?? null,
+          foreignWorkspaceId: foreignWorkspace?.id ?? null,
+          ownerId: owner.id,
+          inviteeId: invitee.id,
+          foreignUserId: foreignUser?.id ?? null,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-organization-join-request-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const withPendingJoinRequest = request.input('withPendingJoinRequest', false) === true
+      const withPendingAdmin = request.input('withPendingAdmin', false) === true
+      const seedKey = `${timestamp}-${nonce}`
+      const requesterEmail = `seed-join-requester-${seedKey}@test.com`
+      const ownerEmail = `seed-join-owner-${seedKey}@test.com`
+      const pendingAdminEmail = `seed-join-pending-admin-${seedKey}@test.com`
+
+      const requester = await UserFactory.create({
+        email: requesterEmail,
+        username: `seed_join_requester_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: null,
+      })
+
+      const requesterWorkspace = await OrganizationFactory.create({
+        name: `Seed Join Workspace ${seedKey}`,
+        slug: `seed-join-workspace-${seedKey}`,
+        owner_id: requester.id,
+      })
+      await OrganizationUserFactory.create({
+        organization_id: requesterWorkspace.id,
+        user_id: requester.id,
+        org_role: 'org_owner',
+        status: 'approved',
+      })
+      requester.current_organization_id = requesterWorkspace.id
+      await requester.save()
+
+      const { org: targetOrg, owner } = await OrganizationFactory.createWithOwner(
+        {
+          name: `Seed Join Target Org ${seedKey}`,
+          slug: `seed-join-target-${seedKey}`,
+        },
+        {
+          email: ownerEmail,
+          username: `seed_join_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+
+      if (withPendingJoinRequest) {
+        await OrganizationUserFactory.create({
+          organization_id: targetOrg.id,
+          user_id: requester.id,
+          org_role: 'org_member',
+          status: 'pending',
+        })
+      }
+
+      let pendingAdmin = null
+      if (withPendingAdmin) {
+        pendingAdmin = await UserFactory.create({
+          email: pendingAdminEmail,
+          username: `seed_join_pending_admin_${seedKey.replace(/-/g, '_')}`,
+          current_organization_id: targetOrg.id,
+        })
+        await OrganizationUserFactory.create({
+          organization_id: targetOrg.id,
+          user_id: pendingAdmin.id,
+          org_role: 'org_admin',
+          status: 'pending',
+        })
+      }
+
+      response.json(
+        wrapApiV1Data({
+          requesterEmail,
+          requesterWorkspaceId: requesterWorkspace.id,
+          requesterId: requester.id,
+          targetOrganizationId: targetOrg.id,
+          targetOrganizationName: targetOrg.name,
+          ownerEmail,
+          ownerId: owner.id,
+          pendingAdminEmail: pendingAdmin?.email ?? null,
+          pendingAdminId: pendingAdmin?.id ?? null,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-marketplace-application-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const withApplication = request.input('withApplication', true) !== false
+      const withSecondApplication = request.input('withSecondApplication', false) === true
+      const demoNames = Boolean(request.input('demoNames', false))
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-market-owner-${seedKey}@test.com`
+      const projectManagerEmail = `seed-market-project-manager-${seedKey}@test.com`
+      const applicantEmail = `seed-market-applicant-${seedKey}@test.com`
+      const secondApplicantEmail = `seed-market-second-applicant-${seedKey}@test.com`
+      const sameOrgMemberEmail = `seed-market-member-${seedKey}@test.com`
+      const foreignRecruiterEmail = `seed-market-foreign-recruiter-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        {
+          name: demoNames ? 'Demo Delivery Org' : `Seed Marketplace Org ${seedKey}`,
+          slug: `seed-marketplace-org-${seedKey}`,
+        },
+        {
+          email: ownerEmail,
+          username: demoNames
+            ? `demo_market_owner_${nonce}`
+            : `seed_market_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+
+      const applicant = await UserFactory.create({
+        email: applicantEmail,
+        username: demoNames
+          ? `demo_applicant_${nonce}`
+          : `seed_market_applicant_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: null,
+        is_external_contributor: true,
+      })
+      const projectManager = await UserFactory.create({
+        email: projectManagerEmail,
+        username: `seed_market_project_manager_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: null,
+      })
+      const secondApplicant = await UserFactory.create({
+        email: secondApplicantEmail,
+        username: `seed_market_second_applicant_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: null,
+        is_external_contributor: true,
+      })
+      const sameOrgMember = await UserFactory.create({
+        email: sameOrgMemberEmail,
+        username: `seed_market_member_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: sameOrgMember.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+      const { org: foreignOrg, owner: foreignRecruiter } =
+        await OrganizationFactory.createWithOwner(
+          {
+            name: `Seed Foreign Recruiter Org ${seedKey}`,
+            slug: `seed-foreign-recruiter-org-${seedKey}`,
+          },
+          {
+            email: foreignRecruiterEmail,
+            username: `seed_market_foreign_recruiter_${seedKey.replace(/-/g, '_')}`,
+          }
+        )
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        name: demoNames ? 'Mobile Checkout QA' : `Seed Marketplace Project ${seedKey}`,
+        allow_external_contributors: true,
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: projectManager.id,
+        project_role: 'project_manager',
+      })
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        project_id: project.id,
+        task_visibility: 'external',
+        assigned_to: null,
+        title: demoNames
+          ? `Checkout release evidence ${nonce}`
+          : `Seed Marketplace Task ${seedKey}`,
+        description: demoNames
+          ? 'Verify checkout release readiness, collect regression evidence, and surface compliance risks before handoff.'
+          : 'Seeded for E2E marketplace apply and withdraw flow',
+      })
+      const hiddenInternalTask = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        project_id: project.id,
+        task_visibility: 'internal',
+        assigned_to: null,
+        title: `Seed Hidden Internal Task ${seedKey}`,
+        description: 'Seeded internal task that must stay hidden from marketplace listing',
+      })
+      const assignedTask = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        project_id: project.id,
+        task_visibility: 'external',
+        assigned_to: owner.id,
+        title: `Seed Assigned Marketplace Task ${seedKey}`,
+        description: 'Seeded assigned task that must stay hidden from marketplace listing',
+      })
+      task.merge({
+        task_type: 'feature_development',
+        acceptance_criteria: demoNames
+          ? 'Evidence covers happy path, payment failure, refund edge case, and release risk notes.'
+          : task.acceptance_criteria,
+        verification_method: 'code_review',
+        context_background: demoNames
+          ? 'Checkout is entering final QA before release. The team needs concise evidence, not a long handover document.'
+          : task.context_background,
+        role_in_task: 'sole_contributor',
+        business_domain: 'fintech',
+        problem_category: 'compliance',
+        tech_stack: ['TypeScript', 'Svelte', 'AdonisJS'],
+        domain_tags: ['checkout', 'release-readiness', 'qa-evidence'],
+      })
+      await task.save()
+      const levelsByCode = await ensureTestingCanonicalProficiencyLevels()
+      const seededSkills = await Promise.all([
+        SkillFactory.create({
+          skill_name: demoNames ? 'TypeScript QA Automation' : `Marketplace TypeScript ${seedKey}`,
+          skill_code: `marketplace_typescript_${nonce}`,
+          category_code: 'technology',
+        }),
+        SkillFactory.create({
+          skill_name: demoNames ? 'API Design' : `Marketplace API Design ${seedKey}`,
+          skill_code: `marketplace_api_design_${nonce}`,
+          category_code: 'engineering',
+        }),
+        SkillFactory.create({
+          skill_name: demoNames ? 'Release Communication' : `Marketplace Communication ${seedKey}`,
+          skill_code: `marketplace_communication_${nonce}`,
+          category_code: 'soft_skill',
+        }),
+        SkillFactory.create({
+          skill_name: demoNames ? 'Release Ownership' : `Marketplace Release Ownership ${seedKey}`,
+          skill_code: `marketplace_release_ownership_${nonce}`,
+          category_code: 'delivery',
+        }),
+      ])
+      const requiredSkillRows = seededSkills.map((skill, index) => {
+        const levelCode = index === 0 ? 'l6' : index === 1 ? 'l4' : 'l5'
+        return {
+          id: testId(),
+          task_id: task.id,
+          skill_id: skill.id,
+          project_skill_id: null,
+          minimum_level_id: levelsByCode.get(levelCode) ?? null,
+          target_level_id: levelsByCode.get('l7') ?? null,
+          assessment_ceiling_level_id: levelsByCode.get('l10') ?? null,
+          proficiency_level_id: levelsByCode.get(levelCode) ?? null,
+          required_public_proficiency_code: levelCode,
+          is_mandatory: true,
+          importance: index === 0 ? 'high' : 'medium',
+          weight: index === 0 ? 1.25 : 1,
+          requirement_source: 'manual',
+          requirement_notes: 'Seeded marketplace requirement for reliable profile match scoring.',
+          rubric_version_id: null,
+          source_project_professional_role_id: null,
+          source_role_skill_id: null,
+          created_at: DateTime.utc().toSQL(),
+        }
+      })
+      await db.table('task_required_skills').insert(requiredSkillRows)
+      await Promise.all(
+        [applicant, secondApplicant].flatMap((candidate) =>
+          seededSkills.map((skill) =>
+            UserSkillFactory.create({
+              user_id: candidate.id,
+              skill_id: skill.id,
+              verified_public_proficiency_code: 'l7',
+              source: 'reviewed',
+              total_reviews: 2,
+              avg_score: 4.2,
+              avg_percentage: 84,
+            })
+          )
+        )
+      )
+      await db.table('user_work_history').insert(
+        [applicant, secondApplicant].map((candidate) => ({
+          id: testId(),
+          user_id: candidate.id,
+          task_id: testId(),
+          task_assignment_id: testId(),
+          organization_id: org.id,
+          project_id: project.id,
+          task_title: `Seed Marketplace Prior Work ${seedKey}`,
+          task_type: 'feature_development',
+          business_domain: 'fintech',
+          problem_category: 'compliance',
+          role_in_task: 'sole_contributor',
+          autonomy_level: null,
+          collaboration_type: 'solo',
+          tech_stack: JSON.stringify(['TypeScript', 'AdonisJS', 'Svelte']),
+          domain_tags: JSON.stringify(['fintech', 'application-flow']),
+          difficulty: 'medium',
+          estimated_hours: 8,
+          actual_hours: 7,
+          was_on_time: true,
+          days_early_or_late: -1,
+          measurable_outcomes: JSON.stringify([]),
+          estimated_business_value: null,
+          knowledge_artifacts: JSON.stringify([]),
+          overall_quality_score: 4,
+          skill_scores: JSON.stringify([]),
+          evidence_links: JSON.stringify([]),
+          is_featured: false,
+          is_public: true,
+          completed_at: DateTime.utc().minus({ days: 14 }).toSQL(),
+        }))
+      )
+
+      const application = withApplication
+        ? await TaskApplicationFactory.create({
+            task_id: task.id,
+            applicant_id: applicant.id,
+            application_status: 'pending',
+            application_source: 'public_listing',
+            message: 'Seeded pending marketplace application',
+            portfolio_links: ['https://portfolio.example.com/seeded-work'],
+          })
+        : null
+      const secondApplication =
+        withApplication && withSecondApplication
+          ? await TaskApplicationFactory.create({
+              task_id: task.id,
+              applicant_id: secondApplicant.id,
+              application_status: 'pending',
+              application_source: 'public_listing',
+              message: 'Seeded second pending marketplace application',
+              portfolio_links: ['https://portfolio.example.com/second-seeded-work'],
+            })
+          : null
+
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          taskId: task.id,
+          applicationId: application?.id ?? null,
+          secondApplicationId: secondApplication?.id ?? null,
+          ownerEmail,
+          projectManagerEmail,
+          applicantEmail,
+          secondApplicantEmail,
+          sameOrgMemberEmail,
+          foreignRecruiterEmail,
+          ownerId: owner.id,
+          projectManagerId: projectManager.id,
+          applicantId: applicant.id,
+          secondApplicantId: secondApplicant.id,
+          sameOrgMemberId: sameOrgMember.id,
+          foreignOrganizationId: foreignOrg.id,
+          foreignRecruiterId: foreignRecruiter.id,
+          taskTitle: task.title,
+          hiddenInternalTaskTitle: hiddenInternalTask.title,
+          assignedTaskTitle: assignedTask.title,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-sprint-review-governance-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const withForeignSprint = request.input('withForeignSprint', false) === true
+      const taskInSprint = request.input('taskInSprint', false) === true
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-sprint-owner-${seedKey}@test.com`
+      const workerEmail = `seed-sprint-worker-${seedKey}@test.com`
+      const adminEmail = `seed-sprint-admin-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Seed Sprint Org ${seedKey}`, slug: `seed-sprint-org-${seedKey}` },
+        { email: ownerEmail, username: `seed_sprint_owner_${seedKey.replace(/-/g, '_')}` }
+      )
+
+      const worker = await UserFactory.create({
+        email: workerEmail,
+        username: `seed_sprint_worker_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const admin = await UserFactory.createSuperadmin({
+        email: adminEmail,
+        username: `seed_sprint_admin_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: worker.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: admin.id,
+        org_role: 'org_admin',
+        status: 'approved',
+      })
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        manager_id: owner.id,
+        name: `Seed Sprint Project ${seedKey}`,
+      })
+
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: worker.id,
+        project_role: 'project_member',
+      })
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: worker.id,
+        project_id: project.id,
+        status: 'in_progress',
+        title: `Seed Sprint Task ${seedKey}`,
+      })
+      const assignment = await TaskAssignmentFactory.create({
+        task_id: task.id,
+        assignee_id: worker.id,
+        assigned_by: owner.id,
+        assignment_status: 'active',
+        assignment_type: 'member',
+      })
+      const reviewSession = await ReviewSessionFactory.create({
+        task_assignment_id: assignment.id,
+        reviewee_id: worker.id,
+        status: 'completed',
+        creator_reviewer_id: owner.id,
+        completed_at: DateTime.utc().minus({ days: 1 }),
+      })
+
+      const sprintId = testId()
+      await db.table('project_sprints').insert({
+        id: sprintId,
+        organization_id: org.id,
+        project_id: project.id,
+        name: `Seed Sprint Review ${seedKey}`,
+        goal: 'Stabilize Scrum planning, backlog scope, and review readiness.',
+        status: 'active',
+        starts_at: DateTime.utc().minus({ days: 14 }).toSQL(),
+        ends_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+        created_by: owner.id,
+        closed_by: null,
+        review_opened_at: null,
+        review_closed_at: null,
+        created_at: DateTime.utc().toSQL(),
+        updated_at: DateTime.utc().toSQL(),
+      })
+      if (taskInSprint) {
+        await db.from('tasks').where('id', task.id).update({
+          project_sprint_id: sprintId,
+          updated_at: DateTime.utc().toSQL(),
+        })
+      }
+
+      let foreignProjectId: string | null = null
+      let foreignSprintId: string | null = null
+      if (withForeignSprint) {
+        const foreignProject = await ProjectFactory.create({
+          organization_id: org.id,
+          creator_id: owner.id,
+          owner_id: owner.id,
+          manager_id: owner.id,
+          name: `Seed Sprint Foreign Project ${seedKey}`,
+        })
+
+        await ProjectMemberFactory.create({
+          project_id: foreignProject.id,
+          user_id: owner.id,
+          project_role: 'project_owner',
+        })
+
+        foreignProjectId = foreignProject.id
+        foreignSprintId = testId()
+        await db.table('project_sprints').insert({
+          id: foreignSprintId,
+          organization_id: org.id,
+          project_id: foreignProject.id,
+          name: `Seed Sprint Foreign Review ${seedKey}`,
+          goal: 'Foreign sprint should stay isolated from this project board.',
+          status: 'active',
+          starts_at: DateTime.utc().minus({ days: 7 }).toSQL(),
+          ends_at: DateTime.utc().plus({ days: 7 }).toSQL(),
+          created_by: owner.id,
+          closed_by: null,
+          review_opened_at: null,
+          review_closed_at: null,
+          created_at: DateTime.utc().toSQL(),
+          updated_at: DateTime.utc().toSQL(),
+        })
+      }
+
+      const disputeId = testId()
+      await db.table('review_disputes').insert({
+        id: disputeId,
+        review_session_id: reviewSession.id,
+        task_assignment_id: assignment.id,
+        task_id: task.id,
+        reviewee_id: worker.id,
+        opened_by: worker.id,
+        status: 'admin_reviewing',
+        dispute_reason: 'Review missed sprint evidence',
+        disputed_dimensions: JSON.stringify({ quality: true }),
+        disputed_skill_reviews: JSON.stringify([]),
+        requested_outcome: 'adjust_score',
+        created_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+        updated_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+      })
+      await db.table('review_dispute_case_files').insert({
+        id: testId(),
+        dispute_id: disputeId,
+        case_version: 1,
+        created_by: admin.id,
+        task_snapshot: JSON.stringify({ id: task.id, title: task.title }),
+        required_skills_snapshot: JSON.stringify([]),
+        acceptance_criteria_snapshot: JSON.stringify({}),
+        assignment_snapshot: JSON.stringify({ id: assignment.id }),
+        submission_snapshot: JSON.stringify({}),
+        review_snapshot: JSON.stringify({ id: reviewSession.id }),
+        skill_reviews_snapshot: JSON.stringify([]),
+        evidences_snapshot: JSON.stringify([]),
+        self_assessment_snapshot: JSON.stringify({}),
+        task_comments_snapshot: JSON.stringify([]),
+        task_history_snapshot: JSON.stringify([]),
+        reviewee_profile_context_snapshot: JSON.stringify({ reviewee_id: worker.id }),
+        reviewer_context_snapshot: JSON.stringify({ reviewer_id: owner.id }),
+        dispute_claim_snapshot: JSON.stringify({
+          requested_outcome: 'adjust_score',
+          dispute_reason: 'Review missed sprint evidence',
+          dispute_comments: [{ author_context: 'reviewee', body: 'Please re-check evidence.' }],
+        }),
+        completeness_score: 62,
+        missing_data: JSON.stringify([
+          { key: 'counterparty_dispute_message' },
+          { key: 'submission_snapshot' },
+        ]),
+        created_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+      })
+
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          sprintId,
+          foreignProjectId,
+          foreignSprintId,
+          taskId: task.id,
+          disputeId,
+          ownerEmail,
+          workerEmail,
+          adminEmail,
+          ownerId: owner.id,
+          workerId: worker.id,
+          adminId: admin.id,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-sprint-reverse-review-board-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-sprint-reverse-owner-${seedKey}@test.com`
+      const workerEmail = `seed-sprint-reverse-worker-${seedKey}@test.com`
+      const assignerEmail = `seed-sprint-reverse-assigner-${seedKey}@test.com`
+      const secondWorkerEmail = `seed-sprint-reverse-second-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        { name: `Sprint Reverse Org ${seedKey}`, slug: `sprint-reverse-org-${seedKey}` },
+        {
+          email: ownerEmail,
+          username: `sprint_reverse_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+      const worker = await UserFactory.create({
+        email: workerEmail,
+        username: `sprint_reverse_worker_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const assigner = await UserFactory.create({
+        email: assignerEmail,
+        username: `sprint_reverse_assigner_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const secondWorker = await UserFactory.create({
+        email: secondWorkerEmail,
+        username: `sprint_reverse_second_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+
+      for (const user of [worker, assigner, secondWorker]) {
+        await OrganizationUserFactory.create({
+          organization_id: org.id,
+          user_id: user.id,
+          org_role: 'org_member',
+          status: 'approved',
+        })
+      }
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        manager_id: owner.id,
+        name: `Sprint Reverse Project ${seedKey}`,
+      })
+      for (const [user, role] of [
+        [owner, 'project_owner'],
+        [worker, 'project_member'],
+        [assigner, 'project_manager'],
+        [secondWorker, 'project_member'],
+      ] as const) {
+        await ProjectMemberFactory.create({
+          project_id: project.id,
+          user_id: user.id,
+          project_role: role,
+        })
+      }
+
+      const sprintId = testId()
+      await db.table('project_sprints').insert({
+        id: sprintId,
+        organization_id: org.id,
+        project_id: project.id,
+        name: `Sprint Reverse Review ${seedKey}`,
+        status: 'active',
+        starts_at: DateTime.utc().minus({ days: 14 }).toSQL(),
+        ends_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+        created_by: owner.id,
+        closed_by: null,
+        review_opened_at: null,
+        review_closed_at: null,
+        created_at: DateTime.utc().toSQL(),
+        updated_at: DateTime.utc().toSQL(),
+      })
+
+      const taskA = await TaskFactory.create({
+        organization_id: org.id,
+        project_id: project.id,
+        project_sprint_id: sprintId,
+        creator_id: assigner.id,
+        assigned_to: worker.id,
+        status: 'done',
+        title: 'Clarify onboarding checklist',
+      })
+      const taskB = await TaskFactory.create({
+        organization_id: org.id,
+        project_id: project.id,
+        project_sprint_id: sprintId,
+        creator_id: assigner.id,
+        assigned_to: worker.id,
+        status: 'done',
+        title: 'Prepare sprint demo notes',
+      })
+      const secondTask = await TaskFactory.create({
+        organization_id: org.id,
+        project_id: project.id,
+        project_sprint_id: sprintId,
+        creator_id: owner.id,
+        assigned_to: secondWorker.id,
+        status: 'done',
+        title: 'Second worker eligibility task',
+      })
+
+      for (const task of [taskA, taskB]) {
+        await TaskAssignmentFactory.create({
+          task_id: task.id,
+          assignee_id: worker.id,
+          assigned_by: assigner.id,
+          assignment_status: 'completed',
+          assignment_type: 'member',
+        })
+      }
+      await TaskAssignmentFactory.create({
+        task_id: secondTask.id,
+        assignee_id: secondWorker.id,
+        assigned_by: owner.id,
+        assignment_status: 'completed',
+        assignment_type: 'member',
+      })
+
+      for (const [task, revieweeId] of [
+        [taskA, worker.id],
+        [taskB, worker.id],
+        [secondTask, secondWorker.id],
+      ] as const) {
+        await db.table('task_review_workflows').insert({
+          id: testId(),
+          task_id: task.id,
+          project_id: project.id,
+          organization_id: org.id,
+          reviewee_id: revieweeId,
+          status: 'done',
+          required_review_count: 2,
+          completed_review_count: 2,
+          completed_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+          created_at: DateTime.utc().minus({ hours: 3 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+        })
+      }
+
+      const closeResult = await reviewPublicApi.closeProjectSprintReview(
+        { sprint_id: sprintId },
+        {
+          userId: owner.id,
+          organizationId: org.id,
+          ip: '127.0.0.1',
+          userAgent: 'playwright-e2e',
+        }
+      )
+
+      const workerWorkflows = await db
+        .from('sprint_reverse_review_workflows')
+        .where('sprint_id', sprintId)
+        .where('reviewer_id', worker.id)
+        .select('id', 'target_type', 'target_user_id', 'target_entity_id', 'responder_id')
+
+      response.status(201).json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          sprintId,
+          nextSprintId: closeResult.next_sprint_id,
+          ownerEmail,
+          workerEmail,
+          assignerEmail,
+          secondWorkerEmail,
+          ownerId: owner.id,
+          workerId: worker.id,
+          assignerId: assigner.id,
+          taskIds: [taskA.id, taskB.id],
+          workflows: workerWorkflows,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-review-lifecycle-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const requestedPeerCount = Number(request.input('peerCount', 1))
+      const demoNames = Boolean(request.input('demoNames', false))
+      const peerCount = Number.isFinite(requestedPeerCount)
+        ? Math.max(1, Math.min(2, Math.floor(requestedPeerCount)))
+        : 1
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-review-owner-${seedKey}@test.com`
+      const revieweeEmail = `seed-reviewee-${seedKey}@test.com`
+      const peerEmails = Array.from(
+        { length: peerCount },
+        (_, index) => `seed-review-peer-${index + 1}-${seedKey}@test.com`
+      )
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        {
+          name: demoNames ? 'Demo Review Org' : `Seed Review Org ${seedKey}`,
+          slug: `seed-review-org-${seedKey}`,
+        },
+        {
+          email: ownerEmail,
+          username: demoNames
+            ? `demo_owner_${nonce}`
+            : `seed_review_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+
+      const reviewee = await UserFactory.create({
+        email: revieweeEmail,
+        username: demoNames
+          ? `demo_worker_${nonce}`
+          : `seed_reviewee_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+      const peers = await Promise.all(
+        peerEmails.map((peerEmail, index) =>
+          UserFactory.create({
+            email: peerEmail,
+            username: demoNames
+              ? `demo_peer_${index + 1}_${nonce}`
+              : `seed_review_peer_${index + 1}_${seedKey.replace(/-/g, '_')}`,
+            current_organization_id: org.id,
+          })
+        )
+      )
+
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: reviewee.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+      await Promise.all(
+        peers.map((peer) =>
+          OrganizationUserFactory.create({
+            organization_id: org.id,
+            user_id: peer.id,
+            org_role: 'org_member',
+            status: 'approved',
+          })
+        )
+      )
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        manager_id: owner.id,
+        name: demoNames ? 'Release Review Project' : `Seed Review Project ${seedKey}`,
+      })
+
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: reviewee.id,
+        project_role: 'project_member',
+      })
+      await Promise.all(
+        peers.map((peer) =>
+          ProjectMemberFactory.create({
+            project_id: project.id,
+            user_id: peer.id,
+            project_role: 'project_member',
+          })
+        )
+      )
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: reviewee.id,
+        project_id: project.id,
+        status: 'done',
+        title: demoNames ? 'Checkout QA evidence package' : `Seed Review Lifecycle Task ${seedKey}`,
+        description: demoNames
+          ? 'Worker submitted checkout evidence and is waiting for owner plus peer review.'
+          : 'Seeded for E2E review lifecycle flow',
+      })
+      const assignment = await TaskAssignmentFactory.create({
+        task_id: task.id,
+        assignee_id: reviewee.id,
+        assigned_by: owner.id,
+        assignment_status: 'completed',
+        assignment_type: 'member',
+      })
+      const skill = await SkillFactory.create({
+        skill_name: demoNames ? 'Evidence Quality' : `Seed Review Skill ${seedKey}`,
+        category_code: 'engineering',
+      })
+
+      await db.table('task_required_skills').insert({
+        id: testId(),
+        task_id: task.id,
+        skill_id: skill.id,
+        project_skill_id: null,
+        minimum_level_id: null,
+        target_level_id: null,
+        assessment_ceiling_level_id: null,
+        proficiency_level_id: null,
+        required_public_proficiency_code: 'l7',
+        is_mandatory: true,
+        importance: 'high',
+        weight: 1,
+        requirement_source: 'manual',
+        requirement_notes: 'Seeded requirement keeps lifecycle E2E focused on one skill.',
+        rubric_version_id: null,
+        source_project_professional_role_id: null,
+        source_role_skill_id: null,
+        created_at: DateTime.utc().toSQL(),
+      })
+
+      const reviewSession = await ReviewSessionFactory.create({
+        task_assignment_id: assignment.id,
+        reviewee_id: reviewee.id,
+        status: 'pending',
+        creator_reviewer_id: owner.id,
+        required_peer_reviews: peerCount,
+        required_total_reviews: peerCount + 1,
+        minimum_manager_reviews: 1,
+        minimum_peer_reviews: peerCount,
+      })
+      await ReviewSessionReviewerAssignmentFactory.create({
+        review_session_id: reviewSession.id,
+        reviewer_id: owner.id,
+        reviewer_type: 'manager',
+        assignment_role: 'creator_required',
+        is_required: true,
+      })
+      await Promise.all(
+        peers.map((peer) =>
+          ReviewSessionReviewerAssignmentFactory.create({
+            review_session_id: reviewSession.id,
+            reviewer_id: peer.id,
+            reviewer_type: 'peer',
+            assignment_role: 'peer_required',
+            is_required: true,
+          })
+        )
+      )
+
+      response.status(201).json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          taskId: task.id,
+          assignmentId: assignment.id,
+          reviewSessionId: reviewSession.id,
+          skillId: skill.id,
+          ownerEmail,
+          revieweeEmail,
+          peerEmail: peerEmails[0],
+          peerEmails,
+          ownerId: owner.id,
+          revieweeId: reviewee.id,
+          peerId: peers[0]?.id,
+          peerIds: peers.map((peer) => peer.id),
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-review-dispute-exchange-flow', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const demoNames = Boolean(request.input('demoNames', false))
+      const seedKey = `${timestamp}-${nonce}`
+      const ownerEmail = `seed-dispute-owner-${seedKey}@test.com`
+      const revieweeEmail = `seed-dispute-reviewee-${seedKey}@test.com`
+
+      const { org, owner } = await OrganizationFactory.createWithOwner(
+        {
+          name: demoNames ? 'Demo Delivery Org' : `Seed Dispute Org ${seedKey}`,
+          slug: `seed-dispute-org-${seedKey}`,
+        },
+        {
+          email: ownerEmail,
+          username: demoNames
+            ? `demo_owner_${seedKey.replace(/-/g, '_')}`
+            : `seed_dispute_owner_${seedKey.replace(/-/g, '_')}`,
+        }
+      )
+      const reviewee = await UserFactory.create({
+        email: revieweeEmail,
+        username: demoNames
+          ? `demo_worker_${seedKey.replace(/-/g, '_')}`
+          : `seed_dispute_reviewee_${seedKey.replace(/-/g, '_')}`,
+        current_organization_id: org.id,
+      })
+
+      await OrganizationUserFactory.create({
+        organization_id: org.id,
+        user_id: reviewee.id,
+        org_role: 'org_member',
+        status: 'approved',
+      })
+
+      const project = await ProjectFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        owner_id: owner.id,
+        manager_id: owner.id,
+        name: demoNames ? 'Checkout QA' : `Seed Dispute Project ${seedKey}`,
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: owner.id,
+        project_role: 'project_owner',
+      })
+      await ProjectMemberFactory.create({
+        project_id: project.id,
+        user_id: reviewee.id,
+        project_role: 'project_member',
+      })
+      const sprintId = testId()
+      await db.table('project_sprints').insert({
+        id: sprintId,
+        organization_id: org.id,
+        project_id: project.id,
+        name: demoNames ? 'Checkout release review sprint' : `Seed Dispute Sprint ${seedKey}`,
+        goal: 'Collect checkout release evidence, peer task context, and dispute review history.',
+        status: 'active',
+        starts_at: DateTime.utc().minus({ days: 14 }).toSQL(),
+        ends_at: DateTime.utc().minus({ hours: 3 }).toSQL(),
+        created_by: owner.id,
+        closed_by: null,
+        review_opened_at: null,
+        review_closed_at: null,
+        created_at: DateTime.utc().minus({ days: 14 }).toSQL(),
+        updated_at: DateTime.utc().minus({ hours: 3 }).toSQL(),
+      })
+
+      const task = await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: reviewee.id,
+        project_id: project.id,
+        project_sprint_id: sprintId,
+        status: 'done',
+        title: demoNames ? 'Verify checkout release' : `Seed Dispute Task ${seedKey}`,
+        description:
+          'Validate checkout release readiness with regression tests, release notes, and rollback notes.',
+        priority: 'high',
+      })
+      task.merge({
+        task_type: 'feature_development',
+        acceptance_criteria: [
+          'Checkout regression suite passes for totals, coupons, and payment failures.',
+          'Release notes explain customer-visible checkout behavior changes.',
+          'Rollback notes identify owner, trigger, and recovery steps.',
+          'Pull request and test output are attached before manager review.',
+        ].join('\n'),
+        verification_method: 'code_review',
+        expected_deliverables: [
+          {
+            type: 'pull_request',
+            label: 'Checkout regression fix',
+          },
+          {
+            type: 'test_report',
+            label: 'Passing checkout regression test output',
+          },
+          {
+            type: 'release_notes',
+            label: 'Release notes with rollback plan',
+          },
+        ],
+        context_background:
+          'Checkout release is blocked until review confirms test coverage and release communication quality.',
+        impact_scope: 'end_users',
+        tech_stack: ['TypeScript', 'AdonisJS', 'Svelte'],
+        environment: 'staging',
+        collaboration_type: 'solo',
+        complexity_notes:
+          'Most implementation evidence is strong, but rollback communication is partially incomplete.',
+        measurable_outcomes: [
+          {
+            metric: 'checkout_regression_tests',
+            value: 'passed_18_of_18',
+          },
+          {
+            metric: 'release_note_rollback_detail',
+            value: 'partial',
+          },
+        ],
+        learning_objectives: ['evidence-backed release readiness', 'clear rollback communication'],
+        domain_tags: ['checkout', 'release-readiness', 'dispute-review'],
+        role_in_task: 'sole_contributor',
+        autonomy_level: 'autonomous',
+        problem_category: 'reliability',
+        business_domain: 'ecommerce',
+        estimated_users_affected: 1200,
+      })
+      await task.save()
+      await TaskFactory.create({
+        organization_id: org.id,
+        creator_id: owner.id,
+        assigned_to: reviewee.id,
+        project_id: project.id,
+        project_sprint_id: sprintId,
+        status: 'done',
+        title: demoNames
+          ? 'Verify checkout rollback notes'
+          : `Seed Dispute Related Task ${seedKey}`,
+        description:
+          'Related sprint task used as project-level context for checkout release dispute review.',
+        priority: 'medium',
+      })
+      const assignment = await TaskAssignmentFactory.create({
+        task_id: task.id,
+        assignee_id: reviewee.id,
+        assigned_by: owner.id,
+        assignment_status: 'completed',
+        assignment_type: 'member',
+      })
+      await db.table('user_profile_snapshots').multiInsert([
+        {
+          id: testId(),
+          user_id: owner.id,
+          version: 1,
+          snapshot_name: 'Seed dispute assigner profile',
+          is_current: true,
+          is_public: true,
+          summary: JSON.stringify({ role: 'task_assigner', domain: 'checkout_release' }),
+          skills_verified: JSON.stringify(['release_review', 'risk_triage']),
+          work_highlights: JSON.stringify(['reviewed checkout release readiness']),
+          performance_metrics: JSON.stringify({ review_turnaround_hours: 2 }),
+          trust_metrics: JSON.stringify({ dispute_context_quality: 'high' }),
+          scoring_version: 'seed_dispute_v1',
+          created_at: DateTime.utc().minus({ days: 10 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 3 }).toSQL(),
+        },
+        {
+          id: testId(),
+          user_id: reviewee.id,
+          version: 1,
+          snapshot_name: 'Seed dispute worker profile',
+          is_current: true,
+          is_public: true,
+          summary: JSON.stringify({ role: 'task_worker', domain: 'checkout_release' }),
+          skills_verified: JSON.stringify(['checkout_regression', 'release_notes']),
+          work_highlights: JSON.stringify(['attached PR, tests, and release notes before review']),
+          performance_metrics: JSON.stringify({ completed_checkout_tasks: 1 }),
+          trust_metrics: JSON.stringify({ evidence_quality: 'strong' }),
+          scoring_version: 'seed_dispute_v1',
+          created_at: DateTime.utc().minus({ days: 10 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 3 }).toSQL(),
+        },
+      ])
+      await db.table('user_work_history').multiInsert([
+        {
+          id: testId(),
+          user_id: owner.id,
+          task_id: task.id,
+          task_assignment_id: assignment.id,
+          organization_id: org.id,
+          project_id: project.id,
+          task_title: 'Checkout release review assignment',
+          task_type: 'review_dispute_context',
+          business_domain: 'ecommerce',
+          problem_category: 'release_readiness',
+          role_in_task: 'task_assigner',
+          autonomy_level: null,
+          collaboration_type: 'team',
+          tech_stack: JSON.stringify(['TypeScript', 'AdonisJS', 'Svelte']),
+          domain_tags: JSON.stringify(['checkout', 'release-readiness']),
+          difficulty: 'medium',
+          estimated_hours: 3,
+          actual_hours: 2,
+          was_on_time: true,
+          days_early_or_late: 0,
+          measurable_outcomes: JSON.stringify([{ metric: 'review_feedback', value: 'submitted' }]),
+          estimated_business_value: null,
+          knowledge_artifacts: JSON.stringify([]),
+          overall_quality_score: 4,
+          skill_scores: JSON.stringify([]),
+          evidence_links: JSON.stringify([]),
+          is_featured: false,
+          is_public: true,
+          completed_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+        },
+        {
+          id: testId(),
+          user_id: reviewee.id,
+          task_id: task.id,
+          task_assignment_id: assignment.id,
+          organization_id: org.id,
+          project_id: project.id,
+          task_title: 'Checkout release implementation',
+          task_type: 'feature_development',
+          business_domain: 'ecommerce',
+          problem_category: 'reliability',
+          role_in_task: 'task_worker',
+          autonomy_level: 'autonomous',
+          collaboration_type: 'solo',
+          tech_stack: JSON.stringify(['TypeScript', 'AdonisJS', 'Svelte']),
+          domain_tags: JSON.stringify(['checkout', 'release-readiness', 'dispute-review']),
+          difficulty: 'medium',
+          estimated_hours: 8,
+          actual_hours: 7,
+          was_on_time: true,
+          days_early_or_late: -1,
+          measurable_outcomes: JSON.stringify([
+            { metric: 'checkout_regression_tests', value: 'passed_18_of_18' },
+          ]),
+          estimated_business_value: null,
+          knowledge_artifacts: JSON.stringify([]),
+          overall_quality_score: 4,
+          skill_scores: JSON.stringify([]),
+          evidence_links: JSON.stringify(['https://example.com/acme/checkout/pull/42']),
+          is_featured: false,
+          is_public: true,
+          completed_at: DateTime.utc().minus({ hours: 5 }).toSQL(),
+        },
+      ])
+      const reviewSession = await ReviewSessionFactory.create({
+        task_assignment_id: assignment.id,
+        reviewee_id: reviewee.id,
+        status: 'disputed',
+        creator_reviewer_id: owner.id,
+        creator_review_completed: true,
+        manager_review_completed: true,
+        manager_reviews_count: 1,
+        peer_reviews_count: 0,
+        required_peer_reviews: 0,
+        required_total_reviews: 1,
+        minimum_manager_reviews: 1,
+        minimum_peer_reviews: 0,
+        completed_at: DateTime.utc().minus({ hours: 2 }),
+      })
+      const skill = await SkillFactory.create({
+        skill_name: demoNames ? 'Checkout Release QA' : `Seed Dispute Skill ${seedKey}`,
+        skill_code: `seed_dispute_checkout_${nonce.replace(/[^a-zA-Z0-9]/g, '_')}`,
+        category_code: 'engineering',
+      })
+      const levelsByCode = await ensureTestingCanonicalProficiencyLevels()
+      const taskRequiredSkillId = testId()
+      await db.table('task_required_skills').insert({
+        id: taskRequiredSkillId,
+        task_id: task.id,
+        skill_id: skill.id,
+        project_skill_id: null,
+        minimum_level_id: levelsByCode.get('l6') ?? null,
+        target_level_id: levelsByCode.get('l8') ?? null,
+        assessment_ceiling_level_id: levelsByCode.get('l10') ?? null,
+        proficiency_level_id: levelsByCode.get('l6') ?? null,
+        required_public_proficiency_code: 'l6',
+        is_mandatory: true,
+        importance: 'high',
+        weight: 1.25,
+        requirement_source: 'manual',
+        requirement_notes:
+          'Seeded dispute requirement links the task rubric to manager review and evidence.',
+        rubric_version_id: null,
+        source_project_professional_role_id: null,
+        source_role_skill_id: null,
+        created_at: DateTime.utc().minus({ hours: 8 }).toSQL(),
+      })
+
+      const submissionId = testId()
+      const submissionEvidenceIds = [testId(), testId(), testId()]
+      await db.table('task_submissions').insert({
+        id: submissionId,
+        task_assignment_id: assignment.id,
+        task_id: task.id,
+        submitted_by: reviewee.id,
+        summary:
+          'Implemented checkout regression fixes, attached passing tests, and drafted release notes.',
+        implementation_notes:
+          'PR fixes coupon rounding, payment retry messaging, and checkout total recalculation.',
+        known_limitations:
+          'Release notes include customer impact but rollback trigger detail is still partial.',
+        test_notes: '18 checkout regression tests passed in staging before manager review.',
+        demo_url: 'https://example.com/seed-dispute/checkout-demo',
+        repository_url: 'https://example.com/acme/checkout',
+        pull_request_url: 'https://example.com/acme/checkout/pull/42',
+        status: 'submitted',
+        submitted_at: DateTime.utc().minus({ hours: 6 }).toSQL(),
+        locked_at: DateTime.utc().minus({ hours: 5, minutes: 55 }).toSQL(),
+        created_at: DateTime.utc().minus({ hours: 6 }).toSQL(),
+        updated_at: DateTime.utc().minus({ hours: 5, minutes: 55 }).toSQL(),
+      })
+      await db.table('task_submission_evidences').multiInsert([
+        {
+          id: submissionEvidenceIds[0],
+          submission_id: submissionId,
+          evidence_type: 'pull_request',
+          url: 'https://example.com/acme/checkout/pull/42',
+          title: 'Checkout regression pull request',
+          description: 'Implementation evidence submitted before manager review.',
+          uploaded_by: reviewee.id,
+          created_at: DateTime.utc().minus({ hours: 5, minutes: 50 }).toSQL(),
+        },
+        {
+          id: submissionEvidenceIds[1],
+          submission_id: submissionId,
+          evidence_type: 'test_report',
+          url: 'https://example.com/acme/checkout/actions/runs/42',
+          title: 'Checkout regression test run',
+          description: 'Passing test evidence for totals, coupons, and payment failures.',
+          uploaded_by: reviewee.id,
+          created_at: DateTime.utc().minus({ hours: 5, minutes: 45 }).toSQL(),
+        },
+        {
+          id: submissionEvidenceIds[2],
+          submission_id: submissionId,
+          evidence_type: 'document_link',
+          url: 'https://example.com/acme/checkout/releases/2026-07-16',
+          title: 'Checkout release notes draft',
+          description:
+            'Release notes include customer impact, while rollback trigger detail remains partial.',
+          uploaded_by: reviewee.id,
+          created_at: DateTime.utc().minus({ hours: 5, minutes: 40 }).toSQL(),
+        },
+      ])
+
+      await db
+        .from('review_sessions')
+        .where('id', reviewSession.id)
+        .update({
+          overall_quality_score: 2,
+          delivery_timeliness: 'on_time',
+          requirement_adherence: 2,
+          communication_quality: 3,
+          code_quality_score: 4,
+          proactiveness_score: 3,
+          would_work_with_again: true,
+          strengths_observed:
+            'Regression fix and test evidence are strong, specific, and submitted before review.',
+          areas_for_improvement:
+            'Rollback communication is partial and should have been completed before release review.',
+          created_at: DateTime.utc().minus({ hours: 7 }).toSQL(),
+          completed_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+        })
+
+      const skillReview = await SkillReviewFactory.create({
+        review_session_id: reviewSession.id,
+        reviewer_id: owner.id,
+        reviewer_type: 'manager',
+        skill_id: skill.id,
+        assigned_public_proficiency_code: 'l5',
+        comment:
+          'Manager scored release QA low because rollback notes were incomplete, despite passing regression evidence.',
+      })
+      await db
+        .from('skill_reviews')
+        .where('id', skillReview.id)
+        .update({
+          task_required_skill_id: taskRequiredSkillId,
+          proficiency_level_id: levelsByCode.get('l5') ?? null,
+          observed_level_id: levelsByCode.get('l7') ?? null,
+          confidence: 'medium',
+          rationale:
+            'Implementation evidence supports L7 technical execution, but release communication evidence is incomplete.',
+          observable_behaviors: JSON.stringify([
+            'attached passing checkout regression test run',
+            'linked pull request before manager review',
+            'left rollback trigger detail partial in release notes',
+          ]),
+          review_status: 'submitted',
+          review_weight: 1.25,
+          reviewer_skill_relevance: 'direct',
+          evidence_ids: JSON.stringify(submissionEvidenceIds),
+          flags: JSON.stringify([
+            {
+              type: 'partial_release_notes',
+              severity: 'medium',
+            },
+          ]),
+          submitted_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 2 }).toSQL(),
+        })
+
+      const disputeId = testId()
+      await db.table('review_disputes').insert({
+        id: disputeId,
+        review_session_id: reviewSession.id,
+        task_assignment_id: assignment.id,
+        task_id: task.id,
+        reviewee_id: reviewee.id,
+        opened_by: reviewee.id,
+        status: 'collecting_evidence',
+        dispute_reason:
+          'Manager score treated the whole checkout release as weak even though PR and tests were submitted on time. Reviewee accepts rollback notes were partial, but asks admin to adjust score or request a focused re-review.',
+        disputed_dimensions: JSON.stringify({
+          requirement_adherence: true,
+          code_quality_score: true,
+          evidence: true,
+        }),
+        disputed_skill_reviews: JSON.stringify([
+          {
+            skill_review_id: skillReview.id,
+            skill_id: skill.id,
+            task_required_skill_id: taskRequiredSkillId,
+            claimed_issue:
+              'score does not separate strong test evidence from partial release notes',
+          },
+        ]),
+        requested_outcome: 'adjust_score',
+        created_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+        updated_at: DateTime.utc().minus({ hours: 1 }).toSQL(),
+      })
+
+      await db.table('task_comments').multiInsert([
+        {
+          id: testId(),
+          task_id: task.id,
+          author_id: reviewee.id,
+          body: 'Submission ready: PR, checkout regression test run, and release notes draft are attached.',
+          comment_type: 'status_update',
+          visibility: 'internal',
+          review_relevance: true,
+          created_at: DateTime.utc().minus({ hours: 5 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 5 }).toSQL(),
