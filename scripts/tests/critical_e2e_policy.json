@@ -1,0 +1,122 @@
+{
+  "criticalSpecs": [
+    "inertia/apps/user/tests/e2e/marketplace/apply_withdraw_my_applications.spec.ts",
+    "inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts"
+  ],
+  "includeGlobs": [
+    "inertia/apps/*/tests/e2e/**/*.spec.ts"
+  ],
+  "excludeFiles": [
+    "inertia/apps/user/tests/e2e/meta/no_false_pass_patterns.spec.ts"
+  ],
+  "allowedDebtFiles": [
+    {
+      "file": "inertia/apps/org/tests/e2e/org/org_task_scope_toggle.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/projects/debug_create.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/org_dispute_queue.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/org_dispute_queue_flow.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/user_org_admin_review_chain.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/user/tests/e2e/marketplace/talent_directory_bookmarks.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/user/tests/e2e/tasks/dialog_reactivity_matrix.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/user/tests/e2e/tasks/task_application_access.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    },
+    {
+      "file": "inertia/apps/user/tests/e2e/tasks/task_application_triage.spec.ts",
+      "reason": "Legacy restored E2E; keep runnable while tracking false-pass debt."
+    }
+  ],
+  "forbiddenPatterns": [
+    "waitForTimeout(",
+    "toBeTruthy()"
+  ],
+  "forbiddenRegexPatterns": [
+    {
+      "id": "optional-content-or-empty-state",
+      "regex": "expect\\([^\\n]+\\|\\|[^\\n]*(?:Empty|empty)[^\\n]+\\)\\.toBeTruthy\\(\\)"
+    },
+    {
+      "id": "optional-branch-count-guard",
+      "regex": "if\\s*\\(\\s*await\\s+[^\\n]+\\.count\\(\\)\\s*(?:>|===|!==)"
+    },
+    {
+      "id": "body-text-not-server-error-only",
+      "regex": "locator\\([\"']body[\"']\\)[\\s\\S]{0,300}not\\.toMatch\\(/(?:500|internal server error)"
+    }
+  ],
+  "allowedOffenders": [
+    {
+      "file": "inertia/apps/org/tests/e2e/meta/cross_surface_smoke.spec.ts",
+      "pattern": "body-text-not-server-error-only"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/org/talent_bookmarks.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/org/talent_bookmarks.spec.ts",
+      "pattern": "optional-content-or-empty-state"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/org/org_talent_pages.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/org/org_talent_pages.spec.ts",
+      "pattern": "optional-content-or-empty-state"
+    },
+    {
+      "file": "inertia/apps/user/tests/e2e/profile/profile_trust_explanation.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/projects/sprint_board_role_experience.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/reverse_sprint_review_dispute_room.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/reviews/sprint_review_governance_experience.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/projects/staffing_flow.spec.ts",
+      "pattern": "toBeTruthy()"
+    },
+    {
+      "file": "inertia/apps/org/tests/e2e/projects/staffing_flow.spec.ts",
+      "pattern": "optional-content-or-empty-state"
+    }
+  ]
+}
