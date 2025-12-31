@@ -1,0 +1,26 @@
+diff --git a/build/src/types.d.ts b/build/src/types.d.ts
+index adac9a945e40275660e9ad6f1ad6170526daa382..3a502a281687176f2eb61e635a7276d7bfc73bca 100644
+--- a/build/src/types.d.ts
++++ b/build/src/types.d.ts
+@@ -266,8 +266,8 @@ export type ValidationFields = Record<string, string>;
+  * }
+  */
+ export interface ConstructableSchema<Inputs, Output, CamelCaseOutput> {
+-    isOptional?: boolean;
+-    allowNull?: boolean;
++    isOptional?: boolean | undefined;
++    allowNull?: boolean | undefined;
+     /** Type marker for input type inference */
+     [ITYPE]: Inputs;
+     /** Type marker for output type inference */
+@@ -310,8 +310,8 @@ export interface ConstructableSchema<Inputs, Output, CamelCaseOutput> {
+  * }
+  */
+ export interface ConstructableLiteralSchema<Inputs, Output, CamelCaseOutput> {
+-    isOptional?: boolean;
+-    allowNull?: boolean;
++    isOptional?: boolean | undefined;
++    allowNull?: boolean | undefined;
+     /** Type marker for input type inference */
+     [ITYPE]: Inputs;
+     /** Type marker for output type inference */
