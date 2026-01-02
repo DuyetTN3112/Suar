@@ -1,0 +1,37 @@
+%% Package 04 — Application, Domain, and Infrastructure boundaries
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    subgraph application["Application boundary"]
+        direction LR
+        UseCases["Commands · Queries"] --> Outbound["actions/ports/outbound"]
+    end
+
+    subgraph domain["Framework-free domain"]
+        direction LR
+        Core["Entities · values · rules · policies · formulas"]
+    end
+
+    subgraph infrastructure["Infrastructure boundary"]
+        direction LR
+        Adapters["Lucid repositories · cache/search/provider adapters"] --> Stores[("PostgreSQL · Redis · Elasticsearch · external APIs")]
+    end
+
+    Composition["app/composition<br/>constructs + binds only"]
+    UseCases -->|"evaluate"| Core
+    Outbound -->|"implemented by"| Adapters
+    Composition -.-> UseCases
+    Composition -.-> Adapters
+
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class UseCases,Outbound app
+    class Core domainStyle
+    class Adapters,Stores infraStyle
+    class Composition composition
+    style application fill:#F8FAFC,stroke:#94A3B8
+    style domain fill:#FEFCE8,stroke:#F59E0B
+    style infrastructure fill:#F0FDF4,stroke:#4CAF50

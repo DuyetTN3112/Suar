@@ -1,0 +1,63 @@
+%% Sequence 03b — Process marketplace proposal
+%% Updated: 2026-07-26.
+%% Scenario: authorized task/project/organization manager approves or rejects one proposal.
+%% Evidence status: Implemented. Approval assigns; it does not start task workflow.
+
+sequenceDiagram
+    autonumber
+    actor OWNER as Authorized reviewer
+    participant C as «boundary» ProcessMarketplaceApplicationController
+    participant M as «control» ProcessMarketplaceApplicationCommand
+    participant A as «adapter» TasksMarketplaceTaskApplicationAdapter
+    participant T as «capability» TaskApplicationCapability
+    participant K as «control» ProcessApplicationCommand
+    participant P as «control» canProcessApplication()
+    participant D as «entity» PostgreSQL
+    participant E as «control» TaskEventPublisher
+
+    OWNER->>C: POST approve or reject decision
+    activate C
+    C->>M: handle(DecideMarketplaceApplicationInput)
+    activate M
+    M->>A: TaskApplicationFlowPort.decide(context, input)
+    activate A
+    A->>T: decide(provider context, mapped input)
+    activate T
+    T->>K: handle(ProcessApplicationDTO)
+    activate K
+    K->>D: Load pending application, task, active assignment and actor roles
+    activate D
+    D-->>K: Application and authorization context
+    deactivate D
+    K->>P: canProcessApplication(context)
+    activate P
+    P-->>K: Allowed or policy violation
+    deactivate P
+    alt Approve and task remains unassigned
+        K->>D: Approve, sync assignment, reject other pending proposals, audit
+        activate D
+        deactivate D
+        K->>E: publishTaskApplicationReviewed(event)
+        activate E
+        deactivate E
+        K-->>T: Completed
+    else Reject
+        K->>D: Reject with reason and audit
+        activate D
+        deactivate D
+        K->>E: publishTaskApplicationReviewed(event)
+        activate E
+        deactivate E
+        K-->>T: Completed
+    else Unauthorized/stale approval
+        K-->>T: Policy or not-found error
+    end
+    deactivate K
+    T-->>A: Completed
+    deactivate T
+    A-->>M: Completed
+    deactivate A
+    M-->>C: Completed
+    deactivate M
+    C-->>OWNER: Updated proposal state
+    deactivate C

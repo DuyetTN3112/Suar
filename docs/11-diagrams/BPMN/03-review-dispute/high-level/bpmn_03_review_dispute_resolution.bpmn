@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_ReviewDisputeOverview"
+  targetNamespace="https://suar.example/docs/bpmn">
+  <bpmn:message id="Message_DisputeRequest" name="Dispute request" />
+  <bpmn:message id="Message_AdvisoryRequest" name="Advisory request" />
+  <bpmn:message id="Message_AdvisoryResult" name="Signed advisory result" />
+  <bpmn:message id="Message_AdminCase" name="Dispute case file" />
+  <bpmn:message id="Message_AdminDecision" name="Human resolution" />
+  <bpmn:message id="Message_DisputeOutcome" name="Dispute outcome" />
+
+  <bpmn:collaboration id="Collaboration_ReviewDisputeOverview">
+    <bpmn:documentation>Evidence status: Partial. Updated: 2026-07-27. Black-box collaboration overview. Clawagent is optional and advisory only; the system administrator remains authoritative. Intake/advisory and human resolution are split into bpmn_03a and bpmn_03b.</bpmn:documentation>
+    <bpmn:participant id="Participant_Reviewee" name="Reviewee" />
+    <bpmn:participant id="Participant_Platform" name="Suar Platform" />
+    <bpmn:participant id="Participant_Clawagent" name="Clawagent (optional advisory)" />
+    <bpmn:participant id="Participant_Admin" name="System Administrator" />
+    <bpmn:messageFlow id="MessageFlow_1_Dispute" name="1. Reason and evidence" sourceRef="Participant_Reviewee" targetRef="Participant_Platform" />
+    <bpmn:messageFlow id="MessageFlow_2_AdvisoryRequest" name="2. Optional advisory request" sourceRef="Participant_Platform" targetRef="Participant_Clawagent" />
+    <bpmn:messageFlow id="MessageFlow_3_AdvisoryResult" name="3. Signed advisory" sourceRef="Participant_Clawagent" targetRef="Participant_Platform" />
+    <bpmn:messageFlow id="MessageFlow_4_AdminCase" name="4. Case file" sourceRef="Participant_Platform" targetRef="Participant_Admin" />
+    <bpmn:messageFlow id="MessageFlow_5_AdminDecision" name="5. Human resolution" sourceRef="Participant_Admin" targetRef="Participant_Platform" />
+    <bpmn:messageFlow id="MessageFlow_6_Outcome" name="6. Dispute outcome" sourceRef="Participant_Platform" targetRef="Participant_Reviewee" />
+  </bpmn:collaboration>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_ReviewDisputeOverview">
+    <bpmndi:BPMNPlane id="BPMNPlane_ReviewDisputeOverview" bpmnElement="Collaboration_ReviewDisputeOverview">
+      <bpmndi:BPMNShape id="Shape_Reviewee" bpmnElement="Participant_Reviewee" isHorizontal="true"><dc:Bounds x="60" y="40" width="1250" height="120" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Platform" bpmnElement="Participant_Platform" isHorizontal="true"><dc:Bounds x="60" y="210" width="1250" height="120" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Clawagent" bpmnElement="Participant_Clawagent" isHorizontal="true"><dc:Bounds x="60" y="380" width="1250" height="120" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Admin" bpmnElement="Participant_Admin" isHorizontal="true"><dc:Bounds x="60" y="550" width="1250" height="120" /></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_1" bpmnElement="MessageFlow_1_Dispute"><di:waypoint x="220" y="160" /><di:waypoint x="220" y="210" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_2" bpmnElement="MessageFlow_2_AdvisoryRequest"><di:waypoint x="430" y="330" /><di:waypoint x="430" y="380" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_3" bpmnElement="MessageFlow_3_AdvisoryResult"><di:waypoint x="620" y="380" /><di:waypoint x="620" y="330" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_4" bpmnElement="MessageFlow_4_AdminCase"><di:waypoint x="820" y="330" /><di:waypoint x="820" y="550" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_5" bpmnElement="MessageFlow_5_AdminDecision"><di:waypoint x="1010" y="550" /><di:waypoint x="1010" y="330" /></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_6" bpmnElement="MessageFlow_6_Outcome"><di:waypoint x="1190" y="210" /><di:waypoint x="1190" y="160" /></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

@@ -191,15 +191,27 @@ Nếu một chapter cần hơn mức này chỉ để người đọc hiểu ý 
 
 Ưu tiên:
 
-- `Architecture/arch_01_system.mmd`
-- `Architecture/arch_02_layer.mmd`
-- `Package/pkg_01_overview.mmd`
+- `Architecture/01-system-architecture/overview/arch_01_system.mmd`
+- `Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+- `Package/01-overview/overview/pkg_01_overview.mmd`
 
 Không nên mở đầu bằng:
 
 - ERD physical
 - sequence quá chi tiết
 - state diagram chỉ đúng cho một sub-flow nhỏ
+
+### Khi viết phần deployment, security, hoặc external integration
+
+Chọn đúng một high-level diagram rồi mới xuống một runtime concern:
+
+- deployment hiện tại: `Architecture/01-system-architecture/high-level/arch_05_deployment_topology.mmd`
+- trust boundary và request protection: `Architecture/01-system-architecture/high-level/arch_06_security_trust_boundaries.mmd`
+- Clawagent dispute advisory: `Architecture/01-system-architecture/low-level/arch_07_ai_dispute_integration.mmd`
+- attachment/file-storage gap: `Architecture/01-system-architecture/low-level/arch_08_file_attachment_storage_runtime.mmd`
+- Redis session/token/cache separation: `Architecture/01-system-architecture/low-level/arch_09_redis_runtime_separation.mmd`
+
+Không mô tả app-local Drive như durable production storage: Docker Compose hiện chưa khai báo named volume cho nó, và attachment command hiện mới lưu metadata/file path do caller cung cấp.
 
 ### Khi viết phần nghiệp vụ
 
@@ -230,12 +242,12 @@ Không nên:
 
 Một số file hiện vẫn đúng và hữu ích, nhưng khá dày. Không nên dùng chúng làm hình mở đầu chapter:
 
-- `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
-- `docs/11-diagrams/ERD/logical_erd_03_task_marketplace.mmd`
-- `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
-- `docs/11-diagrams/Action/act_01b_task_workflow.mmd`
-- `docs/11-diagrams/Action/act_07b_skill_management.mmd`
-- `docs/11-diagrams/Sequence/seq_10_org_join_request.mmd`
+- `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
+- `docs/11-diagrams/ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`
+- `docs/11-diagrams/ERD/04-review-governance/README.md`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01b_task_workflow.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/high-level/act_07b_skill_management.mmd`
+- `docs/11-diagrams/Sequence/05-organization-membership/high-level/seq_10_org_join_request.mmd`
 
 Rule dùng an toàn:
 
@@ -317,13 +329,16 @@ Nếu chỉ được mang 10 file ra ngoài, ưu tiên:
 9. `docs/11-diagrams/README.md`
 10. `docs/12-evidence/workstream-status-audit.md`
 
-Nếu được mang thêm đúng `5` diagram file, ưu tiên:
+Nếu được mang thêm đúng `8` diagram source, ưu tiên:
 
-1. `docs/11-diagrams/Architecture/arch_01_system.mmd`
-2. `docs/11-diagrams/Architecture/arch_02_layer.mmd`
-3. `docs/11-diagrams/Package/pkg_01_overview.mmd`
-4. `docs/11-diagrams/Action/act_01_task_management_overview.mmd`
-5. `docs/11-diagrams/ERD/logical_erd_03_task_marketplace.mmd`
+1. `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`
+2. `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+3. `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`
+4. `docs/11-diagrams/Action/01-task-management/overview/act_01_task_definition_overview.mmd`
+5. `docs/11-diagrams/Action/01-task-management/overview/act_01_task_assignment_path_overview.mmd`
+6. `docs/11-diagrams/Action/01-task-management/overview/act_01_task_operation_outcome_overview.mmd`
+7. `docs/11-diagrams/Action/01-task-management/overview/act_01_task_cancellation_followup_overview.mmd`
+8. `docs/11-diagrams/ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`
 
 Lý do chọn pack này:
 
@@ -336,10 +351,10 @@ Nếu chapter của bạn tập trung vào review/dispute hoặc profile/talent,
 
 Nếu bạn được mang nhiều hơn `5` diagram nhưng vẫn muốn giữ bộ gọn, ưu tiên tăng theo thứ tự:
 
-1. `docs/11-diagrams/Action/act_03_review_overview.mmd`
-2. `docs/11-diagrams/Action/act_07_profile_skills_overview.mmd`
-3. `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
-4. `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
+1. `docs/11-diagrams/Action/03-review/README.md`
+2. `docs/11-diagrams/Action/07-profile-skills/README.md`
+3. `docs/11-diagrams/ERD/04-review-governance/README.md`
+4. `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
 
 Không nên tăng bộ mang đi bằng cách:
 

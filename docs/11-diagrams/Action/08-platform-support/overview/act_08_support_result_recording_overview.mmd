@@ -1,0 +1,26 @@
+%% Activity 08 — Record and return support result
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Persisted state remains current truth; Transmit SSE & Redis PubSub realtime push is active.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Executed([Supported operation completed]) --> Persist["Complete supported read<br/>or persist state change"] --> ToEvidence((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromPersist((A)) --> Observe["Record applicable Audit<br/>or redacted operational evidence"] --> Result["Return refreshed page or JSON result"] --> End([Support state current])
+    end
+    ToEvidence ~~~ FromPersist
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef evidence fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Executed,End terminal
+    class Persist,Result action
+    class Observe evidence
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToEvidence,FromPersist connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

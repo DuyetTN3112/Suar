@@ -1,0 +1,23 @@
+%% DFD 01 — Project delivery map (Formal Level 2: expansion of P2)
+%% Parent process: P2 Govern delivery from complementary Level-1 frame dfd_01a_identity_organisation_delivery_context.
+%% Evidence status: Implemented; candidate score is current heuristic.
+%% Balance: refines the P2 project/sprint context and returns project, staffing, and sprint results to the authorized member boundary.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    A["E1<br/>Project authority"] -->|"role and skill policy"| P1[[2.1 Govern competency contract]]
+    A -->|"staffing request"| P2[[2.2 Staff project roles]]
+    U["E1<br/>same member actor"] -->|"sprint query or plan"| P3[[2.3 Operate sprints]]
+    P1 -->|"role-skill contract"| D[("D2<br/>Project-delivery records")]
+    D -->|"requirements and member pool"| P2
+    P2 -->|"project membership role"| D
+    D -->|"project and sprint state"| P3
+    P2 -->|"staffing result"| A
+    P3 -->|"sprint board and planning result"| U
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A,U entity
+    class P1,P2,P3 process
+    class D store

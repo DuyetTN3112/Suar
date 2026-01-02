@@ -1,0 +1,19 @@
+%%{init: {"themeVariables": {"fontSize": "30px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 40, "rankSpacing": 68}} }%%
+%% DFD 02a — Task authoring context (Formal Level 2: complementary P3 frame 1 of 2)
+%% Parent process: P3 Manage submissions from complementary Level-1 frame dfd_01b_task_discovery_submission.
+%% Evidence status: Implemented.
+%% Question answered: How does task-authoring input become the durable task and requirement context?
+%% Handoff: D3 carries the durable task and requirement versions into dfd_02b_task_execution_completion.
+%% Balance: refines P3 task/assignment context input and preserves the task-authoring result.
+
+flowchart TB
+    A["E1<br/>Project authority"] -->|"task contract"| P1[["3.1 Author tasks"]]
+    P1 -->|"task and requirement versions"| D[("D3<br/>Task, assignment, and submission records")]
+    P1 -->|"task authoring result"| A
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1 process
+    class D store

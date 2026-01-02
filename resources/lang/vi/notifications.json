@@ -13,5 +13,7 @@
   "unknown_time": "Không xác định",
   "invalid_date": "Ngày không hợp lệ",
   "no_title": "Không có tiêu đề",
-  "no_message": "Không có nội dung"
+  "no_message": "Không có nội dung",
+  "load_error": "Không thể tải thông báo",
+  "mutation_error": "Không thể cập nhật thông báo. Vui lòng thử lại."
 }

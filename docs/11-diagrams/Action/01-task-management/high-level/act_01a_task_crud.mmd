@@ -1,0 +1,40 @@
+%% Activity 01a — Author a task contract
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Keep reason: Actor swimlanes partition responsibility inside one continuous task-authoring activity.
+%% Scope: creation only. Maintenance lives in act_01a1_task_maintenance.mmd.
+
+flowchart TB
+    subgraph Author["Project manager"]
+        direction TB
+        Start([Start]) --> Draft["Enter title, description,<br/>priority, difficulty, dates"]
+        Draft --> Context["Choose project/sprint,<br/>visibility and assignee context"]
+        Context --> Requirements["Add acceptance criteria<br/>and required skills when needed"]
+        Requirements --> ToSystem((A))
+        FromSystem((B)) --> Draft
+    end
+
+    subgraph System["Suar"]
+        direction TB
+        FromAuthor((A)) --> Validate{"Input, access and<br/>task contract valid?"}
+        Validate -->|No| Errors["Return field/business errors"]
+        Validate -->|Yes| Persist["Create task with default<br/>organization workflow status"]
+        Persist --> Related["Save requirements,<br/>required skills and audit evidence"]
+        Related --> End([Task ready])
+        Errors --> ToAuthor((B))
+    end
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Draft,Context,Requirements action
+    class Validate decision
+    class Persist,Related write
+    class Errors error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToSystem,FromAuthor,ToAuthor,FromSystem connector
+    style Author fill:#F8FAFC,stroke:#64748B
+    style System fill:#EFF6FF,stroke:#2563EB

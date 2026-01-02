@@ -1,0 +1,49 @@
+%% Sequence 02c — Delete task
+%% Updated: 2026-07-28.
+%% Scenario: an authorized task deleter soft-deletes an eligible task.
+%% Evidence status: Implemented; current User-realm policy permits task creator, Organization owner/admin, and ProjectRole.MEMBER; System Admin is a separate realm and is not part of this policy. Hard delete is a separate restricted option.
+
+sequenceDiagram
+    autonumber
+    actor PM as Authorized task deleter
+    participant B as «boundary» Browser
+    participant C as «boundary» DeleteTaskController
+    participant K as «control» DeleteTaskCommand
+    participant D as «entity» PostgreSQL
+    participant E as «control» TaskEventPublisher
+    participant N as «control» NotificationCreator
+
+    Note over PM,K: Current canDeleteTask policy does not grant deletion from ProjectRole.OWNER or MANAGER alone
+
+    PM->>B: Confirm task deletion
+    activate B
+    B->>C: DELETE /tasks/:taskId
+    activate C
+    C->>K: execute(DeleteTaskDTO)
+    activate K
+    K->>D: Lock task, check permission, hours and review debt
+    activate D
+    D-->>K: Task and blocking records
+    deactivate D
+    alt Eligible for deletion
+        K->>D: Set deleted_at and write audit
+        activate D
+        D-->>K: Committed
+        deactivate D
+        K->>E: publishTaskDeleted(event)
+        activate E
+        E-->>K: Published
+        deactivate E
+        K->>N: Notify assignee/creator when applicable
+        activate N
+        N-->>K: Notifications handled
+        deactivate N
+        K-->>C: Success result
+    else Blocked by policy/work/review evidence
+        K-->>C: Failure result with reason
+    end
+    deactivate K
+    C-->>B: Redirect/result
+    deactivate C
+    B-->>PM: Refresh canonical Project board or show error
+    deactivate B

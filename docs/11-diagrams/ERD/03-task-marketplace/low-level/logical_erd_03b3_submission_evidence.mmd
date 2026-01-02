@@ -1,0 +1,24 @@
+%% Logical ERD 03b3 — Submission evidence rows
+%% Evidence status: Implemented.
+%% Scope: one submitted package retains independently addressable evidence records.
+%% Relationships are logical FK references enforced by application commands and transactions.
+
+erDiagram
+direction TB
+    TASK_SUBMISSIONS {
+        UUID id PK
+        UUID task_assignment_id FK "FK -> TASK_ASSIGNMENTS.id (see logical_erd_03b2)"
+        UUID submitted_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+        TEXT summary
+    }
+    TASK_SUBMISSION_EVIDENCES {
+        UUID id PK
+        UUID submission_id FK "FK -> TASK_SUBMISSIONS.id"
+        UUID uploaded_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR evidence_type
+        VARCHAR title
+        VARCHAR url
+    }
+
+    TASK_SUBMISSIONS ||--o{ TASK_SUBMISSION_EVIDENCES : "TASK_SUBMISSION_EVIDENCES.submission_id → TASK_SUBMISSIONS.id"

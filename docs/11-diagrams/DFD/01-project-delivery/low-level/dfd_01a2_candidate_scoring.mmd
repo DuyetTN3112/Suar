@@ -1,0 +1,16 @@
+%% DFD 01a2 — Staffing candidate scoring (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; score is current weighted-level heuristic.
+
+flowchart LR
+    A[Project update authority] -->|"selected project role"| P[[2.1.2 Calculate staffing candidates]]
+    D1[(Project roles and skills)] -->|"weighted mandatory requirements"| P
+    D2[(User skills and evidence)] -->|"levels and confidence signals"| P
+    D3[(Project and organization members)] -->|"candidate membership pool"| P
+    P -->|"ranked candidates, gaps, explanations"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2,D3 store

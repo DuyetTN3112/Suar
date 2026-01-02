@@ -1,0 +1,41 @@
+%% Package 02b2 — System Administration capability slices
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    subgraph admin["System-realm feature slices"]
+        direction LR
+        Slices["admin/*<br/>audit_logs · dashboard · disputes · organizations<br/>packages · permissions · proficiency · reviews · users"]
+        Controllers["slice controllers<br/>System-realm inbound adapters"]
+        UseCases["slice actions<br/>Commands · Queries · DTOs"]
+        Domain["slice domain policies"]
+        Ports["slice outbound ports"]
+        Slices --> Controllers
+        Controllers -->|"one intent"| UseCases
+        UseCases --> Domain
+        UseCases --> Ports
+    end
+
+    subgraph outer["Persistence and cross-module bindings"]
+        direction LR
+        Infra["slice infra repositories/adapters"]
+        Composition["outer composition"]
+        Providers["Audit · Reviews · Users · Organizations<br/>stable provider facts/capabilities"]
+        Composition --> Providers
+    end
+
+    Ports --> Infra
+    Ports --> Composition
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef boundary fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Slices,Controllers presentation
+    class UseCases,Ports app
+    class Domain domainStyle
+    class Infra infraStyle
+    class Composition,Providers boundary
+    style admin fill:#F8FAFC,stroke:#94A3B8
+    style outer fill:#F5F3FF,stroke:#8B5CF6

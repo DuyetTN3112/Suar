@@ -1,0 +1,41 @@
+%% state_03b_application_decision_outcomes.mmd — Pending application decision outcomes
+%% Evidence status: Implemented.
+%% Updated 2026-07-27.
+%% Purpose: Focused decision slice for the TaskApplication lifecycle.
+%% Scope: A persisted pending application through its terminal outcome.
+%% Preceded by: state_03a_application_eligibility_entry.
+%% Related: task_assignment_rules.ts:canProcessApplication
+
+stateDiagram-v2
+    direction LR
+
+    [*] --> pending : Application created
+    state "Pending" as pending
+    state "Approved" as approved
+    state "Rejected" as rejected
+    state "Withdrawn" as withdrawn
+
+    pending --> approved : Authorized reviewer approves
+    pending --> rejected : Authorized reviewer rejects<br/>(rejection_reason)
+    pending --> withdrawn : Applicant withdraws<br/>(own pending application only)
+
+    approved --> [*]
+    rejected --> [*]
+    withdrawn --> [*]
+
+    note right of pending
+        Processing authority is resolved from task,
+        project, and organization context.
+    end note
+
+    note right of approved
+        Approval side effects:
+        • create active TaskAssignment
+        • set task.assigned_to to applicant
+        • reject other pending applications
+        • record audit evidence
+        • notify the contributor
+
+        Task status does not change automatically;
+        the assignee starts work separately.
+    end note

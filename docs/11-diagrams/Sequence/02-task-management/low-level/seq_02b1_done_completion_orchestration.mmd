@@ -1,0 +1,27 @@
+%% Sequence 02b1 — DONE completion orchestration
+%% Updated: 2026-07-29.
+%% Scenario: the subordinate Command owns the complete ordered mutation inside its caller's transaction.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    participant P as «control» Parent status Command
+    participant C as «control» CompleteTaskAssignmentsCommand
+    participant A as «outbound» TaskAssignmentRepository
+    participant R as «outbound» TaskReviewReader
+    participant E as «outbound» TaskAssignmentCompletionEventWriter
+    participant T as «transaction» Caller-owned transaction
+
+    P->>C: execute(taskId, assignedTo, changedBy, T)
+    activate C
+    C->>A: completeActiveForTask(input, T)
+    A-->>C: completed assignments
+    C->>R: ensureTaskReviewWorkflow(taskId, changedBy, T)
+    R-->>C: workflow ensured
+    loop each completed assignment
+        C->>E: stage(typed completion event, T)
+        E-->>C: staged in domain outbox
+    end
+    C-->>P: completion mutation ready
+    deactivate C
+    Note over P,T: Parent decides when DONE invokes completion and owns COMMIT/ROLLBACK

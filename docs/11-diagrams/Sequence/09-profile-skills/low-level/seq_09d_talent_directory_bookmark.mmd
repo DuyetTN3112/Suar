@@ -1,0 +1,29 @@
+%% Sequence 09d — Browse talent directory
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin filters talent evidence.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor R as Organization owner / admin
+    participant C as «boundary» OrgTalentsPageController
+    participant O as «query» RecruitingDirectoryAccessQuery
+    participant Q as «control» GetTalentDirectoryPageQuery
+    participant D as «entity» PostgreSQL
+
+    R->>C: GET /org/talents with filters
+    activate C
+    C->>O: canAccess(current organization, actor)
+    O-->>C: Admin-shell access allowed or denied
+    alt Authorized organization owner/admin
+        C->>Q: handle(search, evidence filters, saved, pagination)
+        activate Q
+        Q->>D: Read evidence, match inputs and recruiter bookmarks
+        D-->>Q: Ranked directory page and explainability signals
+        Q-->>C: Talent directory result
+        deactivate Q
+        C-->>R: Render talents/index
+    else Access denied
+        C-->>R: Redirect to marketplace
+    end
+    deactivate C

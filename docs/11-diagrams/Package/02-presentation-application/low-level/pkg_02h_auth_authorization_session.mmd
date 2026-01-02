@@ -1,0 +1,61 @@
+%% Package 02h — Authentication, Authorization, and Session
+%% Evidence status: Partial — logical realms are separated; physical identity/session transport remains shared.
+%% Updated: 2026-07-29.
+
+flowchart LR
+    Http["HTTP boundary<br/>routes · execution context"]
+
+    subgraph Authentication["app/modules/auth"]
+        direction TB
+        AuthEntry["boundary · middleware · controllers · listeners"]
+        AuthUseCases["actions/commands + queries<br/>OAuth · logout · session evidence"]
+        AuthPorts["actions/ports/outbound<br/>callback · identity · session · evidence"]
+        AuthDomain["domain<br/>provider · identity · landing policy"]
+        AuthInfra["infra<br/>OAuth · repositories · Redis session/token adapters"]
+
+        AuthEntry -->|"one intent"| AuthUseCases
+        AuthUseCases --> AuthDomain
+        AuthUseCases --> AuthPorts
+        AuthPorts --> AuthInfra
+    end
+
+    subgraph Authorization["app/modules/authorization"]
+        direction TB
+        AuthzEntry["middleware + controllers"]
+        AuthzUseCases["actions/commands + queries"]
+        AuthzPorts["actions/ports/outbound"]
+        AuthzDomain["domain policies"]
+        AuthzInfra["infra repositories/cache"]
+
+        AuthzEntry -->|"one intent"| AuthzUseCases
+        AuthzUseCases --> AuthzDomain
+        AuthzUseCases --> AuthzPorts
+        AuthzPorts --> AuthzInfra
+    end
+
+    Framework["Adonis auth + session transport"]
+    Composition["Outer composition<br/>cross-module port adapters"]
+    UserRealm["User/Organization identity facts"]
+    SystemRealm["System principal/access facts"]
+    Debt["Partial physical separation<br/>shared auth.user + users.system_role"]
+
+    Http --> AuthEntry
+    AuthEntry --> Framework
+    AuthPorts --> Composition
+    AuthzPorts --> Composition
+    Composition --> UserRealm
+    Composition --> SystemRealm
+    Framework -.-> Debt
+
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef authn fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef authz fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef outer fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    classDef debt fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px,stroke-dasharray:5 4
+    class Http,UserRealm,SystemRealm boundary
+    class AuthEntry,AuthUseCases,AuthPorts,AuthDomain authn
+    class AuthzEntry,AuthzUseCases,AuthzPorts,AuthzDomain authz
+    class AuthInfra,AuthzInfra,Framework,Composition outer
+    class Debt debt
+    style Authentication fill:#F4F8FD,stroke:#1565C0
+    style Authorization fill:#F4FBF5,stroke:#2E7D32

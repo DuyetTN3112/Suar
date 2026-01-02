@@ -1,0 +1,40 @@
+%% Activity 01b — Primary task workflow
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Scope: happy path and governed dispute handoff. Cancellation/reopen lives in act_01b1_task_cancel_reopen.mmd.
+%% Detail: State/01-task/overview/state_01_task.mmd and state_01a_task_transition_rules.mmd.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Task in TODO]) --> Begin{"Assignee exists?"}
+        Begin -->|No| Block["Block start; assign first"]
+        Begin -->|Yes| Progress["Move to IN_PROGRESS"]
+        Block --> Start
+        Progress --> Work["Perform work and maintain evidence"] --> ToSubmit((A))
+    end
+
+    subgraph Row2[" "]
+        direction LR
+        FromWork((A)) --> Submit["Submit completion package"] --> Review["Move to IN_REVIEW"]
+        Review --> Decision{"Reviewee response"}
+        Decision -->|Dispute| Dispute["Continue governed dispute flow;<br/>no automatic return to work"] --> EndGoverned([Review governance continues])
+        Decision -->|Accept and completion guard passes| Done["Move to DONE;<br/>complete assignments"]
+        Done --> End([Terminal])
+    end
+    ToSubmit ~~~ FromWork
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef state fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,EndGoverned,End terminal
+    class Work,Submit,Dispute action
+    class Begin,Decision decision
+    class Progress,Review,Done state
+    class Block error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToSubmit,FromWork connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

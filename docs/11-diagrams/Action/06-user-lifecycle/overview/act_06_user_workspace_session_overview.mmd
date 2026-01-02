@@ -1,0 +1,35 @@
+%% Activity 06 — Enter User-realm workspace and end session
+%% Evidence status: Implemented.
+%% Updated 2026-07-28.
+%% Level: Overview. Child diagrams: act_06b, act_06d.
+%% Boundary: System Administration is a different principal/realm and is intentionally absent.
+
+flowchart TB
+    subgraph choose_workspace[" "]
+        direction LR
+        Start([User session ready]) --> Landing{"Choose User workspace"}
+        Landing -->|Personal| Personal["Open personal workspace"]
+        Landing -->|Manage organization| Org["Open Organization Management"]
+        Landing -->|Work in project| Project["Select accessible project"]
+        Org --> Portfolio["Select project from portfolio"]
+    end
+
+    subgraph continue_session[" "]
+        direction LR
+        ProjectSpace["Leave Organization shell<br/>open Project Workspace"] --> Active["Continue User-realm activity"]
+        Personal --> Active
+        Active --> Logout["Invalidate User session and record logout<br/>act_06b"]
+        Logout --> End([Logged out])
+    end
+
+    Portfolio --> ProjectSpace
+    Project --> ProjectSpace
+    style choose_workspace fill:none,stroke:none
+    style continue_session fill:none,stroke:none
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,End terminal
+    class Personal,Org,Portfolio,Project,ProjectSpace,Active,Logout action
+    class Landing decision

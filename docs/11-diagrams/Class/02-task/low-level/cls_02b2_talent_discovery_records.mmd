@@ -1,0 +1,35 @@
+%% Class Diagram 02b2 — Talent Discovery Records
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (verified).
+%% Source: app/modules/users/infra/models/recruiter_bookmark.ts and user_domain_expertise.ts.
+
+classDiagram
+    direction LR
+
+    class RecruiterBookmark {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID recruiter_user_id FK
+        +UUID talent_user_id FK
+        +Text notes
+        +String folder
+        +Smallint rating : 1 ~ 5
+        +DateTime created_at
+        +DateTime updated_at
+    }
+    class UserDomainExpertise {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +JSONB tech_stack_frequency
+        +JSONB domain_frequency
+        +JSONB problem_category_frequency
+        +JSONB top_skills
+        +DateTime calculated_at
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    RecruiterBookmark ..> UserDomainExpertise : discovery reads may combine
+    note for RecruiterBookmark "Runtime table: recruiter_bookmarks. Public route: /api/v1/talent-bookmarks."
+    note for UserDomainExpertise "Derived aggregate for discovery.<br/>Frequency vectors remain JSONB.<br/>Recalculation timestamp records freshness."

@@ -1,0 +1,28 @@
+%% State 08b — ProjectSprint review lifecycle
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Ref: CloseProjectSprintReviewCommand and sprint_review_rules.ts.
+
+stateDiagram-v2
+direction LR
+    [*] --> draft : createSprint<br/>[status omitted or draft]
+    [*] --> active : createSprint [status = active]<br/>or review-close rollover
+    draft --> active : startSprint
+    active --> review_open : closeSprintReview [task reviews done and previous reverse reviews done] / create packages, reverse workflows and next sprint
+    review_open --> review_closed : closeReviewPeriod
+    review_closed --> archived : archiveSprint
+    archived --> [*]
+
+    note right of active
+        Guard reads task_review_workflows and prior
+        sprint reverse-review debt.
+        Review debt rejects closeSprintReview and leaves
+        the sprint active; rejection is not a transition.
+    end note
+
+    note right of review_open
+        sprint_review_packages are submitted records.
+        sprint_reverse_review_workflows are board state.
+        CloseProjectSprintReviewCommand creates the next
+        sprint directly in active status.
+    end note

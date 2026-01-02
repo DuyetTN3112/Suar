@@ -1,0 +1,31 @@
+%% Activity 07f — Talent directory and recruiter bookmarks
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Bookmark is shortlist metadata, not proposal or assignment.
+%% Evidence: OrgTalentsPageController, GetTalentDirectoryPageQuery, RecruiterBookmarksController.
+
+flowchart TB
+        Start([Manager opens talent directory]) --> Access{"Current org and<br/>management access?"}
+        Access -->|Yes| Search["Filter skills, trust, history,<br/>availability and bookmark state"]
+        Search --> Results["Return authorized talent cards<br/>with explainability summary"]
+        Access -->|No| Denied([Access denied])
+        Results --> Choice{"Shortlist action?"}
+        Choice -->|Save| Create["Create unique recruiter bookmark"]
+        Choice -->|Refine| Update["Update folder, rating and notes"]
+        Choice -->|Remove| Delete["Delete recruiter-owned bookmark"]
+        Choice -->|Inspect| Detail["Open organization-scoped talent detail"]
+        Create --> Workspace["Refresh saved-talent workspace"]
+        Update --> Workspace
+        Delete --> Workspace
+        Detail --> End([Discovery continues])
+        Workspace --> End
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef write fill:#E8F5E9,stroke:#16A34A,color:#14532D,stroke-width:2px
+    classDef error fill:#FFEBEE,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,End terminal
+    class Search,Results,Detail,Workspace action
+    class Access,Choice decision
+    class Create,Update,Delete write
+    class Denied error

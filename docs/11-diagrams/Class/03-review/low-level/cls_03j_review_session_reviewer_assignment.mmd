@@ -1,0 +1,52 @@
+%% Class Diagram 03j — Review Session Reviewer Assignment
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Source: app/modules/reviews/infra/models/review_session_reviewer_assignment.ts.
+
+classDiagram
+    direction LR
+
+    class ReviewSession {
+        <<Lucid Model>>
+        +UUID id PK
+        +String status
+    }
+    class User {
+        <<Lucid Model>>
+        +UUID id PK
+    }
+    class ReviewSessionReviewerAssignment {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID review_session_id FK
+        +UUID reviewer_id FK
+        +String reviewer_type: manager peer
+        +ReviewSessionReviewerAssignmentRole assignment_role
+        +Boolean is_required
+        +ReviewSessionReviewerAssignmentStatus status
+        +DateTime due_at nullable
+        +DateTime submitted_at nullable
+        +DateTime reminded_at nullable
+        +DateTime escalated_at nullable
+        +DateTime created_at
+        +DateTime updated_at
+    }
+    class ReviewSessionReviewerAssignmentRole {
+        <<type>>
+        creator_required
+        manager_required
+        peer_required
+        manager_optional
+        peer_optional
+    }
+    class ReviewSessionReviewerAssignmentStatus {
+        <<type>>
+        pending
+        submitted
+        waived
+    }
+
+    ReviewSession "1" --> "*" ReviewSessionReviewerAssignment : assigns
+    ReviewSessionReviewerAssignment "*" --> "1" User : reviewer
+    ReviewSessionReviewerAssignment --> ReviewSessionReviewerAssignmentRole : role
+    ReviewSessionReviewerAssignment --> ReviewSessionReviewerAssignmentStatus : status

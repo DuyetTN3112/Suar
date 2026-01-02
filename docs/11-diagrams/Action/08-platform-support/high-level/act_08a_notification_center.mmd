@@ -1,0 +1,23 @@
+%% Activity 08a — Notification center
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Feed uses persisted PostgreSQL rows and polling/refresh.
+
+flowchart TB
+    Start([User opens notification center]) --> Load["Load owned notifications<br/>with page/cursor and unread count"]
+    Load --> Action{"Requested operation?"}
+    Action -->|Refresh| Execute["Refresh latest feed"]
+    Action -->|Read state| Execute2["Mark one or all as read"]
+    Action -->|Cleanup| Execute3["Delete one or all read rows"]
+    Execute --> Store["Use PostgresNotificationRepository<br/>under current-user ownership"]
+    Execute2 --> Store
+    Execute3 --> Store
+    Store --> Result["Return serialized feed and unread count"] --> End([Notification state current])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef write fill:#E8F5E9,stroke:#16A34A,color:#14532D,stroke-width:2px
+    class Start,End terminal
+    class Load,Execute,Result action
+    class Action decision
+    class Execute2,Execute3,Store write

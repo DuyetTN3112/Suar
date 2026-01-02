@@ -1,0 +1,31 @@
+%% Class Diagram 01f — Project Attachment Persistence
+%% Evidence status: Partial — model/table/demo seed exist; no active write route or binary Drive path.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: project_attachment.ts and app/seed/demo_data/project_attachment_*.
+
+classDiagram
+    direction LR
+
+    class Project {
+        <<Lucid Model>>
+        +UUID id PK
+        +String name
+    }
+    class User {
+        <<Lucid Model>>
+        +UUID id PK
+    }
+    class ProjectAttachment {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+        +String file_name
+        +String file_path
+        +UUID uploaded_by FK nullable
+        +DateTime created_at
+        +DateTime updated_at
+    }
+
+    Project "1" --> "*" ProjectAttachment : references files
+    ProjectAttachment "*" --> "0..1" User : uploaded by
+

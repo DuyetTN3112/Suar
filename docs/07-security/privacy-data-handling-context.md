@@ -1,15 +1,15 @@
 # Privacy Data Handling Context
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Dev, QA, reviewer, DevOps, product/ops reader cần hiểu dữ liệu hệ thống đang cầm |
-| Purpose | Ghi lại bối cảnh xử lý dữ liệu đã được code/schema/SQL xác nhận mà không giả vờ thay thế legal privacy policy |
-| Source of Truth | route, model, schema, schema evidence, audit/notification/user-activity evidence hiện tại |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi thêm loại dữ liệu mới, đổi sharing model, đổi audit/event storage, hoặc đổi public exposure surface |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                        |
+| Audience        | Dev, QA, reviewer, DevOps, product/ops reader cần hiểu dữ liệu hệ thống đang cầm                              |
+| Purpose         | Ghi lại bối cảnh xử lý dữ liệu đã được code/schema/SQL xác nhận mà không giả vờ thay thế legal privacy policy |
+| Source of Truth | route, model, schema, schema evidence, Audit/notification evidence hiện tại                                   |
+| Last Reviewed   | 2026-07-10                                                                                                    |
+| Review Cycle    | Khi thêm loại dữ liệu mới, đổi sharing model, đổi audit/event storage, hoặc đổi public exposure surface       |
+| Owner           | Engineering                                                                                                   |
+| Stale Risk      | Cao                                                                                                           |
 
 ## File Này Dùng Để Làm Gì
 
@@ -163,5 +163,6 @@ Dừng ở file này khi bạn đã biết:
 - `schema/migration evidence`
 - `app/modules/users/infra/models/*`
 - `app/modules/audit/infra/repositories/audit_repository_provider.ts`
+- `app/modules/audit/infra/repositories/postgres_audit_log_repository.ts`
 - `app/modules/notifications/infra/repositories/notification_repository_provider.ts`
-- `app/modules/user_activity/infra/repositories/user_activity_repository_provider.ts`
+- `database/migrations/20260729070000_canonicalize_auth_session_audit_evidence.ts`

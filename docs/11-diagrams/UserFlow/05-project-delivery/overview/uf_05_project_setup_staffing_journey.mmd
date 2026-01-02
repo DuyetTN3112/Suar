@@ -1,0 +1,37 @@
+%% User Flow 05 — Project setup and initial staffing
+%% Evidence status: Implemented; candidate order uses current explainable heuristic.
+%% Updated: 2026-07-27.
+%% Journey actor: organization owner/admin or other authorized project creator.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Open create-project page]) --> Define["Enter project name, dates,<br/>description, and delivery context"] --> Seed{"Use templates or<br/>initial assignees?"}
+        Seed -->|Yes| Select["Choose templates, roles,<br/>and initial people"] --> Create["Create project"]
+        Seed -->|No| Create
+        Create --> Valid{"Input accepted?"}
+        Valid -->|No| Correct["Review error and<br/>return to form"]
+        Valid -->|Yes| ToWorkspace((A))
+    end
+    subgraph row2[" "]
+        direction LR
+        FromCreate((A)) --> Shell["Open project workspace"] --> Next{"Next setup task?"}
+        Next -->|Competency| Roles["Configure roles, skills,<br/>levels, and weights"]
+        Next -->|Staffing| Candidates["Review ranked candidates<br/>and add or update members"]
+        Next -->|Delivery| Tasks["Open project task workspace"]
+        Roles --> End([Project ready])
+        Candidates --> End
+        Tasks --> End
+    end
+    ToWorkspace ~~~ FromCreate
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End,Correct terminal
+    class Define,Select,Create,Shell,Roles,Candidates,Tasks action
+    class Seed,Valid,Next decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToWorkspace,FromCreate connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

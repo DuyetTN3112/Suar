@@ -1,0 +1,26 @@
+%% User Flow 10a — System Administration access and inspection
+%% Evidence status: Implemented.
+%% Updated: 2026-07-28.
+%% Journey actor: System Admin principal.
+%% Continues in: uf_10b_governed_action_result.
+
+flowchart TB
+    Start([Request /admin as System principal]) --> Access{"System Admin authorized?"}
+    Access -->|No| Denied([Access denied;<br/>no User-workspace redirect])
+    Access -->|Yes| Console["Open isolated System Administration app"]
+    Console --> Domain{"Choose governance area"}
+    Domain -->|Users/access| UserState["Inspect System user or permission state"]
+    Domain -->|AI disputes| ReviewState["Inspect Board 5,<br/>case evidence and AI progress"]
+    Domain -->|Audit/platform| PlatformState["Inspect audit or platform state"]
+    UserState --> Ready([Inspection ready])
+    ReviewState --> Ready
+    PlatformState --> Ready
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef privileged fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Denied,Ready terminal
+    class Console,UserState,PlatformState action
+    class ReviewState privileged
+    class Access,Domain decision

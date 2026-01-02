@@ -13,5 +13,7 @@
   "unknown_time": "Unknown time",
   "invalid_date": "Invalid date",
   "no_title": "No title",
-  "no_message": "No message"
+  "no_message": "No message",
+  "load_error": "Unable to load notifications",
+  "mutation_error": "Unable to update notifications. Please try again."
 }

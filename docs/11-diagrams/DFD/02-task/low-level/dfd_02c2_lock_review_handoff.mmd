@@ -1,0 +1,27 @@
+%% DFD 02c2 — Lock completion package and enter review (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; submit path and DONE backstop both ensure governed review entry.
+
+flowchart TB
+    A[Assignee / completion event]
+    P1[[3.3.2.1 Validate and lock final package]]
+    P2[[3.3.2.2 Open or ensure review session]]
+    D1[(tasks, requirements, assignments)]
+    D2[(task submissions and evidences)]
+    D3[(review sessions and reviewer assignments)]
+
+    A -->|"lock or completion request"| P1
+    D1 -->|"task requirements · assignee guard · work context"| P1
+    D2 -->|"package/evidence completeness · lock state"| P1
+    P1 -->|"locked completion package state"| D2
+    P1 -->|"validated completion package data"| P2
+    D3 -->|"governed session state or absence"| P2
+    P2 -->|"new session and reviewer assignments"| D3
+    P2 -->|"review entry result"| A
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1,P2 process
+    class D1,D2,D3 store

@@ -1,0 +1,29 @@
+%% Activity 03a — Create review work and submit evidence-linked reviews
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Two supported entry paths converge on one review session per assignment.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Submission(["Completion package submitted"]) --> Preferred["Move task to in-review<br/>ensure session"] --> Assign["Seed required reviewer assignments"] --> ToNotify((A))
+        Done(["Task reaches done category"]) --> Backstop["Complete active assignment<br/>create missing session"] --> Assign
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromAssign((A)) --> Notify["Notify reviewers"] --> Review["Submit rubric-linked skill reviews"] --> Evidence["Link review evidence to<br/>submission evidence"] --> Complete{"Required skills and<br/>review quota complete?"}
+        Complete -->|No| Review
+        Complete -->|Yes| Handoff["Mark session completed<br/>continue to confirm/dispute"] --> End([End])
+    end
+    ToNotify ~~~ FromAssign
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Submission,Done,End startEnd
+    class Preferred,Backstop,Assign,Notify,Review,Evidence,Handoff action
+    class Complete decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToNotify,FromAssign connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

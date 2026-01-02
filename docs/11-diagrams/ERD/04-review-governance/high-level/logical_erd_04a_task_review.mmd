@@ -1,0 +1,82 @@
+%% Logical ERD 04a — Evidence-linked task review
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: current review session, assignment, skill review, evidence, anomaly, and self-assessment schema.
+
+erDiagram
+direction LR
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        VARCHAR assignment_status
+    }
+    REVIEW_SESSIONS {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID reviewee_id FK
+        VARCHAR status
+        INT required_total_reviews
+        INT minimum_manager_reviews
+        INT minimum_peer_reviews
+        TIMESTAMPTZ deadline
+    }
+    REVIEW_SESSION_REVIEWER_ASSIGNMENTS {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        VARCHAR reviewer_type
+        VARCHAR assignment_role
+        VARCHAR status
+        BOOLEAN is_required
+    }
+    SKILL_REVIEWS {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        UUID skill_id FK
+        UUID task_required_skill_id FK
+        UUID rubric_version_id FK
+        UUID observed_level_id FK
+        VARCHAR review_status
+        JSONB observable_behaviors
+        TEXT rationale
+    }
+    REVIEW_EVIDENCES {
+        UUID id PK
+        UUID review_session_id FK
+        UUID uploaded_by FK
+        VARCHAR evidence_type
+        VARCHAR url
+    }
+    SKILL_REVIEW_EVIDENCE_LINKS {
+        UUID id PK
+        UUID skill_review_id FK
+        UUID review_evidence_id FK
+        VARCHAR relevance_type
+        TEXT reviewer_note
+    }
+    FLAGGED_REVIEWS {
+        UUID id PK
+        UUID skill_review_id FK
+        VARCHAR flag_type
+        VARCHAR severity
+        VARCHAR status
+    }
+    TASK_SELF_ASSESSMENTS {
+        UUID id PK
+        UUID task_assignment_id FK
+        UUID user_id FK
+        NUMERIC confidence_level
+        JSONB blockers_encountered
+        TIMESTAMPTZ submitted_at
+    }
+
+    TASK_ASSIGNMENTS ||--o| REVIEW_SESSIONS : "opens"
+    TASK_ASSIGNMENTS ||--o| TASK_SELF_ASSESSMENTS : "has reflection"
+    REVIEW_SESSIONS ||--o{ REVIEW_SESSION_REVIEWER_ASSIGNMENTS : "assigns reviewers"
+    REVIEW_SESSIONS ||--o{ SKILL_REVIEWS : "collects ratings"
+    REVIEW_SESSIONS ||--o{ REVIEW_EVIDENCES : "owns evidence"
+    SKILL_REVIEWS ||--o{ SKILL_REVIEW_EVIDENCE_LINKS : "links"
+    REVIEW_EVIDENCES ||--o{ SKILL_REVIEW_EVIDENCE_LINKS : "supports"
+    SKILL_REVIEWS ||--o{ FLAGGED_REVIEWS : "may trigger"

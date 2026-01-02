@@ -1,0 +1,27 @@
+%% DFD 04b1 — Reviewee Confirmation or Dispute (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+%% Layout note: repeated actor/store boxes denote the same boundaries and remove return wires.
+
+flowchart TB
+    RevieweeIn[Reviewee]
+    P1[[5.3.1 Confirm or dispute review result]]
+    SessionsIn[(review sessions)]
+    Evidence[(skill reviews + review evidence)]
+    SessionsOut[(review sessions<br/>same store)]
+    Disputes[(review disputes + case files)]
+    RevieweeOut[Reviewee<br/>same external entity]
+
+    RevieweeIn -->|"confirmation or dispute request"| P1
+    SessionsIn -->|"completed session + confirmation state"| P1
+    Evidence -->|"reviews + linked evidence"| P1
+    P1 -->|"confirmation or dispute state"| SessionsOut
+    P1 -->|"new dispute case"| Disputes
+    P1 -->|"response outcome"| RevieweeOut
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class RevieweeIn,RevieweeOut entity
+    class P1 process
+    class SessionsIn,SessionsOut,Evidence,Disputes store

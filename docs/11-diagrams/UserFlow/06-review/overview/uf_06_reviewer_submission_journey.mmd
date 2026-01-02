@@ -1,0 +1,41 @@
+%% User Flow 06 — Reviewer submits governed review from Project board
+%% Evidence status: Implemented.
+%% Updated: 2026-07-28.
+%% Journey actor: assigned project reviewer.
+
+flowchart TB
+    subgraph select_card[" "]
+        direction LR
+        Start([Receive review assignment]) --> Board["Open Project Task Review Board"]
+        Board --> Filter["Apply Waiting on me filter"]
+        Filter --> Card["Open task review card room"]
+        Card --> Inspect["Inspect task outcome,<br/>submission evidence and rubric"]
+    end
+
+    subgraph write_review[" "]
+        direction LR
+        Record["Enter skill-linked observation,<br/>rating and evidence"] --> Complete{"Required fields complete?"}
+        Complete -->|No| Fix["Complete missing evidence"]
+        Fix --> Record
+        Complete -->|Yes| Submit["Submit review"]
+    end
+
+    subgraph continue_work[" "]
+        direction LR
+        Lane["See card move to in_review<br/>or awaiting_response"] --> More{"Another matching card remains?"}
+        More -->|No| End([Reviewer work complete])
+    end
+
+    Inspect --> Record
+    Submit --> Lane
+    More -->|Yes| Filter
+    style select_card fill:none,stroke:none
+    style write_review fill:none,stroke:none
+    style continue_work fill:none,stroke:none
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End terminal
+    class Board,Filter,Card,Inspect,Record,Fix,Submit,Lane action
+    class Complete,More decision

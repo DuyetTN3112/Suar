@@ -1,0 +1,57 @@
+%% Package 02j — Profile and Skill capability
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+
+flowchart LR
+    subgraph Users["app/modules/users"]
+        direction TB
+        UserEntry["controllers/listeners"]
+        UserActions["actions/commands + queries<br/>profile · snapshot · history · talent"]
+        UserPorts["actions/ports/outbound<br/>profile evidence/fact readers"]
+        UserDomain["domain<br/>profile aggregate + metric rules"]
+        UserInfra["infra<br/>snapshot · work-history · performance repositories"]
+
+        UserEntry -->|"one intent"| UserActions
+        UserActions --> UserDomain
+        UserActions --> UserPorts
+        UserPorts --> UserInfra
+    end
+
+    subgraph Skills["app/modules/skills"]
+        direction TB
+        SkillEntry["controllers"]
+        SkillActions["actions/commands + queries<br/>catalog · proficiency · rubric"]
+        SkillPorts["actions/ports/outbound"]
+        SkillDomain["domain<br/>catalog/rubric policies"]
+        SkillInfra["infra<br/>models · repositories · adapters"]
+
+        SkillEntry -->|"one intent"| SkillActions
+        SkillActions --> SkillDomain
+        SkillActions --> SkillPorts
+        SkillPorts --> SkillInfra
+    end
+
+    Composition["Outer composition<br/>consumer ports → provider facts"]
+    Evidence["Tasks + Reviews<br/>versioned evidence facts"]
+    ProjectSearch["Projects + Search<br/>stable capabilities"]
+    PostgreSQL[("PostgreSQL")]
+
+    UserPorts --> Composition
+    SkillPorts --> Composition
+    Composition --> Evidence
+    Composition --> ProjectSearch
+    UserInfra --> PostgreSQL
+    SkillInfra --> PostgreSQL
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef application fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class UserEntry,SkillEntry presentation
+    class UserActions,UserPorts,SkillActions,SkillPorts application
+    class UserDomain,SkillDomain domainStyle
+    class UserInfra,SkillInfra,PostgreSQL infraStyle
+    class Composition,Evidence,ProjectSearch composition
+    style Users fill:#F4F8FD,stroke:#1565C0
+    style Skills fill:#F4FBF5,stroke:#2E7D32

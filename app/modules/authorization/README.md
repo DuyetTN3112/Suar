@@ -1,10 +1,10 @@
 # authorization Backend Module
 
 ### Kiến trúc lõi & Phân tích nghiệp vụ
-- **Role Separation**: Phân tách nghiêm ngặt 3 loại role:
-  1. *Authorization Role*: System role (superadmin, system_admin), Organization role (org_owner, org_admin), Project membership role.
-  2. *Professional Role*: Vai trò chuyên môn (Frontend, Backend, DevOps).
-  3. *Task Contribution Role*: Vai trò tham gia task (Contributor, Lead, Reviewer).
+- **Security Realm Separation**:
+  1. *System realm*: System Admin dùng System role và chỉ truy cập `/admin/*`.
+  2. *User realm*: User dùng Organization role và Project membership; System role không được dùng làm quyền vượt cấp.
+  3. *Professional/Contribution roles*: Vai trò chuyên môn và vai trò tham gia task không phải quyền hệ thống.
 - **Policy Enforcement**: Quản lý phân quyền tập trung thông qua lớp Policy Enforcer (`enforce_policy`).
 
 ## Module Path
@@ -99,8 +99,7 @@ import type { PolicyResult } from '#modules/authorization/public_contracts/polic
 
 ```ts
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-import { userIdentityReader } from '#modules/authorization/infra/adapters/user_identity_reader'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { authorizationOrganizationAccessReader } from '#modules/authorization/actions/ports/outbound/authorization_organization_access_reader'
 ```
 
 ### `app/modules/authorization/actions/public_api.ts`
@@ -116,10 +115,9 @@ import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
 } from '#modules/authorization/domain/system_user_access_policy'
-import { userIdentityReader } from '#modules/authorization/infra/adapters/user_identity_reader'
+import { authorizationUserIdentityReader } from '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 ```
 
 ### `app/modules/authorization/controllers/require_system_user_admin_access.ts`
@@ -140,10 +138,9 @@ import {
   canAccessSystemUserAdministration,
   type SystemUserAccessContext,
 } from '#modules/authorization/domain/system_user_access_policy'
-import { userIdentityReader } from '#modules/authorization/infra/adapters/user_identity_reader'
+import { authorizationUserIdentityReader } from '#modules/authorization/actions/ports/outbound/authorization_user_identity_reader'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
 
 /**
  * Authorization Query: system-user administration surface.
@@ -155,15 +152,11 @@ export default class AuthorizeSystemUserAdminAccessQuery {
     void new AuthorizeSystemUserAdminAccessQuery().__instanceMarker
   }
 
-  static async evaluate(userId: string, organizationId: string): Promise<PolicyResult> {
-    const [actorSystemRole, membershipContext] = await Promise.all([
-      userIdentityReader.getSystemRoleName(userId),
-      organizationPublicApi.getMembershipContext(organizationId, userId, undefined, true),
-    ])
+  static async evaluate(userId: string, _organizationId: string): Promise<PolicyResult> {
+    const actorSystemRole = await authorizationUserIdentityReader.getSystemRoleName(userId)
 
     const accessContext: SystemUserAccessContext = {
       actorSystemRole,
-      actorOrgRole: membershipContext?.role ?? null,
     }
 
     return canAccessSystemUserAdministration(accessContext)
@@ -264,7 +257,7 @@ import {
   PROJECT_ROLE_PERMISSIONS,
   SYSTEM_ROLE_PERMISSIONS,
 } from '#modules/authorization/public_contracts/permissions'
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/directory/types/custom_role_definition'
 
 export interface PermissionPresentation {
   key: string
@@ -589,13 +582,12 @@ export function listProjectPermissionCatalog(): PermissionPresentation[] {
 ### `app/modules/authorization/domain/system_user_access_policy.ts`
 
 ```ts
-import { AuthOrgRole, AuthSystemRole } from '#modules/authorization/constants/role_contracts'
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
+import { AuthSystemRole } from '#modules/authorization/public_contracts/role_contracts'
 
 export interface SystemUserAccessContext {
   actorSystemRole: string | null
-  actorOrgRole: string | null
 }
 
 export function canAccessSystemUserAdministration(
@@ -608,11 +600,7 @@ export function canAccessSystemUserAdministration(
     return PR.allow()
   }
 
-  if (context.actorOrgRole === AuthOrgRole.OWNER) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập khu vực quản trị người dùng')
+  return PR.deny('Tài khoản hiện tại không thuộc khu vực quản trị hệ thống')
 }
 
 ```

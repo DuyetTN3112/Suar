@@ -1,0 +1,49 @@
+%% Class Diagram 01c — User Profile Evidence Records
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: app/modules/users/infra/models/user_profile_snapshot.ts, user_work_history.ts, user_performance_stat.ts.
+
+classDiagram
+    direction TB
+
+    class User {
+        <<Lucid Model>>
+        +UUID id PK
+        +String status
+    }
+    class UserProfileSnapshot {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +Integer version
+        +Boolean is_current
+        +Boolean is_public
+        +JSONB skills_verified
+        +JSONB work_highlights
+        +JSONB performance_metrics
+    }
+    class UserWorkHistory {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +UUID task_id FK
+        +UUID task_assignment_id FK
+        +String task_title
+        +Decimal overall_quality_score
+        +Boolean was_on_time
+        +Boolean is_public
+    }
+    class UserPerformanceStat {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +Integer total_tasks_completed
+        +Decimal avg_quality_score
+        +Decimal on_time_delivery_rate
+        +Decimal performance_score
+        +DateTime calculated_at
+    }
+
+    User "1" --> "*" UserProfileSnapshot : publishes versions
+    User "1" --> "*" UserWorkHistory : accumulates
+    User "1" --> "*" UserPerformanceStat : aggregates periods

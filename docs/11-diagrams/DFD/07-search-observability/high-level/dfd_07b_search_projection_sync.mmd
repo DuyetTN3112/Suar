@@ -1,0 +1,28 @@
+%% DFD 07b — Search projection synchronization (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Reindex listeners use quiet best-effort projection methods.
+%% Failure boundary: task/talent quiet paths emit structured operational warnings; other projections log warnings only.
+
+flowchart TB
+    EVENT[User / org / project / task / skill event]
+    P1[[4.5.1 Select projection service]]
+    P2[[4.5.2 Build current document]]
+    P3[[4.5.3 Upsert or delete document]]
+    PG[(PostgreSQL source records)]
+    ES[(Elasticsearch suar_* indexes)]
+    LOG[Runtime log sink]
+
+    EVENT -->|"entity id and change type"| P1
+    P1 -->|"projection target"| P2
+    PG -->|"current document source fields"| P2
+    P2 -->|"document or deletion intent"| P3
+    P3 -->|"projection mutation"| ES
+    ES -->|"projection result or error"| P3
+    P3 -->|"failure warning only"| LOG
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class EVENT,LOG entity
+    class P1,P2,P3 process
+    class PG,ES store

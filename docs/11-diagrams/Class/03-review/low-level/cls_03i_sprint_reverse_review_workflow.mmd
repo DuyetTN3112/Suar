@@ -1,0 +1,54 @@
+%% Class Diagram 03i — Sprint Reverse Review Dispute Workflow
+%% Evidence status: Implemented; external AI execution remains Partial.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: create_sprint_reverse_review_workflows migration, resolution/source-metadata migrations, sprint_reverse_review_workflow.ts.
+
+classDiagram
+    direction LR
+
+    class SprintReverseReviewStatus {
+        <<type>>
+        awaiting_review
+        in_review
+        awaiting_response
+        disputed
+        reported
+        ai_reviewing
+        resolved
+        done
+    }
+    class SprintReverseReviewWorkflowRow {
+        <<DB row>>
+        +UUID id PK
+        +String sprint_id
+        +UUID project_id
+        +UUID reviewer_id
+        +String target_type
+        +UUID responder_id
+        +String status
+        +Integer rating
+        +String final_decision
+        +UUID resolved_by
+    }
+    class SprintReverseReviewMessageRow {
+        <<DB row>>
+        +UUID id PK
+        +UUID workflow_id
+        +UUID author_id
+        +String message_type
+        +Text body
+        +JSONB metadata
+    }
+    class AiDisputeEvaluation {
+        <<polymorphic DB row>>
+        +UUID id PK
+        +String source_type
+        +UUID source_id
+        +String status
+        +String recommendation
+        +Decimal confidence_score
+    }
+
+    SprintReverseReviewWorkflowRow --> SprintReverseReviewStatus : current status
+    SprintReverseReviewWorkflowRow "1" --> "*" SprintReverseReviewMessageRow : dispute responses
+    SprintReverseReviewWorkflowRow "1" --> "*" AiDisputeEvaluation : source_type reverse workflow

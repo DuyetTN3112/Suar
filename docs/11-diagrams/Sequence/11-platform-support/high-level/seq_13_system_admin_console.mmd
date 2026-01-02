@@ -1,0 +1,55 @@
+%% Sequence 13 — System Admin comments on a reported dispute
+%% Updated: 2026-07-28.
+%% Scenario: an authenticated System Admin adds a governed comment from Board 5.
+%% Evidence status: Implemented.
+%% Boundary: the request stays under /api/admin/* and never enters a User/Organization/Project route.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as System Admin principal
+    participant B as «boundary» Admin dispute board
+    participant M as «boundary» System Admin middleware
+    participant C as «boundary» CreateReviewDisputeCommentController
+    participant K as «control» CreateReviewDisputeCommentCommand
+    participant P as «control» Review dispute policy
+    participant DB as «entity» PostgreSQL
+    participant A as «control» Audit writer
+
+    ADMIN->>B: Add case comment
+    activate B
+    B->>M: POST /api/admin/reviews/disputes/{id}/comments
+    activate M
+    M->>M: authenticate + requireSystemAdmin + bind System context
+    alt Not a System Admin principal
+        M-->>B: 401/403, no User-workspace redirect
+    else Authorized System principal
+        M->>C: handle(disputeId, body, visibility)
+        activate C
+        C->>K: execute(dto, System action context)
+        activate K
+        K->>DB: load dispute access context
+        activate DB
+        DB-->>K: dispute + System author context
+        deactivate DB
+        K->>P: canCommentOnReviewDispute(status, body, participant)
+        P-->>K: allowed or denied
+        alt Allowed
+            K->>DB: insert comment in transaction
+            activate DB
+            K->>A: write critical audit record
+            A-->>K: audit staged
+            K->>DB: commit
+            DB-->>K: comment
+            deactivate DB
+            K-->>C: created comment
+            C-->>B: 201 comment
+        else Denied
+            K-->>C: policy error
+            C-->>B: 4xx, state unchanged
+        end
+        deactivate K
+        deactivate C
+    end
+    deactivate M
+    B-->>ADMIN: Refresh case card room
+    deactivate B

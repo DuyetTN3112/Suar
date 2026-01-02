@@ -1,0 +1,63 @@
+%% Rich Picture 01 — Stakeholders, exchanges, and tensions
+%% Updated: 2026-07-27.
+%% Level: High.
+%% Evidence status: Implemented, except explainable matching is Partial.
+%% Reader intent: Understand who exchanges work/evidence with Suar and where stakeholder tensions arise.
+%% Keep reason: stakeholder, exchange, and system regions form one rich-picture problem situation.
+%% Sources: SRS FR-AUTH..FR-NOTIFICATION-AUDIT-ACTIVITY; capability model v6; verified runtime modules.
+
+flowchart LR
+    subgraph work_side["People producing and governing work"]
+        direction TB
+        CONTRIBUTOR["🧑‍💻 Contributor<br/>wants fair access and credit"]
+        PM["📋 Project manager<br/>needs delivery and suitable people"]
+        ORG["🏢 Organization owner/admin<br/>controls membership and policy"]
+    end
+
+    subgraph suar["SUAR — work-to-credential boundary"]
+        direction TB
+        WORK["🧩 Work system<br/>organization • project • sprint • task"]
+        EVIDENCE["📎 Evidence system<br/>requirements • submission • review"]
+        PROFILE["🪪 Governed capability profile<br/>verified signal • confidence • history"]
+        WORK -->|"completed work context"| EVIDENCE
+        EVIDENCE -->|"valid observations only"| PROFILE
+    end
+
+    subgraph decision_side["People consuming or governing conclusions"]
+        direction TB
+        REVIEWER["🧑‍🏫 Reviewer<br/>needs rubric and sufficient evidence"]
+        SOURCER["🔎 Talent sourcer<br/>needs explainable fit signals"]
+        SYSADMIN["🛡️ System admin<br/>handles fraud, dispute, audit"]
+    end
+
+    CONTRIBUTOR -->|"work, proposal, submission evidence"| WORK
+    WORK -->|"assignment, status, feedback"| CONTRIBUTOR
+    PM -->|"task context, acceptance criteria, decisions"| WORK
+    WORK -->|"delivery visibility and review debt"| PM
+    ORG -->|"membership, role, workflow policy"| WORK
+    WORK -->|"audit and operational visibility"| ORG
+
+    REVIEWER -->|"observation, level, confidence, rationale"| EVIDENCE
+    EVIDENCE -->|"rubric, task ceiling, linked evidence"| REVIEWER
+    SOURCER -->|"search and bookmark intent"| PROFILE
+    PROFILE -->|"verified evidence and match explanation"| SOURCER
+    SYSADMIN -->|"resolution and moderation decision"| EVIDENCE
+    EVIDENCE -->|"case file, flags, AI advisory result"| SYSADMIN
+
+    T1{{"⚡ Tension<br/>delivery speed ↔ evidence quality"}}
+    T2{{"⚡ Tension<br/>profile visibility ↔ privacy"}}
+    T3{{"⚡ Tension<br/>open marketplace ↔ organization control"}}
+    T1 -.-> WORK
+    T1 -.-> EVIDENCE
+    T2 -.-> PROFILE
+    T3 -.-> WORK
+
+    classDef person fill:#E8F1FF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef system fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef tension fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class CONTRIBUTOR,PM,ORG,REVIEWER,SOURCER,SYSADMIN person
+    class WORK,EVIDENCE,PROFILE system
+    class T1,T2,T3 tension
+    style suar fill:#F0FDF4,stroke:#16A34A,stroke-width:3px
+    style work_side fill:#EFF6FF,stroke:#93C5FD
+    style decision_side fill:#EFF6FF,stroke:#93C5FD

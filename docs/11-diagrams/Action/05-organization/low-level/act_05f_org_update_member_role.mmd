@@ -1,0 +1,29 @@
+%% Activity 05f — Update organization member role
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Load["Load actor, target membership,<br/>current and requested role"] --> Allowed{"Policy allows change<br/>and role differs?"}
+        Allowed -->|No| Reject["Return permission/conflict error"] --> EndNo([End])
+        Allowed -->|Yes| ToUpdate((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromAllowed((A)) --> Update["Update organization_users.org_role"] --> Effects["Audit, notify, invalidate<br/>membership-dependent context"] --> End([Role updated])
+    end
+    ToUpdate ~~~ FromAllowed
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef error fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,EndNo,End startEnd
+    class Load,Update,Effects action
+    class Allowed decision
+    class Reject error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToUpdate,FromAllowed connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

@@ -1,0 +1,43 @@
+%% Architecture 05a — Core runtime and durable storage
+%% Evidence status: Implemented.
+%% Report view: focused deployment slice of arch_05_deployment_topology.
+
+flowchart TB
+    Browser["Browser<br/>Inertia UI + HTTPS client"]
+
+    subgraph Compose["Docker Compose host"]
+        direction TB
+        App["Suar app container<br/>Node 24 Alpine · AdonisJS<br/>port 3333 · /health"]
+
+        subgraph RuntimeData["Runtime data services"]
+            direction LR
+            PG[("PostgreSQL 16<br/>business + audit data")]
+            Redis[("Redis<br/>web sessions · auth tokens<br/>cache · optional locks")]
+            Local["App-local Drive storage<br/>storage/app · storage/app/public"]
+        end
+
+        subgraph Durable["Persistence"]
+            direction LR
+            PGVol[("postgres_data<br/>named volume")]
+            RedisVol[("redis_data<br/>named volume")]
+            LocalCaveat["No named volume declared<br/>for app-local storage"]
+        end
+
+        App -->|"PG_HOST=postgres"| PG --> PGVol
+        App -->|"REDIS_HOST=redis"| Redis --> RedisVol
+        App -->|"local/public fs disks"| Local -.-> LocalCaveat
+    end
+
+    Browser <-->|"HTTP(S) :3333"| App
+
+    classDef client fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef runtime fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef data fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef caveat fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Browser client
+    class App,Local runtime
+    class PG,PGVol,Redis,RedisVol data
+    class LocalCaveat caveat
+    style Compose fill:#F8FAFC,stroke:#64748B,stroke-width:2px
+    style RuntimeData fill:#F8FAFC,stroke:#94A3B8,stroke-width:1px
+    style Durable fill:#FAFAFA,stroke:#94A3B8,stroke-width:1px

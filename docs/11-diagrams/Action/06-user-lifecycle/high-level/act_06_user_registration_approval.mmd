@@ -1,0 +1,36 @@
+%% Activity 06 — OAuth login and first-time registration overview
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (panel split).
+%% Level: High level. Children: act_06a, act_06c, act_06d.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([User chooses Google or GitHub]) --> OAuth["Complete provider authorization and callback<br/>act_06a"] --> Valid{"Callback and email valid?"}
+        Valid -->|No| Error["Return login error"] --> Failed([Authentication stopped])
+        Valid -->|Yes| ToResolve((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromValid((A)) --> Resolve["Resolve linked, same-email, or new account<br/>act_06c"] --> Session["Create authenticated session"] --> ToRoute((B))
+    end
+    subgraph Row3[" "]
+        direction LR
+        FromSession((B)) --> Route["Select workspace from role and organization context<br/>act_06d"] --> Ready([Assigned workspace opened])
+    end
+    ToResolve ~~~ FromValid
+    ToRoute ~~~ FromSession
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef error fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,Failed,Ready terminal
+    class OAuth,Resolve,Session,Route action
+    class Valid decision
+    class Error error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToResolve,FromValid,ToRoute,FromSession connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent
+    style Row3 fill:transparent,stroke:transparent

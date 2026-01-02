@@ -1,0 +1,38 @@
+%% Class Diagram 02g — Task Submission and Evidence
+%% Evidence status: Implemented.
+%% Sources: database/schema.ts, task completion repository port, SubmitTaskSubmissionCommand.
+
+classDiagram
+    direction LR
+
+    class TaskAssignment {
+        <<persisted record>>
+        +UUID id PK
+        +UUID task_id FK
+        +UUID assignee_id FK
+        +String assignment_status
+    }
+    class TaskSubmission {
+        <<persisted record>>
+        +UUID id PK
+        +UUID task_assignment_id FK
+        +UUID task_id FK
+        +UUID submitted_by FK
+        +Text summary
+        +String status
+        +String repository_url
+        +String pull_request_url
+        +DateTime locked_at
+    }
+    class TaskSubmissionEvidence {
+        <<persisted record>>
+        +UUID id PK
+        +UUID submission_id FK
+        +String evidence_type
+        +String url
+        +String title
+        +UUID uploaded_by FK
+    }
+
+    TaskAssignment "1" --> "0..1" TaskSubmission : owns current package
+    TaskSubmission "1" --> "*" TaskSubmissionEvidence : proves delivery

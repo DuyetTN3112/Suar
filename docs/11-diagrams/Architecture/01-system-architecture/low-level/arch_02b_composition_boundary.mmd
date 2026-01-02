@@ -1,0 +1,36 @@
+%% Architecture 02b — Construction boundary
+%% Evidence status: Implemented and architecture-guarded.
+%% Viewpoint: actions/ports/inbound factory contract versus app/composition factory implementation.
+
+flowchart TB
+    subgraph feature["Feature module"]
+        direction LR
+        Controller["Controller / listener"] --> Contract["Inbound capability or *Factory contract<br/>actions/ports/inbound"]
+        Contract --> Command["Command / Query<br/>execution owner"]
+        Command --> Outbound["Outbound ports"]
+    end
+
+    subgraph composition["Outer composition"]
+        direction LR
+        Factory["Concrete composition factory<br/>synchronous construction only"]
+        Adapter["Concrete adapters / repositories"]
+        Factory -.->|"new + inject"| Command
+        Factory -.->|"inject"| Adapter
+    end
+
+    Outbound -->|"implemented by"| Adapter
+    Adapter --> Runtime[("Technology or provider capability")]
+
+    Forbidden["Forbidden in composition<br/>async workflow · .handle() · .execute()<br/>transaction · business ordering · result mapping"]
+    Factory -.-> Forbidden
+
+    classDef feature fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef outer fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef guard fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px,stroke-dasharray:5 4
+    class Controller feature
+    class Contract,Command,Outbound app
+    class Factory,Adapter,Runtime outer
+    class Forbidden guard
+    style feature fill:#F8FAFC,stroke:#94A3B8
+    style composition fill:#F5F3FF,stroke:#8B5CF6

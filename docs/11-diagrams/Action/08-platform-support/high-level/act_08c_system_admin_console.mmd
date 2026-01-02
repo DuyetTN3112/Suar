@@ -1,0 +1,38 @@
+%% Activity 08c — System Administration overview
+%% Updated 2026-07-28.
+%% Evidence status: Implemented. AI dispute evaluation is advisory; authorized System Admin resolves.
+%% Level: High level. Children: act_08c1, act_08c2.
+%% Boundary: System principal/session is separate from every User/Organization/Project workspace.
+
+flowchart TB
+    subgraph enter_system[" "]
+        direction LR
+        Start([System Admin principal enters /admin]) --> Guard["Authenticate and require System Admin<br/>act_08c1"]
+        Guard --> Authorized{"System authorization valid?"}
+        Authorized -->|No| Denied([Access denied; no User-workspace redirect])
+        Authorized -->|Yes| Console["Open isolated System Administration app"]
+    end
+
+    subgraph govern_system[" "]
+        direction LR
+        Domain{"Choose governance area"} -->|AI dispute progress| Board["Open Board 5 · /admin/disputes"]
+        Domain -->|Users/access| Inspect["Inspect System governance state"]
+        Domain -->|Audit/platform| Audit["Inspect audit or platform state"]
+        Board --> Govern["Execute governed System action<br/>act_08c2"]
+        Inspect --> Govern
+        Audit --> Govern
+        Govern --> Result([Completed or denied with audit evidence])
+    end
+
+    Console --> Domain
+    style enter_system fill:none,stroke:none
+    style govern_system fill:none,stroke:none
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef privileged fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Denied,Result terminal
+    class Guard,Console,Inspect,Audit,Govern action
+    class Board privileged
+    class Authorized,Domain decision

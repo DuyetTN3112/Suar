@@ -1,0 +1,49 @@
+%% Communication Diagram 03 — Submit evidence-linked skill review
+%% Evidence status: Implemented.
+%% Keep reason: Request and collaborator groups are participant clusters in one ordered communication scenario.
+%% Updated: 2026-07-27 (code-verified).
+%% Scope: Production POST /reviews/:id/submit. Post-commit anomaly failure does not roll back review.
+%% Scenario: one assigned reviewer submits evidence-linked skill reviews and triggers post-commit anomaly detection.
+
+flowchart BT
+    subgraph request["Request boundary"]
+        direction LR
+        REVIEWER["Reviewer<br/>:Actor"]
+        UI["reviews/show.svelte<br/>:Boundary"]
+        CTRL["SubmitReviewController<br/>:Controller"]
+        CMD["SubmitSkillReviewCommand<br/>:Control"]
+    end
+
+    subgraph collaborators["Command collaborators"]
+        direction LR
+        RULES["canSubmitReview()<br/>review formulas<br/>proficiencyFrameworkPublicApi<br/>:Domain services"]
+        PG[("PostgreSQL<br/>review_sessions · skill_reviews · flagged_reviews")]
+        LISTENER["review_listener<br/>DetectAnomalyCommand<br/>:Post-commit effects"]
+    end
+
+    REVIEWER -->|"1: submitReview(ratings, evidence)"| UI
+    UI -->|"2: POST /reviews/:id/submit"| CTRL
+    CTRL -->|"3: execute(reviewDto)"| CMD
+    CMD -->|"3.1: load review context"| PG
+    PG -.->|"3.1.1: session + reviewer context"| CMD
+    CMD -->|"3.2: validate permission, state, scores"| RULES
+    RULES -.->|"3.2.1: PolicyResult + normalized scores"| CMD
+    CMD -->|"3.3: insert reviews; update progress"| PG
+    CMD -->|"3.4: emit review:submitted"| LISTENER
+    LISTENER -->|"3.4.1: run anomaly checks; persist flags"| PG
+    CMD -.->|"4: submitted reviews"| CTRL
+    CTRL -.->|"5: HTTP response"| UI
+    UI -.->|"6: show review progress"| REVIEWER
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class REVIEWER actor
+    class UI,CTRL boundary
+    class CMD,LISTENER control
+    class RULES rule
+    class PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style collaborators fill:#F8FAFC,stroke:#94A3B8

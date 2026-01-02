@@ -1,0 +1,41 @@
+%% Package 04a — Search query and projection packages
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    subgraph Search["app/modules/search"]
+        direction LR
+        Entry["controllers · listeners"]
+        Queries["actions/queries<br/>global + bounded search"]
+        Projection["actions/commands/projections<br/>six projection families"]
+        Ports["actions/ports/outbound<br/>source readers + projection store"]
+        Domain["domain<br/>documents · index/query rules"]
+        Infra["infra/{tasks,projects,organizations,<br/>skills,talents,users}<br/>builders + index repositories"]
+
+        Entry -->|"one query/event intent"| Queries
+        Entry -->|"one projection intent"| Projection
+        Queries --> Domain
+        Projection --> Domain
+        Queries --> Ports
+        Projection --> Ports
+        Ports --> Infra
+    end
+
+    Composition["outer composition<br/>source-reader adapters + listener registration"]
+    Providers["Tasks · Projects · Organizations · Skills · Users facts"]
+    Elasticsearch[("Elasticsearch<br/>six indexes")]
+
+    Ports --> Composition --> Providers
+    Infra --> Elasticsearch
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef application fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Entry presentation
+    class Queries,Projection,Ports application
+    class Domain domainStyle
+    class Infra,Elasticsearch infraStyle
+    class Composition,Providers composition
+    style Search fill:#FAFAFA,stroke:#64748B

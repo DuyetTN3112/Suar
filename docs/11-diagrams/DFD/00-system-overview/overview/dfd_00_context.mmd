@@ -1,0 +1,29 @@
+%%{init: {"flowchart": {"defaultRenderer": "elk", "curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 56}} }%%
+%% DFD 00 — Formal Level 0 context diagram
+%% Parent process: none. This model establishes P0 and every external source/sink.
+%% Evidence status: Implemented; matching/profile aggregation is Partial and does not alter this boundary.
+%% Balance to Level 1: named flows are refined by P1--P7 across complementary frames dfd_01a--dfd_01d.
+
+flowchart LR
+    E1["E1<br/>External entity<br/>Member / project authority"]
+    E2["E2<br/>External entity<br/>External contributor"]
+    E3["E3<br/>External entity<br/>System administrator"]
+    P0(("P0<br/>Suar work-to-credential platform"))
+    E4["E4<br/>External service<br/>OAuth provider"]
+    E5["E5<br/>External service<br/>Clawagent advisory API"]
+
+    E1 -->|"identity, workspace and work input"| P0
+    P0 -->|"workspace, notification and governed profile result"| E1
+    E2 -->|"task discovery, proposal and submission evidence"| P0
+    P0 -->|"eligible task, proposal status and review result"| E2
+    E3 -->|"moderation, policy and audit request"| P0
+    P0 -->|"governance queue, audit and operational result"| E3
+    P0 -->|"OAuth redirect request"| E4
+    E4 -->|"verified identity callback"| P0
+    P0 -->|"signed dispute-evaluation request"| E5
+    E5 -->|"signed advisory callback"| P0
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:3px
+    class E1,E2,E3,E4,E5 entity
+    class P0 process

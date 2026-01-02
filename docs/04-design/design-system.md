@@ -66,7 +66,7 @@ Trả lời:
 Đọc:
 
 - `../11-diagrams/README.md`
-- `../11-diagrams/sequence-flow-data-user-flows.md`
+- `../11-diagrams/README.md`
 
 ### 4. UI Evidence
 
@@ -138,7 +138,7 @@ File chỉ đường:
 
 Diagram family:
 
-- `docs/11-diagrams/Architecture/*`
+- `docs/11-diagrams/Architecture/*/{overview,high-level,low-level}/*`
 
 Nếu người đọc chỉ cần bức tranh tổng thể, không cần mở toàn bộ corpus diagram.
 
@@ -159,10 +159,10 @@ Source nền:
 
 Nguồn sơ đồ:
 
-- `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
-- `docs/11-diagrams/ERD/logical_erd_02_org_project.mmd`
-- `docs/11-diagrams/ERD/logical_erd_03_task_marketplace.mmd`
-- `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
+- `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
+- `docs/11-diagrams/ERD/02-organization-project/overview/logical_erd_02_org_project.mmd`
+- `docs/11-diagrams/ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`
+- `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 Điểm reader nên nhớ:
 
@@ -175,7 +175,7 @@ Nguồn sơ đồ:
 
 Nguồn:
 
-- `docs/11-diagrams/Sequence/*`
+- `docs/11-diagrams/Sequence/*/{overview,high-level,low-level}/*`
 
 Hợp khi:
 
@@ -187,7 +187,7 @@ Hợp khi:
 
 Nguồn:
 
-- `docs/11-diagrams/Action/*`
+- `docs/11-diagrams/Action/*/{overview,high-level,low-level}/*.mmd`
 
 Hợp khi:
 
@@ -197,7 +197,7 @@ Hợp khi:
 
 Nguồn:
 
-- `docs/11-diagrams/DFD/*`
+- `docs/11-diagrams/DFD/*/{overview,high-level,low-level}/*`
 
 Hợp khi:
 
@@ -207,7 +207,7 @@ Hợp khi:
 
 Nguồn:
 
-- `docs/11-diagrams/State/*`
+- `docs/11-diagrams/State/*/{overview,high-level,low-level}/*`
 
 Hợp khi:
 
@@ -219,8 +219,8 @@ Hợp khi:
 
 Hệ thống có user-flow support ở:
 
-- `../11-diagrams/sequence-flow-data-user-flows.md`
-- `docs/11-diagrams/UserFlow/*`
+- `../11-diagrams/README.md`
+- `docs/11-diagrams/UserFlow/*/{overview,high-level,low-level}/*`
 
 ### Wireframe / Prototype Boundary
 

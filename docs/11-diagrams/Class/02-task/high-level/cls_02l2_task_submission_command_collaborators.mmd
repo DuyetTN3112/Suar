@@ -1,0 +1,27 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 02l2 — task-submission authoritative commit
+%% Evidence status: Implemented.
+%% Parent goal: UC 02b “Submit completion package and enter review”.
+%% Entry: SubmitTaskSubmissionCommand constructed in 02l1.
+%% Question answered: Which port group owns the transaction and persistent task-submission write?
+%% Handoff: the committed submission is passed through the same command to 02l3 for review and
+%% delivery staging, then enacted by seq_02e.
+%% Scope: authoritative write collaboration only; entity/evidence structure remains cls_02g and logical_erd_03b.
+
+classDiagram
+    direction TB
+
+    class SubmitTaskSubmissionCommand {
+        <<control / use-case owner>>
+        +execute(dto: SubmitTaskSubmissionDTO) Promise~TaskSubmissionResult~
+    }
+    class TaskExternalDependencies {
+        <<outbound port group>>
+        +transactions: TaskTransactionRunner
+        +completion: TaskCompletionRepository
+    }
+    class TaskTransactionRunner {
+        <<outbound port>>
+    }
+    SubmitTaskSubmissionCommand --> TaskExternalDependencies : locks and persists in transaction
+    TaskExternalDependencies --> TaskTransactionRunner : provides transaction boundary

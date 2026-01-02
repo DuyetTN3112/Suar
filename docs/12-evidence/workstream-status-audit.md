@@ -1,8 +1,14 @@
 # Workstream Status Audit
 
+> **Status note (2026-07-28): historical snapshot, superseded for frontend realm/route
+> decisions.** Use `frontend-ui-audit-2026-07-26.md`, current route tests and
+> `Architecture/01-system-architecture/high-level/arch_10_realm_workspace_board_topology.mmd`.
+> Claims below about `/org/disputes`, duplicate User/Org review boards, reviewer inbox or
+> reverse-review history pages are retained only as past audit context and must not be implemented.
+
 | Field | Value |
 |---|---|
-| Status | Active |
+| Status | Historical snapshot — superseded for frontend realm/route decisions |
 | Audience | Maintainer, reviewer, lead, on-call doc editor |
 | Purpose | Audit chéo giữa handoff/plan/spec docs và code hiện tại để biết claim nào còn đúng, claim nào stale, claim nào mới chỉ là intent |
 | Source of Truth | Current code, routes, schema, tests; handoff/plan/spec chỉ là historical input |

@@ -1,0 +1,18 @@
+%% Class Diagram 04f — Custom System Role Persistence
+%% Evidence status: Implemented.
+%% Updated 2026-07-28 (realm boundary clarified).
+%% Source: app/modules/authorization/infra/models/custom_system_role.ts.
+%% Scope: persistence record only; authorization service/policy flow belongs in separate diagrams.
+%% Boundary: this is System-realm authorization data, not a role attached to a User-realm principal.
+
+classDiagram
+    class CustomSystemRole {
+        <<Lucid Model>>
+        +UUID id PK
+        +String name
+        +String code
+        +String description nullable
+        +String[] permissions
+        +DateTime createdAt
+        +DateTime updatedAt
+    }

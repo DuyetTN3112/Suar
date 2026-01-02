@@ -1,15 +1,14 @@
 # Architecture Overview
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Developer, tester, DevOps, architect, tech lead, manager cần bức tranh kỹ thuật đủ rõ |
-| Purpose | Giải thích Suar được chia khối ra sao, request chạy như thế nào, và phần nào là runtime core cần tin khi debug hoặc mở rộng hệ thống |
-| Source of Truth | `start/routes/*`, `app/modules/*`, `config/*`, `database/schema.ts`, verified docs |
-| Last Reviewed | 2026-07-17 |
-| Review Cycle | Khi module boundary, runtime dependency, hoặc core workflow đổi |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                                                |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Status          | Active                                                                                                                               |
+| Audience        | Developer, tester, DevOps, architect, tech lead, manager cần bức tranh kỹ thuật đủ rõ                                                |
+| Purpose         | Giải thích Suar được chia khối ra sao, request chạy như thế nào, và phần nào là runtime core cần tin khi debug hoặc mở rộng hệ thống |
+| Source of Truth | `start/routes/*`, `app/modules/*`, `config/*`, `database/schema.ts`, verified docs                                                   |
+| Review Cycle    | Khi module boundary, runtime dependency, hoặc core workflow đổi                                                                      |
+| Owner           | Engineering                                                                                                                          |
+| Stale Risk      | Cao                                                                                                                                  |
 
 ## Executive Summary
 
@@ -87,27 +86,29 @@ Nếu cần các phần đó, đọc thêm:
 4. Redis cho cache, session, locking-related runtime use
 5. External providers như OAuth
 6. Search runtime cho discovery và search-driven flows
-7. Support services như health, audit, notifications, logging, observability
+7. Platform capabilities như health, Audit, notifications, logging, observability
 
 ## Safe External Summary
 
 Nếu cần mô tả ngắn gọn kiến trúc cho report, có thể dùng framing này:
 
-`Suar hiện được tổ chức như một modular monolith trên AdonisJS, trong đó business logic chia theo module, request đi qua route -> middleware -> controller -> action -> domain -> infrastructure, và runtime phụ thuộc mạnh vào PostgreSQL, Redis, OAuth providers, cùng search runtime cho các discovery flows.`
+`Suar hiện được tổ chức như một modular monolith trên AdonisJS. Mỗi HTTP/event intent đi vào một Command hoặc Query sở hữu workflow; domain giữ rule; outbound port mô tả capability cần dùng; outer composition nối port với adapter PostgreSQL, Redis, Elasticsearch, OAuth hoặc module khác.`
 
 Đây là câu tóm tắt đủ đúng để người ngoài hiểu bức tranh kiến trúc mà không cần nhìn code.
 
 ## Architecture Mental Model
 
-Khi một request đi vào hệ thống, đường đi điển hình là:
+Khi một request đi vào hệ thống, đường đi chuẩn là:
 
 1. route nhận request
 2. middleware áp policy hoặc context
-3. controller nhận input và map request
-4. action layer xử lý use case
-5. domain layer áp rule nghiệp vụ
-6. infra layer đọc/ghi DB hoặc gọi dependency
-7. response mapper trả dữ liệu về UI hoặc API
+3. request mapper tạo action input
+4. controller gọi đúng một Command, Query hoặc inbound capability
+5. Command/Query sở hữu authorization, ordering, transaction intent và kết quả
+6. domain policy áp rule nghiệp vụ
+7. outbound port mô tả dữ liệu/side effect mà use case cần
+8. adapter đọc/ghi DB, cache, search hoặc provider
+9. response mapper trả dữ liệu về UI hoặc API
 
 Mental model này rất quan trọng vì nó giúp người đọc:
 
@@ -117,20 +118,60 @@ Mental model này rất quan trọng vì nó giúp người đọc:
 
 Một cách nhớ ngắn:
 
-`Route quyết định cửa vào. Controller nhận và map input. Action điều phối use case. Domain giữ rule. Infra chạm DB/cache/provider.`
+`Controller không làm workflow. Command/Query điều phối. Domain quyết định. Port mô tả nhu cầu. Adapter chạm công nghệ. Composition chỉ nối graph.`
 
 Nếu bạn bị lạc khi debug, quay lại câu trên trước.
 
-Nhưng cũng phải nhớ một nuance lớn của repo này:
+Event listener, CLI driver và callback controller cũng tuân theo cùng một nguyên tắc: mỗi inbound
+adapter chuyển một intent vào local Command/Query/inbound port. Chúng không gọi repository,
+outbound port hoặc application service như một use-case entry point.
 
-- không phải mọi flow đều đi “thẳng và sạch” qua đúng một lớp duy nhất
-- current runtime có nhiều path phải ghép thêm context resolution, auth-contract binding, transport classification, event listener, hoặc compatibility mapper
-- vì vậy debug đúng tầng là tốt, nhưng debug production nhanh thường phải nhìn cả `đường đi chính` lẫn `side-effect path`
+## Application Boundary
+
+Repository dùng một mental model duy nhất cho application boundary:
+
+| Concern                         | Canonical owner                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------ |
+| Complete business intent        | Một Command hoặc Query                                                               |
+| HTTP, event hoặc CLI adaptation | Controller, listener hoặc command driver gọi đúng một inbound capability             |
+| Business decision               | Domain policy, invariant, formula hoặc state rule                                    |
+| Cross-module dependency         | Consumer-owned outbound port và outer composition adapter                            |
+| Object graph                    | Composition factory chỉ dựng và bind dependency đồng bộ                              |
+| Mapping và validation           | Mapper hoặc validator có tên và owner rõ                                             |
+| Durable accountability          | Audit canonical evidence; personal activity là projection có policy khi được cung cấp |
+
+Guarded inventory:
+
+- `5` production `actions/services` files, đều là Tasks application collaborators được ít nhất hai
+  Command/Query dùng;
+- `0` production `support`, `serializers`, `builders`, `utils`, hoặc `actions/factories` files;
+- `35` composition factories được guard không cho `.handle()`, `.execute()`, async workflow hoặc I/O;
+- `30` Ace command files, không còn `commands/support`;
+- `0` runtime `user_activity` writers hoặc bounded-context module.
+
+Các reference slice quan trọng:
+
+- `GetUserProjectAccessQuery` sở hữu complete Project access read;
+- `CompleteTaskAssignmentsCommand` sở hữu ordered DONE transition sub-workflow;
+- `ProcessAuthSessionObservedCommand` sở hữu receipt + canonical Audit transaction;
+- `ComposedReviewActionFactory` được chia theo năm bounded use-case family nhưng không chạy workflow;
+- `ListMyWorkController` dùng constructor injection đúng metadata và chỉ gọi `GetUserTasksQuery`.
+
+Canonical decision: [Application Boundary](./application-boundary.md).
+
+Visual reading set:
+
+- [layer ownership](../11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd);
+- [one HTTP intent](../11-diagrams/Architecture/01-system-architecture/low-level/arch_02a_request_flow.mmd);
+- [composition boundary](../11-diagrams/Architecture/01-system-architecture/low-level/arch_02b_composition_boundary.mmd);
+- [Auth → Audit evidence](../11-diagrams/Architecture/01-system-architecture/low-level/arch_04c_auth_audit_evidence.mmd);
+- [Task DONE orchestration](../11-diagrams/Sequence/02-task-management/low-level/seq_02b1_done_completion_orchestration.mmd);
+- [personal `/work` queue](../11-diagrams/UserFlow/04-task-delivery/low-level/uf_04b_my_work_queue.mmd).
 
 Code audit note:
 
 - với nhiều flow có organization context, middleware không chỉ “check có org hay chưa”
-- current-org behavior thực tế đang đi qua ít nhất ba lớp:
+- hành vi organization context đi qua ít nhất ba lớp:
   - `AuthMiddleware`
   - `OrganizationResolverMiddleware`
   - `RequireOrganizationMiddleware`
@@ -148,7 +189,7 @@ Layer này bao gồm:
 - API response mapping
 - UI transport boundary
 
-Current UI architecture note:
+UI architecture note:
 
 - frontend hiện là multi-app Inertia/Svelte setup với entrypoints:
   - `inertia/apps/user/app.ts`
@@ -183,39 +224,33 @@ Code audit note:
 - `start/routes/auth.ts` hiện không chỉ chứa OAuth + logout production surfaces
 - file này còn chứa token issue/refresh JSON surfaces và một nhóm `/api/testing/*` support routes chỉ mount ở `development|test`, nên khi đọc route tree phải tách rõ production contract với test tooling
 
-### 2. Action Layer
+### 2. Application Layer
 
-Đây là nơi phần lớn use case application được điều phối.
+Đây là nơi use case được điều phối:
 
-Pattern đang thấy rõ ở nhiều module:
+- `actions/commands/*`: complete mutation intent;
+- `actions/queries/*`: complete read intent;
+- `actions/dtos/*`: application input/output shapes;
+- `actions/ports/inbound/*`: stable driving contracts, gồm context-bound factory contract khi cần;
+- `actions/ports/outbound/*`: consumer-owned capabilities;
+- `actions/services/*`: chỉ narrow reusable sub-operation nằm dưới Command/Query.
 
-- `actions/commands/*`
-- `actions/queries/*`
-- `actions/dtos/*`
-- `actions/services/*`
-- `actions/public_api.ts`
+Command/Query sở hữu authentication requirement, authorization/policy input, ordering,
+transaction intent, event/side-effect decision và final result. Một service không được construct,
+execute hoặc return Command/Query; controller/listener/job không được gọi service làm entry point.
 
-Ý nghĩa thực tế:
+### 3. Composition And Adapter Layer
 
-- `commands` thường đổi trạng thái
-- `queries` thường đọc dữ liệu
-- DTOs giữ boundary dữ liệu
-- public API mở ra đường gọi có kiểm soát giữa các module
+`app/composition/*` và module bootstrap hợp lệ sở hữu object graph:
 
-### 3. Bootstrap And Adapter Layer
+- bind inbound token/factory contract với implementation;
+- construct Command/Query và inject outbound capabilities;
+- bridge consumer-owned port sang provider public contract;
+- register listeners và runtime adapters.
 
-Layer này giúp nối các module với nhau mà không làm boundary biến mất.
-
-Hệ thống hiện cho thấy:
-
-- `bootstrap/`
-- `public_contracts/*`
-- adapter classes
-
-Ý nghĩa thực tế:
-
-- module A không nên đọc thẳng internals của module B nếu có public contract
-- boundary này giúp thay đổi bên trong module ít phá vỡ caller hơn
+Composition không được execute use case, mở transaction, quyết định business ordering hoặc
+transform business result. Module A không đọc internals của module B; consumer port và outer
+adapter giữ dependency direction.
 
 ### 4. Domain Layer
 
@@ -246,6 +281,9 @@ Infra là nơi chạm ra thế giới thực:
 - cache support
 - event publishing
 
+Application/domain không import ngược `infra`. Adapter implement outbound port; outer composition
+inject adapter vào use case.
+
 Ví dụ:
 
 - `app/modules/tasks/infra/models/task.ts`
@@ -262,6 +300,7 @@ Các module gốc hiện thấy trực tiếp dưới `app/modules`:
 - auth
 - authorization
 - cache
+- contracts
 - errors
 - events
 - http
@@ -279,7 +318,6 @@ Các module gốc hiện thấy trực tiếp dưới `app/modules`:
 - sprints
 - tasks
 - testing
-- user_activity
 - users
 
 Không phải module nào cũng có trọng số business như nhau. Nếu cần hiểu nhanh hệ thống theo giá trị nghiệp vụ, nên ưu tiên:
@@ -381,32 +419,32 @@ Nguồn: `start/health.ts`, `app/modules/http/health_checks/search_health_check.
 
 Đây là vài ví dụ runtime thật rất đáng nhớ vì nhìn URL bằng mắt rất dễ đoán sai:
 
-### 1. `/org/*` không phải lúc nào cũng là org-admin shell giống nhau
+### 1. Organization Management và Project Workspace là hai shell khác nhau
 
-- `start/routes/organizations_current.ts` đúng là org-admin shell chính:
-  - `auth`
-  - `requireOrg`
-  - `requireOrgAdmin`
-  - `orgAdminContext`
-- nhưng `/org/disputes` lại nằm ở `start/routes/reviews.ts`
-- route này chỉ đi qua `auth + requireOrg`
-- quyền sâu hơn còn được siết ở query/policy layer
+- `/org/*` giữ Organization Management: governance, people/access, settings, audit và project portfolio.
+- `/projects/:projectId/*` giữ Project Workspace và bốn delivery/review board.
+- `/org/disputes` không còn được đăng ký; User-side dispute exchange nằm trong card room của Project review board.
+- `/org/tasks*` chỉ là compatibility redirect vào Project Task Board, ngoại trừ workflow configuration/application surfaces được gọi đúng tên.
 
 Ý nghĩa vận hành:
 
-- thấy user không phải org admin mà vẫn vào được `/org/disputes` chưa chắc là bug
-- thấy user là org admin mà vẫn bị chặn cũng chưa chắc là bug route; có thể đang fail ở organization scope hoặc dispute access policy
+- đừng debug một Project board như thể nó thuộc Organization shell;
+- đừng khôi phục Org task/dispute page chỉ vì API vẫn có organization-scoped read/respond contract.
 
-### 2. `/admin/*` và `/api/admin/*` là system-admin boundary, không phải org-admin boundary
+### 2. `/admin/*` và `/api/admin/*` là System realm, không phải role nâng cao của User
 
 - page routes `/admin/*` đi qua `requireSystemAdmin()`
 - JSON routes `/api/admin/*` dùng `api-admin-internal` + `session-or-bearer`
+- System principal/session không dùng Organization/Project switcher và không bật admin mode từ User session
 - cùng concern “admin” nhưng page và JSON không nhất thiết cùng controller stack
+
+Implementation status là **Partial ở physical identity boundary**. Route/UI/policy context đã tách, nhưng middleware hiện vẫn nhận `auth.user` từ shared authentication transport rồi đọc `users.system_role` để classify System access. `AuthLandingResolver` cũng còn nhận `systemRole`. Đây là compatibility adapter cần được thay bằng System-principal identity/session độc lập; không được biến chi tiết lưu trữ tạm thời này thành mô hình “User có System + Organization + Project role”.
 
 Ý nghĩa vận hành:
 
-- đừng nhầm quyền org owner/admin với system admin
+- đừng đưa System Admin vào bảng quyền User/Organization/Project
 - incident ở `/admin/dashboards/*` và incident ở `/org/*` thường đi vào hai boundary khác nhau ngay từ route layer
+- nếu audit câu hỏi “đã tách principal vật lý chưa”, kiểm tra `RequireSystemAdminMiddleware`, `AuthLandingResolver`, `User.system_role` và session store; không chỉ nhìn sidebar/route
 
 ### 3. Một số path nhìn như page URL nhưng thực chất là JSON surface
 
@@ -459,14 +497,14 @@ Nguồn: `start/routes/auth.ts`, `app/modules/auth/controllers/social_auth_contr
 Organizations hiện bao phủ:
 
 - discovery
-- current organization context
+- active organization context
 - invitations
 - membership
 - projects
 - tasks
 - workflow
 
-Nguồn: `start/routes/organizations.ts`, `start/routes/organizations_current.ts`, `app/modules/organizations/actions/commands/create_organization_command.ts`
+Nguồn: `start/routes/organizations.ts`, `start/routes/organizations_current.ts`, `app/modules/organizations/directory/actions/command/create_organization_command.ts`
 
 ### Projects
 
@@ -523,7 +561,8 @@ Code audit note:
 
 - task-level reverse review submit hiện bị product-deprecate và command đang chặn thật
 - review session hiện có 2 creation paths trong runtime: đường ưu tiên lúc assignee submit completion package để đưa task sang `in_review`, và đường backstop sau khi task đi vào category `done`
-- org dispute queue hiện là org-scoped workspace surface, không phải system-admin surface
+- User-side dispute exchange nằm trong Project review card room; Org dispute page đã bị gỡ
+- reported case được chiếu sang `/admin/disputes`, nhưng System Admin vẫn là principal/realm riêng
 - AI dispute callback là public integration route nhưng vẫn có credential/signature/timestamp gate
 
 ### Users
@@ -549,7 +588,7 @@ Code audit note:
 Search hiện là support capability nhưng ảnh hưởng trực tiếp đến trải nghiệm discovery:
 
 - runtime health cho search
-- global search center query/service logic trong `app/modules/search`
+- global search center Query-owned application flow trong `app/modules/search`
 - talent index lifecycle
 - search-driven query path cho talent discovery
 - observability event cho search runtime
@@ -603,10 +642,16 @@ Nghĩ theo khả năng:
 
 ## Known Gaps
 
-Hệ thống hiện chưa cung cấp artifact độc lập, đủ mạnh cho:
+Repository-defined Docker Compose reference topology, external dependencies, local file-storage caveat, and Redis separation now have dedicated diagrams. These diagrams do not claim an observed production deployment:
 
-- deployment topology chi tiết
-- infrastructure-as-code guide
+- [`arch_05_deployment_topology`](../11-diagrams/Architecture/01-system-architecture/high-level/arch_05_deployment_topology.mmd)
+- [`deployment_01_reference_topology`](../11-diagrams/Deployment/01-reference-topology/overview/deployment_01_reference_topology.puml)
+- [`arch_08_file_attachment_storage_runtime`](../11-diagrams/Architecture/01-system-architecture/low-level/arch_08_file_attachment_storage_runtime.mmd)
+- [`arch_09_redis_runtime_separation`](../11-diagrams/Architecture/01-system-architecture/low-level/arch_09_redis_runtime_separation.mmd)
+
+Hệ thống vẫn chưa cung cấp artifact độc lập, đủ mạnh cho:
+
+- production multi-environment topology và infrastructure-as-code guide
 - backup/restore run sequence riêng
 - observability dashboard export
 

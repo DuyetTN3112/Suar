@@ -1,0 +1,45 @@
+%% state_06_flagged_review.mmd — FlaggedReview Status
+%% Evidence status: Implemented.
+%% Updated 2026-07-10 (verified).
+%% Purpose: Flagged review lifecycle from detection to resolution
+%% Scope: Anomaly detection → admin resolution
+%% Excludes: Score recalculation detail (see act_03c)
+%% Related: detect_anomaly_command.ts, resolve_flagged_review_command.ts
+
+stateDiagram-v2
+direction LR
+    [*] --> pending : DetectAnomalyCommand<br/>finds anomaly pattern
+
+    pending --> dismissed : Admin dismisses<br/>(false positive)
+    pending --> confirmed : Admin confirms fraud<br/>(ResolveFlaggedReviewCommand)
+
+    dismissed --> [*]
+    confirmed --> [*]
+
+    note right of pending
+        SQL enum declares 6 flag_type values.
+        detect_anomaly_command currently checks:
+        ✅ bulk_same_level
+        ✅ new_account_high
+        ✅ mutual_high
+        ⚠️ ip_collusion is documented as placeholder.
+        ⚠️ No current check found for sudden_spike
+           or frequency_anomaly.
+        ──────────────────
+        Flag rows are created when
+        DetectAnomalyCommand finds
+        a supported anomaly pattern.
+        Current admin resolve flows go directly from
+        pending -> dismissed/confirmed, even though
+        SQL enum also allows 'reviewed'.
+    end note
+
+    note left of confirmed
+        On confirmation (rollbackFraudulentReview):
+        1. skill_review.is_fraud = true
+        2. RecalculateRevieweeSkillScoresCommand
+           (exclude fraud reviews)
+        ──────────────────
+        Only System Admin can resolve
+        (superadmin / system_admin role)
+    end note

@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions
+  xmlns="https://www.omg.org/spec/DMN/20230324/MODEL/"
+  xmlns:dmndi="https://www.omg.org/spec/DMN/20230324/DMNDI/"
+  xmlns:dc="http://www.omg.org/spec/DMN/20180521/DC/"
+  xmlns:di="http://www.omg.org/spec/DMN/20180521/DI/"
+  id="Definitions_ReviewGovernance"
+  name="Review governance decisions"
+  namespace="https://suar.local/dmn/reviews/governance-decisions"
+  exporter="Suar engineering"
+  exporterVersion="1.0">
+  <description>Evidence status: Implemented rule semantics. Descriptive DMN 1.5 model; TypeScript policy functions remain the runtime implementation. Reviewed 2026-07-27.</description>
+
+  <inputData id="Input_ConfirmationSessionStatus" name="Confirmation session status">
+    <variable id="Variable_ConfirmationSessionStatus" name="confirmationSessionStatus" typeRef="string"/>
+  </inputData>
+  <inputData id="Input_ConfirmationActorIsReviewee" name="Confirmation actor is reviewee">
+    <variable id="Variable_ConfirmationActorIsReviewee" name="confirmationActorIsReviewee" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_HasExistingConfirmationAction" name="Has existing confirmation action">
+    <variable id="Variable_HasExistingConfirmationAction" name="hasExistingConfirmationAction" typeRef="boolean"/>
+  </inputData>
+
+  <decision id="Decision_ReviewConfirmationPermission" name="Review confirmation permission">
+    <description>Mirrors canConfirmReview guard order. Both completed and disputed sessions remain actionable until the reviewee has acted once.</description>
+    <informationRequirement id="Requirement_Confirmation_Status"><requiredInput href="#Input_ConfirmationSessionStatus"/></informationRequirement>
+    <informationRequirement id="Requirement_Confirmation_Actor"><requiredInput href="#Input_ConfirmationActorIsReviewee"/></informationRequirement>
+    <informationRequirement id="Requirement_Confirmation_Existing"><requiredInput href="#Input_HasExistingConfirmationAction"/></informationRequirement>
+    <decisionTable id="DecisionTable_ReviewConfirmationPermission" hitPolicy="FIRST">
+      <input id="InputClause_Confirmation_Status" label="Session status">
+        <inputExpression id="InputExpression_Confirmation_Status" typeRef="string"><text>confirmationSessionStatus</text></inputExpression>
+      </input>
+      <input id="InputClause_Confirmation_Actor" label="Actor is reviewee?">
+        <inputExpression id="InputExpression_Confirmation_Actor" typeRef="boolean"><text>confirmationActorIsReviewee</text></inputExpression>
+      </input>
+      <input id="InputClause_Confirmation_Existing" label="Already acted?">
+        <inputExpression id="InputExpression_Confirmation_Existing" typeRef="boolean"><text>hasExistingConfirmationAction</text></inputExpression>
+      </input>
+      <output id="OutputClause_Confirmation_Allowed" label="Allowed" name="allowed" typeRef="boolean"/>
+      <output id="OutputClause_Confirmation_Reason" label="Reason" name="reason" typeRef="string"/>
+
+      <rule id="Rule_Confirmation_Status">
+        <inputEntry id="Unary_Confirmation_Status_1"><text>not("completed", "disputed")</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Status_2"><text>-</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Status_3"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Confirmation_Status_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Confirmation_Status_Reason"><text>"SESSION_NOT_ACTIONABLE"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Confirmation_Actor">
+        <inputEntry id="Unary_Confirmation_Actor_1"><text>"completed", "disputed"</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Actor_2"><text>false</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Actor_3"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Confirmation_Actor_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Confirmation_Actor_Reason"><text>"NOT_REVIEWEE"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Confirmation_Duplicate">
+        <inputEntry id="Unary_Confirmation_Duplicate_1"><text>"completed", "disputed"</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Duplicate_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Duplicate_3"><text>true</text></inputEntry>
+        <outputEntry id="Literal_Confirmation_Duplicate_Allowed"><text>false</text></outputEntry>
+        <outputEntry id="Literal_Confirmation_Duplicate_Reason"><text>"ALREADY_ACTED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Confirmation_Allow">
+        <inputEntry id="Unary_Confirmation_Allow_1"><text>"completed", "disputed"</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Allow_2"><text>true</text></inputEntry>
+        <inputEntry id="Unary_Confirmation_Allow_3"><text>false</text></inputEntry>
+        <outputEntry id="Literal_Confirmation_Allow_Allowed"><text>true</text></outputEntry>
+        <outputEntry id="Literal_Confirmation_Allow_Reason"><text>"ALLOWED"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <inputData id="Input_DisputeActorIsReviewee" name="Dispute actor is reviewee">
+    <variable id="Variable_DisputeActorIsReviewee" name="disputeActorIsReviewee" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_DisputeSessionStatus" name="Dispute session status">
+    <variable id="Variable_DisputeSessionStatus" name="disputeSessionStatus" typeRef="string"/>
+  </inputData>
+  <inputData id="Input_DisputeReasonPresent" name="Dispute reason present">
+    <variable id="Variable_DisputeReasonPresent" name="disputeReasonPresent" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_HasActiveDispute" name="Has active dispute">
+    <variable id="Variable_HasActiveDispute" name="hasActiveDispute" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_DaysSinceCompleted" name="Days since completed">
+    <variable id="Variable_DaysSinceCompleted" name="daysSinceCompleted" typeRef="number"/>
+  </inputData>
+
+  <decision id="Decision_DisputeOpeningPermission" name="Dispute opening permission">
+    <description>Mirrors canOpenReviewDispute guard order. A missing daysSinceCompleted value is not rejected by the current function; a known value above 14 is rejected.</description>
+    <informationRequirement id="Requirement_Open_Actor"><requiredInput href="#Input_DisputeActorIsReviewee"/></informationRequirement>
+    <informationRequirement id="Requirement_Open_Status"><requiredInput href="#Input_DisputeSessionStatus"/></informationRequirement>
+    <informationRequirement id="Requirement_Open_Reason"><requiredInput href="#Input_DisputeReasonPresent"/></informationRequirement>
+    <informationRequirement id="Requirement_Open_Active"><requiredInput href="#Input_HasActiveDispute"/></informationRequirement>
+    <informationRequirement id="Requirement_Open_Days"><requiredInput href="#Input_DaysSinceCompleted"/></informationRequirement>
+    <decisionTable id="DecisionTable_DisputeOpeningPermission" hitPolicy="FIRST">
+      <input id="InputClause_Open_Actor" label="Actor is reviewee?"><inputExpression id="InputExpression_Open_Actor" typeRef="boolean"><text>disputeActorIsReviewee</text></inputExpression></input>
+      <input id="InputClause_Open_Status" label="Session status"><inputExpression id="InputExpression_Open_Status" typeRef="string"><text>disputeSessionStatus</text></inputExpression></input>
+      <input id="InputClause_Open_Reason" label="Reason present?"><inputExpression id="InputExpression_Open_Reason" typeRef="boolean"><text>disputeReasonPresent</text></inputExpression></input>
+      <input id="InputClause_Open_Active" label="Active dispute?"><inputExpression id="InputExpression_Open_Active" typeRef="boolean"><text>hasActiveDispute</text></inputExpression></input>
+      <input id="InputClause_Open_Days" label="Days since completed"><inputExpression id="InputExpression_Open_Days" typeRef="number"><text>daysSinceCompleted</text></inputExpression></input>
+      <output id="OutputClause_Open_Allowed" label="Allowed" name="allowed" typeRef="boolean"/>
+      <output id="OutputClause_Open_Reason" label="Reason" name="reason" typeRef="string"/>
+
+      <rule id="Rule_Open_Actor">
+        <inputEntry id="Unary_Open_Actor_1"><text>false</text></inputEntry><inputEntry id="Unary_Open_Actor_2"><text>-</text></inputEntry><inputEntry id="Unary_Open_Actor_3"><text>-</text></inputEntry><inputEntry id="Unary_Open_Actor_4"><text>-</text></inputEntry><inputEntry id="Unary_Open_Actor_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Open_Actor_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Open_Actor_Reason"><text>"NOT_REVIEWEE"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Open_Status">
+        <inputEntry id="Unary_Open_Status_1"><text>true</text></inputEntry><inputEntry id="Unary_Open_Status_2"><text>not("completed")</text></inputEntry><inputEntry id="Unary_Open_Status_3"><text>-</text></inputEntry><inputEntry id="Unary_Open_Status_4"><text>-</text></inputEntry><inputEntry id="Unary_Open_Status_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Open_Status_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Open_Status_Reason"><text>"SESSION_NOT_COMPLETED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Open_Reason">
+        <inputEntry id="Unary_Open_Reason_1"><text>true</text></inputEntry><inputEntry id="Unary_Open_Reason_2"><text>"completed"</text></inputEntry><inputEntry id="Unary_Open_Reason_3"><text>false</text></inputEntry><inputEntry id="Unary_Open_Reason_4"><text>-</text></inputEntry><inputEntry id="Unary_Open_Reason_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Open_Reason_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Open_Reason_Reason"><text>"REASON_REQUIRED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Open_Active">
+        <inputEntry id="Unary_Open_Active_1"><text>true</text></inputEntry><inputEntry id="Unary_Open_Active_2"><text>"completed"</text></inputEntry><inputEntry id="Unary_Open_Active_3"><text>true</text></inputEntry><inputEntry id="Unary_Open_Active_4"><text>true</text></inputEntry><inputEntry id="Unary_Open_Active_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Open_Active_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Open_Active_Reason"><text>"ACTIVE_DISPUTE_EXISTS"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Open_Window">
+        <inputEntry id="Unary_Open_Window_1"><text>true</text></inputEntry><inputEntry id="Unary_Open_Window_2"><text>"completed"</text></inputEntry><inputEntry id="Unary_Open_Window_3"><text>true</text></inputEntry><inputEntry id="Unary_Open_Window_4"><text>false</text></inputEntry><inputEntry id="Unary_Open_Window_5"><text>&gt; 14</text></inputEntry>
+        <outputEntry id="Literal_Open_Window_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Open_Window_Reason"><text>"WINDOW_EXPIRED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Open_Allow">
+        <inputEntry id="Unary_Open_Allow_1"><text>true</text></inputEntry><inputEntry id="Unary_Open_Allow_2"><text>"completed"</text></inputEntry><inputEntry id="Unary_Open_Allow_3"><text>true</text></inputEntry><inputEntry id="Unary_Open_Allow_4"><text>false</text></inputEntry><inputEntry id="Unary_Open_Allow_5"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Open_Allow_Allowed"><text>true</text></outputEntry><outputEntry id="Literal_Open_Allow_Reason"><text>"ALLOWED"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <inputData id="Input_ResolverIsSystemAdmin" name="Resolver is system admin">
+    <variable id="Variable_ResolverIsSystemAdmin" name="resolverIsSystemAdmin" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_ResolutionDisputeStatus" name="Resolution dispute status">
+    <variable id="Variable_ResolutionDisputeStatus" name="resolutionDisputeStatus" typeRef="string"/>
+  </inputData>
+  <inputData id="Input_FinalDecisionValid" name="Final decision valid">
+    <variable id="Variable_FinalDecisionValid" name="finalDecisionValid" typeRef="boolean"/>
+  </inputData>
+  <inputData id="Input_FinalRationalePresent" name="Final rationale present">
+    <variable id="Variable_FinalRationalePresent" name="finalRationalePresent" typeRef="boolean"/>
+  </inputData>
+
+  <decision id="Decision_DisputeResolutionPermission" name="Dispute resolution permission">
+    <description>Mirrors canResolveReviewDispute guard order. System admin includes system_admin and superadmin roles; final decision validity represents the current five-value allowlist.</description>
+    <informationRequirement id="Requirement_Resolve_Admin"><requiredInput href="#Input_ResolverIsSystemAdmin"/></informationRequirement>
+    <informationRequirement id="Requirement_Resolve_Status"><requiredInput href="#Input_ResolutionDisputeStatus"/></informationRequirement>
+    <informationRequirement id="Requirement_Resolve_Decision"><requiredInput href="#Input_FinalDecisionValid"/></informationRequirement>
+    <informationRequirement id="Requirement_Resolve_Rationale"><requiredInput href="#Input_FinalRationalePresent"/></informationRequirement>
+    <decisionTable id="DecisionTable_DisputeResolutionPermission" hitPolicy="FIRST">
+      <input id="InputClause_Resolve_Admin" label="System admin?"><inputExpression id="InputExpression_Resolve_Admin" typeRef="boolean"><text>resolverIsSystemAdmin</text></inputExpression></input>
+      <input id="InputClause_Resolve_Status" label="Dispute status"><inputExpression id="InputExpression_Resolve_Status" typeRef="string"><text>resolutionDisputeStatus</text></inputExpression></input>
+      <input id="InputClause_Resolve_Decision" label="Valid final decision?"><inputExpression id="InputExpression_Resolve_Decision" typeRef="boolean"><text>finalDecisionValid</text></inputExpression></input>
+      <input id="InputClause_Resolve_Rationale" label="Rationale present?"><inputExpression id="InputExpression_Resolve_Rationale" typeRef="boolean"><text>finalRationalePresent</text></inputExpression></input>
+      <output id="OutputClause_Resolve_Allowed" label="Allowed" name="allowed" typeRef="boolean"/>
+      <output id="OutputClause_Resolve_Reason" label="Reason" name="reason" typeRef="string"/>
+
+      <rule id="Rule_Resolve_Admin">
+        <inputEntry id="Unary_Resolve_Admin_1"><text>false</text></inputEntry><inputEntry id="Unary_Resolve_Admin_2"><text>-</text></inputEntry><inputEntry id="Unary_Resolve_Admin_3"><text>-</text></inputEntry><inputEntry id="Unary_Resolve_Admin_4"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Resolve_Admin_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Resolve_Admin_Reason"><text>"NOT_SYSTEM_ADMIN"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Resolve_AlreadyResolved">
+        <inputEntry id="Unary_Resolve_AlreadyResolved_1"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_AlreadyResolved_2"><text>"resolved"</text></inputEntry><inputEntry id="Unary_Resolve_AlreadyResolved_3"><text>-</text></inputEntry><inputEntry id="Unary_Resolve_AlreadyResolved_4"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Resolve_AlreadyResolved_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Resolve_AlreadyResolved_Reason"><text>"ALREADY_RESOLVED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Resolve_NotActive">
+        <inputEntry id="Unary_Resolve_NotActive_1"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_NotActive_2"><text>not("pending", "collecting_evidence", "admin_reviewing", "ai_reviewing", "resolved")</text></inputEntry><inputEntry id="Unary_Resolve_NotActive_3"><text>-</text></inputEntry><inputEntry id="Unary_Resolve_NotActive_4"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Resolve_NotActive_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Resolve_NotActive_Reason"><text>"DISPUTE_NOT_ACTIVE"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Resolve_Decision">
+        <inputEntry id="Unary_Resolve_Decision_1"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_Decision_2"><text>"pending", "collecting_evidence", "admin_reviewing", "ai_reviewing"</text></inputEntry><inputEntry id="Unary_Resolve_Decision_3"><text>false</text></inputEntry><inputEntry id="Unary_Resolve_Decision_4"><text>-</text></inputEntry>
+        <outputEntry id="Literal_Resolve_Decision_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Resolve_Decision_Reason"><text>"INVALID_FINAL_DECISION"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Resolve_Rationale">
+        <inputEntry id="Unary_Resolve_Rationale_1"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_Rationale_2"><text>"pending", "collecting_evidence", "admin_reviewing", "ai_reviewing"</text></inputEntry><inputEntry id="Unary_Resolve_Rationale_3"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_Rationale_4"><text>false</text></inputEntry>
+        <outputEntry id="Literal_Resolve_Rationale_Allowed"><text>false</text></outputEntry><outputEntry id="Literal_Resolve_Rationale_Reason"><text>"RATIONALE_REQUIRED"</text></outputEntry>
+      </rule>
+      <rule id="Rule_Resolve_Allow">
+        <inputEntry id="Unary_Resolve_Allow_1"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_Allow_2"><text>"pending", "collecting_evidence", "admin_reviewing", "ai_reviewing"</text></inputEntry><inputEntry id="Unary_Resolve_Allow_3"><text>true</text></inputEntry><inputEntry id="Unary_Resolve_Allow_4"><text>true</text></inputEntry>
+        <outputEntry id="Literal_Resolve_Allow_Allowed"><text>true</text></outputEntry><outputEntry id="Literal_Resolve_Allow_Reason"><text>"ALLOWED"</text></outputEntry>
+      </rule>
+    </decisionTable>
+  </decision>
+
+  <dmndi:DMNDI>
+    <dmndi:DMNDiagram id="DMNDiagram_ReviewGovernance" name="Review governance decisions">
+      <dmndi:DMNShape id="Shape_ConfirmationStatus" dmnElementRef="Input_ConfirmationSessionStatus"><dc:Bounds x="80" y="40" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ConfirmationActor" dmnElementRef="Input_ConfirmationActorIsReviewee"><dc:Bounds x="80" y="100" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ConfirmationExisting" dmnElementRef="Input_HasExistingConfirmationAction"><dc:Bounds x="80" y="160" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ConfirmationDecision" dmnElementRef="Decision_ReviewConfirmationPermission"><dc:Bounds x="600" y="85" width="230" height="80"/></dmndi:DMNShape>
+
+      <dmndi:DMNShape id="Shape_OpenActor" dmnElementRef="Input_DisputeActorIsReviewee"><dc:Bounds x="80" y="280" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_OpenStatus" dmnElementRef="Input_DisputeSessionStatus"><dc:Bounds x="80" y="335" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_OpenReason" dmnElementRef="Input_DisputeReasonPresent"><dc:Bounds x="80" y="390" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_OpenActive" dmnElementRef="Input_HasActiveDispute"><dc:Bounds x="80" y="445" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_OpenDays" dmnElementRef="Input_DaysSinceCompleted"><dc:Bounds x="80" y="500" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_OpenDecision" dmnElementRef="Decision_DisputeOpeningPermission"><dc:Bounds x="600" y="365" width="230" height="80"/></dmndi:DMNShape>
+
+      <dmndi:DMNShape id="Shape_ResolveAdmin" dmnElementRef="Input_ResolverIsSystemAdmin"><dc:Bounds x="80" y="570" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ResolveStatus" dmnElementRef="Input_ResolutionDisputeStatus"><dc:Bounds x="80" y="625" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ResolveDecision" dmnElementRef="Input_FinalDecisionValid"><dc:Bounds x="80" y="680" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ResolveRationale" dmnElementRef="Input_FinalRationalePresent"><dc:Bounds x="80" y="735" width="200" height="50"/></dmndi:DMNShape>
+      <dmndi:DMNShape id="Shape_ResolvePermission" dmnElementRef="Decision_DisputeResolutionPermission"><dc:Bounds x="600" y="625" width="230" height="80"/></dmndi:DMNShape>
+
+      <dmndi:DMNEdge id="Edge_ConfirmationStatus" dmnElementRef="Requirement_Confirmation_Status"><di:waypoint x="280" y="65"/><di:waypoint x="600" y="100"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_ConfirmationActor" dmnElementRef="Requirement_Confirmation_Actor"><di:waypoint x="280" y="125"/><di:waypoint x="600" y="125"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_ConfirmationExisting" dmnElementRef="Requirement_Confirmation_Existing"><di:waypoint x="280" y="185"/><di:waypoint x="600" y="150"/></dmndi:DMNEdge>
+
+      <dmndi:DMNEdge id="Edge_OpenActor" dmnElementRef="Requirement_Open_Actor"><di:waypoint x="280" y="305"/><di:waypoint x="600" y="375"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_OpenStatus" dmnElementRef="Requirement_Open_Status"><di:waypoint x="280" y="360"/><di:waypoint x="600" y="390"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_OpenReason" dmnElementRef="Requirement_Open_Reason"><di:waypoint x="280" y="415"/><di:waypoint x="600" y="405"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_OpenActive" dmnElementRef="Requirement_Open_Active"><di:waypoint x="280" y="470"/><di:waypoint x="600" y="420"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_OpenDays" dmnElementRef="Requirement_Open_Days"><di:waypoint x="280" y="525"/><di:waypoint x="600" y="435"/></dmndi:DMNEdge>
+
+      <dmndi:DMNEdge id="Edge_ResolveAdmin" dmnElementRef="Requirement_Resolve_Admin"><di:waypoint x="280" y="595"/><di:waypoint x="600" y="640"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_ResolveStatus" dmnElementRef="Requirement_Resolve_Status"><di:waypoint x="280" y="650"/><di:waypoint x="600" y="655"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_ResolveDecision" dmnElementRef="Requirement_Resolve_Decision"><di:waypoint x="280" y="705"/><di:waypoint x="600" y="670"/></dmndi:DMNEdge>
+      <dmndi:DMNEdge id="Edge_ResolveRationale" dmnElementRef="Requirement_Resolve_Rationale"><di:waypoint x="280" y="760"/><di:waypoint x="600" y="685"/></dmndi:DMNEdge>
+    </dmndi:DMNDiagram>
+  </dmndi:DMNDI>
+</definitions>

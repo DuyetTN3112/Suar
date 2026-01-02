@@ -1,0 +1,143 @@
+{
+  "profile": {
+    "page_title": ":username - Profile",
+    "view_reviews": "View reviews",
+    "edit": "Edit",
+    "sections_aria": "Profile sections",
+    "snapshot_version": "Snapshot v:version",
+    "stats": {
+      "skills": "Skills",
+      "reviewed_count": ":count reviewed",
+      "average_score": "Average score",
+      "based_on_reviews": "Based on reviews",
+      "trust": "Trust",
+      "unknown": "Unknown",
+      "member_since": "Member since"
+    },
+    "bookmark": {
+      "title": "Save talent",
+      "notes_label": "Recruiter notes",
+      "notes_placeholder": "Strengths, interview context, suitable projects...",
+      "folder_label": "Folder",
+      "folder_placeholder": "Frontend bench",
+      "rating_label": "Rating",
+      "loading": "Loading bookmark...",
+      "saved_status": "This talent is already saved in recruiter bookmarks.",
+      "unsaved_status": "This talent is not saved yet.",
+      "remove": "Remove",
+      "saving": "Saving...",
+      "update": "Update bookmark",
+      "save": "Save talent",
+      "load_error": "Unable to load talent bookmark state.",
+      "save_error": "Unable to save talent bookmark.",
+      "remove_error": "Unable to remove talent bookmark."
+    }
+  },
+  "marketplace_filters": {
+    "tech_stack_label": "Tech stack",
+    "tech_stack_placeholder": "React, AdonisJS...",
+    "domain_tags_label": "Domain tags",
+    "domain_tags_placeholder": "auth, billing..."
+  },
+  "reviews": {
+    "show": {
+      "status": "Status",
+      "priority": "Priority",
+      "due_date": "Due date",
+      "estimated_hours": "Estimate: :hours h",
+      "actual_hours": "Actual: :hours h",
+      "evidence": "Evidence"
+    },
+    "header": {
+      "creator": "Creator",
+      "peer": "Peer"
+    },
+    "evidence": {
+      "url_label": "URL"
+    },
+    "dispute_evidence": {
+      "pull_request": "Pull Request Link",
+      "demo": "Demo Web/App Link"
+    },
+    "flagged": {
+      "reviewer": "Reviewer",
+      "skill": "Skill",
+      "level": "Level"
+    },
+    "spider_chart": {
+      "level": "Level"
+    },
+    "sprint_dispute_room": "Sprint dispute room",
+    "task_review_lanes_aria": "Task review lanes",
+    "disputes_title": "Review disputes"
+  },
+  "tasks": {
+    "importance": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High",
+      "critical": "Critical"
+    },
+    "pagination": {
+      "rows_per_page": "Rows per page",
+      "page_of": "Page :page of :total"
+    },
+    "submission": {
+      "repository_url": "Repository URL",
+      "pull_request_url": "Pull Request URL",
+      "demo_url": "Demo URL"
+    },
+    "show": {
+      "skills_tab": "Skills",
+      "skill_requirements": "Skill requirements"
+    },
+    "assignment": {
+      "project": "Project"
+    },
+    "role_prefill": {
+      "baseline": "Role baseline"
+    },
+    "kanban": {
+      "column_aria": ":label column"
+    }
+  },
+  "projects": {
+    "staffing": {
+      "skill_match": ":matched/:total skills",
+      "skill_gap": "Gap: :skills",
+      "talent_pool": "Talent pool",
+      "source": {
+        "project_member": "Project member",
+        "org_member": "Organization member",
+        "external": "External candidate"
+      }
+    },
+    "member": {
+      "task_count": ":count tasks"
+    }
+  },
+  "organizations": {
+    "website": "Website",
+    "email": "Email",
+    "create": {
+      "slug_label": "Slug",
+      "slug_placeholder": "organization-slug",
+      "website_label": "Website",
+      "website_placeholder": "https://example.com"
+    }
+  },
+  "pagination": {
+    "navigation_aria": "Pagination",
+    "previous": "Previous",
+    "previous_page_aria": "Previous page",
+    "page_aria": "Page :page",
+    "next": "Next",
+    "next_page_aria": "Next page"
+  },
+  "navigation": {
+    "close": "Close navigation"
+  },
+  "dashboard": {
+    "org_metrics_aria": "Organization dashboard metrics"
+  }
+}

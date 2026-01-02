@@ -1,0 +1,14 @@
+%% User Flow 10b — Governed action preflight
+%% Evidence status: Implemented.
+%% Journey actor: authorized system administrator.
+%% Preceded by: uf_10a_admin_access_inspection. Continues at uf_10c_admin_action_execution.
+
+flowchart LR
+    Start([Inspection ready]) --> Act{"Apply governed action?"}
+    Act -->|No| Viewed([Inspection complete])
+    Act -->|Yes| Confirm([Selected operation confirmed])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Viewed,Confirm terminal
+    class Act decision

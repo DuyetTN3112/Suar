@@ -1,0 +1,41 @@
+%% DFD 03c2 — Decide and Assign Proposal (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Approval updates application, assignment, and assigned-task state; rejection updates application state only.
+%% Layout note: repeated actor/store boxes denote the same boundaries and remove long return wires.
+%% Keep reason: validation and persistence are consecutive stages of one atomic proposal-decision transaction.
+
+flowchart TB
+    subgraph validation["Decision inputs"]
+        direction LR
+        O_IN[Task creator / authorized project or organization manager]
+        A_IN[(task_applications)]
+        T_IN[(tasks + requirements)]
+        P1[[4.3.2.1 Validate proposal decision]]
+        O_IN -->|"selected application and decision"| P1
+        A_IN -->|"pending application"| P1
+        T_IN -->|"task authority and assignment state"| P1
+    end
+
+    subgraph persistence["Decision outputs"]
+        direction LR
+        P2[[4.3.2.2 Persist decision]]
+        A_OUT[(task_applications<br/>same store)]
+        ASG[(task_assignments)]
+        T_OUT[(tasks + requirements<br/>same store)]
+        O_OUT[Decision-maker<br/>same external entity]
+        P2 -->|"approved or rejected state"| A_OUT
+        P2 -->|"new assignment on approval"| ASG
+        P2 -->|"assigned state on approval"| T_OUT
+        P2 -->|"decision result"| O_OUT
+    end
+
+    P1 -->|"authorized decision"| P2
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class O_IN,O_OUT entity
+    class P1,P2 process
+    class A_IN,A_OUT,T_IN,T_OUT,ASG store
+    style validation fill:#F8FAFC,stroke:#94A3B8
+    style persistence fill:#F8FAFC,stroke:#94A3B8

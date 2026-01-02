@@ -1,0 +1,35 @@
+@startuml
+' UML Component 02b — Task dependencies
+' Evidence status: Implemented source modules and public contracts.
+' Updated: 2026-07-27.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+
+component "Tasks\nworkflow · assignment · submission" as Tasks
+component "Projects\nproject + assignment invariant" as Projects
+component "Organizations\nworkflow context" as Organizations
+component "Users\nassignee identity" as Users
+component "Skills\ntask requirements" as Skills
+component "Authorization\ngoverned mutation" as Authorization
+
+Tasks ..> Projects : ProjectPublicApi
+Tasks ..> Organizations : OrganizationPublicApi
+Tasks ..> Users : UserActorIdentityV1
+Tasks ..> Skills : SkillPublicApi
+Tasks ..> Authorization : PolicyEnforcer
+
+@enduml

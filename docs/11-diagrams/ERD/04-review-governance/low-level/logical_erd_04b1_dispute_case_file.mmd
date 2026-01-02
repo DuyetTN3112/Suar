@@ -1,0 +1,28 @@
+%% Logical ERD 04b1 — Review dispute to case-file ownership
+%% Evidence status: Implemented.
+%% Scope: one readable FK relationship from a governed dispute to its versioned case file.
+%% review_session_id and user references are outside this slice and remain explicit logical FK notes.
+
+erDiagram
+direction TB
+    REVIEW_DISPUTES {
+        UUID id PK
+        UUID review_session_id FK "FK -> REVIEW_SESSIONS.id (outside slice)"
+        UUID opened_by FK "FK -> USERS.id (outside slice)"
+        UUID reviewee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+        TEXT dispute_reason
+        UUID resolved_by FK "FK -> USERS.id (outside slice)"
+    }
+    REVIEW_DISPUTE_CASE_FILES {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id"
+        INT case_version
+        NUMERIC completeness_score
+        JSONB task_snapshot
+        JSONB assignment_snapshot
+        JSONB submission_snapshot
+        JSONB review_snapshot
+    }
+
+    REVIEW_DISPUTES ||--o{ REVIEW_DISPUTE_CASE_FILES : "REVIEW_DISPUTE_CASE_FILES.dispute_id → REVIEW_DISPUTES.id"

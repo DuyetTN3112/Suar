@@ -1,0 +1,37 @@
+%% Use Case 03b — Evidence-linked task review governance
+%% Evidence status: Implemented review goals; AI advisory extension is Partial.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Updated: 2026-07-27.
+%% Sprint review governance is separate in uc_02c.
+
+%%{init: {"flowchart": {"defaultRenderer": "elk"}}}%%
+flowchart TB
+    reviewer([👤 Manager or peer reviewer])
+    reviewee([👤 Reviewee])
+    admin([👤 System admin])
+
+    subgraph system["Task review boundary"]
+        direction LR
+        collect([Submit rubric-linked review and evidence])
+        respond([Review completed result])
+        accept([Accept review result])
+        dispute([Dispute review result])
+        govern([Resolve reported dispute and flagged review])
+        advisory([Inspect AI advisory<br/>Partial — external execution conditional])
+    end
+
+    reviewer --- collect
+    reviewee --- respond
+    reviewee --- accept
+    reviewee --- dispute
+    admin --- govern
+    admin --- advisory
+    accept -.->|"«extend»"| respond
+    dispute -.->|"«extend»"| respond
+    advisory -.->|"«extend»"| govern
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class reviewer,reviewee,admin actor
+    class collect,respond,accept,dispute,govern,advisory goal
+    style system fill:transparent,stroke:#D97706,stroke-width:3px

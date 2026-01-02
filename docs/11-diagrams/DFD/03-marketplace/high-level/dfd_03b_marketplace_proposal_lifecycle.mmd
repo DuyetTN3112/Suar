@@ -1,0 +1,19 @@
+%% DFD 03b — Marketplace proposal lifecycle map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 03b1–03b2.
+
+flowchart TB
+    C[External contributor] -->|"proposal and evidence"| P1[[4.2.1 Submit proposal]]
+    C -->|"owned pending proposal"| P2[[4.2.2 Withdraw proposal]]
+    D[(Marketplace task and proposal records)] -->|"task eligibility and existing proposal"| P1
+    D -->|"proposal ownership and status"| P2
+    P1 -->|"pending proposal state"| D
+    P2 -->|"withdrawn proposal state"| D
+    P1 -->|"submission result"| C
+    P2 -->|"withdrawal result"| C
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class C entity
+    class P1,P2 process
+    class D store

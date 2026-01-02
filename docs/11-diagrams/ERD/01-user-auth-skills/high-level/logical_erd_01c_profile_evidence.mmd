@@ -1,0 +1,80 @@
+%% Logical ERD 01c — Governed profile evidence and talent signals
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: current users module schema. Bookmark is shortlist only, not assignment/application.
+
+erDiagram
+    USERS {
+        UUID id PK
+        VARCHAR username UK
+        VARCHAR status
+    }
+    USER_SKILLS {
+        UUID id PK
+        UUID user_id FK
+        UUID skill_id FK
+        UUID proficiency_level_id FK
+        UUID reviewed_level_id FK
+        VARCHAR verified_public_proficiency_code
+        INT evidence_count
+        INT dispute_pending_count
+        BOOLEAN stale_flag
+        TEXT explanation_summary
+    }
+    USER_DOMAIN_EXPERTISE {
+        UUID id PK
+        UUID user_id FK
+        JSONB domain_frequency
+        JSONB problem_category_frequency
+        JSONB tech_stack_frequency
+        JSONB top_skills
+        TIMESTAMPTZ calculated_at
+    }
+    USER_PERFORMANCE_STATS {
+        UUID id PK
+        UUID user_id FK
+        INT total_tasks_completed
+        NUMERIC avg_quality_score
+        NUMERIC on_time_delivery_rate
+        NUMERIC performance_score
+        TIMESTAMPTZ calculated_at
+    }
+    USER_WORK_HISTORY {
+        UUID id PK
+        UUID user_id FK
+        UUID task_id FK
+        UUID task_assignment_id FK
+        UUID project_id FK
+        JSONB skill_scores
+        JSONB evidence_links
+        BOOLEAN is_public
+        BOOLEAN is_featured
+    }
+    USER_PROFILE_SNAPSHOTS {
+        UUID id PK
+        UUID user_id FK
+        INT version
+        JSONB skills_verified
+        JSONB performance_metrics
+        JSONB trust_metrics
+        VARCHAR shareable_slug
+        VARCHAR shareable_token
+        BOOLEAN is_current
+        BOOLEAN is_public
+    }
+    RECRUITER_BOOKMARKS {
+        UUID id PK
+        UUID recruiter_user_id FK
+        UUID talent_user_id FK
+        TEXT notes
+        VARCHAR folder
+        INT rating
+    }
+
+    USERS ||--o{ USER_SKILLS : "has governed skill state"
+    USERS ||--o| USER_DOMAIN_EXPERTISE : "has aggregate"
+    USERS ||--o{ USER_PERFORMANCE_STATS : "has period metrics"
+    USERS ||--o{ USER_WORK_HISTORY : "has verified work"
+    USERS ||--o{ USER_PROFILE_SNAPSHOTS : "publishes versions"
+    USERS ||--o{ RECRUITER_BOOKMARKS : "shortlists talent"
+    USERS ||--o{ RECRUITER_BOOKMARKS : "is shortlisted"

@@ -1,0 +1,40 @@
+%% DFD 01a — Identity and access detail
+%% DFD level: Level 2.
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Repeated E1, E4 and D1 presentation keeps one-directional OAuth/account/session rows readable.
+%% Keep reason: both regions are consecutive stages of one OAuth-to-session pipeline; account output is session-context input.
+%% Balance: refines P1's E1/E4 input and D1/D2 state into authenticated actor context for P6.
+%% Direction: every arrowhead marks the data recipient. Repeated E4/D1 nodes are the same external service/store, not additional boundaries.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    subgraph identity["Authenticate and resolve account"]
+        direction LR
+        U1(["E1<br/>Member / project authority"]) -->|"login request"| P11[["1.1 Authenticate OAuth identity"]]
+        E4I(["E4<br/>same OAuth provider"]) -->|"verified identity callback"| P11
+        P11 -->|"OAuth authorization request"| E4O(["E4<br/>OAuth provider"])
+        P11 -->|"provider identity"| P12[["1.2 Bootstrap/update account"]]
+        D1R[("D1<br/>same identity records")] -->|"existing account and provider identity"| P12
+        P12 -->|"created or updated account identity"| D1W[("D1<br/>Identity records")]
+    end
+
+    subgraph context["Issue session and organization context"]
+        direction LR
+        P13[["1.3 Resolve current org and issue session"]]
+        D2[("D2<br/>Organization membership records")] -->|"approved membership"| P13
+        P13 -->|"session state"| D1S[("D1<br/>Session/security state<br/>same logical store")]
+        P13 -->|"authenticated context"| U2(["E1<br/>same actor"])
+    end
+
+    P12 -->|"active user id and role"| P13
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U1,U2,E4I,E4O entity
+    class P11,P12,P13 process
+    class D1R,D1W,D1S,D2 store
+    style identity fill:#F8FAFC,stroke:#94A3B8
+    style context fill:#F8FAFC,stroke:#94A3B8

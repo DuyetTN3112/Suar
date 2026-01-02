@@ -1,0 +1,33 @@
+%% Architecture 05b — External and configurable integrations
+%% Evidence status: Implemented configuration paths; optional services are labelled.
+%% Report view: focused deployment slice of arch_05_deployment_topology.
+
+flowchart TB
+    App["Suar app container<br/>bounded integration clients"]
+
+    subgraph External["External/configurable services"]
+        direction LR
+        OAuth["Google / GitHub OAuth<br/>identity provider"]
+        ES["Elasticsearch endpoint<br/>ELASTICSEARCH_NODE"]
+        Claw["Clawagent dispute API<br/>CLAWAGENT_API_URL"]
+    end
+
+    App <-->|"OAuth redirect/callback<br/>when credentials are configured"| OAuth
+    App -.->|"optional search client<br/>disabled by default in production"| ES
+    App -.->|"AI dispute trigger only<br/>when invoked and configured"| Claw
+
+    OAuthNote["Authentication only;<br/>Suar still owns authorization"]
+    ESNote["Derived search projection;<br/>PostgreSQL remains authoritative"]
+    ClawNote["Advisory output only;<br/>human resolves the dispute"]
+
+    OAuth -.-> OAuthNote
+    ES -.-> ESNote
+    Claw -.-> ClawNote
+
+    classDef runtime fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef external fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef note fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:1px
+    class App runtime
+    class OAuth,ES,Claw external
+    class OAuthNote,ESNote,ClawNote note
+    style External fill:#FFFBEB,stroke:#D97706,stroke-width:2px,stroke-dasharray:5 4

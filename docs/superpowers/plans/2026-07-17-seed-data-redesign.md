@@ -59,7 +59,7 @@ Modify:
   - Rewrite review strengths/improvements/comments into product-realistic review evidence.
 - `app/seed/demo_data/review_data_seeder.ts`
   - Keep session/skill review creation; leave dossier-specific enrichment to new module.
-- `app/seed/demo_data/mongo_seed.ts`
+- `app/seed/demo_data/operational_event_seeder.ts`
   - Rewrite notification/audit text to match new storyline.
 - `app/seed/demo_data/profile_seed.ts`
   - Ensure profile snapshots/work history reflect new task titles/evidence.
@@ -310,7 +310,7 @@ Expected: still FAIL until copy specs are rewritten in Task 2.
 - Modify: `app/seed/demo_data/task_seeder.ts`
 - Modify: `app/seed/demo_data/review_specs.ts`
 - Modify: `app/seed/demo_data/work_history_specs.ts`
-- Modify: `app/seed/demo_data/mongo_seed.ts`
+- Modify: `app/seed/demo_data/operational_event_seeder.ts`
 
 **Interfaces:**
 - Consumes:

@@ -1,0 +1,45 @@
+%%{init: {"themeVariables": {"fontSize": "34px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 36, "rankSpacing": 62}} }%%
+%% DFD 01c — Review, profile, and advisory
+%% Formal DFD level: Level 1, complementary P0 frame 3 of 4.
+%% Parent process: P0 Suar work-to-credential platform from dfd_00_context.
+%% Evidence status: Implemented; the Clawagent advisory exchange is Partial and remains human-governed.
+%% Balance: refines the completion/review handoff, E1/E2 profile and review outputs, E5 advisory request/callback, and D4 authoritative review/profile state.
+%% Cross-frame handoff: H1 continues the direct P3-to-P5 completion-package and review-handoff flow from frame 01b. H2 continues P5's governed outcome events to P7 in frame 01d. Neither H1 nor H2 is an entity, store, or process.
+%% Direction: every arrowhead marks the recipient of one named data flow. Repeated E5 symbols are the same advisory service.
+
+flowchart LR
+    subgraph inputs[ ]
+        direction TB
+        H1[/"H1<br/>off-page flow from P3"/]
+        E5I["E5<br/>same external service"]
+    end
+
+    P5(("P5<br/>Govern reviews"))
+
+    subgraph outcomes[ ]
+        direction TB
+        E2["E2<br/>External contributor"]
+        E1["E1<br/>Authenticated member"]
+        E5O["E5<br/>Clawagent API"]
+        D4[("D4<br/>Review/profile records")]
+        H2[/"H2<br/>off-page flow to P7"/]
+    end
+
+    H1 -->|"completion package and review handoff"| P5
+    E5I -->|"advisory callback"| P5
+    P5 -->|"review result"| E2
+    P5 -->|"profile result"| E1
+    P5 -->|"evaluation request"| E5O
+    P5 -->|"updated review/profile state"| D4
+    P5 -->|"governed outcome events"| H2
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px,stroke-dasharray:5 3
+    class E1,E2,E5I,E5O entity
+    class P5 process
+    class D4 store
+    class H1,H2 handoff
+    style inputs fill:none,stroke:none
+    style outcomes fill:none,stroke:none

@@ -51,7 +51,7 @@ Mở:
 Mở:
 
 - `../11-diagrams/README.md`
-- `../11-diagrams/sequence-flow-data-user-flows.md`
+- `../11-diagrams/README.md`
 
 ## Điều Người Đọc Phải Biết Ngay
 

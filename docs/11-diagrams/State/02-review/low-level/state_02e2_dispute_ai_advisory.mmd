@@ -1,0 +1,18 @@
+%% State 02e2 — Optional AI advisory loop for a review dispute
+%% Evidence status: Partial external integration; human resolution is implemented.
+%% Updated: 2026-07-27.
+%% Report view: focused slice of state_02e_review_dispute_case.
+
+stateDiagram-v2
+direction TB
+    [*] --> active_dispute : Pending, collecting evidence,<br/>or admin reviewing
+    active_dispute --> ai_reviewing : Admin starts AI<br/>[complete case file]
+    ai_reviewing --> ai_reviewing : Admin requests another evaluation
+    ai_reviewing --> admin_reviewing : Signed callback stores advice
+    admin_reviewing --> resolved : Authorized human resolves
+    resolved --> [*]
+
+    note right of ai_reviewing
+        AI output is advisory only.
+        It cannot resolve the dispute.
+    end note

@@ -1,0 +1,21 @@
+%% Architecture 04b — Dependency health checks
+%% Evidence status: Implemented.
+%% Viewpoint: one health-probe request and status decision.
+
+flowchart LR
+    Probe["Protected health endpoint"]
+    Checks["Disk · heap/RSS · app<br/>PostgreSQL · Redis · Elasticsearch"]
+    Decision{"All required checks healthy?"}
+    Healthy["HTTP 200<br/>isHealthy = true"]
+    Unhealthy["HTTP 503<br/>isHealthy = false"]
+
+    Probe --> Checks --> Decision
+    Decision -->|"Yes"| Healthy
+    Decision -->|"No"| Unhealthy
+
+    classDef input fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef service fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef output fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class Probe input
+    class Checks,Decision service
+    class Healthy,Unhealthy output

@@ -36,7 +36,7 @@ Người đọc không nên phải mở route files trước chỉ để biết 
 - API Landscape And Governance: `./api-landscape-and-governance.md`
 - API Specification: `../06-data/api-specification.md`
 - Security / Access / Audit context cho API: `../07-security/access-control-security-privacy-audit.md`
-- Flow / Sequence / DFD liên quan API behavior: `../11-diagrams/sequence-flow-data-user-flows.md`
+- Flow / Sequence / DFD liên quan API behavior: `../11-diagrams/README.md`
 
 ## Ghi chú
 

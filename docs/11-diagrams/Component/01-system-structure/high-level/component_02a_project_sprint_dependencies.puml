@@ -1,0 +1,33 @@
+@startuml
+' UML Component 02a — Project and sprint dependencies
+' Evidence status: Implemented source modules and public contracts.
+' Updated: 2026-07-27.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+
+component "Projects\nmembership + delivery scope" as Projects
+component "Sprints\nplanning boundary" as Sprints
+component "Organizations\nworkspace governance" as Organizations
+component "Users\nactor identity" as Users
+component "Authorization\npolicy enforcement" as Authorization
+
+Sprints ..> Projects : ProjectPublicApi
+Projects ..> Organizations : OrganizationPublicApi
+Projects ..> Users : UserPublicApi
+Projects ..> Authorization : PermissionChecker
+
+@enduml

@@ -209,12 +209,12 @@ Trong hệ thống hiện tại, lớp này đã có dấu vết thật ở:
 - `sprint_reverse_review_messages`
 - command xác nhận review
 - query/repository đọc review metrics
-- reverse-review reading surfaces
+- Assigner/Environment Project boards với lane/filter/card room
 
 Điều phải hiểu đúng:
 
-- surface đọc reverse review vẫn còn là dấu vết assessment history
-- nhưng flow tạo reverse review mới ở level từng task hiện không còn active như trước
+- assessment history được giữ trên Project board, không qua page đọc reverse review riêng
+- flow tạo reverse review mới ở level từng task hiện không còn active
 - task review board là projection/governance workflow riêng, không thay thế `review_sessions`
 - sprint reverse review board là sprint-close workflow, không phải task-level reverse review cũ đổi tên
 
@@ -234,7 +234,7 @@ Trong hệ thống hiện tại, lớp này đã có dấu vết thật ở:
 - AI dispute callback
 - audit trail
 - flagged review/admin moderation surfaces
-- task review board lanes: `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `done`; admin/AI handling can also persist `ai_reviewing` and `resolved`
+- task review board lanes: `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `ai_reviewing`, `resolved`, `done`
 - sprint reverse review workflow statuses: `awaiting_review`, `in_review`, `awaiting_response`, `disputed`, `reported`, `ai_reviewing`, `resolved`, `done`
 - database workflow tables mới giữ storage/index; relationship, duplicate prevention, transition, quorum, và report permission được validate ở application commands/queries
 

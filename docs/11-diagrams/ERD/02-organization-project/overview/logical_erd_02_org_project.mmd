@@ -1,0 +1,42 @@
+%% Logical ERD 02 — Organization and project overview
+%% Evidence status: Implemented.
+%% Keep reason: entities form one connected organization-to-project relationship graph.
+%% Updated: 2026-07-27.
+%% Report view: compact backbone. Read 02a–02c for membership, sprint delivery, and competency configuration.
+
+erDiagram
+direction LR
+    ORGANIZATIONS {
+        UUID id PK
+        UUID owner_id FK
+        VARCHAR name
+        VARCHAR slug
+    }
+    ORGANIZATION_USERS {
+        UUID organization_id PK, FK
+        UUID user_id PK, FK
+        VARCHAR org_role
+        VARCHAR status
+    }
+    PROJECTS {
+        UUID id PK
+        UUID organization_id FK
+        UUID owner_id FK
+        UUID manager_id FK
+        VARCHAR status
+    }
+    PROJECT_MEMBERS {
+        UUID project_id PK, FK
+        UUID user_id PK, FK
+        VARCHAR project_role
+    }
+    PROJECT_SPRINTS {
+        UUID id PK
+        UUID project_id FK
+        VARCHAR status
+    }
+
+    ORGANIZATIONS ||--o{ ORGANIZATION_USERS : "has membership"
+    ORGANIZATIONS ||--o{ PROJECTS : "owns"
+    PROJECTS ||--o{ PROJECT_MEMBERS : "has membership"
+    PROJECTS ||--o{ PROJECT_SPRINTS : "plans"

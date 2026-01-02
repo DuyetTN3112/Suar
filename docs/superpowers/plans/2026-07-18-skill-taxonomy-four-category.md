@@ -68,9 +68,9 @@ Modify:
 - `start/routes/testing.ts`: test seed category coverage.
 - `tests/helpers/factories/review_skill.ts`: default category.
 - `docs_AI/suar.sql`: documented DB CHECK.
-- `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`: category documentation.
-- `docs/11-diagrams/ERD/physical_inventory_01_user_auth_skills.mmd`: category documentation.
-- `docs/11-diagrams/Class/cls_02b_skill.mmd`: category documentation.
+- `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`: category documentation.
+- `docs/11-diagrams/ERD/01-user-auth-skills/README.md`: category documentation.
+- `docs/11-diagrams/Class/02-task/README.md`: category documentation.
 
 Test:
 

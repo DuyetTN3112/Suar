@@ -1,0 +1,282 @@
+{
+  "meta": {
+    "project": "Suar",
+    "updated": "2026-07-28",
+    "source": "docs/12-evidence/output-target.json",
+    "caseCount": 34
+  },
+  "cases": [
+    {
+      "id": "REALM-01",
+      "layer": "contract",
+      "area": "realm-isolation",
+      "given": "A valid System Admin request to /admin/disputes",
+      "when": "Inertia shared props are built",
+      "then": "realm is system; System role and permissions exist; workspaceAccess, organizations, and projects do not exist"
+    },
+    {
+      "id": "REALM-02",
+      "layer": "contract",
+      "area": "realm-isolation",
+      "given": "A valid User-realm request",
+      "when": "Inertia shared props are built",
+      "then": "realm is user; workspaceAccess exists; system_role, system_permissions, isAdmin, and canSwitchToAdmin do not exist"
+    },
+    {
+      "id": "REALM-03",
+      "layer": "security",
+      "area": "realm-isolation",
+      "given": "A User principal without System Admin authentication",
+      "when": "The principal requests /admin/disputes",
+      "then": "Access is denied and no Admin page data is returned"
+    },
+    {
+      "id": "REALM-04",
+      "layer": "route",
+      "area": "realm-isolation",
+      "given": "The application route inventory",
+      "when": "Admin bridge routes are inspected",
+      "then": "/admin/toggle does not exist"
+    },
+    {
+      "id": "REALM-05",
+      "layer": "component",
+      "area": "realm-isolation",
+      "given": "The User workspace switcher",
+      "when": "It renders",
+      "then": "Personal, allowed Organization Management, and accessible projects may appear; Admin never appears"
+    },
+    {
+      "id": "REALM-06",
+      "layer": "component",
+      "area": "realm-isolation",
+      "given": "The Admin sidebar",
+      "when": "It renders",
+      "then": "No Personal, Organization Management, or Project Workspace switcher is present"
+    },
+    {
+      "id": "ACCESS-01",
+      "layer": "integration",
+      "area": "workspace-access",
+      "given": "An ordinary organization member belongs to one of three organization projects",
+      "when": "Accessible projects are loaded",
+      "then": "Only the one stakeholder/member project is returned"
+    },
+    {
+      "id": "ACCESS-02",
+      "layer": "integration",
+      "area": "workspace-access",
+      "given": "An organization owner/admin",
+      "when": "The organization project portfolio is loaded",
+      "then": "The governance portfolio policy is applied"
+    },
+    {
+      "id": "ACCESS-03",
+      "layer": "unit",
+      "area": "workspace-access",
+      "given": "A current project no longer exists in accessible projects",
+      "when": "Shared props are built",
+      "then": "The stale current project is cleared"
+    },
+    {
+      "id": "ACCESS-04",
+      "layer": "component",
+      "area": "workspace-access",
+      "given": "workspaceAccess.organization.canEnterManagement is false",
+      "when": "The switcher renders",
+      "then": "Organization Management is absent"
+    },
+    {
+      "id": "ACCESS-05",
+      "layer": "component",
+      "area": "workspace-access",
+      "given": "A project is selected in the Organization portfolio",
+      "when": "The project action is activated",
+      "then": "Navigation enters /projects/:projectId rather than an /org project-detail copy"
+    },
+    {
+      "id": "NAV-01",
+      "layer": "unit",
+      "area": "project-navigation",
+      "given": "Project navigation sections",
+      "when": "Board items are counted",
+      "then": "Exactly four entries exist with canonical task, task-review, assigner-review, and environment-review routes"
+    },
+    {
+      "id": "NAV-02",
+      "layer": "unit",
+      "area": "organization-navigation",
+      "given": "Organization navigation",
+      "when": "Routes are enumerated",
+      "then": "No organization task or review board routes are present"
+    },
+    {
+      "id": "NAV-03",
+      "layer": "integration",
+      "area": "project-navigation",
+      "given": "A user switches from project A to project B while on /reviews/environment",
+      "when": "Project switch completes",
+      "then": "The user lands on project B /reviews/environment"
+    },
+    {
+      "id": "TASK-01",
+      "layer": "component",
+      "area": "project-task-board",
+      "given": "The canonical Project Task route",
+      "when": "The page renders",
+      "then": "A Kanban board renders and no list-mode surface renders"
+    },
+    {
+      "id": "TASK-02",
+      "layer": "component",
+      "area": "project-task-board",
+      "given": "?create=1 and create permission",
+      "when": "The Task board loads",
+      "then": "The create modal opens on the board"
+    },
+    {
+      "id": "TASK-03",
+      "layer": "component",
+      "area": "project-task-board",
+      "given": "?task_id=:taskId for an in-scope task",
+      "when": "The Task board loads",
+      "then": "The task card room opens on the board"
+    },
+    {
+      "id": "TASK-04",
+      "layer": "integration",
+      "area": "done-to-review",
+      "given": "A task has valid completion evidence and the actor may move it",
+      "when": "The task reaches a done-category status",
+      "then": "The task status and one awaiting_review workflow commit atomically"
+    },
+    {
+      "id": "TASK-05",
+      "layer": "integration",
+      "area": "done-to-review",
+      "given": "The Done event is retried",
+      "when": "Completion processing runs again",
+      "then": "The existing workflow is reused and no duplicate is created"
+    },
+    {
+      "id": "TASK-06",
+      "layer": "integration",
+      "area": "done-to-review",
+      "given": "A project contains a newly Done task",
+      "when": "The Task Review board query runs",
+      "then": "The task appears in awaiting_review"
+    },
+    {
+      "id": "TASK-07",
+      "layer": "route",
+      "area": "project-task-board",
+      "given": "A legacy task create, detail, edit, work-task, or Organization task-detail URL",
+      "when": "The route is requested",
+      "then": "It redirects into the matching Project Task board modal or card room and no full-page task UI renders"
+    },
+    {
+      "id": "REVIEW-01",
+      "layer": "component",
+      "area": "task-review-board",
+      "given": "Cards exist in every task-review status",
+      "when": "The board renders",
+      "then": "All eight lanes render and every card is placed in its status lane"
+    },
+    {
+      "id": "REVIEW-02",
+      "layer": "component",
+      "area": "task-review-board",
+      "given": "?focus=waiting_on_me",
+      "when": "The board renders",
+      "then": "The board is filtered without rendering a separate inbox"
+    },
+    {
+      "id": "REVIEW-03",
+      "layer": "component",
+      "area": "task-review-board",
+      "given": "?task_id=:taskId",
+      "when": "The board renders",
+      "then": "The review card room opens without selecting another card by default"
+    },
+    {
+      "id": "REVERSE-01",
+      "layer": "component",
+      "area": "assigner-environment-boards",
+      "given": "Assigner and environment board routes",
+      "when": "They render",
+      "then": "Each route renders the matching review type on the same shared board component"
+    },
+    {
+      "id": "REVERSE-02",
+      "layer": "security",
+      "area": "assigner-environment-boards",
+      "given": "Two project participants with different workflow involvement",
+      "when": "They load the same board URL",
+      "then": "Each sees only actor-scoped cards"
+    },
+    {
+      "id": "REVERSE-03",
+      "layer": "route",
+      "area": "assigner-environment-boards",
+      "given": "A retired reverse-review history, inbox, or Organization review URL",
+      "when": "The route inventory is inspected",
+      "then": "No retired UI route is registered"
+    },
+    {
+      "id": "REVERSE-04",
+      "layer": "route",
+      "area": "assigner-environment-boards",
+      "given": "The retired reverse-review history GET APIs",
+      "when": "Legacy, v1 User, and Organization route inventory is inspected",
+      "then": "No reverse-review history GET API is registered"
+    },
+    {
+      "id": "ADMIN-01",
+      "layer": "component",
+      "area": "system-dispute-board",
+      "given": "System dispute cases in every status",
+      "when": "/admin/disputes renders",
+      "then": "All eight System lanes render and each case is placed correctly"
+    },
+    {
+      "id": "ADMIN-02",
+      "layer": "component",
+      "area": "system-dispute-board",
+      "given": "A dispute card",
+      "when": "The card is activated",
+      "then": "It opens /admin/disputes/:disputeId"
+    },
+    {
+      "id": "ADMIN-03",
+      "layer": "route",
+      "area": "system-dispute-board",
+      "given": "/admin/disputes/ai-operator",
+      "when": "The legacy URL is requested",
+      "then": "It redirects to /admin/disputes?focus=ai"
+    },
+    {
+      "id": "ADMIN-04",
+      "layer": "route",
+      "area": "system-dispute-board",
+      "given": "/admin/reverse-reviews and /api/admin/reverse-reviews",
+      "when": "The route inventory is inspected",
+      "then": "Neither route is registered"
+    },
+    {
+      "id": "ADMIN-05",
+      "layer": "security",
+      "area": "system-dispute-board",
+      "given": "A System Admin adds a dispute comment",
+      "when": "The decision room submits the comment",
+      "then": "It uses /api/admin/reviews/disputes/:disputeId/comments and never a User dispute endpoint"
+    },
+    {
+      "id": "ADMIN-06",
+      "layer": "integration",
+      "area": "system-dispute-board",
+      "given": "A System Admin resolves a sprint review, sprint reverse, or task review workflow source",
+      "when": "Resolution completes",
+      "then": "The transaction commits before checkpoint logging and the request completes without a connection-lock timeout"
+    }
+  ]
+}

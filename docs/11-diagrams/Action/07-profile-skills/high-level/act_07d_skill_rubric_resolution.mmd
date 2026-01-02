@@ -1,0 +1,29 @@
+%% Activity 07d — Resolve active skill rubric
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Input["Skill id, code, name, or alias"] --> Resolve{"Active skill and<br/>published rubric exist?"}
+        Resolve -->|No| Missing["Return not-found result"] --> EndNo([End])
+        Resolve -->|Yes| ToScale((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromResolve((A)) --> Scale["Load active L0–L14<br/>proficiency scale"] --> Join["Join rubric descriptors<br/>to canonical levels"] --> Output["Return current version,<br/>criteria and descriptors"] --> End([End])
+    end
+    ToScale ~~~ FromResolve
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef error fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,EndNo,End startEnd
+    class Input,Scale,Join,Output action
+    class Resolve decision
+    class Missing error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToScale,FromResolve connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

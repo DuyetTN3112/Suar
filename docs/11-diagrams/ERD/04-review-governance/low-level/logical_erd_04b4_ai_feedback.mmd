@@ -1,0 +1,24 @@
+%% Logical ERD 04b4 — AI advisory to human feedback
+%% Evidence status: Implemented; external advisory execution is Partial.
+%% Scope: one readable FK relationship from advisory evaluation to administrator feedback.
+%% feedback.dispute_id targets REVIEW_DISPUTES.id in logical_erd_04b1 and is shown as an explicit out-of-slice FK note.
+
+erDiagram
+direction TB
+    AI_DISPUTE_EVALUATIONS {
+        UUID id PK
+        UUID case_file_id FK "FK -> REVIEW_DISPUTE_CASE_FILES.id (see logical_erd_04b3)"
+        VARCHAR status
+        VARCHAR recommendation
+        NUMERIC confidence_score
+    }
+    AI_DISPUTE_FEEDBACK {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id (see logical_erd_04b1)"
+        UUID ai_evaluation_id FK "FK -> AI_DISPUTE_EVALUATIONS.id"
+        UUID admin_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR final_decision
+        BOOLEAN ai_was_helpful
+    }
+
+    AI_DISPUTE_EVALUATIONS ||--o{ AI_DISPUTE_FEEDBACK : "AI_DISPUTE_FEEDBACK.ai_evaluation_id → AI_DISPUTE_EVALUATIONS.id"

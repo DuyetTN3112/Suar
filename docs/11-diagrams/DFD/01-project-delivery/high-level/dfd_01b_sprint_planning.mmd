@@ -1,0 +1,23 @@
+%% DFD 01b — Sprint planning detail
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+%% Level 2 overview. Level 3 children isolate plan, board read, and task movement.
+
+flowchart TB
+    OWNER[Project owner or manager] -->|"sprint definition"| P1[[2.3.1 Maintain sprint plan]]
+    P1 -->|"sprint record"| D1[(Project sprints)]
+    MEMBER[Project member] -->|"selected sprint/filter"| P2[[2.3.2 Build sprint board]]
+    D1 -->|"selected sprint"| P2
+    D2[(Tasks and workflow status)] -->|"categorized project tasks"| P2
+    P2 -->|"backlog, sprint tasks, counts"| MEMBER
+    OWNER -->|"task and target sprint"| P3[[2.3.3 Move task]]
+    P3 -->|"updated sprint association"| D2
+    P3 -->|"movement result"| OWNER
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class OWNER,MEMBER entity
+    class P1,P2,P3 process
+    class D1,D2 store

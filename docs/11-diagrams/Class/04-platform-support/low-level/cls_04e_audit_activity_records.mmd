@@ -1,0 +1,67 @@
+%% Class Diagram 04e — Audit evidence and retired activity archive
+%% Evidence status: Implemented.
+%% Updated 2026-07-29 (code-verified).
+%% Sources: database/schema.ts and 20260729070000_canonicalize_auth_session_audit_evidence.ts.
+
+classDiagram
+    direction LR
+
+    class User {
+        <<Lucid Model>>
+        +UUID id PK
+    }
+    class AuthSessionEventReceipt {
+        <<DB row>>
+        +UUID event_id PK
+        +String payload_fingerprint
+        +Number event_version
+        +UUID user_id
+        +String action
+        +DateTime occurred_at
+    }
+    class AuditEvent {
+        <<canonical evidence row>>
+        +UUID id PK
+        +UUID actor_user_id
+        +UUID actor_org_id
+        +String event_name
+        +String request_id
+        +String trace_id
+        +Number schema_version
+        +String event_hash
+        +String prev_hash
+        +DateTime occurred_at
+        +DateTime source_occurred_at
+    }
+    class AuditEventScope {
+        <<DB row>>
+        +UUID id PK
+        +UUID event_id FK
+        +String surface
+        +UUID user_id
+        +UUID organization_id
+        +DateTime created_at
+    }
+    class RetiredUserActivityEvent {
+        <<read-only archive row>>
+        +UUID id PK
+        +UUID user_id FK
+        +String action_type
+        +JSONB action_data
+        +String related_entity_type
+        +UUID related_entity_id
+        +DateTime created_at
+    }
+    class SystemAuditDetailSheet {
+        <<Inertia UI Component>>
+        +audit_event: AuditEvent
+        +audit_scopes: AuditEventScope[]
+        +open: boolean
+    }
+
+    User "0..1" --> "*" AuthSessionEventReceipt : session actor
+    User "0..1" --> "*" AuditEvent : may act
+    AuditEvent "1" --> "*" AuditEventScope : projects visibility
+    AuthSessionEventReceipt ..> AuditEvent : idempotent event identity
+    RetiredUserActivityEvent ..> AuditEvent : historical migration source only
+    SystemAuditDetailSheet --> AuditEvent : displays canonical evidence

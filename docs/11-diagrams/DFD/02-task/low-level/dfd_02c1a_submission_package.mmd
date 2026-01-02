@@ -1,0 +1,16 @@
+%% DFD 02c1a — Submission package maintenance (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    A[Assignee] -->|"summary, deliverables, implementation notes"| P[[3.3.1.1 Save submission package]]
+    D1[(Tasks and assignments)] -->|"task status, ownership, assignment"| P
+    D2[(Task submissions)] -->|"current package and lock state"| P
+    P -->|"draft or submitted package"| D2
+    P -->|"package result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2 store

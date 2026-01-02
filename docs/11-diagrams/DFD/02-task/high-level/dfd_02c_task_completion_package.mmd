@@ -1,0 +1,17 @@
+%% DFD 02c — Task completion map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 02c1–02c2.
+
+flowchart TB
+    A[Assignee] -->|"completion package and evidence"| P1[[3.3.1 Assemble submission]]
+    P1 -->|"submission package"| D[(Completion and review records)]
+    D -->|"current submission and task state"| P2[[3.3.2 Lock and hand off review]]
+    P2 -->|"review session and assignment state"| D
+    P1 -->|"submission result"| A
+    P2 -->|"review handoff result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1,P2 process
+    class D store

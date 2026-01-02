@@ -1,0 +1,30 @@
+%% User Flow 07a — Organization join-request resolution
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: organization owner/admin.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Receive pending join request]) --> Members["Open membership area"] --> Inspect["Inspect requester and<br/>membership state"] --> Decide{"Approve request?"}
+        Decide -->|Yes| ToApprove((A))
+        Decide -->|No| ToReject((B))
+    end
+    subgraph row2[" "]
+        direction LR
+        FromApprove((A)) --> Role["Choose member role"] --> Approve["Approve membership"] --> Notify["See refreshed member list;<br/>requester notified"] --> End([Decision complete])
+        FromReject((B)) --> Reject["Reject request"] --> Notify
+    end
+    ToApprove ~~~ FromApprove
+    ToReject ~~~ FromReject
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End terminal
+    class Members,Inspect,Role,Approve,Reject,Notify action
+    class Decide decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToApprove,FromApprove,ToReject,FromReject connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

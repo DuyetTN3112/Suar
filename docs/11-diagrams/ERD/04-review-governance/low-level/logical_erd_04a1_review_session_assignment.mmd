@@ -1,0 +1,40 @@
+%% Logical ERD 04a1 — Review session, reviewer assignment, and self-assessment
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+%% Report view: focused relationship slice; only keys and lifecycle fields are shown.
+%% FK denotes a logical application reference validated by the responsible command,
+%% not a claim that the database schema declares a physical SQL FK constraint.
+
+erDiagram
+direction LR
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id (outside slice)"
+        UUID assignee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR assignment_status
+    }
+    REVIEW_SESSIONS {
+        UUID id PK
+        UUID task_assignment_id FK "FK -> TASK_ASSIGNMENTS.id"
+        UUID reviewee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+        TIMESTAMPTZ deadline
+    }
+    REVIEW_SESSION_REVIEWER_ASSIGNMENTS {
+        UUID id PK
+        UUID review_session_id FK "FK -> REVIEW_SESSIONS.id"
+        UUID reviewer_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR reviewer_type
+        VARCHAR status
+    }
+    TASK_SELF_ASSESSMENTS {
+        UUID id PK
+        UUID task_assignment_id FK "FK -> TASK_ASSIGNMENTS.id"
+        UUID user_id FK "FK -> USERS.id (outside slice)"
+        NUMERIC confidence_level
+        TIMESTAMPTZ submitted_at
+    }
+
+    TASK_ASSIGNMENTS ||--o| REVIEW_SESSIONS : "opens review"
+    REVIEW_SESSIONS ||--o{ REVIEW_SESSION_REVIEWER_ASSIGNMENTS : "assigns reviewer"
+    TASK_ASSIGNMENTS ||--o| TASK_SELF_ASSESSMENTS : "stores reflection"

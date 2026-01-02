@@ -1,0 +1,29 @@
+%%{init: {"themeVariables": {"fontSize": "26px"}, "sequence": {"actorFontSize": "26px", "messageFontSize": "24px", "noteFontSize": "22px", "wrap": true, "wrapPadding": 8, "diagramMarginX": 12, "diagramMarginY": 12}} }%%
+%% Sequence 02e — Task submission to review handoff
+%% Evidence status: Implemented.
+%% Parent use case: UC 02b “Submit completion package and enter review”.
+%% Design-class trace: cls_02l_task_submission_runtime_design defines the concrete controller, command, transaction, governance, and fan-out responsibilities summarised by this interaction.
+%% Scenario: an assignee submits one completion package with evidence.
+%% Scope: one successful transaction, its durable outputs, and its review handoff. The abbreviated lifeline labels keep the sequence at one interaction viewpoint; the preceding design-class diagram names the concrete collaborators.
+
+sequenceDiagram
+    autonumber
+    actor A as Assignee
+    participant C as «boundary» Submission API
+    participant K as «control» Submission command
+    participant DB as «store» PostgreSQL transaction
+    participant R as «outbound» Review + delivery coordinator
+
+    A->>C: POST submission package
+    C->>K: execute(package)
+    activate K
+    K->>DB: Lock task, assignment, and submission
+    DB-->>K: Current records
+    K->>K: Validate actor, package, and policy
+    K->>DB: Persist submission, evidence, and snapshot
+    K->>R: Create review handoff and stage audit/fan-out
+    R->>DB: Persist handoff and durable delivery work
+    DB-->>K: Commit authoritative records
+    K-->>C: submissionId and reviewSessionId
+    deactivate K
+    C-->>A: 201 submission accepted

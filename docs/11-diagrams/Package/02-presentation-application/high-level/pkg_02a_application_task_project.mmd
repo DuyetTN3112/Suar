@@ -1,0 +1,58 @@
+%% Package 02a — Tasks, Projects, and Sprints after boundary reset
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+%% Scope: consumer-owned ports and outer composition direction.
+
+flowchart TB
+    subgraph tasks["app/modules/tasks"]
+        T_ENTRY["controllers/listeners"]
+        T_ACTIONS["actions<br/>Commands · Queries · 5 narrow collaborators"]
+        T_PORTS["actions/ports/outbound"]
+        T_DOMAIN["domain policies/rules"]
+        T_INFRA["infra repositories/adapters"]
+        T_ENTRY -->|"one intent"| T_ACTIONS
+        T_ACTIONS --> T_DOMAIN
+        T_ACTIONS --> T_PORTS
+        T_PORTS --> T_INFRA
+    end
+
+    subgraph projects["app/modules/projects"]
+        P_ENTRY["controllers"]
+        P_ACTIONS["actions<br/>Commands · Queries"]
+        P_PORTS["actions/ports/outbound"]
+        P_DOMAIN["domain policies/rules"]
+        P_INFRA["infra repositories/adapters"]
+        P_ENTRY -->|"one intent"| P_ACTIONS
+        P_ACTIONS --> P_DOMAIN
+        P_ACTIONS --> P_PORTS
+        P_PORTS --> P_INFRA
+    end
+
+    subgraph sprints["app/modules/sprints"]
+        S_ACTIONS["actions<br/>Commands · Queries"]
+        S_PORTS["actions/ports/outbound"]
+        S_DOMAIN["domain rules"]
+        S_ACTIONS --> S_DOMAIN
+        S_ACTIONS --> S_PORTS
+    end
+
+    Composition["app/composition<br/>constructs use cases + bridges ports"]
+    Stable["Provider public_contracts<br/>stable facts/events only"]
+
+    Composition -.-> T_ACTIONS
+    Composition -.-> P_ACTIONS
+    Composition -.-> S_ACTIONS
+    T_PORTS -->|"outer adapter"| Stable
+    P_PORTS -->|"outer adapter"| Stable
+    S_PORTS -->|"outer adapter"| Stable
+
+    classDef entry fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef boundary fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class T_ENTRY,P_ENTRY entry
+    class T_ACTIONS,T_PORTS,P_ACTIONS,P_PORTS,S_ACTIONS,S_PORTS app
+    class T_DOMAIN,P_DOMAIN,S_DOMAIN domain
+    class T_INFRA,P_INFRA infra
+    class Composition,Stable boundary

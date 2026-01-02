@@ -1,0 +1,20 @@
+%% Architecture 03b — Elasticsearch projection synchronization
+%% Evidence status: Implemented.
+%% Viewpoint: one event-driven projection story.
+
+flowchart TB
+    Events["User/profile · skill/skill-score<br/>organization · project · task events"]
+    Listener["SearchReindexListener"]
+    Builder["Projection services<br/>document builders"]
+    PG[("PostgreSQL<br/>projection source records")]
+    ES[("Elasticsearch 8.15<br/>tasks · projects · organizations<br/>users · talents · skills")]
+
+    Events --> Listener --> Builder --> ES
+    PG -->|"hydrate projection documents"| Builder
+
+    classDef event fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef app fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class Events event
+    class Listener,Builder app
+    class PG,ES store

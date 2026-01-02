@@ -1,0 +1,31 @@
+%% User Flow 04 — Assignee task delivery
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: active task assignee.
+
+flowchart TB
+    subgraph work[" "]
+        direction LR
+        Start([Open project task workspace]) --> View["Choose board, timeline, or list"] --> Task["Open assigned task"] --> Begin["Move task into progress"] --> Work["Maintain work, time,<br/>comments, attachments, and evidence"] --> ToFinish((A))
+    end
+
+    subgraph finish[" "]
+        direction LR
+        FromWork((A)) --> Ready{"Completion package ready?"} -->|No| Continue([Continue work until ready])
+        Ready -->|Yes| Submit["Submit completion package"] --> Review["Track governed review"] --> Outcome{"Reviewee response?"}
+        Outcome -->|Dispute| Governed["Continue in governed<br/>response/dispute journey"] --> EndGoverned([Review governance continues])
+        Outcome -->|Accept| Done["See task completed"] --> End([Delivery complete])
+    end
+
+    ToFinish ~~~ FromWork
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Continue,EndGoverned,End terminal
+    class View,Task,Begin,Work,Submit,Review,Governed,Done action
+    class Ready,Outcome decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToFinish,FromWork connector
+    style work fill:transparent,stroke:transparent
+    style finish fill:transparent,stroke:transparent

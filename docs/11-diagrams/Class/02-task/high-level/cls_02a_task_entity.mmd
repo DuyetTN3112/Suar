@@ -1,0 +1,72 @@
+%% Class Diagram: Task Aggregate Detail
+%% Evidence status: Implemented.
+%% Updated 2026-06-26 (verified).
+%% Scope: Explicit ORM-to-domain mapping boundary; Task model and TaskEntity only.
+
+classDiagram
+direction LR
+    class Task {
+        <<Lucid Model>>
+        +UUID id
+        +String title
+        +String description
+        +String status
+        +UUID task_status_id
+        +String label
+        +String priority
+        +String difficulty
+        +UUID assigned_to
+        +UUID project_id
+        +String task_visibility
+        +DateTime application_deadline
+        +Integer external_applications_count
+        +DateTime due_date
+        +UUID parent_task_id
+        +Decimal estimated_time
+        +Decimal actual_time
+        +UUID organization_id
+        +Integer sort_order
+        +DateTime deleted_at
+    }
+
+    class TaskEntity {
+        <<Domain Entity>>
+        +String id
+        +String title
+        +String description
+        +TaskStatus status
+        +String taskStatusId
+        +TaskLabel label
+        +TaskPriority priority
+        +TaskDifficulty difficulty
+        +String assignedTo
+        +String creatorId
+        +String projectId
+        +TaskVisibility taskVisibility
+        +Date applicationDeadline
+        +Number externalApplicationsCount
+        +Date dueDate
+        +String parentTaskId
+        +Number estimatedTime
+        +Number actualTime
+        +String organizationId
+        +Number sortOrder
+        +Date deletedAt
+        +isOverdue
+        +isAssigned
+        +isCompleted
+        +isCancelled
+        +isDeleted
+        +isExternal
+        +isSubtask
+        +belongsToProject
+        +isApplicationOpen
+        +timeEfficiency
+    }
+
+    Task --> TaskEntity : mapped to domain
+
+    note for Task "task_status_id is the workflow source-of-truth.
+    status field is legacy compatibility mirror."
+    note for TaskEntity "Pure domain entity.
+    No framework imports."

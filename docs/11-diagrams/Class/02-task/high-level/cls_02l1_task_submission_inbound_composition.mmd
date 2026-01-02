@@ -1,0 +1,28 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 02l1 — inbound task-submission composition
+%% Evidence status: Implemented.
+%% Parent goal: UC 02b “Submit completion package and enter review”.
+%% Question answered: How does one HTTP submission intent become its use-case owner?
+%% Handoff: SubmitTaskSubmissionCommand is repeated in 02l2, which shows the command's
+%% transaction, governance, and notification collaborators. The duplicate is intentional:
+%% it is the shared responsibility, not a second command instance.
+%% Scope: boundary construction only; persistence and evidence records remain cls_02g and logical_erd_03b.
+
+classDiagram
+    direction TB
+
+    class TaskSubmissionController {
+        <<boundary>>
+        +submit(ctx: HttpContext) Promise~void~
+    }
+    class TaskCompletionApplicationFactory {
+        <<inbound factory>>
+        +makeSubmitSubmission(context: TaskActionContext) SubmitTaskSubmissionCommand
+    }
+    class SubmitTaskSubmissionCommand {
+        <<control / use-case owner>>
+        +execute(dto: SubmitTaskSubmissionDTO) Promise~TaskSubmissionResult~
+    }
+
+    TaskSubmissionController --> TaskCompletionApplicationFactory : supplies HTTP context
+    TaskCompletionApplicationFactory --> SubmitTaskSubmissionCommand : constructs authorised intent

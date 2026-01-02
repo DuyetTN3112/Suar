@@ -1,0 +1,31 @@
+%% Use Case 01 — Identity and organization overview
+%% Evidence status: Implemented.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Updated: 2026-07-27.
+%% Detail: uc_01a account lifecycle, uc_01b organization membership.
+
+flowchart TB
+    user([👤 User])
+    orgAdmin([👤 Organization owner/admin])
+    systemAdmin([👤 System admin])
+
+    subgraph system["SUAR identity and organization boundary"]
+        direction LR
+        authenticate([Authenticate with OAuth])
+        selfService([Manage profile, settings, and notifications])
+        membership([Create, join, and switch organization])
+        governOrg([Govern membership and organization roles])
+        governPlatform([Govern platform users])
+    end
+
+    user --- authenticate
+    user --- selfService
+    user --- membership
+    orgAdmin --- governOrg
+    systemAdmin --- governPlatform
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class user,orgAdmin,systemAdmin actor
+    class authenticate,selfService,membership,governOrg,governPlatform goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

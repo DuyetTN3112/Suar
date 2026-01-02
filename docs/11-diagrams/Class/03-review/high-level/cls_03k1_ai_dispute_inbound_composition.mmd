@@ -1,0 +1,26 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 03k1 — AI-advisory inbound composition
+%% Evidence status: Partial. The boundary/factory/command construction is implemented; external advisory execution is configurable.
+%% Parent goal: UC 03b “Inspect AI advisory”, extending governed dispute resolution.
+%% Question answered: How does one administrator HTTP request become the authorised AI-evaluation command?
+%% Handoff: StartAiDisputeEvaluationCommand is repeated in 03k2 and 03k3 as the shared use-case owner.
+%% Scope: inbound construction only; case-file data remains cls_03f and logical_erd_04b.
+
+classDiagram
+    direction TB
+
+    class StartAiDisputeEvaluationController {
+        <<boundary>>
+        +handle(ctx: HttpContext) Promise~unknown~
+    }
+    class ReviewActionFactory {
+        <<inbound factory>>
+        +makeStartAiDisputeEvaluationCommand(context: ReviewActionContext) StartAiDisputeEvaluationCommand
+    }
+    class StartAiDisputeEvaluationCommand {
+        <<control / use-case owner>>
+        +execute(dto: StartAiDisputeEvaluationDTO) Promise~AiDisputeEvaluationResult~
+    }
+
+    StartAiDisputeEvaluationController --> ReviewActionFactory : supplies HTTP context
+    ReviewActionFactory --> StartAiDisputeEvaluationCommand : constructs authorised intent

@@ -95,17 +95,17 @@ Không xóa tự động trong pass này vì đây là quyết định repo hygi
 | Mô hình 6 lớp | KB v5 EN, KB v4 VI | `docs/01-business/capability-model-and-product-positioning.md` | absorbed |
 | Từ vựng skill / competency / evidence / confidence | KB v5 EN, KB v4 VI | `docs/01-business/capability-model-and-product-positioning.md` | absorbed |
 | Vì sao task không phải đích cuối | KB v5 EN, KB v4 VI | `docs/01-business/capability-model-and-product-positioning.md`, `docs/01-business/brd-prd-scope.md` | absorbed |
-| Task Contract / task clarity / fair assessment | KB v5 EN, KB v4 VI, Capability v6 VI | `docs/01-business/feature-specification.md`, `docs/01-business/features/task_workflow_and_submission.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/Action/act_01_task_management_overview.mmd` | absorbed as task context fields/rules, not standalone artifact |
+| Task Contract / task clarity / fair assessment | KB v5 EN, KB v4 VI, Capability v6 VI | `docs/01-business/feature-specification.md`, `docs/01-business/features/task_workflow_and_submission.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/Action/01-task-management/README.md` | absorbed as task context fields/rules, not standalone artifact |
 | Profile pipeline, trust, talent sourcing, matching | KB v5 EN, Capability v6 VI | `docs/01-business/features/profile_pipeline_and_marketplace.md`, `docs/06-data/metric-dashboard-report-analysis.md` | absorbed |
 | Cách hiểu `L0-L14` không phải score tuyệt đối | Capability v6 VI, KB v5 EN | `docs/01-business/capability-model-and-product-positioning.md`, `docs/10-project-management/risk-log.md` | absorbed |
 | `claim` vs `verified`, `level` vs `confidence`, `capability` vs `trust` | Capability v6 VI | `docs/01-business/capability-model-and-product-positioning.md` | absorbed |
 | Roadmap signal từ evolution của repo | KB v5 EN | `docs/10-project-management/project-plan-roadmap-risk-change-minutes.md`, `docs/10-project-management/product-roadmap-artifact.md` | absorbed |
 | Governance/change/risk context | KB v5 EN | `docs/10-project-management/*` liên quan | absorbed |
 | Diagram reading order và level guidance | user objective + docs refactor | `docs/11-diagrams/README.md`, `docs/03-architecture/architecture-diagram-catalog.md` | absorbed |
-| Task review workflow board | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/State/state_02b_task_review_workflow.mmd` | absorbed |
-| Sprint review package + sprint close gate | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/State/state_08b_project_sprint_review.mmd` | absorbed |
-| Sprint reverse review board | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/11-diagrams/State/state_02c_sprint_reverse_review_workflow.mmd` | absorbed |
-| Review workflow storage tables | migration/runtime code | `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`, `docs/11-diagrams/ERD/physical_inventory_04_review_messaging.mmd` | absorbed |
+| Task review workflow board | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/State/02-review/high-level/state_02b_task_review_workflow.mmd` | absorbed |
+| Sprint review package + sprint close gate | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/State/08-project/high-level/state_08b_project_sprint_review.mmd` | absorbed |
+| Sprint reverse review board | specs/plans mới + runtime code | `docs/01-business/features/review_dispute_and_governance.md`, `docs/11-diagrams/State/02-review/high-level/state_02c_sprint_reverse_review_workflow.mmd` | absorbed |
+| Review workflow storage tables | migration/runtime code | `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/04-review-governance/README.md` | absorbed |
 | Current frontend/workspace split | repo structure + routes + Inertia pages | `README.md`, `docs/03-architecture/architecture-overview.md`, `docs/12-evidence/workstream-status-audit.md` | absorbed |
 | Org talent directory/bookmarks UI | KB marketplace/talent narrative + runtime code | `docs/01-business/features/search_talent_discovery_and_bookmarks.md`, `docs/01-business/features/profile_pipeline_and_marketplace.md`, `docs/12-evidence/workstream-status-audit.md` | absorbed |
 | Diagram and testing architecture | KB v5 EN late update | `docs/11-diagrams/README.md`, `docs/12-evidence/diagram-coverage-matrix.md`, `docs/08-testing/README.md`, `docs/08-testing/test-case-matrix.md`, `docs/08-testing/behavior-matrices/*` | absorbed-current with layer caveats |
@@ -122,8 +122,8 @@ Không xóa tự động trong pass này vì đây là quyết định repo hygi
 | Profile aggregation, confidence, trust | Kept as mental model; no simple average or one-number truth | `docs/01-business/capability-model-and-product-positioning.md`, `docs/06-data/metric-dashboard-report-analysis.md` | absorbed-current with boundary |
 | Growth trajectory, decay, skill graph | Valuable product direction, but not proven as current runtime | `docs/10-project-management/product-roadmap-artifact.md`, `docs/10-project-management/risk-log.md` | absorbed-as-roadmap |
 | Marketplace, talent directory, bookmarks, staffing | Org-scoped talent discovery and shortlist now exist in frontend and backend | `docs/01-business/features/search_talent_discovery_and_bookmarks.md`, `docs/01-business/features/profile_pipeline_and_marketplace.md`, `docs/12-evidence/workstream-status-audit.md` | absorbed-current |
-| Review dispute, AI governance, reverse review | Traditional review/dispute remains; task-level reverse create is deprecated; sprint-close flow is current | `docs/01-business/features/review_dispute_and_governance.md`, `docs/11-diagrams/State/*review*.mmd` | absorbed-current with stale claims rejected |
-| Sprint planning and Sprint Goal | Sprint is now a project workspace planning boundary, not only a review artifact | `docs/01-business/features/organization_and_project_workspace.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/*02*`, `docs/11-diagrams/Class/cls_01b_org_project_core.mmd` | absorbed-current |
+| Review dispute, AI governance, reverse review | Traditional review/dispute remains; task-level reverse create is deprecated; sprint-close flow is current | `docs/01-business/features/review_dispute_and_governance.md`, `docs/11-diagrams/State/*/{overview,high-level,low-level}/*review*.mmd` | absorbed-current with stale claims rejected |
+| Sprint planning and Sprint Goal | Sprint is now a project workspace planning boundary, not only a review artifact | `docs/01-business/features/organization_and_project_workspace.md`, `docs/06-data/database-design-erd-data-dictionary.md`, `docs/11-diagrams/ERD/*/{overview,high-level,low-level}/*02*`, `docs/11-diagrams/Class/01-core/high-level/cls_01b_org_project_core.mmd` | absorbed-current |
 | Anti-gaming, anomaly, admin governance | Kept only where commands/routes/tests exist or as risk direction | `docs/07-security/access-control-security-privacy-audit.md`, `docs/10-project-management/risk-log.md` | partial-current |
 | Frontend workspace split | Current truth is `inertia/apps/{user,org,admin}`, not old flat `inertia/pages` | `README.md`, `docs/04-design/wireframe-prototype-inventory.md`, `docs/12-evidence/source-register.md` | absorbed-current |
 | Diagrams and test strategy | Diagram pack and testing matrices are official docs now | `docs/11-diagrams/README.md`, `docs/08-testing/*`, `docs/12-evidence/document-coverage-matrix.md` | absorbed-current |
@@ -146,22 +146,22 @@ Không promote nguyên các priority table P0-P3/P4 từ legacy docs thành road
 
 Đợt audit này không chỉ đọc backend.
 
-Frontend surfaces đã đối chiếu:
+Frontend surfaces hiện hành đã đối chiếu:
 
 - org talent directory: `inertia/apps/org/modules/talents/index.svelte`, `show.svelte`
 - org bookmarks: `inertia/apps/org/modules/bookmarks/index.svelte`
-- user/org task review board: `inertia/apps/user/modules/reviews/task-board.svelte`, `inertia/apps/org/modules/reviews/task-board.svelte`
-- user/org sprint reverse board: `inertia/apps/user/modules/reviews/sprint-reverse-board.svelte`, `inertia/apps/org/modules/reviews/sprint-reverse-board.svelte`
-- sprint review package widget: `inertia/apps/user/modules/reviews/components/pending_sprint_review_packages.svelte`, `inertia/apps/org/modules/reviews/components/pending_sprint_review_packages.svelte`
+- Project Task Review Board: `inertia/apps/user/modules/reviews/task-board.svelte`
+- Project Assigner/Environment Review Board: `inertia/apps/user/modules/reviews/sprint-reverse-board.svelte`
+- Project Task Board: `inertia/apps/user/modules/tasks/index.svelte`
 - sprint management panel: `inertia/apps/user/modules/projects/components/project_sprint_panel.svelte`, `inertia/apps/org/modules/projects/components/project_sprint_panel.svelte`
 - admin proficiency: `inertia/apps/admin/modules/proficiency/*`
-- org/admin disputes: `inertia/apps/org/modules/disputes/index.svelte`, `inertia/apps/admin/modules/disputes/*`
+- System dispute board/card room: `inertia/apps/admin/modules/disputes/*`
 
 Frontend caveats giữ lại:
 
-- org review board routes/pages tồn tại, nhưng mutation redirects hiện còn quay về root `/reviews/*`.
-- root user review-board flows có seeded E2E mạnh hơn org-shell post-action flows.
-- `pending_sprint_review_packages` là client-side widget gọi API package, không phải Inertia page route độc lập.
+- duplicate User/Org review pages, reviewer inbox và history/detail pages đã bị gỡ.
+- System Admin là realm riêng và không có Organization/Project switcher.
+- board filters, drawers và card rooms thay thế các page list/history/detail riêng.
 - sprint management nằm trong project detail tab `Sprints`; task board chỉ link sang tab này.
 - legacy `/marketplace/talents` và `/marketplace/bookmarks` redirect sang `/org/*`; docs không nên mô tả chúng như marketplace UI riêng.
 

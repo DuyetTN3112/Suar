@@ -1,0 +1,30 @@
+%% Logical ERD 02a — Organization membership requests and invitations
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Join requests and invitations both use organization_users(status=pending); invited_by distinguishes invitation origin.
+
+erDiagram
+direction LR
+    USERS {
+        UUID id PK
+        VARCHAR email
+        VARCHAR status
+    }
+    ORGANIZATIONS {
+        UUID id PK
+        UUID owner_id FK
+        VARCHAR name
+        VARCHAR slug
+        JSONB custom_roles
+        TIMESTAMPTZ deleted_at
+    }
+    ORGANIZATION_USERS {
+        UUID organization_id PK, FK
+        UUID user_id PK, FK
+        VARCHAR org_role
+        VARCHAR status
+        UUID invited_by FK
+    }
+    USERS ||--o{ ORGANIZATION_USERS : "joins"
+    ORGANIZATIONS ||--o{ ORGANIZATION_USERS : "contains"
+    USERS ||--o{ ORGANIZATIONS : "owns"

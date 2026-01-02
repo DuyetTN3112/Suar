@@ -1,0 +1,52 @@
+%% Sequence 09b — Publish profile snapshot
+%% Updated: 2026-07-27.
+%% Scenario: profile owner publishes one immutable, optionally public profile snapshot.
+%% Evidence status: Implemented. Publication is rate-limited to three snapshots per 24 hours.
+
+sequenceDiagram
+    autonumber
+    actor OWNER as Profile owner
+    participant B as «boundary» Browser
+    participant C as «boundary» PublishProfileSnapshotController
+    participant K as «control» PublishUserProfileSnapshotCommand
+    participant A as «control» RefreshUserProfileAggregatesCommand
+    participant D as «entity» PostgreSQL
+    participant X as «control» cacheStore
+
+    OWNER->>B: Publish current profile snapshot
+    activate B
+    B->>C: POST /profile/snapshots/publish
+    activate C
+    C->>K: handle(PublishUserProfileSnapshotDTO)
+    activate K
+    K->>D: Validate active account and 24-hour rate limit
+    activate D
+    D-->>K: Account and recent snapshot count
+    deactivate D
+    alt Suspended, inactive or rate limit exceeded
+        K-->>C: Business error
+        C-->>B: Error response
+    else Publication allowed
+        K->>A: handle(userId, fullRebuild=false)
+        activate A
+        A-->>K: Profile aggregates refreshed
+        deactivate A
+        K->>D: Load profile, skills, metrics, expertise and work highlights
+        activate D
+        D-->>K: Current governed read model and latest version
+        deactivate D
+        K->>D: Unset previous current snapshot and create next version
+        activate D
+        D-->>K: Transaction committed with share metadata
+        deactivate D
+        K->>X: Delete current, history and public snapshot cache patterns
+        activate X
+        X-->>K: Post-commit invalidation registered
+        deactivate X
+        K-->>C: Snapshot id, version and share link fields
+        C-->>B: 201 Created
+    end
+    deactivate K
+    deactivate C
+    B-->>OWNER: Show published snapshot or error
+    deactivate B

@@ -1,0 +1,22 @@
+%% Class 04c2 — Admin review and audit read classes
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+classDiagram
+direction LR
+    class ListFlaggedReviewsController
+    class ShowFlaggedReviewController
+    class ListAuditLogsController
+    class ListFlaggedReviewsQuery {
+        +handle(dto: ListFlaggedReviewsDTO): Promise~ListFlaggedReviewsResult~
+    }
+    class GetFlaggedReviewDetailQuery {
+        +handle(dto: GetFlaggedReviewDetailDTO): Promise~GetFlaggedReviewDetailResult~
+    }
+    class ListAuditLogsQuery {
+        +handle(dto: ListAuditLogsDTO): Promise~ListAuditLogsResult~
+    }
+
+    ListFlaggedReviewsController --> ListFlaggedReviewsQuery
+    ShowFlaggedReviewController --> GetFlaggedReviewDetailQuery
+    ListAuditLogsController --> ListAuditLogsQuery

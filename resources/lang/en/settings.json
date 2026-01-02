@@ -72,5 +72,9 @@
     "theme_dark": "Dark",
     "theme_system": "System",
     "language_switcher": "Language switcher"
-  }
+  },
+  "discoverability_update_failed": "Could not update discoverability. Try again.",
+  "privacy_title": "Privacy",
+  "discoverability_label": "Appear in talent search",
+  "discoverability_hint": "Org recruiters can find this profile when enabled."
 }

@@ -1,15 +1,15 @@
 # Software Requirements Specification
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Product, developer, tester, reviewer, maintainer |
-| Purpose | Ghi lại requirement mức hệ thống theo cách đủ chặt cho traceability nhưng vẫn dễ quét và dễ hiểu |
-| Source of Truth | route, config, model, command/query, runtime boundary evidence hiện tại |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi route surface, non-functional guardrail, hoặc architecture/runtime boundary đổi |
-| Owner | Product + engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                            |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| Status          | Active                                                                                           |
+| Audience        | Product, developer, tester, reviewer, maintainer                                                 |
+| Purpose         | Ghi lại requirement mức hệ thống theo cách đủ chặt cho traceability nhưng vẫn dễ quét và dễ hiểu |
+| Source of Truth | route, config, model, command/query, runtime boundary evidence hiện tại                          |
+| Last Reviewed   | 2026-07-10                                                                                       |
+| Review Cycle    | Khi route surface, non-functional guardrail, hoặc architecture/runtime boundary đổi              |
+| Owner           | Product + engineering                                                                            |
+| Stale Risk      | Cao                                                                                              |
 
 ## File Này Dùng Để Làm Gì
 
@@ -172,9 +172,9 @@ Hệ thống phải:
 - cho phép submit skill review
 - cho phép reviewee confirm hoặc dispute review
 - cho phép reviewee accept/respond/report trong task review workflow khi đủ điều kiện
-- duy trì reverse-review reading surfaces cho dữ liệu hiện có
+- không tạo reverse-review history/inbox page riêng; dữ liệu hiện có được đọc qua lane/filter/card room của Project board
 - có sprint review packages khi project sprint mở review
-- có sprint-close reverse review board cho người giao task và môi trường
+- có hai shared Project board sau sprint cho người giao task và môi trường
 - cho phép attach review evidence và self-assessment
 - có admin dispute handling và flagged-review handling
 - có callback endpoint cho AI dispute evaluation
@@ -186,7 +186,7 @@ Code audit nuance rất quan trọng:
 - review session hiện có hai đường sinh runtime:
   - đường ưu tiên khi assignee submit completion package và task được đưa sang `in_review`
   - đường backstop sau khi task thật sự đi vào category `done`
-- task-level reverse review create-flow hiện không nên bị kể như capability active đầy đủ; current runtime chỉ giữ reading surfaces và chặn create path theo product direction mới
+- task-level reverse review create-flow hiện không nên bị kể như capability active đầy đủ; create path bị chặn và page/read-history cũ đã bị gỡ
 - sprint-close reverse review hiện là flow thay thế đang có route/domain/migration evidence
 - workflow rule mới chủ yếu nằm ở application command/query layer; docs không nên claim DB constraint là rule source cuối
 
@@ -206,7 +206,9 @@ Hệ thống phải:
 
 - có notification listing, mark-read, delete behavior
 - ghi audit events và error events
-- ghi user activity events
+- ghi login/logout vào canonical Audit evidence với source occurrence time
+- không thu thập generic user activity nếu chưa có taxonomy, consent/privacy,
+  retention, và product Query cụ thể
 
 ## 3. Non-Functional Requirements
 

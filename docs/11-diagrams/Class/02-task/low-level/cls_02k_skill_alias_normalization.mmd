@@ -1,0 +1,30 @@
+%% Class Diagram 02k — Skill Alias Normalization
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Source: app/modules/skills/infra/models/skill_alias.ts.
+%% beforeSave normalization: lowercase, trim, remove non-alphanumeric characters.
+
+classDiagram
+    direction LR
+
+    class Skill {
+        <<Lucid Model>>
+        +UUID id PK
+        +String skill_code
+        +String skill_name
+    }
+    class SkillAlias {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID skill_id FK
+        +String alias
+        +String normalized_alias
+        +String locale
+        +String source
+        +Boolean is_primary
+        +DateTime created_at
+        +DateTime updated_at
+        +normalizeAliasInstance(alias) beforeSave
+    }
+
+    Skill "1" --> "*" SkillAlias : resolves identities

@@ -1,0 +1,24 @@
+%% State 05 — OrganizationUser membership status
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Source of truth: organization_users.status = pending/approved/rejected.
+
+stateDiagram-v2
+direction LR
+    state entry <<choice>>
+    [*] --> entry
+    entry --> pending : inviteUser / create pending row with invited_by
+    entry --> pending : requestJoin / create pending row with invited_by=null
+    pending --> approved : acceptInvitation [invited_by set] / activate membership
+    pending --> rejected : rejectInvitation [invited_by set] / retain decision
+    pending --> approved : approveJoinRequest [invited_by null] / assign organization role
+    pending --> rejected : rejectJoinRequest [invited_by null] / retain decision
+    rejected --> pending : requestJoin / reset pending membership
+    approved --> [*] : removeMembership / delete membership row
+
+    note right of pending
+        No separate join-request store.
+        Built-in roles: org_owner, org_admin, org_member.
+        Custom roles come from organizations.custom_roles.
+        No separate invitation lifecycle entity exists in current runtime.
+    end note

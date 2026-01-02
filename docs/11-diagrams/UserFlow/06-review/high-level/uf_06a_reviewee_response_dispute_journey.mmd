@@ -1,0 +1,45 @@
+%% User Flow 06a — Reviewee accepts or disputes from Project board
+%% Evidence status: Implemented. AI input is optional advice; System Admin owns final resolution.
+%% Updated: 2026-07-28.
+%% Journey actor: reviewee in the User realm.
+%% Boundary: the reviewee never enters /admin; the System board is a separate principal/application.
+
+flowchart TB
+    subgraph inspect_result[" "]
+        direction LR
+        Start([See card in awaiting_response]) --> Card["Open card room on Project Task Review Board"]
+        Card --> Inspect["Inspect conclusion,<br/>observations and evidence"]
+        Inspect --> Choice{"Accept result?"}
+        Choice -->|Yes| Accept["Confirm acceptance"]
+        Accept --> Done["See card move to Done"]
+        Done --> End([Response complete])
+    end
+
+    subgraph dispute_result[" "]
+        direction LR
+        Dispute["Enter reason and requested outcome"] --> Exchange["Add comments or evidence<br/>in the same card room"]
+        Exchange --> Escalate{"Report unresolved dispute?"}
+        Escalate -->|No| Wait([Keep card in Disputed])
+        Escalate -->|Yes| Report["Report case to System realm"]
+    end
+
+    subgraph track_resolution[" "]
+        direction LR
+        Track["Remain on Project board;<br/>track Reported / AI reviewing / Resolved lane"] --> Resolution["Read final human outcome<br/>on the same card"]
+        Resolution --> End
+    end
+
+    Choice -->|No| Dispute
+    Report --> Track
+    style inspect_result fill:none,stroke:none
+    style dispute_result fill:none,stroke:none
+    style track_resolution fill:none,stroke:none
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef governed fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Wait,End terminal
+    class Card,Inspect,Accept,Done,Dispute,Exchange,Track,Resolution action
+    class Report governed
+    class Choice,Escalate decision

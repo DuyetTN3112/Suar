@@ -1,0 +1,89 @@
+%% Logical ERD 04c — Sprint review and reverse-review governance
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: current sprint review packages, disputes, and reverse-review workflow tables.
+
+erDiagram
+direction LR
+    PROJECT_SPRINTS {
+        UUID id PK
+        UUID organization_id FK
+        UUID project_id FK
+        VARCHAR status
+        TIMESTAMPTZ review_opened_at
+        TIMESTAMPTZ review_closed_at
+    }
+    SPRINT_REVIEW_PACKAGES {
+        UUID id PK
+        UUID sprint_id FK
+        UUID reviewer_id FK
+        VARCHAR status
+        TIMESTAMPTZ submitted_at
+    }
+    SPRINT_MANAGER_REVIEWS {
+        UUID id PK
+        UUID package_id FK
+        UUID target_user_id FK
+        VARCHAR target_role
+        INT rating
+        JSONB dimensions
+    }
+    SPRINT_ENVIRONMENT_REVIEWS {
+        UUID id PK
+        UUID package_id FK
+        VARCHAR target_type
+        UUID target_id FK
+        INT rating
+        JSONB dimensions
+    }
+    SPRINT_REVIEW_DISPUTES {
+        UUID id PK
+        UUID package_id FK
+        UUID opened_by FK
+        VARCHAR status
+        TEXT dispute_reason
+        VARCHAR dispute_review_type
+        JSONB runtime_context
+        VARCHAR final_decision
+        TEXT final_rationale
+        UUID resolved_by FK
+        TIMESTAMPTZ resolved_at
+    }
+    SPRINT_REVIEW_DISPUTE_COMMENTS {
+        UUID id PK
+        UUID dispute_id FK
+        UUID author_id FK
+        TEXT body
+        VARCHAR visibility
+    }
+    SPRINT_REVERSE_REVIEW_WORKFLOWS {
+        UUID id PK
+        UUID sprint_id FK
+        UUID package_id FK "nullable"
+        UUID reviewer_id FK
+        VARCHAR target_type
+        UUID target_user_id FK
+        UUID responder_id FK
+        VARCHAR status
+        INT rating
+        VARCHAR final_decision
+        TEXT final_rationale
+        UUID resolved_by FK
+        TIMESTAMPTZ resolved_at
+    }
+    SPRINT_REVERSE_REVIEW_MESSAGES {
+        UUID id PK
+        UUID workflow_id FK
+        UUID author_id FK
+        VARCHAR message_type
+        TEXT body
+    }
+
+    PROJECT_SPRINTS ||--o{ SPRINT_REVIEW_PACKAGES : "opens"
+    SPRINT_REVIEW_PACKAGES ||--o{ SPRINT_MANAGER_REVIEWS : "records"
+    SPRINT_REVIEW_PACKAGES ||--o{ SPRINT_ENVIRONMENT_REVIEWS : "records"
+    SPRINT_REVIEW_PACKAGES ||--o| SPRINT_REVIEW_DISPUTES : "may create"
+    SPRINT_REVIEW_DISPUTES ||--o{ SPRINT_REVIEW_DISPUTE_COMMENTS : "contains"
+    PROJECT_SPRINTS ||--o{ SPRINT_REVERSE_REVIEW_WORKFLOWS : "opens"
+    SPRINT_REVIEW_PACKAGES o|--o{ SPRINT_REVERSE_REVIEW_WORKFLOWS : "optionally backs board projection"
+    SPRINT_REVERSE_REVIEW_WORKFLOWS ||--o{ SPRINT_REVERSE_REVIEW_MESSAGES : "records responses"

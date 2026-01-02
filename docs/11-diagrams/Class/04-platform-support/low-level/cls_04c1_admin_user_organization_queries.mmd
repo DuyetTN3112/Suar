@@ -1,0 +1,27 @@
+%% Class 04c1 — Admin user and organization read classes
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+classDiagram
+direction LR
+    class ListUsersController
+    class ShowUserController
+    class ListOrganizationsController
+    class ShowOrganizationController
+    class ListUsersQuery {
+        +handle(dto: ListUsersDTO): Promise~ListUsersResult~
+    }
+    class GetUserDetailsQuery {
+        +handle(dto: GetUserDetailsDTO): Promise~UserDetailsResult~
+    }
+    class ListOrganizationsQuery {
+        +handle(dto: ListOrganizationsDTO): Promise~ListOrganizationsResult~
+    }
+    class GetOrganizationDetailsQuery {
+        +handle(dto: GetOrganizationDetailsDTO): Promise~OrganizationDetailsResult~
+    }
+
+    ListUsersController --> ListUsersQuery
+    ShowUserController --> GetUserDetailsQuery
+    ListOrganizationsController --> ListOrganizationsQuery
+    ShowOrganizationController --> GetOrganizationDetailsQuery

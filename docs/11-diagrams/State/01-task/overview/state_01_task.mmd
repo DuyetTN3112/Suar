@@ -1,0 +1,33 @@
+%% State 01 — Current configurable task-status categories
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Category overview only. Organization-specific status/edge detail stays in task_statuses + task_workflow_transitions.
+
+stateDiagram-v2
+direction TB
+    state "TODO category" as todo
+    state "IN_PROGRESS category" as progress
+    state "DONE category" as done
+    state "CANCELLED category" as cancelled
+
+    [*] --> todo : create task / organization default status
+    todo --> progress : configured start-work path<br/>[assignment guard when required]
+    progress --> done : configured completion path
+    todo --> cancelled : configured cancellation
+    progress --> cancelled : configured cancellation
+    cancelled --> todo : configured reopen path
+    done --> [*] : seeded default terminal path
+
+    note right of progress
+        task_status_id is canonical; tasks.status is a mirror.
+        Organizations configure statuses and edges.
+        IN_REVIEW belongs to IN_PROGRESS.
+        Empty transition rows invoke permissive fallback.
+    end note
+
+    note right of done
+        Any DONE-category status:
+        • completes active assignments;
+        • backstop-creates missing review sessions;
+        • preserves review obligations.
+    end note

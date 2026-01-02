@@ -1,0 +1,42 @@
+%% Sequence 10b — Resolve organization join request
+%% Updated: 2026-07-27.
+%% Scenario: authorized organization admin resolves one pending membership.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» ApproveJoinRequestController
+    participant K as «control» ProcessJoinRequestCommand
+    participant D as «entity» PostgreSQL
+    participant N as «control» NotificationPublicApi
+
+    ADMIN->>B: Approve/reject pending request
+    activate B
+    B->>C: PUT /org/invitations/requests/:joinRequestId/approve
+    activate C
+    C->>K: execute(ProcessJoinRequestDTO)
+    activate K
+    K->>D: Lock pending organization_users membership and actor context
+    activate D
+    D-->>K: Pending membership or invalid state
+    deactivate D
+    alt Approved/rejected by authorized actor
+        K->>D: Update membership status and write audit
+        activate D
+        D-->>K: Resolved membership
+        deactivate D
+        K->>N: Notify requester of decision
+        activate N
+        N-->>K: Notification persisted
+        deactivate N
+        K-->>C: Completed
+    else Unauthorized/not pending
+        K-->>C: Policy or state error
+    end
+    deactivate K
+    C-->>B: Redirect/result
+    deactivate C
+    B-->>ADMIN: Show current request list
+    deactivate B

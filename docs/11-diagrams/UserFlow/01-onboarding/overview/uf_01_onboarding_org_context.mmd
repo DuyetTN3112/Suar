@@ -1,0 +1,36 @@
+%% User Flow 01 — Login to usable organization workspace
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% User-language journey; resolver may auto-select first approved membership.
+
+flowchart TB
+    subgraph entry[" "]
+        direction LR
+        Start([Start]) --> Login["Choose OAuth provider"] --> OAuth["Complete provider consent"] --> Session["Sign-in completes"] --> ToContext((A))
+    end
+
+    subgraph context[" "]
+        direction LR
+        FromSession((A)) --> Check{"Current organization<br/>resolved?"}
+        Choose{"Create, join, or choose<br/>an approved organization?"}
+        Pending["Join request pending<br/>workspace still blocked"]
+        Active["Approved organization<br/>becomes current context"]
+        Check -->|Yes / resolver auto-selects| Active
+        Check -->|No| Choose
+        Choose -->|Create or choose approved org| Active
+        Choose -->|Request to join| Pending --> EndPending([End])
+        Active --> Workspace["Open project/task workspace"] --> End([End])
+    end
+
+    ToContext ~~~ FromSession
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndPending,End startEnd
+    class Login,OAuth,Session,Pending,Active,Workspace action
+    class Check,Choose decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToContext,FromSession connector
+    style entry fill:transparent,stroke:transparent
+    style context fill:transparent,stroke:transparent

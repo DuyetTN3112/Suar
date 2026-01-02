@@ -1,0 +1,30 @@
+%% Logical ERD 04b3 — Case-file snapshot to AI advisory
+%% Evidence status: Implemented; external advisory execution is Partial.
+%% Scope: one readable FK relationship from case-file snapshot to advisory evaluation.
+%% evaluation.dispute_id is a legacy source-id mirror, while source_type + source_id is polymorphic identity; neither is styled as an FK.
+
+erDiagram
+direction TB
+    REVIEW_DISPUTE_CASE_FILES {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id (see logical_erd_04b1)"
+        INT case_version
+        NUMERIC completeness_score
+        JSONB task_snapshot
+        JSONB assignment_snapshot
+        JSONB submission_snapshot
+        JSONB review_snapshot
+    }
+    AI_DISPUTE_EVALUATIONS {
+        UUID id PK
+        UUID dispute_id "legacy source-id mirror; not an FK"
+        UUID case_file_id FK "FK -> REVIEW_DISPUTE_CASE_FILES.id; nullable"
+        VARCHAR source_type "polymorphic discriminator; not an FK"
+        UUID source_id "polymorphic source id; not an FK"
+        VARCHAR provider
+        VARCHAR status
+        VARCHAR recommendation
+        NUMERIC confidence_score
+    }
+
+    REVIEW_DISPUTE_CASE_FILES o|--o{ AI_DISPUTE_EVALUATIONS : "AI_DISPUTE_EVALUATIONS.case_file_id → REVIEW_DISPUTE_CASE_FILES.id (nullable)"

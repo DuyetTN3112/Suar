@@ -1,0 +1,39 @@
+%% Sequence 11 — Open notification center
+%% Updated: 2026-07-27.
+%% Scenario: user opens one paginated notification list.
+%% Evidence status: Implemented; latest-state refresh is polling-based.
+
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant B as «boundary» Browser
+    participant C as «boundary» ListNotificationsController
+    participant Q as «control» GetUserNotifications
+    participant P as «control» notificationRepositoryProvider
+    participant R as «entity» PostgresNotificationRepository
+    participant D as «entity» PostgreSQL
+
+    U->>B: Open notification center
+    activate B
+    B->>C: GET /notifications?page=1
+    activate C
+    C->>Q: handle(page, cursor, unreadOnly)
+    activate Q
+    Q->>P: getNotificationRepository()
+    activate P
+    P-->>Q: Repository instance
+    deactivate P
+    Q->>R: findByUser / findByUserCursor and getUnreadCount
+    activate R
+    R->>D: Query current user's notifications
+    activate D
+    D-->>R: Rows and counts
+    deactivate D
+    R-->>Q: Notification page and unread count
+    deactivate R
+    Q-->>C: Page/cursor result and unread count
+    deactivate Q
+    C-->>B: Render notifications/index
+    deactivate C
+    B-->>U: Show notifications and unread count
+    deactivate B

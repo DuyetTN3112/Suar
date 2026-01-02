@@ -1,0 +1,36 @@
+%% state_03a_application_eligibility_entry.mmd — Application eligibility and entry
+%% Evidence status: Implemented.
+%% Updated 2026-07-27.
+%% Purpose: Focused entry slice for the TaskApplication lifecycle.
+%% Scope: Submission eligibility through creation of a pending application.
+%% Continues in: state_03b_application_decision_outcomes.
+%% Related: task_assignment_rules.ts:canApplyForTask
+
+stateDiagram-v2
+    direction LR
+
+    [*] --> eligibility : Contributor submits proposal<br/>(message, portfolio_links)
+
+    state eligibility <<choice>>
+    eligibility --> pending : [all eligibility rules pass]<br/>Create TaskApplication
+    eligibility --> blocked : [any eligibility rule fails]<br/>No application created
+
+    state "Pending<br/>(application persisted)" as pending
+    state "Blocked<br/>(validation response returned)" as blocked
+
+    pending --> [*] : Continue to decision processing
+    blocked --> [*]
+
+    note right of eligibility
+        Eligibility rules:
+        • applicant is not the task owner
+        • task is publicly visible
+        • task is not already assigned
+        • application deadline has not passed
+        • applicant has no duplicate application
+    end note
+
+    note right of pending
+        pending is the first persisted
+        TaskApplication status.
+    end note

@@ -1,0 +1,48 @@
+%% Communication Diagram 07 — Task submission and review handoff
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented.
+%% Source: SubmitTaskSubmissionCommand, TaskSubmissionReviewGovernance port, and Reviews adapter.
+%% Scenario: assignee submits one evidence package; transaction locks evidence, snapshots assignment, and opens review without moving board status.
+
+flowchart BT
+    subgraph request["Submission request"]
+        direction LR
+        A["Assignee<br/>:Actor"]
+        C["TaskSubmissionController<br/>:Controller"]
+        S["SubmitTaskSubmissionCommand<br/>:Control"]
+        PG[("PostgreSQL<br/>tasks · submissions · evidence · snapshots")]
+    end
+    subgraph handoff["Review handoff"]
+        direction LR
+        R["TaskSubmissionReviewGovernance<br/>:Tasks outbound port"]
+        RA["ReviewsTaskSubmissionReviewGovernanceAdapter<br/>:Composition adapter"]
+        AU["AuditPublicApi<br/>:Service"]
+        N["NotificationFanoutPublicApi<br/>:Service"]
+    end
+
+    A -->|"1: submit(package, evidences)"| C
+    C -->|"1.1: execute(dto, submit=true)"| S
+    S -->|"1.1.1: lock task + assignment + submission"| PG
+    S -->|"1.1.2: upsert package + replace evidences"| PG
+    S -->|"1.1.3: create assignment snapshot"| PG
+    S -->|"1.2: ensure review session + reviewer assignments"| R
+    R -->|"1.2.1: delegate Reviews-owned governance"| RA
+    RA -->|"1.2.2: persist governed review entry"| PG
+    S -->|"1.3: write submission audit"| AU
+    AU -->|"1.3.1: persist audit event"| PG
+    S -->|"1.4: notify assignee + reviewers"| N
+    S -.->|"2: submission + reviewSessionId"| C
+    C -.->|"3: review handoff state"| A
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef service fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class A actor
+    class C boundary
+    class S,R,RA control
+    class AU,N service
+    class PG db
+    style request fill:#F8FAFC,stroke:#94A3B8
+    style handoff fill:#F8FAFC,stroke:#94A3B8

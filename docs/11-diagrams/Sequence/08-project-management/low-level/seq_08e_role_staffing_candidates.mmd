@@ -1,0 +1,46 @@
+%% Sequence 08e — Get explainable role staffing candidates
+%% Updated: 2026-07-27.
+%% Scenario: project update authority requests candidates for one project professional role.
+%% Evidence status: Implemented; score is current weighted-level heuristic.
+
+sequenceDiagram
+    autonumber
+    actor M as Project update authority
+    participant C as «boundary» GetRoleStaffingCandidatesController
+    participant Q as «control» GetRoleStaffingCandidatesQuery
+    participant P as «control» ProjectPublicApi
+    participant S as «control» SkillPublicApi
+    participant D as «entity» PostgreSQL
+    participant U as «control» UserPublicApi
+
+    M->>C: GET role staffing candidates
+    activate C
+    C->>Q: handle(projectId, roleId)
+    activate Q
+    Q->>P: enforceUserProjectAccess(projectId, writeMode=true)
+    activate P
+    P->>D: Load project and actor access context
+    D-->>P: Project/org/role facts
+    P-->>Q: Authorized project context
+    deactivate P
+    Q->>S: findProjectProfessionalRoleById(roleId, withSkills)
+    activate S
+    S-->>Q: Role and weighted skill requirements
+    deactivate S
+    alt Role belongs to project and has requirements
+        Q->>D: Read project/org members, user skills, level ordinals
+        activate D
+        D-->>Q: Candidate skill rows and source membership
+        deactivate D
+        Q->>U: getTalentExplainabilitySummaryByUserId(userIds)
+        activate U
+        U-->>Q: Evidence-source counts and confidence signals
+        deactivate U
+        Q->>Q: Calculate weighted score and mandatory skill gaps
+        Q-->>C: Ranked project/org/external candidates
+    else Role invalid or no requirements
+        Q-->>C: Not found or empty candidate result
+    end
+    deactivate Q
+    C-->>M: Candidate scores, gaps, evidence and confidence
+    deactivate C

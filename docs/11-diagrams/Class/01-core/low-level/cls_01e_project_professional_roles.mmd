@@ -1,0 +1,55 @@
+%% Class Diagram 01e — Project Professional Roles
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: app/modules/skills/infra/models/project_professional_role*.ts, project_skill.ts, proficiency_level.ts.
+
+classDiagram
+    direction LR
+
+    class Project {
+        <<Lucid Model>>
+        +UUID id PK
+    }
+    class ProjectProfessionalRole {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+        +UUID source_template_id FK
+        +String code
+        +String name
+        +Boolean is_active
+        +Integer version
+    }
+    class ProjectProfessionalRoleSkill {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_professional_role_id FK
+        +UUID project_skill_id FK
+        +UUID minimum_level_id FK
+        +UUID target_level_id FK
+        +UUID assessment_ceiling_level_id FK
+        +Boolean is_mandatory
+        +String importance
+        +Decimal weight
+    }
+    class ProjectSkill {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+        +UUID skill_id FK
+        +UUID rubric_version_id FK
+        +Boolean is_selectable_for_tasks
+    }
+    class ProficiencyLevel {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID scale_id FK
+        +String code
+        +Integer ordinal
+    }
+
+    Project "1" --> "*" ProjectProfessionalRole : configures
+    ProjectProfessionalRole "1" --> "*" ProjectProfessionalRoleSkill : requires
+    ProjectProfessionalRoleSkill "*" --> "1" ProjectSkill : selects
+    ProjectProfessionalRoleSkill "*" --> "0..1" ProficiencyLevel : minimum target ceiling
+

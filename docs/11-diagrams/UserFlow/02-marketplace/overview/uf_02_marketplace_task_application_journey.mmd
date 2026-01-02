@@ -1,0 +1,36 @@
+%% User Flow 02 — Marketplace proposal journey
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Contributor experience; owner-side triage internals live in Action/Sequence.
+
+flowchart TB
+    subgraph discover[" "]
+        direction LR
+        Start([Start]) --> Browse["Browse eligible public tasks"] --> Inspect["Inspect requirements and task detail"] --> Apply{"Send proposal?"}
+        Apply -->|Yes| Pending["Submit proposal<br/>status = pending"] --> ToOutcome((A))
+        Apply -->|No| EndNo([End])
+    end
+
+    subgraph outcome[" "]
+        direction LR
+        FromPending((A)) --> Track["Open My Proposals"] --> Decision{"Owner/manager decision<br/>or contributor action"}
+        Decision -->|Approved| Assigned["Assignment created"] --> Work["Enter task execution<br/>and submission flow"]
+        Decision -->|Rejected| Rejected["See rejection outcome"]
+        Decision -->|Withdraw while pending| Withdrawn["Move proposal to history"]
+        Work --> End([End])
+        Rejected --> End
+        Withdrawn --> End
+    end
+
+    ToOutcome ~~~ FromPending
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndNo,End startEnd
+    class Browse,Inspect,Pending,Track,Assigned,Work,Rejected,Withdrawn action
+    class Apply,Decision decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToOutcome,FromPending connector
+    style discover fill:transparent,stroke:transparent
+    style outcome fill:transparent,stroke:transparent

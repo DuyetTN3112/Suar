@@ -2698,3 +2698,260 @@ router
           review_relevance: true,
           created_at: DateTime.utc().minus({ hours: 5 }).toSQL(),
           updated_at: DateTime.utc().minus({ hours: 5 }).toSQL(),
+        },
+        {
+          id: testId(),
+          task_id: task.id,
+          author_id: owner.id,
+          body: 'Please add rollback trigger detail before review closes; tests and PR evidence are visible.',
+          comment_type: 'review_note',
+          visibility: 'reviewers_only',
+          review_relevance: true,
+          created_at: DateTime.utc().minus({ hours: 4 }).toSQL(),
+          updated_at: DateTime.utc().minus({ hours: 4 }).toSQL(),
+        },
+      ])
+
+      await db.table('review_dispute_comments').multiInsert([
+        {
+          id: testId(),
+          dispute_id: disputeId,
+          author_id: reviewee.id,
+          body: 'I dispute the L5 score. The PR and passing regression evidence were attached before the deadline.',
+          visibility: 'all_parties',
+          created_at: DateTime.utc().minus({ minutes: 55 }).toSQL(),
+          updated_at: DateTime.utc().minus({ minutes: 55 }).toSQL(),
+        },
+        {
+          id: testId(),
+          dispute_id: disputeId,
+          author_id: owner.id,
+          body: 'Reviewer side acknowledges the PR and tests, but the rollback section was incomplete at review time.',
+          visibility: 'all_parties',
+          created_at: DateTime.utc().minus({ minutes: 45 }).toSQL(),
+          updated_at: DateTime.utc().minus({ minutes: 45 }).toSQL(),
+        },
+      ])
+
+      await db.table('review_dispute_evidences').multiInsert([
+        {
+          id: testId(),
+          dispute_id: disputeId,
+          uploaded_by: reviewee.id,
+          evidence_type: 'pull_request',
+          url: 'https://example.com/acme/checkout/pull/42',
+          title: 'Checkout regression pull request',
+          description: 'Dispute evidence showing implementation was submitted before review.',
+          created_at: DateTime.utc().minus({ minutes: 35 }).toSQL(),
+        },
+        {
+          id: testId(),
+          dispute_id: disputeId,
+          uploaded_by: reviewee.id,
+          evidence_type: 'test_report',
+          url: 'https://example.com/acme/checkout/actions/runs/42',
+          title: 'Checkout regression test run',
+          description: 'Dispute evidence showing checkout regression tests passed before review.',
+          created_at: DateTime.utc().minus({ minutes: 30 }).toSQL(),
+        },
+      ])
+
+      response.json(
+        wrapApiV1Data({
+          organizationId: org.id,
+          projectId: project.id,
+          sprintId,
+          taskId: task.id,
+          assignmentId: assignment.id,
+          reviewSessionId: reviewSession.id,
+          taskRequiredSkillId,
+          submissionId,
+          submissionEvidenceIds,
+          skillReviewId: skillReview.id,
+          skillId: skill.id,
+          disputeId,
+          ownerEmail,
+          revieweeEmail,
+          ownerId: owner.id,
+          revieweeId: reviewee.id,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-audit-log', async ({ request, response }) => {
+      const timestamp = Number(request.input('timestamp', Date.now()))
+      const nonce = String(request.input('nonce', crypto.randomUUID().slice(0, 8)))
+      const seedKey = `${timestamp}-${nonce}`
+      const action = String(request.input('action', `e2e.audit_console.seeded.${seedKey}`))
+      const entityType = String(request.input('entityType', 'task'))
+      const enterprise = readBooleanInput(request.input('enterprise', false), false)
+      const userEmail = readOptionalString(request.input('userEmail', null))
+      const requestedUserScopeId = readOptionalString(request.input('userScopeId', null))
+      const userScopeId =
+        requestedUserScopeId ??
+        (userEmail ? await findOrCreateTestingAuditUserByEmail(userEmail, seedKey) : null)
+      const requestedEntityId = readOptionalString(request.input('entityId', null))
+      const entityId =
+        requestedEntityId ??
+        (entityType === 'user' && userScopeId ? userScopeId : `e2e-audit-target-${seedKey}`)
+      const actorUserId =
+        readOptionalString(request.input('actorUserId', request.input('userId', null))) ??
+        userScopeId
+      const organizationScopeId =
+        readOptionalString(
+          request.input(
+            'organizationScopeId',
+            request.input('targetOrganizationId', request.input('organizationId', null))
+          )
+        ) ?? null
+      const actorOrganizationId =
+        readOptionalString(request.input('actorOrganizationId', null)) ?? organizationScopeId
+      const targetOrganizationId =
+        readOptionalString(request.input('targetOrganizationId', null)) ?? organizationScopeId
+      const oldValues = readValueMap(request.input('oldValues', null), {
+        status: 'queued',
+        source: 'playwright-seed',
+      })
+      const newValues = readValueMap(request.input('newValues', null), {
+        status: 'reviewed',
+        source: 'playwright-seed',
+      })
+      const eventId = crypto.randomUUID()
+      const occurredAt = new Date(timestamp)
+      const insertData: Record<string, unknown> = {
+        id: eventId,
+        user_id: actorUserId,
+        action,
+        entity_type: entityType,
+        entity_id: entityId,
+        old_values: oldValues,
+        new_values: newValues,
+        ip_address: '127.0.0.1',
+        user_agent: 'playwright-e2e',
+        occurred_at: occurredAt,
+      }
+
+      if (enterprise) {
+        const prevHash = await getPreviousTestingAuditHash()
+        const enterpriseValues: Record<string, unknown> = {
+          event_name: readOptionalString(request.input('eventName', null)) ?? action,
+          event_family: readOptionalString(request.input('eventFamily', null)) ?? 'e2e.enterprise',
+          module: readOptionalString(request.input('module', null)) ?? 'audit',
+          subsystem: readOptionalString(request.input('subsystem', null)) ?? 'console',
+          workflow: readOptionalString(request.input('workflow', null)) ?? 'audit_console',
+          stage: readOptionalString(request.input('stage', null)) ?? 'verified',
+          severity: readOptionalString(request.input('severity', null)) ?? 'info',
+          outcome: readOptionalString(request.input('outcome', null)) ?? 'success',
+          actor_type: readOptionalString(request.input('actorType', null)) ?? 'user',
+          actor_user_id: actorUserId,
+          actor_org_id: actorOrganizationId,
+          actor_role_surface: readOptionalString(request.input('actorRoleSurface', null)) ?? 'system',
+          target_type: readOptionalString(request.input('targetType', null)) ?? entityType,
+          target_id: readOptionalString(request.input('targetId', null)) ?? entityId,
+          target_org_id: targetOrganizationId,
+          request_id: readOptionalString(request.input('requestId', null)) ?? `req-${seedKey}`,
+          trace_id: readOptionalString(request.input('traceId', null)) ?? `trace-${seedKey}`,
+          correlation_key:
+            readOptionalString(request.input('correlationKey', null)) ?? `corr-${seedKey}`,
+          retention_class:
+            readOptionalString(request.input('retentionClass', null)) ?? 'security_1y',
+          redaction_applied: readBooleanInput(request.input('redactionApplied', true), true),
+          schema_version: 2,
+          prev_hash: prevHash,
+          recorded_at: new Date(),
+        }
+
+        for (const [column, value] of Object.entries(enterpriseValues)) {
+          if (await columnExists('audit_events', column)) {
+            insertData[column] = value
+          }
+        }
+
+        if (await columnExists('audit_events', 'event_hash')) {
+          insertData['event_hash'] = computeAuditEventHash({
+            event: {
+              ...insertData,
+              ...enterpriseValues,
+            },
+            prevHash,
+          })
+        }
+      }
+
+      await db.table('audit_events').insert(insertData)
+
+      let scopes = readTestingAuditScopes(request.input('scopes', []))
+      if (enterprise && scopes.length === 0) {
+        scopes = [
+          { surface: 'system', user_id: null, organization_id: null },
+          ...(organizationScopeId
+            ? [
+                {
+                  surface: 'organization' as const,
+                  user_id: null,
+                  organization_id: organizationScopeId,
+                },
+              ]
+            : []),
+          ...(userScopeId
+            ? [{ surface: 'user' as const, user_id: userScopeId, organization_id: null }]
+            : []),
+        ]
+      }
+
+      scopes = uniqueTestingAuditScopes(scopes)
+      if (enterprise && scopes.length > 0 && (await tableExists('audit_event_scopes'))) {
+        await db.table('audit_event_scopes').insert(
+          scopes.map((scope) => ({
+            event_id: eventId,
+            surface: scope.surface,
+            user_id: scope.user_id,
+            organization_id: scope.organization_id,
+          }))
+        )
+      }
+
+      response.status(201).json(
+        wrapApiV1Data({
+          id: eventId,
+          action,
+          entityType,
+          entityId,
+          eventName: insertData['event_name'] ?? null,
+          requestId: insertData['request_id'] ?? null,
+          traceId: insertData['trace_id'] ?? null,
+          retentionClass: insertData['retention_class'] ?? null,
+          actorUserId,
+          organizationScopeId,
+          userScopeId,
+          timestamp,
+        })
+      )
+    })
+
+    router.post('/seed-cleanup', async ({ request, response }) => {
+      const tokens = collectCleanupTokens(request.all())
+      if (tokens.length === 0) {
+        response.status(422).json({
+          errors: [{ message: 'A seed cleanup token is required' }],
+        })
+        return
+      }
+
+      const deleted = await cleanupTestingSeedData(tokens)
+      response.json(wrapApiV1Data({ tokens, deleted }))
+    })
+
+    const healthHandler = async ({ response }: { response: { json: (body: unknown) => void } }) => {
+      const result = (await db.rawQuery('select current_database() as database')) as unknown
+      const databaseValue = readRawRows<{ database?: unknown }>(result)[0]?.database
+      const database = typeof databaseValue === 'string' ? databaseValue : null
+      response.json(wrapApiV1Data({ status: 'ok', database }))
+    }
+
+    router.get('/health', healthHandler)
+    router.post('/health', healthHandler)
+  })
+  .prefix('/api/testing')
+  .use([middleware.bindHttpTransport('api-ops-internal')])

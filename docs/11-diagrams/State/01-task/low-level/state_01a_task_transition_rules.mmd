@@ -1,0 +1,68 @@
+%% state_01a_task_transition_rules.mmd — Legacy TaskStatus compatibility transitions
+%% Evidence status: Legacy compatibility; current status updates use DB-driven transitions in state_01_task.
+%% Updated 2026-07-10 (verified).
+%% Purpose: Document deprecated task_state_machine.ts behavior still present in code.
+%% Scope: Compatibility validator only; not the seeded configurable workflow.
+%% Excludes: Assignment logic (see act_01c), review internals (see act_03)
+%% Related: task_state_machine.ts; authoritative current workflow is state_01_task.mmd.
+
+stateDiagram-v2
+direction LR
+    %% ==============================
+    %% TRANSITION GUARDS
+    %% ==============================
+
+    state "TODO" as todo
+    state "IN_PROGRESS" as ip
+    state "IN_REVIEW" as ir
+    state "DONE" as done
+    state "CANCELLED" as cancelled
+
+    [*] --> todo : Task created<br/>(task_status_id = default TODO)
+
+    %% ── TODO transitions ──
+    todo --> ip : Start work<br/>GUARD: assigned_to ≠ null
+    todo --> cancelled : Cancel
+
+    %% ── IN_PROGRESS transitions ──
+    ip --> ir : Submit for review
+    ip --> todo : Unassign / back to queue
+    ip --> cancelled : Cancel
+
+    %% ── IN_REVIEW transitions ──
+    ir --> done : Mark done
+    ir --> ip : Back to in_progress
+    ir --> cancelled : Cancel
+
+    %% ── DONE terminal ──
+    done --> [*] : TERMINAL<br/>Side effects:<br/>1. Mark assignments → completed<br/>2. Backstop-create missing ReviewSession<br/>3. Review remains mandatory
+
+    %% ── CANCELLED ──
+    cancelled --> todo : Reopen
+
+    %% ==============================
+    %% NOTES
+    %% ==============================
+
+    note right of done
+        DONE is terminal.
+        No transitions out.
+        Runtime can complete assignments
+        and create missing review session
+        here as backstop path.
+        Preferred creation path may already
+        happen earlier at submission → IN_REVIEW.
+    end note
+
+    note left of todo
+        This legacy compatibility validator uses
+        a hard-coded transition map and does not
+        read task_workflow_transitions.
+        See state_01_task for current DB-driven rules.
+    end note
+
+    note right of ip
+        assigned_to is checked BEFORE
+        allowing TODO → IN_PROGRESS.
+        Unassigned task cannot start.
+    end note

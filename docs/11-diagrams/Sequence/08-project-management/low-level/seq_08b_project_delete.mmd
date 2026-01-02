@@ -1,0 +1,47 @@
+%% Sequence 08b — Soft-delete project
+%% Updated: 2026-07-27.
+%% Scenario: project owner deletes project after work/review guards pass.
+%% Evidence status: Implemented; project history is retained by default.
+
+sequenceDiagram
+    autonumber
+    actor OWNER as Project owner
+    participant C as «boundary» DeleteProjectController
+    participant K as «control» DeleteProjectCommand
+    participant P as «control» canDeleteProject()
+    participant D as «entity» PostgreSQL
+    participant A as «control» ProjectAuditEventPublisher
+    participant E as «control» ProjectEventPublisher
+
+    OWNER->>C: DELETE confirmed project
+    activate C
+    C->>K: handle(DeleteProjectDTO)
+    activate K
+    K->>D: Lock project and read actor, incomplete-task, pending-review facts
+    activate D
+    D-->>K: Deletion context
+    deactivate D
+    K->>P: canDeleteProject(context)
+    activate P
+    P-->>K: Allowed or denial reason
+    deactivate P
+    alt Allowed
+        K->>D: Soft-delete project
+        activate D
+        D-->>K: Deleted timestamp
+        deactivate D
+        K->>A: publishProjectAudit(delete)
+        activate A
+        A-->>K: Audit recorded
+        deactivate A
+        K->>E: publishProjectDeleted(event)
+        activate E
+        E-->>K: Published
+        deactivate E
+        K-->>C: Completed
+    else Blocked/unauthorized
+        K-->>C: Policy error
+    end
+    deactivate K
+    C-->>OWNER: Project list or deletion blocker
+    deactivate C

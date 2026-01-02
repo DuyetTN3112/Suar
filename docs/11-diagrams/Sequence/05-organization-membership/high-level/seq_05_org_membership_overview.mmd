@@ -1,0 +1,33 @@
+%% Sequence 05 overview — List organization members
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin opens member list in admin shell.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor U as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» ListMembersController
+    participant Q as «control» GetOrganizationMembersIndexPageQuery
+    participant D as «entity» PostgreSQL
+
+    U->>B: Open organization members
+    activate B
+    B->>C: GET /org/members
+    activate C
+    alt Auth/org context missing
+        C-->>B: Render login/no-org surface
+    else Context resolved by route middleware
+        C->>Q: execute(organizationId, filters, pagination)
+        activate Q
+        Q->>D: Read organization members and role/status aggregates
+        activate D
+        D-->>Q: Member page and stats
+        deactivate D
+        Q-->>C: Page data
+        deactivate Q
+        C-->>B: Render org/members/index
+    end
+    deactivate C
+    B-->>U: Show members or context recovery
+    deactivate B

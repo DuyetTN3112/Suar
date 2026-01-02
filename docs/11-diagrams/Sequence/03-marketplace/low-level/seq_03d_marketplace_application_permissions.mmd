@@ -1,0 +1,42 @@
+%% Sequence 03d — Authorize proposal list access
+%% Updated: 2026-07-27.
+%% Scenario: requester asks to view proposals for one task.
+%% Evidence status: Implemented. Creator, project management and organization management paths are checked.
+
+sequenceDiagram
+    autonumber
+    actor REQUESTER as Requester
+    participant C as «boundary» ListMarketplaceTaskApplicationsController
+    participant M as «control» GetMarketplaceTaskApplicationsQuery
+    participant Q as «control» GetTaskApplicationsQuery
+    participant P as «control» canProcessApplication()
+    participant D as «entity» PostgreSQL
+
+    REQUESTER->>C: GET /tasks/:taskId/applications
+    activate C
+    C->>M: handle(GetTaskApplicationsDTO)
+    activate M
+    M->>Q: listTaskApplicationsViaTaskApplications(dto)
+    activate Q
+    Q->>D: Load task and actor project/org role facts
+    activate D
+    D-->>Q: Creator, assignment and management-role context
+    deactivate D
+    Q->>P: canProcessApplication(context, action=reject)
+    activate P
+    P-->>Q: Allowed or denied
+    deactivate P
+    alt Allowed
+        Q->>D: Read/cache paginated task applications
+        activate D
+        D-->>Q: Proposal page
+        deactivate D
+        Q-->>M: Proposal page
+    else Denied
+        Q-->>M: Forbidden
+    end
+    deactivate Q
+    M-->>C: Result or error
+    deactivate M
+    C-->>REQUESTER: Render list or 403
+    deactivate C

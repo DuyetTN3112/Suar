@@ -1,0 +1,25 @@
+%% Activity 07e — Current profile skill visualization
+%% Updated 2026-07-27.
+%% Evidence status: Partial semantics. Current radar is implemented; v6 capability-dimension profile is Planned.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Open profile skill view]) --> Load["Load displayable user_skills<br/>from cached profile query"] --> Separate["Keep imported claims separate<br/>from review-governed results"] --> ToCategories((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromSeparate((A)) --> Categories["Group current skills into<br/>technology, engineering,<br/>soft skills, delivery"] --> Render["Render current radar/skill views<br/>with source distinction"] --> Caveat["Do not interpret as one global level;<br/>confidence/dimensions remain roadmap"] --> End([Profile shown])
+    end
+    ToCategories ~~~ FromSeparate
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef partial fill:#FFF3E0,stroke:#E65100,color:#333
+    class Start,End terminal
+    class Load,Separate,Categories,Render action
+    class Caveat partial
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToCategories,FromSeparate connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

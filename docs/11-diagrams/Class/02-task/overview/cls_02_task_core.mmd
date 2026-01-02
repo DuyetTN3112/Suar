@@ -1,0 +1,38 @@
+%% Class Diagram: Task Core Viewpoints
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Persistence aggregate, mapping boundary, and pure domain port/entity.
+
+classDiagram
+    direction TB
+
+    class Task {
+        <<Lucid Model>>
+    }
+    class TaskInfraMapper {
+        <<Infrastructure Mapper>>
+        +toDomain(model: Task): TaskEntity
+        +toRecord(model: Task): TaskRecord
+    }
+    class TaskEntity {
+        <<Domain Entity>>
+        +id: string
+        +status: todo|in_progress|in_review|done|cancelled
+        +assignedTo: string|null
+        +projectId: string|null
+        +taskVisibility: TaskVisibility
+        +isOverdue: boolean
+        +isAssigned: boolean
+        +isCompleted: boolean
+        +isApplicationOpen: boolean
+    }
+    class TaskRepository {
+        <<Domain Port>>
+        +findById(id: string): Promise~TaskEntity|null~
+        +findByProject(projectId: string): Promise~TaskEntity[]~
+        +findByAssignee(userId: string): Promise~TaskEntity[]~
+    }
+
+    Task --> TaskInfraMapper : mapped by
+    TaskInfraMapper --> TaskEntity : creates
+    TaskRepository ..> TaskEntity : returns

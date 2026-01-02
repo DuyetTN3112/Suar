@@ -1,0 +1,29 @@
+%% Sequence 09d1 — Save talent bookmark
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin saves one candidate.
+%% Evidence status: Implemented. Bookmark creates no proposal, invitation, or assignment.
+
+sequenceDiagram
+    autonumber
+    actor R as Organization owner / admin
+    participant B as «boundary» RecruiterBookmarksController
+    participant O as «query» RecruitingDirectoryAccessQuery
+    participant K as «control» CreateRecruiterBookmarkCommand
+    participant D as «entity» PostgreSQL
+
+    R->>B: POST /api/v1/me/organizations/current/talents/:userId/bookmarks
+    activate B
+    B->>O: canAccess(current organization, actor)
+    O-->>B: Allowed or forbidden
+    alt Organization owner/admin access allowed
+        B->>K: handle(talentUserId, notes, folder, rating)
+        activate K
+        K->>D: Validate ownership and insert recruiter_bookmarks
+        D-->>K: Bookmark record
+        K-->>B: Bookmark result
+        deactivate K
+        B-->>R: Bookmark JSON
+    else Access denied
+        B-->>R: Policy error
+    end
+    deactivate B

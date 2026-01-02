@@ -295,10 +295,10 @@ Nguồn: `inertia/apps/org/tests/e2e/org/org_talent_pages.spec.ts`, `inertia/app
 
 ## Related Diagrams
 
-- `docs/11-diagrams/Action/act_02_marketplace_overview.mmd`
-- `docs/11-diagrams/Action/act_02d_marketplace_triage_ranking.mmd`
-- `docs/11-diagrams/Action/act_07_profile_skills_overview.mmd`
-- `docs/11-diagrams/Sequence/seq_09_skill_profile.mmd`
+- `docs/11-diagrams/Action/02-marketplace/README.md`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02d_marketplace_triage_ranking.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/README.md`
+- `docs/11-diagrams/Sequence/09-profile-skills/high-level/seq_09_skill_profile.mmd`
 
 ## What Not To Do
 

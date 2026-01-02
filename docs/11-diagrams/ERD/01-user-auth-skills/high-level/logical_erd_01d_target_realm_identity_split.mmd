@@ -1,0 +1,68 @@
+%% Logical ERD 01d — Target physical identity split by security realm
+%% Evidence status: Target architecture; not yet fully implemented.
+%% Updated: 2026-07-28.
+%% Invariant: there is no System-role column or assignment on USER_ACCOUNTS.
+%% Invariant: Organization/Project memberships never authorize SYSTEM_PRINCIPALS.
+
+erDiagram
+    SYSTEM_PRINCIPALS {
+        UUID id PK
+        VARCHAR status
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ disabled_at
+    }
+    SYSTEM_AUTH_IDENTITIES {
+        UUID id PK
+        UUID system_principal_id FK
+        VARCHAR provider
+        VARCHAR provider_subject UK
+    }
+    SYSTEM_ROLES {
+        UUID id PK
+        VARCHAR code UK
+        JSONB permissions
+    }
+    SYSTEM_ROLE_ASSIGNMENTS {
+        UUID id PK
+        UUID system_principal_id FK
+        UUID system_role_id FK
+        TIMESTAMPTZ assigned_at
+        UUID assigned_by_system_principal_id FK
+    }
+
+    USER_ACCOUNTS {
+        UUID id PK
+        VARCHAR status
+        UUID current_organization_id
+        TIMESTAMPTZ created_at
+        TIMESTAMPTZ deleted_at
+    }
+    USER_AUTH_IDENTITIES {
+        UUID id PK
+        UUID user_account_id FK
+        VARCHAR provider
+        VARCHAR provider_subject UK
+    }
+    ORGANIZATION_MEMBERSHIPS {
+        UUID id PK
+        UUID user_account_id FK
+        UUID organization_id FK
+        VARCHAR organization_role
+        VARCHAR status
+    }
+    PROJECT_MEMBERSHIPS {
+        UUID id PK
+        UUID user_account_id FK
+        UUID project_id FK
+        VARCHAR project_role
+        VARCHAR status
+    }
+
+    SYSTEM_PRINCIPALS ||--o{ SYSTEM_AUTH_IDENTITIES : "authenticates only in System realm"
+    SYSTEM_PRINCIPALS ||--o{ SYSTEM_ROLE_ASSIGNMENTS : "receives System authorization"
+    SYSTEM_ROLES ||--o{ SYSTEM_ROLE_ASSIGNMENTS : "defines System permissions"
+    SYSTEM_PRINCIPALS ||--o{ SYSTEM_ROLE_ASSIGNMENTS : "assigns through governed System action"
+
+    USER_ACCOUNTS ||--o{ USER_AUTH_IDENTITIES : "authenticates only in User realm"
+    USER_ACCOUNTS ||--o{ ORGANIZATION_MEMBERSHIPS : "holds Organization authority"
+    USER_ACCOUNTS ||--o{ PROJECT_MEMBERSHIPS : "holds per-Project authority"

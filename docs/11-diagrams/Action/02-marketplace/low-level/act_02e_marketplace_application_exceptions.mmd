@@ -1,0 +1,30 @@
+%% Activity 02e — Marketplace proposal exception overview
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. Detailed guards stay with apply/process/withdraw diagrams.
+
+flowchart LR
+    Start([Proposal operation]) --> Operation{"Operation?"}
+
+        Apply["Apply guards<br/>not own task · external visibility<br/>unassigned · deadline open · no duplicate"]
+        Process["Process guards<br/>creator/project authority<br/>pending proposal · task unassigned"]
+        Withdraw["Withdraw guards<br/>owned proposal · pending status"]
+
+    Operation -->|Apply| Apply
+    Operation -->|Approve / reject| Process
+    Operation -->|Withdraw| Withdraw
+    Apply --> Result{"All guards pass?"}
+    Process --> Result
+    Withdraw --> Result
+    Result -->|Yes| Continue["Continue governed mutation"] --> End([Completed])
+    Result -->|No| Reject["Return typed 4xx / not-found error<br/>without changing proposal or task"] --> Unchanged([State unchanged])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef guard fill:#FFF7ED,stroke:#D97706,color:#78350F,stroke-width:2px
+    classDef error fill:#FFEBEE,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,End,Unchanged terminal
+    class Continue action
+    class Operation,Result decision
+    class Apply,Process,Withdraw guard
+    class Reject error

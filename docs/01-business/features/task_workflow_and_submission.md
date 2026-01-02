@@ -5,7 +5,7 @@
 Tài liệu này gom business truth đã được kiểm chứng cho domain task delivery của Suar:
 
 - task workflow theo `task_status_id`
-- board/list/timeline/task detail surfaces
+- một Project Task Board duy nhất với view/filter/card room/modal cho board, list, timeline và task detail
 - submission package, evidences, comments, attachments
 - audit logs
 - compatibility layer giữa `status` cũ và workflow truth mới
@@ -28,7 +28,7 @@ Nó là một gói công việc có workflow, metadata đánh giá, required ski
 Chỉ cần nhớ bốn ý:
 
 1. `task_status_id` mới là workflow truth; `status` cũ chỉ là mirror compatibility.
-2. Task đổi trạng thái qua nhiều surface khác nhau như update status, drag/drop, batch update, và board-state POC; không có một đường vào duy nhất.
+2. Task đổi trạng thái qua nhiều command như update status, drag/drop/sort-order và batch update, nhưng tất cả được thao tác từ cùng Project Task Board.
 3. Task create/update requirement path hiện cần tối thiểu 1 skill cho từng nhóm `technology`, `engineering`, `soft_skill`, `delivery`.
 4. Nhiều task muốn sang `DONE` phải có submission hợp lệ, nhưng vẫn có một nhóm task type được bypass rule này.
 5. Nếu organization chưa cấu hình workflow transitions, runtime hiện dùng permissive default thay vì chặn toàn bộ drag/drop.
@@ -75,13 +75,16 @@ Nguồn: `app/modules/tasks/domain/task_status_mirror.ts`, `app/modules/tasks/in
 
 ## Surface Runtime Đã Xác Nhận
 
-### Page routes
+### Primary page và compatibility entries
 
-- `GET /tasks`
-- `GET /tasks/create`
-- `GET /tasks/status-board`
-- `GET /tasks/:taskId`
-- `GET /tasks/:taskId/edit`
+- `GET /projects/:projectId/tasks` — Project Task Board duy nhất
+- `GET /tasks` — resolve current Project rồi redirect vào board
+- `GET /tasks/create` — redirect vào board với create modal intent
+- `GET /tasks/:taskId` — redirect vào board với task card-room intent
+- `GET /tasks/:taskId/edit` — redirect vào cùng card room/edit intent
+
+Các route/endpoint bên dưới là mutation hoặc supporting data; chúng không tạo standalone list/detail/history page:
+
 - `GET /tasks/:taskId/audit-logs`
 - `POST /tasks`
 - `PUT /tasks/:taskId`
@@ -95,7 +98,6 @@ Nguồn: `app/modules/tasks/domain/task_status_mirror.ts`, `app/modules/tasks/in
 - `GET /api/tasks/status-groups`
 - `GET /api/tasks/timeline-items`
 - `PATCH /api/tasks/batch-status`
-- `PATCH /api/tasks/board-state`
 - `PATCH /api/tasks/:taskId/sort-order`
 - `GET /api/tasks/:taskId`
 - `GET /api/task-statuses`
@@ -112,7 +114,6 @@ Nguồn: `app/modules/tasks/domain/task_status_mirror.ts`, `app/modules/tasks/in
 - `GET /api/v1/tasks/status-groups`
 - `GET /api/v1/tasks/timeline-items`
 - `PATCH /api/v1/tasks/batch-status`
-- `PATCH /api/v1/tasks/board-state`
 - `PATCH /api/v1/tasks/:taskId/sort-order`
 - `GET /api/v1/tasks/:taskId`
 - `GET /api/v1/tasks/:taskId/audit-logs`
@@ -259,7 +260,7 @@ Code hiện tại cho thấy rule workflow không chỉ nằm ở đúng một e
 - đổi status trực tiếp: `UpdateTaskStatusCommand`
 - kéo task sang cột mới hoặc reorder: `UpdateTaskSortOrderCommand`
 - bulk update nhiều task: `BatchUpdateTaskStatusCommand`
-- patch board-state POC: surface riêng cho optimistic/conflict handling, không thay thế workflow engine thật
+- mọi board interaction hiện phải đi qua command status/sort-order/batch tương ứng; POC `board-state` đã retired
 
 Điều này có nghĩa:
 
@@ -344,7 +345,7 @@ Nói ngắn gọn:
 
 Vì vậy không nên kể domain này theo một câu cứng nhắc kiểu “task DONE rồi mới sinh review”.
 
-Nguồn: `app/modules/tasks/actions/commands/submit_task_submission_command.ts`, `app/modules/tasks/actions/listeners/task_completion_listener.ts`, `app/modules/reviews/actions/listeners/assignment_completion_listener.ts`
+Nguồn: `app/modules/tasks/actions/commands/submit_task_submission_command.ts`, `app/modules/tasks/actions/commands/complete_task_assignments_command.ts`, `app/composition/review_listener_composition.ts`, `app/modules/reviews/listeners/assignment_completion_listener.ts`
 
 ### Reviewer Assignment Seed Không Phải Ngẫu Nhiên
 
@@ -363,7 +364,10 @@ Code hiện seed reviewer assignments theo governance rules:
 - review session của Suar là governance workflow có cấu trúc, không phải inbox review tự do
 - khi production thấy reviewer list “không giống trực giác”, phải audit theo seed rules chứ không đoán theo tên người tạo task
 
-Nguồn: `app/modules/reviews/actions/support/review_session_reviewer_assignments.ts`, `app/modules/reviews/tests/backend/integration/create_session.spec.ts`, `app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`
+Nguồn: `app/modules/reviews/actions/commands/ensure_task_review_workflow_command.ts`,
+`app/modules/reviews/infra/adapters/lucid_review_session_reviewer_assignment_writer.ts`,
+`app/modules/reviews/tests/backend/integration/create_session.spec.ts`,
+`app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`
 
 ## Comments, Attachments, Audit Logs
 
@@ -398,30 +402,21 @@ Task audit logs có:
 
 Nguồn: `app/modules/tasks/controllers/get_task_audit_logs_controller.ts`, `app/modules/tasks/actions/queries/get_task_audit_logs_query.ts`
 
-## Status Board
+## Project Task Board
 
 ### Điều phải hiểu đúng
 
-`/tasks/status-board` hiện là page shell có thật.
+`/projects/:projectId/tasks` là UI duy nhất cho task delivery. Kanban, list/timeline view, create/edit, task detail, submission, comment, attachment và audit được mở bằng filter/modal/drawer/card room ngay trên board.
 
-Nhưng patch endpoint cho board state:
+Các surface POC cũ đã retired:
 
-- `PATCH /api/tasks/board-state`
-- `PATCH /api/v1/tasks/board-state`
+- `GET /tasks/status-board` không được đăng ký
+- `PATCH /api/tasks/board-state` không được đăng ký
+- `PATCH /api/v1/tasks/board-state` không được đăng ký
 
-hiện vẫn được mô tả rõ trong code là `POC endpoint` để validate optimistic flow và conflict handling.
+Workflow engine thật nằm ở các command đổi status, sort-order và batch-status có transition/permission guard. Vì vậy tài liệu, test mới và diagram không được dùng status-board POC để dựng lại một frontend page hoặc một board engine song song.
 
-Nó không nên bị viết như thể đã là full persisted board-state engine độc lập.
-
-Nếu input `simulateConflict` được bật, command sẽ trả conflict thay vì silently succeed.
-
-Điểm rất quan trọng:
-
-- `PATCH /api/tasks/board-state` và `PATCH /api/v1/tasks/board-state` là POC surface cho board interaction
-- workflow engine thật vẫn nằm ở các command đổi status/sort-order/batch-status có validate transition và guard riêng
-- vì vậy board-state patch không nên bị dùng như bằng chứng rằng toàn bộ board persistence đã được tách thành engine độc lập
-
-Nguồn: `app/modules/tasks/controllers/show_task_status_board_controller.ts`, `app/modules/tasks/controllers/patch_task_status_board_poc_controller.ts`, `app/modules/tasks/actions/commands/patch_task_status_board_poc_command.ts`
+Nguồn: `start/routes/projects.ts`, `start/routes/tasks.ts`, `app/modules/tasks/controllers/list_tasks_controller.ts`, `app/modules/tasks/tests/backend/unit/task_status_board_retirement.spec.ts`, `app/modules/tasks/tests/backend/integration/retired_status_board_routes.spec.ts`
 
 ## Nếu Production Lỗi Ở Domain Này
 
@@ -433,14 +428,14 @@ Khoanh nhanh theo dấu hiệu:
 - submission sửa không được: kiểm tra submission có đang `locked` hay không
 - assignee báo đã nộp nhưng review không mở: kiểm tra move-to-review path, snapshot creation, và reviewer notification side effects
 - audit logs trống hoặc lạ: kiểm tra audit writer, cache TTL 2 phút, và limit input
-- board patch bị conflict: xác nhận đó có phải nhánh `POC conflict simulation` hay không trước khi kết luận bug workflow
+- client gọi `board-state` bị 404: đây là expected retirement; chuyển sang canonical status/sort-order/batch command
 
 ## Test Evidence
 
 ### Contract
 
 - task audit logs endpoint returns wrapped collection
-- status board patch endpoint accepts aliased request fields và trả wrapped response
+- retired status-board page/POC endpoints tiếp tục vắng mặt
 - task submission lock endpoint trả `locked` state đúng shape
 
 ### E2E / Component
@@ -449,22 +444,22 @@ Khoanh nhanh theo dấu hiệu:
 - outsider thấy read-only state
 - locked submission render read-only state rõ ràng
 
-Nguồn: `app/modules/tasks/tests/backend/contract/task_auxiliary_api_standardization.contract.spec.ts`, `app/modules/tasks/tests/backend/contract/task_board_api_standardization.contract.spec.ts`, `app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`, `inertia/apps/user/tests/modules/tasks/components/task_submission_panel.test.ts`
+Nguồn: `app/modules/tasks/tests/backend/contract/task_auxiliary_api_standardization.contract.spec.ts`, `app/modules/tasks/tests/backend/contract/task_board_api_standardization.contract.spec.ts`, `app/modules/tasks/tests/backend/contract/task_submission_api_standardization.contract.spec.ts`, `app/modules/tasks/tests/backend/unit/task_status_board_retirement.spec.ts`, `app/modules/tasks/tests/backend/integration/retired_status_board_routes.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`, `inertia/apps/user/tests/modules/tasks/components/task_submission_panel.test.ts`
 
 ## Related Diagrams
 
-- `docs/11-diagrams/Action/act_01_task_management_overview.mmd`
-- `docs/11-diagrams/Action/act_01a_task_crud.mmd`
-- `docs/11-diagrams/Action/act_01b_task_workflow.mmd`
-- `docs/11-diagrams/Action/act_01c_task_assignment_rules.mmd`
-- `docs/11-diagrams/Sequence/seq_02_task_crud.mmd`
-- `docs/11-diagrams/State/state_01_task.mmd`
-- `docs/11-diagrams/ERD/logical_erd_03_task_marketplace.mmd`
+- `docs/11-diagrams/Action/01-task-management/README.md`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01a_task_crud.mmd`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01b_task_workflow.mmd`
+- `docs/11-diagrams/Action/01-task-management/high-level/act_01c_task_assignment_rules.mmd`
+- `docs/11-diagrams/Sequence/02-task-management/high-level/seq_02_task_crud.mmd`
+- `docs/11-diagrams/State/01-task/overview/state_01_task.mmd`
+- `docs/11-diagrams/ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`
 
 ## What Not To Do
 
 - Đừng audit task workflow chỉ bằng cột `tasks.status`; doing vậy rất dễ kết luận sai.
-- Đừng kể `PATCH /api/tasks/board-state` như thể đó là workflow engine duy nhất hoặc canonical nhất.
+- Đừng khôi phục `/tasks/status-board` hoặc `PATCH .../board-state`; chúng đã retired.
 - Đừng giả định mọi task sang `DONE` đều cần submission giống nhau; code hiện có nhánh bypass theo task type.
 - Đừng quên nhánh permissive default khi org chưa cấu hình workflow transitions, vì đây là nguồn gây nhầm lẫn rất thực tế khi debug.
 
@@ -473,7 +468,7 @@ Nguồn: `app/modules/tasks/tests/backend/contract/task_auxiliary_api_standardiz
 Tài liệu này không khẳng định:
 
 - mọi task APIs đã canonicalized hoàn chỉnh sang `/api/v1/*`
-- board-state POC đã là workflow engine hoàn chỉnh
+- retired status-board POC còn là product surface
 - physical DB constraint nào cũng đã khớp 100% với mọi product expectation trong mọi tài liệu cũ
 
 File này chỉ khẳng định những gì đã có route, command, controller, model, hoặc test proof đủ mạnh trong hệ thống hiện tại.

@@ -1,0 +1,43 @@
+%% Activity 04b — Project role and skill governance
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Evidence: project skill/role controllers, ProfessionalRoleService, GetRoleStaffingCandidatesQuery.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Owner opens Roles & Skills]) --> Role{"Role source"}
+        Role -->|Template| Clone["Clone active role template<br/>and its skill requirements"]
+        Role -->|Custom| Custom["Create project-specific role"]
+        Clone --> Configure
+        Custom --> Configure["Add project skills and rubric version"]
+        Configure --> Levels["Set minimum, target,<br/>assessment ceiling, weight"] --> ToValidate((A))
+        FromReject((B)) --> Configure
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromLevels((A)) --> Valid{"Same scale and<br/>minimum ≤ target ≤ ceiling?"}
+        Valid -->|No| Reject["Reject invalid level configuration"] --> ToConfigure((B))
+        Valid -->|Yes| Save["Save role-skill contract<br/>and audit change"]
+        Save --> Candidates["Request staffing candidates"]
+        Candidates --> Score["Compare verified skill levels<br/>against weighted targets"]
+        Score --> Explain["Return match score, gaps,<br/>evidence-source counts, confidence"]
+        Explain --> End([Owner chooses staff])
+    end
+    ToValidate ~~~ FromLevels
+    ToConfigure ~~~ FromReject
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef data fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Clone,Custom,Configure,Levels,Candidates,Score,Explain action
+    class Role,Valid decision
+    class Save data
+    class Reject error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToValidate,FromLevels,ToConfigure,FromReject connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

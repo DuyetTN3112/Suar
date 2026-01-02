@@ -228,11 +228,12 @@ Nếu chỉ nhìn surface cũ mà không để ý deprecated middleware, ngườ
 
 ### 3. Organization và project workspace
 
-Mental model đúng:
+Mental model đúng trong User realm:
 
 - `/organizations*` là discovery, join, create, và switch context
-- `/org*` là organization admin shell
-- `/projects*` là project working shell trong current organization
+- `/org*` là Organization Management
+- `/projects/:projectId*` là Project Workspace
+- `/admin*` thuộc System realm riêng, không phải nhánh role của User
 
 Page route chính:
 
@@ -246,11 +247,14 @@ Page route chính:
 - `/org/members`
 - `/org/invitations/requests`
 - `/org/projects`
-- `/org/tasks`
 - `/switch-organization`
 - `/projects`
 - `/projects/create`
 - `/projects/:id`
+- `/projects/:id/tasks`
+- `/projects/:id/reviews/tasks`
+- `/projects/:id/reviews/assigners`
+- `/projects/:id/reviews/environment`
 - `/projects/:id/member-candidates`
 - `/switch-project`
 
@@ -285,12 +289,20 @@ JSON/API liên quan:
 
 ### 4. Task, application, workflow
 
-Page route chính:
+Primary product page:
 
-- `/tasks`
-- `/tasks/create`
-- `/tasks/status-board`
-- `/tasks/:id`
+- `/projects/:projectId/tasks`
+
+Compatibility entry:
+
+- `/tasks` -> canonical Project Task Board
+- `/tasks/create` -> canonical board với create modal intent
+- `/tasks/:id` và `/tasks/:id/edit` -> canonical board với task card room intent
+
+`/tasks/status-board` không phải registered primary page. `/tasks/:taskId/applications` là staffing/application flow, không phải task list/detail page.
+
+Các page khác của task ecosystem:
+
 - `/tasks/:taskId/applications`
 - `/my-applications`
 - `/marketplace/tasks`
@@ -318,7 +330,7 @@ JSON/API liên quan:
 
 Khi production lỗi:
 
-- lỗi render/list page: nhìn `start/routes/tasks.ts`
+- lỗi render Project Task Board hoặc compatibility redirect: nhìn `start/routes/projects.ts`, `start/routes/tasks.ts` và `ListTasksController`
 - lỗi contract task detail/submission: nhìn cả compatibility `/api/*` lẫn canonical `/api/v1/tasks/*`
 - lỗi task status/workflow definitions: nhìn cả `start/routes/tasks.ts` lẫn `start/routes/api_v1.ts`; current runtime có cả compat và canonical surfaces song song
 - lỗi comments/submission/attachment: đừng bỏ qua legacy `/api/*`
@@ -330,18 +342,14 @@ Khi production lỗi:
 
 Page route chính:
 
-- `/reviews/pending`
-- `/reviews/task-board`
-- `/org/reviews/task-board`
-- `/reviews/:id`
-- `/reviews/disputes/:id`
-- `/my-reviews`
+- `/projects/:projectId/reviews/tasks`
+- `/projects/:projectId/reviews/assigners`
+- `/projects/:projectId/reviews/environment`
 - `/users/:id/reviews`
-- `/reviews/sprint-reverse-board`
-- `/org/reviews/sprint-reverse-board`
-- `/org/disputes`
 - `/admin/disputes`
-- `/admin/reviews`
+- `/admin/disputes/:disputeId`
+
+Không có reviewer inbox, review detail/history, Org dispute queue hoặc reverse-review history page. Các trạng thái đó nằm trong lane/filter/card room của board.
 
 JSON/API liên quan:
 
@@ -351,8 +359,6 @@ JSON/API liên quan:
   - `/api/v1/reviews/disputes/:id/comments`
   - `/api/v1/reviews/disputes/:id/evidences`
   - `/api/v1/reviews/disputes/:id/report`
-  - `/api/v1/me/reverse-reviews`
-  - `/api/v1/me/organizations/current/reverse-reviews`
   - `/api/v1/me/organizations/current/reviews/disputes`
   - `/api/v1/me/organizations/current/reviews/disputes/:id/respond`
   - `/api/v1/me/sprint-review-packages`
@@ -370,21 +376,19 @@ JSON/API liên quan:
   - `/api/reviews/disputes`
   - `/api/reviews/disputes/:id/comments`
   - `/api/reviews/disputes/:id/evidences`
-  - `/api/me/reverse-reviews`
-  - `/api/org/reverse-reviews`
   - `/api/org/reviews/disputes`
   - `/api/org/reviews/disputes/:id/respond`
 - `/api/admin/reviews/disputes/*`
+  - System Admin comment dùng `POST /api/admin/reviews/disputes/:disputeId/comments`; không gọi compatibility User-realm comments API
 - `/api/public/ai-disputes/callback`
 - `/api/public/ai/dispute-evaluations/callback`
 
 Điều cần nhớ:
 
-- review page, dispute page, org dispute queue, admin dispute queue là nhiều lớp khác nhau
-- `/org/disputes` hiện là page route trong group `auth + requireOrg`, không đi qua `requireOrgAdmin()` ở middleware layer
-- access thật của org dispute queue được siết thêm ở query/policy layer; integration proof hiện có trong `app/modules/reviews/tests/backend/integration/org_dispute_queue_access.spec.ts`
-- `/reviews/disputes/:id` cũng không nên bị mô tả như page chỉ dành cho đúng reviewee và reviewer; current access context còn có thể công nhận org-side role hoặc system admin là participant hợp lệ theo case
-- nhưng `participant access` và `respond action` là hai lớp quyền khác nhau; reviewee có thể xem/report dispute, còn org-side respond action hiện được dành cho reviewer, org-side actor, hoặc system admin
+- bốn User-realm board đều scoped theo project và dùng chung cho project participants theo permission
+- Org-scoped dispute APIs là data/action contract cho card room, không phải bằng chứng của `/org/disputes` page
+- `system_admin` không nằm trong User-realm review permission context; System principal dùng `/admin/*` và `/api/admin/*`
+- `participant access` và `respond action` vẫn là hai lớp quyền khác nhau trong User realm
 - public callback route là integration surface, không phải user-facing API
 - review/dispute là vùng có nhiều permission guard và nhiều bằng chứng test quan trọng
 - task review board là workflow riêng quanh review debt/quorum/response/report, không phải task delivery status
@@ -394,7 +398,7 @@ JSON/API liên quan:
 - `/api/admin/reviews/*` là system-admin surface riêng, không đi qua `requireOrg()`
 - AI dispute callback hiện có guard runtime thật: cần `callback credential`, chữ ký signed-request hợp lệ, và timestamp nằm trong cửa sổ khoảng `5` phút
 - AI dispute callback không xử lý lại evaluation đã xong; current code chỉ nhận các bản ghi còn ở `queued` hoặc `processing`
-- reverse review read surfaces vẫn còn, nhưng task-level reverse review submit hiện chỉ còn là compatibility shell; `SubmitReverseReviewCommand` đang chặn và trả business error theo product decision `2026-07-09`
+- reverse-review page/read-history surfaces đã bị gỡ; task-level submit chỉ còn compatibility shell và trả business error, còn sprint-close work nằm trên hai Project boards
 
 ### 6. Notifications và settings
 

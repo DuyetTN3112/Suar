@@ -1,0 +1,23 @@
+%% Activity 07 — Present and share profile signal
+%% Evidence status: Implemented; capability-dimension profile remains Planned.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_07a1, act_07d, act_07e, act_07f.
+
+flowchart TB
+    Ready([Profile signal ready]) --> Govern["Resolve active rubric and preserve source<br/>act_07d"]
+    Govern --> Present["Build current profile skill view<br/>act_07e"]
+    Present --> Exposure{"Outward use?"}
+    Exposure -->|Share snapshot| Publish["Publish governed snapshot<br/>act_07a1"]
+    Exposure -->|Talent discovery| Discover["Expose authorized talent signals<br/>and bookmarks · act_07f"]
+    Exposure -->|Keep private| End([Profile signal available])
+    Publish --> End
+    Discover --> End
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    classDef governed fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Ready,End terminal
+    class Present,Publish,Discover action
+    class Exposure decision
+    class Govern governed

@@ -1,0 +1,34 @@
+%% Package 01 — Suar layer overview
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    External["External frameworks/providers<br/>AdonisJS · Lucid · Svelte/Inertia · OAuth"]
+    Presentation["Inbound delivery<br/>routes · middleware · controllers · listeners · Ace"]
+    Application["Application layer = actions<br/>Commands · Queries · DTOs · inbound/outbound ports"]
+    Domain["Domain<br/>entities · policies · invariants · formulas"]
+    Composition["Outer composition<br/>synchronous construction + port binding"]
+    Infrastructure["Infrastructure<br/>repositories · adapters · projection stores"]
+    Data[("PostgreSQL · Redis · Elasticsearch")]
+    Runtime["Cross-cutting runtime<br/>events · notifications · Audit · telemetry"]
+
+    External --> Presentation
+    Presentation -->|"one intent"| Application
+    Application --> Domain
+    Application -->|"outbound capability"| Infrastructure
+    Composition -.->|"construct + inject"| Application
+    Composition -.->|"bind"| Infrastructure
+    Infrastructure --> Data
+    Application --> Runtime
+    Runtime --> Infrastructure
+
+    classDef delivery fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef application fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef outer fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class External,Presentation delivery
+    class Application application
+    class Domain domain
+    class Infrastructure,Data,Runtime outer
+    class Composition composition

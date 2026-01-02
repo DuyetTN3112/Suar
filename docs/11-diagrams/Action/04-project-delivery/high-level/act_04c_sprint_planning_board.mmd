@@ -1,0 +1,39 @@
+%% Activity 04c — Sprint planning board
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Evidence: project sprint commands/queries and sprint_core_rules.ts.
+
+flowchart LR
+    Start([Owner opens sprint workspace]) --> Manage{"Action"}
+    Manage -->|Create| Create["Define name, goal,<br/>start and end time"]
+    Create --> Dates{"End after start;<br/>status draft or active?"}
+    Dates -->|No| Reject["Reject sprint input"]
+    Dates -->|Yes| Save["Create project_sprints row"]
+
+    Manage -->|View board| Board["Load backlog and selected sprint tasks"]
+    Board --> Move["Move task into or out of sprint"]
+    Move --> Attach{"Same project and sprint<br/>draft/active?"}
+    Attach -->|No| Reject
+    Attach -->|Yes| Assign["Update tasks.project_sprint_id"]
+
+    Manage -->|Advance| Transition{"Next allowed status?"}
+    Transition -->|No| Reject
+    Transition -->|Yes| Advance["draft → active → review_open<br/>→ review_closed → archived"]
+    Advance --> Review["review_open delegates to<br/>sprint review governance"]
+
+    Save --> Refresh["Refresh sprint board"]
+    Assign --> Refresh
+    Review --> Refresh
+    Refresh --> End([Plan current])
+    Reject --> End
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Create,Board,Move,Advance,Review,Refresh action
+    class Manage,Dates,Attach,Transition decision
+    class Save,Assign write
+    class Reject error

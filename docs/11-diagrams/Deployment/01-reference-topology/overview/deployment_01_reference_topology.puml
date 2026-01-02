@@ -1,0 +1,102 @@
+@startuml
+' UML Deployment 01 — Repository-defined reference topology
+' Evidence status: Partial. Deployable Docker configuration exists; no production deployment or real-user traffic is claimed.
+' Evidence: docker/docker-compose.yml, docker/Dockerfile, config/database.ts, config/redis.ts, config/search.ts.
+
+!pragma layout smetana
+left to right direction
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam node {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+skinparam artifact {
+  BackgroundColor #FEF3C7
+  BorderColor #D97706
+  FontColor #713F12
+}
+skinparam database {
+  BackgroundColor #ECFDF5
+  BorderColor #059669
+  FontColor #064E3B
+}
+skinparam cloud {
+  BackgroundColor #F5F3FF
+  BorderColor #7C3AED
+  FontColor #4C1D95
+}
+
+node "Client device\n<<device>>" as Client {
+  artifact "Web browser\nSvelte 5 + Inertia" as Browser
+}
+
+node "Reference Docker host\n<<device>>" as DockerHost {
+  node "Docker Compose\n<<executionEnvironment>>" as Compose {
+    node "app container\n<<executionEnvironment>>" as AppNode {
+      artifact "HTTP process\nshared Suar image\nAdonisJS server" as AppArtifact
+      artifact "App-local Drive\nstorage/app[/public]\n<<partial persistence>>" as LocalDrive
+    }
+
+    node "notification-fanout-worker container\n<<executionEnvironment>>" as FanoutNode {
+      artifact "Fan-out process\nnotification:fanout-work\nshared Suar image" as FanoutArtifact
+    }
+
+    node "notification-outbox-worker container\n<<executionEnvironment>>" as OutboxNode {
+      artifact "Outbox process\nnotification:outbox-work\nshared Suar image" as OutboxArtifact
+    }
+
+    node "postgres container\n<<executionEnvironment>>" as PgNode {
+      artifact "PostgreSQL 16" as PgArtifact
+    }
+
+    node "redis container\n<<executionEnvironment>>" as RedisNode {
+      artifact "Redis" as RedisArtifact
+    }
+
+    database "postgres_data\n<<Docker volume>>" as PgVolume
+    database "redis_data\n<<Docker volume>>" as RedisVolume
+  }
+}
+
+cloud "Google / GitHub OAuth\n<<external service>>" as OAuth
+cloud "Elasticsearch dev :9200\n<<development service>>" as ElasticDev
+cloud "Elasticsearch test :9201\n<<disposable tmpfs test plane>>" as ElasticTest
+cloud "Clawagent dispute API\n<<partial external service>>" as Clawagent
+
+Browser --> AppArtifact : HTTP(S) / :3333 reference port
+AppArtifact --> PgArtifact : PostgreSQL / 5432
+AppArtifact --> RedisArtifact : Redis / 6379
+FanoutArtifact --> PgArtifact : claims durable fan-out jobs
+OutboxArtifact --> PgArtifact : claims durable projection jobs
+OutboxArtifact --> RedisArtifact : unread cache + realtime invalidation
+PgArtifact --> PgVolume : persists
+RedisArtifact --> RedisVolume : persists
+AppArtifact --> LocalDrive : local/public filesystem
+AppArtifact ..> OAuth : OAuth redirect + callback
+AppArtifact ..> ElasticDev : candidate search / 9200 (dev)
+AppArtifact ..> ElasticTest : guarded integration test / 9201 (tmpfs)
+OutboxArtifact ..> ElasticDev : notification feed projection when configured
+AppArtifact ..> Clawagent : signed advisory exchange when configured
+
+note top of DockerHost
+  Repository-defined reference only.
+  No production host, cluster, ingress, TLS terminator,
+  secret manager, backup system or autoscaling is asserted.
+end note
+
+note bottom of LocalDrive
+  Compose has no named application-storage volume.
+  Binary attachment write path remains incomplete.
+end note
+
+legend bottom
+  Evidence status: Partial — repository reference topology, no production deployment asserted.
+endlegend
+
+@enduml

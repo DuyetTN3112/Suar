@@ -1,0 +1,23 @@
+%% Activity 03c2 — Confirmed review to governed profile signals
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start(["review:confirmed"]) --> Skill["Recalculate non-fraud<br/>reviewed skill aggregates"] --> Performance["Calculate performance score"] --> Trust["Calculate trust score"] --> ToAggregate((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromTrust((A)) --> Aggregate["Refresh work history,<br/>performance stats and expertise"] --> Cache["Invalidate profile, spider,<br/>and skill-score caches"] --> End([End])
+    end
+    ToAggregate ~~~ FromTrust
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Start,End startEnd
+    class Skill,Performance,Trust,Aggregate,Cache action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAggregate,FromTrust connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

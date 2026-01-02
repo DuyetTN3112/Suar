@@ -1,0 +1,36 @@
+%% Class Diagram 01 — Identity, organization, and project concepts
+%% Evidence status: Implemented conceptual model; detail files contain runtime classes.
+%% Keep reason: one connected ownership graph; user, organization, and project associations are the subject.
+%% Updated 2026-07-27 (code-verified).
+%% Detail: cls_01a/01a1 cover user/auth; cls_01b/01b1 cover organization/project.
+
+classDiagram
+    class User {
+        <<conceptual>>
+    }
+    class OrganizationUser {
+        <<conceptual>>
+        membershipStatus
+        organizationRole
+    }
+    class Organization {
+        <<conceptual>>
+    }
+    class Project {
+        <<conceptual>>
+    }
+    class ProjectMember {
+        <<conceptual>>
+        projectRole
+    }
+    class ProjectSprint {
+        <<conceptual>>
+        sprintStatus
+    }
+
+    User "1" --> "*" OrganizationUser : memberships
+    Organization "1" --> "*" OrganizationUser : members
+    Organization "1" --> "*" Project : contains
+    Project "1" --> "*" ProjectMember : members
+    User "1" --> "*" ProjectMember : participates
+    Project "1" --> "*" ProjectSprint : plans

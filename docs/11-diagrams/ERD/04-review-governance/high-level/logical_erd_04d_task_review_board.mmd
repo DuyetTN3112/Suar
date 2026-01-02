@@ -1,0 +1,49 @@
+%% Logical ERD 04d — Task review board workflow
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% task_review_messages stores typed review events/responses; it is not generic conversation/chat.
+%% Bounded slice: task/project/organization/user ids are external references shown as FK attributes.
+
+erDiagram
+direction LR
+    TASK_REVIEW_WORKFLOWS {
+        UUID id PK
+        UUID task_id FK
+        UUID project_id FK
+        UUID organization_id FK
+        UUID reviewee_id FK
+        VARCHAR status
+        INT required_review_count
+        INT completed_review_count
+        JSONB runtime_context
+        UUID reported_by FK
+        VARCHAR final_decision
+        TEXT final_rationale
+        UUID resolved_by FK
+        TIMESTAMPTZ accepted_by_reviewee_at
+        TIMESTAMPTZ reported_at
+        TIMESTAMPTZ resolved_at
+        TIMESTAMPTZ completed_at
+    }
+    TASK_REVIEW_REVIEWERS {
+        UUID id PK
+        UUID workflow_id FK
+        UUID reviewer_id FK
+        VARCHAR reviewer_role
+        BOOLEAN is_required
+        VARCHAR status
+        INT priority_rank
+        TIMESTAMPTZ reviewed_at
+    }
+    TASK_REVIEW_MESSAGES {
+        UUID id PK
+        UUID workflow_id FK
+        UUID author_id FK
+        VARCHAR message_type
+        TEXT body
+        JSONB metadata
+        TIMESTAMPTZ created_at
+    }
+
+    TASK_REVIEW_WORKFLOWS ||--o{ TASK_REVIEW_REVIEWERS : "assigns"
+    TASK_REVIEW_WORKFLOWS ||--o{ TASK_REVIEW_MESSAGES : "records typed responses"

@@ -1,0 +1,19 @@
+%% Architecture 03c — Elasticsearch operations
+%% Evidence status: Implemented.
+%% Viewpoint: operator-owned ping, health, and full reindex paths.
+
+flowchart LR
+    Ping["search:ping<br/>connection probe"]
+    Reindex["search:reindex<br/>six supported indexes"]
+    Health["SearchHealthCheck<br/>ping + ensure talent index"]
+    PG[("PostgreSQL<br/>reindex source records")]
+    ES[("Elasticsearch 8.15")]
+
+    Ping --> ES
+    PG -->|"read source records"| Reindex --> ES
+    Health --> ES
+
+    classDef operation fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class Ping,Reindex,Health operation
+    class PG,ES store

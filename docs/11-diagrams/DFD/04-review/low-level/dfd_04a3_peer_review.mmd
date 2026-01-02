@@ -1,0 +1,26 @@
+%% DFD 04a3 — Submit assigned peer review (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart LR
+    R[Assigned peer reviewer]
+    P1[[5.2.2.1 Validate and persist peer review]]
+    D1[(review sessions)]
+    D2[(reviewer assignments)]
+    D3[(rubric versions + proficiency levels)]
+    D4[(skill reviews + review evidence)]
+
+    R -->|"ratings, observations and evidence links"| P1
+    D1 -->|"allowed session state"| P1
+    D2 -->|"peer assignment authority"| P1
+    D3 -->|"rubric and level constraints"| P1
+    P1 -->|"peer skill review and evidence"| D4
+    P1 -->|"submitted assignment state"| D2
+    P1 -->|"accepted review result"| R
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class R entity
+    class P1 process
+    class D1,D2,D3,D4 store

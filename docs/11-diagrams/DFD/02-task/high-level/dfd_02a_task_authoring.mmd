@@ -1,0 +1,18 @@
+%% DFD 02a — Task authoring map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 02a1–02a2.
+
+flowchart TB
+    A[Authorized task editor] -->|"new task contract"| P1[[3.1.1 Create task]]
+    A -->|"task and requirement revision"| P2[[3.1.2 Update task]]
+    P1 -->|"task and initial requirement version"| D[(Task authoring records)]
+    D -->|"current task and requirements"| P2
+    P2 -->|"updated task and version snapshot"| D
+    P1 -->|"created task result"| A
+    P2 -->|"updated task result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1,P2 process
+    class D store

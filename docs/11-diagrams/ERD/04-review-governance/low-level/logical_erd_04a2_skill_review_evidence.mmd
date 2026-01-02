@@ -1,0 +1,44 @@
+%% Logical ERD 04a2 — Skill rating, evidence trace, and review flag
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Report view: focused relationship slice; only keys and governance fields are shown.
+
+erDiagram
+direction LR
+    REVIEW_SESSIONS {
+        UUID id PK
+        UUID task_assignment_id FK
+        VARCHAR status
+    }
+    SKILL_REVIEWS {
+        UUID id PK
+        UUID review_session_id FK
+        UUID reviewer_id FK
+        UUID skill_id FK
+        UUID observed_level_id FK
+        VARCHAR review_status
+    }
+    REVIEW_EVIDENCES {
+        UUID id PK
+        UUID review_session_id FK
+        UUID uploaded_by FK
+        VARCHAR evidence_type
+    }
+    SKILL_REVIEW_EVIDENCE_LINKS {
+        UUID id PK
+        UUID skill_review_id FK
+        UUID review_evidence_id FK
+        VARCHAR relevance_type
+    }
+    FLAGGED_REVIEWS {
+        UUID id PK
+        UUID skill_review_id FK
+        VARCHAR severity
+        VARCHAR status
+    }
+
+    REVIEW_SESSIONS ||--o{ SKILL_REVIEWS : "collects ratings"
+    REVIEW_SESSIONS ||--o{ REVIEW_EVIDENCES : "owns evidence"
+    SKILL_REVIEWS ||--o{ SKILL_REVIEW_EVIDENCE_LINKS : "links"
+    REVIEW_EVIDENCES ||--o{ SKILL_REVIEW_EVIDENCE_LINKS : "supports"
+    SKILL_REVIEWS ||--o{ FLAGGED_REVIEWS : "may trigger"

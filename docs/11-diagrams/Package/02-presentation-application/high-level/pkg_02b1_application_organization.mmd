@@ -1,0 +1,31 @@
+%% Package 02b1 — Organization capability slices
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    Slices["organizations/*<br/>access · dashboard · directory · invitations<br/>members · projects · settings · sprints · tasks · workflow"]
+    Entry["slice controllers/middleware"]
+    UseCases["slice actions<br/>Commands · Queries · DTOs"]
+    Ports["actions/ports<br/>consumer-owned capabilities"]
+    Domain["slice domain<br/>membership/access/directory policies"]
+    Infra["slice infra<br/>repositories/adapters"]
+    Composition["app/composition<br/>cross-module bindings"]
+    Stable["Provider public contracts<br/>stable facts/capabilities"]
+
+    Slices --> Entry
+    Entry -->|"one intent"| UseCases
+    UseCases --> Domain
+    UseCases --> Ports
+    Ports --> Infra
+    Ports --> Composition --> Stable
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infra fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef boundary fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Slices,Entry presentation
+    class UseCases,Ports app
+    class Domain domainStyle
+    class Infra infra
+    class Composition,Stable boundary

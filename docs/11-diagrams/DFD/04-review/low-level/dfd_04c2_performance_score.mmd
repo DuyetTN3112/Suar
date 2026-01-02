@@ -1,0 +1,16 @@
+%% DFD 04c2 — Performance score recalculation (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    E[Terminal review outcome] -->|"reviewee identity"| P[[5.4.2 Calculate performance score]]
+    D1[(Task assignments and reviews)] -->|"completed work and quality facts"| P
+    P -->|"compatibility trust metrics"| D2[(Users trust data)]
+    P -->|"source-of-truth score"| D3[(User performance stats)]
+    P -->|"score result"| E
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class E entity
+    class P process
+    class D1,D2,D3 store

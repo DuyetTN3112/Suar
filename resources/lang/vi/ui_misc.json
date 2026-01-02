@@ -1,0 +1,143 @@
+{
+  "profile": {
+    "page_title": ":username - Hồ sơ",
+    "view_reviews": "Xem đánh giá",
+    "edit": "Chỉnh sửa",
+    "sections_aria": "Các phần của hồ sơ",
+    "snapshot_version": "Bản chụp v:version",
+    "stats": {
+      "skills": "Kỹ năng",
+      "reviewed_count": ":count đã được đánh giá",
+      "average_score": "Điểm trung bình",
+      "based_on_reviews": "Dựa trên các đánh giá",
+      "trust": "Độ tin cậy",
+      "unknown": "Chưa xác định",
+      "member_since": "Thành viên từ"
+    },
+    "bookmark": {
+      "title": "Lưu nhân tài",
+      "notes_label": "Ghi chú tuyển dụng",
+      "notes_placeholder": "Điểm mạnh, bối cảnh phỏng vấn, dự án phù hợp...",
+      "folder_label": "Thư mục",
+      "folder_placeholder": "Nhóm frontend",
+      "rating_label": "Xếp hạng",
+      "loading": "Đang tải dấu trang...",
+      "saved_status": "Nhân tài này đã được lưu trong danh sách tuyển dụng.",
+      "unsaved_status": "Nhân tài này chưa được lưu.",
+      "remove": "Xóa",
+      "saving": "Đang lưu...",
+      "update": "Cập nhật dấu trang",
+      "save": "Lưu nhân tài",
+      "load_error": "Không thể tải trạng thái dấu trang nhân tài.",
+      "save_error": "Không thể lưu dấu trang nhân tài.",
+      "remove_error": "Không thể xóa dấu trang nhân tài."
+    }
+  },
+  "marketplace_filters": {
+    "tech_stack_label": "Công nghệ",
+    "tech_stack_placeholder": "React, AdonisJS...",
+    "domain_tags_label": "Thẻ lĩnh vực",
+    "domain_tags_placeholder": "xác thực, thanh toán..."
+  },
+  "reviews": {
+    "show": {
+      "status": "Trạng thái",
+      "priority": "Độ ưu tiên",
+      "due_date": "Hạn hoàn thành",
+      "estimated_hours": "Ước tính: :hours giờ",
+      "actual_hours": "Thực tế: :hours giờ",
+      "evidence": "Bằng chứng"
+    },
+    "header": {
+      "creator": "Người tạo",
+      "peer": "Đồng nghiệp"
+    },
+    "evidence": {
+      "url_label": "URL"
+    },
+    "dispute_evidence": {
+      "pull_request": "Liên kết pull request",
+      "demo": "Liên kết demo web/ứng dụng"
+    },
+    "flagged": {
+      "reviewer": "Người đánh giá",
+      "skill": "Kỹ năng",
+      "level": "Cấp độ"
+    },
+    "spider_chart": {
+      "level": "Cấp độ"
+    },
+    "sprint_dispute_room": "Phòng trao đổi tranh chấp sprint",
+    "task_review_lanes_aria": "Các cột đánh giá công việc",
+    "disputes_title": "Tranh chấp đánh giá"
+  },
+  "tasks": {
+    "importance": {
+      "low": "Thấp",
+      "medium": "Trung bình",
+      "high": "Cao",
+      "critical": "Nghiêm trọng"
+    },
+    "pagination": {
+      "rows_per_page": "Số dòng mỗi trang",
+      "page_of": "Trang :page / :total"
+    },
+    "submission": {
+      "repository_url": "URL kho mã nguồn",
+      "pull_request_url": "URL pull request",
+      "demo_url": "URL demo"
+    },
+    "show": {
+      "skills_tab": "Kỹ năng",
+      "skill_requirements": "Yêu cầu kỹ năng"
+    },
+    "assignment": {
+      "project": "Dự án"
+    },
+    "role_prefill": {
+      "baseline": "Cấu hình cơ sở của vai trò"
+    },
+    "kanban": {
+      "column_aria": "Cột :label"
+    }
+  },
+  "projects": {
+    "staffing": {
+      "skill_match": ":matched/:total kỹ năng",
+      "skill_gap": "Kỹ năng còn thiếu: :skills",
+      "talent_pool": "Nguồn nhân tài",
+      "source": {
+        "project_member": "Thành viên dự án",
+        "org_member": "Thành viên tổ chức",
+        "external": "Ứng viên bên ngoài"
+      }
+    },
+    "member": {
+      "task_count": ":count công việc"
+    }
+  },
+  "organizations": {
+    "website": "Trang web",
+    "email": "Email",
+    "create": {
+      "slug_label": "Đường dẫn",
+      "slug_placeholder": "ten-to-chuc",
+      "website_label": "Trang web",
+      "website_placeholder": "https://vidu.vn"
+    }
+  },
+  "pagination": {
+    "navigation_aria": "Phân trang",
+    "previous": "Trước",
+    "previous_page_aria": "Trang trước",
+    "page_aria": "Trang :page",
+    "next": "Tiếp",
+    "next_page_aria": "Trang tiếp theo"
+  },
+  "navigation": {
+    "close": "Đóng thanh điều hướng"
+  },
+  "dashboard": {
+    "org_metrics_aria": "Chỉ số tổng quan của tổ chức"
+  }
+}

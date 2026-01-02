@@ -1,0 +1,37 @@
+%% Sequence 05a — Accept organization invitation
+%% Updated: 2026-07-27.
+%% Scenario: invited user accepts one pending organization membership.
+%% Evidence status: Implemented. PUT /api/v1/me/invitations/:organizationId/accept.
+
+sequenceDiagram
+    autonumber
+    actor I as Invited user
+    participant B as «boundary» Browser
+    participant C as «boundary» AcceptMyInvitationController
+    participant F as «inbound» OrganizationInvitationCommandFactory
+    participant K as «control» AcceptOrganizationInvitationCommand
+    participant D as «entity» PostgreSQL
+    participant N as «outbound» OrganizationNotificationStager
+
+    I->>B: Accept pending invitation
+    activate B
+    B->>C: PUT /api/v1/me/invitations/:organizationId/accept
+    activate C
+    C->>F: makeAccept(execCtx)
+    F-->>C: Command
+    C->>K: execute(organizationId)
+    activate K
+    K->>D: Find pending organization_users row with invited_by
+    activate D
+    D-->>K: Pending invited membership
+    K->>N: Stage inviter notification and outbox on transaction
+    N-->>K: Staged
+    K->>D: Set status=approved, write audit, commit staged effects
+    D-->>K: Transaction committed
+    deactivate D
+    K-->>C: Completed
+    deactivate K
+    C-->>B: Mutation success and redirect back
+    deactivate C
+    B-->>I: Organization membership approved
+    deactivate B

@@ -1,0 +1,48 @@
+%% Class Diagram 02b1 — Skill Profile Records
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (verified).
+%% Source: app/modules/users/infra/models/user_skill.ts;
+%%         app/modules/tasks/infra/models/task_required_skill.ts.
+
+classDiagram
+    direction LR
+
+    class Skill {
+        <<Lucid Model>>
+        +UUID id PK
+        +String category_code
+        +String display_type
+        +String skill_code UK
+        +String skill_name
+        +Text description
+        +Boolean is_active
+        +Integer sort_order
+    }
+    class UserSkill {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID user_id FK
+        +UUID skill_id FK
+        +String verified_public_proficiency_code
+        +UUID proficiency_level_id FK nullable
+        +String source : imported | reviewed
+        +Integer total_reviews
+        +Decimal avg_score
+        +Decimal avg_percentage
+        +Decimal confidence
+        +Integer evidence_count
+        +DateTime last_reviewed_at
+        +get hasBeenReviewed() Boolean
+        +get displayScore() String
+    }
+    class TaskRequiredSkill {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID task_id FK
+        +UUID skill_id FK
+        +String required_public_proficiency_code
+        +Boolean is_mandatory
+    }
+
+    Skill "1" --> "*" UserSkill : acquired by
+    Skill "1" --> "*" TaskRequiredSkill : tagged in

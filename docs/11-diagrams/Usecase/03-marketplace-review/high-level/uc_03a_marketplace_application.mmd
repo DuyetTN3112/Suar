@@ -1,0 +1,37 @@
+%% Use Case 03a — Marketplace discovery and proposal
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; invitation/referral are outside this marketplace goal.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    contributor([👤 External contributor])
+    owner([👤 Task creator / project authority<br/>/ organization owner-admin])
+
+    subgraph system["Marketplace proposal boundary"]
+        direction TB
+        browse([Browse eligible public tasks])
+        inspect([Inspect task context and requirements])
+        submit([Submit proposal with message/evidence links])
+        withdraw([Withdraw pending proposal])
+        viewMine([View own proposals])
+        review([Review received proposals])
+        approve([Approve proposal and create assignment])
+        reject([Reject proposal])
+        browse ~~~ inspect ~~~ submit ~~~ withdraw
+        viewMine ~~~ review ~~~ approve ~~~ reject
+    end
+
+    contributor --- browse
+    contributor --- inspect
+    contributor --- submit
+    contributor --- withdraw
+    contributor --- viewMine
+    owner --- review
+    owner --- approve
+    owner --- reject
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class contributor,owner actor
+    class browse,inspect,submit,withdraw,viewMine,review,approve,reject goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

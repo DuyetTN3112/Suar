@@ -1,0 +1,45 @@
+%% Conceptual ERD — SUAR work-to-credential domain
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: High. Seven business anchors only; detailed structures live in logical ERDs.
+%% Keep reason: all anchors belong to one connected work-to-credential relationship graph.
+
+erDiagram
+    USER {
+        string identity
+        string account_status
+    }
+    ORGANIZATION {
+        string name
+        string governance_context
+    }
+    PROJECT {
+        string name
+        string delivery_context
+    }
+    TASK {
+        string title
+        string workflow_status
+    }
+    EVIDENCE {
+        string source
+        string evidence_type
+    }
+    REVIEW_SESSION {
+        string lifecycle_status
+        string governed_outcome
+    }
+    SKILL_PROFILE {
+        string verified_level
+        string visibility
+    }
+
+    USER }o--o{ ORGANIZATION : "participates in"
+    ORGANIZATION ||--o{ PROJECT : "governs"
+    PROJECT ||--o{ TASK : "contains"
+    USER }o--o{ TASK : "performs"
+    TASK ||--o{ EVIDENCE : "produces"
+    REVIEW_SESSION }o--|| TASK : "evaluates"
+    REVIEW_SESSION }o--o{ EVIDENCE : "references"
+    USER ||--|| SKILL_PROFILE : "owns"
+    REVIEW_SESSION }o--|| SKILL_PROFILE : "updates"

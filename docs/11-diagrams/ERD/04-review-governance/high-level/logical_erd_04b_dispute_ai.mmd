@@ -1,0 +1,82 @@
+%% Logical ERD 04b — Review dispute case file and AI advisory
+%% Evidence status: Implemented.
+%% Scope: logical references for the review-dispute case file and its advisory evaluation; USERS is outside this bounded slice.
+%% Shared AI evaluation source types: review_dispute, sprint_review_dispute, sprint_reverse_review_workflow, and task_review_workflow. This bounded slice shows review_dispute.
+%% source_type + source_id is the polymorphic identity; dispute_id in AI_DISPUTE_EVALUATIONS is a legacy source-id mirror, not a physical FK.
+
+erDiagram
+direction LR
+    REVIEW_SESSIONS {
+        UUID id PK
+        UUID reviewee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+    }
+    REVIEW_DISPUTES {
+        UUID id PK
+        UUID review_session_id FK "FK -> REVIEW_SESSIONS.id"
+        UUID opened_by FK "FK -> USERS.id (outside slice)"
+        UUID reviewee_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR status
+        TEXT dispute_reason
+        VARCHAR requested_outcome
+        VARCHAR final_decision
+        TEXT final_rationale
+        UUID resolved_by FK "FK -> USERS.id (outside slice)"
+        TIMESTAMPTZ resolved_at
+    }
+    REVIEW_DISPUTE_CASE_FILES {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id"
+        INT case_version
+        NUMERIC completeness_score
+        JSONB task_snapshot
+        JSONB assignment_snapshot
+        JSONB submission_snapshot
+        JSONB evidences_snapshot
+        JSONB review_snapshot
+        JSONB missing_data
+    }
+    REVIEW_DISPUTE_COMMENTS {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id"
+        UUID author_id FK "FK -> USERS.id (outside slice)"
+        TEXT body
+        VARCHAR visibility
+    }
+    REVIEW_DISPUTE_EVIDENCES {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id"
+        UUID uploaded_by FK "FK -> USERS.id (outside slice)"
+        VARCHAR evidence_type
+        VARCHAR url
+    }
+    AI_DISPUTE_EVALUATIONS {
+        UUID id PK
+        UUID dispute_id "legacy source-id mirror; not an FK"
+        UUID case_file_id FK "FK -> REVIEW_DISPUTE_CASE_FILES.id; nullable"
+        VARCHAR source_type "polymorphic discriminator; not an FK"
+        UUID source_id "polymorphic source id; not an FK"
+        VARCHAR provider
+        VARCHAR status
+        VARCHAR recommendation
+        NUMERIC confidence_score
+        VARCHAR external_run_id
+        JSONB request_payload
+        JSONB response_payload
+    }
+    AI_DISPUTE_FEEDBACK {
+        UUID id PK
+        UUID dispute_id FK "FK -> REVIEW_DISPUTES.id"
+        UUID ai_evaluation_id FK "FK -> AI_DISPUTE_EVALUATIONS.id"
+        UUID admin_id FK "FK -> USERS.id (outside slice)"
+        VARCHAR final_decision
+        BOOLEAN ai_was_helpful
+    }
+
+    REVIEW_SESSIONS ||--o{ REVIEW_DISPUTES : "REVIEW_DISPUTES.review_session_id -> REVIEW_SESSIONS.id"
+    REVIEW_DISPUTES ||--o{ REVIEW_DISPUTE_CASE_FILES : "REVIEW_DISPUTE_CASE_FILES.dispute_id -> REVIEW_DISPUTES.id"
+    REVIEW_DISPUTES ||--o{ REVIEW_DISPUTE_COMMENTS : "REVIEW_DISPUTE_COMMENTS.dispute_id -> REVIEW_DISPUTES.id"
+    REVIEW_DISPUTES ||--o{ REVIEW_DISPUTE_EVIDENCES : "REVIEW_DISPUTE_EVIDENCES.dispute_id -> REVIEW_DISPUTES.id"
+    REVIEW_DISPUTE_CASE_FILES o|--o{ AI_DISPUTE_EVALUATIONS : "AI_DISPUTE_EVALUATIONS.case_file_id -> REVIEW_DISPUTE_CASE_FILES.id (nullable)"
+    REVIEW_DISPUTES ||--o{ AI_DISPUTE_FEEDBACK : "AI_DISPUTE_FEEDBACK.dispute_id -> REVIEW_DISPUTES.id"
+    AI_DISPUTE_EVALUATIONS ||--o{ AI_DISPUTE_FEEDBACK : "AI_DISPUTE_FEEDBACK.ai_evaluation_id -> AI_DISPUTE_EVALUATIONS.id"

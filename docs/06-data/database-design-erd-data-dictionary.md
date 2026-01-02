@@ -166,16 +166,14 @@ Chứng cứ entity:
 
 - `app/modules/organizations/infra/models/organization.ts`
 - `app/modules/organizations/infra/models/organization_user.ts`
-- `app/modules/organizations/infra/models/organization_invitation.ts`
-- `app/modules/organizations/infra/models/organization_join_request.ts`
 - `app/modules/projects/infra/models/project.ts`
 - `app/modules/projects/infra/models/project_member.ts`
 
 Code audit note rất quan trọng:
 
-- model `organization_join_request.ts` vẫn tồn tại như evidence data shape
-- nhưng flow join request runtime mới đã được code và test ghi rõ là dựa vào `organization_users` với `status = pending`
-- vì vậy khi vẽ ERD hoặc viết report, cần phân biệt `table/model tồn tại` với `business flow hiện tại đang lấy truth ở đâu`
+- invite/join request dùng `organization_users` với `status = pending`
+- `invited_by` phân biệt membership được mời với membership do user chủ động yêu cầu
+- không có model/table invitation hoặc join-request riêng trong runtime hiện tại
 
 ### Task And Marketplace
 
@@ -231,9 +229,9 @@ Chứng cứ entity:
 - `app/modules/audit/domain/audit_event_hash.ts`
 - `database/schema.ts` cho `AuditEventSchema`, `ErrorEventSchema`, `NotificationSchema`
 - `database/migrations/20260719090000_add_enterprise_audit_events.ts`
-- `database/schema.ts` cho `UserActivityEventSchema`
-- `app/modules/user_activity/infra/repositories/postgres_user_activity_log_repository.ts`
-- generated schema/migration evidence cho `user_activity_events`
+- `database/migrations/20260729070000_canonicalize_auth_session_audit_evidence.ts`
+- `database/schema.ts` cho `RetiredUserActivityEventSchema`
+- generated schema/migration evidence cho archive `retired_user_activity_events`
 
 Enterprise audit note:
 
@@ -243,10 +241,10 @@ Enterprise audit note:
 
 ## ERD Inventory
 
-- User/Auth/Skills: `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
-- Org/Project: `docs/11-diagrams/ERD/logical_erd_02_org_project.mmd`
-- Task/Marketplace: `docs/11-diagrams/ERD/logical_erd_03_task_marketplace.mmd`
-- Review/Messaging: `docs/11-diagrams/ERD/logical_erd_04_review_messaging.mmd`
+- User/Auth/Skills: `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
+- Org/Project: `docs/11-diagrams/ERD/02-organization-project/overview/logical_erd_02_org_project.mmd`
+- Task/Marketplace: `docs/11-diagrams/ERD/03-task-marketplace/overview/logical_erd_03_task_marketplace.mmd`
+- Review/Governance: `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 ## Chọn Đúng ERD Nhanh Nhất
 
@@ -259,7 +257,7 @@ Nếu bạn chỉ cần chọn đúng ERD mà không muốn đọc cả file:
 - đang viết chapter task workflow, marketplace, submission:
   - mở `logical_erd_03_task_marketplace.mmd`
 - đang viết chapter review, dispute, moderation:
-  - mở `logical_erd_04_review_messaging.mmd`
+  - mở `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 Rule rất quan trọng:
 
@@ -270,7 +268,7 @@ Gợi ý mở nhanh:
 
 - muốn hiểu hồ sơ và skill: bắt đầu `logical_erd_01_user_auth_skills.mmd`
 - muốn hiểu staffing/delivery: bắt đầu `logical_erd_03_task_marketplace.mmd`
-- muốn hiểu review/dispute: bắt đầu `logical_erd_04_review_messaging.mmd`
+- muốn hiểu review/dispute: bắt đầu `docs/11-diagrams/ERD/04-review-governance/README.md`
 
 ## ERD Reading Strategy
 
@@ -779,12 +777,22 @@ Key enterprise columns verified from `database/migrations/20260719090000_add_ent
 - `event_hash`
 - `prev_hash`
 - `recorded_at`
+- `source_occurred_at` (nullable producer-observed time; `occurred_at` remains
+  database record/hash-chain order)
 
 Runtime notes:
 
 - sensitive payload keys matching password/token/secret/authorization/cookie/session/refresh/api_key are redacted by `redactAuditValue`
-- `computeAuditEventHash` hashes canonical event content plus `prev_hash`
+- `computeAuditEventHash` hashes canonical event content plus `prev_hash`;
+  schema-v3 events also seal `source_occurred_at`
 - admin audit read paths should treat these fields as enterprise metadata, not arbitrary JSON extras
+
+### `retired_user_activity_events`
+
+This is a read-only migration archive retained to avoid destructive loss of
+legacy generic activity rows. A database trigger rejects insert/update/delete/
+truncate. No production module, seed, test helper, or cleanup path may use it;
+Audit is the canonical runtime owner.
 
 ### `audit_event_scopes`
 

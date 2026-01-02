@@ -1,0 +1,47 @@
+%% Class Diagram: Task Workflow Status Detail
+%% Evidence status: Implemented.
+%% Updated 2026-06-26 (verified).
+%% Scope: Custom task statuses and workflow transitions only.
+
+classDiagram
+direction LR
+    class Task {
+        +UUID id
+        +UUID organization_id
+        +UUID task_status_id
+        +String status : legacy mirror
+    }
+
+    class TaskStatus {
+        +UUID id
+        +UUID organization_id
+        +String name
+        +String slug
+        +String category
+        +String color
+        +String icon
+        +String description
+        +Integer sort_order
+        +Boolean is_default
+        +Boolean is_system
+        +DateTime deleted_at
+    }
+
+    class TaskWorkflowTransition {
+        +UUID id
+        +UUID organization_id
+        +UUID from_status_id
+        +UUID to_status_id
+        +JSONB conditions
+        +DateTime created_at
+    }
+
+    Task "*" --> "1" TaskStatus : current status
+    TaskStatus "1" --> "*" TaskWorkflowTransition : from_status
+    TaskStatus "1" --> "*" TaskWorkflowTransition : to_status
+
+    note for TaskStatus "Organization-specific workflow definition.
+    category normalizes business meaning: todo / in_progress / done / cancelled."
+    note for TaskWorkflowTransition "Used to control allowed status movement.
+    conditions lives in JSONB for org-level customization.
+    Empty transitions = permissive default (all moves allowed)."

@@ -1,0 +1,30 @@
+%% Use Case 05 — Search and operations
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented/Partial; Elasticsearch has SQL fallback.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    user([👤 Authenticated user])
+    admin([👤 System administrator])
+    operator([👤 Operator])
+
+    subgraph system["SUAR search and operations boundary"]
+        search([Search users, talents, tasks, projects, skills,<br/>organizations, and SQL-backed task comments])
+        explain([See result source/status and highlights])
+        reindex([Rebuild Elasticsearch projections])
+        health([Check Elasticsearch reachability<br/>and talent-index readiness])
+        audit([Inspect durable search UI audit events])
+    end
+
+    user --- search
+    admin --- search
+    search -.->|"«include»"| explain
+    operator --- reindex
+    operator --- health
+    admin --- audit
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class user,admin,operator actor
+    class search,explain,reindex,health,audit goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

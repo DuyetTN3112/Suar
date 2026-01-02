@@ -1,15 +1,15 @@
 # Project Plan, Roadmap Signals, Meeting-Minutes Status, Risk, And Change Context
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Lead, manager, reviewer, maintainer, cross-role reader cần hiểu hệ thống đang ở đâu về mặt delivery/governance |
-| Purpose | Nói rõ hệ thống hiện có những dấu vết quản trị nào là thật và những artifact PM truyền thống nào vẫn chưa có nguồn độc lập trong bộ tài liệu |
-| Source of Truth | repository structure, tests, capability docs hiện hành, config/schema/runtime evidence hiện tại |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi roadmap signal, major capability, runtime support, hoặc risk surface đổi |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                                                        |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                                                       |
+| Audience        | Lead, manager, reviewer, maintainer, cross-role reader cần hiểu hệ thống đang ở đâu về mặt delivery/governance                               |
+| Purpose         | Nói rõ hệ thống hiện có những dấu vết quản trị nào là thật và những artifact PM truyền thống nào vẫn chưa có nguồn độc lập trong bộ tài liệu |
+| Source of Truth | repository structure, tests, capability docs hiện hành, config/schema/runtime evidence hiện tại                                              |
+| Last Reviewed   | 2026-07-10                                                                                                                                   |
+| Review Cycle    | Khi roadmap signal, major capability, runtime support, hoặc risk surface đổi                                                                 |
+| Owner           | Engineering                                                                                                                                  |
+| Stale Risk      | Cao                                                                                                                                          |
 
 ## File Này Dùng Để Làm Gì
 
@@ -78,7 +78,6 @@ Backend/domain breakdown hiện có:
 - `users`
 - `notifications`
 - `audit`
-- `user_activity`
 - `admin`
 - `settings`
 
@@ -240,7 +239,7 @@ Risk:
 Nguồn:
 
 - `config/transmit.ts`
-- `docs/11-diagrams/Architecture/arch_02b_runtime_support.mmd`
+- `docs/11-diagrams/Architecture/01-system-architecture/README.md`
 
 ### 5. Health Endpoint Credential Provisioning
 
@@ -278,7 +277,7 @@ Nguồn:
 - `schema/migration evidence`
 - `app/modules/audit/infra/repositories/audit_repository_provider.ts`
 - `app/modules/notifications/infra/repositories/notification_repository_provider.ts`
-- `app/modules/user_activity/infra/repositories/user_activity_repository_provider.ts`
+- `database/migrations/20260729070000_canonicalize_auth_session_audit_evidence.ts`
 
 ### 8. Capability-Model Misinterpretation
 

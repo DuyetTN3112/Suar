@@ -1,0 +1,38 @@
+%% Class Diagram: User Settings Runtime
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: User-facing settings controllers, actions, and persisted data contract.
+
+classDiagram
+    direction TB
+
+    class ShowSettingsController {
+        <<HTTP Controller>>
+    }
+    class UpdateSettingsController {
+        <<HTTP Controller>>
+    }
+    class GetUserSettings {
+        +handle(userId: string): Promise~UserSettingData~
+    }
+    class UpdateUserSettings {
+        <<Application Action>>
+    }
+    class UserSettingData {
+        <<interface>>
+        +theme: SettingTheme
+        +notifications_enabled: boolean
+        +display_mode: SettingDisplayMode
+        +font: string
+        +layout: string
+        +density: string
+        +animations_enabled: boolean
+        +custom_scrollbars: boolean
+    }
+
+    ShowSettingsController --> GetUserSettings
+    UpdateSettingsController --> UpdateUserSettings
+    GetUserSettings --> UserSettingData : returns merged defaults
+    UpdateUserSettings --> UserSettingData : writes users.user_setting
+
+    note for UpdateUserSettings "Anonymous destructured input/output omitted; no invented DTO type."

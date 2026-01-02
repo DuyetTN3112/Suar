@@ -1,0 +1,39 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Design Class Diagram 03k — AI dispute evaluation dispatch collaboration
+%% Evidence status: Partial. Suar staging, fencing, audit, and trigger contract are implemented; external advisory execution is configurable.
+%% Parent actor goal: UC 03b “Inspect AI advisory”, an extension of governed dispute resolution.
+%% Scenario trace: seq_04d_ai_dispute_evaluation_dispatch instantiates the boundary, control, reader, and gateway participants shown here.
+%% Scope: technical dispatch design; data structure remains cls_03f and logical_erd_04b.
+
+classDiagram
+    direction TB
+
+    class StartAiDisputeEvaluationController {
+        <<boundary>>
+        +handle(ctx)
+    }
+    class ReviewActionFactory {
+        <<inbound factory>>
+        +makeStartAiDisputeEvaluationCommand(context)
+    }
+    class StartAiDisputeEvaluationCommand {
+        <<control>>
+        +execute(dto)
+    }
+    class AiDisputeEvaluationSourceReader {
+        <<outbound port>>
+        +findActorSystemRole()
+        +findReviewDispute()
+        +findLatestReviewDisputeCaseFile()
+    }
+    class AiDisputeEvaluationGateway {
+        <<outbound port>>
+        +stage()
+        +dispatch()
+        +reconcileOnce()
+    }
+
+    StartAiDisputeEvaluationController --> ReviewActionFactory : builds command
+    ReviewActionFactory --> StartAiDisputeEvaluationCommand : creates
+    StartAiDisputeEvaluationCommand --> AiDisputeEvaluationSourceReader : reads governed case
+    StartAiDisputeEvaluationCommand --> AiDisputeEvaluationGateway : stages fenced evaluation

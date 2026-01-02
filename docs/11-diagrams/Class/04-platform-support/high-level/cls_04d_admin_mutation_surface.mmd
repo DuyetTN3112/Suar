@@ -1,0 +1,43 @@
+%% Class Diagram: Admin Mutation Surface
+%% Evidence status: Partial — active System mutations are implemented; users.system_role remains physical-separation debt.
+%% Keep reason: mutation pairs converge on one AdminActionContext; shared authorization is the subject.
+%% Updated: 2026-07-28.
+%% Evidence: concrete commands under app/modules/admin/actions/**/commands and controllers.
+
+classDiagram
+    direction LR
+    class AdminActionContext {
+        <<interface>>
+        +userId: string|null
+        +ip: string
+        +userAgent: string
+        +organizationId: string|null
+        +requestId: string|null
+    }
+    class UpdateUserRoleController
+    class SuspendUserController
+    class ResolveFlaggedReviewController
+    class UpdatePackageController
+    class UpdateUserSystemRoleCommand {
+        +handle(dto: UpdateUserSystemRoleDTO): Promise~void~
+    }
+    class SuspendUserCommand {
+        +handle(dto: SuspendUserDTO): Promise~void~
+    }
+    class ResolveFlaggedReviewCommand {
+        +handle(dto: ResolveFlaggedReviewDTO): Promise~void~
+    }
+    class UpdateSubscriptionCommand {
+        +handle(dto: UpdateSubscriptionDTO): Promise~void~
+    }
+    UpdateUserRoleController --> UpdateUserSystemRoleCommand
+    SuspendUserController --> SuspendUserCommand
+    ResolveFlaggedReviewController --> ResolveFlaggedReviewCommand
+    UpdatePackageController --> UpdateSubscriptionCommand
+    UpdateUserSystemRoleCommand --> AdminActionContext : enforces
+    SuspendUserCommand --> AdminActionContext : enforces
+    ResolveFlaggedReviewCommand --> AdminActionContext : enforces
+    UpdateSubscriptionCommand --> AdminActionContext : enforces
+
+    note for UpdateUserSystemRoleCommand "Compatibility symbol writes users.system_role.\nTarget: independent System-principal role assignment."
+    note for AdminActionContext "Current field name userId is transport compatibility.\nSystem action context must not carry Org/Project authority."

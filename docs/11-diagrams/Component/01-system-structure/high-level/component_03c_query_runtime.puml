@@ -1,0 +1,35 @@
+@startuml
+' UML Component 03c — Query and cache runtime
+' Evidence status: Implemented source modules; Elasticsearch is configurable.
+' Updated: 2026-07-27.
+
+!pragma layout elk
+top to bottom direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "Business modules" as Business
+component "Search\nprovides SearchRuntimePort" as Search
+component "Cache\nprovides CacheStore" as Cache
+database "PostgreSQL\nsource of truth + fallback" as PostgreSQL
+node "Elasticsearch\ncandidate ids + ranking" as Elasticsearch
+node "Redis\ncache + lock" as Redis
+
+Business ..> Search : query + projection
+Business ..> Cache : cached reads
+Search --> Elasticsearch : retrieve candidates
+Search --> PostgreSQL : hydrate + authorize
+Cache --> Redis : store + invalidate
+
+@enduml

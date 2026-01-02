@@ -1,0 +1,16 @@
+%% User Flow 10c — Governed action authorization and outcome
+%% Evidence status: Implemented.
+%% Journey actor: authorized system administrator.
+%% Preceded by: uf_10b_governed_action_result.
+
+flowchart LR
+    Authorized{"Selected operation authorized?"}
+    Authorized -->|No| Denied([Denied; state unchanged])
+    Authorized -->|Yes| Apply["Apply operation"] --> Complete([Updated state<br/>and audit evidence available])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Denied,Complete terminal
+    class Apply action
+    class Authorized decision

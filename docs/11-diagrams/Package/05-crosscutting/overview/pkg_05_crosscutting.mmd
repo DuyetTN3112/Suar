@@ -1,0 +1,33 @@
+%% Package Diagram: Cross-Cutting Event Reactions
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27 (code-verified).
+%% Viewpoint: package-level event route; listener-by-listener behavior belongs in sequence/DFD diagrams.
+%% Keep reason: two rows are layout continuation of one event route through connector A, not independent panels.
+
+flowchart TB
+    subgraph row1["Event dispatch"]
+        direction LR
+        Constants["Module-local constants<br/>shared event vocabulary"] -.->|"type and name contracts"| Events["Module event packages<br/>domain and application events"] --> Bus["In-process event bus"] --> Listeners["Listener packages<br/>notification · cache · review · audit · search"] --> ToSinks((A))
+    end
+
+    subgraph row2["Listener dependencies"]
+        direction LR
+        FromListeners((A)) -->|"invoke bounded APIs"| Contracts["Module public contracts<br/>notification · audit · search · business modules"] -->|"use adapters"| Stores["Operational stores<br/>PostgreSQL · Redis · Elasticsearch"]
+        FromListeners -->|"realtime invalidation push"| RealtimeGateway["Transmit SSE Gateway<br/>start/transmit.ts · Redis PubSub"]
+        FromListeners -->|"structured diagnostics & exception boundaries"| Logger["Redacted runtime logger<br/>Domain/App/Infra Exception Handlers"]
+    end
+
+    ToSinks ~~~ FromListeners
+
+    classDef event fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#333
+    classDef listener fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    class Events,Constants event
+    class Bus,Listeners listener
+    class Contracts boundary
+    class Stores,Logger infra
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToSinks,FromListeners connector
+    style row1 fill:#F8FAFC,stroke:#94A3B8
+    style row2 fill:#F8FAFC,stroke:#94A3B8

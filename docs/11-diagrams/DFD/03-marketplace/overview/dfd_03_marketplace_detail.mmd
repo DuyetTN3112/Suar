@@ -1,0 +1,26 @@
+%% DFD 03 — Marketplace domain map (Formal Level 2: expansion of P4)
+%% Parent process: P4 Discover tasks from complementary Level-1 frame dfd_01b_task_discovery_submission.
+%% Evidence status: Implemented; Elasticsearch is optional acceleration.
+%% Balance: refines contributor discovery/proposal input and returns the accepted application or assignment choice to P3.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    U["E2<br/>External contributor"] -->|"search filters"| P1[[4.1 Browse marketplace]]
+    U -->|"proposal or withdrawal"| P2[[4.2 Maintain proposal]]
+    A["E1<br/>Task authority"] -->|"proposal decision"| P3[[4.3 Decide and assign]]
+    ES[("D6<br/>Derived search projection")] -->|"candidate ids and ranking"| P1
+    D[("D2<br/>Marketplace source records")] -->|"authorized tasks and requirements"| P1
+    D -->|"task eligibility and proposal state"| P2
+    P2 -->|"proposal state"| D
+    D -->|"proposal and assignment context"| P3
+    P3 -->|"decision and assignment state"| D
+    P1 -->|"eligible task results"| U
+    P2 -->|"proposal result"| U
+    P3 -->|"decision result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U,A entity
+    class P1,P2,P3 process
+    class D,ES store

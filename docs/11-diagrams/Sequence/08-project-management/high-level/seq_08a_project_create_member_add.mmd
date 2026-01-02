@@ -1,0 +1,48 @@
+%% Sequence 08a — Create project and seed role templates
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin creates one project and optionally seeds professional roles.
+%% Evidence status: Implemented. Initial staffing continuation is Sequence 08a1.
+
+sequenceDiagram
+    autonumber
+    actor U as Organization owner / admin
+    participant C as «boundary» CreateProjectWithStaffingController
+    participant K as «control» CreateProjectCommand
+    participant D as «entity» PostgreSQL
+    participant A as «control» ProjectAuditEventPublisher
+    participant E as «control» ProjectEventPublisher
+    participant S as «control» SkillPublicApi
+
+    U->>C: POST project and optional role templates
+    activate C
+    C->>K: handle(CreateProjectDTO)
+    activate K
+    K->>D: Check permission/membership, create project and owner row
+    activate D
+    D-->>K: Project persisted
+    deactivate D
+    K->>A: publishProjectAudit(create)
+    activate A
+    A-->>K: Audit recorded
+    deactivate A
+    K->>D: Commit project transaction
+    activate D
+    D-->>K: Committed project and owner membership
+    deactivate D
+    K->>E: publishProjectCreated(event)
+    activate E
+    E-->>K: Event published
+    deactivate E
+    K-->>C: Project detail
+    deactivate K
+    opt Role templates requested
+        loop Each unique template code
+            C->>S: Find active template and clone to project
+            activate S
+            S-->>C: Project professional role or skip
+            deactivate S
+        end
+    end
+    Note over C,S: Initial member assignment continues in Sequence 08a1
+    C-->>U: Project detail and selected focus
+    deactivate C

@@ -1,0 +1,47 @@
+%% Sequence 05b — Update organization member role
+%% Updated: 2026-07-27.
+%% Scenario: owner/admin changes one approved member role.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» UpdateMemberRoleController
+    participant K as «control» UpdateMemberRoleCommand
+    participant P as «control» canChangeRole()
+    participant D as «entity» PostgreSQL
+    participant N as «control» NotificationPublicApi
+
+    ADMIN->>B: Select new member role
+    activate B
+    B->>C: PUT /org/members/:memberId/role
+    activate C
+    C->>K: executeFromRequest(roleUpdateInput)
+    activate K
+    K->>D: Load actor and target membership roles
+    activate D
+    D-->>K: Current roles
+    deactivate D
+    K->>P: canChangeRole(context)
+    activate P
+    P-->>K: Allowed or denied
+    deactivate P
+    alt Allowed and role changed
+        K->>D: Update organization_users role and write audit
+        activate D
+        D-->>K: Committed
+        deactivate D
+        K->>N: Notify affected member
+        activate N
+        N-->>K: Notification persisted
+        deactivate N
+        K-->>C: Completed
+    else Denied/same role
+        K-->>C: Policy or conflict error
+    end
+    deactivate K
+    C-->>B: Redirect/result
+    deactivate C
+    B-->>ADMIN: Show member role
+    deactivate B

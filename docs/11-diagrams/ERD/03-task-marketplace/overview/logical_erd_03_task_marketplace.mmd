@@ -1,0 +1,50 @@
+%% Logical ERD 03 — Task delivery overview
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Report view: compact backbone. Read 03a–03d for workflow, evidence, marketplace, and collaboration detail.
+%% Keep reason: all entities connect through TASKS/TASK_ASSIGNMENTS; relationships are the subject.
+
+erDiagram
+direction LR
+    TASK_STATUSES {
+        UUID id PK
+        UUID organization_id FK
+        VARCHAR category
+    }
+    TASKS {
+        UUID id PK
+        UUID project_id FK
+        UUID task_status_id FK
+        UUID assigned_to FK
+        VARCHAR task_visibility
+    }
+    TASK_APPLICATIONS {
+        UUID id PK
+        UUID task_id FK
+        UUID applicant_id FK
+        VARCHAR application_status
+    }
+    TASK_ASSIGNMENTS {
+        UUID id PK
+        UUID task_id FK
+        UUID assignee_id FK
+        VARCHAR assignment_status
+    }
+    TASK_REQUIREMENT_VERSIONS {
+        UUID id PK
+        UUID task_id FK
+        INT version_number
+    }
+    TASK_SUBMISSIONS {
+        UUID id PK
+        UUID task_id FK
+        UUID task_assignment_id FK
+        VARCHAR status
+    }
+
+    TASK_STATUSES ||--o{ TASKS : "governs"
+    TASKS ||--o{ TASK_APPLICATIONS : "receives"
+    TASKS ||--o{ TASK_ASSIGNMENTS : "assigns"
+    TASKS ||--o{ TASK_REQUIREMENT_VERSIONS : "versions requirements"
+    TASKS ||--o{ TASK_SUBMISSIONS : "receives packages"
+    TASK_ASSIGNMENTS ||--o| TASK_SUBMISSIONS : "produces"

@@ -1,0 +1,26 @@
+%% Activity 06 — Authenticate user
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_06_user_registration_approval, act_06a, act_06c, act_06d.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([User chooses OAuth provider]) --> Callback["Complete provider callback<br/>act_06a"] --> ToResolve((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromCallback((A)) --> Resolve["Resolve linked, same-email,<br/>or new active account · act_06c"] --> Session["Create web session and emit login"] --> Authenticated([Authenticated session ready])
+    end
+    ToResolve ~~~ FromCallback
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef session fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Start,Authenticated terminal
+    class Callback,Resolve action
+    class Session session
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToResolve,FromCallback connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

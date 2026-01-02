@@ -1,0 +1,26 @@
+%% Activity 06b — Logout and session teardown
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Current web-session path; no JWT or cross-provider token choreography.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Start]) --> Request["User submits logout request"] --> Logout["auth.use('web').logout()<br/>invalidate server session"] --> ToContext((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromLogout((A)) --> Context["Clear shared authentication<br/>and session context"] --> Evidence["Emit auth session observation<br/>write canonical Audit evidence"] --> Redirect["Redirect /login<br/>with flash state"] --> End([End])
+    end
+    ToContext ~~~ FromLogout
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef session fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End startEnd
+    class Request,Evidence,Redirect action
+    class Logout,Context session
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToContext,FromLogout connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

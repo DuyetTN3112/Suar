@@ -1,0 +1,39 @@
+%% Sequence 12 — Update profile settings
+%% Updated: 2026-07-27.
+%% Scenario: user updates one account/profile setting.
+%% Evidence status: Implemented; appearance/display preferences may remain client-persisted compatibility settings.
+
+sequenceDiagram
+    autonumber
+    actor USER as User
+    participant C as «boundary» UpdateProfileSettingsController
+    participant K as «control» UpdateProfileSettingsCommand
+    participant UAPI as «control» UserPublicApi
+    participant UP as «control» UpdateUserProfileCommand
+    participant D as «entity» PostgreSQL
+    participant A as «control» AuditPublicApi
+
+    USER->>C: POST profile/account setting
+    activate C
+    C->>K: handle(UpdateUserProfileDTO)
+    activate K
+    K->>UAPI: updateUserProfile(dto, actionContext)
+    activate UAPI
+    UAPI->>UP: handle(dto)
+    activate UP
+    UP->>D: Read user and update username/email transactionally
+    activate D
+    D-->>UP: User record and old values
+    deactivate D
+    UP->>A: write(user update audit)
+    activate A
+    A-->>UP: Audit persisted
+    deactivate A
+    UP-->>UAPI: Updated user
+    deactivate UP
+    UAPI-->>K: Updated user
+    deactivate UAPI
+    K-->>C: Updated user
+    deactivate K
+    C-->>USER: Updated setting and success result
+    deactivate C

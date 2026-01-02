@@ -48,7 +48,7 @@ This design does **not** introduce a generic cross-domain comment platform. Task
    - confirm;
    - dispute.
 7. Ensure dispute room supports:
-   - two-way conversation;
+   - two-way typed dispute-response exchange;
    - evidence exchange;
    - escalation to system admin.
 8. Preserve and later adapt reverse review statistics/surfaces so they can be fed by sprint-close reverse reviews instead of task-close reverse reviews.
@@ -349,7 +349,7 @@ The dispute UX must not feel like loose comments scattered across the page. It s
 
 This does **not** require a new table model if existing dispute comments can already support it cleanly. The product requirement is behavioral and presentational:
 
-- dispute conversation must be visibly separate from task comments;
+- dispute-response history must be visibly separate from task comments;
 - it must read like an active case discussion between two sides;
 - it must preserve enough structure for later case-file and admin investigation.
 
@@ -360,7 +360,7 @@ Entry rule:
 #### Relationship between task comments and dispute comments
 
 - task comments describe work context over the lifetime of the task;
-- dispute comments describe explicit dispute conversation;
+- dispute responses describe the governed dispute exchange;
 - both should appear in the dispute experience, but as separate streams.
 
 This distinction is mandatory:
@@ -370,7 +370,7 @@ This distinction is mandatory:
 
 Presentation rule:
 
-- dispute exchange room primary discussion tab shows the two-sided dispute conversation;
+- dispute exchange room primary discussion tab shows the two-sided governed response history;
 - review-related task comments appear in a supporting panel or evidence tab;
 - case file snapshots include both.
 

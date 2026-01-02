@@ -1,0 +1,27 @@
+%% Class 04c — Admin read surface overview
+%% Evidence status: Implemented scope; conceptual containers are explicitly marked.
+%% Updated: 2026-07-27.
+%% Summary nodes are package groups, not invented runtime classes. Detail: 04c1–04c3.
+
+classDiagram
+direction LR
+    class AdminDashboardController {
+        <<HTTP Controller>>
+    }
+    class GetDashboardStatsQuery {
+        +handle(dto?: Record~string, never~): Promise~GetDashboardStatsResult~
+    }
+    class UserOrganizationQueries {
+        <<conceptual>>
+    }
+    class ReviewAuditQueries {
+        <<conceptual>>
+    }
+    class SubscriptionPermissionQueries {
+        <<conceptual>>
+    }
+
+    AdminDashboardController --> GetDashboardStatsQuery
+    AdminDashboardController ..> UserOrganizationQueries : links to surfaces
+    AdminDashboardController ..> ReviewAuditQueries : operations view
+    AdminDashboardController ..> SubscriptionPermissionQueries : subscriptions view

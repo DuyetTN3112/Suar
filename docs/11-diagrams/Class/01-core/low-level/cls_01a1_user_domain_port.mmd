@@ -1,0 +1,39 @@
+%% Class Diagram 01a1 — User domain entity and repository port
+%% Evidence status: Implemented current class; Partial target realm separation because systemRole/isSystemAdmin remain compatibility coupling.
+%% Updated 2026-07-28 (code-verified and debt-labeled).
+%% Scope: Domain design classes only.
+
+classDiagram
+direction TB
+    class UserEntity {
+        <<Domain Entity>>
+        +id: string
+        +username: string
+        +email: string|null
+        +status: UserStatus
+        +systemRole: UserSystemRole
+        +currentOrganizationId: string|null
+        +authMethod: UserAuthMethod
+        +isExternalContributor: boolean
+        +deletedAt: Date|null
+        +isActive: boolean
+        +isAdmin: boolean
+        +isSuperadmin: boolean
+        +canChangeRoleOf(targetUserId: string, newRole: string): PolicyResult
+        +canDeactivate(targetUserId: string): PolicyResult
+    }
+
+    class UserRepository {
+        <<interface>>
+        +findById(id: string): Promise~UserEntity|null~
+        +findActiveOrFail(id: string): Promise~UserEntity~
+        +findNotDeletedOrFail(id: string): Promise~UserEntity~
+        +findWithOrganizations(id: string): Promise~UserEntity~
+        +isActive(id: string): Promise~boolean~
+        +isExternalContributor(id: string): Promise~boolean~
+        +isSystemAdmin(id: string): Promise~boolean~
+    }
+
+    UserRepository ..> UserEntity : returns
+    note for UserEntity "systemRole/isAdmin/isSuperadmin are current migration debt.\nTarget User principal has no System authorization role."
+    note for UserRepository "isSystemAdmin is a legacy transport/storage lookup,\nnot a User/Organization/Project permission."

@@ -1,0 +1,30 @@
+%% Architecture 04a — Durable operational evidence
+%% Evidence status: Implemented.
+%% Viewpoint: canonical Audit and Error evidence. Runtime telemetry remains in arch_02d.
+
+flowchart LR
+    Sources["HTTP · Commands · domain events<br/>request/trace/correlation context"]
+    AuditCommand["Audit write capability<br/>redaction + schema version"]
+    Exception["Exception handler<br/>reportable 5xx / 429"]
+    Audit[("audit_events<br/>hash chain + scopes<br/>source_occurred_at")]
+    Errors[("error_events")]
+
+    Sources -->|"selected governed evidence"| AuditCommand --> Audit
+    Sources -->|"reportable exception"| Exception --> Errors
+
+    RecordOrder["occurred_at<br/>database record/hash-chain order"]
+    SourceTime["source_occurred_at<br/>nullable producer-observed time"]
+    Archive["retired_user_activity_events<br/>read-only historical archive"]
+
+    Audit -.-> RecordOrder
+    Audit -.-> SourceTime
+    Archive -.->|"migration provenance only"| Audit
+
+    classDef input fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef service fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef note fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:5 4
+    class Sources input
+    class AuditCommand,Exception service
+    class Audit,Errors store
+    class RecordOrder,SourceTime,Archive note

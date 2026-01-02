@@ -1,0 +1,54 @@
+%% Class Diagram 01b1 — Organization/project domain ports
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Domain entities and repository ports only.
+
+classDiagram
+direction LR
+    class OrganizationEntity {
+        <<Domain Entity>>
+        +id: string
+        +name: string
+        +slug: string
+        +ownerId: string
+        +partnerType: string|null
+        +partnerIsActive: boolean
+        +hasCustomRoles: boolean
+    }
+    class OrganizationRepository {
+        <<interface>>
+        +findById(id: string): Promise~OrganizationEntity|null~
+        +findBySlug(slug: string): Promise~OrganizationEntity|null~
+        +findByOwnerId(ownerId: string): Promise~OrganizationEntity[]~
+        +findNotDeletedOrFail(id: string): Promise~OrganizationEntity~
+    }
+    class ProjectEntity {
+        <<Domain Entity>>
+        +id: string
+        +creatorId: string
+        +organizationId: string
+        +name: string
+        +status: ProjectStatus
+        +ownerId: string|null
+        +managerId: string|null
+        +visibility: ProjectVisibility
+        +allowExternalContributors: boolean
+        +startDate: Date|null
+        +endDate: Date|null
+        +isPublic: boolean
+        +allowsExternalContributors: boolean
+        +isActive: boolean
+        +isCompleted: boolean
+        +isDeleted: boolean
+    }
+    class ProjectRepository {
+        <<interface>>
+        +findById(id: string): Promise~ProjectEntity|null~
+        +findByOrganization(organizationId: string): Promise~ProjectEntity[]~
+        +findByCreator(creatorId: string): Promise~ProjectEntity[]~
+        +findByManager(managerId: string): Promise~ProjectEntity[]~
+        +findNotDeletedOrFail(id: string): Promise~ProjectEntity~
+    }
+
+    OrganizationRepository ..> OrganizationEntity : returns
+    ProjectRepository ..> ProjectEntity : returns

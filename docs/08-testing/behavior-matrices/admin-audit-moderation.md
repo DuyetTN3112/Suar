@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Status | Draft audit |
-| Last Reviewed | 2026-07-14 |
+| Last Reviewed | 2026-07-28 |
 | Scope | System admin boundary, dashboards, users, organizations, audit logs, flagged reviews, dispute moderation, packages, proficiency/rubrics |
 | Primary Docs | `docs/09-operations/user-manual-admin-guide-faq-training.md`, `docs/09-operations/runbook-monitoring-maintenance.md`, `docs/09-operations/production-incident-first-response.md` |
 | Primary Runtime | `start/routes/admin.ts`, `start/routes/reviews.ts`, `app/modules/admin/**`, `app/modules/reviews/**` |
@@ -21,8 +21,8 @@ This file is still an admin-domain evidence matrix, not a complete hierarchical 
 
 | ID | Behavior | Actor / State | Input / Trigger | Expected Backend Result | Expected UI Result | Evidence | Status |
 |---|---|---|---|---|---|---|---|
-| ADM-001 | System admin routes require system-admin boundary | Superadmin/system_admin vs normal user | Visit `/admin/*` | Auth + `requireSystemAdmin()` + `systemAdminContext()` guard | Non-admin blocked/redirected | `start/routes/admin.ts`, `admin_proficiency_rubric_read.spec.ts` | covered route, partial E2E |
-| ADM-002 | System admin is distinct from organization admin | Org owner/admin without system role | Visit `/admin/*` | Not sufficient for system admin access | Org owner cannot use admin shell | `start/routes/admin.ts`, `docs/09-operations/user-manual-admin-guide-faq-training.md` | documented, partial E2E |
+| ADM-001 | System admin routes require the System boundary | Authorized System classification vs User-realm actor | Visit `/admin/*` | Current auth transport + `requireSystemAdmin()` + fixed System action context | User-realm actor blocked; no Org/Project switcher | `start/routes/admin.ts`, `admin_proficiency_rubric_read.spec.ts`, `realm_separation_source.spec.ts` | covered route/UI boundary; physical identity separation partial |
+| ADM-002 | System Admin is distinct from Organization admin | Organization owner/admin without System-principal authorization | Visit `/admin/*` | Organization authority is not sufficient for System access | Organization admin cannot use Admin app | `start/routes/admin.ts`, `docs/09-operations/user-manual-admin-guide-faq-training.md` | documented, partial E2E |
 | ADM-003 | Admin dashboard API exposes wrapped camelCase stats | System admin | `GET /api/admin/dashboard` | Wrapped `data` without `success`; users/orgs/tasks/subscriptions/moderation stats keys present | Dashboard cards should render | `app/modules/admin/tests/backend/integration/admin_read_api_standardization.spec.ts` | covered backend, missing E2E |
 | ADM-004 | Admin users API returns filtered wrapped list | System admin | `GET /api/admin/users?search=...` | CamelCase user fields, pagination, filters | Users table/filter should render same rows | `admin_read_api_standardization.spec.ts`, `list_users_query.spec.ts`, `admin_users_page.test.ts` | covered backend, partial UI |
 | ADM-005 | Admin user pagination deterministic on tied `created_at` | System admin, tied users | List users | Stable id desc tie-break | Pagination not reorder randomly | `admin_read_api_standardization.spec.ts` | covered backend, missing UI |
@@ -33,7 +33,7 @@ This file is still an admin-domain evidence matrix, not a complete hierarchical 
 | ADM-010 | Audit log cursor pagination avoids duplicates | System admin | Older/newer audit windows | No overlap; cursor metadata valid | Cursor controls stable | `audit_logs.spec.ts`, `admin_audit_logs_console_routing.test.ts` | covered backend, partial UI |
 | ADM-011 | Direct page-number jumps in cursor mode reset to newest window | System admin | `page=3` without cursor | Newest cursor window returned to avoid offset drift | UI does not fake random offset jump | `audit_logs.spec.ts` | covered backend, missing E2E |
 | ADM-012 | User audit scope returns rows owned by or performed by that user | System admin/user audit surface | User-scoped audit query | Only user-owned or actor rows returned | Personal audit hides other users | `audit_logs.spec.ts`, `audit_log_surfaces.spec.ts` | covered backend and E2E |
-| ADM-013 | Organization audit scope returns org/project/task rows for that org only | Org owner/system admin context | Org-scoped audit query | Direct organization, project, task audit rows scoped to org | Org audit surface hides foreign org | `audit_logs.spec.ts`, `audit_log_surfaces.spec.ts` | covered backend and E2E |
+| ADM-013 | Organization audit scope returns org/project/task rows for that org only | Organization owner/admin in the User realm | Org-scoped audit query | Direct organization, project, task audit rows scoped to org | Org audit surface hides foreign org | `audit_logs.spec.ts`, `audit_log_surfaces.spec.ts` | covered backend and E2E |
 | ADM-014 | System audit surface has one focused sidebar entry and no old workspace widgets | System admin | `/admin/audit-logs` | N/A | No duplicate workspace nav; detail has request/trace/IP/user-agent/raw payload | `inertia/apps/admin/tests/e2e/admin/audit_log_surfaces.spec.ts`, `admin_audit_logs_console.spec.ts`, `admin_audit_logs_page.test.ts` | covered E2E |
 | ADM-015 | Flagged reviews list includes reviewer/reviewee and flag metadata | System admin | List flagged reviews | Reviewer/reviewee info, flag type, severity, status, comment | Flagged reviews table should render human details | `app/modules/admin/tests/backend/integration/flagged_reviews.spec.ts` | covered backend, missing E2E |
 | ADM-016 | Flagged review resolve persists reviewed_by, status, notes, reviewed_at | System admin | Resolve flagged review | Status/notes/reviewer timestamp persisted | Queue row updates/disappears | `flagged_reviews.spec.ts`, `admin_api_standardization.spec.ts` | covered backend, missing E2E |
@@ -52,7 +52,7 @@ This file is still an admin-domain evidence matrix, not a complete hierarchical 
 | ADM-029 | Admin dispute AI operator preserves filters and pagination | System admin | `/admin/disputes/ai-operator` | AI evaluation list/query | Pagination/filter preserved | `review_collection_api_standardization.spec.ts`, `admin_disputes_ai_operator_page.test.ts` | covered backend, partial UI |
 | ADM-030 | Admin read controller aliases accept camelCase filters | System admin API | CamelCase filter aliases | DTOs prefer camelCase aliases | UI/API clients can use canonical names | `admin_read_controller_aliases.spec.ts`, `admin_review_disputes_controller_aliases.spec.ts` | covered unit |
 | ADM-031 | Admin audit mapper exposes observability fields and legacy fallback summary | System admin audit row | Map platform/legacy rows | Investigation metadata extracted; readable legacy summary fallback | Detail panel useful | `admin_audit_log_response_mapper.spec.ts`, `admin_audit_logs_console_model.test.ts` | covered unit/component |
-| ADM-032 | Admin user role/suspend/activate routes exist but have weak behavior proof in admin module | System admin | `PUT /admin/users/:id/role|suspend|activate` | Role/status should persist and audit | UI controls should mutate rows | `start/routes/admin.ts` | missing direct admin behavior test |
+| ADM-032 | System access/status governance routes exist but still expose legacy user-role naming | System Admin principal | `PUT /admin/users/:id/role|suspend|activate` | Current compatibility record persists and audits; target separates System-principal authorization from User account status | Admin UI mutates governed state without presenting a User/Org/Project role stack | `start/routes/admin.ts`, `users.system_role`, `realm_separation_source.spec.ts` | behavior proof incomplete; physical model migration required |
 | ADM-033 | Admin permissions and QR code pages exist but have little behavior proof | System admin | `/admin/permissions`, `/admin/qr-codes` | Pages/controllers respond | Pages render useful content | `start/routes/admin.ts` | missing behavior matrix rows/tests |
 | ADM-034 | Admin dashboard page routes exist beyond API dashboard | System admin | `/admin`, `/admin/dashboards/users|operations|subscriptions` | Page props/query stats | Dashboard pages render correct cards | `start/routes/admin.ts`, `admin_dashboard_subscriptions_page.test.ts` | partial |
 | ADM-035 | Admin E2E does not cover users, organizations, package mutation, flagged review resolution, dashboard stats | System admin | Browser flows | Backend may be correct | Full UI mutation paths unproven | Test inventory | missing E2E |
@@ -66,7 +66,7 @@ This file is still an admin-domain evidence matrix, not a complete hierarchical 
 
 ## Weak Coverage
 
-- Admin users role/suspend/activate routes exist, but direct behavior tests were not found in admin module.
+- Admin access/status governance routes exist, but direct behavior tests were not found in admin module and the current `users.system_role` persistence must be migrated to complete principal separation.
 - Package update has backend proof but no UI/E2E mutation proof.
 - Flagged review resolution has backend proof but no seeded browser proof.
 - Many admin component tests only check pagination/filter link preservation.

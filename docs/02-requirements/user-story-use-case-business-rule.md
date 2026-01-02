@@ -1,15 +1,15 @@
 # User Story, Use Case, Business Rule
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Product, developer, tester, reviewer, new joiner cần hiểu hành vi sản phẩm theo người dùng |
-| Purpose | Chuyển requirement kỹ thuật thành câu chuyện người dùng, use case chính, và business rule đủ gần người để đọc nhanh |
-| Source of Truth | route, model, command/query, diagram, config evidence hiện tại |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi flow người dùng, role boundary, hoặc business constraints đổi |
-| Owner | Product + engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                               |
+| --------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                              |
+| Audience        | Product, developer, tester, reviewer, new joiner cần hiểu hành vi sản phẩm theo người dùng                          |
+| Purpose         | Chuyển requirement kỹ thuật thành câu chuyện người dùng, use case chính, và business rule đủ gần người để đọc nhanh |
+| Source of Truth | route, model, command/query, diagram, config evidence hiện tại                                                      |
+| Last Reviewed   | 2026-07-10                                                                                                          |
+| Review Cycle    | Khi flow người dùng, role boundary, hoặc business constraints đổi                                                   |
+| Owner           | Product + engineering                                                                                               |
+| Stale Risk      | Cao                                                                                                                 |
 
 ## File Này Dùng Để Làm Gì
 
@@ -286,7 +286,8 @@ Các domain chịu ảnh hưởng trực tiếp:
 
 ### BR-08 Runtime Storage Rule
 
-- audit, notification, user activity runtime hiện đang neo ở PostgreSQL
+- Audit và notification runtime hiện đang neo ở PostgreSQL; generic user
+  activity runtime đã retired
 - docs không nên nói theo hướng hệ thống đang dùng storage khác nếu repo không chứng minh
 
 ## Evidence Pointers
@@ -302,7 +303,7 @@ Các domain chịu ảnh hưởng trực tiếp:
 - `app/modules/tasks/infra/models/task_application.ts`
 - `app/modules/reviews/infra/models/review_session.ts`
 - `app/modules/users/infra/models/user_profile_snapshot.ts`
-- `docs/11-diagrams/Sequence/seq_03_marketplace_apply.mmd`
+- `docs/11-diagrams/Sequence/03-marketplace/high-level/seq_03_marketplace_apply.mmd`
 
 ## Khi Nào Dừng Ở File Này
 

@@ -131,11 +131,11 @@ Mục tiêu của luồng đọc này:
 
 Nếu chỉ được mang một “diagram pack” tối thiểu ra ngoài cùng bộ docs, ưu tiên:
 
-1. `docs/11-diagrams/Architecture/arch_01_system.mmd`
-2. `docs/11-diagrams/Architecture/arch_02_layer.mmd`
-3. `docs/11-diagrams/Package/pkg_01_overview.mmd`
-4. một `Action/*_overview.mmd` đúng domain chapter đang viết
-5. một `ERD/*` đúng domain slice chapter đang viết
+1. `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`
+2. `docs/11-diagrams/Architecture/01-system-architecture/high-level/arch_02_layer.mmd`
+3. `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`
+4. một `Action/*/overview/*_overview.mmd` đúng domain chapter đang viết
+5. một `ERD/*/{overview,high-level,low-level}/*` đúng domain slice chapter đang viết
 
 ### Executive, Lead, Or Manager
 

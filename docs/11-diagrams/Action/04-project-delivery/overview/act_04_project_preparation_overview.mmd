@@ -1,0 +1,24 @@
+%% Activity 04 — Prepare project delivery
+%% Evidence status: Implemented; staffing uses current heuristic.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_04a, act_04b.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Organization delivery intent]) --> Project["Create and govern project"] --> ToCompetency((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromProject((A)) --> Competency["Configure roles, skills and target levels<br/>act_04b"] --> Staffing["Find candidates and staff roles<br/>act_04a"] --> Ready([Project ready for delivery])
+    end
+    ToCompetency ~~~ FromProject
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    class Start,Ready terminal
+    class Project,Competency,Staffing action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToCompetency,FromProject connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

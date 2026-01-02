@@ -1,0 +1,54 @@
+%% Rich Picture 02 — Current problem situation and desired change
+%% Updated: 2026-07-27.
+%% Level: High.
+%% Evidence status: Implemented + Partial; future capability is explicitly marked.
+%% Reader intent: Show why stakeholders need Suar and why simple task/rating software is insufficient.
+%% Keep reason: problem, intervention, and outcome regions are required parts of one rich-picture change narrative.
+%% Sources: capability model v6 sections 1-6 and 24-26; SRS functional requirements.
+
+flowchart LR
+    subgraph current["Current problem situation"]
+        direction TB
+        P1["📋 Work context is scattered<br/>outcomes are hard to compare"]
+        P2["🗣️ Claims and reviewed evidence mix<br/>equal label, unequal trust"]
+        P3["🔎 Scores and matches hide context<br/>confidence, staleness, disputes"]
+        P1 ~~~ P2 ~~~ P3
+    end
+
+    subgraph change["SUAR intervention"]
+        direction TB
+        C1["1  Structure work context<br/>requirements • target • assessment ceiling"]
+        C2["2  Link evidence to review<br/>submission • rubric • confidence • rationale"]
+        C3["3  Govern conclusions<br/>quorum • dispute • fraud checks • audit"]
+        C4["4  Publish capability signal<br/>verified evidence separate from claims"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph outcomes["Desired outcomes"]
+        direction TB
+        O1["✅ Work becomes portable,<br/>traceable evidence"]
+        O2["✅ Profile explains<br/>what is verified and why"]
+        O3["🟡 Explainable matching<br/>Partial — full model planned"]
+        O1 ~~~ O2 ~~~ O3
+    end
+
+    current -->|"Contributor: will work become proof?<br/>Manager: who fits this context?<br/>Reviewer/admin: can conclusions be justified?"| change
+    change --> outcomes
+
+    CONFLICT1{{"⚡ pressure<br/>fast delivery ↔ rigorous assessment"}}
+    CONFLICT2{{"⚡ risk<br/>self-claim ↔ verified conclusion"}}
+    CONFLICT3{{"⚡ governance<br/>automation ↔ human accountability"}}
+    CONFLICT1 -.-> C1
+    CONFLICT1 -.-> C2
+    CONFLICT2 -.-> C4
+    CONFLICT3 -.-> C3
+
+    classDef pain fill:#FEF2F2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    classDef intervention fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef outcome fill:#F0FDF4,stroke:#16A34A,color:#14532D,stroke-width:2px
+    classDef tension fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class P1,P2,P3 pain
+    class C1,C2,C3,C4 intervention
+    class O1,O2,O3 outcome
+    class CONFLICT1,CONFLICT2,CONFLICT3 tension
+    style change fill:#F0FDF4,stroke:#16A34A,stroke-width:3px

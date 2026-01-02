@@ -1,0 +1,42 @@
+%% Sequence 01b — Test token login
+%% Updated: 2026-07-28.
+%% Scenario: test client requests one org-aware token pair.
+%% Evidence status: Implemented test seam; Partial realm separation because the fixture still combines systemRole and Organization context.
+
+sequenceDiagram
+    autonumber
+    actor T as Tester / dev
+    participant C as «boundary» Test client
+    participant R as «boundary» POST /api/testing/token-login
+    participant U as «control» ensureTestingUser()
+    participant O as «control» ensureTestingUserOrganization()
+    participant S as «control» SessionTokenService
+    participant DB as «entity» PostgreSQL
+
+    Note over R,DB: Compatibility debt only: this test fixture must not define the product principal model
+    T->>C: Request token login
+    activate C
+    C->>R: POST /api/testing/token-login
+    activate R
+    R->>U: ensureTestingUser(email, provider, systemRole compatibility field)
+    activate U
+    U->>DB: read or upsert test user/provider
+    activate DB
+    DB-->>U: User identity
+    deactivate DB
+    U-->>R: User
+    deactivate U
+    R->>O: ensureTestingUserOrganization(user, session, organizationId)
+    activate O
+    O->>DB: read or create approved membership
+    DB-->>O: Organization context
+    O-->>R: Org-aware identity
+    deactivate O
+    R->>S: issueForUser(user, organizationId)
+    activate S
+    S-->>R: Access and refresh tokens
+    deactivate S
+    R-->>C: Token pair JSON
+    deactivate R
+    C-->>T: Authenticated shared-transport test context
+    deactivate C

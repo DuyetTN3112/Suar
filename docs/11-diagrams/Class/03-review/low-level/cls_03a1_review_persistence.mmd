@@ -1,0 +1,44 @@
+%% Class Diagram: Review Persistence Models
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Selected decision-relevant columns; logical ERD carries full storage detail.
+
+classDiagram
+    direction TB
+
+    class ReviewSession {
+        <<Lucid Model>>
+        +id: UUID
+        +task_assignment_id: UUID
+        +reviewee_id: UUID
+        +status: string
+        +creator_reviewer_id: UUID|null
+        +manager_reviews_count: integer
+        +peer_reviews_count: integer
+        +required_total_reviews: integer
+        +minimum_manager_reviews: integer
+        +minimum_peer_reviews: integer
+        +confirmations: JSONB|null
+        +deadline: DateTime|null
+        +completed_at: DateTime|null
+    }
+    class SkillReview {
+        <<Lucid Model>>
+        +id: UUID
+        +review_session_id: UUID
+        +reviewer_id: UUID
+        +reviewer_type: manager|peer
+        +skill_id: UUID
+        +assigned_public_proficiency_code: string
+        +confidence: low|medium|high|null
+        +rationale: string|null
+        +observable_behaviors: string[]
+        +review_status: draft|submitted|superseded|invalidated
+        +superseded_by: UUID|null
+        +is_fraud: boolean
+    }
+
+    ReviewSession "1" *-- "*" SkillReview : skill_reviews
+
+    note for ReviewSession "Lucid/PostgreSQL persistence shape; selected fields only."
+    note for SkillReview "assigned_public_proficiency_code is current runtime column."

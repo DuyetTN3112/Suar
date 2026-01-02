@@ -1,0 +1,241 @@
+{
+  "meta": {
+    "project": "Suar",
+    "updated": "2026-07-28",
+    "version": "board-first-v2",
+    "counts": {
+      "securityRealms": 2,
+      "userWorkspaces": 3,
+      "projectBoards": 4,
+      "systemBoards": 1
+    }
+  },
+  "securityRealms": [
+    {
+      "id": "system",
+      "principal": "SystemAdmin",
+      "urlPrefix": "/admin",
+      "sharedProps": ["realm", "identity", "system_role", "system_permissions", "settings"],
+      "forbiddenSharedProps": [
+        "workspaceAccess",
+        "organizations",
+        "current_organization_id",
+        "projects",
+        "current_project"
+      ]
+    },
+    {
+      "id": "user",
+      "principal": "User",
+      "urlPrefix": "/",
+      "sharedProps": [
+        "realm",
+        "identity",
+        "current_organization_id",
+        "current_organization_role",
+        "organizations",
+        "projects",
+        "current_project",
+        "workspaceAccess"
+      ],
+      "forbiddenSharedProps": ["system_role", "system_permissions", "isAdmin", "canSwitchToAdmin"]
+    }
+  ],
+  "userWorkspaces": [
+    {
+      "id": "personal",
+      "entry": "/",
+      "purpose": "Account, profile, marketplace, applications, notifications, settings, organization and project discovery.",
+      "mustNotContain": ["A duplicate task board", "A duplicate review board", "An Admin entry"]
+    },
+    {
+      "id": "organization",
+      "entry": "/org",
+      "purpose": "Organization governance and project portfolio.",
+      "entryGuard": "workspaceAccess.organization.canEnterManagement",
+      "mustContain": [
+        "Governance",
+        "Members and invitations",
+        "Roles and permissions",
+        "Audit/settings",
+        "Project portfolio"
+      ],
+      "mustNotContain": [
+        "Organization Task board",
+        "Organization Task Review board",
+        "Organization Assigner Review board",
+        "Organization Environment Review board",
+        "Organization dispute queue"
+      ]
+    },
+    {
+      "id": "project",
+      "entry": "/projects/:projectId",
+      "purpose": "One selected project's structure, delivery, sprints, and review workflows.",
+      "entryGuard": "workspaceAccess.projects contains projectId",
+      "mustContain": [
+        "Overview",
+        "Members and staffing",
+        "Roles",
+        "Skills",
+        "Operating model",
+        "Sprints",
+        "Exactly four project boards"
+      ]
+    }
+  ],
+  "boards": [
+    {
+      "number": 1,
+      "id": "project-task-board",
+      "realm": "user",
+      "workspace": "project",
+      "route": "/projects/:projectId/tasks",
+      "purpose": "Shared task list and task management surface.",
+      "overlays": ["?create=1", "?task_id=:taskId"],
+      "acceptance": [
+        "All accessible project participants use the same route.",
+        "Capabilities gate actions, not route variants.",
+        "No separate list view is needed.",
+        "Moving to Done opens or reuses one awaiting_review workflow atomically.",
+        "Legacy task create/detail/edit and Organization task-detail URLs enter this board's modal/card room."
+      ]
+    },
+    {
+      "number": 2,
+      "id": "project-task-review-board",
+      "realm": "user",
+      "workspace": "project",
+      "route": "/projects/:projectId/reviews/tasks",
+      "purpose": "Shared task review workflow.",
+      "lanes": [
+        "awaiting_review",
+        "in_review",
+        "awaiting_response",
+        "disputed",
+        "reported",
+        "ai_reviewing",
+        "resolved",
+        "done"
+      ],
+      "overlays": ["?task_id=:taskId"],
+      "filters": ["?focus=waiting_on_me"],
+      "acceptance": [
+        "A Done task appears in awaiting_review on first load.",
+        "Reviewer, reviewee, assigner, and project manager use the same board.",
+        "Card visibility and actions remain backend-authorized."
+      ]
+    },
+    {
+      "number": 3,
+      "id": "project-assigner-review-board",
+      "realm": "user",
+      "workspace": "project",
+      "route": "/projects/:projectId/reviews/assigners",
+      "purpose": "Post-sprint review of people who assigned work.",
+      "overlays": ["?workflow_id=:workflowId"],
+      "filters": ["?status=done", "?sprint_id=:sprintId"],
+      "acceptance": [
+        "One shared route is used by all eligible project participants.",
+        "Privacy determines cards, not a separate interface.",
+        "Completed items stay on the board via filters."
+      ]
+    },
+    {
+      "number": 4,
+      "id": "project-environment-review-board",
+      "realm": "user",
+      "workspace": "project",
+      "route": "/projects/:projectId/reviews/environment",
+      "purpose": "Post-sprint review of project and work environment.",
+      "overlays": ["?workflow_id=:workflowId"],
+      "filters": ["?status=done", "?sprint_id=:sprintId"],
+      "acceptance": [
+        "There is no standalone environment-review history page.",
+        "Completed and historical workflows remain board filters.",
+        "Privacy determines cards, not a separate interface."
+      ]
+    },
+    {
+      "number": 5,
+      "id": "system-ai-dispute-board",
+      "realm": "system",
+      "workspace": "system-administration",
+      "route": "/admin/disputes",
+      "purpose": "System-level evidence, AI evaluation, Admin decision, and closure.",
+      "lanes": [
+        "pending",
+        "collecting_evidence",
+        "reported",
+        "admin_reviewing",
+        "ai_reviewing",
+        "resolved",
+        "rejected",
+        "cancelled"
+      ],
+      "overlays": ["/admin/disputes/:disputeId"],
+      "acceptance": [
+        "Only a System Admin principal can enter.",
+        "The board receives no User workspace context.",
+        "The AI operator and Admin reverse-review history are not separate screens.",
+        "Comments use the Admin-only /api/admin/reviews/disputes/:disputeId/comments endpoint.",
+        "Alternative dispute-source resolution commits before checkpoint logging."
+      ]
+    }
+  ],
+  "retiredSurfaces": [
+    {
+      "surface": "Task list",
+      "replacement": "/projects/:projectId/tasks"
+    },
+    {
+      "surface": "Task create/edit/detail page",
+      "replacement": "Task board modal/card room"
+    },
+    {
+      "surface": "Pending review inbox",
+      "replacement": "/projects/:projectId/reviews/tasks?focus=waiting_on_me"
+    },
+    {
+      "surface": "Task review detail/session pages",
+      "replacement": "Task Review board card room"
+    },
+    {
+      "surface": "Reverse-review history",
+      "replacement": "Assigner/Environment board with status=done; no history GET API"
+    },
+    {
+      "surface": "Organization project boards",
+      "replacement": "Project Workspace"
+    },
+    {
+      "surface": "Organization dispute queue",
+      "replacement": "Relevant Project board card room"
+    },
+    {
+      "surface": "Admin AI operator",
+      "replacement": "/admin/disputes?focus=ai"
+    },
+    {
+      "surface": "Admin reverse-review history",
+      "replacement": "No page or API route; System review operations live only on /admin/disputes"
+    }
+  ],
+  "globalAcceptance": [
+    "No principal has simultaneous System and User workspace authorization in one session contract.",
+    "No active navigation references a retired surface.",
+    "Organization portfolio is the only Org-to-Project bridge.",
+    "Project navigation renders exactly four boards.",
+    "System navigation renders no User workspace switcher.",
+    "Retired review/history/inbox routes are absent; retained task/operator aliases never restore retired UI.",
+    "System dispute comments and decisions never call User-realm dispute endpoints."
+  ],
+  "verificationSnapshot": [
+    "Backend policy/source unit: 33/33 passed.",
+    "Admin dispute, route-guard, and observability integration: 17/17 passed.",
+    "Targeted frontend component/source/i18n: 121/121 passed across 19 files.",
+    "Route inventory: five boards present, zero retired GET surfaces, Admin comment endpoint isolated.",
+    "Playwright discovery: 12 canonical-board tests across five files.",
+    "Targeted ESLint and full TypeScript passed; board/realm EN and VI translation keys are complete."
+  ]
+}

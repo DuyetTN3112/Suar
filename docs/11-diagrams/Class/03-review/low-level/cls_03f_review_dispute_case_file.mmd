@@ -1,0 +1,64 @@
+%% Class Diagram 03f — Review Dispute Case File
+%% Evidence status: Implemented; external AI execution remains Partial.
+%% Sources: database/schema.ts, review-dispute case-file builder adapter, AI evaluation commands.
+
+classDiagram
+    direction TB
+
+    class ReviewDispute {
+        <<DB row>>
+        +UUID id PK
+        +UUID review_session_id FK
+        +UUID task_assignment_id FK
+        +UUID opened_by FK
+        +String status
+        +Text dispute_reason
+        +JSONB disputed_dimensions
+        +String requested_outcome
+        +String final_decision
+    }
+    class ReviewDisputeCaseFile {
+        <<DB row>>
+        +UUID id PK
+        +UUID dispute_id FK
+        +Integer case_version
+        +Decimal completeness_score
+        +JSONB task_snapshot
+        +JSONB assignment_snapshot
+        +JSONB submission_snapshot
+        +JSONB review_snapshot
+        +JSONB missing_data
+    }
+    class ReviewDisputeEvidence {
+        <<DB row>>
+        +UUID id PK
+        +UUID dispute_id FK
+        +String evidence_type
+        +String url
+        +UUID uploaded_by FK
+    }
+    class ReviewDisputeComment {
+        <<DB row>>
+        +UUID id PK
+        +UUID dispute_id FK
+        +UUID author_id FK
+        +String visibility
+        +Text body
+        +DateTime deleted_at
+    }
+    class AiDisputeEvaluation {
+        <<DB row>>
+        +UUID id PK
+        +UUID dispute_id FK
+        +UUID case_file_id FK
+        +String source_type
+        +UUID source_id
+        +String status
+        +String recommendation
+        +Decimal confidence_score
+    }
+
+    ReviewDispute "1" --> "*" ReviewDisputeCaseFile : versions evidence package
+    ReviewDispute "1" --> "*" ReviewDisputeEvidence : receives
+    ReviewDispute "1" --> "*" ReviewDisputeComment : records governed responses
+    ReviewDisputeCaseFile "1" --> "*" AiDisputeEvaluation : advisory input

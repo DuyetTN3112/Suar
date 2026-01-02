@@ -1,15 +1,15 @@
 # API Specification
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Backend dev, frontend dev, QA, integrator, on-call |
-| Purpose | Cho người đọc danh sách route/API đã được xác nhận trong runtime hiện tại mà không phải đi grep từng file route |
-| Source of Truth | `start/routes/*.ts`, controller stack, test evidence hiện có |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi route surface đổi, thêm namespace mới, hoặc migrate API contract |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                          |
+| Audience        | Backend dev, frontend dev, QA, integrator, on-call                                                              |
+| Purpose         | Cho người đọc danh sách route/API đã được xác nhận trong runtime hiện tại mà không phải đi grep từng file route |
+| Source of Truth | `start/routes/*.ts`, controller stack, test evidence hiện có                                                    |
+| Last Reviewed   | 2026-07-10                                                                                                      |
+| Review Cycle    | Khi route surface đổi, thêm namespace mới, hoặc migrate API contract                                            |
+| Owner           | Engineering                                                                                                     |
+| Stale Risk      | Cao                                                                                                             |
 
 ## File Này Dùng Khi Nào
 
@@ -126,8 +126,10 @@ Ví dụ:
 
 - `/tasks`
 - `/projects`
-- `/reviews/:reviewId`
-- `/org/disputes`
+- `/projects/:projectId/tasks`
+- `/projects/:projectId/reviews/tasks`
+- `/projects/:projectId/reviews/assigners`
+- `/projects/:projectId/reviews/environment`
 - `/admin/disputes`
 
 ### `/api/*`
@@ -307,14 +309,20 @@ Code audit note:
 
 ### Tasks And Task APIs
 
-Page routes:
+Primary page:
 
-- `GET /tasks`
-- `GET /tasks/create`
-- `GET /tasks/status-board`
+- `GET /projects/:projectId/tasks`
+
+Compatibility GET entries:
+
+- `GET /tasks` -> resolve current Project rồi redirect
+- `GET /tasks/create` -> Project board với create modal intent
+- `GET /tasks/:taskId` -> Project board với card room intent
+- `GET /tasks/:taskId/edit` -> Project board với edit/card room intent
+
+`GET /tasks/status-board` không còn được đăng ký như primary page. Các endpoint dưới đây là mutation/support contract, không phải bằng chứng cho một frontend page riêng:
+
 - `POST /tasks`
-- `GET /tasks/:taskId`
-- `GET /tasks/:taskId/edit`
 - `PUT /tasks/:taskId`
 - `PUT /tasks/:taskId/status`
 - `PATCH /tasks/:taskId/time`
@@ -327,7 +335,6 @@ Compatibility/API routes:
 - `GET /api/tasks/status-groups`
 - `GET /api/tasks/timeline-items`
 - `PATCH /api/tasks/batch-status`
-- `PATCH /api/tasks/board-state`
 - `PATCH /api/tasks/:taskId/sort-order`
 - `GET /api/tasks/:taskId`
 
@@ -361,7 +368,6 @@ Canonical workflow/task-status routes:
 - `GET /api/v1/tasks/status-groups`
 - `GET /api/v1/tasks/timeline-items`
 - `PATCH /api/v1/tasks/batch-status`
-- `PATCH /api/v1/tasks/board-state`
 - `PATCH /api/v1/tasks/:taskId/sort-order`
 - `GET /api/v1/tasks/:taskId`
 - `GET /api/v1/tasks/:taskId/audit-logs`
@@ -435,33 +441,30 @@ Nguồn:
 
 Page routes:
 
-- `GET /reviews/pending`
-- `GET /reviews/task-board`
-- `GET /org/reviews/task-board`
-- `GET /reviews/reverse-reviews`
-- `GET /reviews/sprint-reverse-board`
-- `GET /org/reviews/sprint-reverse-board`
-- `GET /org/reverse-reviews`
-- `GET /org/disputes`
-- `GET /reviews/:reviewId`
+- `GET /projects/:projectId/reviews/tasks`
+- `GET /projects/:projectId/reviews/assigners`
+- `GET /projects/:projectId/reviews/environment`
 - `POST /reviews/:reviewId/submit`
 - `POST /reviews/:reviewId/confirm`
-- `GET /reviews/disputes/:disputeId`
 - `GET /reviews/:reviewId/evidences`
 - `POST /reviews/:reviewId/evidences`
 - `GET /reviews/:reviewId/self-assessment`
 - `POST /reviews/:reviewId/self-assessment`
 - `POST /reviews/:reviewId/reverse`
 
+Các page history/inbox/review-detail/dispute-detail cũ không còn được đăng ký; detail
+và trạng thái lịch sử nằm trong card room/filter của board.
+
 Đây là route family rất dễ nhầm giữa page flow, org flow, admin flow, và public callback flow. Khi đọc, luôn xác định actor và namespace trước.
+
 - `GET /my-reviews`
 - `GET /users/:userId/reviews`
 
 Code audit note:
 
-- `GET /org/disputes` không nên bị hiểu máy móc là org-admin shell route
-- route này hiện thuộc review domain và đang nằm trong `auth + requireOrg` group của `start/routes/reviews.ts`
-- access thực tế của org dispute queue còn bị siết thêm ở query layer theo approved membership của organization hiện hành
+- `GET /org/disputes`, reviewer inbox và review/reverse-review history pages không còn được đăng ký
+- Organization-scoped dispute APIs có thể phục vụ card-room data/action nhưng không tạo một Organization page
+- System dispute page/API thuộc System principal/realm riêng; không dùng User/Organization/Project permission context
 
 Task review workflow actions:
 
@@ -486,8 +489,6 @@ Canonical review/dispute APIs:
 - `GET /api/v1/reviews/disputes/:disputeId/evidences`
 - `POST /api/v1/reviews/disputes/:disputeId/evidences`
 - `POST /api/v1/reviews/disputes/:disputeId/report`
-- `GET /api/v1/me/reverse-reviews`
-- `GET /api/v1/me/organizations/current/reverse-reviews`
 - `GET /api/v1/me/organizations/current/reviews/disputes`
 - `POST /api/v1/me/organizations/current/reviews/disputes/:disputeId/respond`
 - `POST /api/v1/project-sprints/:sprintId/close-review`
@@ -511,21 +512,17 @@ Compatibility review/dispute APIs:
 - `POST /api/reviews/disputes/:disputeId/evidences`
 - `POST /api/reviews/disputes/:disputeId/report`
 - `POST /api/reviews/sessions`
-- `GET /api/me/reverse-reviews`
-- `GET /api/org/reverse-reviews`
 - `GET /api/org/reviews/disputes`
 - `POST /api/org/reviews/disputes/:disputeId/respond`
 
 Admin review/dispute routes:
 
-- `GET /admin/reverse-reviews`
 - `GET /admin/disputes`
 - `GET /admin/disputes/:disputeId`
 - `GET /admin/disputes/ai-operator`
 - `GET /admin/reviews`
 - `GET /admin/reviews/:flaggedReviewId`
 - `PUT /admin/reviews/:flaggedReviewId/resolve`
-- `GET /api/admin/reverse-reviews`
 - `GET /api/admin/reviews/disputes`
 - `GET /api/admin/reviews/disputes/:disputeId`
 - `POST /api/admin/reviews/disputes/:disputeId/resolve`

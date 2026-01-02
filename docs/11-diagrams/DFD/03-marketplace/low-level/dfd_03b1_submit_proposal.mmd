@@ -1,0 +1,18 @@
+%% DFD 03b1 — Marketplace proposal submission (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart LR
+    C[External contributor] -->|"task, proposal note, evidence links"| P[[4.2.1 Submit eligible proposal]]
+    T[(Tasks and requirements)] -->|"visibility, deadline, assignment, eligibility"| P
+    A[(Task applications)] -->|"existing proposal state"| P
+    P -->|"pending proposal"| A
+    P -->|"application-count delta"| T
+    P -->|"proposal audit"| AU[(Audit events)]
+    P -->|"submission result"| C
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class C entity
+    class P process
+    class T,A,AU store

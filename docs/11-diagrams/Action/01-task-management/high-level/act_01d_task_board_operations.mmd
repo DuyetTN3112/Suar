@@ -1,0 +1,38 @@
+%% Activity 01d — Project Task Board operations
+%% Updated 2026-07-28.
+%% Evidence status: Implemented.
+%% Evidence: canonical project task route; Kanban status/sort/time/workflow commands and board-first UI.
+
+flowchart TB
+    Start([Open /projects/:projectId/tasks]) --> Load["Load one Project Kanban<br/>with filters and board lanes"]
+    Load --> Operation{"Choose board operation"}
+    Operation -->|Open/create/edit| Room["Use card drawer or modal"]
+    Operation -->|Move one card| Sort["Update sort order<br/>and optional status"]
+    Operation -->|Move selection| Batch["Batch update task status"]
+    Operation -->|Record effort| Time["Update estimated or actual time"]
+    Operation -->|Configure allowed moves| Workflow["Replace workflow transitions"]
+
+    Room --> Validate{"Permission, project scope,<br/>and transition valid?"}
+    Sort --> Validate
+    Batch --> Validate
+    Time --> Validate
+    Workflow --> Validate
+    Validate -->|No| Reject["Show validation/access error<br/>without leaving the board"]
+    Validate -->|Yes| Persist["Persist task/workflow change<br/>and audit evidence"]
+    Persist --> Done{"Task enters Done lane?"}
+    Done -->|No| Refresh["Refresh affected Kanban lane/card"]
+    Done -->|Yes| Review["Keep task in Done<br/>surface card in Task Review awaiting_review"]
+    Review --> Refresh
+    Refresh --> End([Project Task Board current])
+    Reject --> End
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef view fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Load,Room,Sort,Batch,Time,Workflow,Refresh,Review view
+    class Operation,Validate,Done decision
+    class Persist write
+    class Reject error

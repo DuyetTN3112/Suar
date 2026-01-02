@@ -1,0 +1,38 @@
+%% Class Diagram: Review Persistence-to-Domain Boundary
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Mapping overview. Field-level views are split into 03a1 and 03a2.
+
+classDiagram
+    direction TB
+
+    class ReviewSession {
+        <<Lucid Model>>
+        +table: review_sessions
+    }
+    class SkillReview {
+        <<Lucid Model>>
+        +table: skill_reviews
+    }
+    class ReviewInfraMapper {
+        <<Infrastructure Mapper>>
+        +toSessionDomain(model: ReviewSession): ReviewSessionEntity
+        +toSessionOrm(entity: Partial~ReviewSessionEntityProps~): Record~string, unknown~
+        +toSkillReviewDomain(model: SkillReview): SkillReviewEntity
+        +toSkillReviewOrm(entity: Partial~SkillReviewEntityProps~): Record~string, unknown~
+    }
+    class ReviewSessionEntity {
+        <<Domain Entity>>
+    }
+    class SkillReviewEntity {
+        <<Domain Entity>>
+    }
+
+    ReviewSession "1" --> "*" SkillReview : skill_reviews
+    ReviewSession --> ReviewInfraMapper : mapped by
+    SkillReview --> ReviewInfraMapper : mapped by
+    ReviewInfraMapper --> ReviewSessionEntity : creates
+    ReviewInfraMapper --> SkillReviewEntity : creates
+
+    note for ReviewSession "Selected persistence fields: cls_03a1_review_persistence"
+    note for ReviewSessionEntity "Domain fields and behaviour: cls_03a2_review_domain_entities"

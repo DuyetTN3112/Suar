@@ -1,0 +1,24 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 03k2 — AI-advisory source context
+%% Evidence status: Implemented for role, dispute, and case-file retrieval.
+%% Parent goal: UC 03b “Inspect AI advisory”, extending governed dispute resolution.
+%% Entry: StartAiDisputeEvaluationCommand is constructed in 03k1.
+%% Question answered: Which port supplies the governed role, dispute, and case-file context?
+%% Handoff: the same command stages and dispatches the fenced evaluation through 03k3.
+%% Scope: authoritative source-context read only; case-file data remains cls_03f and logical_erd_04b.
+
+classDiagram
+    direction TB
+
+    class StartAiDisputeEvaluationCommand {
+        <<control / use-case owner>>
+        +execute(dto: StartAiDisputeEvaluationDTO) Promise~AiDisputeEvaluationResult~
+    }
+    class AiDisputeEvaluationSourceReader {
+        <<outbound port>>
+        +findActorSystemRole()
+        +findReviewDispute()
+        +findLatestReviewDisputeCaseFile()
+    }
+
+    StartAiDisputeEvaluationCommand --> AiDisputeEvaluationSourceReader : reads role, dispute, and case-file snapshot

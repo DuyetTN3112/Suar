@@ -1,0 +1,43 @@
+%% Use Case 01b — Organization membership and administration
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; bulk invite and ownership transfer remain Partial where route evidence is incomplete.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    user([👤 User])
+    orgAdmin([👤 Organization admin])
+    orgOwner([👤 Organization owner])
+
+    subgraph system["Organization membership boundary"]
+        direction TB
+        discover([Discover organization])
+        createOrg([Create organization])
+        switchOrg([Switch current organization])
+        requestJoin([Submit join request])
+        inviteMembers([Invite members])
+        respondInvite([Accept or reject invitation])
+        processRequests([Approve or reject join requests])
+        manageRoles([Update or remove member roles])
+        configureOrg([Configure organization workflow and settings])
+        discover ~~~ createOrg ~~~ switchOrg ~~~ requestJoin ~~~ respondInvite
+        inviteMembers ~~~ processRequests ~~~ manageRoles ~~~ configureOrg
+    end
+
+    user --- discover
+    user --- createOrg
+    user --- switchOrg
+    user --- requestJoin
+    user --- respondInvite
+    orgAdmin --- inviteMembers
+    orgAdmin --- processRequests
+    orgAdmin --- manageRoles
+    orgAdmin --- configureOrg
+    orgOwner --- inviteMembers
+    orgOwner --- processRequests
+    orgOwner --- manageRoles
+    orgOwner --- configureOrg
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class user,orgAdmin,orgOwner actor
+    class discover,createOrg,switchOrg,requestJoin,inviteMembers,respondInvite,processRequests,manageRoles,configureOrg goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

@@ -1,0 +1,32 @@
+%% State 02c — Sprint-close assigner/environment review workflow
+%% Evidence status: Implemented; external AI advisory is Partial.
+%% Updated: 2026-07-28.
+%% Canonical UI: two Project boards share this lifecycle and render all eight lanes.
+
+stateDiagram-v2
+direction TB
+    [*] --> awaiting_review : sprint review opens
+    awaiting_review --> awaiting_response : reviewer submits rating/comment
+    awaiting_response --> done : responder accepts
+    awaiting_response --> disputed : responder challenges
+    disputed --> done : responder accepts outcome
+    disputed --> reported : participant reports
+    reported --> ai_reviewing : System Admin starts AI advisory
+    ai_reviewing --> reported : signed callback stores advice
+    reported --> resolved : System Admin resolves
+    ai_reviewing --> resolved : System Admin resolves
+    done --> [*]
+    resolved --> [*]
+
+    state "in_review" as in_review
+
+    note right of awaiting_review
+        target_type = assigner or environment.
+        Current single-review submit goes directly
+        to awaiting_response.
+    end note
+
+    note right of in_review
+        Visible compatibility/reserved lane.
+        No active single-review command writes it.
+    end note

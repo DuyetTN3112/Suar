@@ -1,0 +1,194 @@
+{
+  "title": "Nhật ký hoạt động của tôi",
+  "eyebrow": "Sổ bằng chứng riêng tư của bạn",
+  "description": "Theo dõi những việc bạn đã làm, thay đổi tác động trực tiếp đến tài khoản và các trường dữ liệu an toàn đã thay đổi. Màn hình này được tách biệt với quản trị tổ chức và điều tra hệ thống.",
+  "count_label": "Bản ghi cá nhân",
+  "count_description": "sự kiện trong phạm vi cá nhân của bạn",
+  "history_aria": "Lịch sử kiểm toán cá nhân",
+  "pagination_summary": "Duyệt lịch sử bằng chứng cá nhân",
+  "open_detail": "Xem chi tiết :event",
+  "safe_change_count": ":count thay đổi an toàn",
+  "sensitive_hidden": "Chi tiết nhạy cảm được bảo vệ",
+  "change_count": ":count thay đổi hiển thị",
+  "invalid_time": "Mốc thời gian không hợp lệ",
+  "boundary": {
+    "aria": "Ranh giới riêng tư của nhật ký cá nhân",
+    "performed_title": "Hành động bạn đã thực hiện",
+    "performed_description": "Sự kiện tài khoản, bảo mật và công việc do bạn khởi tạo.",
+    "affected_title": "Thay đổi tác động đến bạn",
+    "affected_description": "Thay đổi vai trò, tư cách thành viên và tài khoản được áp dụng cho bạn.",
+    "protected_title": "Dữ liệu điều tra luôn được bảo vệ",
+    "protected_description": "Không hiển thị danh tính người khác, IP, truy vết, payload thô hay ID nội bộ của đối tượng."
+  },
+  "empty": {
+    "title": "Chưa có hoạt động cá nhân.",
+    "description": "Hoạt động tài khoản, bảo mật và tổ chức liên quan trực tiếp sẽ xuất hiện tại đây.",
+    "filtered_title": "Không có bản ghi cá nhân phù hợp với bộ lọc.",
+    "filtered_description": "Điều chỉnh hoặc xóa bộ lọc để mở rộng lịch sử."
+  },
+  "filters": {
+    "aria": "Bộ lọc nhật ký cá nhân",
+    "search_label": "Tìm trong hoạt động của bạn",
+    "search_placeholder": "Tìm theo sự kiện hoặc khu vực — không theo người, IP hay ID nội bộ",
+    "more": "Thêm bộ lọc",
+    "apply": "Áp dụng",
+    "clear": "Xóa bộ lọc",
+    "area": "Khu vực hoạt động",
+    "all": "Tất cả khu vực",
+    "outcome": "Kết quả",
+    "all_outcomes": "Tất cả kết quả",
+    "from": "Từ",
+    "to": "Đến",
+    "date_order_error": "Thời điểm bắt đầu phải sớm hơn thời điểm kết thúc."
+  },
+  "areas": {
+    "account": "Tài khoản",
+    "organization": "Tổ chức",
+    "membership": "Tư cách thành viên",
+    "project": "Dự án",
+    "task": "Công việc",
+    "review": "Đánh giá"
+  },
+  "categories": {
+    "account": "Tài khoản",
+    "access": "Truy cập",
+    "security": "Bảo mật",
+    "organization": "Tổ chức",
+    "membership": "Tư cách thành viên",
+    "project": "Dự án",
+    "task": "Công việc",
+    "review": "Đánh giá",
+    "billing": "Thanh toán",
+    "activity": "Hoạt động"
+  },
+  "subjects": {
+    "account": "Tài khoản",
+    "access": "Truy cập",
+    "security": "Bảo mật",
+    "organization": "Tổ chức",
+    "membership": "Tư cách thành viên",
+    "project": "Dự án",
+    "task": "Công việc",
+    "review": "Đánh giá",
+    "billing": "Thanh toán",
+    "activity": "Hoạt động"
+  },
+  "actor_types": {
+    "another_authorized_user": "Quản trị viên được ủy quyền",
+    "automation": "Tự động hóa tin cậy",
+    "integration": "Tích hợp đã kết nối",
+    "system": "Hệ thống Suar",
+    "unknown": "Nguồn không xác định",
+    "you": "Bạn"
+  },
+  "perspectives": {
+    "affected_you": "Tác động đến tài khoản của bạn",
+    "performed_by_you": "Do bạn thực hiện"
+  },
+  "outcomes": {
+    "failure": "Thất bại",
+    "recorded": "Đã ghi nhận",
+    "success": "Thành công",
+    "warning": "Cần chú ý"
+  },
+  "activities": {
+    "account": {
+      "created": "Đã tạo tài khoản",
+      "profile_updated": "Đã cập nhật hồ sơ tài khoản",
+      "restricted": "Đã thay đổi trạng thái tài khoản"
+    },
+    "access": {
+      "updated": "Đã thay đổi quyền truy cập"
+    },
+    "activity": {
+      "recorded": "Đã ghi nhận hoạt động"
+    },
+    "billing": {
+      "created": "Đã tạo hoạt động thanh toán",
+      "removed": "Đã xóa hoạt động thanh toán",
+      "updated": "Đã cập nhật hoạt động thanh toán"
+    },
+    "membership": {
+      "invitation": "Đã cập nhật lời mời tham gia tổ chức",
+      "removed": "Đã xóa tư cách thành viên tổ chức",
+      "role_changed": "Đã thay đổi vai trò trong tổ chức",
+      "updated": "Đã cập nhật tư cách thành viên tổ chức"
+    },
+    "organization": {
+      "created": "Đã tạo hoạt động tổ chức",
+      "removed": "Đã xóa hoạt động tổ chức",
+      "updated": "Đã cập nhật hoạt động tổ chức"
+    },
+    "project": {
+      "created": "Đã tạo dự án",
+      "removed": "Đã xóa dự án",
+      "updated": "Đã cập nhật dự án"
+    },
+    "review": {
+      "created": "Đã tạo đánh giá",
+      "removed": "Đã xóa đánh giá",
+      "updated": "Đã cập nhật đánh giá"
+    },
+    "security": {
+      "activity": "Đã ghi nhận hoạt động bảo mật",
+      "connected_account": "Đã thay đổi phương thức đăng nhập liên kết",
+      "credential_changed": "Đã thay đổi thông tin đăng nhập",
+      "login": "Đã đăng nhập",
+      "logout": "Đã đăng xuất"
+    },
+    "task": {
+      "created": "Đã tạo công việc",
+      "removed": "Đã xóa công việc",
+      "updated": "Đã cập nhật công việc"
+    }
+  },
+  "fields": {
+    "avatar_url": "Ảnh hồ sơ",
+    "bio": "Tiểu sử",
+    "email": "Địa chỉ email",
+    "is_external_contributor": "Cộng tác viên bên ngoài",
+    "language": "Ngôn ngữ",
+    "org_role": "Vai trò trong tổ chức",
+    "outcome": "Kết quả đánh giá",
+    "phone": "Số điện thoại",
+    "priority": "Độ ưu tiên",
+    "role": "Vai trò",
+    "status": "Trạng thái",
+    "task_visibility": "Phạm vi công việc",
+    "timezone": "Múi giờ",
+    "username": "Tên người dùng",
+    "visibility": "Phạm vi hiển thị"
+  },
+  "operations": {
+    "added": "Đã thêm",
+    "removed": "Đã xóa",
+    "changed": "Đã thay đổi"
+  },
+  "values": {
+    "not_set": "Chưa thiết lập",
+    "enabled": "Đã bật",
+    "disabled": "Đã tắt",
+    "protected": "Giá trị được bảo vệ"
+  },
+  "changes": {
+    "no_safe_detail": "Không hiển thị thêm chi tiết cá nhân",
+    "no_safe_detail_description": "Sự kiện vẫn được ghi nhận, còn giá trị nhạy cảm và ngữ cảnh riêng của tổ chức được bảo vệ.",
+    "hidden_notice": "Một số trường nhạy cảm hoặc chỉ dành cho tổ chức đã được chủ động ẩn."
+  },
+  "detail": {
+    "aria": "Chi tiết sự kiện kiểm toán cá nhân",
+    "eyebrow": "Bản ghi bằng chứng riêng tư",
+    "description": "Giải thích an toàn về hoạt động do bạn thực hiện hoặc tác động trực tiếp đến bạn.",
+    "close": "Đóng chi tiết sự kiện",
+    "context": "Ngữ cảnh sự kiện cá nhân",
+    "source": "Nguồn",
+    "area": "Khu vực",
+    "personal_scope": "Chỉ trong phạm vi cá nhân",
+    "time": "Thời gian",
+    "change_eyebrow": "Trước và sau an toàn",
+    "change_history": "Nội dung đã thay đổi",
+    "privacy_title": "Ranh giới riêng tư cá nhân",
+    "privacy_description": "Danh tính người khác, dữ liệu mạng, truy vết yêu cầu, ID nội bộ và payload thô không được hiển thị tại đây.",
+    "reference": "Mã tham chiếu bằng chứng"
+  }
+}

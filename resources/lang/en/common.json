@@ -11,17 +11,39 @@
   "tasks": "Tasks",
   "organizations": "Organizations",
   "users": "Users",
-  "conversations": "Conversations",
   "notifications": "Notifications",
+  "unknown": "Unknown",
   "save": "Save",
   "cancel": "Cancel",
   "confirm": "Confirm",
   "actions": "Actions",
+  "clear_all": "Clear all",
+  "created_at": "Created at",
+  "description": "Description",
+  "error_deleting": "Unable to delete",
+  "error_loading_data": "Unable to load data",
+  "open": "Open",
+  "status": "Status",
+  "system": "System",
+  "total": "Total",
+  "updated_at": "Updated at",
   "submit": "Submit",
   "delete": "Delete",
   "edit": "Edit",
   "create": "Create",
   "search": "Search...",
+  "skill_search": {
+    "placeholder": "Find a skill...",
+    "input_placeholder": "Search by name or alias...",
+    "empty": "No skills found.",
+    "categories": {
+      "technology": "Technology",
+      "engineering": "Engineering",
+      "soft_skill": "Soft Skills",
+      "delivery": "Delivery",
+      "other": "Other"
+    }
+  },
   "selected": "selected",
   "newer": "Newer",
   "newest": "Newest",
@@ -83,7 +105,8 @@
       "heading": "Server error",
       "default_message": "An unknown server error occurred",
       "type_label": "Type",
-      "reload": "Reload page"
+      "reload": "Reload page",
+      "reference_label": "Reference"
     },
     "custom_error": {
       "title": "System error",
@@ -103,7 +126,6 @@
       "home": "Home"
     }
   },
-
   "common": {
     "error": "Error",
     "success": "Success",
@@ -155,7 +177,6 @@
     "info": "Info",
     "page_of": "Page {current} / {total}"
   },
-
   "navigation": {
     "overview": "Overview",
     "personal_overview": "Personal overview",
@@ -230,6 +251,25 @@
     "organization_roles": "Organization roles",
     "project_roles": "Project roles"
   },
+  "sidebar": {
+    "work_platform": "Work platform",
+    "user_mode": "User mode",
+    "user_mode_description": "Track work, profile, and reviews",
+    "user_workspace": "User workspace",
+    "organization_workspace": "Organization workspace",
+    "organization_mode": "Organization workspace",
+    "organization_mode_description": "Coordinate organization, project, sprint, and task",
+    "organization_mode_quality_description": "Coordinate organization, project, task, and quality",
+    "system_control_workspace": "System control workspace",
+    "admin_mode": "Admin mode",
+    "admin_mode_description": "Monitor IBSC quality signals",
+    "system_workspace": "System workspace",
+    "personal_workspace": "Personal workspace",
+    "project_workspace": "Project workspace",
+    "shared_workspace": "Shared project workspace",
+    "system_realm": "System realm",
+    "system_realm_description": "Isolated system administration"
+  },
   "org": {
     "team": "Organization management",
     "overview": "Organization workspace",
@@ -286,5 +326,6 @@
     "project_manager": "Project manager",
     "project_member": "Project member",
     "project_viewer": "Project viewer"
-  }
+  },
+  "publishing": "Publishing..."
 }

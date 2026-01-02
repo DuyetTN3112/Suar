@@ -1,0 +1,41 @@
+%% Package 02i — Review governance
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    subgraph Reviews["app/modules/reviews"]
+        direction LR
+        Entry["controllers · listeners · callback boundary"]
+        Inbound["actions/ports/inbound<br/>ReviewActionFactory contract"]
+        UseCases["actions/commands + queries<br/>session · task/sprint · dispute · AI"]
+        Rules["domain<br/>workflow · dispute · readiness"]
+        Outbound["actions/ports/outbound<br/>people · work · AI · persistence capabilities"]
+        Infra["infra<br/>models · repositories · adapters"]
+
+        Entry --> Inbound -->|"one selected intent"| UseCases
+        UseCases --> Rules
+        UseCases --> Outbound
+        Outbound --> Infra
+    end
+
+    Families["app/composition/factories/reviews<br/>sprint · task · dispute · AI · event"]
+    Providers["tasks · projects · organizations<br/>users · skills · authorization · Audit"]
+    PostgreSQL[("PostgreSQL<br/>review/dispute/receipt tables")]
+    Clawagent["Clawagent API<br/>signed callback boundary"]
+
+    Families -.->|"construct only"| UseCases
+    Outbound -->|"outer adapter"| Providers
+    Infra --> PostgreSQL
+    Outbound -->|"AI adapter"| Clawagent
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef application fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domainStyle fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Entry presentation
+    class Inbound,UseCases,Outbound application
+    class Rules domainStyle
+    class Infra,PostgreSQL infraStyle
+    class Families,Providers,Clawagent composition
+    style Reviews fill:#FAFAFA,stroke:#64748B

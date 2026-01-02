@@ -1,0 +1,35 @@
+%%{init: {"themeVariables": {"fontSize": "34px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 36, "rankSpacing": 62}} }%%
+%% DFD 01a — Identity, organisation, and delivery context
+%% Formal DFD level: Level 1, complementary P0 frame 1 of 4.
+%% Parent process: P0 Suar work-to-credential platform from dfd_00_context.
+%% Evidence status: Implemented.
+%% Balance: refines E1/E4 access and workspace input/output, and the D1/D2 authoritative state that creates durable delivery context.
+%% Cross-frame handoff: P2 writes current project, sprint, and task context to D2. Frame 01b reads the same D2 before P4 discovers tasks; no direct process-to-process flow is omitted.
+%% Direction: every arrowhead marks the recipient of one named data flow. Repeated E1/E4/D2 symbols are the same boundary/store, not additional nodes. The D2I~D2P link is layout-only.
+
+flowchart TB
+    subgraph chain[ ]
+        direction LR
+        E1I["E1<br/>Authenticated member"] -->|"access request"| P1(("P1<br/>Authorize access"))
+        P1 -->|"authenticated actor"| P6(("P6<br/>Govern organization"))
+        P6 -->|"membership and role context"| P2(("P2<br/>Govern delivery"))
+    end
+
+    E4I["E4<br/>OAuth provider<br/>same service"] -->|"verified identity"| P1
+    D2I[("D2<br/>Org/delivery records")] -->|"current membership"| P1
+    P1 -->|"OAuth redirect"| E4O["E4<br/>OAuth provider"]
+    P1 -->|"identity/session state"| D1[("D1<br/>Identity/session records")]
+    P6 -->|"workspace/membership context"| E1W["E1<br/>same external entity"]
+    P6 -->|"organization policy"| D2P[("D2<br/>same logical store")]
+    E1P["E1<br/>same external entity"] -->|"project/sprint plan"| P2
+    P2 -->|"project, sprint, and task context"| D2W[("D2<br/>same logical store")]
+
+    D2I ~~~ D2P
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class E1I,E1W,E1P,E4I,E4O entity
+    class P1,P2,P6 process
+    class D1,D2I,D2P,D2W store
+    style chain fill:none,stroke:none

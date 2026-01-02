@@ -1,0 +1,50 @@
+%% Architecture 05 — Repository-defined deployment reference topology
+%% Evidence status: Partial. Docker Compose defines three Suar processes, PostgreSQL, and Redis, but no production deployment or real-user traffic is asserted.
+%% Keep reason: Docker deployment and external-service subgraphs are physical trust/deployment boundaries in one topology.
+%% Caveat: Compose has named volumes for PostgreSQL and Redis, but no named volume for app-local Drive storage.
+
+flowchart TB
+    Browser["Browser<br/>Inertia UI + HTTPS client"]
+
+    subgraph Compose["Repository Docker Compose reference<br/>pre-production; not an observed production host"]
+        direction TB
+        App["HTTP app container<br/>shared Suar image · AdonisJS<br/>port 3333 · /health"]
+        Fanout["Notification fan-out worker<br/>node ace notification:fanout-work"]
+        Outbox["Notification outbox worker<br/>node ace notification:outbox-work"]
+        PG[("PostgreSQL 16<br/>business + audit data")]
+        PGVol[("postgres_data<br/>named volume")]
+        Redis[("Redis<br/>web sessions · auth tokens<br/>cache · optional locks")]
+        RedisVol[("redis_data<br/>named volume")]
+        Local["App-local Drive storage<br/>storage/app<br/>storage/app/public"]
+
+        App -->|"PG_HOST=postgres"| PG --> PGVol
+        App -->|"REDIS_HOST=redis"| Redis --> RedisVol
+        App -->|"local/public fs disks"| Local
+        Fanout -->|"claim durable fan-out work"| PG
+        Outbox -->|"claim durable projection work"| PG
+        Outbox -->|"unread cache + realtime invalidation"| Redis
+    end
+
+    subgraph External["External/configurable services"]
+        direction LR
+        OAuth["Google / GitHub OAuth"]
+        ES["Elasticsearch endpoint<br/>ELASTICSEARCH_NODE"]
+        Claw["Clawagent dispute API<br/>CLAWAGENT_API_URL"]
+    end
+
+    Browser <-->|"HTTP(S) :3333"| App
+    App <-->|"OAuth redirect/callback<br/>when credentials configured"| OAuth
+    App -.->|"optional search client;<br/>disabled by default in production"| ES
+    Outbox -.->|"feed projection<br/>when configured"| ES
+    App -.->|"AI dispute trigger only<br/>when invoked/configured"| Claw
+
+    classDef client fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef runtime fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef data fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef external fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Browser client
+    class App,Fanout,Outbox,Local runtime
+    class PG,PGVol,Redis,RedisVol data
+    class OAuth,ES,Claw external
+    style Compose fill:#F8FAFC,stroke:#64748B,stroke-width:2px
+    style External fill:#FFFBEB,stroke:#D97706,stroke-width:2px,stroke-dasharray:5 4

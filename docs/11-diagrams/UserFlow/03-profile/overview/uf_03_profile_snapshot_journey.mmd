@@ -1,0 +1,33 @@
+%% User Flow 03 — Publish profile snapshot
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: profile owner.
+
+flowchart TB
+    subgraph prepare[" "]
+        direction LR
+        Start([Profile owner starts]) --> Profile["Improve profile and skills"]
+        Profile --> Snapshot{"Publish shareable snapshot?"}
+        Snapshot -->|Yes| ToPublish((A))
+        Snapshot -->|No| ToStandard((B))
+    end
+
+    subgraph outcome[" "]
+        direction LR
+        FromPublish((A)) --> Publish["Publish versioned snapshot"] --> Share["Copy public share slug"] --> EndShared([Snapshot shared])
+        FromStandard((B)) --> Standard["Keep standard public profile"] --> EndStandard([Profile retained])
+    end
+
+    ToPublish ~~~ FromPublish
+    ToStandard ~~~ FromStandard
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,EndShared,EndStandard startEnd
+    class Profile,Publish,Share,Standard action
+    class Snapshot decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToPublish,FromPublish,ToStandard,FromStandard connector
+    style prepare fill:transparent,stroke:transparent
+    style outcome fill:transparent,stroke:transparent

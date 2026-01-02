@@ -1,0 +1,31 @@
+@startuml
+' UML Component 03a1 — Domain-event publishers
+' Evidence status: Implemented versioned event contracts.
+' Updated: 2026-07-27.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "Identity & governance\nUsers · Organizations" as Identity
+component "Project delivery\nProjects · Tasks" as Delivery
+component "Review & capability\nReviews · Skills" as Review
+component "Versioned domain-event seam\n<<in-process>>" as Events #FEF3C7
+
+Identity ..> Events : user + membership v1
+Delivery ..> Events : project + task v1
+Review ..> Events : review + skill v1
+
+@enduml

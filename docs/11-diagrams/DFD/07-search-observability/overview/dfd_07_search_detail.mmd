@@ -1,0 +1,22 @@
+%% DFD 07 — Search and observability map (Level 1)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented with PostgreSQL source-of-truth fallback.
+
+flowchart LR
+    U[Authenticated user] -->|"global search query"| P1[[4.4 Query search]]
+    PG[(PostgreSQL source records)] -->|"authorized records and SQL fallback"| P1
+    ES[(Elasticsearch projections)] -->|"candidate ids and ranking"| P1
+    E[Domain event] -->|"projection change payload"| P2[[4.5 Synchronize projections]]
+    PG -->|"current source entity"| P2
+    P2 -->|"projection document"| ES
+    O[Operator / health endpoint] -->|"health or reindex request"| P3[[4.6 Operate search runtime]]
+    PG -->|"reindex source entities"| P3
+    P3 -->|"rebuilt projection batch"| ES
+    P1 -->|"grouped authorized results"| U
+    P3 -->|"health or reindex result"| O
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U,E,O entity
+    class P1,P2,P3 process
+    class PG,ES store

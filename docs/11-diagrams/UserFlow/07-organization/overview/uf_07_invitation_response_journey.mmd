@@ -1,0 +1,32 @@
+%% User Flow 07 — Organization invitation response
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: invited user; invitation is a pending membership, not a token link.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Receive organization invitation]) --> Open["Open My Invitations"] --> Inspect["Inspect organization<br/>and offered role"] --> Decide{"Accept membership?"}
+        Decide -->|No| ToReject((B))
+        Decide -->|Yes| ToAccept((A))
+    end
+    subgraph row2[" "]
+        direction LR
+        FromAccept((A)) --> Accept["Accept invitation"] --> Approved["See approved membership"] --> Switch{"Use organization now?"}
+        Switch -->|Yes| Context["Switch organization<br/>and open workspace"] --> End([Workspace available])
+        Switch -->|Later| EndLater([Membership retained])
+        FromReject((B)) --> Reject["Reject invitation"] --> Rejected([Invitation closed])
+    end
+    ToAccept ~~~ FromAccept
+    ToReject ~~~ FromReject
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Rejected,End,EndLater terminal
+    class Open,Inspect,Reject,Accept,Approved,Context action
+    class Decide,Switch decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAccept,FromAccept,ToReject,FromReject connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

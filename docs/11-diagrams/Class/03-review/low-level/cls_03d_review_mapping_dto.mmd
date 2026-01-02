@@ -1,0 +1,58 @@
+%% Class Diagram: Review Mapping & DTO Boundary
+%% Evidence status: Implemented scope; conceptual containers are explicitly marked.
+%% Updated 2026-06-26 (verified).
+%% Scope: Review mappers, repository contract, and response DTO group.
+%% Response DTO group is a conceptual container for concrete DTO files; it is not a runtime class.
+
+classDiagram
+    direction LR
+    class ReviewSession
+    class SkillReview
+    class ReviewSessionEntity
+    class SkillReviewEntity
+
+    class ReviewRepository {
+        <<interface>>
+        +findSessionById(id: string): Promise~ReviewSessionEntity|null~
+        +findSessionsByReviewee(revieweeId: string): Promise~ReviewSessionEntity[]~
+        +findSkillReviewsBySession(sessionId: string): Promise~SkillReviewEntity[]~
+        +findPendingSessions(): Promise~ReviewSessionEntity[]~
+    }
+
+    class ReviewDomainMapper {
+        <<Domain Mapper>>
+        +toSessionEntity(props: ReviewSessionEntityProps): ReviewSessionEntity
+        +toSkillReviewEntity(props: SkillReviewEntityProps): SkillReviewEntity
+    }
+
+    class ReviewInfraMapper {
+        <<Infra Mapper>>
+        +toSessionDomain(model: ReviewSession): ReviewSessionEntity
+        +toSkillReviewDomain(model: SkillReview): SkillReviewEntity
+    }
+
+    class ReviewApplicationMapper {
+        <<Application Mapper>>
+        +toSessionResponse(entity: ReviewSessionEntity): ReviewSessionResponseDTO
+        +toSkillReviewResponse(entity: SkillReviewEntity): SkillReviewResponseDTO
+        +toSummaryResponse(session: ReviewSessionEntity, reviews: SkillReviewEntity[]): ReviewSummaryResponseDTO
+    }
+
+    class ReviewResponseDTOs {
+        <<conceptual>>
+        +ReviewSessionResponse
+        +SkillReviewResponse
+        +ReviewSummaryResponse
+    }
+
+    ReviewDomainMapper ..> ReviewSessionEntity : creates
+    ReviewDomainMapper ..> SkillReviewEntity : creates
+    ReviewInfraMapper ..> ReviewSession : reads ORM
+    ReviewInfraMapper ..> SkillReview : reads ORM
+    ReviewInfraMapper ..> ReviewSessionEntity : produces
+    ReviewInfraMapper ..> SkillReviewEntity : produces
+    ReviewApplicationMapper ..> ReviewSessionEntity : reads
+    ReviewApplicationMapper ..> SkillReviewEntity : reads
+    ReviewApplicationMapper ..> ReviewResponseDTOs : produces
+    ReviewRepository ..> ReviewSessionEntity : returns
+    ReviewRepository ..> SkillReviewEntity : returns

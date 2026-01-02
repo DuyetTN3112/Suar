@@ -1,0 +1,24 @@
+%% DFD 03a — Marketplace browse and search (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. PostgreSQL fallback remains active when engine is disabled, empty, or fails.
+
+flowchart TB
+    C[External contributor]
+    P1[[4.1.1 Resolve public-task search candidates]]
+    P2[[4.1.2 Hydrate eligible task details]]
+    ES[(Elasticsearch public-task index)]
+    T[(PostgreSQL tasks + required skills)]
+
+    C -->|"keyword, filters, sort, page"| P1
+    P1 -->|"bounded search query"| ES
+    ES -->|"candidate ids and ranking"| P1
+    P1 -->|"candidate ids or SQL fallback context"| P2
+    T -->|"public current unassigned tasks + required skills"| P2
+    P2 -->|"eligible task page"| C
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class C entity
+    class P1,P2 process
+    class ES,T store

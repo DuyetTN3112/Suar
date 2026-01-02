@@ -1,0 +1,50 @@
+%% Use Case 02d — Project competency and staffing
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; candidate score is current weighted-level heuristic, not full v6 matching.
+%% Keep reason: Outer system boundary is UML semantics; inner transparent rows only control one use-case layout.
+
+flowchart TB
+    owner([Project owner])
+    manager([Project manager])
+    authority([Project creator / organization owner-admin / system admin])
+
+    subgraph system["Project competency and staffing boundary"]
+        direction TB
+        subgraph row1[" "]
+            direction LR
+            configureSkills([Configure project skills and rubric])
+            configureRoles([Create or clone professional roles])
+            setRequirements([Set role skill requirements])
+        end
+        subgraph row2[" "]
+            direction LR
+            findCandidates([Find explainable staffing candidates])
+            manageMembers([Add project member and initial role])
+            updateMemberRole([Update existing member professional role])
+        end
+    end
+
+    owner --- configureSkills
+    owner --- configureRoles
+    owner --- setRequirements
+    owner --- findCandidates
+    owner --- manageMembers
+    owner --- updateMemberRole
+    authority --- configureSkills
+    authority --- configureRoles
+    authority --- setRequirements
+    authority --- manageMembers
+    authority --- updateMemberRole
+    authority --- findCandidates
+    manager --- configureSkills
+    manager --- configureRoles
+    manager --- setRequirements
+    manager --- updateMemberRole
+    manager --- findCandidates
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class owner,manager,authority actor
+    class configureSkills,configureRoles,setRequirements,findCandidates,manageMembers,updateMemberRole goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

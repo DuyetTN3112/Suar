@@ -1,0 +1,58 @@
+%% Use Case 02b — Task lifecycle and completion evidence
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented representative permission sets; exact project/org/system composition remains governed by runtime policy. Configurable status workflow is canonical.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Layout note: Each external actor group is aligned with its principal goal to avoid ambiguous crossing associations.
+
+%%{init: {"flowchart": {"curve": "linear", "nodeSpacing": 42, "rankSpacing": 64}}}%%
+flowchart LR
+    subgraph leftActors[" "]
+        direction TB
+        taskEditor([👤 Authorized task author/editor])
+        statusActor([👤 Project-role status actor])
+        assignee([👤 Active task assignee])
+        collaborator([👤 Approved-organization collaborator])
+    end
+
+    subgraph system["Task lifecycle boundary"]
+        direction TB
+        direction TB
+        author([Create and edit task context])
+        assign([Assign task and control access])
+        changeStatus([Change task workflow status])
+        updateTime([Record time and sort order])
+        submitPackage([Submit completion package and enter review])
+        attachEvidence([Attach completion evidence])
+        collaborate([Maintain task comments and attachments])
+        inspect([View task detail, board, and history])
+        remove([Delete task])
+        author ~~~ assign
+        changeStatus ~~~ updateTime
+        submitPackage ~~~ attachEvidence
+        collaborate ~~~ inspect
+    end
+
+    subgraph rightActors[" "]
+        direction TB
+        assignmentAuthority([👤 Assignment authority])
+        timeEditor([👤 Authorized time editor])
+        viewer([👤 Permitted task viewer])
+        deleter([👤 Authorized task deleter])
+    end
+
+    taskEditor --- author
+    assign --- assignmentAuthority
+    statusActor --- changeStatus
+    updateTime --- timeEditor
+    assignee --- submitPackage
+    collaborator --- attachEvidence
+    collaborator --- collaborate
+    inspect --- viewer
+    remove --- deleter
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class taskEditor,statusActor,assignee,collaborator,assignmentAuthority,timeEditor,viewer,deleter actor
+    class author,assign,changeStatus,updateTime,submitPackage,attachEvidence,collaborate,inspect,remove goal
+    style leftActors fill:transparent,stroke:transparent,color:transparent
+    style rightActors fill:transparent,stroke:transparent,color:transparent
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

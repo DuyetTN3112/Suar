@@ -1,0 +1,64 @@
+%% Use Case 04b — Organization and project access
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; project ownership transfer is Partial where route wiring is not confirmed.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    orgOwner([👤 Organization owner])
+    orgAdmin([👤 Organization admin])
+    projectOwner([👤 Project owner])
+    manager([👤 Project manager])
+    member([👤 Project member])
+    viewer([👤 Project viewer])
+    workspaceUser([👤 Workspace user])
+
+    subgraph system["Organization and project access boundary"]
+        direction TB
+        orgSettings([Manage organization settings])
+        orgMembers([Manage organization members and requests])
+        orgWorkflow([Configure task workflow])
+        switchOrg([Switch current organization])
+        accessProjects([List and open authorized projects])
+        createProject([Create organization project])
+        projectRoster([Manage project roster])
+        taskWorkspace([Manage tasks and assignments])
+        taskRead([View task boards and detail])
+        orgSettings ~~~ orgMembers ~~~ orgWorkflow ~~~ switchOrg ~~~ accessProjects
+        createProject ~~~ projectRoster ~~~ taskWorkspace ~~~ taskRead
+    end
+
+    orgOwner --- orgSettings
+    orgOwner --- orgMembers
+    orgOwner --- orgWorkflow
+    orgOwner --- createProject
+    orgOwner --- accessProjects
+    orgOwner --- projectRoster
+    orgOwner --- taskWorkspace
+    orgOwner --- taskRead
+    orgAdmin --- orgSettings
+    orgAdmin --- orgMembers
+    orgAdmin --- orgWorkflow
+    orgAdmin --- createProject
+    orgAdmin --- accessProjects
+    orgAdmin --- projectRoster
+    orgAdmin --- taskWorkspace
+    orgAdmin --- taskRead
+    workspaceUser --- switchOrg
+    projectOwner --- projectRoster
+    projectOwner --- accessProjects
+    projectOwner --- taskWorkspace
+    projectOwner --- taskRead
+    manager --- accessProjects
+    manager --- taskWorkspace
+    manager --- taskRead
+    member --- taskWorkspace
+    member --- accessProjects
+    member --- taskRead
+    viewer --- accessProjects
+    viewer --- taskRead
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class orgOwner,orgAdmin,projectOwner,manager,member,viewer,workspaceUser actor
+    class orgSettings,orgMembers,orgWorkflow,switchOrg,accessProjects,createProject,projectRoster,taskWorkspace,taskRead goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

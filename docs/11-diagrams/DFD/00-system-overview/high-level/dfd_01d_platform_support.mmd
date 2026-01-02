@@ -1,0 +1,41 @@
+%%{init: {"themeVariables": {"fontSize": "34px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 36, "rankSpacing": 62}} }%%
+%% DFD 01d — Platform support, audit, and notifications
+%% Formal DFD level: Level 1, complementary P0 frame 4 of 4.
+%% Parent process: P0 Suar work-to-credential platform from dfd_00_context.
+%% Evidence status: Implemented.
+%% Balance: refines E3 governance/support input/output, E1 notification output, and D5 authoritative audit/delivery writes.
+%% Cross-frame handoff: H2 continues P5's governed outcome events from frame 01c into P7. H2 is an explicit off-page data-flow continuation, not an entity, store, or process.
+%% Direction: every arrowhead marks the recipient of one named data flow. Repeated E3 symbols are the same system administrator.
+
+flowchart LR
+    subgraph inputs[ ]
+        direction TB
+        H2[/"H2<br/>off-page flow from P5"/]
+        E3I["E3<br/>System administrator"]
+    end
+
+    P7(("P7<br/>Deliver support"))
+
+    subgraph outcomes[ ]
+        direction TB
+        E3O["E3<br/>same external entity"]
+        E1["E1<br/>Authenticated member"]
+        D5[("D5<br/>Audit/notification records")]
+    end
+
+    H2 -->|"governed outcome events"| P7
+    E3I -->|"support or governance request"| P7
+    P7 -->|"support or governance result"| E3O
+    P7 -->|"notification result"| E1
+    P7 -->|"updated audit and delivery state"| D5
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px,stroke-dasharray:5 3
+    class E1,E3I,E3O entity
+    class P7 process
+    class D5 store
+    class H2 handoff
+    style inputs fill:none,stroke:none
+    style outcomes fill:none,stroke:none

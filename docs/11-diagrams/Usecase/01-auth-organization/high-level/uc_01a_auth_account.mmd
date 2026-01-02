@@ -1,0 +1,41 @@
+%% Use Case 01a — Account, profile, snapshot, and talent surfaces
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; governed aggregation and full matching are Partial/Planned.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    visitor([👤 Visitor])
+    user([👤 Authenticated user])
+    viewer([👤 Profile viewer])
+    publicViewer([👤 Public snapshot viewer])
+    sourcer([👤 Organization owner / admin])
+
+    subgraph system["Account and profile boundary"]
+        direction TB
+        signIn([Start OAuth sign-in])
+        manageOwn([Manage own profile and settings])
+        manageSkills([Manage skills and proficiency claims])
+        publishSnapshot([Publish governed profile snapshot])
+        viewProfile([View profile and evidence signals])
+        openSnapshot([Open shared public snapshot])
+        manageBookmarks([Maintain talent bookmarks])
+        explainMatch([Explain candidate/task match<br/>Partial — score exists; full model planned])
+        signIn ~~~ manageOwn ~~~ manageSkills ~~~ publishSnapshot
+        viewProfile ~~~ openSnapshot ~~~ manageBookmarks ~~~ explainMatch
+    end
+
+    visitor --- signIn
+    user --- manageOwn
+    user --- manageSkills
+    user --- publishSnapshot
+    user --- viewProfile
+    viewer --- viewProfile
+    publicViewer --- openSnapshot
+    sourcer --- viewProfile
+    sourcer --- manageBookmarks
+    sourcer --- explainMatch
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class visitor,user,viewer,publicViewer,sourcer actor
+    class signIn,manageOwn,manageSkills,publishSnapshot,viewProfile,openSnapshot,manageBookmarks,explainMatch goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

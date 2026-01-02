@@ -1,0 +1,23 @@
+%% Evidence status: Implemented. Feed updates via Transmit SSE realtime push + paged fallback from persisted state.
+%% Updated: 2026-07-27.
+%% Journey actor: authenticated user.
+
+flowchart TB
+    Start([Open notification center]) --> Connect["Connect Transmit SSE<br/>realtime invalidation stream"] --> Feed["See paged feed<br/>and unread count"] --> Select{"What does user need?"}
+    Select -->|Inspect| Detail["Open notification target"]
+    Select -->|Read state| Read["Mark one or all as read"]
+    Select -->|Cleanup| Delete["Delete one or all read items"]
+    Select -->|Realtime push| Push["Receive Transmit SSE invalidation<br/>auto-update unread count & feed"]
+    Select -->|Refresh| Refresh["Refresh latest feed"]
+    Detail --> End([Journey continues at target])
+    Read --> Current["See current feed and unread count"] --> EndFeed([Notification state current])
+    Delete --> Current
+    Push --> Current
+    Refresh --> Current
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End,EndFeed terminal
+    class Feed,Detail,Read,Delete,Refresh,Current action
+    class Select decision

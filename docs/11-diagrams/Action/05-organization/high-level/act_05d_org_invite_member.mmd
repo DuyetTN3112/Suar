@@ -1,0 +1,29 @@
+%% Activity 05d — Organization invitation lifecycle overview
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (panel split).
+%% Level: High level. Children: act_05d1, act_05d2, act_05d3.
+%% Invitation is membership intent stored on organization_users; no token or separate invitation table.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Invitation requested]) --> Issue["Validate and issue pending invitation<br/>act_05d1"] --> Pending([Pending membership visible to invitee]) --> ToDecision((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromPending((A)) --> Decide{"Invitee decision"}
+        Decide -->|Accept| Accept["Approve membership and notify inviter<br/>act_05d2"] --> Approved([Membership approved])
+        Decide -->|Reject| Reject["Reject invitation and notify inviter<br/>act_05d3"] --> Rejected([Invitation rejected])
+    end
+    ToDecision ~~~ FromPending
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Pending,Approved,Rejected terminal
+    class Issue,Accept,Reject action
+    class Decide decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToDecision,FromPending connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

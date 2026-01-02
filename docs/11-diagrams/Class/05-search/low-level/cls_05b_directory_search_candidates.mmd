@@ -1,0 +1,41 @@
+%% Class Diagram 05b — Talent, skill, and user Elasticsearch candidates
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: concrete engine query and index repository classes.
+
+classDiagram
+direction LR
+    class SearchTalentsViaEngineQuery {
+        +handle(dto: SearchTalentsViaEngineDTO): Promise~EngineTalentCandidate[]~
+    }
+    class SearchSkillsViaEngineQuery {
+        +handle(dto: SearchSkillsViaEngineDTO): Promise~EngineSkillCandidate[]~
+    }
+    class SearchUsersViaEngineQuery {
+        +handle(dto: SearchUsersViaEngineDTO): Promise~EngineUserCandidate[]~
+    }
+    class TalentSearchIndexRepository {
+        +search(input: TalentEngineSearchInput): Promise~TalentSearchHit[]~
+        +upsertDocument(document: TalentSearchDocument): Promise~void~
+        +deleteDocument(userId: string): Promise~void~
+    }
+    class SkillSearchIndexRepository {
+        +search(input: SkillEngineSearchInput): Promise~SkillSearchHit[]~
+        +upsertDocument(document: SkillSearchDocument): Promise~void~
+        +deleteDocument(skillId: string): Promise~void~
+    }
+    class UserDirectorySearchIndexRepository {
+        +search(input: UserDirectoryEngineSearchInput): Promise~UserDirectorySearchHit[]~
+        +upsertDocument(document: UserDirectorySearchDocument): Promise~void~
+        +deleteDocument(userId: string): Promise~void~
+    }
+    class Client {
+        <<external Elasticsearch client>>
+    }
+
+    SearchTalentsViaEngineQuery --> TalentSearchIndexRepository
+    SearchSkillsViaEngineQuery --> SkillSearchIndexRepository
+    SearchUsersViaEngineQuery --> UserDirectorySearchIndexRepository
+    TalentSearchIndexRepository --> Client
+    SkillSearchIndexRepository --> Client
+    UserDirectorySearchIndexRepository --> Client

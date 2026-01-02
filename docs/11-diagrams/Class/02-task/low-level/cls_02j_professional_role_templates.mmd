@@ -1,0 +1,49 @@
+%% Class Diagram 02j — Professional Role Templates
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: professional_role_template.ts and professional_role_template_skill.ts.
+
+classDiagram
+    direction LR
+
+    class ProfessionalRoleTemplate {
+        <<Lucid Model>>
+        +UUID id PK
+        +String code
+        +String name
+        +String description nullable
+        +Boolean is_active
+        +DateTime created_at
+        +DateTime updated_at
+    }
+    class ProfessionalRoleTemplateSkill {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID role_template_id FK
+        +UUID skill_id FK
+        +UUID minimum_level_id FK nullable
+        +UUID target_level_id FK nullable
+        +UUID assessment_ceiling_level_id FK nullable
+        +Boolean is_mandatory
+        +SkillImportance importance
+        +Number weight
+        +Number sort_order
+        +DateTime created_at
+        +DateTime updated_at
+    }
+    class Skill {
+        <<Lucid Model>>
+        +UUID id PK
+        +String skill_code
+        +String skill_name
+    }
+    class ProficiencyLevel {
+        <<Lucid Model>>
+        +UUID id PK
+        +String code
+        +Integer ordinal
+    }
+
+    ProfessionalRoleTemplate "1" --> "*" ProfessionalRoleTemplateSkill : defines skill contract
+    ProfessionalRoleTemplateSkill "*" --> "1" Skill : selects
+    ProfessionalRoleTemplateSkill "*" --> "0..1" ProficiencyLevel : minimum target ceiling

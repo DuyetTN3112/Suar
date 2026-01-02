@@ -1,0 +1,16 @@
+%% DFD 02b2b — Task status transition (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; task_status_id/category workflow is canonical.
+
+flowchart TB
+    A[Authorized task participant] -->|"task and requested status"| P[[3.2.2.1 Validate workflow transition]]
+    D1[(Tasks)] -->|"current status and assignee facts"| P
+    D2[(Task statuses and transitions)] -->|"category and allowed-transition facts"| P
+    P -->|"canonical status and compatibility mirror"| D1
+    P -->|"transition result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2 store

@@ -1,0 +1,38 @@
+%% Architecture 09 — Redis runtime separation
+%% Evidence status: Implemented. Main DB 0 and cache DB 1 are configured; conditional lock/limiter branches are marked in-diagram.
+%% Keep reason: Main and cache subgraphs are distinct logical Redis databases inside one runtime instance, not separate diagrams.
+
+flowchart LR
+    subgraph App["Suar runtime consumers"]
+        direction TB
+        Session["Web session + SessionTokenService<br/>Compose SESSION_DRIVER=redis<br/>auth:access / auth:refresh TTL keys"]
+        Lock["Distributed locks<br/>LOCK_STORE=redis or memory"]
+        Limiter["Rate limiter<br/>LIMITER_STORE=redis or default memory"]
+        Cache["redisCacheStore<br/>JSON + TTL + SCAN invalidation"]
+    end
+
+    subgraph Redis["Single Redis server/container"]
+        direction TB
+        Main[("main connection · DB 0<br/>keyPrefix suar:<br/>web sessions · auth token pairs<br/>optional locks/limiter")]
+        CacheDb[("cache connection · DB 1<br/>keyPrefix suar:cache:<br/>service keys app:…<br/>FLUSHDB stays in DB 1; DB 0 retained")]
+        Volume[("redis_data named volume")]
+    end
+
+    Session --> Main
+    Lock -.->|"when Redis store selected"| Main
+    Limiter -.->|"when Redis store selected"| Main
+    Cache --> CacheDb
+    Main ~~~ CacheDb
+    Main --> Volume
+    CacheDb --> Volume
+
+    classDef consumer fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef main fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef cache fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef data fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    class Session,Lock,Limiter,Cache consumer
+    class Main main
+    class CacheDb cache
+    class Volume data
+    style App fill:#EFF6FF,stroke:#2563EB,stroke-width:2px
+    style Redis fill:#F8FAFC,stroke:#64748B,stroke-width:2px

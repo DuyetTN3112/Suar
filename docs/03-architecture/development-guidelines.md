@@ -5,6 +5,7 @@
 ### Repository Shape
 
 - Backend dùng `app/modules/*`
+- Hạ tầng công nghệ dùng chung toàn ứng dụng dùng `app/infra/*`
 - Frontend dùng `inertia/*`
 - Route registration trong `start/routes*`
 - Config trong `config/*`
@@ -20,11 +21,36 @@ Ngoài ra repository còn có:
 
 ### Architectural Guideline From Repository
 
-- Cross-module backend access đi qua `app/modules/*/actions/public_api.ts`
-- cấu trúc hiện tại không có top-level `app/actions/shared` hay `app/services`
-- Bootstrap layer và `Monolith*` adapters dùng để nối module
+- Mỗi HTTP/event/CLI business intent đi vào đúng một Command, Query hoặc explicit inbound
+  capability. Controller/listener không ghép workflow từ service và outbound port.
+- Command/Query là application orchestration owner; domain giữ business rule; adapter giữ I/O;
+  composition chỉ dựng object graph.
+- Module consumer sở hữu port cho hành vi hoặc projection mà nó cần.
+- Module provider chỉ xuất stable fact, event, DTO, constant hoặc capability đã được chủ ý hỗ
+  trợ qua `public_contracts/*`.
+- `public_contracts/*` không phải barrel để re-export `actions`, `infra`, `services` hoặc ORM.
+- `actions/services` chỉ dành cho narrow sub-operation được ít nhất hai Command/Query dùng lại;
+  service không sở hữu complete intent, không execute Command/Query và không được inject vào
+  controller.
+- `support`, `utils`, `builders`, `serializers` không phải layer. Ưu tiên role chính xác:
+  request/response mapper, validator, domain policy, Command/Query, port, repository hoặc adapter.
+- `actions/ports/inbound/*Factory` chỉ là driving contract; implementation ở
+  `app/composition/factories` chỉ construct đồng bộ và không gọi `.handle()`/`.execute()`.
+- `bootstrap/*` và `app/composition/*` dựng object graph; action/domain không import ngược
+  bootstrap/composition.
+- `app/infra/*` chỉ dành cho client công nghệ dùng chung toàn ứng dụng, ví dụ Elasticsearch SDK
+  client. Nó không chứa business policy, feature document mapping, repository hay module facade.
+- Cấu trúc hiện tại không có top-level generic `app/actions/shared` hoặc `app/services`; không tạo
+  các bucket này để né ownership.
 
-Nguồn: rà trực tiếp `app/`, `app/modules/tasks/bootstrap/task_action_factory.ts`, `app/modules/projects/bootstrap/project_public_api_factory.ts`, `docs/03-architecture/architecture-overview.md`
+Một câu kiểm tra placement: nếu bỏ tên folder đi, artifact đó đang nhận intent, quyết định
+nghiệp vụ, điều phối workflow, mô tả dependency, thực hiện I/O, hay chỉ dựng dependency graph?
+Đưa nó về đúng owner tương ứng.
+
+Nguồn: `docs/superpowers/specs/2026-07-07-api-and-module-boundary-design.md`,
+`docs/03-architecture/module-layer-boundary-audit-2026-07-23.md`,
+`docs/03-architecture/application-boundary.md`,
+`app/infra/search/elasticsearch_client.ts`, và architecture guards.
 
 ### Module structure guideline visible in repository
 
@@ -50,7 +76,7 @@ Filesystem hiện tại cho thấy module backend có thể chứa:
 - detail diagram chỉ chứa một flow hoặc một concern
 - ERD ưu tiên table/column first
 
-Nguồn: `docs/11-diagrams/Architecture/arch_01_system.mmd`, `docs/11-diagrams/Package/pkg_01_overview.mmd`, `docs/11-diagrams/Action/act_02_marketplace_overview.mmd`, `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
+Nguồn: `docs/11-diagrams/Architecture/01-system-architecture/overview/arch_01_system.mmd`, `docs/11-diagrams/Package/01-overview/overview/pkg_01_overview.mmd`, `docs/11-diagrams/Action/02-marketplace/README.md`, `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
 
 ### Quality Gates Present
 

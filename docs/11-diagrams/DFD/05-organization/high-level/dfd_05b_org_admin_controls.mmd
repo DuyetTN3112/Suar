@@ -1,0 +1,17 @@
+%% DFD 05b — Organization administration map (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; details are Level-3 children 05b1–05b2.
+
+flowchart TB
+    A[Organization owner / admin] -->|"member governance payload"| P1[[6.3.1 Administer members]]
+    A -->|"settings and workflow changes"| P2[[6.3.2 Update organization policy]]
+    P1 -->|"membership governance state"| D1[(Organization memberships)]
+    P2 -->|"updated policy"| D2[(Organization policy)]
+    P1 -->|"member result"| A
+    P2 -->|"policy result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P1,P2 process
+    class D1,D2 store

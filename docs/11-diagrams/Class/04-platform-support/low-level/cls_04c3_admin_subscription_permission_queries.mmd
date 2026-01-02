@@ -1,0 +1,17 @@
+%% Class 04c3 — Admin subscription and permission read classes
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+classDiagram
+direction LR
+    class ListPackagesController
+    class ShowPermissionsController
+    class ListSubscriptionsQuery {
+        +handle(dto: ListSubscriptionsDTO): Promise~ListSubscriptionsResult~
+    }
+    class GetPermissionMatrixQuery {
+        +handle(): Promise~PermissionMatrixResult~
+    }
+
+    ListPackagesController --> ListSubscriptionsQuery
+    ShowPermissionsController --> GetPermissionMatrixQuery

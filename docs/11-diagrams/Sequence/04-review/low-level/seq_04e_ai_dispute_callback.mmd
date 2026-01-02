@@ -1,0 +1,38 @@
+%% Sequence 04e — Persist signed AI dispute callback
+%% Evidence status: Partial. Callback verification and atomic persistence are implemented; advisory output depends on the configured external service.
+%% Parent use case: UC 03b “Inspect AI advisory”; external service completion triggers this technical callback scenario.
+%% Design-class trace: cls_03l_ai_dispute_callback_runtime_design defines the boundary, factory, command, cryptography, and unit-of-work responsibilities used by this scenario.
+%% Scenario: the external advisory service completes one existing evaluation.
+%% Scope: callback trust boundary and persistence. Human resolution is seq_04c.
+
+sequenceDiagram
+    autonumber
+    participant X as «external» Clawagent advisory API
+    participant C as «boundary» AiDisputeCallbackController
+    participant K as «control» ProcessAiDisputeCallbackCommand
+    participant H as «outbound» HMAC verifier
+    participant U as «outbound» AI dispute unit of work
+    participant DB as «store» PostgreSQL
+
+    X->>C: POST /api/public/ai-disputes/callback
+    C->>K: execute(evaluation id, status, timestamp, signature, advice)
+    activate K
+    K->>H: Verify timestamp and HMAC
+    H-->>K: Authentic or reject
+    K->>U: run atomic callback persistence
+    U->>DB: Load evaluation and source identity
+    DB-->>U: Evaluation status and identifiers
+    alt Valid queued/processing evaluation
+        U->>DB: Store completed/failed advice payload
+        U->>DB: Transition ai_reviewing source to human-review state
+        DB-->>U: Persisted terminal advisory result
+        U-->>K: Callback result
+        K-->>C: id, disputeId, status
+        C-->>X: 200 callback accepted
+    else Signature, identifier, or terminal-state conflict
+        U-->>K: Reject callback
+        K-->>C: Authorization/validation/conflict error
+        C-->>X: Safe error response
+    end
+    deactivate K
+    Note over U,DB: Advisory result, human resolution is recorded in seq_04c.

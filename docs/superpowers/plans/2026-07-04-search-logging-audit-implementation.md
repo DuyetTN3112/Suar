@@ -38,7 +38,7 @@
 - Test: `app/modules/logger/tests/unit/logger_service_structured_event.spec.ts`
 
 **Interfaces:**
-- Consumes: existing `AuthenticatedHttpActionContext`, existing `writeAuditLog` / `writeAuditLogAllowAnonymous`, existing `LoggerService`
+- Consumes: existing `AuthenticatedHttpActionContext`, Audit write commands, existing `SanitizingLogger`
 - Produces: `SearchEventName`, `SearchEventContext`, `buildSearchRequestContext(ctx: HttpContext)`, `buildSearchQueryPrivacyFields(query: string)`, `SearchOperationalLogger.log()`, `SearchAuditLogger.record()`
 
 - [ ] **Step 1: Write the failing tests for request correlation and query privacy**
