@@ -1,0 +1,42 @@
+%% Sequence 09a — View public profile
+%% Updated: 2026-07-27.
+%% Scenario: viewer opens one standard public profile page.
+%% Evidence status: Implemented; capability-dimension profile remains Planned.
+
+sequenceDiagram
+    autonumber
+    actor VIEWER as Viewer
+    participant B as «boundary» Browser
+    participant C as «boundary» ViewUserProfileController
+    participant Q as «control» GetProfileViewPageQuery
+    participant D as «entity» PostgreSQL
+    participant R as «control» ReviewPublicApi
+
+    VIEWER->>B: Open user profile
+    activate B
+    B->>C: GET /users/:userId/profile
+    activate C
+    C->>Q: execute(userId, currentUserId)
+    activate Q
+    par Profile and skill reads
+        Q->>D: Read profile, skills and current spider data
+        activate D
+        D-->>Q: Profile, skill claims and governed rows
+        deactivate D
+    and Delivery and evidence reads
+        Q->>D: Read delivery metrics, featured reviews, work history
+        activate D
+        D-->>Q: Current reportable evidence
+        deactivate D
+    and Reverse-review summary
+        Q->>R: loadUserReverseReviewSummary(userId)
+        activate R
+        R-->>Q: Reverse-review summary
+        deactivate R
+    end
+    Q-->>C: Profile page result and isOwnProfile
+    deactivate Q
+    C-->>B: Render profile/view
+    deactivate C
+    B-->>VIEWER: Show current visible profile
+    deactivate B

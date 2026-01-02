@@ -1,0 +1,27 @@
+%% State 02 — ReviewSession lifecycle
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Stable ReviewSession.status values only; manager/peer work proceeds in parallel.
+
+stateDiagram-v2
+direction LR
+    [*] --> pending : openSession / seed reviewer assignments
+    pending --> in_progress : submitFirstReview / retain submitted review
+    in_progress --> in_progress : submitAdditionalReview [quorum not met] / update counts
+    in_progress --> completed : submitReview [manager and peer quorum met] / close collection
+    completed --> disputed : disputeReview [reason supplied] / create review_disputes case
+    completed --> [*] : confirmReview / retain confirmed outcome
+    disputed --> [*] : resolveDispute / retain governed resolution
+
+    note right of in_progress
+        Manager and peer reviews are concurrent work,
+        not separate ReviewSession states.
+        required_peer_reviews defaults to 2.
+    end note
+
+    note right of completed
+        Confirmation triggers reviewee and reviewer
+        recalculation through review:confirmed.
+        Dispute resolution remains human-authoritative.
+    end note
+

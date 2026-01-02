@@ -1,0 +1,19 @@
+%% Package 03b — Active domain rule packages
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Package overview; file-level rules are intentionally outside report figure.
+
+flowchart LR
+    Business["<b>Business rule packages</b><br/>tasks/domain<br/>marketplace/domain<br/>projects + sprints/domain<br/>organizations/domain<br/>reviews/domain"]
+    Identity["<b>Identity/profile rule packages</b><br/>authorization/domain<br/>users/domain<br/>skills framework support"]
+    Policy["<b>Shared rule outcome</b><br/>PolicyResult allow/deny<br/>typed invariant/error reasons"]
+    Effects["Application commands/queries<br/>enforce outcome before side effects"]
+
+    Business --> Policy
+    Identity --> Policy
+    Policy --> Effects
+
+    classDef package fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    class Business,Identity package
+    class Policy,Effects boundary

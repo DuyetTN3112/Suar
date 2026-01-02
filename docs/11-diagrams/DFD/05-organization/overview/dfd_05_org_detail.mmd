@@ -1,0 +1,25 @@
+%% DFD 05 — Organization domain map (Formal Level 2: expansion of P6)
+%% Parent process: P6 Govern organization from complementary Level-1 frame dfd_01a_identity_organisation_delivery_context.
+%% Evidence status: Implemented.
+%% Balance: refines authenticated-member organization input and returns membership and role context to P2.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    U["E1<br/>Authenticated member"] -->|"organization form or selection"| P1[[6.1 Manage organization context]]
+    U -->|"invitation response or join request"| P2[[6.2 Manage membership lifecycle]]
+    A["E1<br/>same owner/admin actor"] -->|"member or policy governance"| P3[[6.3 Administer organization]]
+    P1 -->|"organization and current context"| D[("D2<br/>Organization records")]
+    D -->|"organization and membership state"| P2
+    P2 -->|"membership lifecycle state"| D
+    D -->|"members, roles, settings"| P3
+    P3 -->|"governed organization state"| D
+    P1 -->|"current context"| U
+    P2 -->|"membership result"| U
+    P3 -->|"administration result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U,A entity
+    class P1,P2,P3 process
+    class D store

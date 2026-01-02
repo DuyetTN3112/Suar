@@ -1,15 +1,15 @@
 # BRD, PRD, Scope Document
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | New joiner, manager, product, developer, tester, reviewer |
-| Purpose | Giải thích Suar đang giải bài toán gì, sản phẩm đang có những capability nào thật, và scope hiện tại đi tới đâu |
-| Source of Truth | business docs trong taxonomy hiện tại, routes, models, queries, tests, config/runtime evidence |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi capability lớn, product direction, hoặc scope boundary đổi |
-| Owner | Product + engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                           |
+| --------------- | --------------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                          |
+| Audience        | New joiner, manager, product, developer, tester, reviewer                                                       |
+| Purpose         | Giải thích Suar đang giải bài toán gì, sản phẩm đang có những capability nào thật, và scope hiện tại đi tới đâu |
+| Source of Truth | business docs trong taxonomy hiện tại, routes, models, queries, tests, config/runtime evidence                  |
+| Last Reviewed   | 2026-07-10                                                                                                      |
+| Review Cycle    | Khi capability lớn, product direction, hoặc scope boundary đổi                                                  |
+| Owner           | Product + engineering                                                                                           |
+| Stale Risk      | Cao                                                                                                             |
 
 ## File Này Dùng Để Làm Gì
 
@@ -84,14 +84,14 @@ Chỉ đọc thêm khi mục tiêu của bạn đổi sang level khác:
 Chỉ cần nhớ bốn ý này:
 
 1. Suar không chỉ là task board. Nó là hệ thống biến công việc thật thành tín hiệu năng lực đáng tin hơn.
-2. Ba không gian sản phẩm lớn hiện tại là `user workspace`, `organization admin workspace`, và `system admin workspace`.
+2. Sản phẩm có hai security realm: System Admin riêng; User realm gồm Personal, Organization Management và từng Project Workspace.
 3. Năm cụm behavior runtime quan trọng nhất hiện tại là `auth`, `task`, `marketplace`, `review`, `profile`.
 4. Những thứ chưa nên nói quá tay gồm `email/password riêng`, `realtime active transport`, và `legal/privacy artifact độc lập`.
 
 ## Câu Khẳng Định An Toàn Có Thể Dùng Nguyên Văn
 
 - `Suar không chỉ là task board; nó định vị như hệ thống biến công việc thật thành tín hiệu năng lực đáng tin hơn.`
-- `Phạm vi sản phẩm hiện xoay quanh ba workspace lớn: user workspace, organization admin workspace, và system admin workspace.`
+- `Phạm vi sản phẩm tách System realm khỏi User realm; trong User realm, Organization Management và Project Workspace là hai shell khác nhau.`
 - `Những capability runtime nổi bật hiện tại gồm auth, task, marketplace, review/dispute, profile, notifications, và admin governance surfaces.`
 
 Các câu trên an toàn hơn nhiều so với kiểu viết:
@@ -151,9 +151,9 @@ Hệ thống hiện đang cover khá rõ các nhóm capability sau:
 3. Project lifecycle và project membership
 4. Task authoring, workflow, assignment, submission package
 5. Marketplace browse, apply, ranking, triage, withdraw
-6. Review session, reverse-review reading surfaces, dispute, AI callback
+6. Review session, bốn Project boards, dispute handoff sang System board, AI callback
 7. Profile, verified skill signal, trust metrics, public snapshot
-8. Notification, audit, user activity, admin surfaces
+8. Notification, Audit evidence/personal history, admin surfaces
 
 ### Những Thứ Chưa Nên Nói Quá Tay
 
@@ -231,16 +231,16 @@ Reader nên hiểu ngắn gọn:
 
 #### Review And Trust
 
-- có pending review
-- có submit/confirm/dispute
-- có reverse-review reading surfaces
+- có Task Review Board với filter `Waiting on me`
+- có submit/confirm/dispute trong card room
+- có Assigner Review và Work Environment Review board sau sprint
 - có AI dispute callback
 - có flagged review handling
 
 Điều cần hiểu đúng:
 
-- reverse-review pages và APIs đọc dữ liệu vẫn còn
-- nhưng create-flow reverse review ở level từng task hiện đã bị product-deprecate
+- reverse-review history/inbox pages đã bị gỡ
+- create-flow reverse review ở level từng task hiện đã bị product-deprecate; dữ liệu/lịch sử nằm trên Project board
 
 Nếu cần diễn giải domain này đầy đủ và an toàn hơn, đọc thêm:
 

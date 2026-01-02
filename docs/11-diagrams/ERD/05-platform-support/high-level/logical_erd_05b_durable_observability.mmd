@@ -1,0 +1,63 @@
+%% Logical ERD 05b — Durable operational evidence
+%% Evidence status: Implemented.
+%% Bounded slice: Audit, Auth idempotency receipts, and Errors.
+
+erDiagram
+    direction LR
+    USERS {
+        UUID id PK
+    }
+    AUTH_SESSION_EVENT_RECEIPTS {
+        UUID event_id PK
+        VARCHAR payload_fingerprint
+        INT event_version
+        UUID user_id FK
+        VARCHAR action
+        TIMESTAMPTZ occurred_at "producer time"
+    }
+    AUDIT_EVENTS {
+        UUID id PK
+        UUID user_id FK "nullable legacy actor"
+        UUID actor_user_id "nullable normalized actor"
+        UUID actor_org_id "nullable organization context"
+        VARCHAR action
+        VARCHAR event_name
+        VARCHAR module
+        VARCHAR workflow
+        VARCHAR stage
+        VARCHAR outcome
+        VARCHAR request_id
+        VARCHAR trace_id
+        VARCHAR correlation_key
+        INT schema_version
+        VARCHAR event_hash
+        VARCHAR prev_hash
+        TIMESTAMPTZ occurred_at "database record order"
+        TIMESTAMPTZ source_occurred_at "nullable producer time"
+        TIMESTAMPTZ recorded_at
+    }
+    AUDIT_EVENT_SCOPES {
+        UUID id PK
+        UUID event_id FK
+        VARCHAR surface
+        UUID user_id "nullable scope filter"
+        UUID organization_id "nullable scope filter"
+        TIMESTAMPTZ created_at
+    }
+    ERROR_EVENTS {
+        UUID id PK
+        VARCHAR code
+        INT status
+        VARCHAR severity
+        TEXT safe_message
+        UUID request_id "nullable correlation"
+        UUID correlation_id "nullable correlation"
+        UUID actor_user_id "nullable actor reference"
+        UUID actor_org_id "nullable organization reference"
+        TIMESTAMPTZ created_at
+    }
+    USERS o|--o{ AUTH_SESSION_EVENT_RECEIPTS : idempotency_actor
+    USERS o|--o{ AUDIT_EVENTS : may_act_in
+    USERS o|--o{ ERROR_EVENTS : soft_actor_reference
+    AUDIT_EVENTS ||--o{ AUDIT_EVENT_SCOPES : projects_to_surfaces
+    AUTH_SESSION_EVENT_RECEIPTS }o..o{ AUDIT_EVENTS : same_event_identity

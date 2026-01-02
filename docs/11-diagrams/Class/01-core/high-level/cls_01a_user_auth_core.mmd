@@ -1,0 +1,51 @@
+%% Class Diagram 01a — User/auth persistence models
+%% Evidence status: Implemented current persistence; Partial target realm separation because users.system_role is migration debt.
+%% Updated 2026-07-28 (code-verified and debt-labeled).
+%% Scope: Persistence model only; domain entity and port are in cls_01a1.
+
+classDiagram
+direction LR
+    class User {
+        <<Lucid Model>>
+        +id: string
+        +username: string
+        +email: string|null
+        +status: string
+        +system_role: string
+        +current_organization_id: string|null
+        +auth_method: google|github
+        +avatar_url: string|null
+        +bio: string|null
+        +is_external_contributor: boolean
+        +profile_settings: UserProfileSettings|null
+        +trust_data: UserTrustData|null
+        +credibility_data: UserCredibilityData|null
+        +deleted_at: DateTime|null
+    }
+
+    class UserOAuthProvider {
+        <<Lucid Model>>
+        +id: string
+        +user_id: string
+        +provider: string
+        +provider_id: string
+        +email: string|null
+        +access_token: string|null
+        +refresh_token: string|null
+    }
+
+    class remember_me_tokens {
+        <<framework-managed table>>
+        +id: integer
+        +tokenable_id: UUID
+        +hash: varchar
+        +expires_at: timestamptz
+    }
+
+    User "1" --> "*" UserOAuthProvider : OAuth bindings
+    User "1" ..> "*" remember_me_tokens : DbRememberMeTokensProvider
+
+    note for User "Current routes use OAuth identity resolution.
+    is_external_contributor controls external-work eligibility.
+    system_role is legacy transport coupling; target User has no System role."
+    note for remember_me_tokens "Framework-owned persistence concept, not an application runtime class."

@@ -1,0 +1,34 @@
+%% Design Class Diagram 03l — AI dispute callback persistence collaboration
+%% Evidence status: Partial. Callback verification and atomic persistence are implemented; advisory output depends on the configured external service.
+%% Parent actor goal: UC 03b “Inspect AI advisory”; external service completion triggers the callback scenario.
+%% Scenario trace: seq_04e_ai_dispute_callback instantiates the boundary, control, cryptography, and unit-of-work participants shown here.
+%% Scope: technical trust boundary and persistence; human resolution remains seq_04c.
+
+classDiagram
+    direction TB
+
+    class AiDisputeCallbackController {
+        <<boundary>>
+        +handle(ctx: HttpContext) Promise~unknown~
+    }
+    class ReviewActionFactory {
+        <<inbound factory>>
+        +makeProcessAiDisputeCallbackCommand() ProcessAiDisputeCallbackCommand
+    }
+    class ProcessAiDisputeCallbackCommand {
+        <<control>>
+        +execute(dto: ProcessAiDisputeCallbackDTO) Promise~ProcessCallbackResult~
+    }
+    class ReviewCryptography {
+        <<outbound port>>
+        +verifyHmac(secret: string, value: string, signature: string) boolean
+    }
+    class AiDisputeUnitOfWork {
+        <<outbound port>>
+        +run(work) Promise~T~
+    }
+
+    AiDisputeCallbackController --> ReviewActionFactory : makes callback command
+    ReviewActionFactory --> ProcessAiDisputeCallbackCommand : creates
+    ProcessAiDisputeCallbackCommand --> ReviewCryptography : verifies timestamp and HMAC
+    ProcessAiDisputeCallbackCommand --> AiDisputeUnitOfWork : persists one atomic callback result

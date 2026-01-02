@@ -1,0 +1,40 @@
+%% Activity 07b — Imported skill management overview
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+%% Scope: user-managed imported claims only. Reviewed state is governed downstream.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Skill claim intent]) --> Action{"Action"}
+        Action -->|Add| Add["Select active catalog skill<br/>and self-assessed level"]
+        Action -->|Update| Update["Change level of owned<br/>imported skill claim"]
+        Action -->|Remove| Remove["Remove owned<br/>imported skill claim"]
+        Add --> Guard{"Valid level, active skill,<br/>no duplicate?"}
+        Update --> Guard
+        Remove --> Guard
+        Guard -->|No| ToReject((A))
+        Guard -->|Yes| ToSave((B))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromInvalid((A)) --> Reject["Return validation/access error"] --> End([Imported claim current])
+        FromValid((B)) --> Save["Persist user_skills change<br/>with source = imported"] --> Effects["Audit, invalidate profile cache,<br/>emit skill score update event"] --> End
+    end
+    ToReject ~~~ FromInvalid
+    ToSave ~~~ FromValid
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Add,Update,Remove action
+    class Action,Guard decision
+    class Save,Effects write
+    class Reject error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToReject,FromInvalid,ToSave,FromValid connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

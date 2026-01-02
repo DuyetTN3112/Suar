@@ -1,0 +1,34 @@
+%% Rich Picture 02b — SUAR interventions and desired outcomes
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented + Partial; future capability is explicitly marked.
+%% Report view: focused slice of rp_02_problems_solutions; not a new capability claim.
+
+flowchart TB
+    subgraph intervention["SUAR intervention"]
+        direction LR
+        C1["1 · Structure work context<br/>requirements · target · assessment ceiling"]
+        C2["2 · Link evidence to review<br/>submission · rubric · confidence · rationale"]
+        C3["3 · Govern conclusions<br/>quorum · dispute · fraud checks · audit"]
+        C4["4 · Publish capability signal<br/>verified evidence remains distinct from claims"]
+        C1 --> C2 --> C3 --> C4
+    end
+
+    subgraph outcomes["Desired outcomes"]
+        direction LR
+        O1["Work becomes portable,<br/>traceable evidence"]
+        O2["Profile explains what is<br/>verified and why"]
+        O3["Explainable matching<br/>Partial — full model planned"]
+    end
+
+    C4 -->|"delivers"| O1
+    C4 -->|"explains"| O2
+    C4 -->|"enables progressively"| O3
+
+    classDef intervention fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef outcome fill:#F0FDF4,stroke:#16A34A,color:#14532D,stroke-width:2px
+    classDef partial fill:#FFFBEB,stroke:#D97706,color:#78350F,stroke-width:2px,stroke-dasharray:5 4
+    class C1,C2,C3,C4 intervention
+    class O1,O2 outcome
+    class O3 partial
+    style intervention fill:#F0FDF4,stroke:#16A34A,stroke-width:3px
+    style outcomes fill:#F8FAFC,stroke:#94A3B8,stroke-width:2px

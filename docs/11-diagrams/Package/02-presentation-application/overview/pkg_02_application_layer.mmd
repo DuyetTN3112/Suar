@@ -1,0 +1,43 @@
+%% Package 02 — Presentation and application ownership
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    Presentation["controllers · listeners · Ace commands<br/>inbound adapters"]
+
+    subgraph actions["app/modules/*/actions"]
+        direction LR
+        Inbound["ports/inbound<br/>driving contracts"]
+        UseCases["commands · queries<br/>complete intents"]
+        DTOs["dtos · mappers<br/>application shapes"]
+        Services["services<br/>narrow reused collaborators only"]
+        Outbound["ports/outbound<br/>consumer-owned capabilities"]
+        Inbound --> UseCases
+        DTOs --> UseCases
+        UseCases --> Services
+        UseCases --> Outbound
+    end
+
+    Domain["domain<br/>policy · invariant · formula"]
+    Composition["app/composition + bootstrap<br/>synchronous object-graph construction"]
+    Infra["infra repositories/adapters<br/>technology I/O"]
+    Public["public_contracts<br/>stable provider facts/events/protocols"]
+
+    Presentation -->|"one intent"| Inbound
+    UseCases --> Domain
+    Outbound --> Infra
+    Composition -.->|"construct + inject"| UseCases
+    Composition -.->|"bind"| Infra
+    Infra --> Public
+
+    classDef presentation fill:#FFF3E0,stroke:#E65100,color:#7C2D12,stroke-width:2px
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef domain fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef outer fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef boundary fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    class Presentation presentation
+    class Inbound,UseCases,DTOs,Services,Outbound app
+    class Domain domain
+    class Composition,Infra outer
+    class Public boundary
+    style actions fill:#F8FAFC,stroke:#94A3B8

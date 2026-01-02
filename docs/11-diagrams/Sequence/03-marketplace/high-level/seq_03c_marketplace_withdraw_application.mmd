@@ -1,0 +1,46 @@
+%% Sequence 03c — Withdraw marketplace proposal
+%% Updated: 2026-07-27.
+%% Scenario: contributor withdraws their own pending proposal.
+%% Evidence status: Implemented. Runtime storage is task_applications.
+
+sequenceDiagram
+    autonumber
+    actor U as External contributor
+    participant C as «boundary» WithdrawMarketplaceApplicationController
+    participant M as «control» WithdrawMarketplaceApplicationCommand
+    participant K as «control» WithdrawApplicationCommand
+    participant D as «entity» PostgreSQL
+    participant X as «control» TaskCacheInvalidator
+    participant E as «control» Adonis emitter
+
+    U->>C: POST withdrawal for pending proposal
+    activate C
+    C->>M: handle(WithdrawApplicationDTO)
+    activate M
+    M->>K: withdrawTaskApplicationViaTaskApplications(dto)
+    activate K
+    K->>D: Find pending application owned by current user
+    activate D
+    D-->>K: Application and active task or no match
+    deactivate D
+    alt Own pending application exists
+        K->>D: Set withdrawn, decrement count and write audit
+        activate D
+        deactivate D
+        K->>X: invalidateAfterTaskApplicationChanged(taskId)
+        activate X
+        deactivate X
+        K->>E: emit(audit:log)
+        activate E
+        deactivate E
+        K-->>M: Completed
+        M-->>C: Completed
+        C-->>U: Success response and current proposal state
+    else Missing, not owned or not pending
+        K-->>M: Not found
+        M-->>C: Error
+        C-->>U: Error response
+    end
+    deactivate K
+    deactivate M
+    deactivate C

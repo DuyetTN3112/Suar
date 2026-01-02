@@ -1,0 +1,24 @@
+%%{init: {"themeVariables": {"fontSize": "30px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 40, "rankSpacing": 68}} }%%
+%% DFD 04a — Review lifecycle (Formal Level 2: complementary P5 frame 1 of 3)
+%% Parent process: P5 Govern reviews from complementary Level-1 frame dfd_01c_review_profile_advisory.
+%% Evidence status: Implemented.
+%% Question answered: How does a completion handoff become an open review and captured observations?
+%% Handoff: D4 review-governance records carry submitted review/evidence state into dfd_04b_governance_advisory.
+%% Balance: refines the completion-package/review-handoff input and the stored review/evidence state.
+
+flowchart LR
+    H["P3<br/>Internal completion handoff"] -->|"submission and reviewer policy"| P1[["5.1 Open review"]]
+    P1 -->|"session and assignment state"| D[("D4<br/>Review governance records")]
+    D -->|"open review context"| P2[["5.2 Submit review"]]
+    RIn["E1<br/>Assigned reviewer"] -->|"ratings and evidence"| P2
+    P2 -->|"review and evidence state"| D
+    P2 -->|"review result"| ROut["E1<br/>Assigned reviewer"]
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class RIn,ROut entity
+    class P1,P2 process
+    class D store
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px
+    class H handoff

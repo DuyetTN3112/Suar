@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions
+  xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_TaskDeliveryReviewOverview"
+  targetNamespace="https://suar.example/docs/bpmn">
+  <bpmn:message id="Message_CompletionPackage" name="Completion package" />
+  <bpmn:message id="Message_ReviewAssignment" name="Review assignment" />
+  <bpmn:message id="Message_SubmittedReview" name="Submitted review" />
+  <bpmn:message id="Message_ReviewOutcome" name="Review outcome" />
+
+  <bpmn:collaboration id="Collaboration_TaskDeliveryReviewOverview">
+    <bpmn:documentation>Evidence status: Implemented. Updated: 2026-07-27. Black-box collaboration overview only. Detailed intake and quorum control flow are split into bpmn_02a and bpmn_02b.</bpmn:documentation>
+    <bpmn:participant id="Participant_Contributor" name="Contributor" />
+    <bpmn:participant id="Participant_Platform" name="Suar Platform" />
+    <bpmn:participant id="Participant_Reviewer" name="Assigned Reviewer" />
+    <bpmn:messageFlow id="MessageFlow_1_Completion" name="1. Completion package" sourceRef="Participant_Contributor" targetRef="Participant_Platform" />
+    <bpmn:messageFlow id="MessageFlow_2_Assignment" name="2. Review assignment" sourceRef="Participant_Platform" targetRef="Participant_Reviewer" />
+    <bpmn:messageFlow id="MessageFlow_3_Review" name="3. Scores and feedback" sourceRef="Participant_Reviewer" targetRef="Participant_Platform" />
+    <bpmn:messageFlow id="MessageFlow_4_Outcome" name="4. Review outcome" sourceRef="Participant_Platform" targetRef="Participant_Contributor" />
+  </bpmn:collaboration>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_TaskDeliveryReviewOverview">
+    <bpmndi:BPMNPlane id="BPMNPlane_TaskDeliveryReviewOverview" bpmnElement="Collaboration_TaskDeliveryReviewOverview">
+      <bpmndi:BPMNShape id="Shape_Contributor" bpmnElement="Participant_Contributor" isHorizontal="true"><dc:Bounds x="60" y="50" width="1100" height="130" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Platform" bpmnElement="Participant_Platform" isHorizontal="true"><dc:Bounds x="60" y="230" width="1100" height="130" /></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Reviewer" bpmnElement="Participant_Reviewer" isHorizontal="true"><dc:Bounds x="60" y="410" width="1100" height="130" /></bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_1" bpmnElement="MessageFlow_1_Completion">
+        <di:waypoint x="260" y="180" /><di:waypoint x="260" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_2" bpmnElement="MessageFlow_2_Assignment">
+        <di:waypoint x="520" y="360" /><di:waypoint x="520" y="410" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_3" bpmnElement="MessageFlow_3_Review">
+        <di:waypoint x="760" y="410" /><di:waypoint x="760" y="360" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_MessageFlow_4" bpmnElement="MessageFlow_4_Outcome">
+        <di:waypoint x="1000" y="230" /><di:waypoint x="1000" y="180" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

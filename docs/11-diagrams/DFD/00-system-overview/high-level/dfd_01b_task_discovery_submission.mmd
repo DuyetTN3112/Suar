@@ -1,0 +1,37 @@
+%%{init: {"themeVariables": {"fontSize": "34px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 36, "rankSpacing": 62}} }%%
+%% DFD 01b — Task discovery and submission
+%% Formal DFD level: Level 1, complementary P0 frame 2 of 4.
+%% Parent process: P0 Suar work-to-credential platform from dfd_00_context.
+%% Evidence status: Implemented.
+%% Balance: refines E2 discovery/proposal and completion-evidence input/output; D2/D6 reads; and D3 authoritative submission writes.
+%% Cross-frame handoff: D2 is the durable project/sprint/task-context boundary from frame 01a. H1 is the explicit off-page continuation of P3's named completion-package and review-handoff flow into P5 in frame 01c; H1 is not an entity, store, or process.
+%% Direction: every arrowhead marks the recipient of one named data flow. Repeated E2 symbols are the same external contributor.
+
+flowchart LR
+    subgraph discovery[ ]
+        direction TB
+        E2I["E2<br/>External contributor"] -->|"discovery and proposal request"| P4(("P4<br/>Discover tasks"))
+        D2[("D2<br/>Organization and delivery records")] -->|"current project, sprint, and task context"| P4
+        D6[("D6<br/>Derived search projection")] -->|"candidate identifiers and ranking"| P4
+        P4 -->|"eligible task and proposal status"| E2D["E2<br/>same external entity"]
+    end
+
+    P4 -->|"application and assignment choice"| P3(("P3<br/>Manage submissions"))
+
+    subgraph submission[ ]
+        direction TB
+        E2S["E2<br/>same external entity"] -->|"completion evidence"| P3
+        P3 -->|"updated task and submission state"| D3[("D3<br/>Task/submission records")]
+        P3 -->|"completion package and review handoff"| H1[/"H1<br/>off-page flow to P5"/]
+    end
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px,stroke-dasharray:5 3
+    class E2I,E2D,E2S entity
+    class P3,P4 process
+    class D2,D3,D6 store
+    class H1 handoff
+    style discovery fill:none,stroke:none
+    style submission fill:none,stroke:none

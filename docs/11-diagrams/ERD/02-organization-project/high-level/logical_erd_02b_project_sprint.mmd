@@ -1,0 +1,48 @@
+%% Logical ERD 02b — Project membership, sprint, and attachments
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+
+erDiagram
+direction LR
+    ORGANIZATIONS {
+        UUID id PK
+        VARCHAR name
+    }
+    PROJECTS {
+        UUID id PK
+        UUID organization_id FK
+        UUID creator_id FK
+        UUID owner_id FK
+        UUID manager_id FK
+        VARCHAR name
+        VARCHAR status
+        VARCHAR visibility
+        BOOLEAN allow_external_contributors
+    }
+    PROJECT_MEMBERS {
+        UUID project_id PK, FK
+        UUID user_id PK, FK
+        VARCHAR project_role
+    }
+    PROJECT_SPRINTS {
+        UUID id PK
+        UUID organization_id FK
+        UUID project_id FK
+        VARCHAR name
+        TEXT goal
+        VARCHAR status
+        TIMESTAMPTZ review_opened_at
+        TIMESTAMPTZ review_closed_at
+    }
+    PROJECT_ATTACHMENTS {
+        UUID id PK
+        UUID project_id FK
+        UUID uploaded_by FK
+        VARCHAR file_name
+        VARCHAR file_path
+    }
+
+    ORGANIZATIONS ||--o{ PROJECTS : "owns"
+    PROJECTS ||--o{ PROJECT_MEMBERS : "assigns roles"
+    PROJECTS ||--o{ PROJECT_SPRINTS : "plans"
+    PROJECTS ||--o{ PROJECT_ATTACHMENTS : "attaches"

@@ -1,0 +1,18 @@
+%% DFD 03b2 — Marketplace proposal withdrawal (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart LR
+    C[External contributor] -->|"owned proposal withdrawal"| P[[4.2.2 Withdraw pending proposal]]
+    T[(Tasks)] -->|"current task state"| P
+    A[(Task applications)] -->|"pending proposal and ownership"| P
+    P -->|"withdrawn proposal state"| A
+    P -->|"application-count delta"| T
+    P -->|"proposal audit"| AU[(Audit events)]
+    P -->|"withdrawal result"| C
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class C entity
+    class P process
+    class T,A,AU store

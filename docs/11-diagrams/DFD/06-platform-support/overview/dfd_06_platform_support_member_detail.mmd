@@ -1,0 +1,38 @@
+%% DFD 06a — Platform support: member-facing child processes
+%% DFD level: Formal Level 2, complementary P7 frame 1 of 2.
+%% Parent process: P7 Deliver support from complementary Level-1 frame dfd_01d_platform_support.
+%% Evidence status: Implemented.
+%% Scope: independent member-facing P7 child processes. No process-to-process handoff is omitted; P7.3--P7.4 are shown in the operational frame.
+%% Direction: arrowhead marks the recipient. Store-to-process flows supply current facts; process-to-store flows persist updated facts.
+
+%%{init: {"themeVariables": {"fontSize": "26px"}, "flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    subgraph member_support["Member-facing support functions"]
+        direction LR
+        subgraph settings["Settings lane"]
+            direction LR
+            U2I["E1<br/>Authenticated member"] -->|"settings request"| P2[[7.2 User settings]]
+            D5S[("D5<br/>Platform-support records")] -->|"current settings and profile state"| P2
+            P2 -->|"updated preferences and identity"| D5S
+            P2 -->|"settings result"| U2O["E1<br/>same actor"]
+        end
+
+        subgraph notifications["Notification lane"]
+            direction LR
+            U1I["E1<br/>Authenticated member"] -->|"notification request"| P1[[7.1 Notification center]]
+            D5N[("D5<br/>same logical store")] -->|"current owned notification state"| P1
+            P1 -->|"updated read/deletion state"| D5N
+            P1 -->|"notification result"| U1O["E1<br/>same actor"]
+        end
+    end
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class U1I,U1O,U2I,U2O entity
+    class P1,P2 process
+    class D5N,D5S store
+    style member_support fill:#F8FAFC,stroke:#94A3B8
+    style notifications fill:#FFFFFF,stroke:#CBD5E1
+    style settings fill:#FFFFFF,stroke:#CBD5E1

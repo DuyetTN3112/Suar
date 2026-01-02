@@ -1,0 +1,40 @@
+@startuml
+' UML Component 03 — Platform capabilities
+' Evidence status: Implemented source modules; external engines are configurable.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+top to bottom direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #F0FDF4
+  BorderColor #16A34A
+  FontColor #14532D
+}
+
+component "HTTP / event delivery" as Delivery
+component "Business Commands / Queries" as Business
+component "Accountability\nnotifications · Audit" as Accountability
+component "Query runtime\nsearch · cache" as QueryRuntime
+component "Operations\nobservability · logger · errors" as Operations
+component "Outer composition\nconsumer ports → adapters" as Composition #F3E8FF
+
+Delivery --> Business : one intent
+Business ..> Composition : consumer-owned ports
+Composition --> Accountability : adapter binding
+Composition --> QueryRuntime : adapter binding
+Business ..> Operations : safe telemetry
+
+note bottom of Accountability
+Audit is canonical evidence.
+User Activity is not a runtime component.
+end note
+
+@enduml

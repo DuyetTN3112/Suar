@@ -1,0 +1,46 @@
+%% Architecture 08 — File and attachment storage runtime
+%% Evidence status: Partial. Adonis Drive local/private/public disks are configured; task/project attachments persist supplied file_path metadata without a binary Drive write path.
+%% Keep reason: Attachment metadata and Drive file-serving boundaries expose one integration gap without presenting unavailable behavior as implemented.
+
+flowchart LR
+    Client["Authenticated client"]
+
+    subgraph Attachment["Implemented attachment metadata path"]
+        direction TB
+        Endpoint["Task attachment endpoint<br/>create/list/delete"]
+        Access["Task completion-package<br/>access checks"]
+        Command["CreateTaskAttachmentCommand<br/>validates supplied file metadata"]
+        Row[("PostgreSQL · task_attachments<br/>file_name + file_path + uploader")]
+        ProjectNote["project_attachments exists<br/>model/table + demo seed only;<br/>no active write route found"]
+        SoftDelete["Delete command<br/>soft-deletes metadata"]
+    end
+
+    subgraph Drive["Configured Adonis Drive filesystem"]
+        direction TB
+        Local["default local disk<br/>storage/app · private"]
+        Public["public disk<br/>storage/app/public · public"]
+        Serve["Drive file serving<br/>routeBasePath = /uploads"]
+        ContainerNote["Compose app filesystem<br/>no named storage volume declared"]
+    end
+
+    Client --> Endpoint --> Access --> Command --> Row
+    Client -->|"delete attachment id"| SoftDelete --> Row
+    Row ~~~ ProjectNote
+    Local --> Serve
+    Public --> Serve
+    Serve --> Client
+    Local --- ContainerNote
+    Public --- ContainerNote
+    Command -.->|"Gap: no request.file / drive.use<br/>binary write call found"| Local
+    Row -.->|"file_path is metadata supplied by caller;<br/>binary existence is not enforced here"| Drive
+
+    classDef client fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef data fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    classDef caveat fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class Client client
+    class Endpoint,Access,Command,SoftDelete,Local,Public,Serve process
+    class Row data
+    class ContainerNote,ProjectNote caveat
+    style Attachment fill:#F0FDF4,stroke:#16A34A,stroke-width:2px
+    style Drive fill:#FFFBEB,stroke:#D97706,stroke-width:2px

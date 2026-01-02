@@ -1,0 +1,39 @@
+%% Package 02e — HTTP delivery boundary
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    subgraph delivery["HTTP inbound adapter"]
+        direction LR
+        Routes["start/routes<br/>dispatch"]
+        Middleware["middleware<br/>auth + context + transport policy"]
+        RequestMapper["controllers/mappers/request"]
+        Controller["controller<br/>thin inbound adapter"]
+        Routes --> Middleware --> RequestMapper --> Controller
+    end
+
+    subgraph result["Application result delivery"]
+        direction LR
+        Inbound["one Command / Query<br/>or inbound capability"]
+        ResponseMapper["controllers/mappers/response"]
+        Inertia["HTTP JSON / Inertia"]
+        Inbound -->|"result DTO"| ResponseMapper --> Inertia
+    end
+
+    IoC["Adonis IoC<br/>@inject() constructor metadata"]
+    Guard["Forbidden in controller<br/>actions/services · outbound ports<br/>repository/I/O · multi-use-case workflow"]
+
+    IoC -.-> Controller
+    Controller -->|"one business intent"| Inbound
+    Controller -.-> Guard
+
+    classDef deliveryStyle fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef app fill:#FCE4EC,stroke:#C62828,color:#7F1D1D,stroke-width:2px
+    classDef outer fill:#E8F5E9,stroke:#2E7D32,color:#14532D,stroke-width:2px
+    classDef guard fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px,stroke-dasharray:5 4
+    class Routes,Middleware,RequestMapper,Controller,ResponseMapper,Inertia deliveryStyle
+    class Inbound app
+    class IoC outer
+    class Guard guard
+    style delivery fill:#F8FAFC,stroke:#94A3B8
+    style result fill:#FFF7ED,stroke:#FDBA74

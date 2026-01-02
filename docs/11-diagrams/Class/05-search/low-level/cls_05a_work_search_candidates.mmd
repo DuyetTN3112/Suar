@@ -1,0 +1,45 @@
+%% Class Diagram 05a — Work and organization Elasticsearch candidates
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Evidence: concrete engine query and index repository classes.
+
+classDiagram
+direction LR
+    class SearchTasksViaEngineQuery {
+        +handle(dto: SearchTasksViaEngineDTO): Promise~EngineOrganizationTaskCandidate[]~
+    }
+    class SearchPublicTasksViaEngineQuery {
+        +handle(dto: SearchPublicTasksViaEngineDTO): Promise~EngineTaskCandidate[]~
+    }
+    class SearchProjectsViaEngineQuery {
+        +handle(dto: SearchProjectsViaEngineDTO): Promise~EngineProjectCandidate[]~
+    }
+    class SearchOrganizationsViaEngineQuery {
+        +handle(dto: SearchOrganizationsViaEngineDTO): Promise~EngineOrganizationCandidate[]~
+    }
+    class TaskSearchIndexRepository {
+        +search(input: TaskEngineSearchInput): Promise~TaskSearchHit[]~
+        +upsertDocument(document: TaskSearchDocument): Promise~void~
+        +deleteDocument(taskId: string): Promise~void~
+    }
+    class ProjectSearchIndexRepository {
+        +search(input: ProjectEngineSearchInput): Promise~ProjectSearchHit[]~
+        +upsertDocument(document: ProjectSearchDocument): Promise~void~
+        +deleteDocument(projectId: string): Promise~void~
+    }
+    class OrganizationSearchIndexRepository {
+        +search(input: OrganizationEngineSearchInput): Promise~OrganizationSearchHit[]~
+        +upsertDocument(document: OrganizationSearchDocument): Promise~void~
+        +deleteDocument(organizationId: string): Promise~void~
+    }
+    class Client {
+        <<external Elasticsearch client>>
+    }
+
+    SearchTasksViaEngineQuery --> TaskSearchIndexRepository
+    SearchPublicTasksViaEngineQuery --> TaskSearchIndexRepository
+    SearchProjectsViaEngineQuery --> ProjectSearchIndexRepository
+    SearchOrganizationsViaEngineQuery --> OrganizationSearchIndexRepository
+    TaskSearchIndexRepository --> Client
+    ProjectSearchIndexRepository --> Client
+    OrganizationSearchIndexRepository --> Client

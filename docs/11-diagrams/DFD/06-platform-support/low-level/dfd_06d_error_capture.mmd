@@ -1,0 +1,22 @@
+%% DFD 06d — Runtime error capture (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented. No administrator error-event viewer is claimed.
+
+flowchart TB
+    RUNTIME[HTTP / application runtime]
+    CALLER[API or Inertia caller]
+    P1[[7.4 Filter and sanitize caught exception]]
+    D1[(error_events)]
+    LOG[SanitizingLogger runtime sink]
+
+    RUNTIME -->|"AppException / Error kernel exceptions,<br/>request, correlation and actor context"| P1
+    P1 -->|"sanitized error record when shouldReport,<br/>HTTP 5xx, or HTTP 429"| D1
+    P1 -->|"structured warning/error;<br/>includes ordinary non-reportable 4xx"| LOG
+    P1 -->|"safe error response"| CALLER
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class RUNTIME,CALLER entity
+    class P1 process
+    class D1,LOG store

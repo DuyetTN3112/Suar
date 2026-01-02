@@ -1,0 +1,31 @@
+%% Package Diagram 05a — Event Accountability Packages
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29 (code-verified).
+%% Viewpoint: business events fan out to durable accountability packages.
+%% Keep reason: Audit and Notification packages consume current business-event routes.
+
+flowchart TB
+    Business["Business modules<br/>auth · users · organizations<br/>projects · tasks · reviews"]
+    Events["module events<br/>start/events.ts registration"]
+
+    subgraph Consumers["Accountability event consumers"]
+        direction LR
+        Audit["audit/<br/>listeners · actions<br/>repositories"]
+        Notifications["notifications/<br/>listeners · actions<br/>repository"]
+    end
+
+    PostgreSQL[("PostgreSQL<br/>audit events · notifications")]
+
+    Business --> Events
+    Events --> Audit
+    Events --> Notifications
+    Audit --> PostgreSQL
+    Notifications --> PostgreSQL
+
+    classDef source fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef support fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef infra fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    class Business,Events source
+    class Audit,Notifications support
+    class PostgreSQL infra
+    style Consumers fill:#FAFAFA,stroke:#64748B,stroke-width:2px

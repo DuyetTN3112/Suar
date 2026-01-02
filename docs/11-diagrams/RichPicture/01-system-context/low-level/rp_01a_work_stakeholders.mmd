@@ -1,0 +1,33 @@
+%% Rich Picture 01a — Work-producing stakeholders and exchanges
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+%% Report view: focused slice of rp_01_stakeholders; not a new capability claim.
+
+flowchart LR
+    Contributor["Contributor<br/>seeks fair access and credit"]
+    Manager["Project manager<br/>needs delivery and suitable people"]
+    Owner["Organization owner/admin<br/>controls membership and policy"]
+
+    Work["Work system<br/>organization · project · sprint · task"]
+    Evidence["Evidence system<br/>requirements · submission · review"]
+
+    Contributor -->|"proposal · work · submission"| Work
+    Work -->|"assignment · status · feedback"| Contributor
+    Manager -->|"context · criteria · decisions"| Work
+    Work -->|"delivery and review visibility"| Manager
+    Owner -->|"membership · role · workflow policy"| Work
+    Work -->|"audit and operational visibility"| Owner
+    Work -->|"completed work context"| Evidence
+
+    Speed{{"Tension<br/>delivery speed ↔ evidence quality"}}
+    Openness{{"Tension<br/>open marketplace ↔ organization control"}}
+    Speed -.-> Work
+    Speed -.-> Evidence
+    Openness -.-> Work
+
+    classDef person fill:#E8F1FF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef system fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef tension fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class Contributor,Manager,Owner person
+    class Work,Evidence system
+    class Speed,Openness tension

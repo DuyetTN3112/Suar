@@ -1,0 +1,31 @@
+%% Package 02c — Auth, Reviews, Users, and Skills boundaries
+%% Evidence status: Implemented and architecture-guarded.
+%% Updated: 2026-07-29.
+
+flowchart TB
+    Auth["Auth Actions<br/>callback/session Commands + outbound ports"]
+    Reviews["Review Actions<br/>Commands/Queries + inbound factory contract"]
+    Users["Users Actions<br/>profile/talent/work-history use cases"]
+    Skills["Skills Actions + Domain<br/>catalog/proficiency capabilities"]
+
+    Composition["Outer composition<br/>constructs + bridges consumer ports"]
+    Audit["Audit public capability<br/>canonical evidence"]
+    StableFacts["Stable provider facts/events<br/>no executable facade"]
+    Archive["retired_user_activity_events<br/>read-only, no runtime module"]
+
+    Auth -->|"Auth-owned audit port"| Composition
+    Reviews -->|"Review-owned people/work ports"| Composition
+    Users -->|"Users-owned task/review/skill ports"| Composition
+    Skills -->|"Skills-owned project/search ports"| Composition
+    Composition --> Audit
+    Composition --> StableFacts
+    Archive -.->|"historical provenance only"| Audit
+
+    classDef app fill:#E3F2FD,stroke:#1565C0,color:#0D47A1,stroke-width:2px
+    classDef composition fill:#F3E5F5,stroke:#7B1FA2,color:#4A044E,stroke-width:2px
+    classDef boundary fill:#FFF9C4,stroke:#F57F17,color:#713F12,stroke-width:2px
+    classDef archive fill:#F1F5F9,stroke:#64748B,color:#334155,stroke-width:2px,stroke-dasharray:5 4
+    class Auth,Reviews,Users,Skills app
+    class Composition composition
+    class Audit,StableFacts boundary
+    class Archive archive

@@ -1,0 +1,44 @@
+@startuml
+' UML Component 04b — Stable provider contract and versioned event seams
+' Evidence status: Implemented.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+
+frame "Synchronous stable capability" {
+  component "Provider module" as ContractProvider
+  component "public_contracts\nfact · DTO · protocol\n<<technology-neutral>>" as Contracts #FEF3C7
+  component "Outer adapter" as ContractAdapter #DCFCE7
+  component "Consumer-owned port" as ContractConsumer
+
+  ContractProvider --> Contracts : owns
+  ContractAdapter ..> Contracts : invokes/maps
+  ContractConsumer ..> ContractAdapter : implemented by
+}
+
+frame "Asynchronous versioned event" {
+  component "Publishing Command" as EventProvider
+  component "Event v1\nin-process / outbox" as Event #FEF3C7
+  component "Listener" as Listener #DBEAFE
+  component "Consumer Command / Query" as EventConsumer
+
+  EventProvider --> Event : publishes/stages
+  Event --> Listener : delivers
+  Listener --> EventConsumer : one event intent
+}
+
+@enduml

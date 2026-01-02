@@ -1,0 +1,35 @@
+%% Package Diagram 02f — Frontend Workspaces
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: Inertia roots and Svelte workspace packages only.
+%% Keep reason: subgraph is the physical inertia/apps package boundary; internal edges describe one workspace dependency graph.
+
+flowchart LR
+    RootViews["resources/views/<br/>inertia_{user,org,admin}.edge"]
+    Inertia["Inertia.js"]
+
+    subgraph workspaces["inertia/apps/"]
+        direction TB
+        Roots["{user,org,admin}/app.ts"]
+        Modules["modules/*<br/>page surfaces"]
+        Shared["shared/*<br/>layouts · stores · hooks · UI"]
+        Bones["bones/generated/*<br/>boneyard-js skeleton system"]
+        Storybook[".storybook/*<br/>Storybook primitive catalog"]
+        Tests["tests/<br/>modules · shared · e2e · storybook"]
+        Roots --> Modules --> Shared
+        Modules --> Bones
+        Shared --> Storybook
+        Modules -.-> Tests
+        Shared -.-> Tests
+    end
+
+    Svelte["Svelte 5"]
+    RootViews --> Inertia --> Roots
+    Modules --> Svelte
+    Shared --> Svelte
+
+    classDef pres fill:#E3F2FD,stroke:#1565C0,color:#0D47A1
+    classDef ext fill:#ECEFF1,stroke:#546E7A,color:#263238
+    class RootViews,Roots,Modules,Shared,Bones,Storybook,Tests pres
+    class Inertia,Svelte ext
+    style workspaces fill:#F8FAFC,stroke:#94A3B8

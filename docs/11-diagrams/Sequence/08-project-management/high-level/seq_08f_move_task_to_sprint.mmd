@@ -1,0 +1,53 @@
+%% Sequence 08f — Move task to or from sprint
+%% Updated: 2026-07-27.
+%% Scenario: project manager moves one task on sprint board.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor M as Project manager
+    participant B as «boundary» Sprint board
+    participant C as «boundary» MoveTaskToSprintController
+    participant K as «control» MoveTaskToSprintCommand
+    participant A as «control» ProjectSprintAccess
+    participant R as «control» canAttachTaskToSprint()
+    participant D as «entity» PostgreSQL
+
+    M->>B: Move task to sprint or backlog
+    activate B
+    B->>C: PATCH /api/v1/projects/:projectId/tasks/:taskId/sprint
+    activate C
+    C->>K: execute(projectId, taskId, sprintId|null)
+    activate K
+    K->>A: resolveProjectSprintAccess(actor, projectId)
+    activate A
+    A-->>K: Project and management authority
+    deactivate A
+    K->>D: Lock current project task
+    activate D
+    D-->>K: Task project and organization
+    deactivate D
+    alt Target is a sprint
+        K->>D: Read target sprint
+        activate D
+        D-->>K: Sprint project and status
+        deactivate D
+        K->>R: canAttachTaskToSprint(taskProject, sprintProject, status)
+        activate R
+        R-->>K: Allowed only for same project and draft/active sprint
+        deactivate R
+    end
+    alt Authorized and valid target
+        K->>D: Update tasks.project_sprint_id
+        activate D
+        D-->>K: Updated task
+        deactivate D
+        K-->>C: Task result
+    else Access or rule failure
+        K-->>C: Forbidden, not found, or business error
+    end
+    deactivate K
+    C-->>B: Updated board payload or error
+    deactivate C
+    B-->>M: Refresh sprint/backlog columns
+    deactivate B

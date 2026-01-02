@@ -67,23 +67,23 @@ Phần kỹ năng (Skills) là linh hồn của Suar. Bạn có thể thêm các
 
 Khi thêm một kỹ năng, hệ thống hiện ưu tiên ladder chi tiết **15 mức `L0` → `L14`** theo KB v5 và scale `system_default`:
 
-| Mức canonical | Tên hiển thị            | Vai trò |
-| ------------- | ----------------------- | ------- |
-| `L0`          | Unassessed              | Chưa có bằng chứng review đáng tin |
-| `L1`          | Beginner                | Biết nền tảng rất cơ bản |
-| `L2`          | Elementary              | Làm được việc đơn giản khi có hướng dẫn |
-| `L3`          | Junior Low              | Bắt đầu làm được task thật phạm vi nhỏ |
-| `L4`          | Junior Solid            | Tự làm tốt task nhỏ rõ scope |
-| `L5`          | Junior High             | Gần chạm mức middle ở task vừa |
-| `L6`          | Middle Low              | Tự xử lý task medium-complexity |
-| `L7`          | Middle Solid            | Deliver ổn định, maintainable |
-| `L8`          | Middle High             | Xử lý ambiguity và dependency tốt |
-| `L9`          | Senior Low              | Sở hữu task phức tạp có ảnh hưởng rộng hơn |
-| `L10`         | Senior Solid            | Nâng chuẩn chất lượng, dẫn dắt solution area |
-| `L11`         | Senior High             | Ảnh hưởng nhiều vùng, trade-off chiến lược |
-| `L12`         | Lead                    | Dẫn delivery và phối hợp nhiều người |
-| `L13`         | Principal               | Định hình standard/architecture vượt 1 team |
-| `L14`         | Expert / Master         | Chuyên gia mức rất cao, bằng chứng lặp lại qua nhiều bối cảnh |
+| Mức canonical | Tên hiển thị    | Vai trò                                                       |
+| ------------- | --------------- | ------------------------------------------------------------- |
+| `L0`          | Unassessed      | Chưa có bằng chứng review đáng tin                            |
+| `L1`          | Beginner        | Biết nền tảng rất cơ bản                                      |
+| `L2`          | Elementary      | Làm được việc đơn giản khi có hướng dẫn                       |
+| `L3`          | Junior Low      | Bắt đầu làm được task thật phạm vi nhỏ                        |
+| `L4`          | Junior Solid    | Tự làm tốt task nhỏ rõ scope                                  |
+| `L5`          | Junior High     | Gần chạm mức middle ở task vừa                                |
+| `L6`          | Middle Low      | Tự xử lý task medium-complexity                               |
+| `L7`          | Middle Solid    | Deliver ổn định, maintainable                                 |
+| `L8`          | Middle High     | Xử lý ambiguity và dependency tốt                             |
+| `L9`          | Senior Low      | Sở hữu task phức tạp có ảnh hưởng rộng hơn                    |
+| `L10`         | Senior Solid    | Nâng chuẩn chất lượng, dẫn dắt solution area                  |
+| `L11`         | Senior High     | Ảnh hưởng nhiều vùng, trade-off chiến lược                    |
+| `L12`         | Lead            | Dẫn delivery và phối hợp nhiều người                          |
+| `L13`         | Principal       | Định hình standard/architecture vượt 1 team                   |
+| `L14`         | Expert / Master | Chuyên gia mức rất cao, bằng chứng lặp lại qua nhiều bối cảnh |
 
 Các broad band cũ như `Junior`, `Middle`, `Senior`, `Lead` vẫn còn tồn tại ở một số flow compatibility, nhưng chúng không còn là mô hình mô tả chi tiết chính.
 
@@ -112,10 +112,10 @@ Cả hai cách đều phải qua bước **phê duyệt** — không ai có th�
 
 Mỗi tổ chức có **3 vai trò:**
 
-| Vai trò                   | Quyền hạn                                                                                                      |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| **Chủ tổ chức (Owner)**   | Toàn quyền: quản lý thành viên, cài đặt, dự án, quy trình làm việc. Có thể chuyển quyền sở hữu cho người khác. |
-| **Quản trị viên (Admin)** | Mời/xóa thành viên, tạo dự án, duyệt yêu cầu gia nhập.                                                         |
+| Vai trò                   | Quyền hạn                                                                                                            |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Chủ tổ chức (Owner)**   | Toàn quyền: quản lý thành viên, cài đặt, dự án, quy trình làm việc. Có thể chuyển quyền sở hữu cho người khác.       |
+| **Quản trị viên (Admin)** | Mời/xóa thành viên, tạo dự án, duyệt yêu cầu gia nhập.                                                               |
 | **Thành viên (Member)**   | Xem và tham gia các dự án mình được phân công, Marketplace task công khai, gửi đề xuất tham gia task, được đánh giá. |
 
 > _Lưu ý về business model:_ Organization hiện **không** có gói đăng ký công khai riêng. Cơ chế subscription của Suar đang áp dụng cho **tài khoản người dùng** trên Marketplace.
@@ -212,9 +212,9 @@ Việc **đổi trạng thái** của task được ưu tiên thực hiện qua 
 
 Bất kỳ task nào trong một dự án có bật "Cho phép Contributor bên ngoài" cũng có thể được đưa lên Marketplace bằng cách thay đổi **Tầm nhìn (Visibility):**
 
-| Tầm nhìn                | Ý nghĩa                                          |
-| ----------------------- | ------------------------------------------------ |
-| **Internal** (mặc định) | Chỉ người trong tổ chức thấy                     |
+| Tầm nhìn                | Ý nghĩa                                                  |
+| ----------------------- | -------------------------------------------------------- |
+| **Internal** (mặc định) | Chỉ người trong tổ chức thấy                             |
 | **External**            | Chỉ hiện trên Marketplace, không hiện trong board nội bộ |
 | **All**                 | Hiện cả hai nơi — nội bộ lẫn Marketplace                 |
 
@@ -358,11 +358,11 @@ Với hệ thống đánh giá mở, luôn có rủi ro bị lạm dụng. Suar 
 
 **3 loại bất thường đã triển khai:**
 
-| Loại bất thường                                     | Mô tả                                                                       |
-| --------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Đánh giá hàng loạt cùng level (bulk_same_level)** | Reviewer chấm cùng một level cho > 80% kỹ năng → đánh giá không nghiêm túc  |
+| Loại bất thường                                     | Mô tả                                                                                                                 |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Đánh giá hàng loạt cùng level (bulk_same_level)** | Reviewer chấm cùng một level cho > 80% kỹ năng → đánh giá không nghiêm túc                                            |
 | **Tài khoản mới nhận level cao (new_account_high)** | Tài khoản dưới 30 ngày được chấm ở vùng senior trở lên của ladder canonical (thường từ `L9` / Senior Low) → đáng nghi |
-| **Đánh giá qua lại cao (mutual_high)**              | Hai người liên tục đánh giá cao lẫn nhau > 3 lần → nghi ngờ "trao đổi điểm" |
+| **Đánh giá qua lại cao (mutual_high)**              | Hai người liên tục đánh giá cao lẫn nhau > 3 lần → nghi ngờ "trao đổi điểm"                                           |
 
 **3 loại bất thường khai báo nhưng chưa triển khai:** sudden_spike, frequency_anomaly, ip_collusion.
 
@@ -407,13 +407,14 @@ Các màn legacy như `/organizations/*` hoặc `/users/*` vẫn còn tồn tạ
 
 ### Chương 12: Thông báo và Nhật ký
 
-Suar lưu **3 loại log vận hành** theo runtime mặc định **PostgreSQL-first**:
+Suar lưu các accountability records theo runtime mặc định **PostgreSQL-first**:
 
 - **Audit Logs (`audit_events`):** ghi lại mọi hoạt động quan trọng — ai tạo task, ai thay đổi trạng thái, ai mời ai, ai duyệt đơn...
 - **Notifications (`notifications`):** thông báo gửi cho người dùng khi có sự kiện liên quan đến họ.
-- **User Activity Logs (`user_activity_events`):** ghi nhận hoạt động người dùng.
 
-Các legacy Mongo repository/model vẫn còn trong tree cho rollback, backfill, seed và compatibility mode qua feature flags `AUDIT_STORE`, `NOTIFICATION_STORE`, `USER_ACTIVITY_STORE`.
+`audit_events.source_occurred_at` giữ thời điểm producer quan sát sự kiện;
+`audit_events.occurred_at` giữ thứ tự record/hash chain từ database. Generic
+UserActivity runtime đã retired; bảng cũ chỉ còn archive read-only qua migration.
 
 > _Lưu ý: Hiện tại hệ thống thông báo chưa có real-time (WebSocket/SSE chưa được kích hoạt — transport = null). Thông báo được tải khi người dùng truy cập trang._
 
@@ -531,7 +532,9 @@ config/             # Framework và infra config
 5. `Infra/Repository` đọc ghi dữ liệu.
 6. `Controller` trả về JSON hoặc `Inertia.render(...)`.
 
-Các module nghiệp vụ giao tiếp qua public contracts, bootstrap adapters, hoặc service/public API được module expose rõ. Boundary đã tách rõ gồm audit, authorization, notifications, organizations, projects, reviews, skills, sprints, tasks, user_activity và users.
+Các module nghiệp vụ giao tiếp qua public contracts và outer composition
+adapters. Boundary đã tách rõ gồm Audit, Authorization, Notifications,
+Organizations, Projects, Reviews, Skills, Sprints, Tasks và Users.
 
 ### Frontend
 

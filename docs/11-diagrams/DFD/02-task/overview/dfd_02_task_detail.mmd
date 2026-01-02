@@ -1,0 +1,25 @@
+%% DFD 02 — Task domain map (Formal Level 2: expansion of P3)
+%% Parent process: P3 Manage submissions from complementary Level-1 frame dfd_01b_task_discovery_submission.
+%% Evidence status: Implemented.
+%% Balance: refines task/assignment input, completion evidence, and the completion-package/review-handoff output.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart LR
+    A["E1<br/>Project authority"] -->|"task contract"| P1[[3.1 Author tasks]]
+    C["E2<br/>External contributor"] -->|"assignment, status, collaboration input"| P2[[3.2 Execute tasks]]
+    C -->|"completion package and evidence"| P3[[3.3 Complete and hand off review]]
+    P1 -->|"task and requirement versions"| D[("D3<br/>Task, assignment, and submission records")]
+    D -->|"task and workflow context"| P2
+    P2 -->|"assignment, status, artifacts"| D
+    D -->|"completion eligibility"| P3
+    P3 -->|"submission and review handoff"| D
+    P1 -->|"task authoring result"| A
+    P2 -->|"task workspace result"| C
+    P3 -->|"completion result"| C
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A,C entity
+    class P1,P2,P3 process
+    class D store

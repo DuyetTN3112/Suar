@@ -1,0 +1,133 @@
+{
+  "meta": {
+    "project": "Suar",
+    "updated": "2026-07-28",
+    "architecture": "isolated-system-realm-and-board-first-user-workspaces",
+    "source": "docs/12-evidence/frontend-ui-audit-2026-07-26.md"
+  },
+  "invariants": [
+    "System Admin is a separate principal and security realm.",
+    "User shared props never contain System authorization.",
+    "Admin shared props never contain organization or project workspace data.",
+    "User realm contains Personal, Organization Management, and per-project Project Workspace.",
+    "Organization Management does not duplicate project execution surfaces.",
+    "Project Workspace contains exactly four shared Kanban boards.",
+    "System Administration contains one AI dispute progress Kanban board.",
+    "Create, detail, inbox, and history behavior use board overlays or filters."
+  ],
+  "phases": [
+    {
+      "id": "A",
+      "name": "Realm isolation",
+      "status": "implemented_targeted_verification_complete",
+      "items": [
+        "Split SystemAuthUser from WorkspaceAuthUser.",
+        "Shape shared props by request realm.",
+        "Remove isAdmin, canSwitchToAdmin, Admin mode, and /admin/toggle.",
+        "Fix SystemAdminContextMiddleware to the System realm."
+      ],
+      "acceptance": [
+        "Admin responses exclude workspaceAccess, organizations, and projects.",
+        "User responses exclude system_role and system_permissions.",
+        "No runtime Admin-mode bridge exists."
+      ]
+    },
+    {
+      "id": "B",
+      "name": "Capability-based workspace access",
+      "status": "implemented_targeted_verification_complete",
+      "items": [
+        "Expose Personal, optional Organization Management, and accessible projects.",
+        "Restrict ordinary members to stakeholder/member projects.",
+        "Clear stale current project.",
+        "Use capability-driven switchers."
+      ],
+      "acceptance": [
+        "Ordinary organization members do not see every organization project.",
+        "Organization Management appears only when canEnterManagement is true.",
+        "Admin never appears in the user workspace switcher."
+      ]
+    },
+    {
+      "id": "C",
+      "name": "Project Workspace",
+      "status": "implemented",
+      "items": [
+        "Add Project layout/sidebar.",
+        "Canonicalize project overview and supporting sections.",
+        "Add exactly four board navigation entries.",
+        "Open organization portfolio projects in Project Workspace.",
+        "Preserve project section while switching project."
+      ],
+      "canonicalRoutes": [
+        "/projects/:projectId",
+        "/projects/:projectId/tasks",
+        "/projects/:projectId/reviews/tasks",
+        "/projects/:projectId/reviews/assigners",
+        "/projects/:projectId/reviews/environment"
+      ]
+    },
+    {
+      "id": "D",
+      "name": "Board-first project interactions",
+      "status": "implemented",
+      "items": [
+        "Make Task board the only task list.",
+        "Open task create/detail as board modal/card room.",
+        "Redirect legacy task create/detail/edit and Organization task-detail URLs into the Project board overlay.",
+        "Open task review detail on the Task Review board.",
+        "Replace pending inbox with waiting_on_me filter.",
+        "Replace reverse-review history with status=done filter.",
+        "Render AI and terminal lanes."
+      ],
+      "acceptance": [
+        "Done creates or reuses awaiting_review atomically.",
+        "Task deep links use task_id on the project board.",
+        "Sprint review deep links use workflow_id on the matching project board.",
+        "Legacy task page controllers never render a separate create/detail/edit screen."
+      ]
+    },
+    {
+      "id": "E",
+      "name": "Isolated System Admin board",
+      "status": "implemented",
+      "items": [
+        "Convert /admin/disputes into a Kanban progress board.",
+        "Keep /admin/disputes/:id as the decision room.",
+        "Keep Admin dispute comments under /api/admin/reviews/disputes/:disputeId/comments.",
+        "Commit dispute-source resolutions before writing operational checkpoints.",
+        "Retire the AI operator page.",
+        "Retire the Admin reverse-review history page."
+      ],
+      "acceptance": [
+        "Only System Admin middleware reaches board 5.",
+        "All dispute workflow states have lanes.",
+        "The AI operator alias stays inside the System realm; Admin reverse-review page and API are absent.",
+        "Alternative dispute-source resolution completes without a transaction-lock timeout."
+      ]
+    },
+    {
+      "id": "F",
+      "name": "Legacy and evidence cleanup",
+      "status": "implemented_targeted_verification_complete",
+      "items": [
+        "Remove retired URLs from navigation, dashboards, settings, and profile links.",
+        "Remove retired review/history/inbox routes; keep only explicit task/operator compatibility aliases.",
+        "Remove retired reverse-review history GET APIs and obsolete contract tests.",
+        "Replace the eight evidence artifacts.",
+        "Run targeted tests and GitNexus change detection."
+      ]
+    }
+  ],
+  "verification": [
+    "Unit tests for shared-prop realm shaping and retired-route absence.",
+    "Integration tests for project access and Done-to-review transaction.",
+    "Component tests for workspace switchers and five boards.",
+    "Security tests for both cross-realm directions.",
+    "Targeted TypeScript and Svelte checks.",
+    "Route inventory and retired-link scan.",
+    "gitnexus detect-changes.",
+    "Snapshot: backend unit 33/33, Admin dispute/route/observability integration 17/17, frontend 121/121, route inventory green, Playwright discovered 12 tests in five files.",
+    "Full TypeScript passed. Board and realm EN/VI keys are complete; global translation integrity remains red on unrelated concurrent surfaces."
+  ]
+}

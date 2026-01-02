@@ -1,0 +1,40 @@
+%% Sequence 08c — Resolve organization project detail
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin opens one project detail in admin shell.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor U as Organization owner / admin
+    participant B as «boundary» Browser
+    participant MW as «boundary» OrganizationResolverMiddleware
+    participant C as «boundary» OrgShowProjectController
+    participant F as «control» getProjectDetail()
+    participant Q as «control» GetProjectDetailQuery
+    participant D as «entity» PostgreSQL
+
+    U->>B: Open project inside organization shell
+    activate B
+    B->>MW: GET /org/projects/:projectId
+    alt Current organization context valid
+        MW->>C: Forward request with organization context
+        activate C
+        C->>F: getProjectDetail(projectId, organizationId, actorContext)
+        activate F
+        F->>Q: handle(project detail DTO)
+        activate Q
+        Q->>D: Read project, access, members, roles, tasks and review summaries
+        activate D
+        D-->>Q: Project detail data or access failure
+        deactivate D
+        Q-->>F: Detail result
+        deactivate Q
+        F-->>C: Result
+        deactivate F
+        C-->>B: Render projects/show in organization shell
+        deactivate C
+    else Missing or invalid organization context
+        MW-->>B: Redirect or access error
+    end
+    B-->>U: Show project or access error
+    deactivate B

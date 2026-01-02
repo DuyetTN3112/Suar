@@ -1,0 +1,22 @@
+%% Architecture 03a — Elasticsearch query runtime
+%% Evidence status: Implemented.
+%% Viewpoint: one synchronous search story; Elasticsearch ranks candidates, PostgreSQL authorizes records.
+
+flowchart LR
+    Consumer["Global · marketplace · talent<br/>admin search consumers"]
+    Search["SearchPublicApi<br/>GlobalSearchQuery<br/>bounded domain queries"]
+    ES[("Elasticsearch 8.15<br/>suar_* candidate IDs + ranking")]
+    SQL[("PostgreSQL<br/>hydrate · authorize · SQL fallback")]
+    Result["Authorized grouped results<br/>with source status"]
+
+    Consumer --> Search --> ES
+    ES -->|"candidate IDs + ranking"| Search
+    Search -->|"hydrate + authorize"| SQL --> Result
+    Search -.->|"disabled · empty · failed"| SQL
+
+    classDef consumer fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef app fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class Consumer,Result consumer
+    class Search app
+    class ES,SQL store

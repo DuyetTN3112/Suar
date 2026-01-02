@@ -1,0 +1,17 @@
+%% DFD 07c2 — Search projection reindex (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    O[Operator] -->|"selected index group"| P[[4.6.2 Rebuild search projection]]
+    PG[(PostgreSQL source records)] -->|"current source entities"| P
+    P -->|"projection document batch"| ES[(Elasticsearch suar indexes)]
+    ES -->|"projection result or error"| P
+    P -->|"indexed and skipped counts"| O
+    P -->|"reindex telemetry"| L[Runtime log sink]
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class O,L entity
+    class P process
+    class PG,ES store

@@ -1,0 +1,47 @@
+%% Class Diagram 03h — Sprint Review Package
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: sprint_review_package.ts, sprint_manager_review.ts, sprint_environment_review.ts.
+
+classDiagram
+    direction LR
+
+    class ProjectSprint {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+        +String status
+    }
+    class SprintReviewPackage {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID sprint_id FK
+        +UUID reviewer_id FK
+        +String status
+        +DateTime submitted_at
+    }
+    class SprintManagerReview {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID package_id FK
+        +UUID target_user_id FK
+        +String target_role
+        +Integer rating
+        +JSONB dimensions
+        +Boolean is_anonymous_to_target
+    }
+    class SprintEnvironmentReview {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID package_id FK
+        +String target_type
+        +UUID target_id
+        +Integer rating
+        +JSONB dimensions
+        +Boolean is_anonymous_publicly
+    }
+
+    ProjectSprint "1" --> "*" SprintReviewPackage : opens packages
+    SprintReviewPackage "1" --> "*" SprintManagerReview : reviews people
+    SprintReviewPackage "1" --> "*" SprintEnvironmentReview : reviews environment
+

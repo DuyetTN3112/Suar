@@ -1,0 +1,49 @@
+%% Sequence 02d — Routed task assignee edit
+%% Updated: 2026-07-27.
+%% Scenario: a project manager assigns, reassigns, or clears an assignee through task edit.
+%% Evidence status: Implemented. Dedicated AssignTaskCommand/RevokeTaskAccessCommand have no active HTTP route.
+
+sequenceDiagram
+    autonumber
+    actor PM as Project manager
+    participant UI as «boundary» tasks/edit.svelte
+    participant C as «boundary» EditTaskController
+    participant K as «control» UpdateTaskCommand
+    participant P as «control» Task permission + assignee rules
+    participant D as «entity» PostgreSQL
+    participant E as «control» Post-commit effects
+
+    PM->>UI: Select assignee or clear current assignee
+    UI->>C: PUT /tasks/:taskId { assigned_to }
+    activate C
+    C->>K: execute(taskId, UpdateTaskDTO)
+    activate K
+    K->>D: Lock task and load organization/assignee facts
+    activate D
+    D-->>K: Task, membership, contributor context
+    deactivate D
+    K->>P: canUpdateTaskFields() + validateAssignee()
+    activate P
+    P-->>K: Allowed or policy violation
+    deactivate P
+    alt Assignment edit denied
+        K-->>C: Policy violation
+        C-->>UI: Validation/authorization error
+    else Assignment edit allowed
+        K->>D: Update tasks.assigned_to and write version/audit rows
+        activate D
+        D-->>K: Updated task record
+        deactivate D
+        Note over K,D: Routed edit does not create a task_assignments row
+        K->>E: Publish update, invalidate cache, notify affected assignee
+        activate E
+        E-->>K: Effects handled
+        deactivate E
+        K->>D: Load current task detail
+        D-->>K: Task detail
+        K-->>C: Current task detail
+        C-->>UI: 200 response or redirect
+        UI-->>PM: Updated assignee shown
+    end
+    deactivate K
+    deactivate C

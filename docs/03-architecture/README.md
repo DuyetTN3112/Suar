@@ -1,21 +1,23 @@
 # Architecture Pack
 
-| Field | Value |
-|---|---|
-| Status | Active |
-| Audience | Developer, tester, DevOps, architect, tech lead, curious manager |
-| Purpose | Chỉ ra hệ thống được chia khối ra sao, đọc file nào để hiểu đúng mức chi tiết, và khi nào cần diagram |
-| Source of Truth | `start/routes/*`, `app/modules/*`, `config/*`, `database/schema.ts`, verified docs |
-| Last Reviewed | 2026-07-10 |
-| Review Cycle | Khi module boundary, request flow, runtime dependency, hoặc support services đổi |
-| Owner | Engineering |
-| Stale Risk | Cao |
+| Field           | Value                                                                                                      |
+| --------------- | ---------------------------------------------------------------------------------------------------------- |
+| Status          | Active                                                                                                     |
+| Audience        | Developer, tester, DevOps, architect, tech lead, curious manager                                           |
+| Purpose         | Chỉ ra hệ thống được chia khối ra sao, đọc file nào để hiểu đúng mức chi tiết, và khi nào cần diagram      |
+| Source of Truth | `start/routes/*`, `app/modules/*`, `app/composition/*`, `config/*`, `database/schema.ts`, verified docs    |
+| Review Cycle    | Khi module boundary, request flow, composition rule, runtime dependency, hoặc platform capability thay đổi |
+| Owner           | Engineering                                                                                                |
+| Stale Risk      | Cao                                                                                                        |
 
 ## Read In This Order
 
 1. [Architecture Overview](./architecture-overview.md)
-2. [Architecture Diagram Catalog](./architecture-diagram-catalog.md)
-3. [Development Guidelines](./development-guidelines.md)
+2. [Application Boundary](./application-boundary.md)
+3. [Suar Module And Layer Architecture Contract](./suar-module-layer-contract.md)
+4. [Architecture Diagram Catalog](./architecture-diagram-catalog.md)
+5. [Development Guidelines](./development-guidelines.md)
+6. [Module Layer And Boundary Audit](./module-layer-boundary-audit-2026-07-23.md) — detailed evidence ledger
 
 ## Fast Start By Situation
 
@@ -63,15 +65,23 @@ Mục tiêu của lộ trình này:
 
 - Suar là monolith hay microservices
 - request đi từ route tới domain và infra như thế nào
+- tại sao Command/Query là use-case owner, còn service chỉ là collaborator
+- factory nào là inbound contract và factory nào thuộc composition
+- `support`, `serializer`, `builder`, `utils` phải được phân loại về đâu
 - module nào là business core
-- Redis, PostgreSQL, session, health, notifications, audit nằm ở đâu trong runtime
+- Redis, PostgreSQL, session, health, notifications và Audit nằm ở đâu trong runtime
+- vì sao Audit là evidence source canonical và personal activity chỉ là projection có policy
+- `/work` đại diện cho personal assigned-work surface nào
 - diagram nào phù hợp khi cần zoom in
 
 ## Safe External Summary
 
 Nếu cần một câu mô tả an toàn cho report hoặc đồ án, có thể dùng:
 
-`Architecture pack của Suar mô tả hệ thống như một modular monolith, trong đó lớp route/middleware/controller tiếp nhận request, action/domain xử lý nghiệp vụ, và infrastructure kết nối với PostgreSQL, Redis, cùng các runtime support services; phần diagram đi kèm giúp chọn đúng mức chi tiết thay vì buộc người đọc suy luận từ source code.`
+`Suar là một modular monolith theo use-case/CQRS: controller hoặc listener chuyển một intent vào đúng một Command/Query; Command/Query điều phối workflow, domain giữ rule, outbound port mô tả dependency, adapter chạm công nghệ hoặc module khác, còn composition chỉ dựng object graph.`
+
+Đây là mental model canonical dùng thống nhất trong code, docs, diagram và report. Service hoặc
+facade không phải use-case entry point; generic activity tracking không phải runtime component.
 
 ## Nếu Bạn Chỉ Có Folder Docs Trong Tay
 

@@ -1,0 +1,44 @@
+%% Sequence 02a — Update task contract
+%% Updated: 2026-07-27.
+%% Scenario: project manager edits task context; persisted update creates version/audit evidence.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor PM as Project manager
+    participant B as «boundary» Browser
+    participant C as «boundary» EditTaskController
+    participant K as «control» UpdateTaskCommand
+    participant P as «control» persistTaskUpdateWithinTransaction()
+    participant D as «entity» PostgreSQL
+    participant E as «control» runUpdateTaskPostCommitEffects()
+
+    PM->>B: Save changed task context
+    activate B
+    B->>C: PUT /tasks/:taskId
+    activate C
+    C->>K: execute(taskId, UpdateTaskDTO)
+    activate K
+    K->>K: ensureHasUpdates(dto)
+    K->>P: persist(execCtx, taskId, dto, actorId, transaction)
+    activate P
+    P->>D: Lock task, enforce field permissions, update and version
+    activate D
+    D-->>P: Updated task and old values
+    deactivate D
+    P-->>K: Update result
+    deactivate P
+    K->>E: run(updateResult, actor, dto, dependencies)
+    activate E
+    E-->>K: Notifications/cache/event/search effects complete
+    deactivate E
+    K->>D: Read current task detail
+    activate D
+    D-->>K: Task detail
+    deactivate D
+    K-->>C: Updated task result
+    deactivate K
+    C-->>B: Redirect to task detail
+    deactivate C
+    B-->>PM: Show updated contract
+    deactivate B

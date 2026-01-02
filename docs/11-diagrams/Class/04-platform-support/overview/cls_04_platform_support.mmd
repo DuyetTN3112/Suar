@@ -1,0 +1,42 @@
+%% Class 04 — Platform support overview
+%% Evidence status: Partial; surfaces are implemented, while independent System-principal role persistence remains migration work.
+%% Keep reason: surfaces connect through one canonical Audit obligation; that cross-surface contract is the subject.
+%% Updated: 2026-07-29.
+%% Summary abstractions only. Read 04a–04d for actual notification/settings/admin classes.
+
+classDiagram
+    class NotificationSurface {
+        <<conceptual>>
+        +list()
+        +markRead()
+        +delete()
+        +create()
+    }
+    class SettingsSurface {
+        <<conceptual>>
+        +show()
+        +update()
+    }
+    class AdminReadSurface {
+        <<conceptual>>
+        +dashboard()
+        +listUsers()
+        +listDisputes()
+        +listAuditLogs()
+    }
+    class AdminMutationSurface {
+        <<conceptual>>
+        +assignSystemPrincipalRole()
+        +governUserAccountStatus()
+        +resolveGovernanceCase()
+    }
+    class AuditEvidence {
+        <<conceptual>>
+        +writeAudit()
+        +recordSourceOccurrence()
+    }
+
+    NotificationSurface --> AuditEvidence : records
+    SettingsSurface --> AuditEvidence : records
+    AdminReadSurface ..> AuditEvidence : reads
+    AdminMutationSurface --> AuditEvidence : records

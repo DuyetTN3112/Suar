@@ -263,25 +263,25 @@ Nó chỉ có nghĩa:
 
 #### Reviewer / reviewee
 
-- `/reviews/pending`
-- `/reviews/:id`
-- `/reviews/disputes/:id`
-- `/my-reviews`
+- `/projects/:projectId/reviews/tasks`
+- `/projects/:projectId/reviews/assigners`
+- `/projects/:projectId/reviews/environment`
 
 Runtime note rất quan trọng:
 
-- `/reviews/disputes/:id` không chỉ nên bị kể như page của đúng reviewee và reviewer
-- current access context còn có thể công nhận org-side role hoặc system admin là participant hợp lệ theo case
-- nhưng quyền `participant` và quyền `respond` không trùng nhau hoàn toàn
+- `Waiting on me`, history và detail là filter/card room/overlay trên board
+- đồng nghiệp, người giao việc, reviewee và project manager dùng chung Project board theo permission
+- System Admin không phải participant role của User realm; reported case được chiếu sang System board riêng
 
 #### System admin
 
 - `/admin`
 - `/admin/users/*`
-- `/admin/reviews/*`
 - `/admin/disputes/*`
 - `/admin/audit-logs`
 - `/admin/permissions`
+
+System Admin là System principal/realm riêng, không mang Organization/Project role trong cùng User session. Đây là requirement/target invariant; route/UI/policy context đã enforce, còn physical auth transport `auth.user`/`users.system_role` là migration debt nên trạng thái tách principal vật lý vẫn `Partial`.
 
 ## Traceability theo artifact yêu cầu
 
@@ -292,7 +292,7 @@ Runtime note rất quan trọng:
 | Scope Document | `../01-business/brd-prd-scope.md` | route scope + module boundaries |
 | SRS | `./srs.md` | route, schema, command/query/listener flow |
 | User Story | `./user-story-use-case-business-rule.md` | actor surfaces trong routes + Inertia pages |
-| Use Case | `./user-story-use-case-business-rule.md` + `docs/11-diagrams/Usecase/*` | route + diagram evidence |
+| Use Case | `./user-story-use-case-business-rule.md` + `docs/11-diagrams/Usecase/*/{overview,high-level,low-level}/*` | route + diagram evidence |
 | Business Rule | `./user-story-use-case-business-rule.md` | domain rules + command guards |
 | Feature Specification | `../01-business/feature-specification.md` | module-level implementation evidence |
 

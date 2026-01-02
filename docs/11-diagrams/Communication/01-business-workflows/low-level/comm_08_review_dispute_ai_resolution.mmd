@@ -1,0 +1,49 @@
+%% Communication Diagram 08 — Review dispute, AI advice, and human resolution
+%% Updated: 2026-07-27 (code-verified).
+%% Evidence status: Implemented for dispute/case/callback/resolution; Clawagent request is Partial runtime integration.
+%% Source: CreateReviewDisputeCommand, BuildReviewDisputeCaseFileCommand, StartAiDisputeEvaluationCommand, ProcessAiDisputeCallbackCommand, ResolveReviewDisputeCommand.
+%% Scenario: one governed dispute case receives signed AI advice before authoritative administrator resolution.
+
+flowchart BT
+    subgraph case["Dispute dossier"]
+        direction LR
+        H["Reviewee + system administrator<br/>:Human actors"]
+        D["Review dispute commands<br/>create · case file · resolve<br/>:Control"]
+        PG[("PostgreSQL<br/>disputes · case_files · evaluations · audit")]
+        Q["StartAiDisputeEvaluationCommand<br/>:Control"]
+    end
+    subgraph advisory["Signed advisory exchange"]
+        direction LR
+        AI["Clawagent<br/>:External advisory system"]
+        CB["AiDisputeCallbackController<br/>ProcessAiDisputeCallbackCommand<br/>:Boundary/control"]
+        RULE["HMAC + timestamp + identifier rules<br/>:Security collaborator"]
+    end
+
+    H -->|"1: openDispute(reason, outcome)"| D
+    D -->|"1.1: create dispute + audit"| PG
+    H -->|"2: buildCaseFile(disputeId)"| D
+    D -->|"2.1: persist immutable dossier + audit"| PG
+    H -->|"3: requestAiEvaluation(disputeId)"| Q
+    Q -->|"3.1: load complete case file"| PG
+    Q -->|"3.2: persist queued evaluation"| PG
+    Q -->|"3.3: POST signed dossier + callbackUrl"| AI
+    AI -->|"4: signedCallback(evaluation, verdict)"| CB
+    CB -->|"4.1: verify HMAC, timestamp, identifiers"| RULE
+    CB -->|"4.2: persist advisory result"| PG
+    H -->|"5: resolve(finalDecision, rationale)"| D
+    D -->|"5.1: read dossier + advisory; enforce policy"| PG
+    D -->|"5.2: persist human decision + audit"| PG
+    D -.->|"6: authoritative resolution"| H
+
+    classDef actor fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef boundary fill:#FFF3E0,stroke:#E65100,stroke-width:2px,color:#BF360C
+    classDef control fill:#FFF8E1,stroke:#F9A825,stroke-width:2px,color:#5D4037
+    classDef service fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
+    classDef db fill:#ECEFF1,stroke:#37474F,stroke-width:2px,color:#263238
+    class H actor
+    class CB boundary
+    class D,Q control
+    class AI,RULE service
+    class PG db
+    style case fill:#F8FAFC,stroke:#94A3B8
+    style advisory fill:#F8FAFC,stroke:#94A3B8

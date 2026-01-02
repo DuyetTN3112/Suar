@@ -1,0 +1,23 @@
+%% User Flow 08a — Settings and preferences
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: authenticated user.
+
+flowchart TB
+    Start([Open settings]) --> Current["Review current settings<br/>with defaults applied"] --> Area{"Choose settings area"}
+    Area -->|General| General["Edit theme or display preference"]
+    Area -->|Notifications| Notifications["Edit email-notification preference"]
+    Area -->|Profile/account| Identity["Edit supported profile<br/>or account fields"]
+    General --> Save["Save changes"]
+    Notifications --> Save
+    Identity --> Save
+    Save --> Valid{"Values accepted?"}
+    Valid -->|No| Correct["Review validation message"] --> Area
+    Valid -->|Yes| Result["See refreshed settings"] --> End([Preferences current])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End terminal
+    class Current,General,Notifications,Identity,Save,Correct,Result action
+    class Area,Valid decision

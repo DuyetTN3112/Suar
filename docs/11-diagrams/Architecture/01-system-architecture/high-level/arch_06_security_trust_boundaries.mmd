@@ -1,0 +1,62 @@
+%% Architecture 06 — Security and trust boundaries
+%% Evidence status: Partial. Application/policy contexts are disjoint; physical auth transport shares auth.user/users.system_role. Callback guard is implemented.
+%% Keep reason: System, User, callback, application, and data boundaries participate in one security trust model.
+
+flowchart LR
+    subgraph Untrusted["Untrusted/client boundary"]
+        direction TB
+        UserClient["User-realm client<br/>User application context"]
+        SystemClient["System-realm client<br/>System Administration context"]
+        Claw["Clawagent callback client"]
+    end
+
+    subgraph UserApp["User application trust boundary"]
+        direction TB
+        UserGlobal["User request controls<br/>Shield · rate limit · User classification"]
+        UserPolicy["User authorization context<br/>organization membership · project permission"]
+        UserState["User-realm repositories"]
+    end
+
+    subgraph SystemApp["System application trust boundary"]
+        direction TB
+        SystemGlobal["System request controls<br/>Shield · rate limit · System classification"]
+        SystemPolicy["System authorization context<br/>requireSystemAdmin · fixed System context"]
+        SystemState["System-realm repositories"]
+    end
+
+    subgraph CallbackApp["Public callback trust boundary"]
+        direction TB
+        Callback["AI callback guard<br/>HMAC-SHA256 · ±300s timestamp<br/>identifier match · row lock"]
+    end
+
+    subgraph TrustedData["Trusted persistence boundary"]
+        direction TB
+        PG[("PostgreSQL")]
+        Redis[("Redis sessions/tokens/cache<br/>shared transport")]
+    end
+
+    SharedAuth["Shared auth transport coupling<br/>auth.user + users.system_role<br/>shared landing/session transport"]
+    UserClient -->|"transport credential"| SharedAuth -->|"classify User context"| UserGlobal --> UserPolicy --> UserState
+    SystemClient -->|"transport credential"| SharedAuth -->|"classify System context"| SystemGlobal --> SystemPolicy --> SystemState
+    Claw -->|"CSRF-exempt; rate limited"| Callback --> SystemState
+    Callback -.->|"advisory result only"| SystemPolicy
+    UserState --> PG
+    UserState --> Redis
+    SystemState --> PG
+    SystemState --> Redis
+
+    classDef client fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    classDef control fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef privileged fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef data fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef debt fill:#FFFBEB,stroke:#D97706,color:#78350F,stroke-width:2px,stroke-dasharray:5 4
+    class UserClient,SystemClient,Claw client
+    class UserGlobal,UserPolicy,UserState,Callback control
+    class SystemGlobal,SystemPolicy,SystemState privileged
+    class PG,Redis data
+    class SharedAuth debt
+    style Untrusted fill:#FEF2F2,stroke:#EF4444,stroke-width:2px,stroke-dasharray:5 4
+    style UserApp fill:#EFF6FF,stroke:#2563EB,stroke-width:2px
+    style SystemApp fill:#FFF7ED,stroke:#EA580C,stroke-width:2px
+    style CallbackApp fill:#FAF5FF,stroke:#7E22CE,stroke-width:2px
+    style TrustedData fill:#F0FDF4,stroke:#16A34A,stroke-width:2px

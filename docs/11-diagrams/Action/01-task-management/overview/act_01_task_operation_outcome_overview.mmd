@@ -1,0 +1,32 @@
+%% Activity 01 — Operate task and record outcome
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_01b, act_01b1, act_01d.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Ready([Task ready]) --> Board["Operate board and status workflow<br/>act_01b · act_01d"] --> Outcome{"Workflow outcome?"}
+        Outcome -->|Completed| ToCompleted((A))
+        Outcome -->|Cancelled| ToCancelled((B))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromCompleted((A)) --> Evidence["Retain submission, attachments,<br/>comments and audit evidence"] --> Recorded([Task lifecycle recorded])
+        FromCancelled((B)) --> Cancel["Record cancellation<br/>act_01b1"] --> Cancelled([Cancellation recorded])
+    end
+    ToCompleted ~~~ FromCompleted
+    ToCancelled ~~~ FromCancelled
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    classDef evidence fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Ready,Recorded,Cancelled terminal
+    class Board,Cancel action
+    class Outcome decision
+    class Evidence evidence
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToCompleted,FromCompleted,ToCancelled,FromCancelled connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

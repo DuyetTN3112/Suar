@@ -1,0 +1,59 @@
+%% Class Diagram 05 — Search public runtime
+%% Evidence status: Implemented.
+%% Keep reason: public API, two ports, and implementations form one interface-realization graph.
+%% Updated: 2026-07-27.
+%% Evidence: concrete classes/interfaces under app/modules/search.
+%% Scope: public/query composition only. Engine candidates live in 05a–05b.
+
+classDiagram
+direction LR
+    class SearchPublicApi {
+        +isEnabled(): boolean
+        +ping(): Promise~boolean~
+        +search(rawQuery: string, execCtx: HttpActionContext, options: GlobalSearchQueryOptions): Promise~GlobalSearchResult~
+        +reindexTaskDocument(taskId: string): Promise~void~
+        +reindexTalentDocument(userId: string): Promise~void~
+        +reindexProjectDocument(projectId: string): Promise~void~
+        +reindexOrganizationDocument(organizationId: string): Promise~void~
+        +reindexSkillDocument(skillId: string): Promise~void~
+        +reindexUserDirectoryDocument(userId: string): Promise~void~
+    }
+    class SearchRuntimePort {
+        <<interface>>
+        +isEnabled(): boolean
+        +ping(): Promise~boolean~
+    }
+    class GlobalSearchQueryPort {
+        <<interface>>
+        +handle(rawQuery: string, options?: GlobalSearchQueryOptions): Promise~GlobalSearchResult~
+    }
+    class SearchRuntimeService {
+        +isEnabled(): boolean
+        +ping(): Promise~boolean~
+    }
+    class GlobalSearchQuery {
+        +handle(rawQuery: string, options?: GlobalSearchQueryOptions): Promise~GlobalSearchResult~
+    }
+
+    class SearchShellAffinity {
+        <<Inertia UI Component>>
+        +active_surface: string
+        +query_affinity: string
+        +applyAffinityFilter(query): options
+    }
+    class TestDatastoreGuard {
+        <<Infrastructure Guard>>
+        +applyTestDatastoreOverrides(): void
+        +assertTestDatastoreSafety(): void
+    }
+
+    SearchPublicApi --> SearchRuntimePort : runtime dependency
+    SearchPublicApi --> GlobalSearchQueryPort : query dependency
+    SearchRuntimeService ..|> SearchRuntimePort
+    GlobalSearchQuery ..|> GlobalSearchQueryPort
+    SearchShellAffinity --> SearchPublicApi : invokes search
+    GlobalSearchQuery --> TestDatastoreGuard : verified in integration tests
+
+    note for SearchRuntimeService "Wraps configured Elasticsearch client readiness."
+    note for GlobalSearchQuery "Runs candidate ranking; PostgreSQL hydrates and authorizes results and supplies fallback."
+    note for TestDatastoreGuard "Protects development indices; forces test run to disposable Elasticsearch port 9201."

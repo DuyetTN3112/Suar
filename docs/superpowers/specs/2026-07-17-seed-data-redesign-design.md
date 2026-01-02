@@ -210,7 +210,7 @@ Existing modules to revise:
 - `review_specs.ts`
 - `review_data_seeder.ts`
 - `profile_seed.ts`
-- `mongo_seed.ts`
+- `operational_event_seeder.ts`
 - `seed_integrity.ts`
 - `commands/seed_data.ts`
 

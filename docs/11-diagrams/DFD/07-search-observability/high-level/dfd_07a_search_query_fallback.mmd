@@ -1,0 +1,28 @@
+%% DFD 07a — Search query, hydration, and SQL fallback (Level 2)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented/Partial. Engine failures degrade per source, not global authorization.
+
+flowchart TB
+    USER[Authenticated user / admin]
+    P1[[4.4.1 Resolve selected search sources]]
+    P2[[4.4.2 Find candidate ids and ranking]]
+    P3[[4.4.3 Hydrate and authorize current records]]
+    ES[(Elasticsearch suar_* indexes)]
+    PG[(PostgreSQL source records)]
+
+    USER -->|"query, filters, entity types"| P1
+    P1 -->|"bounded source calls"| P2
+    P2 -->|"bounded engine query"| ES
+    ES -->|"ids, ranking, highlights"| P2
+    P2 -->|"ranked ids"| P3
+    PG -->|"current records + permission facts"| P3
+    P2 -->|"SQL fallback query context"| PG
+    PG -->|"SQL fallback candidates"| P3
+    P3 -->|"grouped authorized result"| USER
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class USER entity
+    class P1,P2,P3 process
+    class ES,PG store

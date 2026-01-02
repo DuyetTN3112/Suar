@@ -1,0 +1,43 @@
+%% Logical ERD 01a — Identity and account lifecycle
+%% Evidence status: Implemented current schema; Partial target realm separation because USERS.system_role is migration debt.
+%% Updated: 2026-07-28.
+%% Evidence: database/schema.ts plus user/auth runtime models.
+
+erDiagram
+    USERS {
+        UUID id PK
+        VARCHAR username UK
+        VARCHAR email UK
+        VARCHAR status
+        VARCHAR system_role "LEGACY: move to System principal store"
+        UUID current_organization_id
+        VARCHAR auth_method
+        JSONB profile_settings
+        TIMESTAMPTZ deleted_at
+    }
+    USER_OAUTH_PROVIDERS {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR provider
+        VARCHAR provider_id UK
+        VARCHAR email
+        VARCHAR access_token
+        VARCHAR refresh_token
+    }
+    REMEMBER_ME_TOKENS {
+        UUID id PK
+        UUID tokenable_id FK
+        VARCHAR hash
+        TIMESTAMPTZ expires_at
+    }
+    USER_SUBSCRIPTIONS {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR plan
+        VARCHAR status
+        TIMESTAMPTZ started_at
+        TIMESTAMPTZ expires_at
+    }
+    USERS ||--o{ USER_OAUTH_PROVIDERS : "links providers"
+    USERS ||--o{ REMEMBER_ME_TOKENS : "owns tokens"
+    USERS ||--o{ USER_SUBSCRIPTIONS : "holds packages"

@@ -1,0 +1,40 @@
+%% User Flow 04b — Personal My Work queue
+%% Evidence status: Implemented.
+%% Updated: 2026-07-29.
+%% Journey actor: authenticated user with assignments across one or more organizations.
+
+flowchart TB
+    subgraph entry[" "]
+        direction LR
+        Start([Open /work]) --> Auth{"Authenticated?"}
+        Auth -->|No| Login["Render login"]
+        Auth -->|Yes| Filters["Choose status / priority / page"]
+        Filters --> Query["Load assigned tasks<br/>across organizations"]
+        Query --> ToQueue((A))
+    end
+
+    subgraph queue[" "]
+        direction LR
+        FromQueue((A)) --> Empty{"Any assigned work?"}
+        Empty -->|No| EmptyState([Show empty personal queue])
+        Empty -->|Yes| List["Show personal work list"]
+        List --> Task["Open /work/tasks/:taskId"]
+        Task --> Act["Continue delivery, submission,<br/>status, comment, or attachment flow"]
+    end
+
+    ToQueue ~~~ FromQueue
+    Scope["Not an Organization board<br/>Not an activity feed"]
+    Query -.-> Scope
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef note fill:#FEFCE8,stroke:#CA8A04,color:#713F12,stroke-width:2px,stroke-dasharray:5 4
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class Start,EmptyState terminal
+    class Login,Filters,Query,List,Task,Act action
+    class Auth,Empty decision
+    class Scope note
+    class ToQueue,FromQueue connector
+    style entry fill:transparent,stroke:transparent
+    style queue fill:transparent,stroke:transparent

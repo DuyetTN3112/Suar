@@ -1,0 +1,36 @@
+@startuml
+' UML Component 04 — Current integration seam index
+' Evidence status: Implemented and architecture-guarded.
+' Updated: 2026-07-29.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+
+component "Consumer Command / Query" as Consumer
+component "Consumer-owned port\n→ outer adapter" as Port #FEF3C7
+component "Stable provider contract\nfact · event · protocol" as Contract #DCFCE7
+component "Composition factory\nconstruction only" as Factory #F3E8FF
+
+Consumer ..> Port : required capability
+Port ..> Contract : adapter maps provider seam
+Factory ..> Consumer : constructs + injects
+
+note bottom
+Direct provider-internal imports and executable public facades
+are not current accepted seams; guarded baselines are zero.
+end note
+
+@enduml

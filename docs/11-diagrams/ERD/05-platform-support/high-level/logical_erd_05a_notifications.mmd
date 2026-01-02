@@ -1,0 +1,25 @@
+%% Logical ERD 05a — Notification Center
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Bounded platform-support slice for user notifications.
+
+erDiagram
+    direction LR
+    USERS {
+        UUID id PK
+    }
+    NOTIFICATIONS {
+        UUID id PK
+        UUID user_id FK
+        VARCHAR type
+        VARCHAR title
+        TEXT message
+        VARCHAR related_entity_type
+        UUID related_entity_id
+        JSONB metadata
+        BOOLEAN is_read
+        TIMESTAMPTZ read_at
+        TIMESTAMPTZ created_at
+    }
+
+    USERS ||--o{ NOTIFICATIONS : receives

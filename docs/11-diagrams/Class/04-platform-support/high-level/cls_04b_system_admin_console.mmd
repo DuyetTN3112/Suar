@@ -1,0 +1,46 @@
+%% Class Diagram 04b — Conceptual system-admin surface
+%% Evidence status: Partial; isolated System surface is implemented, independent principal persistence is migration work.
+%% Updated: 2026-07-28.
+%% Scope: conceptual responsibilities only. Concrete controllers/queries/commands live in 04c–04d.
+
+classDiagram
+    class SystemAdminConsole {
+        <<conceptual>>
+        +showDashboard()
+        +openGovernanceSurface()
+        +openSubscriptionSurface()
+    }
+    class AdminReadCapability {
+        <<conceptual>>
+        +readUsersAndOrganizations()
+        +readReviewsAndAudit()
+        +readSubscriptionsAndPermissions()
+    }
+    class AdminMutationCapability {
+        <<conceptual>>
+        +assignSystemPrincipalRole()
+        +governUserAccountStatus()
+        +resolveFlaggedReview()
+        +updateSubscription()
+    }
+    class AdminAuthorizationContext {
+        <<conceptual>>
+        +systemPrincipalId
+        +systemAuthorization
+        +requestId
+    }
+    class GovernedAuditRecord {
+        <<conceptual>>
+        +entityType
+        +entityId
+        +action
+        +actorUserId
+        +occurredAt
+    }
+
+    SystemAdminConsole --> AdminReadCapability
+    SystemAdminConsole --> AdminMutationCapability
+    AdminReadCapability --> AdminAuthorizationContext : authorizes
+    AdminMutationCapability --> AdminAuthorizationContext : authorizes
+    AdminMutationCapability --> GovernedAuditRecord : records
+    note for AdminAuthorizationContext "Target model. Current adapter still derives this context\nfrom auth.user and users.system_role."

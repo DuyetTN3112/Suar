@@ -1,0 +1,44 @@
+%% Sequence 04b1 — Dispute completed review
+%% Updated: 2026-07-27.
+%% Scenario: reviewee disputes one completed review session.
+%% Evidence status: Implemented; later AI advisory remains optional and human-governed.
+
+sequenceDiagram
+    autonumber
+    actor R as Reviewee
+    participant B as «boundary» Browser
+    participant C as «boundary» ConfirmReviewController
+    participant K as «control» ConfirmReviewCommand
+    participant P as «entity» ReviewSessionRepository + PostgreSQL
+    participant E as «control» emitter
+    participant L as «control module» review_listener
+
+    R->>B: Dispute completed review
+    B->>C: POST /reviews/:reviewId/confirm { disputed }
+    activate C
+    C->>K: handle(ConfirmReviewDTO)
+    activate K
+    K->>P: Lock completed session and load quorum context
+    activate P
+    P-->>K: Eligible session or conflict
+    alt Eligible and not previously decided
+        K->>P: Save decision, review_disputes case and audit
+        P-->>K: Pending dispute
+        K->>E: emit(review:confirmed)
+        activate E
+        E->>L: Recalculate reviewer credibility and invalidate profile cache
+        activate L
+        deactivate L
+        deactivate E
+        K-->>C: Disputed result
+        C-->>B: Redirect/result
+        B-->>R: Show pending dispute state
+    else Invalid quorum/state/duplicate decision
+        K-->>C: Conflict error
+        C-->>B: Error result
+        B-->>R: Keep prior state
+    end
+    deactivate P
+    deactivate K
+    deactivate C
+

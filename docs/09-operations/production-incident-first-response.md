@@ -223,18 +223,20 @@ Không phải incident nào cũng cần chạy hết. Dùng chúng để xác mi
 
 ## Review Dispute Incident Notes
 
-Nếu domain đáng nghi là `reviews/disputes`, hãy nhớ năm điểm này trước:
+Nếu domain đáng nghi là `reviews/disputes`, hãy nhớ sáu điểm này trước:
 
-1. `/org/disputes` hiện không phải route `requireOrgAdmin()` ở middleware layer; đừng kết luận lỗi access chỉ vì người dùng không phải admin.
-2. Org dispute queue vẫn cần current organization đúng và approved membership thật ở query layer.
-3. `report to admin` chỉ hợp lệ khi reviewee đã có trao đổi thật và counterparty cũng đã có trao đổi thật trong dispute room.
-4. AI callback chỉ xử lý tiếp evaluation còn ở `queued` hoặc `processing`.
-5. Reverse review theo task hiện có thể “fail đúng thiết kế” vì flow submit đã bị product-deprecate.
+1. Không có `/org/disputes`; User-side exchange nằm trong card room của Project review board.
+2. Project Task/Assigner/Environment Review Board cần project access và current organization đúng.
+3. `report to admin` chuyển case sang System realm nhưng không cấp quyền `/admin` cho User.
+4. System Admin chỉ xử lý trên `/admin/disputes` và `/api/admin/reviews/disputes/*`.
+5. AI callback chỉ xử lý tiếp evaluation còn ở `queued` hoặc `processing`.
+6. Reverse review theo task có thể “fail đúng thiết kế” vì flow submit đã bị product-deprecate.
 
 Nếu chỉ cần khoanh rất nhanh:
 
-- `/org/disputes` bị 403/rỗng: kiểm tra current org, approved membership, filter/search input
-- dispute detail thiếu context: kiểm tra comment/evidence loaders và task-related comments
+- Project review card/board bị 403/rỗng: kiểm tra current org, project access, project id và board filter
+- card room thiếu context: kiểm tra comment/evidence loaders và task-related comments
+- `/admin/disputes` bị chặn: xác nhận đây là System Admin principal/session, không phải User có Organization role
 - report lên admin không thành công: kiểm tra preconditions exchange và dispute status active
 - AI callback bị từ chối: kiểm tra credential, timestamp, signature, evaluation status hiện tại
 - reverse review submit báo lỗi business: xác nhận trước xem đó có phải hành vi deprecate theo product direction không
@@ -246,8 +248,8 @@ Nếu domain đáng nghi là `tasks`, hãy nhớ bốn điểm này trước:
 1. `task_status_id` mới là workflow truth; `status` chỉ là mirror compatibility.
 2. Nhiều task không được sang `DONE` nếu chưa có submission hợp lệ.
 3. Submission bị `locked` thì không còn là lỗi UI đơn thuần nếu người dùng không sửa được nữa.
-4. `PATCH /api/tasks/board-state` hiện là POC conflict-handling surface; đừng nhầm nó với full board-state engine đã persisted hoàn chỉnh.
-5. `/org/tasks` không phải lúc nào cũng là org-wide list thuần túy; current runtime có thể tự lấy `current_project_id` trong session để lọc ngầm nếu request không bật organization-wide scope rõ ràng.
+4. `/tasks/status-board` và `PATCH .../board-state` đã retired; 404 ở client cũ là tín hiệu cần chuyển sang Project Task Board cùng status/sort-order/batch commands, không phải khôi phục POC.
+5. `/org/tasks*` là compatibility redirect; task delivery truth phải kiểm tra tại `/projects/:projectId/tasks`.
 
 Nếu chỉ cần khoanh rất nhanh:
 
@@ -255,7 +257,7 @@ Nếu chỉ cần khoanh rất nhanh:
 - move sang `DONE` fail: kiểm tra submission status trước
 - submission không sửa được: kiểm tra `locked`
 - board patch conflict: kiểm tra payload conflict path trước khi kết luận data race thật
-- `/org/tasks` nhìn thiếu data: kiểm tra cả `current_project_id` trong session trước khi nghi query org-wide bị sai
+- legacy `/org/tasks*` redirect sai/không có đích: kiểm tra `current_project_id` và project access, rồi mở canonical Project Task Board
 
 ## Search Incident Notes
 

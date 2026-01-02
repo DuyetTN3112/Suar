@@ -1,0 +1,24 @@
+%% Activity 04a1 — Capture project setup input
+%% Updated 2026-07-27 (split from act_04a).
+%% Evidence status: Implemented.
+%% Evidence: CreateProjectWithStaffingController request and authorization boundary.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Organization owner starts project]) --> Define["Enter project identity and governance data"] --> Templates["Select role templates, if needed"] --> ToAssignees((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromTemplates((A)) --> Assignees["Select initial assignees and intended roles, if needed"] --> Submit([Validated project setup request])
+    end
+    ToAssignees ~~~ FromTemplates
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    class Start,Submit terminal
+    class Define,Templates,Assignees action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAssignees,FromTemplates connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

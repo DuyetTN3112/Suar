@@ -245,17 +245,16 @@ Khi công việc hoàn thành, review là một flow quan trọng chứ không p
 
 Surface đã được xác nhận:
 
-- pending reviews
-- review detail
+- Project Task Review Board
+- `Waiting on me` filter và card room
 - submit review
 - confirm or dispute
-- reverse-review reading surfaces
-- dispute room
+- Assigner/Environment Review Board
 
 Điều cần hiểu đúng:
 
 - repository xác nhận review là core flow quanh completed work
-- task-level reverse review creation hiện đã bị tắt; các màn reverse review hiện chủ yếu dùng để đọc dữ liệu đã có và giữ continuity cho product direction mới
+- task-level reverse review creation đã bị tắt; history/completed nằm trên board và không có màn đọc riêng
 - nhưng câu khẳng định kiểu “mọi task đều bắt buộc review ở mọi trường hợp” chỉ nên dùng khi chỉ rõ rule thực thi tương ứng
 
 Nếu đọc sai chỗ này, rất dễ biến docs thành tuyệt đối hóa những rule mà repo chưa chứng minh ở mọi ngóc ngách.
@@ -317,33 +316,17 @@ Nguồn: `start/routes/users.ts`, `app/modules/users/controllers/org_talents_pag
 - runtime group của nó hiện là `auth + requireOrg`
 - vì vậy đây là org-scoped workspace/discovery surface, không nên mô tả cứng như một màn “chỉ org admin mới vào được” nếu chưa có evidence policy tương đương
 
-#### Org Disputes
+#### Project Review Boards
 
-Đây cũng là runtime surface đã được xác nhận khá mạnh:
+User-side review/dispute work không có Org queue riêng. Người support dùng ba Project review boards:
 
-- route:
-  - `/org/disputes`
-- controller:
-  - `app/modules/reviews/controllers/show_org_disputes_page_controller.ts`
-- integration proof:
-  - access rules
-  - organization scoping
-  - cursor pagination
-  - non-UUID search safety
-- E2E:
-  - queue page render
-  - filter form
-  - access behavior
-  - empty state
+- `/projects/:projectId/reviews/tasks`
+- `/projects/:projectId/reviews/assigners`
+- `/projects/:projectId/reviews/environment`
 
-Nguồn: `start/routes/reviews.ts`, `app/modules/reviews/controllers/show_org_disputes_page_controller.ts`, `app/modules/reviews/actions/queries/list_org_review_disputes_query.ts`, `app/modules/reviews/tests/backend/integration/org_dispute_queue_access.spec.ts`, `inertia/apps/org/tests/e2e/reviews/org_dispute_queue.spec.ts`, `inertia/apps/org/tests/e2e/reviews/org_dispute_queue_flow.spec.ts`
+`Waiting on me`, history và detail là filter/card room trên board. Khi case được report, User tiếp tục theo dõi card ở Project board; System Admin xử lý bản chiếu tương ứng trên `/admin/disputes`.
 
-Điểm phải nhớ:
-
-- route `/org/disputes` cũng không đi qua `requireOrgAdmin()` ở middleware layer
-- người support không nên dùng tên path để tự kết luận actor boundary
-- khi access fail, phải kiểm tra current org, approved membership, dispute scoping, rồi mới nghi admin role
-- đừng trộn `/org/disputes` với `/org/reverse-reviews`; reverse review org scope hiện còn có guard role hẹp hơn ở query layer
+Nguồn: `start/routes/projects.ts`, `start/routes/reviews.ts`, `app/modules/authorization/tests/backend/unit/realm_separation_source.spec.ts`, `app/modules/reviews/tests/backend/integration/review_access_guards.spec.ts`
 
 ## System Admin Guide
 
@@ -351,9 +334,7 @@ Nguồn: `start/routes/reviews.ts`, `app/modules/reviews/controllers/show_org_di
 
 Các bề mặt admin đã được xác nhận:
 
-- reverse reviews admin page
-- dispute queue/detail
-- dispute AI operator page
+- AI dispute progress board và card room
 - case-files / AI evaluations
 - flagged reviews
 - admin dashboards
@@ -364,6 +345,10 @@ Các bề mặt admin đã được xác nhận:
 - packages
 
 Đây là vùng cần đọc cẩn thận nhất nếu bạn đang support incident có liên quan moderation, dispute, permissions, hoặc dashboards hệ thống.
+
+System Admin là principal/realm riêng trong product/security model. Không hướng dẫn User bật admin mode, không dùng Organization/Project switcher trong Admin app và không redirect System Admin vào Project Workspace.
+
+Implementation caveat: route/UI/policy context đã tách nhưng authentication transport vẫn đọc `auth.user.system_role`; đây là physical-separation migration debt. Runbook không được biến chi tiết compatibility đó thành hướng dẫn “nâng role User để vào Admin” cho người dùng cuối.
 
 Nguồn: `start/routes/reviews.ts`, `start/routes/admin.ts`
 
@@ -481,7 +466,7 @@ Nguồn: `start/routes/notifications.ts`, `start/routes/api_v1.ts`, `app/modules
 
 ## What Not To Do
 
-- Đừng nhìn route rồi tự gom `/org/*` thành một loại quyền duy nhất; org discovery, org workspace, org dispute queue, và org admin actions không hoàn toàn giống nhau.
+- Đừng gom Organization Management, Project Workspace và System Administration thành một quyền/shell; `/org/disputes` đã bị gỡ và User-side dispute nằm trên Project board.
 - Đừng thấy user đã gửi join request rồi kết luận họ sẽ đọc được org workspace; `pending` và `approved` khác nhau rất nhiều ở runtime.
 - Đừng mô tả reverse review như flow create active bình thường theo task; docs user-facing cũng phải giữ đúng caveat deprecate hiện tại.
 - Đừng thấy `/api/v1/auth/*` rồi suy ra login/token flow ở đó là bearer bootstrap thuần; runtime hiện không đơn giản như vậy.

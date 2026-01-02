@@ -1,5 +1,9 @@
 # Layered Coverage Restart Audit
 
+> Historical coverage snapshot. Rows about Organization task lists or retired review/dispute pages
+> do not define current product surfaces. Current UI truth is four Project boards plus the isolated
+> System Admin dispute board.
+
 Last reviewed: 2026-07-14
 
 ## Rule

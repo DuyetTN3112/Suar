@@ -1,0 +1,26 @@
+%% State 02d — Sprint reverse-review escalation
+%% Evidence status: Implemented escalation; external AI advisory branch is Partial.
+%% Updated: 2026-07-27.
+
+stateDiagram-v2
+direction TB
+    [*] --> reported : Workflow reported
+    reported --> ai_reviewing : Admin starts AI advisory
+    ai_reviewing --> reported : Signed callback stores advisory
+    reported --> resolved : System admin resolves
+    ai_reviewing --> resolved : System admin resolves during AI review
+    ai_reviewing --> disputed : Participant responds<br/>unguarded regression
+    resolved --> disputed : Participant responds<br/>unguarded regression
+    disputed --> reported : Participant reports again
+
+    note right of ai_reviewing
+        AI result is advisory only.
+        Authorized system admin owns final decision.
+    end note
+
+    note left of resolved
+        resolved is intended terminal. Respond command rejects
+        only done and reported, so resolved and ai_reviewing can
+        regress to disputed. Other accepted source statuses appear
+        in the main workflow diagram.
+    end note

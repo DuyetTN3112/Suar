@@ -1,10 +1,11 @@
 {
   "organization": {
+    "label": "Organization",
     "name": "Name",
     "description": "Description",
     "website": "Website",
     "logo": "Logo",
-    "members": "Members",
+    "members_label": "Members",
     "owner": "Owner",
     "created_at": "Created at",
     "new_organization": "New Organization",
@@ -27,6 +28,10 @@
     "role_label": "Role",
     "view_detail": "View details",
     "select": "Select",
+    "required": "Organization required",
+    "required_message": "Join or create an organization to manage projects.",
+    "project_scope_message": "Select or join an organization before creating projects.",
+    "go_to_organizations": "Go to organizations",
     "index": {
       "page_title": "Organizations",
       "eyebrow": "Organizations",
@@ -100,6 +105,7 @@
       "title": "Organization invitations",
       "invite_button": "Invite member",
       "invite_title": "Invite member",
+      "invite_error": "Unable to invite this email.",
       "role_label": "Role",
       "list_title": "Sent invitations",
       "empty": "No matching invitations yet.",

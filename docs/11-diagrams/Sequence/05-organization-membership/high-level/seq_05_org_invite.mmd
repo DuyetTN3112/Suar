@@ -1,0 +1,42 @@
+%% Sequence 05 — Invite organization member
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin invites one user by current org workspace.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» InviteMemberController
+    participant K as «control» InviteUserCommand
+    participant D as «entity» PostgreSQL
+    participant N as «control» NotificationPublicApi
+
+    ADMIN->>B: Enter invitee and assignable role
+    activate B
+    B->>C: POST /org/members/invite
+    activate C
+    C->>K: executeFromRequest(inviteInput)
+    activate K
+    K->>D: Load actor, user and current membership/invitation state
+    activate D
+    D-->>K: Authorization and duplicate context
+    deactivate D
+    alt Invite allowed
+        K->>D: Create pending organization_users invitation and audit
+        activate D
+        D-->>K: Pending invitation
+        deactivate D
+        K->>N: Notify invited user
+        activate N
+        N-->>K: Notification persisted
+        deactivate N
+        K-->>C: Completed
+    else Invalid role/access/duplicate
+        K-->>C: Policy or conflict error
+    end
+    deactivate K
+    C-->>B: Redirect/result
+    deactivate C
+    B-->>ADMIN: Show current invitations
+    deactivate B

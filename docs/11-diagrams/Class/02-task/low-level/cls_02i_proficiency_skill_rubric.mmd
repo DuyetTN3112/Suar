@@ -1,0 +1,57 @@
+%% Class Diagram 02i — Proficiency Scale and Skill Rubric
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: app/modules/skills/infra/models/proficiency_*.ts and skill_rubric_*.ts.
+
+classDiagram
+    direction LR
+
+    class ProficiencyScale {
+        <<Lucid Model>>
+        +UUID id PK
+        +String code
+        +String name
+        +Integer version
+        +Boolean is_active
+        +DateTime effective_from
+    }
+    class ProficiencyLevel {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID scale_id FK
+        +String code
+        +String display_name
+        +Integer ordinal
+        +Decimal normalized_value
+        +JSONB observable_behaviors
+    }
+    class Skill {
+        <<Lucid Model>>
+        +UUID id PK
+        +String skill_code
+        +String skill_name
+        +String category_code
+    }
+    class SkillRubricVersion {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID skill_id FK
+        +Integer version
+        +String status
+        +DateTime effective_from
+    }
+    class SkillRubricLevel {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID rubric_version_id FK
+        +UUID proficiency_level_id FK
+        +Text summary
+        +JSONB observable_behaviors
+        +JSONB evidence_guidance
+    }
+
+    ProficiencyScale "1" --> "*" ProficiencyLevel : defines
+    Skill "1" --> "*" SkillRubricVersion : versions rubric
+    SkillRubricVersion "1" --> "*" SkillRubricLevel : defines levels
+    SkillRubricLevel "*" --> "1" ProficiencyLevel : anchors meaning
+

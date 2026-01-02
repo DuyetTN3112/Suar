@@ -1,0 +1,33 @@
+%% Activity 04a — Project creation and initial staffing overview
+%% Updated 2026-07-27 (panel split).
+%% Evidence status: Implemented.
+%% Level: High level. Children: act_04a1_project_setup_input, act_04a2_initial_staffing_resolution.
+%% Evidence: CreateProjectWithStaffingController, project/skill public APIs, project membership commands.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Project creation requested]) --> Setup["Capture project setup<br/>act_04a1"] --> ToCreate((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromSetup((A)) --> Create["Create project and owner membership"] --> Seed["Apply selected role templates, if any"] --> ToStaff((B))
+    end
+    subgraph Row3[" "]
+        direction LR
+        FromSeed((B)) --> Staff["Resolve initial memberships and roles<br/>act_04a2"] --> Ready([Project ready])
+    end
+    ToCreate ~~~ FromSetup
+    ToStaff ~~~ FromSeed
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef result fill:#E8F5E9,stroke:#2E7D32,color:#333,stroke-width:2px
+    class Start terminal
+    class Setup,Create,Seed,Staff action
+    class Ready result
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToCreate,FromSetup,ToStaff,FromSeed connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent
+    style Row3 fill:transparent,stroke:transparent

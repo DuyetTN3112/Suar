@@ -1,0 +1,38 @@
+%% Architecture 06b — Privileged administration and AI callback boundary
+%% Evidence status: Implemented; external AI advice remains advisory.
+%% Report view: focused slice of arch_06_security_trust_boundaries.
+
+flowchart TB
+    subgraph HumanPath["Human-owned decision path"]
+        direction LR
+        AdminUser["Authenticated system administrator"]
+        AdminGuard["System-admin guard<br/>requireSystemAdmin · admin context"]
+        HumanDecision["Human-owned dispute decision"]
+        AdminUser -->|"authenticated admin route"| AdminGuard --> HumanDecision
+    end
+
+    subgraph AdvisoryPath["Verified advisory path"]
+        direction LR
+        ClawClient["Untrusted Clawagent callback client"]
+        CallbackGuard["Public callback guard<br/>HMAC-SHA256 · timestamp · identifier · row lock"]
+        ClawClient -->|"CSRF-exempt · rate limited"| CallbackGuard
+    end
+
+    Repository["Controlled persistence access"]
+    PG[(PostgreSQL)]
+
+    CallbackGuard -->|"store advisory result"| Repository
+    CallbackGuard -. "advice never resolves case" .-> HumanDecision
+    HumanDecision -->|"authorized final decision"| Repository
+    Repository --> PG
+
+    classDef untrusted fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    classDef control fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef privileged fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef data fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class ClawClient untrusted
+    class CallbackGuard,Repository control
+    class AdminUser,AdminGuard,HumanDecision privileged
+    class PG data
+    style HumanPath fill:#FFF7ED,stroke:#EA580C,stroke-width:2px
+    style AdvisoryPath fill:#FEF2F2,stroke:#EF4444,stroke-width:2px,stroke-dasharray:5 4

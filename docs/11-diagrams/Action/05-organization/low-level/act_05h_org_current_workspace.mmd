@@ -1,0 +1,36 @@
+%% Activity 05h — Current Organization Management workspace
+%% Updated: 2026-07-28.
+%% Evidence status: Implemented. /org uses current organization context and contains no task/review board.
+%% Detail: member/invitation flows in 05d–05g; Project Workspace in Action/04.
+
+flowchart LR
+    Start([User enters /org]) --> Resolve["Resolve current organization"]
+    Resolve --> Member{"Approved membership?"}
+    Member -->|No| OrgDenied([Organization context required])
+    Member -->|Yes| Admin{"Owner/admin permission?"}
+    Admin -->|No| AdminDenied([Organization management denied])
+    Admin -->|Yes| Hub["Open Organization Management"]
+
+    Hub --> People["People & access<br/>members · invitations · requests · roles"]
+    Hub --> Governance["Governance<br/>settings · permissions · audit"]
+    Hub --> Resources["Resources<br/>talent · bookmarks"]
+    Hub --> Portfolio["Project portfolio<br/>list · create · governance"]
+
+    People --> End([Continue in Organization Management])
+    Governance --> End
+    Resources --> End
+    Portfolio --> Select{"Open a project?"}
+    Select -->|No| End
+    Select -->|Yes| Project["Leave Organization shell<br/>open Project Workspace"]
+    Project --> ProjectEnd([Project boards available])
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef section fill:#E8F5E9,stroke:#16A34A,color:#14532D,stroke-width:2px
+    classDef error fill:#FFEBEE,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    class Start,End,ProjectEnd terminal
+    class Resolve,Hub,Project action
+    class Member,Admin,Select decision
+    class People,Governance,Resources,Portfolio section
+    class OrgDenied,AdminDenied error

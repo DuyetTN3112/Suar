@@ -59,7 +59,7 @@ Evidence:
 
 - `app/modules/skills/constants/skill_constants.ts`
 - `database/migrations/20260718150000_migrate_skill_categories_to_four_groups.ts`
-- `app/modules/tasks/actions/support/task_required_skill_category_rules.ts`
+- `app/modules/tasks/domain/task_required_skill_category_rules.ts`
 - `inertia/apps/user/modules/tasks/lib/rules/task_skill_category_rules.ts`
 - `inertia/apps/org/modules/tasks/lib/rules/task_skill_category_rules.ts`
 
@@ -200,7 +200,7 @@ Nguồn: `start/routes/marketplace.ts`.
 - withdrawn application giữ trong history
 - active list không giữ withdrawn application
 
-Nguồn: `start/routes/marketplace.ts`, `app/modules/marketplace/controllers/my_marketplace_applications_controller.ts`, `app/modules/marketplace/controllers/withdraw_marketplace_application_controller.ts`, `docs/11-diagrams/Action/act_02c_marketplace_withdraw.mmd`
+Nguồn: `start/routes/marketplace.ts`, `app/modules/marketplace/controllers/my_marketplace_applications_controller.ts`, `app/modules/marketplace/controllers/withdraw_marketplace_application_controller.ts`, `docs/11-diagrams/Action/02-marketplace/high-level/act_02c_marketplace_withdraw.mmd`
 
 ## Test Evidence
 
@@ -229,13 +229,13 @@ Nguồn: `start/routes/marketplace.ts`, `app/modules/marketplace/controllers/my_
 
 ## Related Diagrams
 
-- `docs/11-diagrams/Action/act_02_marketplace_overview.mmd`
-- `docs/11-diagrams/Action/act_02b_marketplace_apply.mmd`
-- `docs/11-diagrams/Action/act_02c_marketplace_withdraw.mmd`
-- `docs/11-diagrams/Action/act_02d_marketplace_triage_ranking.mmd`
-- `docs/11-diagrams/Action/act_07_profile_skills_overview.mmd`
-- `docs/11-diagrams/Sequence/seq_03_marketplace_apply.mmd`
-- `docs/11-diagrams/Sequence/seq_09_skill_profile.mmd`
+- `docs/11-diagrams/Action/02-marketplace/README.md`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02b_marketplace_apply.mmd`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02c_marketplace_withdraw.mmd`
+- `docs/11-diagrams/Action/02-marketplace/high-level/act_02d_marketplace_triage_ranking.mmd`
+- `docs/11-diagrams/Action/07-profile-skills/README.md`
+- `docs/11-diagrams/Sequence/03-marketplace/high-level/seq_03_marketplace_apply.mmd`
+- `docs/11-diagrams/Sequence/09-profile-skills/high-level/seq_09_skill_profile.mmd`
 
 ## Boundary
 

@@ -1,0 +1,33 @@
+%% State 08 — Project status field
+%% Updated 2026-07-27.
+%% Evidence status: Partial lifecycle. Four values are enforced; transition order is not.
+%% Evidence: ProjectStatus enum, project_state_rules.ts, project update DTO/command.
+
+stateDiagram-v2
+    direction LR
+    state CreateStatus <<choice>>
+    [*] --> CreateStatus : createProject / validate status
+    CreateStatus --> pending : [omitted or pending]
+    CreateStatus --> in_progress : [status = in_progress]
+    CreateStatus --> completed : [status = completed]
+    CreateStatus --> cancelled : [status = cancelled]
+
+    state UpdateStatus <<choice>>
+
+    pending --> UpdateStatus : updateStatus(value)
+    in_progress --> UpdateStatus : updateStatus(value)
+    completed --> UpdateStatus : updateStatus(value)
+    cancelled --> UpdateStatus : updateStatus(value)
+
+    UpdateStatus --> pending : [value = pending]
+    UpdateStatus --> in_progress : [value = in_progress]
+    UpdateStatus --> completed : [value = completed]
+    UpdateStatus --> cancelled : [value = cancelled]
+
+    note right of UpdateStatus
+        CreateProjectDTO accepts any ProjectStatus value;
+        pending is only the omitted-status default.
+        Update validates enum membership only. No ordered
+        transition policy exists, so any current value may
+        change to any accepted value, including itself.
+    end note

@@ -1,0 +1,37 @@
+%% Use Case 04a — System administration surface
+%% Updated: 2026-07-28.
+%% Evidence status: Implemented; AI evaluation is advisory, not autonomous resolution.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+%% Boundary: both actors are System-realm principals, never User/Organization/Project roles.
+
+flowchart TB
+    admin([👤 System Admin principal])
+    superadmin([👤 System Superadmin principal])
+
+    subgraph system["System administration boundary"]
+        direction TB
+        dashboard([View governance dashboards and queues])
+        manageUsers([Govern User accounts and System-principal roles])
+        inspectOrg([Inspect organizations, projects, memberships])
+        resolve([Resolve disputes and flagged reviews])
+        inspectAi([Inspect AI advisory evaluations and case context])
+        audit([View audit events])
+        packages([Manage account packages and support actions])
+    end
+
+    admin --- dashboard
+    admin --- manageUsers
+    admin --- inspectOrg
+    admin --- resolve
+    admin --- inspectAi
+    admin --- audit
+    admin --- packages
+    superadmin --- manageUsers
+    superadmin -.->|"△ generalization"| admin
+    inspectAi -.->|"«extend»"| resolve
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class admin,superadmin actor
+    class dashboard,manageUsers,inspectOrg,resolve,inspectAi,audit,packages goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

@@ -1,0 +1,41 @@
+%% Sequence 09 — Update profile skill
+%% Updated: 2026-07-27.
+%% Scenario: profile owner adds one skill to current profile.
+%% Evidence status: Implemented; aggregate recalculation is downstream review/profile work.
+
+sequenceDiagram
+    autonumber
+    actor OWNER as Profile owner
+    participant C as «boundary» AddProfileSkillController
+    participant K as «control» AddUserSkillCommand
+    participant P as «control» proficiencyFrameworkPublicApi
+    participant D as «entity» PostgreSQL
+    participant A as «control» AuditPublicApi
+    participant E as «control» Adonis emitter
+
+    OWNER->>C: POST skill and proficiency level
+    activate C
+    C->>K: handle(AddUserSkillDTO)
+    activate K
+    K->>D: Resolve active skill or create custom skill
+    activate D
+    D-->>K: Canonical skill
+    deactivate D
+    K->>P: mapCodeToLevel(proficiencyCode)
+    activate P
+    P-->>K: Canonical proficiency level
+    deactivate P
+    K->>D: Reject duplicate and create imported user_skill
+    activate D
+    D-->>K: User skill persisted
+    deactivate D
+    K->>A: write(add_skill audit)
+    activate A
+    A-->>K: Audit persisted
+    deactivate A
+    K->>E: emit skill:score:updated
+    E-->>K: Event queued
+    K-->>C: User skill record
+    deactivate K
+    C-->>OWNER: Updated profile skill
+    deactivate C

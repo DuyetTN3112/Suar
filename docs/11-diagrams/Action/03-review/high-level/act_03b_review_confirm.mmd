@@ -1,0 +1,30 @@
+%% Activity 03b — Reviewee accepts or disputes task review
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Sprint reverse review is separate; full dispute handling lives in 03d.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start(["Completed review session"]) --> Notify["Notify reviewee and show result"] --> Choice{"Accept or dispute?"}
+        Choice -->|Accept| ToAccept((A))
+        Choice -->|Dispute| ToDispute((B))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromAccept((A)) --> Accept["Accept result<br/>make governed scores eligible"] --> Handoff(["Continue to score recalculation"])
+        FromDispute((B)) --> Open["Mark session disputed<br/>create pending review_dispute"] --> Room["Collect comments and evidence<br/>optionally escalate to admin"] --> Resolved["Apply human resolution outcome"] --> Handoff
+    end
+    ToAccept ~~~ FromAccept
+    ToDispute ~~~ FromDispute
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,Handoff startEnd
+    class Notify,Accept,Open,Room,Resolved action
+    class Choice decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToAccept,FromAccept,ToDispute,FromDispute connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

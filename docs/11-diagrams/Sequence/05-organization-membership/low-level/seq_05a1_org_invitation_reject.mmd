@@ -1,0 +1,37 @@
+%% Sequence 05a1 — Reject organization invitation
+%% Updated: 2026-07-27.
+%% Scenario: invited user rejects one pending organization membership.
+%% Evidence status: Implemented. PUT /api/v1/me/invitations/:organizationId/reject.
+
+sequenceDiagram
+    autonumber
+    actor I as Invited user
+    participant B as «boundary» Browser
+    participant C as «boundary» RejectMyInvitationController
+    participant F as «inbound» OrganizationInvitationCommandFactory
+    participant K as «control» RejectOrganizationInvitationCommand
+    participant D as «entity» PostgreSQL
+    participant N as «outbound» OrganizationNotificationStager
+
+    I->>B: Reject pending invitation
+    activate B
+    B->>C: PUT /api/v1/me/invitations/:organizationId/reject
+    activate C
+    C->>F: makeReject(execCtx)
+    F-->>C: Command
+    C->>K: execute(organizationId)
+    activate K
+    K->>D: Find pending organization_users row with invited_by
+    activate D
+    D-->>K: Pending invited membership
+    K->>N: Stage inviter notification and outbox on transaction
+    N-->>K: Staged
+    K->>D: Set status=rejected, write audit, commit staged effects
+    D-->>K: Transaction committed
+    deactivate D
+    K-->>C: Completed
+    deactivate K
+    C-->>B: Mutation success and redirect back
+    deactivate C
+    B-->>I: Invitation marked rejected
+    deactivate B

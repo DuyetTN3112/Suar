@@ -172,8 +172,8 @@ Snapshot này là bằng chứng lần chạy local, không thay thế CI hoặc
 | E2E | Match score explainability | `inertia/apps/user/tests/e2e/tasks/match_score_explainability.spec.ts` |
 | E2E | Profile trust explanation | `inertia/apps/user/tests/e2e/profile/profile_trust_explanation.spec.ts` |
 | E2E | Org invitation/join-request journeys | `inertia/apps/org/tests/e2e/org/invitation_journey.spec.ts`, `inertia/apps/org/tests/e2e/org/join_request_journey.spec.ts` |
-| E2E | Org dashboard/talent/bookmark/task-scope pages | `inertia/apps/org/tests/e2e/org/org_dashboard_decision_hub.spec.ts`, `inertia/apps/org/tests/e2e/org/org_talent_pages.spec.ts`, `inertia/apps/org/tests/e2e/org/org_task_scope_toggle.spec.ts`, `inertia/apps/org/tests/e2e/tasks/org_task_scope_journey.spec.ts` |
-| E2E | Review lifecycle/dispute/governance surfaces | `inertia/apps/org/tests/e2e/reviews/org_dispute_queue.spec.ts`, `inertia/apps/org/tests/e2e/reviews/org_dispute_queue_flow.spec.ts`, `inertia/apps/org/tests/e2e/reviews/reverse_review_access.spec.ts`, `inertia/apps/org/tests/e2e/reviews/user_org_admin_review_chain.spec.ts`, `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts`, `inertia/apps/org/tests/e2e/reviews/reverse_sprint_review_dispute_room.spec.ts`, `inertia/apps/org/tests/e2e/reviews/sprint_review_governance_experience.spec.ts`, `inertia/apps/org/tests/e2e/reviews/review_surfaces_roleplay_experience.spec.ts` |
+| E2E | Org governance and portfolio pages | Current specs under `inertia/apps/org/tests/e2e/org/*`; task/review board proof is intentionally excluded from the Org shell |
+| E2E | Canonical Project review boards | `inertia/apps/user/tests/e2e/reviews/task_review_board_demo.spec.ts`, `inertia/apps/user/tests/e2e/reviews/sprint_reverse_review_board_demo.spec.ts` |
 | E2E | Task create/submission/application/status-browser checks | `inertia/apps/user/tests/e2e/tasks/task_create_role_prefill.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_submission_package.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_application_access.spec.ts`, `inertia/apps/user/tests/e2e/tasks/task_application_triage.spec.ts`, `inertia/apps/user/tests/e2e/tasks/dialog_reactivity_matrix.spec.ts` |
 | E2E | Admin audit/proficiency browser checks | `inertia/apps/admin/tests/e2e/admin/admin_audit_logs_console.spec.ts`, `inertia/apps/admin/tests/e2e/admin/admin_proficiency_rubric_read.spec.ts` |
 | E2E | Meta policy false-pass guard | `inertia/apps/user/tests/e2e/meta/no_false_pass_patterns.spec.ts` |
@@ -191,11 +191,12 @@ Snapshot này là bằng chứng lần chạy local, không thay thế CI hoặc
   - route `/org/bookmarks` đã được xác nhận trong `start/routes/users.ts`
   - page shell `inertia/apps/org/modules/bookmarks/index.svelte`
   - E2E proof đã có ở `inertia/apps/org/tests/e2e/org/talent_bookmarks.spec.ts`
-- `review/dispute browser evidence` hiện phải đọc đúng các spec E2E đang tồn tại:
-  - route `/org/disputes` đã được xác nhận trong `start/routes/reviews.ts`
-  - controller page shell đã tồn tại
-  - integration proof đã có ở `app/modules/reviews/tests/backend/integration/org_dispute_queue_access.spec.ts`
-  - E2E proof hiện nằm ở các review/dispute specs còn tồn tại như `inertia/apps/org/tests/e2e/reviews/reverse_sprint_review_dispute_room.spec.ts`, `inertia/apps/org/tests/e2e/reviews/review_lifecycle_experience.spec.ts`, và `inertia/apps/org/tests/e2e/reviews/sprint_review_governance_experience.spec.ts`
+- `review/dispute browser evidence` phải bám canonical surface:
+  - bốn Project board routes nằm trong `start/routes/projects.ts`
+  - `/org/disputes`, reviewer inbox và review/reverse-review history pages phải tiếp tục vắng mặt
+  - route/source guards nằm ở `review_access_guards.spec.ts` và `realm_separation_source.spec.ts`
+  - Project board E2E nằm ở hai spec `inertia/apps/user/tests/e2e/reviews/*_board_demo.spec.ts`
+  - System board component/backend proof nằm dưới `inertia/apps/admin/tests/modules/disputes/*` và admin dispute tests
 - `admin_proficiency_rubric_read` hiện không còn là “route chưa rõ”:
   - admin web routes `/admin/proficiency`, `/admin/proficiency/:proficiencyScaleId`, `/admin/proficiency/rubrics/:skillId` đã được xác nhận trong `start/routes/admin.ts`
   - controller proof đã có

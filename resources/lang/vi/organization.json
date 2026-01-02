@@ -1,10 +1,11 @@
 {
   "organization": {
+    "label": "Tổ chức",
     "name": "Tên",
     "description": "Mô tả",
-    "website": "Website",
+    "website": "Trang web",
     "logo": "Logo",
-    "members": "Thành viên",
+    "members_label": "Thành viên",
     "owner": "Chủ sở hữu",
     "created_at": "Tạo lúc",
     "new_organization": "Tổ chức mới",
@@ -27,6 +28,10 @@
     "role_label": "Vai trò",
     "view_detail": "Xem chi tiết",
     "select": "Chọn",
+    "required": "Cần có tổ chức",
+    "required_message": "Hãy tham gia hoặc tạo một tổ chức để quản lý dự án.",
+    "project_scope_message": "Chọn hoặc tham gia một tổ chức trước khi tạo dự án.",
+    "go_to_organizations": "Đến danh sách tổ chức",
     "index": {
       "page_title": "Danh sách tổ chức",
       "eyebrow": "Tổ chức",
@@ -100,6 +105,7 @@
       "title": "Lời mời tổ chức",
       "invite_button": "Mời thành viên",
       "invite_title": "Mời thành viên",
+      "invite_error": "Không thể gửi lời mời tới email này.",
       "role_label": "Vai trò",
       "list_title": "Danh sách lời mời đã gửi",
       "empty": "Chưa có lời mời phù hợp.",
@@ -113,7 +119,7 @@
     },
     "requests": {
       "page_title": "Yêu cầu tham gia",
-      "eyebrow": "Organization invitations",
+      "eyebrow": "Lời mời vào tổ chức",
       "title": "Yêu cầu tham gia",
       "list_title": "Danh sách yêu cầu",
       "empty": "Không có yêu cầu đang chờ.",
@@ -122,25 +128,25 @@
     },
     "members": {
       "page_title": "Thành viên tổ chức",
-      "eyebrow": "Organization access",
+      "eyebrow": "Quyền truy cập tổ chức",
       "title": "Thành viên tổ chức",
       "list_title": "Danh sách thành viên",
       "empty": "Không có thành viên phù hợp."
     },
     "bookmarks": {
       "page_title": "Talent đã lưu",
-      "eyebrow": "Recruiting",
+      "eyebrow": "Tuyển dụng",
       "title": "Talent đã lưu",
       "summary": ":count hồ sơ trong shortlist.",
       "list_title": "Danh sách bookmark",
       "empty": "Chưa có talent đã lưu.",
       "notes_missing": "Chưa có ghi chú",
-      "folder_default": "Shortlist",
+      "folder_default": "Danh sách rút gọn",
       "view_profile": "Xem hồ sơ"
     },
     "no_org": {
       "page_title": "Cần chọn tổ chức",
-      "eyebrow": "Organization workspace",
+      "eyebrow": "Không gian tổ chức",
       "title": "Cần chọn tổ chức",
       "description": "Tài khoản hiện chưa có tổ chức đang hoạt động trong phiên làm việc này.",
       "view_organizations": "Xem tổ chức",
@@ -202,7 +208,7 @@
       "manage_org_projects": "Quản trị dự án tổ chức",
       "general_project_list": "Danh sách dự án tổng quát",
       "reviews_title": "Review tổ chức",
-      "reviews_description": "Gom review môi trường làm việc và review quản lý đã ghi nhận. Flow mới chạy sau khi kết thúc sprint thay vì phát sinh sau từng task.",
+      "reviews_description": "Gom review môi trường làm việc và review quản lý đã ghi nhận. Luồng mới chạy sau khi kết thúc sprint thay vì phát sinh sau từng task.",
       "open_reverse_review_center": "Mở trung tâm review môi trường",
       "total_reviews": "Tổng review",
       "average_rating": "Điểm trung bình",
@@ -230,8 +236,8 @@
     },
     "talent_explainability": {
       "reviewed_count": ":reviewed/:total đã review",
-      "imported_count": ":count imported",
-      "dispute_count": ":count dispute"
+      "imported_count": ":count kỹ năng đã nhập",
+      "dispute_count": ":count tranh chấp"
     },
     "admin_organizations": {
       "index": {
@@ -252,7 +258,7 @@
         "eyebrow": "Admin / Chi tiết tổ chức",
         "summary": ":members thành viên · :projects dự án",
         "info_title": "Thông tin tổ chức",
-        "organization_id": "Organization ID",
+        "organization_id": "Mã tổ chức",
         "name": "Tên",
         "description": "Mô tả",
         "no_description": "Chưa có mô tả",
@@ -296,9 +302,9 @@
       },
       "roles_title": "Vai trò trong tổ chức",
       "roles": {
-        "owner": "Owner",
-        "admin": "Admin",
-        "member": "Member"
+        "owner": "Chủ sở hữu",
+        "admin": "Quản trị viên",
+        "member": "Thành viên"
       },
       "quick_title": "Điều phối nhanh",
       "quick": {

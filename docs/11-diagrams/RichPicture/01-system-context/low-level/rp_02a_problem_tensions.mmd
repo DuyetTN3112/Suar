@@ -1,0 +1,40 @@
+%% Rich Picture 02a — Current problems and stakeholder tensions
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented + Partial.
+%% Report view: focused slice of rp_02_problems_solutions; not a new capability claim.
+
+flowchart LR
+    subgraph concerns["Stakeholder concerns"]
+        direction TB
+        S1["Contributor · manager<br/>Will completed work become proof?<br/>Who fits this work context?"]
+        S2["Reviewer · administrator<br/>Can evidence be trusted?<br/>Can conclusions be justified?"]
+        S3["Talent sourcer<br/>Is a match explainable,<br/>current, and evidence-backed?"]
+    end
+
+    subgraph problems["Current problem situation"]
+        direction TB
+        P1["Work context is scattered<br/>Outcomes are hard to compare"]
+        P2["Claims and reviewed evidence mix<br/>Equal label, unequal trust"]
+        P3["Scores and matches hide context<br/>Confidence · staleness · disputes"]
+    end
+
+    subgraph tensions["Systemic tensions"]
+        direction TB
+        T1{{"Fast delivery<br/>↔ rigorous assessment"}}
+        T2{{"Self-claim<br/>↔ verified conclusion"}}
+        T3{{"Automation<br/>↔ human accountability"}}
+    end
+
+    S1 -->|"experiences"| P1 -->|"creates pressure"| T1
+    S2 -->|"must resolve"| P2 -->|"creates risk"| T2
+    S3 -->|"cannot interpret"| P3 -->|"creates governance need"| T3
+
+    classDef stakeholder fill:#E8F1FF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef pain fill:#FEF2F2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px
+    classDef tension fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    class S1,S2,S3 stakeholder
+    class P1,P2,P3 pain
+    class T1,T2,T3 tension
+    style concerns fill:#EFF6FF,stroke:#93C5FD,stroke-width:2px
+    style problems fill:#FFF7F7,stroke:#FCA5A5,stroke-width:2px
+    style tensions fill:#FFFBEB,stroke:#FDBA74,stroke-width:2px

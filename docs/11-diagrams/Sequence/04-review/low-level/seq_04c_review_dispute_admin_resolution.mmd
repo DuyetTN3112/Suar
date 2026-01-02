@@ -1,0 +1,34 @@
+%% Sequence 04c — Resolve review dispute
+%% Scenario: system administrator resolves one already-opened dispute case.
+%% Evidence status: Implemented; AI advice never replaces human decision.
+%% Scope: authoritative resolution. Construction is shown in arch_02b; advisory callback is seq_04e.
+
+sequenceDiagram
+    autonumber
+    actor A as System administrator
+    participant C as «boundary» ResolveReviewDisputeController
+    participant K as «control» ResolveReviewDisputeCommand
+    participant U as «outbound» Resolution unit of work
+    participant DB as «store» PostgreSQL + event outbox
+
+    A->>C: POST /api/admin/reviews/disputes/:disputeId/resolve
+    C->>K: execute(decision, rationale, selected actions)
+    activate K
+    K->>U: run atomic resolution
+    U->>DB: Lock case, load dossier and actor role
+    DB-->>U: Resolution context
+    U-->>K: Persistence session
+    K->>K: Validate authority, readiness, decision, and actions
+    alt Case can resolve
+        K->>U: Save resolution, audit, and resolved-event intent
+        U->>DB: Commit human decision + audit + durable event
+        DB-->>U: Resolved case
+        U-->>K: Resolution result
+        K-->>C: 201 result with human decision
+        C-->>A: Show authoritative outcome
+    else Terminal or invalid
+        K-->>C: Conflict/business error
+        C-->>A: Keep prior state
+    end
+    deactivate K
+    Note over DB: Post-commit consumers process the durable event.\nThey never decide or replace the administrator's resolution.

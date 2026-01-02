@@ -1,0 +1,37 @@
+%% DFD 04 — Review domain map (Formal Level 2: expansion of P5)
+%% Parent process: P5 Govern reviews from complementary Level-1 frame dfd_01c_review_profile_advisory.
+%% Evidence status: Implemented; AI advisory remains Partial and human-governed.
+%% Balance: refines the completion-package/review-handoff input and returns governed outcome events to P7.
+
+%%{init: {"flowchart": {"curve": "stepAfter", "nodeSpacing": 32, "rankSpacing": 52}} }%%
+
+flowchart TB
+    H["P3<br/>Internal completion handoff"] -->|"submission and reviewer policy"| P1[[5.1 Open review]]
+    R["E1<br/>Assigned reviewer"] -->|"ratings and evidence"| P2[[5.2 Submit review]]
+    V["E2<br/>Reviewee / contributor"] -->|"response input"| P3[[5.3 Govern outcome]]
+    A["E3<br/>System administrator"] -->|"governance input"| P3
+    E5["E5<br/>Clawagent advisory API"]
+    P7["P7<br/>Internal audit/delivery handoff"]
+    M["E1<br/>Member / project authority"]
+    P1 -->|"session and assignment state"| D[("D4<br/>Review governance records")]
+    D -->|"open review context"| P2
+    P2 -->|"review and evidence state"| D
+    D -->|"completed or reported outcome"| P3
+    P3 -->|"decision and audit state"| D
+    D -->|"valid governed observations"| P4[[5.4 Recalculate profile signals]]
+    P4 -->|"skill and performance aggregates"| D2[("D4<br/>Profile aggregate records<br/>same logical store")]
+    P2 -->|"review result"| R
+    P3 -->|"governance result"| V
+    P3 -->|"governance result"| A
+    P3 -->|"signed dispute-evaluation request"| E5
+    E5 -->|"signed advisory callback"| P3
+    P3 -->|"governed outcome events"| P7
+    P4 -->|"governed profile result"| M
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class R,V,A,E5,M entity
+    class P1,P2,P3,P4 process
+    class D,D2 store
+    classDef handoff fill:#F8FAFC,stroke:#64748B,color:#0F172A,stroke-width:2px
+    class H,P7 handoff

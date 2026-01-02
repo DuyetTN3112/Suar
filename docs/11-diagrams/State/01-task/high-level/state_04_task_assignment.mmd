@@ -1,0 +1,36 @@
+%% state_04_task_assignment.mmd — TaskAssignment Status
+%% Evidence status: Implemented; dedicated assign/revoke commands have no routed delivery surface.
+%% Updated 2026-07-27 (verified).
+%% Ref: task_assignment model (assignment_status: active/completed/cancelled)
+%% Completion can trigger missing ReviewSession creation as backstop, not guaranteed first creation path.
+
+stateDiagram-v2
+direction LR
+    [*] --> active : Marketplace proposal approved<br/>ProcessApplicationCommand → syncAssignment
+
+    active --> completed : Task enters DONE category<br/>→ auto-mark completed<br/>→ emit completion backstop flow
+    active --> cancelled : Assignment revoked<br/>or assignee cleared through sync path
+
+    completed --> [*]
+    cancelled --> [*]
+
+    note right of active
+        assigned_at = auto-set on creation.
+        estimated_hours, actual_hours tracked.
+        assignment_type: member/external_contributor/volunteer.
+        AssignTaskCommand also calls syncAssignment,
+        but no production controller/route caller was found.
+        Current PUT task edit updates tasks.assigned_to
+        without creating a TaskAssignment row.
+    end note
+
+    note right of completed
+        Completion keeps review mandatory,
+        but session may already exist from
+        completion-package submit path.
+        If missing, backstop listener can:
+        1. Create ReviewSession (status=pending)
+        2. Seed reviewer assignments
+        3. Use governance deadline helper
+           (~72 hours default)
+    end note

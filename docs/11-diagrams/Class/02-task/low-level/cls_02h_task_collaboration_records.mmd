@@ -1,0 +1,50 @@
+%% Class Diagram 02h — Task Collaboration Records
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: task_comment.ts, task_comment_mentions.ts/schema, task_attachment.ts. These are task-scoped records, not generic chat.
+
+classDiagram
+    direction LR
+
+    class Task {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+    }
+    class TaskComment {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID task_id FK
+        +UUID author_id FK
+        +UUID parent_comment_id FK
+        +Text body
+        +String comment_type
+        +String visibility
+        +Boolean review_relevance
+        +DateTime deleted_at
+    }
+    class TaskCommentMention {
+        <<DB row>>
+        +UUID id PK
+        +UUID task_comment_id FK
+        +UUID mentioned_user_id FK
+        +UUID mentioned_by_user_id FK
+        +String mention_token
+    }
+    class TaskAttachment {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID task_id FK
+        +String file_name
+        +String file_path
+        +String mime_type
+        +UUID uploaded_by FK
+        +String attachment_type
+        +DateTime deleted_at
+    }
+
+    Task "1" --> "*" TaskComment : contains
+    TaskComment "0..1" --> "*" TaskComment : replies
+    TaskComment "1" --> "*" TaskCommentMention : tags users
+    Task "1" --> "*" TaskAttachment : carries
+

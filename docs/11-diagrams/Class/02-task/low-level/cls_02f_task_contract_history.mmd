@@ -1,0 +1,61 @@
+%% Class Diagram 02f — Task Contract History
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: task.ts, task_requirement_version*.ts, task_assignment.ts, task_assignment_snapshot.ts.
+
+classDiagram
+    direction TB
+
+    class Task {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID project_id FK
+        +UUID task_status_id FK
+        +Text acceptance_criteria
+        +JSONB expected_deliverables
+        +String verification_method
+    }
+    class TaskRequirementVersion {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID task_id FK
+        +Integer version_number
+        +String reason
+        +UUID created_by FK
+        +JSONB professional_role_snapshot
+    }
+    class TaskRequirementVersionItem {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID requirement_version_id FK
+        +UUID skill_id FK
+        +UUID rubric_version_id FK
+        +UUID minimum_level_id FK
+        +UUID target_level_id FK
+        +Boolean is_mandatory
+        +Decimal weight
+    }
+    class TaskAssignment {
+        <<Lucid-backed table>>
+        +UUID id PK
+        +UUID task_id FK
+        +UUID assignee_id FK
+        +String assignment_status
+        +String assignment_type
+    }
+    class TaskAssignmentSnapshot {
+        <<Lucid Model>>
+        +UUID id PK
+        +UUID task_assignment_id FK
+        +UUID task_id FK
+        +String snapshot_reason
+        +JSONB task_snapshot
+        +JSONB required_skills_snapshot
+        +JSONB acceptance_criteria_snapshot
+        +JSONB workflow_snapshot
+    }
+
+    Task "1" --> "*" TaskRequirementVersion : versions requirements
+    TaskRequirementVersion "1" --> "*" TaskRequirementVersionItem : freezes items
+    Task "1" --> "*" TaskAssignment : is assigned through
+    TaskAssignment "1" --> "*" TaskAssignmentSnapshot : freezes contract

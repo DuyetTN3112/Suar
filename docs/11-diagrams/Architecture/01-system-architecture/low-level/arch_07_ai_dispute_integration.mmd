@@ -1,0 +1,26 @@
+%% Architecture 07 — AI dispute integration
+%% Evidence status: Partial. Trigger and signed callback are implemented; external/configurable Clawagent execution remains conditional and advisory.
+%% Scope: compact integration boundary; command-level detail belongs in Communication/Sequence.
+
+flowchart TB
+    Prepare["SUAR review runtime<br/>build immutable case file<br/>queue evaluation + POST trigger"]
+    Clawagent["External Clawagent<br/>produce advisory evaluation"]
+    Callback["SUAR callback guard<br/>verify HMAC, timestamp, identifiers<br/>store advisory result"]
+    Admin["System administrator<br/>inspect evidence + AI advice<br/>write authoritative resolution"]
+    PG[("PostgreSQL<br/>case files · evaluations<br/>disputes + final decision")]
+
+    Prepare -->|"conditional signed request"| Clawagent
+    Clawagent -->|"HMAC-signed callback"| Callback
+    Prepare -->|"case + queued evaluation"| PG
+    Callback -->|"recommendation + confidence"| PG
+    Callback -->|"advice never auto-resolves"| Admin
+    Admin -->|"human rationale + decision"| PG
+
+    classDef process fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef external fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px,stroke-dasharray:5 4
+    classDef human fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef data fill:#F5F3FF,stroke:#7C3AED,color:#4C1D95,stroke-width:2px
+    class Prepare,Callback process
+    class Clawagent external
+    class Admin human
+    class PG data

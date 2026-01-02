@@ -1,0 +1,53 @@
+%% Sequence 08a1 — Assign initial project staffing
+%% Updated: 2026-07-27.
+%% Scenario: organization owner/admin assigns initial users to cloned professional roles.
+%% Evidence status: Implemented. This continues the same POST /projects request after project commit.
+
+sequenceDiagram
+    autonumber
+    actor U as Organization owner / admin
+    participant C as «boundary» CreateProjectWithStaffingController
+    participant S as «control» SkillPublicApi
+    participant P as «control» ProjectPublicApi
+    participant A as «control» AddProjectMemberCommand
+    participant M as «control» UpdateProjectMemberCommand
+    participant D as «entity» PostgreSQL
+
+    Note over U,C: Continues after project commit
+    U->>C: Initial staffing selections from POST /projects
+    activate C
+    loop Each unique selected user
+        C->>S: findProjectProfessionalRoleByCode(projectId, templateCode)
+        activate S
+        S-->>C: Cloned project role or no match
+        deactivate S
+        alt Cloned role exists
+            C->>P: getMembershipContext(projectId, userId)
+            activate P
+            P-->>C: Existing membership or none
+            deactivate P
+            alt Existing project member
+                C->>M: handle(UpdateProjectMemberDTO)
+                activate M
+                M->>D: Update professional role assignment
+                activate D
+                D-->>M: Updated member
+                deactivate D
+                M-->>C: Completed
+                deactivate M
+            else New project member
+                C->>A: handle(AddProjectMemberDTO)
+                activate A
+                A->>D: Add member with selected professional role
+                activate D
+                D-->>A: Added member
+                deactivate D
+                A-->>C: Completed
+                deactivate A
+            end
+        else Missing/deactivated role
+            C->>C: Skip staffing entry
+        end
+    end
+    C-->>U: Redirect to project detail or propagate command error
+    deactivate C

@@ -1,0 +1,47 @@
+%% Sequence 04 — Submit evidence-linked skill review
+%% Updated: 2026-07-27.
+%% Scenario: assigned reviewer submits one review for an existing session.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor REVIEWER as Assigned reviewer
+    participant C as «boundary» SubmitReviewController
+    participant K as «control» SubmitSkillReviewCommand
+    participant D as «entity» PostgreSQL
+    participant E as «control» Adonis emitter
+    participant L as «control module» review_listener
+    participant F as «control» DetectAnomalyCommand
+
+    REVIEWER->>C: POST ratings, observations and evidence
+    activate C
+    C->>K: handle(SubmitReviewDTO)
+    activate K
+    K->>D: Load session, reviewer assignment and existing review
+    activate D
+    D-->>K: Session, quorum and permission context
+    deactivate D
+    alt Reviewer and session valid
+        K->>D: Create skill reviews, evidence links and update session progress
+        activate D
+        D-->>K: Transaction committed
+        deactivate D
+        K->>E: emit(review:submitted)
+        activate E
+        E->>L: Dispatch ReviewSubmittedEvent
+        activate L
+        L->>F: handle(reviewSessionId, reviewerId)
+        activate F
+        F-->>L: Anomaly check completed or flagged
+        deactivate F
+        L-->>E: Cache invalidated and listener completed
+        deactivate L
+        E-->>K: Event dispatched
+        deactivate E
+        K-->>C: Skill review records
+    else Invalid assignment or session
+        K-->>C: Policy or conflict error
+    end
+    deactivate K
+    C-->>REVIEWER: Success/error response and review state
+    deactivate C

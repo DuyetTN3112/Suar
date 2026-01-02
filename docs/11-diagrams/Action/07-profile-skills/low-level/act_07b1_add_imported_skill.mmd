@@ -1,0 +1,35 @@
+%% Activity 07b1 — Add imported skill claim
+%% Updated 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Add skill]) --> Search["Search active skill catalog"] --> Select["Select skill and self-assessed level"] --> Validate{"Skill active, level valid,<br/>claim not duplicated?"}
+        Validate -->|No| ToReject((A))
+        Validate -->|Yes| ToInsert((B))
+        FromError((C)) --> Search
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromInvalid((A)) --> Reject["Show specific validation error"] --> ToSearch((C))
+        FromValid((B)) --> Insert["Insert user_skills<br/>source = imported"] --> Effects["Audit, cache invalidation,<br/>skill score event"] --> End([Claim added])
+    end
+    ToReject ~~~ FromInvalid
+    ToInsert ~~~ FromValid
+    ToSearch ~~~ FromError
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef action fill:#F3E5F5,stroke:#6A1B9A,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef write fill:#E8F5E9,stroke:#2E7D32,color:#333
+    classDef error fill:#FFEBEE,stroke:#C62828,color:#333
+    class Start,End terminal
+    class Search,Select action
+    class Validate decision
+    class Insert,Effects write
+    class Reject error
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToReject,FromInvalid,ToInsert,FromValid,ToSearch,FromError connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

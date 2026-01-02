@@ -1,0 +1,44 @@
+%% Use Case 02e — Sprint planning and board
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+%% Keep reason: Outer system boundary is UML semantics; inner transparent rows only control one use-case layout.
+
+flowchart TB
+    owner([Project owner])
+    manager([Project manager])
+    member([Project member])
+
+    subgraph system["Sprint planning boundary"]
+        direction TB
+        subgraph row1[" "]
+            direction LR
+            listSprints([List and view sprints])
+            maintainSprint([Create or update sprint])
+            viewBoard([View sprint board])
+        end
+        subgraph row2[" "]
+            direction LR
+            moveTask([Move task between backlog and sprint])
+            openReview([Open sprint review])
+        end
+    end
+
+    owner --- listSprints
+    owner --- maintainSprint
+    owner --- viewBoard
+    owner --- moveTask
+    owner --- openReview
+    manager --- listSprints
+    manager --- maintainSprint
+    manager --- viewBoard
+    manager --- moveTask
+    manager --- openReview
+    member --- listSprints
+    member --- viewBoard
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class owner,manager,member actor
+    class listSprints,maintainSprint,viewBoard,moveTask,openReview goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

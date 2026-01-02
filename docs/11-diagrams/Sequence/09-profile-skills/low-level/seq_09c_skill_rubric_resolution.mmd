@@ -1,0 +1,50 @@
+%% Sequence 09c — Read published skill rubric
+%% Updated: 2026-07-27.
+%% Scenario: authenticated user requests the current published rubric for one skill.
+%% Evidence status: Implemented; this read does not mutate a task requirement.
+
+sequenceDiagram
+    autonumber
+    actor U as Authenticated user
+    participant B as «boundary» Browser
+    participant C as «boundary» ShowSkillRubricController
+    participant S as «control» SkillRubricService
+    participant R as «entity» SkillRubricRepository
+    participant D as «entity» PostgreSQL
+
+    U->>B: Open skill rubric
+    activate B
+    B->>C: GET /api/v1/skills/:skillId/rubric
+    activate C
+    C->>S: resolveSkill(skillId)
+    activate S
+    S->>R: Find active skill by id/code/name/alias
+    activate R
+    R->>D: Query skill catalog
+    activate D
+    D-->>R: Skill or no match
+    deactivate D
+    R-->>S: Resolved skill
+    deactivate R
+    S-->>C: Active skill or not found
+    deactivate S
+    alt Active skill
+        C->>S: getPublishedVersion(skillId)
+        activate S
+        S->>R: findPublishedBySkill(skillId)
+        activate R
+        R->>D: Read current version, levels and descriptors
+        activate D
+        D-->>R: Published rubric graph
+        deactivate D
+        R-->>S: Rubric version
+        deactivate R
+        S-->>C: Rubric version
+        deactivate S
+        C-->>B: Rubric JSON with observable evidence guidance
+    else Missing skill or published rubric
+        C-->>B: 404 not found
+    end
+    deactivate C
+    B-->>U: Show rubric or not-found state
+    deactivate B

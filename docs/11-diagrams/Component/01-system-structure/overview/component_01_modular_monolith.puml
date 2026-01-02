@@ -1,0 +1,45 @@
+@startuml
+' UML Component 01 — Suar modular monolith boundaries
+' Evidence status: Implemented source structure; this diagram does not claim independently deployed services.
+' Updated: 2026-07-27.
+' Scope: application pipeline and logical source boundaries, not every module/file.
+
+!pragma layout elk
+left to right direction
+
+skinparam backgroundColor white
+skinparam PageMargin 10
+skinparam shadowing false
+skinparam componentStyle uml2
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 13
+skinparam ArrowColor #475569
+skinparam component {
+  BackgroundColor #EFF6FF
+  BorderColor #2563EB
+  FontColor #172554
+}
+skinparam rectangle {
+  BackgroundColor #F8FAFC
+  BorderColor #64748B
+  FontColor #0F172A
+}
+
+rectangle "Suar application process\n<<modular monolith>>" as Suar {
+  component "HTTP & Presentation delivery\nroutes · middleware · controllers · mappers" as Http
+  component "CQRS Application Core\nactions/commands · actions/queries · actions/ports\nidentity · delivery · marketplace · review · capability" as ApplicationCore
+  component "Outer Composition & Boundary Guards\napp/composition adapters · exception boundaries" as Composition
+  component "Platform Support & Realtime\naccountability · Transmit SSE gateway · search shell" as PlatformSupport
+  component "Infrastructure Adapters\ninfra/repositories/read|write · Lucid · Redis · ES adapters" as Adapters
+}
+
+node "Runtime data services\nPostgreSQL · Redis · Elasticsearch (dev:9200 / test:9201)" as RuntimeData
+
+Clients --> Http : HTTP / Inertia (user, org, admin)
+Http --> ApplicationCore : inbound action ports
+ApplicationCore --> Composition : consumer outbound ports
+Composition --> Adapters : binds ports to adapters
+ApplicationCore ..> PlatformSupport : realtime push + audit events
+Adapters --> RuntimeData : persists · caches · queries (guarded)
+
+@enduml

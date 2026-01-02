@@ -1,0 +1,16 @@
+%% DFD 01b1 — Sprint plan maintenance (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    A[Project owner or manager] -->|"name, goal, dates, status"| P[[2.3.1 Maintain sprint plan]]
+    D1[(Projects and memberships)] -->|"project management authority"| P
+    D2[(Project sprints)] -->|"current sprint transition state"| P
+    P -->|"created or updated sprint"| D2
+    P -->|"sprint result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2 store

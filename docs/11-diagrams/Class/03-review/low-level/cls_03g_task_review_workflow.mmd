@@ -1,0 +1,53 @@
+%% Class Diagram 03g — Task Review Workflow Records
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Sources: database/migrations/20260715090000_create_task_review_workflows.ts and task_review_workflow.ts.
+
+classDiagram
+    direction LR
+
+    class TaskReviewWorkflowStatus {
+        <<type>>
+        awaiting_review
+        in_review
+        awaiting_response
+        disputed
+        reported
+        done
+    }
+    class TaskReviewWorkflowRow {
+        <<DB row>>
+        +UUID id PK
+        +UUID task_id
+        +UUID project_id
+        +UUID organization_id
+        +UUID reviewee_id
+        +String status
+        +Integer required_review_count
+        +Integer completed_review_count
+        +JSONB runtime_context
+        +String final_decision
+    }
+    class TaskReviewReviewerRow {
+        <<DB row>>
+        +UUID id PK
+        +UUID workflow_id
+        +UUID reviewer_id
+        +String reviewer_role
+        +Boolean is_required
+        +String status
+        +Integer priority_rank
+    }
+    class TaskReviewMessageRow {
+        <<DB row>>
+        +UUID id PK
+        +UUID workflow_id
+        +UUID author_id
+        +String message_type
+        +Text body
+        +JSONB metadata
+    }
+
+    TaskReviewWorkflowRow --> TaskReviewWorkflowStatus : current status
+    TaskReviewWorkflowRow "1" --> "*" TaskReviewReviewerRow : assigns reviewers
+    TaskReviewWorkflowRow "1" --> "*" TaskReviewMessageRow : governed workflow responses

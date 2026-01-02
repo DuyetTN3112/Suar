@@ -1,0 +1,23 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 02l3 — task-submission review handoff
+%% Evidence status: Implemented.
+%% Parent goal: UC 02b “Submit completion package and enter review”.
+%% Entry: the same SubmitTaskSubmissionCommand commits the authoritative package through 02l2.
+%% Question answered: Which governed port creates the review session and determines its audience?
+%% Handoff: the command next stages durable notification work in 02l4; seq_02e enacts the message order.
+%% Scope: review-governance responsibility only; entity/evidence structure remains cls_02g and logical_erd_03b.
+
+classDiagram
+    direction TB
+
+    class SubmitTaskSubmissionCommand {
+        <<control / use-case owner>>
+        +execute(dto: SubmitTaskSubmissionDTO) Promise~TaskSubmissionResult~
+    }
+    class TaskSubmissionReviewGovernance {
+        <<outbound port>>
+        +ensureSession()
+        +loadNotificationAudience()
+    }
+
+    SubmitTaskSubmissionCommand --> TaskSubmissionReviewGovernance : creates review session and audience

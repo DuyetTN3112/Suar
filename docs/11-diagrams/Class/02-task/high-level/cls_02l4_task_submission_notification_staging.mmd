@@ -1,0 +1,22 @@
+%%{init: {"themeVariables": {"fontSize": "18px"}, "class": {"diagramPadding": 24}} }%%
+%% Focused UML design-class view 02l4 — task-submission notification staging
+%% Evidence status: Implemented.
+%% Parent goal: UC 02b “Submit completion package and enter review”.
+%% Entry: the same SubmitTaskSubmissionCommand has committed the package and handed it to governed review.
+%% Question answered: Which port stages accountable notification fan-out for later durable delivery?
+%% Handoff: seq_02e enacts the staged fan-out after the authoritative transaction commits.
+%% Scope: notification staging responsibility only; entity/evidence structure remains cls_02g and logical_erd_03b.
+
+classDiagram
+    direction TB
+
+    class SubmitTaskSubmissionCommand {
+        <<control / use-case owner>>
+        +execute(dto: SubmitTaskSubmissionDTO) Promise~TaskSubmissionResult~
+    }
+    class NotificationFanoutStagerContract {
+        <<outbound port>>
+        +stage()
+    }
+
+    SubmitTaskSubmissionCommand --> NotificationFanoutStagerContract : stages accountable fan-out

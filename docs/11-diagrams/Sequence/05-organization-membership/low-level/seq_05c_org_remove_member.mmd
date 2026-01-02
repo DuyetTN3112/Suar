@@ -1,0 +1,47 @@
+%% Sequence 05c — Remove organization member
+%% Updated: 2026-07-27.
+%% Scenario: owner/admin removes one member and clears assigned work.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    actor ADMIN as Organization owner / admin
+    participant B as «boundary» Browser
+    participant C as «boundary» RemoveMemberController
+    participant K as «control» RemoveMemberCommand
+    participant P as «control» canRemoveMember()
+    participant D as «entity» PostgreSQL
+    participant N as «control» NotificationPublicApi
+
+    ADMIN->>B: Confirm member removal
+    activate B
+    B->>C: DELETE /org/members/:memberId
+    activate C
+    C->>K: execute(RemoveMemberDTO)
+    activate K
+    K->>D: Load actor and target membership
+    activate D
+    D-->>K: Membership context
+    deactivate D
+    K->>P: canRemoveMember(context)
+    activate P
+    P-->>K: Allowed or denied
+    deactivate P
+    alt Allowed
+        K->>D: Unassign org tasks, delete membership and write audit
+        activate D
+        D-->>K: Transaction committed
+        deactivate D
+        K->>N: Notify removed member
+        activate N
+        N-->>K: Notification persisted
+        deactivate N
+        K-->>C: Completed
+    else Denied/not found
+        K-->>C: Policy or not-found error
+    end
+    deactivate K
+    C-->>B: Redirect/result
+    deactivate C
+    B-->>ADMIN: Show current members
+    deactivate B

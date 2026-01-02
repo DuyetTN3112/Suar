@@ -1,0 +1,32 @@
+%% User Flow 05a — Sprint planning board
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Journey actor: authorized project owner/manager.
+
+flowchart TB
+    subgraph row1[" "]
+        direction LR
+        Start([Open project sprint workspace]) --> Sprint{"Create sprint or<br/>open current sprint?"}
+        Sprint -->|Create| Define["Enter name, goal, dates,<br/>and initial status"] --> Valid{"Dates and status valid?"}
+        Valid -->|No| Correct["Correct sprint details"]
+        Valid -->|Yes| ToBoard((A))
+        Sprint -->|Open current| ToBoard
+    end
+    subgraph row2[" "]
+        direction LR
+        FromSprint((A)) --> Board["Open sprint board and backlog"] --> Move["Choose task and target sprint"] --> Eligible{"Same project and sprint<br/>still draft or active?"}
+        Eligible -->|No| Error["Keep board unchanged<br/>and show reason"] --> EndNo([No change])
+        Eligible -->|Yes| Refresh["Refresh backlog and sprint lanes"] --> End([Sprint plan current])
+    end
+    ToBoard ~~~ FromSprint
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef decision fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class Start,End,Correct,EndNo terminal
+    class Define,Board,Move,Error,Refresh action
+    class Sprint,Valid,Eligible decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToBoard,FromSprint connector
+    style row1 fill:transparent,stroke:transparent
+    style row2 fill:transparent,stroke:transparent

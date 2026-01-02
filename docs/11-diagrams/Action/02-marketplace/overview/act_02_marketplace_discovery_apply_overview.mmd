@@ -1,0 +1,28 @@
+%% Activity 02 — Discover marketplace work and apply
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_02a, act_02b.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start([Contributor seeks work]) --> Browse["Browse and filter visible tasks<br/>act_02a"] --> Eligible{"Eligible and task open?"}
+        Eligible -->|No| Exit([No application created])
+        Eligible -->|Yes| ToApply((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromEligible((A)) --> Apply["Submit proposal<br/>act_02b"] --> Pending([Application pending])
+    end
+    ToApply ~~~ FromEligible
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Exit,Pending terminal
+    class Browse,Apply action
+    class Eligible decision
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToApply,FromEligible connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

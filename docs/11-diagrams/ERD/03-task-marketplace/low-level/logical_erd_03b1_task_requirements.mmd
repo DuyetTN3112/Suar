@@ -1,0 +1,34 @@
+%% Logical ERD 03b1 — Versioned task requirements and skills
+%% Evidence status: Implemented.
+%% Scope: one readable logical FK slice for the requirement contract; external user and proficiency targets are stated on the child fields.
+%% Relationships are application-enforced where physical SQL FKs are absent.
+
+erDiagram
+direction TB
+    TASKS {
+        UUID id PK
+        VARCHAR task_type
+        TEXT acceptance_criteria
+    }
+    TASK_REQUIREMENT_VERSIONS {
+        UUID id PK
+        UUID task_id FK "FK -> TASKS.id"
+        INT version_number
+        UUID created_by FK "FK -> USERS.id (outside slice)"
+    }
+    TASK_REQUIREMENT_VERSION_ITEMS {
+        UUID id PK
+        UUID requirement_version_id FK "FK -> TASK_REQUIREMENT_VERSIONS.id"
+        UUID skill_id FK "FK -> SKILLS.id"
+        UUID minimum_level_id FK "FK -> PROFICIENCY_LEVELS.id (outside slice)"
+        BOOLEAN is_mandatory
+    }
+    SKILLS {
+        UUID id PK
+        VARCHAR name
+        UUID skill_category_id FK "FK -> SKILL_CATEGORIES.id (outside slice)"
+    }
+
+    TASKS ||--o{ TASK_REQUIREMENT_VERSIONS : "TASK_REQUIREMENT_VERSIONS.task_id → TASKS.id"
+    TASK_REQUIREMENT_VERSIONS ||--o{ TASK_REQUIREMENT_VERSION_ITEMS : "TASK_REQUIREMENT_VERSION_ITEMS.requirement_version_id → TASK_REQUIREMENT_VERSIONS.id"
+    SKILLS ||--o{ TASK_REQUIREMENT_VERSION_ITEMS : "TASK_REQUIREMENT_VERSION_ITEMS.skill_id → SKILLS.id"

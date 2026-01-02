@@ -1,0 +1,16 @@
+%% State 07a — User soft-deletion overlay
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Scope: users.deleted_at only; orthogonal to users.status.
+
+stateDiagram-v2
+direction LR
+    [*] --> retained : deleted_at is null
+    retained --> soft_deleted : softDeleteUser [superadmin] / set deleted_at
+    soft_deleted --> [*] : active reads exclude record
+
+    note right of soft_deleted
+        Soft deletion preserves account data.
+        It does not rewrite active/inactive/suspended status.
+    end note
+

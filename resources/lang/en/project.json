@@ -301,7 +301,6 @@
     "fallback_pending": ":count fallback reviewer assignments pending",
     "disputes": "Disputes",
     "dispute_hint": "Watch these so profiles are not blocked for too long",
-    "tab_overview": "Overview",
     "tab_members": "Members",
     "tab_skills": "Skills",
     "tab_roles": "Roles",
@@ -315,7 +314,10 @@
     "confirm_delete_project_desc": "Delete this project? This action cannot be undone.",
     "confirm_remove_member_desc": "Remove this member from the project?",
     "cancel": "Cancel",
-    "confirm": "Confirm"
+    "confirm": "Confirm",
+    "tab_details": "Details",
+    "tab_operating_model": "Operating model",
+    "tab_sprints": "Sprints"
   },
   "operating_model": {
     "title": "Operating Model flow",
@@ -395,7 +397,9 @@
     "template_label": "Choose template",
     "template_placeholder": "Choose template",
     "code_label": "Role code",
+    "code_placeholder": "e.g. lead_backend_engineer",
     "name_label": "Display name",
+    "name_placeholder": "e.g. Lead Backend Engineer",
     "description_label": "Description (optional)",
     "description_placeholder": "Describe the role...",
     "cancel": "Cancel",

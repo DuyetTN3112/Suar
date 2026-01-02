@@ -1,0 +1,22 @@
+%% Activity 08 — Authorize and route support request
+%% Evidence status: Implemented.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_08a, act_08b, act_08c.
+
+flowchart LR
+    Start([Support request]) --> Access{"Authenticated and authorized?"}
+    Access -->|No| Denied([Request denied])
+    Access -->|Yes| Intent{"Support intent?"}
+    Intent -->|Notification| Notify["Load or mutate owned notifications<br/>act_08a"]
+    Intent -->|Settings| Settings["Load or update user settings<br/>act_08b"]
+    Intent -->|Administration| Admin["Execute governed admin action<br/>act_08c"]
+    Notify --> Executed([Supported operation completed])
+    Settings --> Executed
+    Admin --> Executed
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Denied,Executed terminal
+    class Notify,Settings,Admin action
+    class Access,Intent decision

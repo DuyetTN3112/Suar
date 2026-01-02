@@ -1,0 +1,16 @@
+%% DFD 01a3 — Professional-role assignment (Level 3)
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented.
+
+flowchart TB
+    A[Project staffing authority] -->|"candidate and professional role"| P[[2.2.1 Assign professional role]]
+    D1[(Project memberships)] -->|"membership and authority context"| P
+    D2[(Project professional roles)] -->|"active role definition"| P
+    P -->|"membership professional role"| D1
+    P -->|"staffing result"| A
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class A entity
+    class P process
+    class D1,D2 store

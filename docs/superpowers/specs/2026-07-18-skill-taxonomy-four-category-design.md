@@ -603,11 +603,11 @@ Files to change:
 - `docs_AI/suar.sql`
 - `docs/06-data/metric-dashboard-report-analysis.md`
 - `docs/06-data/database-design-erd-data-dictionary.md`
-- `docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd`
-- `docs/11-diagrams/ERD/physical_inventory_01_user_auth_skills.mmd`
-- `docs/11-diagrams/Class/cls_02b_skill.mmd`
-- `docs/11-diagrams/Action/act_07b_skill_management.mmd`
-- `docs/11-diagrams/Sequence/seq_09a_profile_views_skills.mmd`
+- `docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd`
+- `docs/11-diagrams/ERD/01-user-auth-skills/README.md`
+- `docs/11-diagrams/Class/02-task/README.md`
+- `docs/11-diagrams/Action/07-profile-skills/high-level/act_07b_skill_management.mmd`
+- `docs/11-diagrams/Sequence/09-profile-skills/high-level/seq_09a_profile_views_skills.mmd`
 - `docs/superpowers/mockups/profile-dossier-mvp/index.html`
 - `docs/superpowers/mockups/profile-dossier-mvp/script.js`
 - `docs/superpowers/mockups/profile-dossier-mvp/styles.css`
@@ -660,11 +660,11 @@ app/modules/users/tests/backend/integration/user_skills.spec.ts
 app/modules/users/tests/backend/unit/profile_metrics_rules.spec.ts
 app/modules/users/tests/backend/unit/user_controller_mappers.spec.ts
 docs/06-data/metric-dashboard-report-analysis.md
-docs/11-diagrams/Action/act_07b_skill_management.mmd
-docs/11-diagrams/Class/cls_02b_skill.mmd
-docs/11-diagrams/ERD/logical_erd_01_user_auth_skills.mmd
-docs/11-diagrams/ERD/physical_inventory_01_user_auth_skills.mmd
-docs/11-diagrams/Sequence/seq_09a_profile_views_skills.mmd
+docs/11-diagrams/Action/07-profile-skills/high-level/act_07b_skill_management.mmd
+docs/11-diagrams/Class/02-task/README.md
+docs/11-diagrams/ERD/01-user-auth-skills/overview/logical_erd_01_user_auth_skills.mmd
+docs/11-diagrams/ERD/01-user-auth-skills/README.md
+docs/11-diagrams/Sequence/09-profile-skills/high-level/seq_09a_profile_views_skills.mmd
 docs_AI/declarations/app/modules/tasks/actions/support/task_required_skill_category_rules.d.ts
 docs_AI/declarations/app/modules/users/actions/queries/get_profile_show_page_query.d.ts
 docs_AI/declarations/app/modules/users/actions/queries/get_profile_view_page_query.d.ts

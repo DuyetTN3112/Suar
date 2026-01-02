@@ -1,0 +1,24 @@
+%% Activity 07c — Recalculate reviewed skill signals
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Trigger: confirmed review; manual skill CRUD is outside this flow.
+
+flowchart TB
+    subgraph Row1[" "]
+        direction LR
+        Start(["review:confirmed"]) --> Collect["Collect non-fraud weighted<br/>skill-review evidence"] --> Derive["Derive level code, confidence,<br/>and average percentage"] --> ToUpsert((A))
+    end
+    subgraph Row2[" "]
+        direction LR
+        FromDerive((A)) --> Upsert["Upsert reviewed aggregate<br/>into user_skills"] --> Cache["Invalidate spider, skill-score,<br/>and profile aggregate caches"] --> End([End])
+    end
+    ToUpsert ~~~ FromDerive
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Start,End startEnd
+    class Collect,Derive,Upsert,Cache action
+    classDef connector fill:#FFFFFF,stroke:#475569,color:#0F172A,stroke-width:2px
+    class ToUpsert,FromDerive connector
+    style Row1 fill:transparent,stroke:transparent
+    style Row2 fill:transparent,stroke:transparent

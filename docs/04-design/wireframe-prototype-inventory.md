@@ -6,7 +6,7 @@
 | Audience | Designer, frontend dev, manager, reviewer, anyone trying to find original UI artifacts |
 | Purpose | Nói rõ hệ thống có hay không có wireframe/prototype gốc, để người đọc không mất thời gian tìm thứ không tồn tại |
 | Source of Truth | đối chiếu trực tiếp giữa `docs/`, `docs/11-diagrams/`, `inertia/`, và các đường dẫn design liên quan |
-| Last Reviewed | 2026-07-16 |
+| Last Reviewed | 2026-07-28 |
 | Review Cycle | Khi team bắt đầu commit mockup/prototype artifact riêng hoặc đổi chiến lược lưu design handoff |
 | Owner | Product design + engineering |
 | Stale Risk | Trung bình |
@@ -52,26 +52,41 @@ Hệ thống có nhiều UI implementation thật trong:
 Implemented surfaces đã được audit trực tiếp trong đợt này gồm:
 
 - `inertia/apps/user/modules/projects/components/project_sprint_panel.svelte`
-- `inertia/apps/org/modules/projects/components/project_sprint_panel.svelte`
 - `inertia/apps/user/modules/projects/show.svelte`
-- `inertia/apps/org/modules/projects/show.svelte`
+- `inertia/apps/user/modules/tasks/index.svelte`
+- `inertia/apps/user/modules/tasks/components/views/kanban/kanban_board.svelte`
+- `inertia/apps/user/modules/reviews/task-board.svelte`
 - `inertia/apps/user/modules/reviews/sprint-reverse-board.svelte`
-- `inertia/apps/org/modules/reviews/sprint-reverse-board.svelte`
+- `inertia/apps/admin/modules/disputes/index.svelte`
+- `inertia/apps/admin/modules/disputes/show.svelte`
 
-Điểm sprint frontend hiện tại:
+Information architecture hiện tại:
 
-- sprint management nằm trong project detail tab `Sprints`
-- task board chỉ link sang sprint tab, không render full sprint management panel
-- Sprint Goal hiện có input khi tạo sprint và hiển thị trên sprint card/board header khi có dữ liệu
+- System Admin app là security realm riêng; không có Organization/Project switcher.
+- Organization Management chỉ có governance, people/access, settings, audit và project portfolio.
+- Project Workspace có bốn board canonical: task, task review, assigner review và work environment review.
+- System realm có board thứ năm ở `/admin/disputes`.
+- Task list/history/detail, reviewer inbox và review history không phải standalone primary pages; board dùng filter, drawer/modal và card room.
+- sprint management nằm trong project detail tab `Sprints`; task board chỉ link sang sprint tab khi cần.
+
+Canonical routes:
+
+- `/projects/:projectId/tasks`
+- `/projects/:projectId/reviews/tasks`
+- `/projects/:projectId/reviews/assigners`
+- `/projects/:projectId/reviews/environment`
+- `/admin/disputes`
+
+Các source `inertia/apps/org/modules/reviews/*` hoặc route review/list/history cũ trong plan/handoff không còn là design target. Không được dùng chúng để khôi phục duplicate UI.
 
 ### 2. Flow And User-Flow Support
 
 Hệ thống có artifact hỗ trợ để hiểu UI flow:
 
-- `docs/11-diagrams/Action/*`
-- `docs/11-diagrams/Usecase/*`
-- `docs/11-diagrams/UserFlow/*`
-- `docs/11-diagrams/sequence-flow-data-user-flows.md`
+- `docs/11-diagrams/Action/*/{overview,high-level,low-level}/*.mmd`
+- `docs/11-diagrams/Usecase/*/{overview,high-level,low-level}/*`
+- `docs/11-diagrams/UserFlow/*/{overview,high-level,low-level}/*`
+- `docs/11-diagrams/README.md`
 
 ## Nên Hiểu Điều Này Thế Nào
 

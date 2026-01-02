@@ -1,0 +1,55 @@
+%% Architecture 10 — Realm, workspace, and board topology
+%% Evidence status: Partial — route/UI/policy separation is implemented; physical identity/session separation remains migration debt.
+%% Viewpoint: security-realm and frontend workspace topology.
+%% Evidence: start/routes/projects.ts; admin routes; user/org/admin navigation; realm-separation tests.
+
+flowchart LR
+    subgraph SystemRealm["System realm"]
+        direction TB
+        SystemPrincipal["System Admin principal<br/>(logical product model)"]
+        SystemApp["System Administration<br/>/admin/*"]
+        AdminBoard["Board 5 · AI dispute progress<br/>/admin/disputes"]
+        SystemPrincipal --> SystemApp --> AdminBoard
+    end
+
+    subgraph UserRealm["User realm"]
+        direction TB
+        UserPrincipal["User principal<br/>(logical product model)"]
+        Personal["Personal workspace"]
+        Org["Organization Management<br/>governance · people/access · settings · audit"]
+        Portfolio["Project portfolio"]
+        Project["Project Workspace<br/>one selected project"]
+        Task["Board 1 · Task<br/>/projects/:projectId/tasks"]
+        TaskReview["Board 2 · Task review<br/>/projects/:projectId/reviews/tasks"]
+        Assigner["Board 3 · Assigner review<br/>/projects/:projectId/reviews/assigners"]
+        Environment["Board 4 · Work environment<br/>/projects/:projectId/reviews/environment"]
+
+        UserPrincipal --> Personal
+        UserPrincipal --> Org --> Portfolio -->|"leave Organization shell"| Project
+        UserPrincipal -->|"accessible project"| Project
+        Project --> Task
+        Project --> TaskReview
+        Project --> Assigner
+        Project --> Environment
+        Task -->|"task remains Done;<br/>review card starts awaiting_review"| TaskReview
+        Project -. "sprint review opens" .-> Assigner
+        Project -. "sprint review opens" .-> Environment
+    end
+
+    NoShared["Target invariant<br/>No shared principal, role stack,<br/>workspace switcher, or admin-mode toggle"]
+    SharedTransport["Shared auth transport coupling<br/>auth.user + users.system_role<br/>shared landing/session transport"]
+    SystemRealm --- NoShared --- UserRealm
+    SharedTransport -. "blocks physical<br/>principal separation" .-> NoShared
+
+    classDef system fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef user fill:#EFF6FF,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef board fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    classDef boundary fill:#FEF2F2,stroke:#DC2626,color:#7F1D1D,stroke-width:2px,stroke-dasharray:5 4
+    classDef debt fill:#FFFBEB,stroke:#D97706,color:#78350F,stroke-width:2px,stroke-dasharray:5 4
+    class SystemPrincipal,SystemApp system
+    class UserPrincipal,Personal,Org,Portfolio,Project user
+    class AdminBoard,Task,TaskReview,Assigner,Environment board
+    class NoShared boundary
+    class SharedTransport debt
+    style SystemRealm fill:#FFF7ED,stroke:#EA580C,stroke-width:2px
+    style UserRealm fill:#EFF6FF,stroke:#2563EB,stroke-width:2px

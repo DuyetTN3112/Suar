@@ -1,0 +1,45 @@
+%% Use Case 04 — Permission hierarchy overview
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; each role is an external actor role for its boundary.
+%% Keep reason: Named subgraph is the UML system boundary containing one actor-goal use-case diagram.
+
+flowchart TB
+    superadmin([👤 Superadmin])
+    systemAdmin([👤 System admin])
+    orgOwner([👤 Organization owner])
+    orgAdmin([👤 Organization admin])
+    projectOwner([👤 Project owner])
+    manager([👤 Project manager])
+    member([👤 Project member])
+    viewer([👤 Project viewer])
+
+    subgraph system["Protected workspace goals"]
+        direction TB
+        sys([Use system administration workspace])
+        org([Use organization administration workspace])
+        project([Use project/task workspace])
+        review([Use marketplace and review workspace])
+        personal([Use personal settings and notifications])
+    end
+
+    superadmin --- sys
+    systemAdmin --- sys
+    orgOwner --- org
+    orgAdmin --- org
+    projectOwner --- project
+    manager --- project
+    member --- project
+    viewer --- project
+    member --- review
+    viewer --- personal
+    superadmin -.->|"△ generalization"| systemAdmin
+    orgOwner -.->|"△ generalization"| orgAdmin
+    projectOwner -.->|"△ generalization"| manager
+    manager -.->|"△ generalization"| member
+    member -.->|"△ generalization"| viewer
+
+    classDef actor fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef goal fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    class superadmin,systemAdmin,orgOwner,orgAdmin,projectOwner,manager,member,viewer actor
+    class sys,org,project,review,personal goal
+    style system fill:#FFFBEB,stroke:#D97706,stroke-width:3px

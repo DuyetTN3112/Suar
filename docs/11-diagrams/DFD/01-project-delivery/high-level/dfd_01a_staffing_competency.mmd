@@ -1,0 +1,21 @@
+%% DFD 01a — Project competency and staffing detail
+%% Updated: 2026-07-27.
+%% Evidence status: Implemented; score explains current stored levels and gaps only.
+%% Level 2 overview. Level 3 children isolate contract, scoring, and assignment payloads.
+
+flowchart TB
+    LEAD[Project staffing authority] -->|"role/skill policy"| P1[[2.1.1 Maintain role-skill contract]]
+    P1 -->|"weighted role requirements"| P2[[2.1.2 Calculate staffing candidates]]
+    P2 -->|"ranked candidate explanations"| LEAD
+    LEAD -->|"chosen candidate and role"| P3[[2.2.1 Assign professional role]]
+    P3 -->|"staffing result"| LEAD
+    P1 -->|"role-skill contract"| D1[(Project competency data)]
+    D1 -->|"role requirements"| P2
+    P3 -->|"membership role"| D2[(Project memberships)]
+
+    classDef entity fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    classDef process fill:#FFF7ED,stroke:#EA580C,color:#7C2D12,stroke-width:2px
+    classDef store fill:#ECFDF5,stroke:#059669,color:#064E3B,stroke-width:2px
+    class LEAD entity
+    class P1,P2,P3 process
+    class D1,D2 store

@@ -1,0 +1,20 @@
+%% Activity 07 — Produce profile signal
+%% Evidence status: Implemented; capability-dimension profile remains Planned.
+%% Updated 2026-07-27 (code-verified).
+%% Level: Overview. Child diagrams: act_07a, act_07b, act_07b1, act_07b2, act_07c.
+
+flowchart LR
+    Start([Profile signal input]) --> Source{"Input source?"}
+    Source -->|Profile edit| Profile["Validate and persist profile details<br/>act_07a"]
+    Source -->|Imported claim| Claim["Validate owned skill claim<br/>act_07b · act_07b1 · act_07b2"]
+    Source -->|Confirmed review| Review["Recalculate reviewed skill aggregate<br/>act_07c"]
+    Profile --> Ready([Profile signal ready])
+    Claim --> Ready
+    Review --> Ready
+
+    classDef terminal fill:#E8EAF6,stroke:#3F51B5,color:#333,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#1565C0,color:#333,stroke-width:2px
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333,stroke-width:2px
+    class Start,Ready terminal
+    class Profile,Claim,Review action
+    class Source decision

@@ -1,0 +1,38 @@
+%% Sequence 01c — Durable Auth session evidence
+%% Updated: 2026-07-29.
+%% Scenario: one auth:session:observed:v1 delivery becomes idempotent canonical Audit evidence.
+%% Evidence status: Implemented.
+
+sequenceDiagram
+    autonumber
+    participant O as «store» Domain event outbox
+    participant L as «boundary» Auth session listener
+    participant C as «control» ProcessAuthSessionObservedCommand
+    participant T as «outbound» EvidenceTransactionRunner
+    participant R as «outbound» AuthSessionEventReceiptStore
+    participant A as «outbound» AuthSessionAuditEvidenceWriter
+    participant P as «database» PostgreSQL
+
+    O->>L: auth:session:observed:v1
+    L->>C: execute(observation, delivery signal)
+    activate C
+    C->>T: run(transaction callback)
+    T->>P: BEGIN
+    C->>R: claim(transaction, observation)
+    R->>P: INSERT receipt ON CONFLICT IGNORE
+    P-->>R: claimed true/false
+    alt First delivery
+        R-->>C: true
+        C->>C: buildAuthSessionEvidence()
+        C->>A: write(observation, audit evidence, transaction)
+        A->>P: INSERT audit_events schema v3
+        Note over A,P: occurred_at is record order, source_occurred_at is producer time
+    else Duplicate delivery, matching fingerprint
+        R-->>C: false
+        Note over C: No second Audit row
+    else event_id fingerprint collision
+        R-->>C: non-retryable delivery error
+    end
+    T->>P: COMMIT or ROLLBACK atomically
+    C-->>L: completed or delivery error
+    deactivate C

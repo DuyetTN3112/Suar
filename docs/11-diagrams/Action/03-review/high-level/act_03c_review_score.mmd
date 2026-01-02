@@ -1,0 +1,15 @@
+%% Activity 03c — Review consequences overview
+%% Evidence status: Implemented.
+%% Updated: 2026-07-27.
+%% Detail: 03c1 anomaly moderation, 03c2 profile-score recalculation.
+
+flowchart LR
+    Review(["Skill review submitted"]) --> Anomaly["Detect anomaly<br/>and queue flag when needed"] --> Moderation["System Admin principal resolves confirmed anomaly<br/>inside the isolated System realm"]
+    Confirmed(["Review result confirmed"]) --> Recalculate["Recalculate non-fraud skill,<br/>performance and trust signals"] --> Profile["Refresh profile aggregates<br/>and invalidate caches"]
+    Moderation --> End([End])
+    Profile --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#1E1B4B,stroke-width:2px
+    classDef action fill:#E3F2FD,stroke:#2563EB,color:#172554,stroke-width:2px
+    class Review,Confirmed,End startEnd
+    class Anomaly,Moderation,Recalculate,Profile action
