@@ -663,3 +663,667 @@ async function subscribeToCacheChannel(
 /**
  * Check if a key exists in cache.
  */
+async function has(key: string): Promise<boolean> {
+  assertValidKey(key)
+  try {
+    if (usesMemoryCache()) {
+      return readMemoryEntry(key) !== null
+    }
+    const connection = await redisForCommand()
+    return (await connection.exists(key)) > 0
+  } catch (error) {
+    logger.error(
+      { err: serializeObservabilityError(error), ...cacheIdentifierLogContext(key) },
+      'RedisCacheStore.has failed'
+    )
+    throw error
+  }
+}
+
+/**
+ * Delete a single key from cache.
+ */
+async function del(key: string): Promise<void> {
+  const startedAt = performance.now()
+  try {
+    assertValidKey(key)
+    if (usesMemoryCache()) {
+      const deleted = memoryCache.delete(key)
+      cacheRuntimeMetrics.recordInvalidation('single_key', true, deleted ? 1 : 0)
+      cacheRuntimeMetrics.recordOperation('delete', performance.now() - startedAt)
+      return
+    }
+    const connection = await redisForCommand()
+    const deleted = await connection.del(key)
+    cacheRuntimeMetrics.recordInvalidation('single_key', true, deleted)
+    cacheRuntimeMetrics.recordOperation('delete', performance.now() - startedAt)
+  } catch (error) {
+    cacheRuntimeMetrics.recordInvalidation('single_key', false)
+    cacheRuntimeMetrics.recordOperation('delete', performance.now() - startedAt, true)
+    logger.error(
+      { err: serializeObservabilityError(error), ...cacheIdentifierLogContext(key) },
+      'RedisCacheStore.del failed'
+    )
+    throw error
+  }
+}
+
+export { del }
+
+/**
+ * Resolve one immutable physical key for a logical cache read/fill cycle.
+ *
+ * A generation rotation makes every previous physical key unreachable without
+ * scanning Redis. Old values expire naturally under their original TTL.
+ * Redis outages return null so optional cache reads can bypass the cache.
+ */
+async function resolveVersionedKeyBestEffort(
+  namespace: string | readonly string[],
+  logicalKey: string
+): Promise<string | null> {
+  assertValidKey(logicalKey)
+  const namespaces = typeof namespace === 'string' ? [namespace] : [...namespace]
+  if (namespaces.length === 0 || new Set(namespaces).size !== namespaces.length) {
+    throw new TypeError('Cache generation resolution requires unique namespaces')
+  }
+  const controlKeys = namespaces.map((generationNamespace) =>
+    cacheGenerationControlKey(generationNamespace)
+  )
+  const startedAt = performance.now()
+  let generationTokens: string[]
+
+  try {
+    if (usesMemoryCache()) {
+      generationTokens = namespaces.map((generationNamespace) => {
+        const token = memoryCacheGenerations.get(generationNamespace) ?? randomUUID()
+        memoryCacheGenerations.set(generationNamespace, token)
+        return token
+      })
+    } else {
+      const connection = await redisForCommand()
+      const resolved = await connection.eval(
+        RESOLVE_GENERATIONS_SCRIPT,
+        controlKeys.length,
+        ...controlKeys,
+        ...controlKeys.map(() => randomUUID()),
+        String(CACHE_GENERATION_CONTROL_TTL_SECONDS)
+      )
+      if (!Array.isArray(resolved) || resolved.length !== controlKeys.length) {
+        throw new TypeError('Cache generation resolver returned an invalid token set')
+      }
+      generationTokens = []
+      for (const token of resolved) {
+        if (typeof token !== 'string') {
+          throw new TypeError('Cache generation resolver returned an invalid token')
+        }
+        generationTokens.push(token)
+      }
+      recordCacheDependencySuccess('generation')
+    }
+    cacheRuntimeMetrics.recordOperation('generation_resolve', performance.now() - startedAt)
+  } catch (error) {
+    cacheRuntimeMetrics.recordOperation('generation_resolve', performance.now() - startedAt, true)
+    logCacheDependencyFailure(
+      'generation',
+      error,
+      'RedisCacheStore generation resolution unavailable',
+      namespaces.join('|')
+    )
+    return null
+  }
+
+  const versionedKey = buildGenerationScopedCacheKey(logicalKey, generationTokens)
+  assertValidKey(versionedKey)
+  return versionedKey
+}
+
+async function rotateGeneration(namespace: string): Promise<void> {
+  const controlKey = cacheGenerationControlKey(namespace)
+  const startedAt = performance.now()
+
+  try {
+    const nextGeneration = randomUUID()
+    if (usesMemoryCache()) {
+      memoryCacheGenerations.set(namespace, nextGeneration)
+    } else {
+      const connection = await redisForCommand()
+      await connection.set(controlKey, nextGeneration, 'EX', CACHE_GENERATION_CONTROL_TTL_SECONDS)
+      recordCacheDependencySuccess('generation')
+    }
+    cacheRuntimeMetrics.recordInvalidation('generation', true)
+    cacheRuntimeMetrics.recordOperation('generation_rotate', performance.now() - startedAt)
+  } catch (error) {
+    cacheRuntimeMetrics.recordInvalidation('generation', false)
+    cacheRuntimeMetrics.recordOperation('generation_rotate', performance.now() - startedAt, true)
+    logCacheDependencyFailure(
+      'generation',
+      error,
+      'RedisCacheStore generation rotation failed',
+      namespace,
+      'error'
+    )
+    throw error
+  }
+}
+
+/**
+ * Delete all keys matching a glob pattern.
+ *
+ * Uses SCAN instead of KEYS to avoid blocking Redis on large datasets.
+ * KEYS is O(N) and blocks the entire server — SCAN is cursor-based and safe.
+ *
+ * @param pattern - Glob pattern (e.g., 'app:user:123:*')
+ */
+async function deleteByPattern(pattern: string): Promise<void> {
+  const startedAt = performance.now()
+  let deletedKeys = 0
+  let delegatedGeneration: string | null = null
+  try {
+    assertValidKey(pattern)
+    delegatedGeneration = cacheGenerationNamespaceForPattern(pattern)
+    if (delegatedGeneration) {
+      await rotateGeneration(delegatedGeneration)
+      return
+    }
+
+    if (!REDIS_GLOB_META_PATTERN.test(pattern)) {
+      await del(pattern)
+      return
+    }
+
+    if (usesMemoryCache()) {
+      const regex = compileGlobPattern(pattern)
+
+      for (const key of memoryCache.keys()) {
+        if (regex.test(key)) {
+          if (memoryCache.delete(key)) {
+            deletedKeys += 1
+          }
+        }
+      }
+      cacheRuntimeMetrics.recordInvalidation('pattern', true, deletedKeys)
+      cacheRuntimeMetrics.recordOperation('pattern_delete', performance.now() - startedAt)
+      return
+    }
+
+    const conn = await redisForCommand()
+    const scanPattern = prefixScanPattern(pattern)
+    let cursor = '0'
+
+    // Keep memory bounded by deleting each SCAN page before fetching the next.
+    do {
+      const [nextCursor, keys] = await conn.scan(
+        cursor,
+        'MATCH',
+        scanPattern,
+        'COUNT',
+        CACHE_SCAN_COUNT
+      )
+      cursor = nextCursor
+      if (keys.length > 0) {
+        deletedKeys += keys.length
+        const pipeline = conn.pipeline()
+        for (const key of keys) {
+          pipeline.unlink(stripRedisKeyPrefix(key))
+        }
+        const results = await pipeline.exec()
+        const failedCommand = results?.find(([commandError]) => commandError !== null)
+        if (failedCommand?.[0]) {
+          throw failedCommand[0]
+        }
+      }
+    } while (cursor !== '0')
+    cacheRuntimeMetrics.recordInvalidation('pattern', true, deletedKeys)
+    cacheRuntimeMetrics.recordOperation('pattern_delete', performance.now() - startedAt)
+  } catch (error) {
+    if (!delegatedGeneration) {
+      cacheRuntimeMetrics.recordInvalidation('pattern', false, deletedKeys)
+      cacheRuntimeMetrics.recordOperation('pattern_delete', performance.now() - startedAt, true)
+      logger.error(
+        { err: serializeObservabilityError(error), ...cacheIdentifierLogContext(pattern) },
+        'RedisCacheStore.deleteByPattern failed'
+      )
+    }
+    throw error
+  }
+}
+
+/**
+ * Low-latency invalidation used by post-commit request paths.
+ *
+ * The durable PostgreSQL outbox is the correctness guarantee. This helper
+ * deliberately absorbs Redis failures so a committed business mutation is not
+ * reported to the user as failed. Outbox workers must keep using the strict
+ * deleteByPattern method so failed delivery is retried instead of ACKed.
+ */
+async function deleteByPatternBestEffort(pattern: string): Promise<boolean> {
+  try {
+    await deleteByPattern(pattern)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function deleteBestEffort(key: string): Promise<boolean> {
+  try {
+    await del(key)
+    return true
+  } catch {
+    return false
+  }
+}
+
+interface CacheKeyPage {
+  keys: string[]
+  nextCursor: string
+}
+
+/**
+ * Lists one bounded SCAN page from the cache connection only.
+ */
+async function scanKeys(pattern = '*', cursor = '0', count = 100): Promise<CacheKeyPage> {
+  const startedAt = performance.now()
+  try {
+    assertValidKey(pattern)
+    if (!/^\d+$/.test(cursor)) {
+      throw new TypeError('Cache scan cursor must be a non-negative integer string')
+    }
+    if (!Number.isSafeInteger(count) || count < 1 || count > 500) {
+      throw new RangeError('Cache scan count must be an integer between 1 and 500')
+    }
+
+    if (usesMemoryCache()) {
+      const offset = Number(cursor)
+      const regex = compileGlobPattern(pattern)
+      const matchingKeys = [...memoryCache.keys()]
+        .filter((key) => readMemoryEntry(key) !== null && regex.test(key))
+        .sort()
+      const keys = matchingKeys.slice(offset, offset + count)
+      const nextOffset = offset + keys.length
+      cacheRuntimeMetrics.recordOperation('scan', performance.now() - startedAt)
+      return {
+        keys,
+        nextCursor: nextOffset >= matchingKeys.length ? '0' : String(nextOffset),
+      }
+    }
+
+    const connection = await redisForCommand()
+    const [nextCursor, keys] = await connection.scan(
+      cursor,
+      'MATCH',
+      prefixScanPattern(pattern),
+      'COUNT',
+      count
+    )
+    cacheRuntimeMetrics.recordOperation('scan', performance.now() - startedAt)
+    return {
+      keys: keys.map(stripRedisKeyPrefix),
+      nextCursor,
+    }
+  } catch (error) {
+    cacheRuntimeMetrics.recordOperation('scan', performance.now() - startedAt, true)
+    throw error
+  }
+}
+
+/**
+ * Get or compute a cached value with Single Flight Pattern.
+ *
+ * If the key exists in cache, returns it immediately.
+ * If not, executes the callback to compute the value, stores it, and returns it.
+ * If multiple concurrent requests ask for the same key, only one callback executes —
+ * the rest wait and share the result (prevents thundering herd).
+ *
+ * @param key - Cache key
+ * @param ttl - TTL for the cached value in seconds
+ * @param callback - Async function to compute the value if not cached
+ * @param options - Optional bounded cross-process waiter policy
+ */
+function remember<T>(
+  key: string,
+  ttl: number,
+  callback: () => Promise<T>,
+  options: CacheRememberOptions = {}
+): Promise<T> {
+  assertValidKey(key)
+  assertValidTtl(ttl)
+  const singleFlightPolicy = resolveCacheSingleFlightPolicy(options)
+  const singleFlightKey = `singleflight:${key}`
+
+  return inProcessSingleFlightExecutor.execute(singleFlightKey, async () => {
+    const cached = await read<T>(key)
+    if (cached.hit) {
+      return cached.value as T
+    }
+
+    if (usesMemoryCache()) {
+      return computeAndPopulate(key, ttl, callback)
+    }
+
+    return rememberAcrossProcesses(key, ttl, callback, singleFlightPolicy)
+  })
+}
+
+async function computeAndPopulate<T>(
+  key: string,
+  ttl: number,
+  callback: () => Promise<T>
+): Promise<T> {
+  const startedAt = performance.now()
+  cacheRuntimeMetrics.recordRecomputation()
+  try {
+    const data = await callback()
+    await setBestEffort(key, data, ttl)
+    cacheRuntimeMetrics.recordOperation('recompute', performance.now() - startedAt)
+    return data
+  } catch (error) {
+    cacheRuntimeMetrics.recordOperation('recompute', performance.now() - startedAt, true)
+    throw error
+  }
+}
+
+type DistributedLockResult = 'acquired' | 'contended' | 'unavailable'
+
+async function acquireDistributedLock(
+  lockKey: string,
+  ownerToken: string,
+  lockTtlMs: number
+): Promise<DistributedLockResult> {
+  try {
+    const connection = await redisForCommand()
+    const outcome =
+      (await connection.set(lockKey, ownerToken, 'PX', lockTtlMs, 'NX')) === 'OK'
+        ? 'acquired'
+        : 'contended'
+    recordCacheDependencySuccess('lock')
+    cacheRuntimeMetrics.recordDistributedLock(outcome)
+    return outcome
+  } catch (error) {
+    cacheRuntimeMetrics.recordDistributedLock('unavailable')
+    logCacheDependencyFailure(
+      'lock',
+      error,
+      'RedisCacheStore distributed lock unavailable',
+      lockKey
+    )
+    return 'unavailable'
+  }
+}
+
+interface DistributedLockHeartbeat {
+  stop(): Promise<void>
+}
+
+function startDistributedLockHeartbeat(
+  lockKey: string,
+  ownerToken: string,
+  policy: CacheSingleFlightPolicy
+): DistributedLockHeartbeat {
+  const startedAt = now()
+  let stopped = false
+  let timer: ReturnType<typeof setInterval> | null = null
+  let extensionInFlight: Promise<void> | null = null
+
+  const stopSchedule = () => {
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  }
+
+  const extendLease = async () => {
+    if (stopped) {
+      return
+    }
+    if (now() - startedAt >= policy.maxLeaseLifetimeMs) {
+      cacheRuntimeMetrics.recordLockLease('capped')
+      stopSchedule()
+      return
+    }
+
+    try {
+      const connection = await redisForCommand()
+      const extended = Number(
+        await connection.eval(EXTEND_LOCK_SCRIPT, 1, lockKey, ownerToken, String(policy.lockTtlMs))
+      )
+      recordCacheDependencySuccess('lease')
+      if (extended === 1) {
+        cacheRuntimeMetrics.recordLockLease('extended')
+        return
+      }
+
+      cacheRuntimeMetrics.recordLockLease('lost')
+      stopSchedule()
+    } catch (error) {
+      cacheRuntimeMetrics.recordLockLease('error')
+      stopSchedule()
+      logCacheDependencyFailure(
+        'lease',
+        error,
+        'RedisCacheStore distributed lock heartbeat failed',
+        lockKey
+      )
+    }
+  }
+
+  timer = setInterval(() => {
+    if (extensionInFlight) {
+      return
+    }
+    extensionInFlight = extendLease().finally(() => {
+      extensionInFlight = null
+    })
+  }, policy.heartbeatIntervalMs)
+  timer.unref()
+
+  return {
+    async stop() {
+      stopped = true
+      stopSchedule()
+      await extensionInFlight
+    },
+  }
+}
+
+async function releaseDistributedLock(lockKey: string, ownerToken: string): Promise<void> {
+  try {
+    const connection = await redisForCommand()
+    await connection.eval(RELEASE_LOCK_SCRIPT, 1, lockKey, ownerToken)
+    recordCacheDependencySuccess('lease')
+  } catch (error) {
+    logCacheDependencyFailure(
+      'lease',
+      error,
+      'RedisCacheStore distributed lock release failed',
+      lockKey
+    )
+  }
+}
+
+type DistributedWaitResult<T> =
+  | { outcome: 'value'; value: T | null }
+  | { outcome: 'lock_released' | 'unavailable' | 'timeout' }
+
+async function waitForDistributedResult<T>(
+  key: string,
+  lockKey: string,
+  waitTimeoutMs: number
+): Promise<DistributedWaitResult<T>> {
+  const startedAt = performance.now()
+  const deadline = now() + waitTimeoutMs
+  let pollDelayMs = 40
+
+  while (now() < deadline) {
+    const remainingMs = deadline - now()
+    await delay(Math.min(remainingMs, pollDelayMs + Math.floor(Math.random() * 20)))
+    const cached = await read<T>(key, false)
+    if (cached.hit) {
+      cacheRuntimeMetrics.recordLockWait('success')
+      cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt)
+      return { outcome: 'value', value: cached.value }
+    }
+    if (!cached.available) {
+      cacheRuntimeMetrics.recordLockWait('unavailable')
+      cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt, true)
+      return { outcome: 'unavailable' }
+    }
+
+    try {
+      const connection = await redisForCommand()
+      const lockTtl = await connection.pttl(lockKey)
+      recordCacheDependencySuccess('lock')
+      if (lockTtl < 0) {
+        const finalRead = await read<T>(key, false)
+        if (finalRead.hit) {
+          cacheRuntimeMetrics.recordLockWait('success')
+          cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt)
+          return { outcome: 'value', value: finalRead.value }
+        }
+        if (!finalRead.available) {
+          cacheRuntimeMetrics.recordLockWait('unavailable')
+          cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt, true)
+          return { outcome: 'unavailable' }
+        }
+
+        cacheRuntimeMetrics.recordLockWait('lock_released')
+        cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt)
+        return { outcome: 'lock_released' }
+      }
+    } catch (error) {
+      cacheRuntimeMetrics.recordLockWait('unavailable')
+      cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt, true)
+      logCacheDependencyFailure(
+        'lock',
+        error,
+        'RedisCacheStore distributed lock wait failed',
+        lockKey
+      )
+      return { outcome: 'unavailable' }
+    }
+
+    pollDelayMs = Math.min(200, Math.ceil(pollDelayMs * 1.5))
+  }
+
+  cacheRuntimeMetrics.recordLockWait('timeout')
+  cacheRuntimeMetrics.recordOperation('lock_wait', performance.now() - startedAt)
+  return { outcome: 'timeout' }
+}
+
+async function rememberAcrossProcesses<T>(
+  key: string,
+  ttl: number,
+  callback: () => Promise<T>,
+  policy: CacheSingleFlightPolicy
+): Promise<T> {
+  const lockKey = `singleflight:lock:${key}`
+  const ownerToken = randomUUID()
+  const waitDeadline = now() + policy.waitTimeoutMs
+
+  for (;;) {
+    const lockResult = await acquireDistributedLock(lockKey, ownerToken, policy.lockTtlMs)
+    if (lockResult === 'unavailable') {
+      return computeAndPopulate(key, ttl, callback)
+    }
+
+    if (lockResult === 'contended') {
+      const remainingWaitMs = waitDeadline - now()
+      if (remainingWaitMs <= 0) {
+        cacheRuntimeMetrics.recordLockWait('timeout')
+        return computeAndPopulate(key, ttl, callback)
+      }
+
+      const sharedResult = await waitForDistributedResult<T>(key, lockKey, remainingWaitMs)
+      if (sharedResult.outcome === 'value') {
+        return sharedResult.value as T
+      }
+      if (sharedResult.outcome === 'unavailable' || sharedResult.outcome === 'timeout') {
+        return computeAndPopulate(key, ttl, callback)
+      }
+      continue
+    }
+
+    const cachedAfterLock = await read<T>(key, false)
+    if (cachedAfterLock.hit) {
+      await releaseDistributedLock(lockKey, ownerToken)
+      return cachedAfterLock.value as T
+    }
+
+    const heartbeat = startDistributedLockHeartbeat(lockKey, ownerToken, policy)
+    try {
+      return await computeAndPopulate(key, ttl, callback)
+    } finally {
+      await heartbeat.stop()
+      await releaseDistributedLock(lockKey, ownerToken)
+    }
+  }
+}
+
+// ─── Flush ───────────────────────────────────────────────────
+
+/**
+ * Flush the dedicated cache connection.
+ * Production endpoint isolation keeps main Redis sessions/tokens/limiter state
+ * outside this operation.
+ */
+async function flush(): Promise<void> {
+  const startedAt = performance.now()
+  try {
+    if (usesMemoryCache()) {
+      memoryCache.clear()
+      memoryCacheGenerations.clear()
+      cacheRuntimeMetrics.recordInvalidation('flush', true)
+      cacheRuntimeMetrics.recordOperation('flush', performance.now() - startedAt)
+      return
+    }
+    const connection = await redisForCommand()
+    await connection.flushdb()
+    cacheRuntimeMetrics.recordInvalidation('flush', true)
+    cacheRuntimeMetrics.recordOperation('flush', performance.now() - startedAt)
+  } catch (error) {
+    cacheRuntimeMetrics.recordInvalidation('flush', false)
+    cacheRuntimeMetrics.recordOperation('flush', performance.now() - startedAt, true)
+    logger.error({ err: serializeObservabilityError(error) }, 'RedisCacheStore.flush failed')
+    throw error
+  }
+}
+
+// ─── Export ──────────────────────────────────────────────────
+
+const redisCacheStore = {
+  /** Default TTL in seconds */
+  ttl: DEFAULT_TTL,
+  /** Key prefix */
+  prefix: PREFIX,
+
+  // Key builders
+  buildKey,
+
+  // Core operations
+  set,
+  setBestEffort,
+  get,
+  getRawCacheValue,
+  evalCacheScript,
+  publishCacheMessage,
+  subscribeToCacheChannel,
+  has,
+  delete: del,
+  deleteBestEffort,
+  deleteByPattern,
+  deleteByPatternBestEffort,
+  scanKeys,
+  remember,
+  resolveVersionedKeyBestEffort,
+  rotateGeneration,
+  runtimeMetrics: () => cacheRuntimeMetrics.snapshot(),
+  prometheusMetrics: () => ({
+    contentType: CACHE_PROMETHEUS_CONTENT_TYPE,
+    body: renderCachePrometheusMetrics(cacheRuntimeMetrics.snapshot()),
+  }),
+
+  // Flush
+  flush,
+} as const
+
+export default redisCacheStore
