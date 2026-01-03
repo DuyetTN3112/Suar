@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
+import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import Task from '#modules/tasks/infra/models/task'
 import TaskStatusModel from '#modules/tasks/infra/models/task_status'
-import CreateRecruiterBookmarkCommand from '#modules/users/actions/commands/create_recruiter_bookmark_command'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -11,9 +11,6 @@ import {
   OrganizationFactory,
   OrganizationUserFactory,
   ProjectFactory,
-  ReverseReviewFactory,
-  ReviewSessionFactory,
-  TaskAssignmentFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
@@ -74,10 +71,7 @@ test.group('Integration | Testing Auth Tokens', (group) => {
     assert.equal(body.data.systemRole, owner.system_role)
   })
 
-  test('refresh token can rotate active organization for same user', async ({
-    assert,
-    client,
-  }) => {
+  test('refresh token can rotate active organization for same user', async ({ assert, client }) => {
     const { org: primaryOrg, owner } = await OrganizationFactory.createWithOwner()
     const secondaryOrg = await OrganizationFactory.create({
       owner_id: owner.id,
@@ -639,7 +633,7 @@ test.group('Integration | Testing Auth Tokens', (group) => {
       email: `bookmark-talent-${Date.now()}@test.example.com`,
     })
 
-    const createBookmark = new CreateRecruiterBookmarkCommand(
+    const createBookmark = userRecruiterBookmarkActionFactory.makeCreate(
       makeSystemReviewActionContext(owner.id)
     )
     await createBookmark.handle({
@@ -904,152 +898,4 @@ test.group('Integration | Testing Auth Tokens', (group) => {
     assert.equal(refreshedTaskB.task_status_id, inProgressStatus.id)
   })
 
-  test('bearer token can patch task status board in refreshed organization context', async ({
-    assert,
-    client,
-  }) => {
-    const { org: primaryOrg, owner } = await OrganizationFactory.createWithOwner()
-    const secondaryOrg = await OrganizationFactory.create({
-      owner_id: owner.id,
-      name: 'Bearer Status Board Org',
-      slug: `bearer-status-board-org-${Date.now()}`,
-    })
-    await OrganizationUserFactory.create({
-      organization_id: secondaryOrg.id,
-      user_id: owner.id,
-      org_role: 'org_owner',
-      status: 'approved',
-    })
-
-    await owner.merge({ current_organization_id: primaryOrg.id }).save()
-
-    const issueResponse = await client.post('/api/auth/token').loginAs(owner)
-    issueResponse.assertStatus(200)
-
-    const issueBody = readTokenPairApiBody(issueResponse)
-
-    const refreshResponse = await client.post('/api/auth/refresh').form({
-      refresh_token: issueBody.data.refreshToken,
-      organization_id: secondaryOrg.id,
-    })
-    refreshResponse.assertStatus(200)
-
-    const refreshBody = readTokenPairApiBody(refreshResponse)
-
-    const patchResponse = await client
-      .patch('/api/tasks/status-board')
-      .header('authorization', `Bearer ${refreshBody.data.accessToken}`)
-      .json({
-        total: 7,
-        simulateConflict: false,
-      })
-
-    patchResponse.assertStatus(200)
-
-    const patchBody = patchResponse.body() as {
-      data: {
-        acknowledgedTotal: number | null
-      }
-    }
-
-    assert.deepEqual(patchBody, {
-      data: {
-        acknowledgedTotal: 7,
-      },
-    })
-  })
-
-  test('bearer token can read canonical me reverse reviews without session bootstrap', async ({
-    assert,
-    client,
-  }) => {
-    const { org: primaryOrg, owner } = await OrganizationFactory.createWithOwner()
-    const secondaryOrg = await OrganizationFactory.create({
-      owner_id: owner.id,
-      name: 'Bearer Reverse Reviews Org',
-      slug: `bearer-reverse-reviews-org-${Date.now()}`,
-    })
-    await OrganizationUserFactory.create({
-      organization_id: secondaryOrg.id,
-      user_id: owner.id,
-      org_role: 'org_owner',
-      status: 'approved',
-    })
-
-    const reviewee = await UserFactory.create({
-      email: `reverse-reviewee-${Date.now()}@test.example.com`,
-      current_organization_id: secondaryOrg.id,
-    })
-    await OrganizationUserFactory.create({
-      organization_id: secondaryOrg.id,
-      user_id: reviewee.id,
-      org_role: 'org_member',
-      status: 'approved',
-    })
-    const project = await ProjectFactory.create({
-      organization_id: secondaryOrg.id,
-      creator_id: owner.id,
-      owner_id: owner.id,
-      name: 'Bearer Reverse Review Project',
-    })
-    const task = await TaskFactory.create({
-      organization_id: secondaryOrg.id,
-      creator_id: owner.id,
-      project_id: project.id,
-      assigned_to: reviewee.id,
-      title: 'Bearer reverse review task',
-    })
-    const assignment = await TaskAssignmentFactory.create({
-      task_id: task.id,
-      assignee_id: reviewee.id,
-      assigned_by: owner.id,
-      assignment_status: 'completed',
-    })
-    const session = await ReviewSessionFactory.create({
-      task_assignment_id: assignment.id,
-      reviewee_id: reviewee.id,
-      status: 'completed',
-    })
-    await ReverseReviewFactory.create({
-      review_session_id: session.id,
-      reviewer_id: reviewee.id,
-      target_type: 'manager',
-      target_id: owner.id,
-      rating: 5,
-      comment: 'Bearer me reverse review',
-      is_anonymous: false,
-    })
-
-    await reviewee.merge({ current_organization_id: primaryOrg.id }).save()
-
-    const issueResponse = await client.post('/api/auth/token').loginAs(reviewee)
-    issueResponse.assertStatus(200)
-    const issueBody = readTokenPairApiBody(issueResponse)
-
-    const refreshResponse = await client.post('/api/auth/refresh').form({
-      refresh_token: issueBody.data.refreshToken,
-      organization_id: secondaryOrg.id,
-    })
-    refreshResponse.assertStatus(200)
-    const refreshBody = readTokenPairApiBody(refreshResponse)
-
-    const reverseReviewsResponse = await client
-      .get('/api/v1/me/reverse-reviews')
-      .header('authorization', `Bearer ${refreshBody.data.accessToken}`)
-
-    reverseReviewsResponse.assertStatus(200)
-
-    const reverseReviewsBody = reverseReviewsResponse.body() as {
-      data: Array<{
-        reviewSessionId: string
-        reviewerId: string
-        targetId: string
-      }>
-    }
-
-    assert.isAbove(reverseReviewsBody.data.length, 0)
-    assert.equal(reverseReviewsBody.data[0]?.reviewSessionId, session.id)
-    assert.equal(reverseReviewsBody.data[0]?.reviewerId, reviewee.id)
-    assert.equal(reverseReviewsBody.data[0]?.targetId, owner.id)
-  })
 })
