@@ -1,289 +1,245 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
 import { test } from '@japa/runner'
 
-interface ImportViolation {
+interface ImportReference {
   file: string
+  kind: string
   line: number
+  resolution: 'alias' | 'relative' | null
+  sourceModule: string | null
   specifier: string
-  reason?: string
+  targetLayer: string | null
+  targetModule: string | null
+  targetTail: string | null
 }
 
-interface BaselineViolation {
-  file: string
-  import_path: string
-  reason: string
-}
+const IMPORT_SCANNER = 'scripts/architecture/import_scanner.mjs'
 
-function countProductionRgMatches(pattern: string, paths: string[]): number {
-  try {
-    const output = execFileSync(
-      'rg',
-      [pattern, ...paths, '--glob', '*.ts', '--glob', '!**/tests/**', '--count'],
-      { encoding: 'utf8' }
-    )
+function scanImportSpecifiers(
+  paths: string[],
+  forbidden: RegExp[],
+  { excludeTests = false }: { excludeTests?: boolean } = {}
+): ImportReference[] {
+  const output = execFileSync(
+    'node',
+    [IMPORT_SCANNER, '--json', ...(excludeTests ? ['--exclude-tests'] : []), ...paths],
+    {
+      encoding: 'utf8',
+      maxBuffer: 64 * 1024 * 1024,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    }
+  )
+  const references = JSON.parse(output) as ImportReference[]
 
-    return output
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .reduce((sum, line) => {
-        const count = Number.parseInt(line.split(':').pop() ?? '0', 10)
-        return Number.isNaN(count) ? sum : sum + count
-      }, 0)
-  } catch {
-    return 0
-  }
-}
-
-function readBoundaryBaseline(): Set<string> {
-  const path = 'docs/architecture/generated/boundary_violations_baseline.json'
-  if (!existsSync(path)) return new Set()
-
-  const content = readFileSync(path, 'utf8')
-  const violations = JSON.parse(content) as BaselineViolation[]
-
-  return new Set(violations.map((violation) => `${violation.file}:${violation.import_path}`))
-}
-
-function moduleNameFromPath(path: string): string | null {
-  const match = /^app\/modules\/([^/]+)\//.exec(path)
-  return match?.[1] ?? null
-}
-
-function importedModule(specifier: string): string | null {
-  const match = /^#modules\/([^/]+)\//.exec(specifier)
-  return match?.[1] ?? null
-}
-
-function isCompositionPath(path: string): boolean {
-  return (
-    path.startsWith('start/') ||
-    path.startsWith('app/composition/') ||
-    /^app\/modules\/[^/]+\/bootstrap\//.test(path) ||
-    /^app\/modules\/[^/]+\/infra\/adapters\//.test(path)
+  return references.filter((reference) =>
+    forbidden.some((pattern) => pattern.test(reference.specifier))
   )
 }
 
-function scanImportSpecifiers(paths: string[], forbidden: RegExp[]): ImportViolation[] {
-  const importPattern =
-    "import\\s+(?:type\\s+)?(?:[\\s\\S]*?\\s+from\\s+)?['\\\"]([^'\\\"]+)['\\\"]|export\\s+(?:type\\s+)?[\\s\\S]*?\\s+from\\s+['\\\"]([^'\\\"]+)['\\\"]|import\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)"
-
-  try {
-    const output = execFileSync(
-      'rg',
-      [importPattern, ...paths, '--glob', '*.ts', '--line-number', '--replace', '$path:$line:$1'],
-      { encoding: 'utf8' }
-    )
-
-    return output
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .flatMap((line) => {
-        const [file, lineNumber, specifier] = line.split(':')
-        if (!file || !lineNumber || !specifier) return []
-
-        if (!forbidden.some((pattern) => pattern.test(specifier))) return []
-
-        return [
-          {
-            file,
-            line: Number.parseInt(lineNumber, 10),
-            specifier,
-          },
-        ]
-      })
-  } catch {
-    return []
-  }
+function scanProductionImportSpecifiers(paths: string[], forbidden: RegExp[]): ImportReference[] {
+  return scanImportSpecifiers(paths, forbidden, { excludeTests: true })
 }
 
-function scanProductionImportSpecifiers(paths: string[], forbidden: RegExp[]): ImportViolation[] {
-  const importPattern =
-    "import\\s+(?:type\\s+)?(?:[\\s\\S]*?\\s+from\\s+)?['\\\"]([^'\\\"]+)['\\\"]|export\\s+(?:type\\s+)?[\\s\\S]*?\\s+from\\s+['\\\"]([^'\\\"]+)['\\\"]|import\\(\\s*['\\\"]([^'\\\"]+)['\\\"]\\s*\\)"
-
-  try {
-    const output = execFileSync(
-      'rg',
-      [
-        importPattern,
-        ...paths,
-        '--glob',
-        '*.ts',
-        '--glob',
-        '!**/tests/**',
-        '--line-number',
-        '--replace',
-        '$path:$line:$1',
-      ],
-      { encoding: 'utf8' }
-    )
-
-    return output
-      .trim()
-      .split('\n')
-      .filter(Boolean)
-      .flatMap((line) => {
-        const [file, lineNumber, specifier] = line.split(':')
-        if (!file || !lineNumber || !specifier) return []
-
-        if (!forbidden.some((pattern) => pattern.test(specifier))) return []
-
-        return [
-          {
-            file,
-            line: Number.parseInt(lineNumber, 10),
-            specifier,
-          },
-        ]
-      })
-  } catch {
-    return []
-  }
-}
-
-function scanBoundaryViolations(): ImportViolation[] {
-  const legacyCoreContextSpecifier = ['#modules', 'core', 'types', 'execution_context'].join('/')
-
-  return scanImportSpecifiers(['app', 'start', 'config', 'commands', 'tests'], [
-    /^#platform\/dtos(?:\/|$)/,
-    /^#types\/database$/,
-    new RegExp(`^${legacyCoreContextSpecifier}$`),
-    /^#modules\/outbox(?:\/|$)/,
-    /^#modules\/[^/]+\/(infra|domain|constants|validators)(?:\/|$)/,
-    /^#modules\/[^/]+\/actions\/public_api$/,
-    /^#modules\/[^/]+\/(application\/dtos|actions\/dtos|controllers\/mappers)(?:\/|$)/,
-  ]).flatMap((violation) => {
-    const sourceModule = moduleNameFromPath(violation.file)
-    const targetModule = importedModule(violation.specifier)
-
-    if (violation.specifier.startsWith('#modules/outbox')) {
-      if (
-        violation.file.startsWith('app/modules/outbox/') ||
-        violation.file.startsWith('app/composition/') ||
-        violation.file.startsWith('start/')
-      ) {
-        return []
-      }
-
-      return [{ ...violation, reason: 'business modules must use local event publisher ports' }]
-    }
-
-    if (
-      violation.specifier.startsWith('#platform/dtos') ||
-      violation.specifier === '#types/database' ||
-      violation.specifier === legacyCoreContextSpecifier
-    ) {
-      return [violation]
-    }
-
-    if (!sourceModule || !targetModule || sourceModule === targetModule) return []
-    if (isCompositionPath(violation.file)) return []
-
-    if (violation.specifier.endsWith('/actions/public_api')) {
-      return violation.file.includes('/actions/') || violation.file.includes('/domain/')
-        ? [{ ...violation, reason: 'business code must call local ports, not foreign public_api' }]
-        : []
-    }
-
-    return [violation]
+function runArchitectureGuard(script: string): void {
+  execFileSync('node', [script], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
   })
 }
 
 test.group('Architecture boundary guards', () => {
-  test('production code does not import from eliminated modules common', ({ assert }) => {
-    assert.equal(countProductionRgMatches("from '#modules/common'", ['app']), 0)
-  })
+  test('shared AST scanner recognizes every supported import form', ({ assert }) => {
+    const fixtureDirectory = mkdtempSync(join(tmpdir(), 'suar-architecture-import-scanner-'))
+    const fixture = join(fixtureDirectory, 'imports.ts')
 
-  test('protected domain layers do not import cross-module role constants', ({ assert }) => {
-    const protectedPaths = [
-      'app/modules/authorization',
-      'app/modules/tasks/domain',
-      'app/modules/projects/domain',
-    ]
+    writeFileSync(
+      fixture,
+      [
+        'import type { A } from "#modules/a/public_contracts/a"',
+        'import "#modules/b/bootstrap/root"',
+        'export { c } from "#modules/c/domain/c"',
+        'const d = import("#modules/d/infra/d")',
+        'import e = require("#modules/e/actions/e")',
+        'const f = require("#modules/f/services/f")',
+        'type G = import("#modules/g/types/g").G',
+      ].join('\n')
+    )
 
-    for (const pattern of [
-      "from '#modules/organizations/constants",
-      "from '#modules/projects/constants",
-      "from '#modules/users/constants",
-    ]) {
-      assert.equal(countProductionRgMatches(pattern, protectedPaths), 0)
+    try {
+      const references = scanImportSpecifiers([fixture], [/^#modules\//])
+
+      assert.deepEqual(
+        references.map((reference) => ({
+          kind: reference.kind,
+          specifier: reference.specifier,
+        })),
+        [
+          {
+            kind: 'import',
+            specifier: '#modules/a/public_contracts/a',
+          },
+          {
+            kind: 'import',
+            specifier: '#modules/b/bootstrap/root',
+          },
+          {
+            kind: 'export',
+            specifier: '#modules/c/domain/c',
+          },
+          {
+            kind: 'dynamic-import',
+            specifier: '#modules/d/infra/d',
+          },
+          {
+            kind: 'import-equals',
+            specifier: '#modules/e/actions/e',
+          },
+          {
+            kind: 'require',
+            specifier: '#modules/f/services/f',
+          },
+          {
+            kind: 'import-type',
+            specifier: '#modules/g/types/g',
+          },
+        ]
+      )
+    } finally {
+      rmSync(fixtureDirectory, { force: true, recursive: true })
     }
   })
 
-  test('authorization module does not import user module internals', ({ assert }) => {
+  test('shared AST scanner fails closed for a missing root', ({ assert }) => {
+    assert.throws(() => {
+      scanImportSpecifiers(['app/modules/__missing_architecture_scan_root__'], [/.*/])
+    })
+  })
+
+  test('production code does not import from eliminated modules common', ({ assert }) => {
+    assert.deepEqual(scanProductionImportSpecifiers(['app'], [/^#modules\/common(?:\/|$)/]), [])
+  })
+
+  test('protected domain layers do not import cross-module role constants', ({ assert }) => {
     assert.deepEqual(
-      scanProductionImportSpecifiers(['app/modules/authorization'], [
-        /^#modules\/users\/(?!actions\/public_api$)/,
-      ]),
+      scanProductionImportSpecifiers(
+        ['app/modules/authorization', 'app/modules/tasks/domain', 'app/modules/projects/domain'],
+        [
+          /^#modules\/organizations\/constants(?:\/|$)/,
+          /^#modules\/projects\/constants(?:\/|$)/,
+          /^#modules\/users\/constants(?:\/|$)/,
+        ]
+      ),
       []
     )
   })
 
-  test('actions and modules do not import Lucid model instances from infra', ({ assert }) => {
-    const violations = scanImportSpecifiers(['app/modules'], [
-      /^#modules\/[^/]+\/infra\/models\//,
-    ]).filter((violation) => /\/(actions|controllers)\//.test(violation.file))
-
-    assert.deepEqual(violations, [])
+  test('authorization module does not import user module internals', ({ assert }) => {
+    assert.deepEqual(
+      scanProductionImportSpecifiers(
+        ['app/modules/authorization'],
+        [/^#modules\/users\/(?!public_contracts\/)/]
+      ),
+      []
+    )
   })
 
-  test('actions and modules do not import the monolithic task repository facade', ({
-    assert,
-  }) => {
-    assert.equal(
-      countProductionRgMatches("from '#modules/tasks/infra/repositories/task_repository'", [
-        'app/modules',
-      ]),
-      0
+  test('actions do not import the monolithic task repository facade', ({ assert }) => {
+    assert.deepEqual(
+      scanProductionImportSpecifiers(
+        ['app/modules'],
+        [/^#modules\/tasks\/infra\/repositories\/task_repository$/]
+      ).filter((reference) => reference.file.includes('/actions/')),
+      []
     )
   })
 
   test('actions do not import the organization user repository facade', ({ assert }) => {
-    assert.equal(
-      countProductionRgMatches(
-        "from '#modules/organizations/infra/repositories/organization_user_repository'",
-        ['app/modules']
-      ),
-      0
+    assert.deepEqual(
+      scanProductionImportSpecifiers(
+        ['app/modules'],
+        [/^#modules\/organizations\/infra\/repositories\/organization_user_repository$/]
+      ).filter((reference) => reference.file.includes('/actions/')),
+      []
     )
   })
 
   test('source code does not import deprecated layer aliases', ({ assert }) => {
-    assert.deepEqual(scanImportSpecifiers(['app', 'start', 'config', 'commands', 'tests'], [
-      /^#actions\//,
-      /^#infra\//,
-    ]), [])
+    assert.deepEqual(
+      scanImportSpecifiers(
+        ['app', 'start', 'config', 'commands', 'tests'],
+        [/^#actions\//, /^#infra\//]
+      ),
+      []
+    )
   })
 
-  test('core module does not import from business or HTTP modules', ({ assert }) => {
-    assert.deepEqual(scanImportSpecifiers(['app/modules/core'], [
-      /^#modules\/(?!core\/)/,
-      /^@adonisjs\/core\/http$/,
-    ]), [])
+  test('eliminated core module remains absent', ({ assert }) => {
+    assert.isFalse(existsSync('app/modules/core'))
   })
 
-  test('actions do not import module bootstrap composition roots', ({ assert }) => {
-    assert.deepEqual(scanImportSpecifiers(['app/modules'], [
-      /^#bootstrap\//,
-      /^#modules\/[^/]+\/bootstrap\//,
-    ]).filter((violation) => violation.file.includes('/actions/')), [])
+  test('feature cache invalidation wiring belongs to outer composition', ({ assert }) => {
+    assert.deepEqual(
+      scanProductionImportSpecifiers(
+        ['app/modules/cache'],
+        [/^#modules\/(organizations|projects|tasks)\//]
+      ),
+      []
+    )
+
+    for (const eliminatedPath of [
+      'app/modules/cache/listeners/cache_invalidation_listener.ts',
+      'app/modules/organizations/directory/actions/support/organization_cache_invalidator.ts',
+      'app/modules/organizations/directory/public_contracts/organization_cache_invalidation.ts',
+      'app/modules/projects/public_contracts/project_cache_invalidation.ts',
+    ]) {
+      assert.isFalse(existsSync(eliminatedPath), `${eliminatedPath} must remain eliminated`)
+    }
   })
 
-  test('business modules do not import HTTP DTO buckets or legacy validation rules', ({ assert }) => {
-    assert.deepEqual(scanImportSpecifiers(['app/modules'], [
-      /^#modules\/http\/actions\/dtos\//,
-      /^#types\/validation_rules$/,
-    ]).filter((violation) => !violation.file.includes('/modules/http/')), [])
+  test('search provider adapters are wired only by outer composition', ({ assert }) => {
+    assert.deepEqual(
+      scanProductionImportSpecifiers(
+        ['app/modules/search'],
+        [
+          /^#modules\/organizations\/public_contracts\/organization_search_indexing$/,
+          /^#modules\/projects\/public_contracts\/project_search_indexing$/,
+          /^#modules\/skills\/public_contracts\/skill_search_indexing$/,
+          /^#modules\/tasks\/public_contracts\/task_search_indexing$/,
+          /^#modules\/users\/public_contracts\/user_search_indexing$/,
+        ]
+      ),
+      []
+    )
+
+    for (const providerBarrel of [
+      'app/modules/organizations/directory/public_contracts/organization_search_indexing.ts',
+      'app/modules/projects/public_contracts/project_search_indexing.ts',
+      'app/modules/skills/public_contracts/skill_search_indexing.ts',
+      'app/modules/tasks/public_contracts/task_search_indexing.ts',
+      'app/modules/users/public_contracts/user_search_indexing.ts',
+    ]) {
+      assert.isFalse(existsSync(providerBarrel), `${providerBarrel} must remain eliminated`)
+    }
+
+    assert.isFalse(
+      existsSync('app/modules/search/bootstrap/search_application_composition.ts'),
+      'Search composition belongs at the application composition boundary'
+    )
   })
 
-  test('module boundary violations do not exceed generated baseline', ({ assert }) => {
-    const baseline = readBoundaryBaseline()
-    const newViolations = scanBoundaryViolations().filter((violation) => {
-      return !baseline.has(`${violation.file}:${violation.specifier}`)
-    })
+  test('project detail publishes data only and executes through outer composition', ({
+    assert,
+  }) => {
+    const contract = readFileSync('app/modules/projects/public_contracts/project_detail.ts', 'utf8')
+    assert.notMatch(
+      contract,
+      /#modules\/(http|projects\/actions|projects\/infra|projects\/services)\//
+    )
+    assert.notMatch(contract, /@adonisjs\/|@vinejs\/|@poppinss\//)
 
     const outerComposition = readFileSync('app/composition/project_detail_composition.ts', 'utf8')
     assert.include(outerComposition, './adapters/project_detail_reader_adapter.js')
@@ -1224,5 +1180,513 @@ test.group('Architecture boundary guards', () => {
         '}',
       ].join('\n')
     )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects raw errors passed to loggerService', ({ assert }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare const loggerService: { error(message: string, error: unknown): void }',
+        'export function probe(error: unknown) {',
+        '  loggerService.error("dependency failed", error)',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects raw Error objects passed to the core logger', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        "import logger from '@adonisjs/core/services/logger'",
+        'export function probe(error: unknown) {',
+        '  logger.warn({ err: error }, "dependency failed")',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects a catch message returned in a result envelope', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'export async function probe() {',
+        '  try { return { success: true, message: "done" } }',
+        '  catch (error) {',
+        '    const leaked = error instanceof Error ? error.message : String(error)',
+        '    return { success: false, message: leaked }',
+        '  }',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects an unobserved search dependency fallback', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare function searchSkillsViaEngine(): Promise<unknown[]>',
+        'export async function probe() {',
+        '  try {',
+        '    return await searchSkillsViaEngine()',
+        '  } catch {',
+        '    return []',
+        '  }',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects fail-open PostgreSQL schema drift', ({ assert }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare function persistIdentity(): Promise<void>',
+        'export async function probe() {',
+        '  try {',
+        '    await persistIdentity()',
+        '  } catch (error: unknown) {',
+        '    if ((error as { code?: string }).code !== "42P01") throw error',
+        '  }',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects a listener that resolves after processing failure', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/listeners'
+    const probe = join(probeDirectory, 'probe_listener.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare function persistProjection(): Promise<void>',
+        'export async function handleEvent() {',
+        '  try {',
+        '    await persistProjection()',
+        '  } catch (error) {',
+        '    void error',
+        '  }',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects rollback without a transaction completion check', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'export async function probe(trx: { rollback(): Promise<void> }) {',
+        '  try { return } catch { await trx.rollback() }',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects required audit writes after commit', ({ assert }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare const trx: { commit(): Promise<void> }',
+        'declare const auditPublicApi: { write(): Promise<void> }',
+        'export async function probe() {',
+        '  await trx.commit()',
+        '  await auditPublicApi.write()',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects detached audit writes in a transaction callback', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare const auditPublicApi: { write(context: object, input: object): Promise<void> }',
+        'export async function probe() {',
+        '  await (async (trx: object) => {',
+        '    void trx',
+        '    await auditPublicApi.write({}, {})',
+        '  })({})',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects noncritical audit writes sharing a transaction', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare const auditPublicApi: {',
+        '  write(context: object, input: object, trx: object): Promise<void>',
+        '}',
+        'export async function probe(trx: object) {',
+        '  await auditPublicApi.write({}, { action: "change_business_state" }, trx)',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects an audit helper detached from its transaction', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'export class Probe {',
+        '  async run(trx: object) {',
+        '    void trx',
+        '    await this.writeResolutionAudit("dispute-id")',
+        '  }',
+        '  private async writeResolutionAudit(_id: string) {}',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects floating event promises', ({ assert }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        "import emitter from '@adonisjs/core/services/emitter'",
+        'export function probe() {',
+        '  emitter.emit("business.event")',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('exception boundary guard rejects unsettled cache invalidation after commit', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__exception_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      [
+        'declare const cacheInvalidationStore: { delete(key: string): Promise<void> }',
+        'declare function executeInTransaction<T>(work: () => Promise<T>): Promise<T>',
+        'export async function probe() {',
+        '  const result = await executeInTransaction(async () => "entity-id")',
+        '  await cacheInvalidationStore.delete(result)',
+        '}',
+      ].join('\n')
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_exception_boundaries.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__exception_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('runtime module-boundary guard rejects debt absent from baseline', ({ assert }) => {
+    const probeDirectory = 'app/modules/__architecture_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(probe, "import User from '#modules/users/infra/models/user'\nvoid User\n")
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__architecture_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('runtime module-boundary guard rejects module imports of outer composition', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__architecture_guard_probe/controllers'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      "import { probe } from '#composition/__architecture_guard_probe'\nvoid probe\n"
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__architecture_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('platform infrastructure cannot depend on feature modules', ({ assert }) => {
+    const probeDirectory = 'app/infra/__architecture_guard_probe'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(
+      probe,
+      "import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'\nvoid OrganizationRole\n"
+    )
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
+      })
+    } finally {
+      rmSync(probeDirectory, {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('runtime guard exposes only the shared HTTP boundary across modules', ({ assert }) => {
+    const probeDirectory = 'app/modules/__architecture_guard_probe/actions'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+
+    try {
+      writeFileSync(
+        probe,
+        "import { isApiTransport } from '#modules/http/boundary/http_transport'\nvoid isApiTransport\n"
+      )
+      assert.doesNotThrow(() => {
+        runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
+      })
+
+      writeFileSync(
+        probe,
+        "import { readHttpOrgContextContract } from '#modules/organizations/access/boundary/http_org_context_contract'\nvoid readHttpOrgContextContract\n"
+      )
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_module_domain_boundary.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__architecture_guard_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
+  })
+
+  test('canonical public-contract guard accepts only tracked debt', () => {
+    runArchitectureGuard('scripts/check_public_contract_surface.mjs')
+  })
+
+  test('public-contract guard rejects implementation leakage absent from baseline', ({
+    assert,
+  }) => {
+    const probeDirectory = 'app/modules/__architecture_surface_probe/public_contracts'
+    const probe = join(probeDirectory, 'probe.ts')
+    mkdirSync(probeDirectory, { recursive: true })
+    writeFileSync(probe, "export { default as User } from '#modules/users/infra/models/user'\n")
+
+    try {
+      assert.throws(() => {
+        runArchitectureGuard('scripts/check_public_contract_surface.mjs')
+      })
+    } finally {
+      rmSync('app/modules/__architecture_surface_probe', {
+        force: true,
+        recursive: true,
+      })
+    }
   })
 })
