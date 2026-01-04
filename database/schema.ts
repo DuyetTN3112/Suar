@@ -165,20 +165,165 @@ export class NotificationSchema extends BaseModel {
   $columns = NotificationSchema.$columns
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
+  @column()
+  declare deadLetterCount: number
+  @column()
+  declare dedupeKey: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare notificationType: string
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare parameters: any
+  @column()
+  declare processedCount: number
+  @column()
+  declare schemaVersion: number
+  @column()
+  declare scopeId: string | null
+  @column()
+  declare scopeType: string
+  @column()
+  declare sequence: bigint | number
+  @column()
+  declare sourceEventName: string
+  @column()
+  declare status: string
+  @column()
+  declare subjectId: string | null
+  @column()
+  declare subjectType: string | null
+  @column()
+  declare targetCount: number
+  @column()
+  declare targetFingerprint: string
+  @column()
+  declare templateFingerprint: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationFanoutTargetSchema extends BaseModel {
+  static $columns = ['attemptCount', 'availableAt', 'createdAt', 'deadLetteredAt', 'eventId', 'id', 'jobId', 'lastErrorClass', 'lastErrorMessage', 'leaseToken', 'lockedBy', 'lockedUntil', 'notificationId', 'processedAt', 'recipientId', 'sequence', 'status', 'updatedAt'] as const
+  $columns = NotificationFanoutTargetSchema.$columns
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deadLetteredAt: DateTime | null
+  @column()
+  declare eventId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare jobId: string
+  @column()
+  declare lastErrorClass: string | null
+  @column()
+  declare lastErrorMessage: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column()
+  declare notificationId: string | null
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare recipientId: string
+  @column()
+  declare sequence: bigint | number
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationOutboxSchema extends BaseModel {
+  static $columns = ['attemptCount', 'availableAt', 'createdAt', 'deadLetteredAt', 'destination', 'disposedAt', 'disposedBy', 'dispositionReason', 'eventKind', 'id', 'lastErrorClass', 'lastErrorMessage', 'leaseToken', 'lockedBy', 'lockedUntil', 'notificationId', 'operationId', 'partitionKey', 'payload', 'processedAt', 'projectionRevision', 'recipientId', 'recipientStateRevision', 'revision', 'sequence', 'sourceEventId', 'status', 'updatedAt'] as const
+  $columns = NotificationOutboxSchema.$columns
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deadLetteredAt: DateTime | null
+  @column()
+  declare destination: string
+  @column.dateTime()
+  declare disposedAt: DateTime | null
+  @column()
+  declare disposedBy: string | null
+  @column()
+  declare dispositionReason: string | null
+  @column()
+  declare eventKind: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lastErrorClass: string | null
+  @column()
+  declare lastErrorMessage: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column()
   @column({ isPrimary: true })
   declare id: string
   @column()
   declare isRead: boolean
   @column()
+  declare locale: string
+  @column()
   declare message: string
   @column()
   declare metadata: any | null
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare organizationId: string | null
+  @column()
+  declare parameters: any | null
+  @column()
+  declare priority: string
   @column.dateTime()
   declare readAt: DateTime | null
   @column()
   declare relatedEntityId: string | null
   @column()
   declare relatedEntityType: string | null
+  @column()
+  declare retentionClass: string
+  @column.dateTime()
+  declare retentionUntil: DateTime
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare schemaVersion: number
+  @column()
+  declare scopeId: string | null
+  @column()
+  declare scopeType: string
+  @column()
+  declare subjectId: string | null
+  @column()
+  declare subjectType: string | null
+  @column()
+  declare templateKey: string
+  @column()
+  declare templateVersion: number
   @column()
   declare title: string
   @column()
@@ -496,15 +641,46 @@ export class ProjectSkillSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class ProjectSprintSchema extends BaseModel {
+  static $columns = ['closedBy', 'createdAt', 'createdBy', 'endsAt', 'goal', 'id', 'name', 'organizationId', 'projectId', 'reviewClosedAt', 'reviewOpenedAt', 'startsAt', 'status', 'updatedAt'] as const
+  $columns = ProjectSprintSchema.$columns
+  @column()
+  declare closedBy: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare createdBy: string
+  @column.dateTime()
+  declare endsAt: DateTime
+  @column()
+  declare goal: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare name: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare projectId: string
+  @column.dateTime()
+  declare reviewClosedAt: DateTime | null
+  @column.dateTime()
+  declare reviewOpenedAt: DateTime | null
+  @column.dateTime()
+  declare startsAt: DateTime
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class ProjectSchema extends BaseModel {
-  static $columns = ['allowFreelancer', 'approvalRequiredForMembers', 'budget', 'createdAt', 'creatorId', 'customRoles', 'deletedAt', 'description', 'endDate', 'id', 'managerId', 'name', 'organizationId', 'ownerId', 'startDate', 'status', 'tags', 'updatedAt', 'visibility'] as const
+  static $columns = ['allowExternalContributors', 'approvalRequiredForMembers', 'createdAt', 'creatorId', 'customRoles', 'deletedAt', 'description', 'endDate', 'id', 'managerId', 'name', 'organizationId', 'ownerId', 'startDate', 'status', 'tags', 'updatedAt', 'visibility'] as const
   $columns = ProjectSchema.$columns
   @column()
-  declare allowFreelancer: boolean
+  declare allowExternalContributors: boolean
   @column()
   declare approvalRequiredForMembers: boolean
-  @column()
-  declare budget: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -577,6 +753,29 @@ export class RememberMeTokenSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class RetiredUserActivityEventSchema extends BaseModel {
+  static $columns = ['actionData', 'actionType', 'createdAt', 'id', 'ipAddress', 'relatedEntityId', 'relatedEntityType', 'userAgent', 'userId'] as const
+  $columns = RetiredUserActivityEventSchema.$columns
+  @column()
+  declare actionData: any | null
+  @column()
+  declare actionType: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare ipAddress: string | null
+  @column()
+  declare relatedEntityId: string | null
+  @column()
+  declare relatedEntityType: string | null
+  @column()
+  declare userAgent: string | null
+  @column()
+  declare userId: string
+}
+
 export class ReverseReviewTargetStatSchema extends BaseModel {
   static $columns = ['anonymousReviews', 'averageRating', 'createdAt', 'lastReviewAt', 'targetId', 'targetType', 'totalReviews', 'updatedAt'] as const
   $columns = ReverseReviewTargetStatSchema.$columns
@@ -619,6 +818,51 @@ export class ReverseReviewSchema extends BaseModel {
   declare targetId: string
   @column()
   declare targetType: string
+}
+
+export class ReviewConfirmedProcessingReceiptSchema extends BaseModel {
+  static $columns = ['action', 'completedAt', 'confirmationId', 'confirmedBy', 'createdAt', 'databaseAppliedAt', 'eventVersion', 'externalAttemptCount', 'externalEffectCursor', 'externalEffectTotal', 'externalEffects', 'externalEffectsSavedAt', 'lastExternalErrorCode', 'lastExternalFailedAt', 'payloadFingerprint', 'reviewSessionId', 'revieweeId', 'reviewerIds', 'state', 'updatedAt'] as const
+  $columns = ReviewConfirmedProcessingReceiptSchema.$columns
+  @column()
+  declare action: string
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column({ isPrimary: true })
+  declare confirmationId: string
+  @column()
+  declare confirmedBy: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare databaseAppliedAt: DateTime
+  @column()
+  declare eventVersion: number
+  @column()
+  declare externalAttemptCount: number
+  @column()
+  declare externalEffectCursor: number
+  @column()
+  declare externalEffectTotal: number | null
+  @column()
+  declare externalEffects: any
+  @column.dateTime()
+  declare externalEffectsSavedAt: DateTime | null
+  @column()
+  declare lastExternalErrorCode: string | null
+  @column.dateTime()
+  declare lastExternalFailedAt: DateTime | null
+  @column()
+  declare payloadFingerprint: string
+  @column()
+  declare reviewSessionId: string
+  @column()
+  declare revieweeId: string
+  @column()
+  declare reviewerIds: any
+  @column()
+  declare state: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
 }
 
 export class ReviewDisputeCaseFileSchema extends BaseModel {
@@ -898,6 +1142,31 @@ export class ReviewSessionSchema extends BaseModel {
   declare wouldWorkWithAgain: boolean | null
 }
 
+export class ReviewSubmittedProcessingReceiptSchema extends BaseModel {
+  static $columns = ['completedAt', 'createdAt', 'eventVersion', 'flaggedReviewCount', 'payload', 'payloadFingerprint', 'ruleVersion', 'submissionId', 'talentProjection', 'updatedAt'] as const
+  $columns = ReviewSubmittedProcessingReceiptSchema.$columns
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare eventVersion: number
+  @column()
+  declare flaggedReviewCount: number | null
+  @column()
+  declare payload: any
+  @column()
+  declare payloadFingerprint: string
+  @column()
+  declare ruleVersion: number
+  @column({ isPrimary: true })
+  declare submissionId: string
+  @column()
+  declare talentProjection: any | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class SkillAliasSchema extends BaseModel {
   static $columns = ['alias', 'createdAt', 'id', 'isPrimary', 'locale', 'normalizedAlias', 'skillId', 'source', 'updatedAt'] as const
   $columns = SkillAliasSchema.$columns
@@ -1090,8 +1359,205 @@ export class SkillSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
+export class SprintEnvironmentReviewSchema extends BaseModel {
+  static $columns = ['comment', 'createdAt', 'dimensions', 'id', 'isAnonymousPublicly', 'packageId', 'rating', 'targetId', 'targetType', 'updatedAt'] as const
+  $columns = SprintEnvironmentReviewSchema.$columns
+  @column()
+  declare comment: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare dimensions: any | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isAnonymousPublicly: boolean
+  @column()
+  declare packageId: string
+  @column()
+  declare rating: number
+  @column()
+  declare targetId: string
+  @column()
+  declare targetType: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class SprintManagerReviewSchema extends BaseModel {
+  static $columns = ['comment', 'createdAt', 'dimensions', 'id', 'isAnonymousToTarget', 'packageId', 'rating', 'targetRole', 'targetUserId', 'updatedAt'] as const
+  $columns = SprintManagerReviewSchema.$columns
+  @column()
+  declare comment: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare dimensions: any | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isAnonymousToTarget: boolean
+  @column()
+  declare packageId: string
+  @column()
+  declare rating: number
+  @column()
+  declare targetRole: string
+  @column()
+  declare targetUserId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class SprintReverseReviewMessageSchema extends BaseModel {
+  static $columns = ['authorId', 'body', 'createdAt', 'id', 'messageType', 'metadata', 'workflowId'] as const
+  $columns = SprintReverseReviewMessageSchema.$columns
+  @column()
+  declare authorId: string
+  @column()
+  declare body: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare messageType: string
+  @column()
+  declare metadata: any
+  @column()
+  declare workflowId: string
+}
+
+export class SprintReverseReviewWorkflowSchema extends BaseModel {
+  static $columns = ['acceptedAt', 'comment', 'createdAt', 'finalDecision', 'finalRationale', 'id', 'organizationId', 'packageId', 'projectId', 'rating', 'reportedAt', 'resolvedAt', 'resolvedBy', 'responderId', 'reviewerId', 'sprintId', 'status', 'submittedAt', 'targetEntityId', 'targetType', 'targetUserId', 'updatedAt'] as const
+  $columns = SprintReverseReviewWorkflowSchema.$columns
+  @column.dateTime()
+  declare acceptedAt: DateTime | null
+  @column()
+  declare comment: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare finalDecision: string | null
+  @column()
+  declare finalRationale: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare packageId: string | null
+  @column()
+  declare projectId: string
+  @column()
+  declare rating: number | null
+  @column.dateTime()
+  declare reportedAt: DateTime | null
+  @column.dateTime()
+  declare resolvedAt: DateTime | null
+  @column()
+  declare resolvedBy: string | null
+  @column()
+  declare responderId: string | null
+  @column()
+  declare reviewerId: string
+  @column()
+  declare sprintId: string
+  @column()
+  declare status: string
+  @column.dateTime()
+  declare submittedAt: DateTime | null
+  @column()
+  declare targetEntityId: string | null
+  @column()
+  declare targetType: string
+  @column()
+  declare targetUserId: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class SprintReviewDisputeCommentSchema extends BaseModel {
+  static $columns = ['authorId', 'body', 'createdAt', 'deletedAt', 'disputeId', 'id', 'updatedAt', 'visibility'] as const
+  $columns = SprintReviewDisputeCommentSchema.$columns
+  @column()
+  declare authorId: string
+  @column()
+  declare body: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deletedAt: DateTime | null
+  @column()
+  declare disputeId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare visibility: string
+}
+
+export class SprintReviewDisputeSchema extends BaseModel {
+  static $columns = ['createdAt', 'disputeReason', 'disputeReviewType', 'escalationReason', 'finalDecision', 'finalRationale', 'id', 'openedBy', 'packageId', 'reportedToAdminAt', 'reportedToAdminBy', 'requestedOutcome', 'resolvedAt', 'resolvedBy', 'runtimeContext', 'status', 'updatedAt'] as const
+  $columns = SprintReviewDisputeSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare disputeReason: string
+  @column()
+  declare disputeReviewType: string
+  @column()
+  declare escalationReason: string | null
+  @column()
+  declare finalDecision: string | null
+  @column()
+  declare finalRationale: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare openedBy: string
+  @column()
+  declare packageId: string
+  @column.dateTime()
+  declare reportedToAdminAt: DateTime | null
+  @column()
+  declare reportedToAdminBy: string | null
+  @column()
+  declare requestedOutcome: string
+  @column.dateTime()
+  declare resolvedAt: DateTime | null
+  @column()
+  declare resolvedBy: string | null
+  @column()
+  declare runtimeContext: any
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class SprintReviewPackageSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'reviewerId', 'sprintId', 'status', 'submittedAt', 'updatedAt'] as const
+  $columns = SprintReviewPackageSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare reviewerId: string
+  @column()
+  declare sprintId: string
+  @column()
+  declare status: string
+  @column.dateTime()
+  declare submittedAt: DateTime | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class TaskApplicationSchema extends BaseModel {
-  static $columns = ['applicantId', 'applicationSource', 'applicationStatus', 'appliedAt', 'expectedRate', 'id', 'message', 'portfolioLinks', 'rejectionReason', 'reviewedAt', 'reviewedBy', 'taskId'] as const
+  static $columns = ['applicantId', 'applicationSource', 'applicationStatus', 'appliedAt', 'id', 'message', 'portfolioLinks', 'rejectionReason', 'reviewedAt', 'reviewedBy', 'taskId'] as const
   $columns = TaskApplicationSchema.$columns
   @column()
   declare applicantId: string
@@ -1101,8 +1567,6 @@ export class TaskApplicationSchema extends BaseModel {
   declare applicationStatus: string
   @column.dateTime()
   declare appliedAt: DateTime | null
-  @column()
-  declare expectedRate: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
@@ -1343,6 +1807,93 @@ export class TaskRequirementVersionSchema extends BaseModel {
   declare versionNumber: number
 }
 
+export class TaskReviewMessageSchema extends BaseModel {
+  static $columns = ['authorId', 'body', 'createdAt', 'id', 'messageType', 'metadata', 'workflowId'] as const
+  $columns = TaskReviewMessageSchema.$columns
+  @column()
+  declare authorId: string
+  @column()
+  declare body: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare messageType: string
+  @column()
+  declare metadata: any
+  @column()
+  declare workflowId: string
+}
+
+export class TaskReviewReviewerSchema extends BaseModel {
+  static $columns = ['createdAt', 'id', 'isRequired', 'priorityRank', 'reviewedAt', 'reviewerId', 'reviewerRole', 'status', 'updatedAt', 'workflowId'] as const
+  $columns = TaskReviewReviewerSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare isRequired: boolean
+  @column()
+  declare priorityRank: number
+  @column.dateTime()
+  declare reviewedAt: DateTime | null
+  @column()
+  declare reviewerId: string
+  @column()
+  declare reviewerRole: string
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare workflowId: string
+}
+
+export class TaskReviewWorkflowSchema extends BaseModel {
+  static $columns = ['acceptedByRevieweeAt', 'completedAt', 'completedReviewCount', 'createdAt', 'finalDecision', 'finalRationale', 'id', 'organizationId', 'projectId', 'reportedAt', 'reportedBy', 'requiredReviewCount', 'resolvedAt', 'resolvedBy', 'revieweeId', 'runtimeContext', 'status', 'taskId', 'updatedAt'] as const
+  $columns = TaskReviewWorkflowSchema.$columns
+  @column.dateTime()
+  declare acceptedByRevieweeAt: DateTime | null
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare completedReviewCount: number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare finalDecision: string | null
+  @column()
+  declare finalRationale: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare organizationId: string
+  @column()
+  declare projectId: string
+  @column.dateTime()
+  declare reportedAt: DateTime | null
+  @column()
+  declare reportedBy: string | null
+  @column()
+  declare requiredReviewCount: number
+  @column.dateTime()
+  declare resolvedAt: DateTime | null
+  @column()
+  declare resolvedBy: string | null
+  @column()
+  declare revieweeId: string | null
+  @column()
+  declare runtimeContext: any
+  @column()
+  declare status: string
+  @column()
+  declare taskId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
 export class TaskSelfAssessmentSchema extends BaseModel {
   static $columns = ['blockersEncountered', 'confidenceLevel', 'createdAt', 'difficultyFelt', 'id', 'overallSatisfaction', 'skillsFeltLacking', 'skillsFeltStrong', 'submittedAt', 'taskAssignmentId', 'updatedAt', 'userId', 'whatWentWell', 'whatWouldDoDifferent'] as const
   $columns = TaskSelfAssessmentSchema.$columns
@@ -1512,7 +2063,7 @@ export class TaskWorkflowTransitionSchema extends BaseModel {
 }
 
 export class TaskSchema extends BaseModel {
-  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assessmentCeilingLevelId', 'assignedTo', 'autonomyExpected', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexity', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedBudget', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'minimumLevelId', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'roleInTask', 'rubricVersionId', 'sortOrder', 'status', 'targetLevelId', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
+  static $columns = ['acceptanceCriteria', 'actualTime', 'applicationDeadline', 'assessmentCeilingLevelId', 'assignedTo', 'autonomyExpected', 'autonomyLevel', 'businessDomain', 'collaborationType', 'complexity', 'complexityNotes', 'contextBackground', 'createdAt', 'creatorId', 'deletedAt', 'description', 'difficulty', 'domainTags', 'dueDate', 'environment', 'estimatedTime', 'estimatedUsersAffected', 'expectedDeliverables', 'externalApplicationsCount', 'id', 'impactScope', 'label', 'learningObjectives', 'measurableOutcomes', 'minimumLevelId', 'organizationId', 'parentTaskId', 'priority', 'problemCategory', 'projectId', 'projectSprintId', 'roleInTask', 'rubricVersionId', 'sortOrder', 'status', 'targetLevelId', 'taskStatusId', 'taskType', 'taskVisibility', 'techStack', 'title', 'updatedAt', 'updatedBy', 'verificationMethod'] as const
   $columns = TaskSchema.$columns
   @column()
   declare acceptanceCriteria: string
@@ -1555,8 +2106,6 @@ export class TaskSchema extends BaseModel {
   @column()
   declare environment: string | null
   @column()
-  declare estimatedBudget: string | null
-  @column()
   declare estimatedTime: string | null
   @column()
   declare estimatedUsersAffected: number | null
@@ -1587,6 +2136,8 @@ export class TaskSchema extends BaseModel {
   @column()
   declare projectId: string | null
   @column()
+  declare projectSprintId: string | null
+  @column()
   declare roleInTask: string | null
   @column()
   declare rubricVersionId: string | null
@@ -1612,29 +2163,6 @@ export class TaskSchema extends BaseModel {
   declare updatedBy: string | null
   @column()
   declare verificationMethod: string
-}
-
-export class UserActivityEventSchema extends BaseModel {
-  static $columns = ['actionData', 'actionType', 'createdAt', 'id', 'ipAddress', 'relatedEntityId', 'relatedEntityType', 'userAgent', 'userId'] as const
-  $columns = UserActivityEventSchema.$columns
-  @column()
-  declare actionData: any | null
-  @column()
-  declare actionType: string
-  @column.dateTime({ autoCreate: true })
-  declare createdAt: DateTime
-  @column({ isPrimary: true })
-  declare id: string
-  @column()
-  declare ipAddress: string | null
-  @column()
-  declare relatedEntityId: string | null
-  @column()
-  declare relatedEntityType: string | null
-  @column()
-  declare userAgent: string | null
-  @column()
-  declare userId: string
 }
 
 export class UserDomainExpertiseSchema extends BaseModel {
@@ -1911,7 +2439,7 @@ export class UserWorkHistorySchema extends BaseModel {
 }
 
 export class UserSchema extends BaseModel {
-  static $columns = ['address', 'authMethod', 'avatarUrl', 'bio', 'createdAt', 'credibilityData', 'currentOrganizationId', 'deletedAt', 'email', 'freelancerCompletedTasksCount', 'freelancerRating', 'id', 'isFreelancer', 'isVerifiedBadge', 'language', 'phone', 'profileSettings', 'rankingPriority', 'status', 'systemRole', 'timezone', 'trustData', 'updatedAt', 'userSetting', 'username'] as const
+  static $columns = ['address', 'authMethod', 'avatarUrl', 'bio', 'createdAt', 'credibilityData', 'currentOrganizationId', 'deletedAt', 'email', 'externalContributorCompletedTasksCount', 'externalContributorRating', 'id', 'isExternalContributor', 'isVerifiedBadge', 'language', 'phone', 'profileSettings', 'rankingPriority', 'status', 'systemRole', 'timezone', 'trustData', 'updatedAt', 'userSetting', 'username'] as const
   $columns = UserSchema.$columns
   @column()
   declare address: string | null
@@ -1932,13 +2460,13 @@ export class UserSchema extends BaseModel {
   @column()
   declare email: string | null
   @column()
-  declare freelancerCompletedTasksCount: number | null
+  declare externalContributorCompletedTasksCount: number | null
   @column()
-  declare freelancerRating: string | null
+  declare externalContributorRating: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
-  declare isFreelancer: boolean | null
+  declare isExternalContributor: boolean | null
   @column()
   declare isVerifiedBadge: boolean | null
   @column()
