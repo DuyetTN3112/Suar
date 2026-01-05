@@ -7,11 +7,50 @@
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
+export class AiDisputeAutoQueueIntentSchema extends BaseModel {
+  static $columns = ['attemptCount', 'availableAt', 'createdAt', 'id', 'lastErrorCode', 'leaseToken', 'lockedBy', 'lockedUntil', 'organizationId', 'processedAt', 'requestId', 'sourceId', 'sourceType', 'status', 'traceId', 'updatedAt', 'workflowId'] as const
+  $columns = AiDisputeAutoQueueIntentSchema.$columns
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lastErrorCode: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column()
+  declare organizationId: string | null
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare requestId: string | null
+  @column()
+  declare sourceId: string
+  @column()
+  declare sourceType: string
+  @column()
+  declare status: string
+  @column()
+  declare traceId: string | null
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+  @column()
+  declare workflowId: string | null
+}
+
 export class AiDisputeEvaluationSchema extends BaseModel {
-  static $columns = ['caseFileId', 'completedAt', 'confidenceScore', 'createdAt', 'disputeId', 'errorMessage', 'externalRunId', 'id', 'provider', 'recommendation', 'requestPayload', 'responsePayload', 'status', 'summary'] as const
+  static $columns = ['caseFileId', 'completedAt', 'confidenceScore', 'createdAt', 'disputeId', 'errorMessage', 'externalRunId', 'id', 'provider', 'recommendation', 'requestPayload', 'responsePayload', 'sourceId', 'sourceType', 'status', 'summary', 'triggerAcceptedAt', 'triggerAttemptCount', 'triggerDispatchToken', 'triggerErrorCode', 'triggerErrorRetryable', 'triggerExpectedSourceStatus', 'triggerLastAttemptAt', 'triggerNextAttemptAt', 'triggerPayload', 'triggerSourceTable', 'triggerState'] as const
   $columns = AiDisputeEvaluationSchema.$columns
   @column()
-  declare caseFileId: string
+  declare caseFileId: string | null
   @column.dateTime()
   declare completedAt: DateTime | null
   @column()
@@ -35,9 +74,35 @@ export class AiDisputeEvaluationSchema extends BaseModel {
   @column()
   declare responsePayload: any
   @column()
+  declare sourceId: string | null
+  @column()
+  declare sourceType: string
+  @column()
   declare status: string
   @column()
   declare summary: string | null
+  @column.dateTime()
+  declare triggerAcceptedAt: DateTime | null
+  @column()
+  declare triggerAttemptCount: number
+  @column()
+  declare triggerDispatchToken: string | null
+  @column()
+  declare triggerErrorCode: string | null
+  @column()
+  declare triggerErrorRetryable: boolean | null
+  @column()
+  declare triggerExpectedSourceStatus: string | null
+  @column.dateTime()
+  declare triggerLastAttemptAt: DateTime | null
+  @column.dateTime()
+  declare triggerNextAttemptAt: DateTime | null
+  @column()
+  declare triggerPayload: any
+  @column()
+  declare triggerSourceTable: string | null
+  @column()
+  declare triggerState: string
 }
 
 export class AiDisputeFeedbackSchema extends BaseModel {
@@ -69,21 +134,56 @@ export class AiDisputeFeedbackSchema extends BaseModel {
   declare id: string
 }
 
+export class AuditEventScopeSchema extends BaseModel {
+  static $columns = ['createdAt', 'eventId', 'id', 'organizationId', 'surface', 'userId'] as const
+  $columns = AuditEventScopeSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare eventId: string
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare organizationId: string | null
+  @column()
+  declare surface: string
+  @column()
+  declare userId: string | null
+}
+
 export class AuditEventSchema extends BaseModel {
-  static $columns = ['action', 'createdAt', 'entityId', 'entityType', 'id', 'ipAddress', 'newValues', 'occurredAt', 'oldValues', 'userAgent', 'userId'] as const
+  static $columns = ['action', 'actorOrgId', 'actorRoleSurface', 'actorType', 'actorUserId', 'correlationKey', 'createdAt', 'entityId', 'entityType', 'eventFamily', 'eventHash', 'eventName', 'id', 'ipAddress', 'module', 'newValues', 'occurredAt', 'oldValues', 'outcome', 'prevHash', 'recordedAt', 'redactionApplied', 'requestId', 'retentionClass', 'schemaVersion', 'severity', 'sourceOccurredAt', 'stage', 'subsystem', 'targetId', 'targetOrgId', 'targetType', 'traceId', 'userAgent', 'userId', 'workflow'] as const
   $columns = AuditEventSchema.$columns
   @column()
   declare action: string
+  @column()
+  declare actorOrgId: string | null
+  @column()
+  declare actorRoleSurface: string | null
+  @column()
+  declare actorType: string | null
+  @column()
+  declare actorUserId: string | null
+  @column()
+  declare correlationKey: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
   declare entityId: string | null
   @column()
   declare entityType: string
+  @column()
+  declare eventFamily: string | null
+  @column()
+  declare eventHash: string | null
+  @column()
+  declare eventName: string | null
   @column({ isPrimary: true })
   declare id: string
   @column()
   declare ipAddress: string | null
+  @column()
+  declare module: string | null
   @column()
   declare newValues: any | null
   @column.dateTime()
@@ -91,9 +191,225 @@ export class AuditEventSchema extends BaseModel {
   @column()
   declare oldValues: any | null
   @column()
+  declare outcome: string | null
+  @column()
+  declare prevHash: string | null
+  @column.dateTime()
+  declare recordedAt: DateTime
+  @column()
+  declare redactionApplied: boolean
+  @column()
+  declare requestId: string | null
+  @column()
+  declare retentionClass: string | null
+  @column()
+  declare schemaVersion: number
+  @column()
+  declare severity: string | null
+  @column.dateTime()
+  declare sourceOccurredAt: DateTime | null
+  @column()
+  declare stage: string | null
+  @column()
+  declare subsystem: string | null
+  @column()
+  declare targetId: string | null
+  @column()
+  declare targetOrgId: string | null
+  @column()
+  declare targetType: string | null
+  @column()
+  declare traceId: string | null
+  @column()
   declare userAgent: string | null
   @column()
   declare userId: string | null
+  @column()
+  declare workflow: string | null
+}
+
+export class AuthSessionEventReceiptSchema extends BaseModel {
+  static $columns = ['action', 'eventId', 'eventVersion', 'occurredAt', 'payloadFingerprint', 'processedAt', 'userId'] as const
+  $columns = AuthSessionEventReceiptSchema.$columns
+  @column()
+  declare action: string
+  @column({ isPrimary: true })
+  declare eventId: string
+  @column()
+  declare eventVersion: number
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare payloadFingerprint: string
+  @column.dateTime()
+  declare processedAt: DateTime
+  @column()
+  declare userId: string
+}
+
+export class CacheInvalidationOutboxSchema extends BaseModel {
+  static $columns = ['attemptCount', 'availableAt', 'createdAt', 'deadLetteredAt', 'id', 'lastErrorClass', 'lastErrorMessage', 'leaseToken', 'lockedBy', 'lockedUntil', 'patterns', 'processedAt', 'sequence', 'sourceOperation', 'sourcePrimaryKey', 'sourceTable', 'status', 'transactionId', 'updatedAt'] as const
+  $columns = CacheInvalidationOutboxSchema.$columns
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deadLetteredAt: DateTime | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lastErrorClass: string | null
+  @column()
+  declare lastErrorMessage: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column()
+  declare patterns: any
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare sequence: bigint | number
+  @column()
+  declare sourceOperation: string
+  @column()
+  declare sourcePrimaryKey: string
+  @column()
+  declare sourceTable: string
+  @column()
+  declare status: string
+  @column()
+  declare transactionId: bigint | number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class CustomSystemRoleSchema extends BaseModel {
+  static $columns = ['code', 'createdAt', 'description', 'id', 'name', 'permissions', 'updatedAt'] as const
+  $columns = CustomSystemRoleSchema.$columns
+  @column()
+  declare code: string
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare description: string | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare name: string
+  @column()
+  declare permissions: any
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class DisputeResolvedProcessingReceiptSchema extends BaseModel {
+  static $columns = ['completedAt', 'createdAt', 'databaseAppliedAt', 'disputeId', 'eventVersion', 'externalAttemptCount', 'externalEffectCursor', 'externalEffectTotal', 'externalEffects', 'externalEffectsSavedAt', 'lastExternalErrorCode', 'lastExternalFailedAt', 'payload', 'payloadFingerprint', 'state', 'updatedAt'] as const
+  $columns = DisputeResolvedProcessingReceiptSchema.$columns
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare databaseAppliedAt: DateTime
+  @column({ isPrimary: true })
+  declare disputeId: string
+  @column()
+  declare eventVersion: number
+  @column()
+  declare externalAttemptCount: number
+  @column()
+  declare externalEffectCursor: number
+  @column()
+  declare externalEffectTotal: number | null
+  @column()
+  declare externalEffects: any
+  @column.dateTime()
+  declare externalEffectsSavedAt: DateTime | null
+  @column()
+  declare lastExternalErrorCode: string | null
+  @column.dateTime()
+  declare lastExternalFailedAt: DateTime | null
+  @column()
+  declare payload: any
+  @column()
+  declare payloadFingerprint: string
+  @column()
+  declare state: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class DomainEventOutboxSchema extends BaseModel {
+  static $columns = ['aggregateId', 'aggregateType', 'attemptCount', 'availableAt', 'createdAt', 'deadLetteredAt', 'dedupeFingerprint', 'dedupeKey', 'eventName', 'eventVersion', 'id', 'lastErrorCode', 'leaseToken', 'lockedBy', 'lockedUntil', 'payload', 'processedAt', 'sequence', 'status', 'updatedAt'] as const
+  $columns = DomainEventOutboxSchema.$columns
+  @column()
+  declare aggregateId: string
+  @column()
+  declare aggregateType: string
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column.dateTime()
+  declare deadLetteredAt: DateTime | null
+  @column()
+  declare dedupeFingerprint: string
+  @column()
+  declare dedupeKey: string
+  @column()
+  declare eventName: string
+  @column()
+  declare eventVersion: number
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lastErrorCode: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column()
+  declare payload: any
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare sequence: bigint | number
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class DomainEventOutboxReplayHistorySchema extends BaseModel {
+  static $columns = ['id', 'outboxId', 'previousAttemptCount', 'previousErrorCode', 'reasonDigest', 'reasonLength', 'replayedAt', 'replayedBy'] as const
+  $columns = DomainEventOutboxReplayHistorySchema.$columns
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare outboxId: string
+  @column()
+  declare previousAttemptCount: number
+  @column()
+  declare previousErrorCode: string | null
+  @column()
+  declare reasonDigest: string
+  @column()
+  declare reasonLength: number
+  @column.dateTime()
+  declare replayedAt: DateTime
+  @column()
+  declare replayedBy: string
 }
 
 export class ErrorEventSchema extends BaseModel {
@@ -160,9 +476,65 @@ export class FlaggedReviewSchema extends BaseModel {
   declare updatedAt: DateTime
 }
 
-export class NotificationSchema extends BaseModel {
-  static $columns = ['createdAt', 'id', 'isRead', 'message', 'metadata', 'readAt', 'relatedEntityId', 'relatedEntityType', 'title', 'type', 'updatedAt', 'userId'] as const
-  $columns = NotificationSchema.$columns
+export class MarketplaceApplicationSchema extends BaseModel {
+  static $columns = ['applicantId', 'appliedAt', 'evidenceLinks', 'id', 'message', 'projectId', 'status', 'taskId'] as const
+  $columns = MarketplaceApplicationSchema.$columns
+  @column()
+  declare applicantId: string
+  @column.dateTime()
+  declare appliedAt: DateTime
+  @column()
+  declare evidenceLinks: any | null
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare message: string | null
+  @column()
+  declare projectId: string
+  @column()
+  declare status: string
+  @column()
+  declare taskId: string
+}
+
+export class NotificationAcceptanceLedgerSchema extends BaseModel {
+  static $columns = ['acceptedAt', 'dedupeKey', 'eventFingerprint', 'eventId', 'notificationId', 'occurredAt', 'recipientId', 'terminalAt', 'terminalState', 'type'] as const
+  $columns = NotificationAcceptanceLedgerSchema.$columns
+  @column.dateTime()
+  declare acceptedAt: DateTime
+  @column()
+  declare dedupeKey: string | null
+  @column()
+  declare eventFingerprint: string
+  @column({ isPrimary: true })
+  declare eventId: string
+  @column()
+  declare notificationId: string
+  @column.dateTime()
+  declare occurredAt: DateTime
+  @column()
+  declare recipientId: string
+  @column.dateTime()
+  declare terminalAt: DateTime | null
+  @column()
+  declare terminalState: string
+  @column()
+  declare type: string
+}
+
+export class NotificationFanoutJobSchema extends BaseModel {
+  static $columns = ['actorId', 'actorType', 'businessEventId', 'completedAt', 'correlationId', 'createdAt', 'deadLetterCount', 'dedupeKey', 'id', 'notificationType', 'occurredAt', 'parameters', 'processedCount', 'schemaVersion', 'scopeId', 'scopeType', 'sequence', 'sourceEventName', 'status', 'subjectId', 'subjectType', 'targetCount', 'targetFingerprint', 'templateFingerprint', 'updatedAt'] as const
+  $columns = NotificationFanoutJobSchema.$columns
+  @column()
+  declare actorId: string | null
+  @column()
+  declare actorType: string | null
+  @column()
+  declare businessEventId: string
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare correlationId: string | null
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
   @column()
@@ -280,6 +652,223 @@ export class NotificationOutboxSchema extends BaseModel {
   @column.dateTime()
   declare lockedUntil: DateTime | null
   @column()
+  declare notificationId: string | null
+  @column()
+  declare operationId: string
+  @column()
+  declare partitionKey: string
+  @column()
+  declare payload: any
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare projectionRevision: bigint | number
+  @column()
+  declare recipientId: string
+  @column()
+  declare recipientStateRevision: bigint | number
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare sequence: bigint | number
+  @column()
+  declare sourceEventId: string
+  @column()
+  declare status: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationProjectionDeliverySchema extends BaseModel {
+  static $columns = ['appliedRevision', 'attemptCount', 'availableAt', 'createdAt', 'lastErrorClass', 'lastErrorMessage', 'leaseToken', 'lockedBy', 'lockedUntil', 'outboxId', 'processedAt', 'status', 'targetId', 'updatedAt'] as const
+  $columns = NotificationProjectionDeliverySchema.$columns
+  @column()
+  declare appliedRevision: bigint | number | null
+  @column()
+  declare attemptCount: number
+  @column.dateTime()
+  declare availableAt: DateTime
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare lastErrorClass: string | null
+  @column()
+  declare lastErrorMessage: string | null
+  @column()
+  declare leaseToken: string | null
+  @column()
+  declare lockedBy: string | null
+  @column.dateTime()
+  declare lockedUntil: DateTime | null
+  @column({ isPrimary: true })
+  declare outboxId: string
+  @column.dateTime()
+  declare processedAt: DateTime | null
+  @column()
+  declare status: string
+  @column()
+  declare targetId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationProjectionRunSchema extends BaseModel {
+  static $columns = ['aliasSwappedAt', 'completedAt', 'dryRun', 'extraCount', 'id', 'lastErrorClass', 'lastErrorMessage', 'lastNotificationId', 'lastTombstoneId', 'missingCount', 'projectedCount', 'promotionReason', 'promotionRequestedAt', 'promotionRequestedBy', 'reason', 'report', 'requestedBy', 'runKind', 's0Sequence', 's1Sequence', 'scannedCount', 'sourceTargetId', 'staleCount', 'startedAt', 'status', 'targetId', 'updatedAt'] as const
+  $columns = NotificationProjectionRunSchema.$columns
+  @column.dateTime()
+  declare aliasSwappedAt: DateTime | null
+  @column.dateTime()
+  declare completedAt: DateTime | null
+  @column()
+  declare dryRun: boolean
+  @column()
+  declare extraCount: bigint | number
+  @column({ isPrimary: true })
+  declare id: string
+  @column()
+  declare lastErrorClass: string | null
+  @column()
+  declare lastErrorMessage: string | null
+  @column()
+  declare lastNotificationId: string | null
+  @column()
+  declare lastTombstoneId: string | null
+  @column()
+  declare missingCount: bigint | number
+  @column()
+  declare projectedCount: bigint | number
+  @column()
+  declare promotionReason: string | null
+  @column.dateTime()
+  declare promotionRequestedAt: DateTime | null
+  @column()
+  declare promotionRequestedBy: string | null
+  @column()
+  declare reason: string
+  @column()
+  declare report: any
+  @column()
+  declare requestedBy: string
+  @column()
+  declare runKind: string
+  @column()
+  declare s0Sequence: bigint | number
+  @column()
+  declare s1Sequence: bigint | number | null
+  @column()
+  declare scannedCount: bigint | number
+  @column()
+  declare sourceTargetId: string | null
+  @column()
+  declare staleCount: bigint | number
+  @column.dateTime()
+  declare startedAt: DateTime
+  @column()
+  declare status: string
+  @column()
+  declare targetId: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationProjectionTargetSchema extends BaseModel {
+  static $columns = ['activeFromSequence', 'backfillCompletedAt', 'checkpointSequence', 'createdAt', 'id', 'physicalDeletedAt', 'physicalIndex', 'reconciledAt', 'reconciliationStatus', 'requiredUntil', 'retiredAt', 'rollbackEligible', 'rollbackReason', 'rollbackRequestedAt', 'rollbackRequestedBy', 'rollbackSourceTargetId', 'rolledBackAt', 'status', 'targetKey', 'updatedAt'] as const
+  $columns = NotificationProjectionTargetSchema.$columns
+  @column()
+  declare activeFromSequence: bigint | number
+  @column.dateTime()
+  declare backfillCompletedAt: DateTime | null
+  @column()
+  declare checkpointSequence: bigint | number
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare id: string
+  @column.dateTime()
+  declare physicalDeletedAt: DateTime | null
+  @column()
+  declare physicalIndex: string
+  @column.dateTime()
+  declare reconciledAt: DateTime | null
+  @column()
+  declare reconciliationStatus: string
+  @column.dateTime()
+  declare requiredUntil: DateTime | null
+  @column.dateTime()
+  declare retiredAt: DateTime | null
+  @column()
+  declare rollbackEligible: boolean
+  @column()
+  declare rollbackReason: string | null
+  @column.dateTime()
+  declare rollbackRequestedAt: DateTime | null
+  @column()
+  declare rollbackRequestedBy: string | null
+  @column()
+  declare rollbackSourceTargetId: string | null
+  @column.dateTime()
+  declare rolledBackAt: DateTime | null
+  @column()
+  declare status: string
+  @column()
+  declare targetKey: string
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationRecipientStateSchema extends BaseModel {
+  static $columns = ['createdAt', 'recipientId', 'revision', 'unreadCount', 'updatedAt'] as const
+  $columns = NotificationRecipientStateSchema.$columns
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column({ isPrimary: true })
+  declare recipientId: string
+  @column()
+  declare revision: bigint | number
+  @column()
+  declare unreadCount: bigint | number
+  @column.dateTime({ autoCreate: true, autoUpdate: true })
+  declare updatedAt: DateTime
+}
+
+export class NotificationTombstoneSchema extends BaseModel {
+  static $columns = ['deletedAt', 'finalRevision', 'notificationId', 'projectionCompletedAt', 'purgeAfter', 'recipientId'] as const
+  $columns = NotificationTombstoneSchema.$columns
+  @column.dateTime()
+  declare deletedAt: DateTime
+  @column()
+  declare finalRevision: bigint | number
+  @column({ isPrimary: true })
+  declare notificationId: string
+  @column.dateTime()
+  declare projectionCompletedAt: DateTime | null
+  @column.dateTime()
+  declare purgeAfter: DateTime
+  @column()
+  declare recipientId: string
+}
+
+export class NotificationSchema extends BaseModel {
+  static $columns = ['action', 'actorId', 'actorType', 'category', 'correlationId', 'createdAt', 'dedupeKey', 'eventFingerprint', 'eventId', 'id', 'isRead', 'locale', 'message', 'metadata', 'occurredAt', 'organizationId', 'parameters', 'priority', 'readAt', 'relatedEntityId', 'relatedEntityType', 'retentionClass', 'retentionUntil', 'revision', 'schemaVersion', 'scopeId', 'scopeType', 'subjectId', 'subjectType', 'templateKey', 'templateVersion', 'title', 'type', 'updatedAt', 'userId'] as const
+  $columns = NotificationSchema.$columns
+  @column()
+  declare action: any | null
+  @column()
+  declare actorId: string | null
+  @column()
+  declare actorType: string | null
+  @column()
+  declare category: string
+  @column()
+  declare correlationId: string | null
+  @column.dateTime({ autoCreate: true })
+  declare createdAt: DateTime
+  @column()
+  declare dedupeKey: string | null
+  @column()
+  declare eventFingerprint: string
+  @column()
+  declare eventId: string
   @column({ isPrimary: true })
   declare id: string
   @column()
