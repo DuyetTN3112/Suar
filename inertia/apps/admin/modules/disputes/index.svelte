@@ -1,26 +1,27 @@
 <script lang="ts">
-  import { Link, router } from '@inertiajs/svelte'
+  import { Link } from '@inertiajs/svelte'
+  import { Bot, CalendarDays, ChevronRight, FolderKanban } from 'lucide-svelte'
 
-  import Badge from '@/apps/admin/shared/ui/badge.svelte'
-  import Button from '@/apps/admin/shared/ui/button.svelte'
-  import Card from '@/apps/admin/shared/ui/card.svelte'
-  import CardContent from '@/apps/admin/shared/ui/card_content.svelte'
-  import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
-  import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
   import type { CursorPagePagination } from '@/apps/admin/shared/lib/pagination'
   import { currentDocumentLocale } from '@/apps/admin/shared/lib/date_locale'
-  import DataTableFilters from '@/apps/admin/shared/ui/data_table_filters.svelte'
-  import type { FilterConfig } from '@/apps/admin/shared/ui/data_table_filters_types'
   import UnifiedCursorPagination from '@/apps/admin/shared/ui/unified_cursor_pagination.svelte'
   import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
+  type DisputeStatus =
+    | 'pending'
+    | 'collecting_evidence'
+    | 'reported'
+    | 'admin_reviewing'
+    | 'ai_reviewing'
+    | 'resolved'
+    | 'rejected'
+    | 'cancelled'
+
   interface Dispute {
     id: string
-    review_session_id: string | null
-    task_id: string | null
+    review_session_id?: string | null
+    task_id?: string | null
     task_title: string | null
-    organization_id?: string | null
-    organizationId?: string | null
     project_id?: string | null
     projectId?: string | null
     project_name?: string | null
@@ -29,7 +30,6 @@
     sprintId?: string | null
     sprint_name?: string | null
     sprintName?: string | null
-    reviewee_id: string
     reviewee_username: string | null
     reviewee_email: string | null
     status: string
@@ -49,9 +49,7 @@
     pagination: CursorPagePagination
     filters: {
       status: string | null
-      search: string | null
-      after?: string | null
-      before?: string | null
+      search?: string | null
       requested_outcome?: string | null
       final_decision?: string | null
     }
@@ -60,30 +58,27 @@
   const { disputes, pagination, filters }: Props = $props()
   const { t } = useTranslation()
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
-
-  const statusOptions = [
+  const statuses: DisputeStatus[] = [
     'pending',
+    'collecting_evidence',
     'reported',
     'admin_reviewing',
     'ai_reviewing',
     'resolved',
     'rejected',
     'cancelled',
-  ] as const
-  const requestedOutcomeOptions = [
-    'adjust_score',
-    'request_re_review',
-    'dismiss_review',
-    'clarify_evidence',
-  ] as const
-  const finalDecisionOptions = [
-    'uphold_review',
-    'adjust_score',
-    'request_re_review',
-    'dismiss_dispute',
-    'partially_accept',
-  ] as const
-  const statusFallbacks: Record<string, string> = {
+  ]
+  const laneTone: Record<DisputeStatus, string> = {
+    pending: 'border-t-muted-foreground',
+    collecting_evidence: 'border-t-accent-foreground',
+    reported: 'border-t-destructive',
+    admin_reviewing: 'border-t-foreground',
+    ai_reviewing: 'border-t-primary',
+    resolved: 'border-t-primary',
+    rejected: 'border-t-destructive',
+    cancelled: 'border-t-muted-foreground',
+  }
+  const statusFallbacks: Record<DisputeStatus, string> = {
     pending: 'Pending',
     collecting_evidence: 'Collecting evidence',
     reported: 'Reported',
@@ -93,143 +88,21 @@
     rejected: 'Rejected',
     cancelled: 'Cancelled',
   }
-  const requestedOutcomeFallbacks: Record<string, string> = {
-    adjust_score: 'Adjust score',
-    request_re_review: 'Request re-review',
-    request_admin_review: 'Request admin review',
-    dismiss_review: 'Dismiss review',
-    clarify_evidence: 'Clarify evidence',
-    recheck: 'Recheck',
-  }
-  const finalDecisionFallbacks: Record<string, string> = {
-    uphold_review: 'Uphold review',
-    adjust_score: 'Adjust score',
-    request_re_review: 'Request re-review',
-    dismiss_dispute: 'Dismiss dispute',
-    partially_accept: 'Partially accept',
-  }
-  const sourceFallbacks: Record<string, string> = {
-    review_dispute: 'Review dispute',
-    task_review_dispute: 'Task review dispute',
-    task_review_workflow: 'Task workflow',
-    sprint_review_dispute: 'Sprint review',
-  }
-  const openStatuses = ['pending', 'collecting_evidence', 'reported', 'admin_reviewing', 'ai_reviewing']
-  const paginationBaseUrl = '/admin/disputes'
-
-  const filterConfig = $derived([
-    {
-      key: 'status',
-      type: 'tabs',
-      label: t('task.disputes.index.filter_status', {}, 'Status'),
-      options: statusOptions.map((status) => ({
-        value: status,
-        label: statusLabel(status),
-      })),
-    },
-    {
-      key: 'requested_outcome',
-      type: 'select',
-      label: t('task.disputes.index.filter_requested_outcome', {}, 'Requested outcome'),
-      options: requestedOutcomeOptions.map((outcome) => ({
-        value: outcome,
-        label: requestedOutcomeLabel(outcome),
-      })),
-    },
-    {
-      key: 'final_decision',
-      type: 'select',
-      label: t('task.disputes.index.filter_final_decision', {}, 'Final decision'),
-      options: finalDecisionOptions.map((decision) => ({
-        value: decision,
-        label: finalDecisionLabel(decision),
-      })),
-    },
-  ] satisfies FilterConfig[])
-
-  const filterValues = $derived.by(() => {
-    const filterQueryValues: Record<string, string> = {}
-    const query = new URLSearchParams(window.location.search)
-    filterConfig.forEach((cfg) => {
-      const val = query.get(cfg.key)
-      if (val) filterQueryValues[cfg.key] = val
-    })
-    return filterQueryValues
-  })
-
-  const statusVariantMap: Record<
-    string,
-    'destructive' | 'secondary' | 'outline' | 'default'
-  > = {
-    pending: 'secondary',
-    collecting_evidence: 'outline',
-    reported: 'secondary',
-    admin_reviewing: 'default',
-    ai_reviewing: 'outline',
-    resolved: 'default',
-    rejected: 'destructive',
-    cancelled: 'outline',
-  }
-  const openDisputesCount = $derived(
-    disputes.filter((dispute) => openStatuses.includes(dispute.status)).length
+  const columns = $derived(
+    statuses.map((status) => ({
+      status,
+      cards: disputes.filter((dispute) => dispute.status === status),
+    }))
   )
-  const resolvedDisputesCount = $derived(
-    disputes.filter((dispute) => dispute.status === 'resolved').length
+  const aiActiveCount = $derived(
+    disputes.filter((dispute) => dispute.status === 'ai_reviewing').length
   )
-  const escalationCount = $derived(
-    disputes.filter((dispute) => dispute.status === 'admin_reviewing' || dispute.status === 'ai_reviewing').length
+  const decisionReadyCount = $derived(
+    disputes.filter((dispute) => dispute.status === 'admin_reviewing').length
   )
 
-  function handleFilterChange(key: string, value: string) {
-    const query = new URLSearchParams(window.location.search)
-    if (value) {
-      query.set(key, value)
-    } else {
-      query.delete(key)
-    }
-    query.delete('page')
-    query.delete('after')
-    query.delete('before')
-    router.visit(`${window.location.pathname}?${query.toString()}`, {
-      preserveState: true,
-      preserveScroll: true,
-    })
-  }
-
-  function handleClearFilters() {
-    router.visit(window.location.pathname, {
-      preserveState: true,
-      preserveScroll: true,
-    })
-  }
-
-  function statusLabel(status: string): string {
-    return t(`task.disputes.index.status.${status}`, {}, statusFallbacks[status] ?? status)
-  }
-
-  function requestedOutcomeLabel(value: string): string {
-    return t(`task.disputes.index.requested_outcome.${value}`, {}, requestedOutcomeFallbacks[value] ?? value)
-  }
-
-  function finalDecisionLabel(value: string): string {
-    return t(`task.disputes.index.final_decision.${value}`, {}, finalDecisionFallbacks[value] ?? value)
-  }
-
-  function disputeSourceType(dispute: Dispute): string {
-    return dispute.sourceType ?? dispute.source_type ?? 'review_dispute'
-  }
-
-  function sourceLabel(dispute: Dispute): string {
-    const sourceType = disputeSourceType(dispute)
-    return t(`task.disputes.index.source.${sourceType}`, {}, sourceFallbacks[sourceType] ?? sourceType)
-  }
-
-  function reviewTypeLabel(dispute: Dispute): string {
-    return dispute.disputeReviewType ?? dispute.dispute_review_type ?? 'task_review'
-  }
-
-  function aiEvaluationCount(dispute: Dispute): number {
-    return Number(dispute.aiEvaluationsCount ?? dispute.ai_evaluations_count ?? 0)
+  function statusLabel(status: DisputeStatus): string {
+    return t(`task.disputes.index.status.${status}`, {}, statusFallbacks[status])
   }
 
   function projectLabel(dispute: Dispute): string | null {
@@ -254,24 +127,16 @@
     return parts.length > 0 ? parts.join(' / ') : null
   }
 
+  function aiEvaluationCount(dispute: Dispute): number {
+    return Number(dispute.aiEvaluationsCount ?? dispute.ai_evaluations_count ?? 0)
+  }
+
   function formatDate(value: string): string {
     return new Intl.DateTimeFormat(documentLocale, {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
     }).format(new Date(value))
-  }
-
-  function resolutionLaneLabel(status: string): string {
-    if (status === 'resolved') {
-      return t('task.disputes.index.resolution_lane.resolved', {}, 'Case has a final conclusion.')
-    }
-
-    if (status === 'admin_reviewing' || status === 'ai_reviewing') {
-      return t('task.disputes.index.resolution_lane.escalating', {}, 'Case is in deeper arbitration.')
-    }
-
-    return t('task.disputes.index.resolution_lane.collecting', {}, 'Case needs more reconciliation or evidence.')
   }
 
   function buildPageHref(cursorKey?: 'before' | 'after', cursor?: string | null): string {
@@ -282,7 +147,7 @@
       ...(cursorKey && cursor ? { [cursorKey]: cursor } : {}),
     })
     const query = params.toString()
-    return query ? `${paginationBaseUrl}?${query}` : paginationBaseUrl
+    return query ? `/admin/disputes?${query}` : '/admin/disputes'
   }
 
   const paginationFrom = $derived(
@@ -291,189 +156,145 @@
   const paginationTo = $derived(Math.min(pagination.page * pagination.perPage, pagination.total))
   const paginationSummary = $derived(
     t(
-      'task.disputes.index.pagination_summary',
-      {
-        from: paginationFrom,
-        to: paginationTo,
-        total: pagination.total,
-        resolved: resolvedDisputesCount,
-      },
-      `${paginationFrom}-${paginationTo} / ${pagination.total} · ${resolvedDisputesCount} resolved`
+      'task.disputes.index.board_window',
+      { from: paginationFrom, to: paginationTo, total: pagination.total },
+      `Showing cases ${paginationFrom}-${paginationTo} of ${pagination.total}`
     )
   )
 </script>
 
 <svelte:head>
-  <title>{t('task.disputes.index.page_title', {}, 'Admin - Review disputes')}</title>
+  <title>{t('task.disputes.index.page_title', {}, 'Admin - AI dispute board')}</title>
 </svelte:head>
 
-<div class="space-y-6">
-  <section class="rounded-[30px] border border-border bg-card p-6 shadow-xs">
-    <div class="flex flex-wrap items-start justify-between gap-4">
+<div class="space-y-4">
+  <section class="rounded-3xl border border-border bg-card p-5 shadow-xs">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <div class="max-w-3xl">
-        <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-          {t('task.disputes.index.eyebrow', {}, 'Admin / Disputes')}
+        <p class="text-xs font-black uppercase tracking-[0.18em] text-muted-foreground">
+          {t('task.disputes.index.eyebrow', {}, 'System admin / Board 05')}
         </p>
-        <h1 class="mt-2 text-4xl font-black tracking-tight text-foreground">
-          {t('task.disputes.index.title', {}, 'Dispute queue')}
+        <h1 class="mt-1 text-3xl font-black tracking-tight text-foreground">
+          {t('task.disputes.index.ai_board_title', {}, 'AI dispute progress board')}
         </h1>
-        <p class="mt-3 text-sm leading-6 text-muted-foreground">
-          {t('task.disputes.index.subtitle', {}, 'System-level queue for review disputes that need higher arbitration. Focus on open cases, AI-assisted cases, and cases ready for decision.')}
+        <p class="mt-2 text-sm font-medium leading-6 text-muted-foreground">
+          {t(
+            'task.disputes.index.ai_board_subtitle',
+            {},
+            'One system-level board for evidence collection, AI evaluation, admin decision, and closure.'
+          )}
         </p>
       </div>
-      <div class="grid gap-3 sm:grid-cols-3">
-        <div class="rounded-2xl border border-border bg-background/85 p-4">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+      <div class="flex flex-wrap gap-2">
+        <div class="rounded-xl border border-border bg-background px-3 py-2">
+          <span class="block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
             {t('task.disputes.index.total_cases', {}, 'Total cases')}
-          </div>
-          <div class="mt-2 text-3xl font-black text-foreground">{pagination.total}</div>
+          </span>
+          <strong class="text-xl text-foreground">{pagination.total}</strong>
         </div>
-        <div class="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800 dark:text-amber-200">
-            {t('task.disputes.index.open_cases', {}, 'Open')}
-          </div>
-          <div class="mt-2 text-3xl font-black text-amber-900 dark:text-amber-100">{openDisputesCount}</div>
+        <div class="rounded-xl border border-primary/30 bg-primary/10 px-3 py-2">
+          <span class="block text-[10px] font-black uppercase tracking-wider text-primary">
+            {t('task.disputes.index.ai_active', {}, 'AI active')}
+          </span>
+          <strong class="text-xl text-primary">{aiActiveCount}</strong>
         </div>
-        <div class="rounded-2xl border border-sky-200 bg-sky-50/80 p-4 dark:border-sky-900/60 dark:bg-sky-950/30">
-          <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-sky-800 dark:text-sky-200">
-            {t('task.disputes.index.escalating_cases', {}, 'Escalating')}
-          </div>
-          <div class="mt-2 text-3xl font-black text-sky-900 dark:text-sky-100">{escalationCount}</div>
+        <div class="rounded-xl border border-border bg-background px-3 py-2">
+          <span class="block text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+            {t('task.disputes.index.decision_ready', {}, 'Admin reviewing')}
+          </span>
+          <strong class="text-xl text-foreground">{decisionReadyCount}</strong>
         </div>
       </div>
     </div>
   </section>
 
-  <Card class="rounded-[28px] border-border/90">
-    <CardHeader>
-      <CardTitle>{t('task.disputes.index.filter_title', {}, 'Dispute filters')}</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <DataTableFilters
-        filters={filterConfig}
-        values={filterValues}
-        onFilterChange={handleFilterChange}
-      >
-        <Button type="button" variant="outline" onclick={handleClearFilters}>
-          {t('task.disputes.index.clear_filters', {}, 'Clear filters')}
-        </Button>
-      </DataTableFilters>
-    </CardContent>
-  </Card>
-
-  <Card class="rounded-[28px] border-border/90">
-    <CardHeader>
-      <CardTitle>
-        {t('task.disputes.index.list_title', { total: pagination.total }, `Dispute list (${pagination.total})`)}
-      </CardTitle>
-    </CardHeader>
-    <CardContent>
-      {#if disputes.length === 0}
-        <div class="flex items-center justify-center py-12">
-          <div class="max-w-md text-center">
-            <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <svg class="h-8 w-8 text-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+  <section
+    class="min-w-0 overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-xs"
+    aria-label={t('task.disputes.index.ai_board_title', {}, 'AI dispute progress board')}
+  >
+    <div class="flex gap-3 overflow-x-auto pb-3">
+      {#each columns as column (column.status)}
+        <section
+          class={`flex min-h-[520px] w-[320px] shrink-0 flex-col overflow-hidden rounded-2xl border border-t-4 border-border bg-muted/30 ${laneTone[column.status]}`}
+        >
+          <header class="flex items-center justify-between gap-2 border-b border-border px-3.5 py-3">
+            <div class="inline-flex min-w-0 items-center gap-2">
+              {#if column.status === 'ai_reviewing'}
+                <Bot class="h-4 w-4 shrink-0 text-primary" />
+              {:else}
+                <FolderKanban class="h-4 w-4 shrink-0 text-muted-foreground" />
+              {/if}
+              <h2 class="truncate text-sm font-black text-foreground">
+                {statusLabel(column.status)}
+              </h2>
             </div>
-            <h3 class="mb-2 text-lg font-semibold text-foreground">
-              {t('task.disputes.index.empty_title', {}, 'No disputes found')}
-            </h3>
-            <p class="text-muted-foreground">
-              {t('task.disputes.index.empty_description', {}, 'No disputes match the current filters.')}
-            </p>
-          </div>
-        </div>
-      {:else}
-        <div class="grid gap-4 lg:grid-cols-2">
-          {#each disputes as dispute (dispute.id)}
-            {@const aiCount = aiEvaluationCount(dispute)}
-            <article class="rounded-[24px] border border-border bg-card p-5 shadow-xs">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="space-y-2">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <Badge variant={statusVariantMap[dispute.status] ?? 'outline'} class="rounded-full px-3 py-1.5">
-                      {statusLabel(dispute.status)}
-                    </Badge>
-                    <Badge variant="outline" class="rounded-full px-3 py-1.5">
-                      {requestedOutcomeLabel(dispute.requested_outcome)}
-                    </Badge>
-                    <Badge variant="outline" class="rounded-full px-3 py-1.5">
-                      {sourceLabel(dispute)}
-                    </Badge>
-                    <Badge variant="outline" class="rounded-full px-3 py-1.5 font-mono text-[10px]">
-                      {reviewTypeLabel(dispute)}
-                    </Badge>
-                    {#if aiCount > 0}
-                      <Badge variant="secondary" class="rounded-full px-3 py-1.5">
-                        {t('task.disputes.index.ai_evaluations_count', { count: aiCount }, `AI ${aiCount} runs`)}
-                      </Badge>
-                    {/if}
-                  </div>
-                  <h3 class="text-lg font-semibold text-foreground">{primaryContextLabel(dispute)}</h3>
-                  {#if hierarchyLabel(dispute)}
-                    <p class="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-                      {hierarchyLabel(dispute)}
-                    </p>
+            <span class="rounded-full border border-border bg-background px-2 py-0.5 text-[11px] font-black">
+              {column.cards.length}
+            </span>
+          </header>
+
+          <div class="flex flex-1 flex-col gap-2.5 overflow-y-auto p-3">
+            {#each column.cards as dispute (dispute.id)}
+              {@const aiCount = aiEvaluationCount(dispute)}
+              <Link
+                href={`/admin/disputes/${dispute.id}`}
+                class="group rounded-xl border border-border bg-background p-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:border-primary/50 hover:shadow-md"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="line-clamp-2 text-sm font-black leading-5 text-foreground">
+                    {primaryContextLabel(dispute)}
+                  </h3>
+                  <ChevronRight class="h-4 w-4 shrink-0 text-muted-foreground transition group-hover:text-primary" />
+                </div>
+                {#if hierarchyLabel(dispute)}
+                  <p class="mt-1 truncate text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    {hierarchyLabel(dispute)}
+                  </p>
+                {/if}
+                <p class="mt-2 line-clamp-3 text-xs leading-5 text-muted-foreground">
+                  {dispute.dispute_reason}
+                </p>
+                <div class="mt-3 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-full border border-border bg-muted px-2 py-0.5 text-[10px] font-bold text-foreground">
+                    {dispute.requested_outcome}
+                  </span>
+                  {#if aiCount > 0}
+                    <span class="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-black text-primary">
+                      <Bot class="h-3 w-3" /> {aiCount}
+                    </span>
                   {/if}
-                  <p class="max-w-2xl text-sm leading-6 text-muted-foreground">{dispute.dispute_reason}</p>
                 </div>
-                <div class="rounded-2xl border border-border/70 bg-background/80 px-4 py-3 text-right">
-                  <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    {t('task.disputes.index.created_at', {}, 'Created at')}
-                  </div>
-                  <div class="mt-2 text-sm font-semibold text-foreground">{formatDate(dispute.created_at)}</div>
+                <div class="mt-3 flex items-center justify-between gap-2 border-t border-border pt-2 text-[10px] font-semibold text-muted-foreground">
+                  <span class="truncate">{dispute.reviewee_username ?? dispute.reviewee_email ?? 'Unknown'}</span>
+                  <span class="inline-flex shrink-0 items-center gap-1">
+                    <CalendarDays class="h-3 w-3" /> {formatDate(dispute.created_at)}
+                  </span>
                 </div>
+              </Link>
+            {:else}
+              <div class="grid min-h-24 place-items-center rounded-xl border border-dashed border-border px-3 text-center text-xs font-bold text-muted-foreground">
+                {t('task.disputes.index.empty_lane', {}, 'No cases in this lane')}
               </div>
+            {/each}
+          </div>
+        </section>
+      {/each}
+    </div>
 
-              <div class="mt-4 grid gap-3 sm:grid-cols-[1.2fr_0.8fr]">
-                <div class="rounded-2xl border border-border/70 bg-background/80 p-4">
-                  <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    {t('task.disputes.index.reviewee', {}, 'Reviewee')}
-                  </div>
-                  <div class="mt-2 text-base font-semibold text-foreground">
-                    {dispute.reviewee_username ?? t('task.disputes.index.unknown_reviewee', {}, 'Unknown')}
-                  </div>
-                  <div class="mt-1 text-xs text-muted-foreground">
-                    {dispute.reviewee_email ?? t('task.disputes.index.hidden_email', {}, 'Email hidden or unavailable')}
-                  </div>
-                </div>
-                <div class="rounded-2xl border border-border/70 bg-background/80 p-4">
-                  <div class="text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                    {t('task.disputes.index.resolution_lane_title', {}, 'Resolution lane')}
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-foreground">
-                    {resolutionLaneLabel(dispute.status)}
-                  </div>
-                </div>
-              </div>
-
-              <div class="mt-4 flex items-center justify-between border-t border-border/70 pt-4">
-                <div class="text-xs text-muted-foreground">Case #{dispute.id.slice(0, 8)}</div>
-                <Link href={`/admin/disputes/${dispute.id}`}>
-                  <Button variant="outline" size="sm">
-                    {t('task.disputes.index.open_decision_room', {}, 'Open decision room')}
-                  </Button>
-                </Link>
-              </div>
-            </article>
-          {/each}
-        </div>
-
-        <div class="mt-4">
-          <UnifiedCursorPagination
-            {pagination}
-            summary={paginationSummary}
-            newestHref={buildPageHref()}
-            newerHref={pagination.cursor?.previousCursor
-              ? buildPageHref('before', pagination.cursor.previousCursor)
-              : undefined}
-            olderHref={pagination.cursor?.nextCursor
-              ? buildPageHref('after', pagination.cursor.nextCursor)
-              : undefined}
-          />
-        </div>
-      {/if}
-    </CardContent>
-  </Card>
+    {#if pagination.total > pagination.perPage}
+      <div class="border-t border-border pt-3">
+        <UnifiedCursorPagination
+          {pagination}
+          summary={paginationSummary}
+          newestHref={buildPageHref()}
+          newerHref={pagination.cursor?.previousCursor
+            ? buildPageHref('before', pagination.cursor.previousCursor)
+            : undefined}
+          olderHref={pagination.cursor?.nextCursor
+            ? buildPageHref('after', pagination.cursor.nextCursor)
+            : undefined}
+        />
+      </div>
+    {/if}
+  </section>
 </div>
