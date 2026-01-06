@@ -2,17 +2,87 @@ import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
 import {
+  toProjectionDateTime,
+  type OrganizationMembershipWithUserAndOrganizationProjection,
+  type OrganizationMembershipWithUserProjection,
+} from './membership_read_projections.js'
+import {
   baseQuery,
   isRecord,
   toNumberValue,
   type CountResultRow,
   type PaginatedMemberRow,
-} from './shared.js'
+} from './query_helpers.js'
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import type OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
 
+interface MembershipWithUserRow {
+  organization_id: string
+  user_id: string
+  org_role: string
+  membership_status: string
+  invited_by: string | null
+  membership_created_at: string | Date
+  membership_updated_at: string | Date
+  identity_id: string
+  identity_username: string | null
+  identity_email: string | null
+  identity_status: string
+  identity_system_role: string
+  identity_avatar_url: string | null
+  identity_created_at: string | Date
+}
+
+interface MembershipWithUserAndOrganizationRow extends MembershipWithUserRow {
+  organization_name: string
+  organization_logo: string | null
+}
+
+function memberWithUserQuery(trx?: TransactionClientContract) {
+  return (trx ?? db)
+    .from('organization_users as ou')
+    .join('users as u', 'u.id', 'ou.user_id')
+    .select(
+      'ou.organization_id',
+      'ou.user_id',
+      'ou.org_role',
+      'ou.status as membership_status',
+      'ou.invited_by',
+      'ou.created_at as membership_created_at',
+      'ou.updated_at as membership_updated_at',
+      'u.id as identity_id',
+      'u.username as identity_username',
+      'u.email as identity_email',
+      'u.status as identity_status',
+      'u.system_role as identity_system_role',
+      'u.avatar_url as identity_avatar_url',
+      'u.created_at as identity_created_at'
+    )
+}
+
+function toMembershipWithUser(
+  row: MembershipWithUserRow
+): OrganizationMembershipWithUserProjection {
+  return {
+    organization_id: row.organization_id,
+    user_id: row.user_id,
+    org_role: row.org_role,
+    status: row.membership_status,
+    invited_by: row.invited_by,
+    created_at: toProjectionDateTime(row.membership_created_at),
+    updated_at: toProjectionDateTime(row.membership_updated_at),
+    user: {
+      id: row.identity_id,
+      username: row.identity_username ?? '',
+      email: row.identity_email,
+      status: row.identity_status,
+      system_role: row.identity_system_role,
+      avatar_url: row.identity_avatar_url,
+      created_at: toProjectionDateTime(row.identity_created_at),
+    },
+  }
+}
 
 export const countMembers = async (
   organizationId: string,
@@ -32,16 +102,15 @@ export const getMembersPreview = async (
   organizationId: string,
   limit: number,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .preload('user', (query) => {
-      void query.select(['id', 'email'])
-    })
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
     .orderByRaw(
-      `CASE org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`
+      `CASE ou.org_role WHEN '${OrganizationRole.OWNER}' THEN 1 WHEN '${OrganizationRole.ADMIN}' THEN 2 ELSE 3 END ASC`
     )
-    .limit(limit)
+    .limit(limit)) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const countMembersByOrgIds = async (
@@ -197,96 +266,108 @@ export const paginateMembers = async (
 export const findMembersWithUser = async (
   organizationId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .preload('user')
-    .orderBy('created_at', 'asc')
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .orderBy('ou.created_at', 'asc')) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const findMembersWithUserBySearch = async (
   organizationId: string,
   search: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .whereHas('user', (query) => {
-      void query.where((searchQuery) => {
-        void searchQuery
-          .whereILike('username', `%${search}%`)
-          .orWhereILike('email', `%${search}%`)
-      })
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .where((query) => {
+      void query
+        .whereILike('u.username', `%${search}%`)
+        .orWhereILike('u.email', `%${search}%`)
     })
-    .preload('user')
-    .orderBy('created_at', 'asc')
+    .orderBy('ou.created_at', 'asc')) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const findMembersWithUserByIds = async (
   organizationId: string,
   userIds: string[],
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
+): Promise<OrganizationMembershipWithUserProjection[]> => {
   if (userIds.length === 0) {
     return []
   }
 
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .whereIn('user_id', userIds)
-    .preload('user')
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .whereIn('ou.user_id', userIds)) as MembershipWithUserRow[]
+
+  const rankByUserId = new Map(userIds.map((userId, index) => [userId, index]))
+  return rows
+    .map(toMembershipWithUser)
+    .sort(
+      (left, right) =>
+        (rankByUserId.get(left.user_id) ?? userIds.length) -
+        (rankByUserId.get(right.user_id) ?? userIds.length)
+    )
 }
 
 export const findMembersWithUserProfile = async (
   organizationId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .preload('user', (query) => {
-      void query.select(['id', 'username', 'email']).whereNull('deleted_at')
-    })
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .whereNull('u.deleted_at')) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const findPendingMembersWithDetails = async (
   organizationId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .where('status', OrganizationUserStatus.PENDING)
-    .preload('user', (query) => {
-      void query.select(['id', 'username', 'email'])
-    })
-    .preload('organization', (query) => {
-      void query.select(['id', 'name'])
-    })
-    .orderBy('created_at', 'desc')
+): Promise<OrganizationMembershipWithUserAndOrganizationProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .join('organizations as o', 'o.id', 'ou.organization_id')
+    .where('ou.organization_id', organizationId)
+    .where('ou.status', OrganizationUserStatus.PENDING)
+    .select('o.name as organization_name', 'o.logo as organization_logo')
+    .orderBy('ou.created_at', 'desc')) as MembershipWithUserAndOrganizationRow[]
+
+  return rows.map((row) => ({
+    ...toMembershipWithUser(row),
+    organization: {
+      id: row.organization_id,
+      name: row.organization_name,
+      logo: row.organization_logo,
+    },
+  }))
 }
 
 export const findMembersExcludingUser = async (
   organizationId: string,
   excludeUserId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .whereNot('user_id', excludeUserId)
-    .preload('user')
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .whereNot('ou.user_id', excludeUserId)) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const findPendingMembershipsWithUserInfo = async (
   organizationId: string,
   trx?: TransactionClientContract
-): Promise<OrganizationUser[]> => {
-  return baseQuery(trx)
-    .where('organization_id', organizationId)
-    .where('status', OrganizationUserStatus.PENDING)
-    .preload('user', (query) => {
-      void query
-        .select(['id', 'email', 'username', 'system_role', 'status', 'created_at', 'avatar_url'])
-        .whereNull('deleted_at')
-    })
+): Promise<OrganizationMembershipWithUserProjection[]> => {
+  const rows = (await memberWithUserQuery(trx)
+    .where('ou.organization_id', organizationId)
+    .where('ou.status', OrganizationUserStatus.PENDING)
+    .whereNull('u.deleted_at')) as MembershipWithUserRow[]
+
+  return rows.map(toMembershipWithUser)
 }
 
 export const countPendingMembers = async (
