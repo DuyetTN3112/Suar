@@ -3,7 +3,8 @@ import crypto from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
 import AcceptTaskReviewCommand from '#modules/reviews/actions/commands/accept_task_review_command'
 import EnsureTaskReviewWorkflowCommand from '#modules/reviews/actions/commands/ensure_task_review_workflow_command'
 import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
@@ -12,7 +13,17 @@ import RespondToTaskReviewCommand from '#modules/reviews/actions/commands/respon
 import SubmitTaskReviewCommand from '#modules/reviews/actions/commands/submit_task_review_command'
 import GetAdminReviewDisputeDetailQuery from '#modules/reviews/actions/queries/get_admin_review_dispute_detail_query'
 import GetTaskReviewBoardQuery from '#modules/reviews/actions/queries/get_task_review_board_query'
-import { TaskStatus } from '#modules/tasks/constants/task_constants'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import LucidAiDisputeEvaluationSourceReader from '#modules/reviews/infra/adapters/lucid_ai_dispute_evaluation_source_reader'
+import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_ai_dispute_unit_of_work'
+import LucidReviewAdminDisputeReadModel from '#modules/reviews/infra/adapters/lucid_review_admin_dispute_read_model'
+import LucidReviewConfirmationDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_confirmation_dispute_unit_of_work'
+import LucidReviewDisputeArtifactReader from '#modules/reviews/infra/adapters/lucid_review_dispute_artifact_reader'
+import { LucidReviewTaskBoardReader } from '#modules/reviews/infra/adapters/lucid_review_task_board_reader'
+import LucidReviewTaskWorkflowUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_task_workflow_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
+import type { ReviewConfirmationEntry } from '#modules/reviews/types/review_confirmation_entry'
+import { TaskStatus } from '#modules/tasks/public_contracts/task_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -20,11 +31,28 @@ import {
   OrganizationUserFactory,
   ProjectFactory,
   ProjectMemberFactory,
+  ReviewSessionFactory,
+  SkillFactory,
   TaskAssignmentFactory,
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
+
+const taskBoardReader = new LucidReviewTaskBoardReader()
+const reviewCryptography = new NodeReviewCryptography()
+const aiDisputeUnitOfWork = new LucidAiDisputeUnitOfWork()
+const confirmationDisputes = new LucidReviewConfirmationDisputeUnitOfWork()
+const taskWorkflowUnitOfWork = new LucidReviewTaskWorkflowUnitOfWork()
+
+const makeEnsureTaskReviewWorkflowCommand = (execCtx: ReviewActionContext) =>
+  new EnsureTaskReviewWorkflowCommand(execCtx, taskWorkflowUnitOfWork)
+const makeReportTaskReviewDisputeCommand = (execCtx: ReviewActionContext) =>
+  new ReportTaskReviewDisputeCommand(execCtx, taskWorkflowUnitOfWork)
+const makeRespondToTaskReviewCommand = (execCtx: ReviewActionContext) =>
+  new RespondToTaskReviewCommand(execCtx, taskWorkflowUnitOfWork)
+const makeSubmitTaskReviewCommand = (execCtx: ReviewActionContext) =>
+  new SubmitTaskReviewCommand(execCtx, taskWorkflowUnitOfWork)
 
 interface TaskReviewWorkflowFixtureRow {
   task_id: string
@@ -59,28 +87,16 @@ function recordArray(value: unknown): Array<Record<string, unknown>> {
   return Array.isArray(value) ? (value as Array<Record<string, unknown>>) : []
 }
 
-function signAiCallback(timestamp: number, evaluationId: string, status: 'completed' | 'failed', secret: string): string {
-  return crypto.createHmac('sha256', secret).update(`${timestamp}:${evaluationId}:${status}`).digest('hex')
-}
-
-function restoreEnvValue(key: string, value: string | undefined): void {
-  if (value === undefined) {
-    delete process.env[key]
-  } else {
-    process.env[key] = value
-  }
-}
-
-function requestInfoUrl(input: RequestInfo | URL): string {
-  if (typeof input === 'string') return input
-  if (input instanceof URL) return input.href
-  return input.url
-}
-
-function requestBodyText(body: BodyInit | null | undefined): string {
-  if (body === null || body === undefined) return '{}'
-  if (typeof body === 'string') return body
-  throw new Error('Expected string request body')
+function signAiCallback(
+  timestamp: number,
+  evaluationId: string,
+  status: 'completed' | 'failed',
+  secret: string
+): string {
+  return crypto
+    .createHmac('sha256', secret)
+    .update(`${timestamp}:${evaluationId}:${status}`)
+    .digest('hex')
 }
 
 async function insertProfileAndHistory(input: {
@@ -253,6 +269,45 @@ async function buildDoneTaskBoardScenario() {
   }
 }
 
+async function buildSingleReviewerTaskReviewScenario() {
+  const { org, owner } = await OrganizationFactory.createWithOwner()
+  const reviewee = await UserFactory.create({ current_organization_id: org.id })
+  const project = await ProjectFactory.create({
+    organization_id: org.id,
+    creator_id: owner.id,
+    owner_id: owner.id,
+  })
+
+  await OrganizationUserFactory.create({
+    organization_id: org.id,
+    user_id: reviewee.id,
+    org_role: 'org_member',
+    status: 'approved',
+  })
+  await ProjectMemberFactory.create({
+    project_id: project.id,
+    user_id: reviewee.id,
+    project_role: 'project_member',
+  })
+
+  const task = await TaskFactory.create({
+    organization_id: org.id,
+    project_id: project.id,
+    creator_id: owner.id,
+    assigned_to: reviewee.id,
+    status: TaskStatus.DONE,
+    title: 'Single reviewer task review',
+  })
+  await TaskAssignmentFactory.create({
+    task_id: task.id,
+    assignee_id: reviewee.id,
+    assigned_by: owner.id,
+    assignment_status: 'completed',
+  })
+
+  return { org, owner, reviewee, project, task }
+}
+
 test.group('Integration | Task Review Board', (group) => {
   group.setup(async () => {
     await setupApp()
@@ -267,12 +322,15 @@ test.group('Integration | Task Review Board', (group) => {
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
-    const result = await new GetTaskReviewBoardQuery({
-      userId: scenario.viewer.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      organizationId: null,
-    }).execute({
+    const result = await new GetTaskReviewBoardQuery(
+      {
+        userId: scenario.viewer.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      taskBoardReader
+    ).execute({
       projectId: scenario.project.id,
     })
 
@@ -289,12 +347,59 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(scenario.otherDoneTask.status, TaskStatus.DONE)
   })
 
+  test('board access requires project-scoped visibility before task rows are read', async ({
+    assert,
+  }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const outsider = await UserFactory.create({ current_organization_id: scenario.org.id })
+    await OrganizationUserFactory.create({
+      organization_id: scenario.org.id,
+      user_id: outsider.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+
+    await assert.rejects(
+      () =>
+        new GetTaskReviewBoardQuery(
+          {
+            userId: outsider.id,
+            ip: '0.0.0.0',
+            userAgent: 'test',
+            organizationId: scenario.org.id,
+          },
+          taskBoardReader
+        ).execute({
+          projectId: scenario.project.id,
+        }),
+      ForbiddenException,
+      'You do not have permission to view this task review board'
+    )
+
+    const ownerBoard = await new GetTaskReviewBoardQuery(
+      {
+        userId: scenario.owner.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: scenario.org.id,
+      },
+      taskBoardReader
+    ).execute({
+      projectId: scenario.project.id,
+    })
+    const ownerTaskIds = ownerBoard.columns.flatMap((column) =>
+      column.cards.map((card) => card.taskId)
+    )
+
+    assert.include(ownerTaskIds, scenario.otherDoneTask.id)
+  })
+
   test('ensures workflow with task giver plus highest-priority second reviewer', async ({
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
 
-    const result = await new EnsureTaskReviewWorkflowCommand({
+    const result = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -331,11 +436,74 @@ test.group('Integration | Task Review Board', (group) => {
     assert.notEqual(secondReviewer.reviewer_id, scenario.otherDoneTask.assigned_to)
   })
 
+  test('opens and completes task review when only one reviewer is eligible', async ({ assert }) => {
+    const scenario = await buildSingleReviewerTaskReviewScenario()
+
+    const result = await makeEnsureTaskReviewWorkflowCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: scenario.org.id,
+    }).execute({
+      taskId: scenario.task.id,
+    })
+
+    assert.equal(result.status, 'awaiting_review')
+    assert.equal(result.requiredReviewCount, 1)
+
+    const reviewers = (await db
+      .from('task_review_reviewers')
+      .where('workflow_id', result.workflowId)
+      .orderBy('priority_rank', 'asc')) as TaskReviewReviewerFixtureRow[]
+    const onlyReviewer = requireFixtureRow(reviewers[0], 'single reviewer row')
+
+    assert.lengthOf(reviewers, 1)
+    assert.equal(onlyReviewer.reviewer_id, scenario.owner.id)
+    assert.equal(onlyReviewer.reviewer_role, 'task_giver_required')
+
+    await makeSubmitTaskReviewCommand({
+      userId: scenario.owner.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: scenario.org.id,
+    }).execute({
+      workflowId: result.workflowId,
+      body: 'Task giver review is sufficient for this small project.',
+    })
+
+    let workflow = (await db
+      .from('task_review_workflows')
+      .where('id', result.workflowId)
+      .firstOrFail()) as TaskReviewWorkflowFixtureRow
+    assert.equal(workflow.status, 'awaiting_response')
+    assert.equal(Number(workflow.completed_review_count), 1)
+
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.reviewee.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: scenario.org.id,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: result.workflowId,
+    })
+
+    workflow = (await db
+      .from('task_review_workflows')
+      .where('id', result.workflowId)
+      .firstOrFail()) as TaskReviewWorkflowFixtureRow
+    assert.equal(workflow.status, 'done')
+    assert.isNotNull(workflow.accepted_by_reviewee_at)
+    assert.isNotNull(workflow.completed_at)
+  })
+
   test('submit allows task giver reviewer and rejects task assignee even if reviewer rows are bad data', async ({
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
-    const workflow = await new EnsureTaskReviewWorkflowCommand({
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -355,7 +523,7 @@ test.group('Integration | Task Review Board', (group) => {
       },
     ])
 
-    await new SubmitTaskReviewCommand({
+    await makeSubmitTaskReviewCommand({
       userId: scenario.owner.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -367,7 +535,7 @@ test.group('Integration | Task Review Board', (group) => {
 
     await assert.rejects(
       () =>
-        new SubmitTaskReviewCommand({
+        makeSubmitTaskReviewCommand({
           userId: scenario.otherDoneTask.assigned_to,
           ip: '0.0.0.0',
           userAgent: 'test',
@@ -383,7 +551,7 @@ test.group('Integration | Task Review Board', (group) => {
 
   test('board cards include persisted workflow id and reviewer progress', async ({ assert }) => {
     const scenario = await buildDoneTaskBoardScenario()
-    const workflow = await new EnsureTaskReviewWorkflowCommand({
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -402,12 +570,15 @@ test.group('Integration | Task Review Board', (group) => {
       .where('id', workflow.workflowId)
       .update({ status: 'in_review', completed_review_count: 1 })
 
-    const board = await new GetTaskReviewBoardQuery({
-      userId: scenario.projectManager.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      organizationId: null,
-    }).execute({
+    const board = await new GetTaskReviewBoardQuery(
+      {
+        userId: scenario.projectManager.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      taskBoardReader
+    ).execute({
       projectId: scenario.project.id,
     })
 
@@ -424,7 +595,7 @@ test.group('Integration | Task Review Board', (group) => {
     assert,
   }) => {
     const scenario = await buildDoneTaskBoardScenario()
-    const workflow = await new EnsureTaskReviewWorkflowCommand({
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -433,7 +604,7 @@ test.group('Integration | Task Review Board', (group) => {
       taskId: scenario.otherDoneTask.id,
     })
 
-    await new SubmitTaskReviewCommand({
+    await makeSubmitTaskReviewCommand({
       userId: scenario.owner.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -450,7 +621,7 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(row.status, 'in_review')
     assert.equal(Number(row.completed_review_count), 1)
 
-    await new SubmitTaskReviewCommand({
+    await makeSubmitTaskReviewCommand({
       userId: scenario.projectManager.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -467,12 +638,15 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(row.status, 'awaiting_response')
     assert.equal(Number(row.completed_review_count), 2)
 
-    await new AcceptTaskReviewCommand({
-      userId: scenario.otherDoneTask.assigned_to,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      organizationId: null,
-    }).execute({
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.otherDoneTask.assigned_to,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      confirmationDisputes
+    ).execute({
       workflowId: workflow.workflowId,
     })
 
@@ -483,6 +657,132 @@ test.group('Integration | Task Review Board', (group) => {
     assert.equal(row.status, 'done')
     assert.isNotNull(row.accepted_by_reviewee_at)
     assert.isNotNull(row.completed_at)
+  })
+
+  test('reviewee acceptance stages review-confirmed scoring event for completed legacy session', async ({
+    assert,
+  }) => {
+    const scenario = await buildDoneTaskBoardScenario()
+    const assignment = (await db
+      .from('task_assignments')
+      .where('task_id', scenario.otherDoneTask.id)
+      .where('assignee_id', scenario.otherAssignee.id)
+      .firstOrFail()) as { id: string }
+    const session = await ReviewSessionFactory.create({
+      task_assignment_id: assignment.id,
+      reviewee_id: scenario.otherAssignee.id,
+      status: 'completed',
+      manager_review_completed: true,
+      creator_reviewer_id: scenario.owner.id,
+      creator_review_completed: true,
+      manager_reviews_count: 1,
+      peer_reviews_count: 1,
+      required_peer_reviews: 1,
+      required_total_reviews: 2,
+      minimum_manager_reviews: 1,
+      minimum_peer_reviews: 1,
+    })
+    const skill = await SkillFactory.create({ skill_name: 'Task review scoring skill' })
+    const [skillReview] = (await db
+      .table('skill_reviews')
+      .insert({
+        review_session_id: session.id,
+        reviewer_id: scenario.owner.id,
+        reviewer_type: 'manager',
+        skill_id: skill.id,
+        assigned_public_proficiency_code: 'l7',
+        review_status: 'submitted',
+        is_fraud: false,
+      })
+      .returning('id')) as Array<{ id: string }>
+    const [evidence] = (await db
+      .table('review_evidences')
+      .insert({
+        review_session_id: session.id,
+        evidence_type: 'pull_request',
+        url: 'https://example.test/task-review-scoring',
+        title: 'Task review scoring evidence',
+        uploaded_by: scenario.owner.id,
+        verification_status: 'pending',
+        is_sensitive: false,
+      })
+      .returning('id')) as Array<{ id: string }>
+    if (!skillReview || !evidence) {
+      throw new Error('Expected review scoring fixtures')
+    }
+    await db.table('skill_review_evidence_links').insert({
+      skill_review_id: skillReview.id,
+      review_evidence_id: evidence.id,
+      relevance_type: 'direct_observation',
+      reviewer_note: 'Accepted workflow should publish this evidence',
+    })
+
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
+      userId: scenario.viewer.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      taskId: scenario.otherDoneTask.id,
+    })
+    await db
+      .from('task_review_workflows')
+      .where('id', workflow.workflowId)
+      .update({ status: 'awaiting_response', completed_review_count: workflow.requiredReviewCount })
+
+    await new AcceptTaskReviewCommand(
+      {
+        userId: scenario.otherAssignee.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      confirmationDisputes
+    ).execute({
+      workflowId: workflow.workflowId,
+    })
+
+    const outbox = (await db
+      .from('domain_event_outbox')
+      .where('event_name', 'review:confirmed')
+      .where('aggregate_id', session.id)
+      .firstOrFail()) as {
+      payload: {
+        confirmationId: string
+        reviewSessionId: string
+        revieweeId: string
+        reviewerIds: string[]
+        confirmedBy: string
+        action: string
+      }
+    }
+    const updatedSession = (await db
+      .from('review_sessions')
+      .where('id', session.id)
+      .select('confirmations')
+      .firstOrFail()) as { confirmations: ReviewConfirmationEntry[] | string | null }
+    const evidenceRow = (await db
+      .from('review_evidences')
+      .where('id', evidence.id)
+      .select('verification_status')
+      .firstOrFail()) as { verification_status: string | null }
+    const confirmations =
+      typeof updatedSession.confirmations === 'string'
+        ? (JSON.parse(updatedSession.confirmations) as ReviewConfirmationEntry[])
+        : (updatedSession.confirmations ?? [])
+
+    assert.equal(outbox.payload.reviewSessionId, session.id)
+    assert.equal(outbox.payload.revieweeId, scenario.otherAssignee.id)
+    assert.deepEqual(outbox.payload.reviewerIds, [scenario.owner.id])
+    assert.equal(outbox.payload.confirmedBy, scenario.otherAssignee.id)
+    assert.equal(outbox.payload.action, 'confirmed')
+    assert.isTrue(
+      confirmations.some(
+        (confirmation) =>
+          confirmation.user_id === scenario.otherAssignee.id && confirmation.action === 'confirmed'
+      )
+    )
+    assert.equal(evidenceRow.verification_status, 'verified')
   })
 
   test('reviewee response marks dispute and report packages workflow for admin', async ({
@@ -518,7 +818,7 @@ test.group('Integration | Task Review Board', (group) => {
       projectId: scenario.project.id,
       role: 'reviewee',
     })
-    const workflow = await new EnsureTaskReviewWorkflowCommand({
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -532,7 +832,7 @@ test.group('Integration | Task Review Board', (group) => {
       .where('id', workflow.workflowId)
       .update({ status: 'awaiting_response', completed_review_count: 2 })
 
-    await new RespondToTaskReviewCommand({
+    await makeRespondToTaskReviewCommand({
       userId: scenario.otherDoneTask.assigned_to,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -550,7 +850,7 @@ test.group('Integration | Task Review Board', (group) => {
 
     const superadmin = await UserFactory.createSuperadmin()
 
-    await new ReportTaskReviewDisputeCommand({
+    await makeReportTaskReviewDisputeCommand({
       userId: scenario.projectManager.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -642,7 +942,7 @@ test.group('Integration | Task Review Board', (group) => {
     const timestamp = Math.floor(Date.now() / 1000)
     process.env['AI_CALLBACK_SECRET'] = callbackSecret
     try {
-      await new ProcessAiDisputeCallbackCommand().execute({
+      await new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork).execute({
         evaluation_id: aiResult['id'] as string,
         source_id: workflow.workflowId,
         status: 'completed',
@@ -666,12 +966,17 @@ test.group('Integration | Task Review Board', (group) => {
       }
     }
 
-    const adminDetail = await new GetAdminReviewDisputeDetailQuery({
-      userId: superadmin.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-      organizationId: null,
-    }).execute({ disputeId: workflow.workflowId })
+    const adminDetail = await new GetAdminReviewDisputeDetailQuery(
+      {
+        userId: superadmin.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+        organizationId: null,
+      },
+      new LucidReviewDisputeArtifactReader(),
+      new LucidAiDisputeEvaluationSourceReader(),
+      new LucidReviewAdminDisputeReadModel()
+    ).execute({ disputeId: workflow.workflowId })
     assert.lengthOf(adminDetail.ai_evaluations, 1)
     assert.equal(adminDetail.ai_evaluations[0]?.['status'], 'completed')
     assert.equal(adminDetail.ai_evaluations[0]?.['recommendation'], 'request_re_review')
@@ -681,7 +986,7 @@ test.group('Integration | Task Review Board', (group) => {
     )
   })
 
-  test('report auto-triggers Clawagent arbitration outside test runtime', async ({ assert }) => {
+  test('report stages the canonical Clawagent arbitration contract', async ({ assert }) => {
     const scenario = await buildDoneTaskBoardScenario()
     const assignment = (await db
       .from('task_assignments')
@@ -703,7 +1008,7 @@ test.group('Integration | Task Review Board', (group) => {
       projectId: scenario.project.id,
       role: 'reviewee',
     })
-    const workflow = await new EnsureTaskReviewWorkflowCommand({
+    const workflow = await makeEnsureTaskReviewWorkflowCommand({
       userId: scenario.viewer.id,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -715,7 +1020,7 @@ test.group('Integration | Task Review Board', (group) => {
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .update({ status: 'awaiting_response', completed_review_count: 2 })
-    await new RespondToTaskReviewCommand({
+    await makeRespondToTaskReviewCommand({
       userId: scenario.otherDoneTask.assigned_to,
       ip: '0.0.0.0',
       userAgent: 'test',
@@ -726,53 +1031,22 @@ test.group('Integration | Task Review Board', (group) => {
     })
     await UserFactory.createSuperadmin()
 
-    const originalFetch = globalThis.fetch
-    const originalNodeEnv = process.env['NODE_ENV']
-    const originalClawagentUrl = process.env['CLAWAGENT_API_URL']
-    const originalCallbackUrl = process.env['SUAR_CALLBACK_URL']
-    const originalSuarDisputeApiKey = process.env['SUAR_DISPUTE_API_KEY']
-    const requests: { url: string; init: RequestInit | undefined }[] = []
+    await makeReportTaskReviewDisputeCommand({
+      userId: scenario.projectManager.id,
+      ip: '0.0.0.0',
+      userAgent: 'test',
+      organizationId: null,
+    }).execute({
+      workflowId: workflow.workflowId,
+      reason: 'Cannot resolve task review dispute without AI arbitration',
+    })
 
-    const fetchStub: typeof fetch = (input, init) => {
-      requests.push({ url: requestInfoUrl(input), init })
-      const payload = JSON.parse(requestBodyText(init?.body)) as { evaluation_id?: string }
-      const evaluationId = requireFixtureRow(payload.evaluation_id, 'evaluation id')
-      return Promise.resolve(
-        new Response(JSON.stringify({ run_id: `run-${evaluationId}` }), {
-          status: 202,
-        })
-      )
-    }
-    globalThis.fetch = fetchStub
-    process.env['NODE_ENV'] = 'production'
-    process.env['CLAWAGENT_API_URL'] = 'https://clawagent.example/api/public/disputes/arbitrate'
-    process.env['SUAR_CALLBACK_URL'] = 'https://suar.example/api/public/ai-disputes/callback'
-    process.env['SUAR_DISPUTE_API_KEY'] = 'suar-report-secret'
-
-    try {
-      await new ReportTaskReviewDisputeCommand({
-        userId: scenario.projectManager.id,
-        ip: '0.0.0.0',
-        userAgent: 'test',
-        organizationId: null,
-      }).execute({
-        workflowId: workflow.workflowId,
-        reason: 'Cannot resolve task review dispute without AI arbitration',
-      })
-    } finally {
-      globalThis.fetch = originalFetch
-      restoreEnvValue('NODE_ENV', originalNodeEnv)
-      restoreEnvValue('CLAWAGENT_API_URL', originalClawagentUrl)
-      restoreEnvValue('SUAR_CALLBACK_URL', originalCallbackUrl)
-      restoreEnvValue('SUAR_DISPUTE_API_KEY', originalSuarDisputeApiKey)
-    }
-
-    assert.lengthOf(requests, 1)
-    const request = requireFixtureRow(requests[0], 'Clawagent request')
-    assert.equal(request.url, 'https://clawagent.example/api/public/disputes/arbitrate')
-    const headers = new Headers(request.init?.headers)
-    assert.equal(headers.get('x-api-key'), 'suar-report-secret')
-    const triggerPayload = JSON.parse(requestBodyText(request.init?.body)) as {
+    const aiResult = (await db
+      .from('ai_dispute_evaluations')
+      .where('source_type', 'task_review_workflow')
+      .where('source_id', workflow.workflowId)
+      .firstOrFail()) as Record<string, unknown>
+    const triggerPayload = parseJsonValue(aiResult['trigger_payload']) as {
       evaluation_id: string
       source_type: string
       source_id: string
@@ -786,24 +1060,19 @@ test.group('Integration | Task Review Board', (group) => {
     }
     assert.equal(triggerPayload.source_type, 'task_review_workflow')
     assert.equal(triggerPayload.source_id, workflow.workflowId)
-    assert.equal(triggerPayload.callbackUrl, 'https://suar.example/api/public/ai-disputes/callback')
+    assert.match(triggerPayload.callbackUrl, /\/api\/public\/ai-disputes\/callback$/u)
     assert.equal(triggerPayload.context.source_type, 'task_review_workflow')
     assert.equal(triggerPayload.context.source_id, workflow.workflowId)
     assert.equal(triggerPayload.context.dispute_review_type, 'task_review')
     assert.equal(triggerPayload.context.organization.id, scenario.org.id)
 
-    const aiResult = (await db
-      .from('ai_dispute_evaluations')
-      .where('source_type', 'task_review_workflow')
-      .where('source_id', workflow.workflowId)
-      .firstOrFail()) as Record<string, unknown>
     const row = (await db
       .from('task_review_workflows')
       .where('id', workflow.workflowId)
       .firstOrFail()) as TaskReviewWorkflowFixtureRow
 
-    assert.equal(aiResult['status'], 'processing')
-    assert.equal(aiResult['external_run_id'], `run-${triggerPayload.evaluation_id}`)
-    assert.equal(row.status, 'ai_reviewing')
+    assert.equal(aiResult['status'], 'queued')
+    assert.isNull(aiResult['external_run_id'])
+    assert.equal(row.status, 'reported')
   })
 })
