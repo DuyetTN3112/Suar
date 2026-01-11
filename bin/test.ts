@@ -227,6 +227,6 @@ try {
     await app.terminate()
   }
 } catch (error) {
-  void prettyPrintError(error as Error)
+  void prettyPrintError(error)
   process.exitCode = 1
 }
