@@ -1,0 +1,19 @@
+%% act_01_task_management_overview.mmd
+%% Scope: Task domain overview (authoring + workflow execution).
+%% Detail files:
+%%   - act_01a_task_crud.mmd
+%%   - act_01b_task_workflow.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Task management module"]
+
+    Module --> Authoring["Author and maintain task data"]
+    Module --> Workflow["Execute assignment + status workflow"]
+
+    Authoring --> End([End])
+    Workflow --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Authoring,Workflow process
