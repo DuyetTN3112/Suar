@@ -1,0 +1,19 @@
+%% act_02_marketplace_overview.mmd
+%% Scope: Marketplace overview (discovery + application lifecycle).
+%% Detail files:
+%%   - act_02a_marketplace_browse.mmd
+%%   - act_02b_marketplace_apply.mmd
+
+flowchart TD
+    Start([Start]) --> Module["Marketplace module"]
+
+    Module --> Browse["Browse marketplace tasks"]
+    Module --> Apply["Apply and process applications"]
+
+    Browse --> End([End])
+    Apply --> End
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    class Start,End startEnd
+    class Module,Browse,Apply process
