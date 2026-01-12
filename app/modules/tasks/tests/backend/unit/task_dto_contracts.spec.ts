@@ -230,9 +230,8 @@ test.group('Task DTO contracts', () => {
     assert.equal(listDto.project_sprint_id, VALID_UUID_3)
     assert.equal(listDto.search, 'review quality')
     assert.equal(listDto.getOffset(), 20)
-    assert.include(listDto.getCacheKey(), `task_status_id:${VALID_UUID_3}`)
-    assert.include(listDto.getCacheKey(), `project_sprint:${VALID_UUID_3}`)
-    assert.include(listDto.getCacheKey(), 'sort:title:desc')
+    const listCacheKey = listDto.getCacheKey({ type: 'all' })
+    assert.include(listCacheKey, `tasks:list:v2:org:${VALID_UUID}:scope:all:query:`)
     assert.include(listDto.getFiltersSummary(), `Project: ${VALID_UUID_2}`)
     assert.include(listDto.getFiltersSummary(), `Sprint: ${VALID_UUID_3}`)
 
@@ -242,7 +241,7 @@ test.group('Task DTO contracts', () => {
     })
     assert.isTrue(backlogDto.hasProjectSprintFilter())
     assert.isTrue(backlogDto.isProjectBacklogOnly())
-    assert.include(backlogDto.getCacheKey(), 'project_sprint:backlog')
+    assert.notEqual(backlogDto.getCacheKey({ type: 'all' }), listCacheKey)
     assert.include(backlogDto.getFiltersSummary(), 'Sprint backlog')
 
     const queryStringPaginationDto = new GetTasksListDTO({
@@ -253,6 +252,45 @@ test.group('Task DTO contracts', () => {
     assert.strictEqual(queryStringPaginationDto.page, 2)
     assert.strictEqual(queryStringPaginationDto.limit, 15)
     assert.strictEqual(queryStringPaginationDto.getOffset(), 15)
+  })
+
+  test('task list cache keys are canonical, immutable, and authorization-scoped', ({
+    assert,
+  }) => {
+    const inputStatuses = [VALID_UUID_3, VALID_UUID_2]
+    const firstDto = new GetTasksListDTO({
+      organization_id: VALID_UUID,
+      task_status_id: inputStatuses,
+      priority: ['urgent', 'high'],
+      search: 'review:quality',
+    })
+    const equivalentDto = new GetTasksListDTO({
+      organization_id: VALID_UUID,
+      task_status_id: [VALID_UUID_2, VALID_UUID_3],
+      priority: ['high', 'urgent'],
+      search: 'review:quality',
+    })
+
+    const allKey = firstDto.getCacheKey({ type: 'all' })
+    const equivalentAllKey = equivalentDto.getCacheKey({ type: 'all' })
+    const firstUserKey = firstDto.getCacheKey({
+      type: 'own_or_assigned',
+      userId: VALID_UUID_2,
+    })
+    const secondUserKey = firstDto.getCacheKey({
+      type: 'own_or_assigned',
+      userId: VALID_UUID_3,
+    })
+
+    assert.equal(allKey, equivalentAllKey)
+    assert.deepEqual(inputStatuses, [VALID_UUID_3, VALID_UUID_2])
+    assert.notEqual(allKey, firstUserKey)
+    assert.notEqual(firstUserKey, secondUserKey)
+    assert.match(
+      allKey,
+      new RegExp(`^tasks:list:v2:org:${VALID_UUID}:scope:all:query:[A-Za-z0-9_-]{43}$`)
+    )
+    assert.notInclude(allKey, 'review:quality')
   })
 
   test('Task application request DTO factories preserve canonical mapping contracts', ({

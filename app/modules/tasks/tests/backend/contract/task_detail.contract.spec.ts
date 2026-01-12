@@ -5,6 +5,7 @@ import Task from '#modules/tasks/infra/models/task'
 import {
   cleanupTestData,
   OrganizationFactory,
+  ProjectFactory,
   TaskAssignmentFactory,
   TaskFactory,
 } from '#tests/helpers/factories'
@@ -22,14 +23,35 @@ test.group('Contract | GET /api/tasks/:taskId', (group) => {
     client,
   }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+    })
     const task = await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
+      project_id: project.id,
+    })
+    const sprintId = testId()
+
+    await db.table('project_sprints').insert({
+      id: sprintId,
+      organization_id: org.id,
+      project_id: project.id,
+      name: 'Sprint 4',
+      status: 'active',
+      starts_at: new Date('2026-07-01T00:00:00.000Z').toISOString(),
+      ends_at: new Date('2026-07-14T00:00:00.000Z').toISOString(),
+      created_by: owner.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
 
     await Task.query()
       .where('id', task.id)
       .update({
+        project_sprint_id: sprintId,
         verification_method: 'code_review',
         acceptance_criteria: 'Definition of done',
         expected_deliverables: JSON.stringify([{ kind: 'spec' }]),
@@ -122,8 +144,32 @@ test.group('Contract | GET /api/tasks/:taskId', (group) => {
       'expected_deliverables',
       'measurable_outcomes',
       'project_id',
+      'projectSprintId',
+      'projectSprintName',
       'review_zone',
     ])
+    assert.equal(canonicalBody.data['projectSprintId'], sprintId)
+    assert.equal(canonicalBody.data['projectSprintName'], 'Sprint 4')
+    const organization = canonicalBody.data['organization'] as Record<string, unknown> | null
+    assert.deepInclude(organization ?? {}, {
+      id: org.id,
+      name: org.name,
+      logo: org.logo ?? null,
+    })
+    assert.notProperty(organization ?? {}, 'owner_id')
+    assert.notProperty(organization ?? {}, 'custom_roles')
+    assert.notProperty(organization ?? {}, 'partner_verification_proof')
+    assert.notProperty(organization ?? {}, 'plan')
+    assert.notProperty(organization ?? {}, 'deleted_at')
+    const projectProjection = canonicalBody.data['project'] as Record<string, unknown> | null
+    assert.deepInclude(projectProjection ?? {}, {
+      id: project.id,
+      name: project.name,
+    })
+    assert.notProperty(projectProjection ?? {}, 'owner_id')
+    assert.notProperty(projectProjection ?? {}, 'description')
+    assert.notProperty(projectProjection ?? {}, 'settings')
+    assert.notProperty(projectProjection ?? {}, 'deleted_at')
     assert.deepInclude(canonicalBody.data['review_zone'], {
       submission_id: submissionId,
       submission_status: 'submitted',

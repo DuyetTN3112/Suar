@@ -1,11 +1,13 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import type {
+  UserTransaction,
+  UserTransactionRunner,
+} from '#modules/users/actions/ports/outbound/user_transaction'
 import type { UserActionContext } from '#modules/users/actions/user_action_context'
 
 /**
@@ -37,7 +39,10 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: UserActionContext
 
-  constructor(execCtx: UserActionContext) {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly transactionRunner: UserTransactionRunner
+  ) {
     this.execCtx = execCtx
   }
 
@@ -55,9 +60,34 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns Result of the transaction
    */
   protected async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (trx: UserTransaction) => Promise<T>
   ): Promise<T> {
-    return await db.transaction(callback)
+    return this.transactionRunner.run(callback)
+  }
+
+  protected async settlePostCommitEffect(
+    effectName: string,
+    effect: () => Promise<void>,
+    context: {
+      userId: string
+      actorId: string
+    }
+  ): Promise<void> {
+    try {
+      await effect()
+    } catch (error) {
+      try {
+        loggerService.error('User post-commit effect failed', {
+          effectName,
+          committed: true,
+          userId: context.userId,
+          actorId: context.actorId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        })
+      } catch {
+        // Telemetry failure must never alter the result of an already committed mutation.
+      }
+    }
   }
 
   /**

@@ -20,7 +20,7 @@ const applyStatusFilter = <T extends ReturnType<typeof baseQuery>>(query: T, sta
 }
 
 interface FlaggedReviewFilters {
-  search?: string
+  reviewerIds?: string[]
   flagType?: string
   severity?: string
 }
@@ -33,12 +33,13 @@ const applyAdditionalFilters = <T extends ReturnType<typeof baseQuery>>(
     return query
   }
 
-  const search = filters.search?.trim()
-  if (search) {
+  if (filters.reviewerIds !== undefined) {
+    if (filters.reviewerIds.length === 0) {
+      void query.whereRaw('1 = 0')
+      return query
+    }
     void query.whereHas('skill_review', (skillReviewQuery) => {
-      void skillReviewQuery.whereHas('reviewer', (reviewerQuery) => {
-        void reviewerQuery.where('username', 'ilike', `%${search}%`)
-      })
+      void skillReviewQuery.whereIn('reviewer_id', filters.reviewerIds ?? [])
     })
   }
 
@@ -80,21 +81,7 @@ export const paginateWithRelations = async (
 
   const query = applyAdditionalFilters(applyStatusFilter(baseQuery(trx), status), filters)
     .preload('skill_review', (srQuery) => {
-      void srQuery
-        .preload('reviewer', (uQuery) => {
-          void uQuery.select(['id', 'username', 'email'])
-        })
-        .preload('review_session', (rsQuery) => {
-          void rsQuery.preload('reviewee', (uQuery) => {
-            void uQuery.select(['id', 'username', 'email'])
-          })
-        })
-        .preload('skill', (sQuery) => {
-          void sQuery.select(['id', 'skill_name', 'category_code'])
-        })
-    })
-    .preload('reviewer', (uQuery) => {
-      void uQuery.select(['id', 'username', 'email'])
+      void srQuery.preload('review_session')
     })
   if (decodedCursor) {
     void query.where((builder) => {
@@ -149,4 +136,21 @@ export const paginateWithRelations = async (
     hasNextPage: isBeforeWindow ? Boolean(decodedBeforeCursor) : hasOverflow,
     hasPreviousPage: isBeforeWindow ? hasOverflow : Boolean(decodedCursor),
   }
+}
+
+export const findAdminDetail = async (
+  id: string,
+  trx?: TransactionClientContract
+): Promise<FlaggedReview | null> => {
+  return baseQuery(trx)
+    .where('id', id)
+    .preload('skill_review', (query) => {
+      void query.preload('review_session')
+    })
+    .first()
+}
+
+export const countPending = async (trx?: TransactionClientContract): Promise<number> => {
+  const rows = await applyStatusFilter(baseQuery(trx), 'pending').count('* as total')
+  return Number(rows[0]?.$extras['total'] ?? 0)
 }

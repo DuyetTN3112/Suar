@@ -1,11 +1,13 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type { CommandHandler } from './interfaces.js'
 import { Result } from './result.js'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ProjectPostCommitFailureObserver } from '#modules/projects/actions/ports/outbound/project_post_commit_failure_observer'
+import type {
+  ProjectTransaction,
+  ProjectTransactionRunner,
+} from '#modules/projects/actions/ports/outbound/project_transaction'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
 
 /**
@@ -37,7 +39,10 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
   /** Decoupled execution context (userId, ip, userAgent, organizationId) */
   protected execCtx: ProjectActionContext
 
-  constructor(execCtx: ProjectActionContext) {
+  constructor(
+    execCtx: ProjectActionContext,
+    private readonly transactionRunner: ProjectTransactionRunner
+  ) {
     this.execCtx = execCtx
   }
 
@@ -55,9 +60,34 @@ export abstract class BaseCommand<TInput extends object, TOutput = void> impleme
    * @returns Result of the transaction
    */
   protected async executeInTransaction<T>(
-    callback: (trx: TransactionClientContract) => Promise<T>
+    callback: (transaction: ProjectTransaction) => Promise<T>
   ): Promise<T> {
-    return await db.transaction(callback)
+    return this.transactionRunner.run(callback)
+  }
+
+  protected async settlePostCommitEffect(
+    effectName: string,
+    effect: () => Promise<void>,
+    context: {
+      projectId: string
+      actorId: string
+    },
+    observer?: ProjectPostCommitFailureObserver
+  ): Promise<void> {
+    try {
+      await effect()
+    } catch (error) {
+      try {
+        await observer?.reportFailure({
+          effectName,
+          projectId: context.projectId,
+          actorId: context.actorId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        })
+      } catch {
+        // Telemetry failure must never alter the result of an already committed mutation.
+      }
+    }
   }
 
   /**
