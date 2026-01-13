@@ -1,13 +1,22 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
+import {
+  authOrganizationMembershipReader,
+  authSystemAccessReader,
+  socialLoginCommand,
+  socialLoginIdentityPersistence,
+} from '#composition/auth_application_composition'
+import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import SocialLoginCommand from '#modules/auth/actions/commands/social_login_command'
+import type { SocialLoginIdentityPersistence } from '#modules/auth/actions/ports/outbound/social_login_identity_persistence'
+import LucidSocialLoginPersistenceAdapter from '#modules/auth/infra/adapters/lucid_social_login_persistence_adapter'
 import UserOAuthProvider from '#modules/auth/infra/models/user_oauth_provider'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/constants/organization_constants'
+} from '#modules/organizations/access/public_contracts/organization_constants'
 import User from '#modules/users/infra/models/user'
-import UserRepository from '#modules/users/infra/repositories/user_repository'
 import {
   AuthMethod,
   SystemRoleName,
@@ -33,7 +42,7 @@ test.group('Integration | Social Login', (group) => {
   test('missing provider email is rejected without creating a user or provider link', async ({
     assert,
   }) => {
-    const command = new SocialLoginCommand()
+    const command = socialLoginCommand
     const usersBefore = await User.query().where('email', '').count('* as total')
     const providersBefore = await UserOAuthProvider.query().where('email', '').count('* as total')
 
@@ -64,7 +73,7 @@ test.group('Integration | Social Login', (group) => {
   test('new provider user creates one active user, one provider link, and organization landing', async ({
     assert,
   }) => {
-    const command = new SocialLoginCommand()
+    const command = socialLoginCommand
     const email = testEmail('oauth_new_google_user')
     const socialId = `google-new-${Date.now()}`
 
@@ -114,7 +123,7 @@ test.group('Integration | Social Login', (group) => {
       refresh_token: 'legacy-refresh-token',
     })
 
-    await new SocialLoginCommand().execute('github', {
+    await socialLoginCommand.execute('github', {
       id: socialId,
       email,
       name: 'Clear Legacy OAuth Tokens',
@@ -135,7 +144,7 @@ test.group('Integration | Social Login', (group) => {
   test('concurrent requests with the same provider identity are deduplicated', async ({
     assert,
   }) => {
-    const command = new SocialLoginCommand()
+    const command = socialLoginCommand
     const socialId = `google-${Date.now()}`
     const email = testEmail('oauth_race')
 
@@ -173,7 +182,7 @@ test.group('Integration | Social Login', (group) => {
       email,
       auth_method: 'google',
     })
-    const command = new SocialLoginCommand()
+    const command = socialLoginCommand
 
     const result = await command.execute('github', {
       id: `github-${Date.now()}`,
@@ -188,12 +197,30 @@ test.group('Integration | Social Login', (group) => {
     const oauthRows = await UserOAuthProvider.query()
       .where('user_id', existingUser.id)
       .where('provider', 'github')
+    const auditEvents = (await db
+      .from('audit_events')
+      .where('event_name', 'auth.oauth_provider.linked')
+      .where('target_id', existingUser.id)
+      .select('user_id', 'old_values', 'new_values', 'ip_address', 'user_agent')) as {
+      user_id: string
+      old_values: Record<string, unknown>
+      new_values: Record<string, unknown>
+      ip_address: string | null
+      user_agent: string | null
+    }[]
 
     assert.equal(result.user.id, existingUser.id)
     assert.isFalse(result.isNewUser)
     assert.equal(refreshedUser.auth_method, 'github')
     assert.equal(oauthRows.length, 1)
     assert.equal(oauthRows[0]?.email, email)
+    assert.lengthOf(auditEvents, 1)
+    assert.equal(auditEvents[0]?.user_id, existingUser.id)
+    assert.deepEqual(auditEvents[0]?.old_values, {})
+    assert.deepEqual(auditEvents[0]?.new_values, { method: 'github' })
+    assert.notInclude(JSON.stringify(auditEvents), email)
+    assert.notInclude(JSON.stringify(auditEvents), 'github-access-token')
+    assert.notInclude(JSON.stringify(auditEvents), 'github-refresh-token')
 
     const users = await User.query().where('email', email)
     assert.equal(users.length, 1)
@@ -214,7 +241,7 @@ test.group('Integration | Social Login', (group) => {
       status: OrganizationUserStatus.APPROVED,
     })
 
-    const result = await new SocialLoginCommand().execute('github', {
+    const result = await socialLoginCommand.execute('github', {
       id: `github-member-${Date.now()}`,
       email,
       name: 'Existing Member',
@@ -242,7 +269,7 @@ test.group('Integration | Social Login', (group) => {
       status: OrganizationUserStatus.APPROVED,
     })
 
-    const result = await new SocialLoginCommand().execute('github', {
+    const result = await socialLoginCommand.execute('github', {
       id: `github-admin-${Date.now()}`,
       email,
       name: 'Existing Admin',
@@ -265,7 +292,7 @@ test.group('Integration | Social Login', (group) => {
       current_organization_id: null,
     })
 
-    const result = await new SocialLoginCommand().execute('github', {
+    const result = await socialLoginCommand.execute('github', {
       id: `github-no-org-${Date.now()}`,
       email,
       name: 'Existing No Org',
@@ -287,7 +314,7 @@ test.group('Integration | Social Login', (group) => {
       current_organization_id: null,
     })
 
-    const result = await new SocialLoginCommand().execute('github', {
+    const result = await socialLoginCommand.execute('github', {
       id: `github-system-admin-${Date.now()}`,
       email,
       name: 'Existing System Admin',
@@ -311,7 +338,7 @@ test.group('Integration | Social Login', (group) => {
       current_organization_id: org.id,
     })
 
-    const result = await new SocialLoginCommand().execute('github', {
+    const result = await socialLoginCommand.execute('github', {
       id: `github-stale-org-${Date.now()}`,
       email,
       name: 'Existing Stale Org',
@@ -332,31 +359,32 @@ test.group('Integration | Social Login', (group) => {
       email,
       auth_method: 'google',
     })
-    const originalSave = UserRepository.save
     const syncFailure = Object.assign(new Error('sync auth method failed'), { code: 'XX999' })
-
-    UserRepository.save = () => {
-      throw syncFailure
+    const failingIdentities: SocialLoginIdentityPersistence = {
+      findById: (userId, trx) => socialLoginIdentityPersistence.findById(userId, trx),
+      findByEmail: (userEmail, trx) =>
+        socialLoginIdentityPersistence.findByEmail(userEmail, trx),
+      create: (identity, trx) => socialLoginIdentityPersistence.create(identity, trx),
+      synchronizeAuthMethod: () => Promise.reject(syncFailure),
     }
+    const command = new SocialLoginCommand(
+      new LucidSocialLoginPersistenceAdapter(failingIdentities),
+      authSystemAccessReader,
+      authOrganizationMembershipReader
+    )
 
-    try {
-      const command = new SocialLoginCommand()
-
-      await assert.rejects(
-        () =>
-          command.execute('github', {
-            id: `github-${Date.now()}`,
-            email,
-            name: 'Existing OAuth User',
-            nickName: 'existing-oauth-user',
-            token: 'github-access-token',
-            refreshToken: 'github-refresh-token',
-          }),
-        'sync auth method failed'
-      )
-    } finally {
-      UserRepository.save = originalSave
-    }
+    await assert.rejects(
+      () =>
+        command.execute('github', {
+          id: `github-${Date.now()}`,
+          email,
+          name: 'Existing OAuth User',
+          nickName: 'existing-oauth-user',
+          token: 'github-access-token',
+          refreshToken: 'github-refresh-token',
+        }),
+      'sync auth method failed'
+    )
 
     const refreshedUser = await User.findOrFail(existingUser.id)
     const oauthRows = await UserOAuthProvider.query()
@@ -365,5 +393,44 @@ test.group('Integration | Social Login', (group) => {
 
     assert.equal(refreshedUser.auth_method, 'google')
     assert.equal(oauthRows.length, 0)
+  })
+
+  test('existing user provider link rolls back when its critical audit evidence cannot be written', async ({
+    assert,
+  }) => {
+    const email = testEmail('oauth_existing_email_audit_rollback')
+    const existingUser = await UserFactory.create({
+      email,
+      auth_method: 'google',
+    })
+    const originalAuditWrite = auditPublicApi.write.bind(auditPublicApi)
+    const auditFailure = new Error('critical OAuth audit write failed')
+
+    auditPublicApi.write = () => Promise.reject(auditFailure)
+
+    try {
+      await assert.rejects(
+        () =>
+          socialLoginCommand.execute('github', {
+            id: `github-audit-rollback-${Date.now()}`,
+            email,
+            name: 'Existing OAuth Audit Rollback User',
+            nickName: 'existing-oauth-audit-rollback-user',
+            token: 'github-access-token',
+            refreshToken: 'github-refresh-token',
+          }),
+        'critical OAuth audit write failed'
+      )
+    } finally {
+      auditPublicApi.write = originalAuditWrite
+    }
+
+    const refreshedUser = await User.findOrFail(existingUser.id)
+    const oauthRows = await UserOAuthProvider.query()
+      .where('user_id', existingUser.id)
+      .where('provider', 'github')
+
+    assert.equal(refreshedUser.auth_method, 'google')
+    assert.lengthOf(oauthRows, 0)
   })
 })
