@@ -1,21 +1,16 @@
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  BACKEND_NOTIFICATION_ENTITY_TYPES,
-  BACKEND_NOTIFICATION_TYPES,
-} from '#modules/notifications/public_contracts/notification_constants'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import PersistedDataIntegrityException from '#modules/errors/public_contracts/persisted_data_integrity_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import type { ReviewDisputeCaseFileUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_dispute_case_file_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { queueAiDisputeEvaluationAfterReport } from '#modules/reviews/actions/support/ai_dispute_auto_queue'
-import { buildReviewDisputeCaseFileRecord } from '#modules/reviews/actions/support/review_dispute_case_file_builder'
+import { aiDisputeAutoQueuePublicApi } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
 import {
   ACTIVE_REVIEW_DISPUTE_STATUSES,
   ReviewDisputeStatus,
-} from '#modules/reviews/constants/review_constants'
+} from '#modules/reviews/public_contracts/review_constants'
 
 export interface ReportReviewDisputeDTO {
   dispute_id: string
@@ -31,100 +26,89 @@ function requireUserId(ctx: ReviewActionContext): string {
 }
 
 export default class ReportReviewDisputeCommand {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewDisputeCaseFileUnitOfWork
+  ) {}
 
   async execute(dto: ReportReviewDisputeDTO): Promise<{ id: string; status: string }> {
     const actorId = requireUserId(this.execCtx)
-    const trx = await db.transaction()
-
-    try {
-      const dispute = (await trx
-        .from('review_disputes')
-        .where('id', dto.dispute_id)
-        .forUpdate()
-        .first()) as
-        | {
-            id: string
-            status: string
-            reviewee_id: string
-            task_id: string
-            reported_to_admin_at: string | null
-          }
-        | undefined
+    const result = await this.unitOfWork.run(async (session) => {
+      const now = new Date()
+      const dispute = await session.loadDisputeForReport(dto.dispute_id)
 
       if (!dispute) {
-        throw new BusinessLogicException('Review dispute không tồn tại')
+        throw new NotFoundException('Review dispute không tồn tại')
       }
 
-      if (!ACTIVE_REVIEW_DISPUTE_STATUSES.includes(dispute.status as (typeof ACTIVE_REVIEW_DISPUTE_STATUSES)[number])) {
-        throw new BusinessLogicException('Review dispute không còn ở trạng thái có thể report')
+      if (
+        !ACTIVE_REVIEW_DISPUTE_STATUSES.includes(
+          dispute.status as (typeof ACTIVE_REVIEW_DISPUTE_STATUSES)[number]
+        )
+      ) {
+        throw new ConflictException('Review dispute không còn ở trạng thái có thể report')
       }
 
-      if (dispute.reviewee_id !== actorId) {
+      if (dispute.revieweeId !== actorId) {
         throw new ForbiddenException('Chỉ reviewee mới có thể report tranh chấp này lên admin')
       }
 
-      if (dispute.reported_to_admin_at) {
-        throw new BusinessLogicException('Review dispute này đã được report lên admin trước đó')
+      if (dispute.reportedToAdminAt) {
+        throw new ConflictException('Review dispute này đã được report lên admin trước đó')
       }
 
-      const exchangeRows = (await trx
-        .from('review_dispute_comments')
-        .where('dispute_id', dto.dispute_id)
-        .where('visibility', 'all_parties')
-        .select('author_id')) as Array<{ author_id: string }>
+      const task = await session.loadReportTask(dispute.taskId)
+      if (!task) {
+        throw new PersistedDataIntegrityException('Review dispute references a missing task', {
+          disputeId: dispute.id,
+          taskId: dispute.taskId,
+        })
+      }
 
-      const hasRevieweeMessage = exchangeRows.some((row) => row.author_id === actorId)
-      const hasCounterpartyMessage = exchangeRows.some((row) => row.author_id !== actorId)
+      const exchangeAuthorIds = await session.listPublicExchangeAuthorIds(dto.dispute_id)
+      const hasRevieweeMessage = exchangeAuthorIds.some((authorId) => authorId === actorId)
+      const hasCounterpartyMessage = exchangeAuthorIds.some((authorId) => authorId !== actorId)
 
       if (!hasRevieweeMessage || !hasCounterpartyMessage) {
-        throw new BusinessLogicException(
+        throw new ConflictException(
           'Cần có trao đổi thực tế giữa hai bên trong dispute trước khi report lên admin'
         )
       }
 
-      await trx
-        .from('review_disputes')
-        .where('id', dto.dispute_id)
-        .update({
-          status: ReviewDisputeStatus.ADMIN_REVIEWING,
-          reported_to_admin_at: db.raw('NOW()'),
-          reported_to_admin_by: actorId,
-          escalation_reason: dto.escalation_reason.trim(),
-          updated_at: db.raw('NOW()'),
-        })
+      const escalationReason = dto.escalation_reason.trim()
+      await session.transitionToAdminReviewing({
+        disputeId: dto.dispute_id,
+        actorId,
+        escalationReason,
+        status: ReviewDisputeStatus.ADMIN_REVIEWING,
+        now,
+      })
 
-      const built = await buildReviewDisputeCaseFileRecord(trx, dto.dispute_id, actorId)
+      const built = await session.buildCaseFile(dto.dispute_id, actorId)
       const builtCaseFile = {
         id: built.id,
         caseVersion: built.caseVersion,
         completenessScore: built.completenessScore,
       }
 
-      await trx.commit()
-
-      await auditPublicApi.write(this.execCtx, {
-        user_id: actorId,
+      await session.writeAudit(this.execCtx, {
+        userId: actorId,
         action: 'report_review_dispute',
-        entity_type: 'review_dispute',
-        entity_id: dto.dispute_id,
-        old_values: null,
-        new_values: {
+        entityId: dto.dispute_id,
+        newValues: {
           status: ReviewDisputeStatus.ADMIN_REVIEWING,
-          escalation_reason: dto.escalation_reason.trim(),
+          escalation_reason: escalationReason,
           case_file_id: builtCaseFile.id,
           case_version: builtCaseFile.caseVersion,
           case_file_completeness_score: builtCaseFile.completenessScore,
         },
       })
 
-      await auditPublicApi.write(this.execCtx, {
-        user_id: actorId,
+      await session.writeAudit(this.execCtx, {
+        userId: actorId,
         action: 'build_review_dispute_case_file',
-        entity_type: 'review_dispute',
-        entity_id: dto.dispute_id,
-        old_values: null,
-        new_values: {
+        entityId: dto.dispute_id,
+        newValues: {
           case_file_id: builtCaseFile.id,
           case_version: builtCaseFile.caseVersion,
           completeness_score: builtCaseFile.completenessScore,
@@ -132,45 +116,81 @@ export default class ReportReviewDisputeCommand {
         },
       })
 
-      await notificationPublicApi.handle({
-        user_id: actorId,
-        type: BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED,
-        title: 'Tranh chấp đã được báo cáo lên admin',
-        message: 'Admin hệ thống sẽ xem xét hồ sơ tranh chấp của bạn.',
-        related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-        related_entity_id: dispute.task_id,
+      const shared = {
+        businessEventId: dto.dispute_id,
+        type: 'review_dispute_escalated',
+        organizationId: task.organizationId,
+        actorId,
+        taskId: dispute.taskId,
+        occurredAt: now.toISOString(),
+        now,
+      }
+      await session.stageNotification({
+        ...shared,
+        eventName: 'review.dispute_escalated_reporter',
+        parameters: {
+          audience: 'reporter',
+          disputeId: dto.dispute_id,
+          taskTitle: task.title,
+        },
+        recipientIds: [actorId],
+        ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
       })
 
-      const adminUsers = (await db
-        .from('users')
-        .whereIn('system_role', ['system_admin', 'superadmin'])
-        .whereNot('id', actorId)
-        .select('id')) as Array<{ id: string }>
-
-      for (const adminUser of adminUsers) {
-        await notificationPublicApi.handle({
-          user_id: adminUser.id,
-          type: BACKEND_NOTIFICATION_TYPES.REVIEW_DISPUTE_ESCALATED,
-          title: 'Có tranh chấp review mới cần admin xử lý',
-          message: 'Một review dispute đã được report lên hệ thống và đang chờ admin xem xét.',
-          related_entity_type: BACKEND_NOTIFICATION_ENTITY_TYPES.TASK,
-          related_entity_id: dispute.task_id,
+      const adminUserIds = await session.listAdminUserIds(actorId)
+      if (adminUserIds.length > 0) {
+        await session.stageNotification({
+          ...shared,
+          eventName: 'review.dispute_escalated_admins',
+          parameters: {
+            audience: 'admin',
+            disputeId: dto.dispute_id,
+            taskTitle: task.title,
+          },
+          recipientIds: adminUserIds,
+          ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
         })
       }
 
-      await queueAiDisputeEvaluationAfterReport({
-        disputeId: dto.dispute_id,
-        sourceType: 'review_dispute',
-        requestContext: this.execCtx,
+      await session.stageAiDisputeEvaluation(dto.dispute_id, {
+        ...this.execCtx,
+        organizationId: task.organizationId,
       })
 
       return {
         id: dto.dispute_id,
         status: ReviewDisputeStatus.ADMIN_REVIEWING,
       }
+    })
+
+    await this.settlePostCommitEffect(
+      'queue_ai_dispute_evaluation',
+      () => aiDisputeAutoQueuePublicApi.processAfterReport('review_dispute', dto.dispute_id),
+      { disputeId: dto.dispute_id, actorId }
+    )
+
+    return result
+  }
+
+  private async settlePostCommitEffect(
+    effectName: string,
+    effect: () => Promise<void>,
+    context: { disputeId: string; actorId: string }
+  ): Promise<void> {
+    try {
+      await effect()
     } catch (error) {
-      await trx.rollback()
-      throw error
+      try {
+        loggerService.error('Review post-commit effect failed', {
+          effectName,
+          committed: true,
+          disputeId: context.disputeId,
+          actorId: context.actorId,
+          errorName: error instanceof Error ? error.name : 'UnknownError',
+        })
+      } catch {
+        // Telemetry failure must never alter the committed command result.
+      }
     }
   }
 }
