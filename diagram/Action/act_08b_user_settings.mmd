@@ -1,0 +1,30 @@
+%% act_08b_user_settings: User Settings and Preferences
+%% Scope: server-rendered settings pages + client-side persistence model.
+
+flowchart TD
+    Start([Start]) --> Action{"Settings action?"}
+
+    Action -->|Open settings home| OpenSettings["GET /settings\nShowSettingsController"]
+    OpenSettings --> Defaults["GetUserSettings.handle()\nreturns SSR defaults"]
+    Defaults --> RenderHome["Render settings/index"]
+    RenderHome --> End1([End])
+
+    Action -->|Update appearance/display/notifications| UpdateLocal["POST /settings/appearance|display|notifications\nUpdateUserSettings.handle(data)"]
+    UpdateLocal --> Noop["Backward-compatible no-op\nserver returns success only"]
+    Noop --> ClientPersist["Frontend persists effective value\n(localStorage / cookies)"]
+    ClientPersist --> End2([End])
+
+    Action -->|Update profile/account| UpdateIdentity["POST /settings/profile|account"]
+    UpdateIdentity --> MapDto["build DTO from request + auth user"]
+    MapDto --> ProfileCmd["UpdateUserProfileCommand.handle(dto)"]
+    ProfileCmd --> Redirect["flash success + redirect back"]
+    Redirect --> End3([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    classDef note fill:#E8F5E9,stroke:#2E7D32,color:#333
+    class Start,End1,End2,End3 startEnd
+    class OpenSettings,Defaults,RenderHome,UpdateLocal,UpdateIdentity,MapDto,ProfileCmd,Redirect process
+    class Action decision
+    class Noop,ClientPersist note
