@@ -1,9 +1,10 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import type { NextFn } from '@adonisjs/core/types/http'
 
-import { canAccessSystemAdministration } from '#modules/authorization/public_contracts/system_admin_access'
-import { canAccessOrganizationAdminShell } from '#modules/organizations/domain/org_permission_policy'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import { OrganizationRouteAccessReader } from '#modules/organizations/access/actions/ports/inbound/organization_route_access_reader'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/access/public_contracts/organization_access'
 
 /**
  * RequireOrgAdminMiddleware
@@ -27,7 +28,10 @@ import { organizationPublicApi } from '#modules/organizations/public_contracts/o
  * }).use([middleware.auth(), middleware.requireOrg(), middleware.requireOrgAdmin()])
  * ```
  */
+@inject()
 export default class RequireOrgAdminMiddleware {
+  constructor(private readonly organizations: OrganizationRouteAccessReader) {}
+
   /**
    * Handle the request
    */
@@ -36,12 +40,6 @@ export default class RequireOrgAdminMiddleware {
     if (!auth.user) {
       session.flash('error', 'You must be logged in to access this page')
       response.redirect().toRoute('auth.login')
-      return
-    }
-
-    const systemAccess = await canAccessSystemAdministration(auth.user.system_role)
-    if (systemAccess.allowed) {
-      response.redirect('/admin')
       return
     }
 
@@ -54,27 +52,18 @@ export default class RequireOrgAdminMiddleware {
       return
     }
 
-    const membershipContext = await organizationPublicApi.getMembershipContext(
+    const membershipContext = await this.organizations.findApprovedMembership(
       currentOrgId,
-      auth.user.id,
-      undefined,
-      true
+      auth.user.id
     )
     const actorOrgRole = membershipContext?.role ?? null
 
     if (!actorOrgRole) {
-      session.flash('error', 'You are not a member of this organization')
-      response.redirect().toRoute('organizations.index')
-      return
+      throw new ForbiddenException('You are not a member of this organization')
     }
 
     if (!canAccessOrganizationAdminShell(actorOrgRole).allowed) {
-      session.flash(
-        'error',
-        'Access denied. Organization administrator or owner privileges required.'
-      )
-      response.redirect().toPath('/')
-      return
+      throw new ForbiddenException('Organization administrator or owner privileges required')
     }
 
     await next()
