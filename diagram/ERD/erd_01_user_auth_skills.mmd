@@ -1,9 +1,9 @@
 
 %% ERD: User, Auth, Skills Domain
-%% Source: app/models/user.ts, user_oauth_provider.ts, skill.ts,
-%%         user_skill.ts, recruiter_bookmark.ts
+%% Source: app/infra/users/models/user.ts, user_oauth_provider.ts,
+%%         user_skill.ts, recruiter_bookmark.ts; app/infra/skills/models/skill.ts
 %% Supplemental refs: app/types/database.ts (remember_me_tokens),
-%%                    app/infra/admin/repositories/admin_subscription_repository.ts (user_subscriptions)
+%%                    app/infra/admin/repositories/read/write subscription queries (user_subscriptions)
 %% Convention: table/column only. No relationship edges or FK markers.
 %% Runtime notes:
 %%   - auth_method: google | github
