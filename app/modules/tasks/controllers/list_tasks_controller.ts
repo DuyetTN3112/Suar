@@ -1,12 +1,14 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { buildGetTasksIndexPageInput } from './mappers/request/task_request_mapper.js'
 
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import {
   actionContextFromHttp,
   requireCurrentOrganizationId,
-} from '#modules/http/public_contracts/http_execution_context'
-import { makeGetTasksIndexPageQuery } from '#modules/tasks/bootstrap/task_action_factory'
+} from '#modules/http/boundary/http_execution_context'
+import { TaskBoardQueryFactory } from '#modules/tasks/actions/ports/inbound/task_board_query_factory'
 
 const TASKS_DEFAULT_LIMIT = 10
 
@@ -14,19 +16,51 @@ const TASKS_DEFAULT_LIMIT = 10
  * GET /tasks
  * Display tasks list with filters and permissions
  */
+@inject()
 export default class ListTasksController {
+  constructor(private readonly boardQueries: TaskBoardQueryFactory) {}
+
   async handle(ctx: HttpContext) {
-    const { request, inertia, session } = ctx
+    const { request, response, inertia, session, params } = ctx
     const organizationId = requireCurrentOrganizationId(ctx)
+    const routeProjectId =
+      typeof params['projectId'] === 'string' ? params['projectId'] : undefined
 
     const pageInput = buildGetTasksIndexPageInput(request, organizationId, TASKS_DEFAULT_LIMIT)
     const sessionProjectId = session.get('current_project_id') as string | undefined
-    if (pageInput.requested_project_id === undefined && sessionProjectId !== undefined) {
+    if (routeProjectId) {
+      pageInput.requested_project_id = routeProjectId
+    } else if (pageInput.requested_project_id === undefined && sessionProjectId !== undefined) {
       pageInput.requested_project_id = sessionProjectId
     }
 
-    const pageData = await makeGetTasksIndexPageQuery(actionContextFromHttp(ctx)).execute(pageInput)
+    if (!routeProjectId) {
+      const projectId = pageInput.requested_project_id
+      if (!projectId) {
+        return response.redirect('/projects')
+      }
 
-    return await inertia.render('tasks/index', pageData)
+      return response.redirect(`/projects/${encodeURIComponent(projectId)}/tasks`)
+    }
+
+    const pageData = await this.boardQueries
+      .makeIndexPage(actionContextFromHttp(ctx))
+      .execute(pageInput)
+
+    if (routeProjectId && pageData.projectContext.selectedProject?.id !== routeProjectId) {
+      throw new NotFoundException('Project not found or unavailable in the current organization')
+    }
+
+    if (routeProjectId) {
+      session.put('current_project_id', routeProjectId)
+      await session.commit()
+    }
+
+    return await inertia.render('tasks/index', {
+      ...pageData,
+      shellMode: routeProjectId ? 'project' : 'app',
+      workspaceView: 'board',
+      baseRoute: routeProjectId ? `/projects/${routeProjectId}/tasks` : '/tasks',
+    })
   }
 }
