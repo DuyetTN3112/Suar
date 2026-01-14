@@ -1,29 +1,29 @@
-import db from '@adonisjs/lucid/services/db'
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
-
 import type UpdateTaskTimeDTO from '../dtos/request/update_task_time_dto.js'
 
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { TaskCachePort } from '#modules/tasks/actions/ports/task_cache_port'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskPermissionContext } from '#modules/tasks/actions/support/task_permission_context_builder'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { TaskCachePort } from '#modules/tasks/actions/ports/outbound/task_cache_port'
+import type { TaskEventPublisher } from '#modules/tasks/actions/ports/outbound/task_event_publisher'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
+import { buildTaskPermissionContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
+import { settleTaskPostCommitEffects } from '#modules/tasks/actions/services/task_post_commit_effect_settler'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import type { TaskEventPublisher } from '#modules/tasks/application/ports/task_event_publisher'
 import { canUpdateTaskTime } from '#modules/tasks/domain/task_permission_policy'
-import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
-import * as detailQueries from '#modules/tasks/infra/repositories/read/detail_queries'
-import * as taskMutations from '#modules/tasks/infra/repositories/write/task_mutations'
 import type { TaskRecord, TaskDetailRecord } from '#modules/tasks/types/task_records'
 
-interface PersistedTaskTimeUpdate {
+interface TaskTimeMutation {
   task: TaskRecord
   oldValues: {
     estimated_time: number
     actual_time: number
   }
+}
+
+interface PersistedTaskTimeUpdate extends TaskTimeMutation {
+  detail: TaskDetailRecord
 }
 
 function normalizeNullableNumber(value: unknown): number {
@@ -56,7 +56,7 @@ export default class UpdateTaskTimeCommand {
     protected execCtx: TaskActionContext,
     private taskExternalDependencies: TaskExternalDependencies,
     private cache: TaskCachePort,
-    private readonly taskEventPublisher: TaskEventPublisher = new InProcessTaskEventPublisher()
+    private readonly taskEventPublisher: TaskEventPublisher
   ) {}
 
   /**
@@ -66,7 +66,7 @@ export default class UpdateTaskTimeCommand {
     const userId = this.requireUserId()
     const updateResult = await this.persistTaskTimeUpdateInTransaction(dto, userId)
     await this.runPostCommitEffects(updateResult, userId)
-    return await detailQueries.findByIdWithDetailRecord(dto.task_id)
+    return updateResult.detail
   }
 
   private requireUserId(): string {
@@ -82,30 +82,32 @@ export default class UpdateTaskTimeCommand {
     dto: UpdateTaskTimeDTO,
     userId: string
   ): Promise<PersistedTaskTimeUpdate> {
-    const trx = await db.transaction()
-
-    try {
-      const task = await taskMutations.findActiveForUpdateAsRecord(dto.task_id, trx)
+    return this.taskExternalDependencies.transactions.run(async (trx) => {
+      const task = await this.taskExternalDependencies.lifecycle.lockActiveTask(
+        dto.task_id,
+        trx
+      )
       await this.ensureTimeUpdatePermission(task, userId, trx)
       const updateResult = await this.persistTaskTimeUpdate(task, dto, userId, trx)
-      await trx.commit()
-      return updateResult
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      const detail = await this.taskExternalDependencies.lifecycle.findTaskDetail(
+        dto.task_id,
+        trx
+      )
+      return { ...updateResult, detail }
+    })
   }
 
   private async ensureTimeUpdatePermission(
     task: TaskRecord,
     userId: string,
-    trx: TransactionClientContract
+    trx: TaskTransaction
   ): Promise<void> {
     const permissionContext = await buildTaskPermissionContext(
       userId,
       task,
       trx,
-      this.taskExternalDependencies.permission
+     this.taskExternalDependencies.permission
+      , this.taskExternalDependencies.activeAssignmentReader
     )
     enforcePolicy(canUpdateTaskTime(permissionContext))
   }
@@ -114,14 +116,14 @@ export default class UpdateTaskTimeCommand {
     task: TaskRecord,
     dto: UpdateTaskTimeDTO,
     userId: string,
-    trx: TransactionClientContract
-  ): Promise<PersistedTaskTimeUpdate> {
+    trx: TaskTransaction
+  ): Promise<TaskTimeMutation> {
     const oldValues = {
       estimated_time: normalizeNullableNumber(task.estimated_time),
       actual_time: normalizeNullableNumber(task.actual_time),
     }
 
-    const updatedTask = await taskMutations.updateTask(
+    const updatedTask = await this.taskExternalDependencies.lifecycle.updateTask(
       task.id,
       {
         ...dto.toObject(),
@@ -129,7 +131,7 @@ export default class UpdateTaskTimeCommand {
       },
       trx
     )
-    await this.recordTaskTimeUpdatedAudit(updatedTask, oldValues, userId)
+    await this.recordTaskTimeUpdatedAudit(updatedTask, oldValues, userId, trx)
 
     return {
       task: updatedTask,
@@ -139,8 +141,9 @@ export default class UpdateTaskTimeCommand {
 
   private async recordTaskTimeUpdatedAudit(
     task: TaskRecord,
-    oldValues: PersistedTaskTimeUpdate['oldValues'],
-    userId: string
+    oldValues: TaskTimeMutation['oldValues'],
+    userId: string,
+    trx: TaskTransaction
   ): Promise<void> {
     await auditPublicApi.log(
       {
@@ -154,7 +157,8 @@ export default class UpdateTaskTimeCommand {
           actual_time: task.actual_time,
         },
       },
-      this.execCtx
+      this.execCtx,
+      { trx, critical: true }
     )
   }
 
@@ -162,17 +166,36 @@ export default class UpdateTaskTimeCommand {
     updateResult: PersistedTaskTimeUpdate,
     userId: string
   ): Promise<void> {
-    await this.cache.invalidateAfterTaskUpdated(updateResult.task.id)
-
-    await this.taskEventPublisher.publishTaskUpdated({
-      taskId: updateResult.task.id,
-      updatedBy: userId,
-      changes: {
-        estimated_time: updateResult.task.estimated_time,
-        actual_time: updateResult.task.actual_time,
+    await settleTaskPostCommitEffects({
+      operation: 'task.time.update',
+      context: {
+        taskId: updateResult.task.id,
+        actorId: userId,
       },
-      previousValues: updateResult.oldValues,
+      effects: [
+        {
+          name: `cache.task.invalidate_now.${updateResult.task.id}`,
+          run: () =>
+            this.cache.invalidateAfterTaskUpdated(
+              updateResult.task.id,
+              updateResult.task.organization_id
+            ),
+        },
+        {
+          name: `event.task_updated.${updateResult.task.id}`,
+          run: () =>
+            this.taskEventPublisher.publishTaskUpdated({
+              taskId: updateResult.task.id,
+              organizationId: updateResult.task.organization_id,
+              updatedBy: userId,
+              changes: {
+                estimated_time: updateResult.task.estimated_time,
+                actual_time: updateResult.task.actual_time,
+              },
+              previousValues: updateResult.oldValues,
+            }),
+        },
+      ],
     })
   }
-
 }
