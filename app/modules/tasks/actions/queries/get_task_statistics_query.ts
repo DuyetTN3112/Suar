@@ -1,12 +1,17 @@
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  organizationUserCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
-import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/support/task_permission_context_builder'
-import { buildTaskPermissionFilter } from '#modules/tasks/actions/support/task_permission_filter_builder'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { buildTaskPermissionFilter } from '#modules/tasks/actions/mapper/task_permission_filter_mapper'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type {
+  TaskPermissionFilter,
+  TaskReadRepository,
+} from '#modules/tasks/actions/ports/outbound/task_read_repository'
+import { buildTaskCollectionAccessContext } from '#modules/tasks/actions/services/task_permission_context_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import * as statisticsQueries from '#modules/tasks/infra/repositories/read/statistics_queries'
-import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/read/task_read_query_helpers'
 
 /**
  * Query để lấy statistics của tasks
@@ -28,7 +33,8 @@ import type { TaskPermissionFilter } from '#modules/tasks/infra/repositories/rea
 export default class GetTaskStatisticsQuery {
   constructor(
     protected execCtx: TaskActionContext,
-    private taskExternalDependencies: TaskExternalDependencies
+    private taskExternalDependencies: TaskExternalDependencies,
+    private readonly taskReadRepository: Pick<TaskReadRepository, 'getStatisticsByOrganization'>
   ) {}
 
   /**
@@ -58,26 +64,23 @@ export default class GetTaskStatisticsQuery {
       throw new UnauthorizedException()
     }
 
-    // Try cache first
-    const cacheKey = `task:stats:org:${organizationId}:user:${userId}`
-    const cached = await this.getFromCache(cacheKey)
-    if (cached) {
-      return cached as ReturnType<typeof this.execute> extends Promise<infer R> ? R : never
-    }
-
-    // Determine permission filter
+    // Resolve permissions before consulting a user-scoped collection cache.
     const permissionFilter = await this.resolvePermissionFilter(userId, organizationId)
-
-    // Execute all statistics queries via repository
-    const result = await statisticsQueries.getStatisticsByOrganization(
-      organizationId,
-      permissionFilter
+    const logicalCacheKey = `task:stats:org:${organizationId}:scope:${permissionFilter.type}:user:${userId}`
+    const cacheKey = await cacheStore.resolveVersionedKeyBestEffort(
+      organizationUserCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.taskStatistics,
+        organizationId,
+        userId
+      ),
+      logicalCacheKey
     )
+    const loadFromSource = () =>
+      this.taskReadRepository.getStatisticsByOrganization(organizationId, permissionFilter)
 
-    // Cache result
-    await this.saveToCache(cacheKey, result, 300) // 5 minutes
-
-    return result
+    return cacheKey
+      ? cacheStore.remember(cacheKey, 300, loadFromSource, { waitTimeoutMs: 1_500 })
+      : loadFromSource()
   }
 
   /**
@@ -95,28 +98,5 @@ export default class GetTaskStatisticsQuery {
       this.taskExternalDependencies.permission
     )
     return buildTaskPermissionFilter(accessContext)
-  }
-
-  /**
-   * Get from Redis cache
-   */
-  private async getFromCache(key: string): Promise<unknown> {
-    try {
-      return await cacheStore.get<unknown>(key)
-    } catch (error) {
-      loggerService.error('[GetTaskStatisticsQuery] Cache get error:', error)
-    }
-    return null
-  }
-
-  /**
-   * Save to Redis cache
-   */
-  private async saveToCache(key: string, data: unknown, ttl: number): Promise<void> {
-    try {
-      await cacheStore.set(key, data, ttl)
-    } catch (error) {
-      loggerService.error('[GetTaskStatisticsQuery] Cache set error:', error)
-    }
   }
 }
