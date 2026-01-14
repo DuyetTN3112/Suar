@@ -1,0 +1,34 @@
+%% act_08c_system_admin_console: System Admin Console
+%% Scope: admin mode toggle, dashboards, user moderation, flagged review resolution.
+
+flowchart TD
+    Start([Start]) --> Action{"Admin console action?"}
+
+    Action -->|Toggle admin mode| Toggle["POST /admin/toggle\nToggleAdminModeController"]
+    Toggle --> ToggleCmd["ToggleAdminModeCommand\n(enforce canToggleAdminMode)"]
+    ToggleCmd --> RedirectMode["session.is_admin_mode + redirect\n/admin or org shell"]
+    RedirectMode --> End1([End])
+
+    Action -->|Open dashboard| Dashboard["GET /admin (+ dashboard tabs)"]
+    Dashboard --> Stats["GetDashboardStatsQuery\n+ ListSubscriptionsQuery (subscriptions tab)"]
+    Stats --> RenderDash["Render inertia admin dashboard pages"]
+    RenderDash --> End2([End])
+
+    Action -->|Update user role| UpdateRole["PUT /admin/users/:id/role"]
+    UpdateRole --> RoleCmd["UpdateUserSystemRoleCommand\n(cannot change self, superadmin guard)"]
+    RoleCmd --> End3([End])
+
+    Action -->|Suspend/activate user| Suspend["PUT /admin/users/:id/suspend"]
+    Suspend --> SuspendCmd["SuspendUserCommand\n(cannot self-suspend, role guard)"]
+    SuspendCmd --> End4([End])
+
+    Action -->|Resolve flagged review| ResolveReview["PUT /admin/reviews/:id/resolve"]
+    ResolveReview --> ResolveCmd["ResolveFlaggedReviewCommand\n(only pending records)"]
+    ResolveCmd --> End5([End])
+
+    classDef startEnd fill:#E8EAF6,stroke:#3F51B5,color:#333
+    classDef process fill:#E3F2FD,stroke:#1565C0,color:#333
+    classDef decision fill:#FFF3E0,stroke:#E65100,color:#333
+    class Start,End1,End2,End3,End4,End5 startEnd
+    class Toggle,ToggleCmd,RedirectMode,Dashboard,Stats,RenderDash,UpdateRole,RoleCmd,Suspend,SuspendCmd,ResolveReview,ResolveCmd process
+    class Action decision
