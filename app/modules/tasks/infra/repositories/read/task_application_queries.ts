@@ -1,5 +1,9 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import type {
+  TaskOrgReader,
+  TaskProjectReader,
+} from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
 import TaskApplication from '#modules/tasks/infra/models/task_application'
 import { ApplicationStatus } from '#modules/tasks/public_contracts/task_constants'
@@ -44,13 +48,32 @@ export async function paginateByTask(
   trx?: TransactionClientContract
 ): Promise<PaginatedTaskApplicationRecords> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
+  const scopedQuery = query.where('task_id', taskId)
+
+  if (options.status && options.status !== 'all') {
+    void scopedQuery.where('application_status', options.status)
+  }
+
+  applyStableTaskApplicationOrder(scopedQuery, 'desc')
+  const result = await scopedQuery.paginate(options.page, options.perPage)
+  return toPaginatedTaskApplicationRecords(result)
+}
+
+export async function paginateByOrganization(
+  organizationId: string,
+  options: {
+    status?: string
+    page: number
+    perPage: number
+  },
+  trx?: TransactionClientContract
+): Promise<PaginatedTaskApplicationRecords> {
+  const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
   const scopedQuery = query
-    .where('task_id', taskId)
-    .preload('applicant', (userQuery) => {
-      void userQuery.preload('skills', (skillsQuery) => {
-        void skillsQuery.preload('skill')
-      })
+    .whereHas('task', (taskQuery) => {
+      void taskQuery.where('organization_id', organizationId)
     })
+    .preload('task')
 
   if (options.status && options.status !== 'all') {
     void scopedQuery.where('application_status', options.status)
@@ -68,19 +91,12 @@ export async function paginateByApplicant(
     page: number
     perPage: number
   },
-  trx?: TransactionClientContract
+  trx?: TransactionClientContract,
+  orgReader?: Pick<TaskOrgReader, 'findOrganizationSummaries'>,
+  projectReader?: Pick<TaskProjectReader, 'findProjectSummaries'>
 ): Promise<PaginatedTaskApplicationRecords> {
   const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
-  const scopedQuery = query
-    .where('applicant_id', applicantId)
-    .preload('task', (taskQuery) => {
-      void taskQuery.preload('organization', (orgQuery) => {
-        void orgQuery.select(['id', 'name', 'logo'])
-      })
-      void taskQuery.preload('project', (projectQuery) => {
-        void projectQuery.select(['id', 'name'])
-      })
-    })
+  const scopedQuery = query.where('applicant_id', applicantId).preload('task')
 
   if (options.status && options.status !== 'all') {
     void scopedQuery.where('application_status', options.status)
@@ -88,7 +104,67 @@ export async function paginateByApplicant(
 
   applyStableTaskApplicationOrder(scopedQuery, 'desc')
   const result = await scopedQuery.paginate(options.page, options.perPage)
-  return toPaginatedTaskApplicationRecords(result)
+  const records = toPaginatedTaskApplicationRecords(result)
+  if (!orgReader && !projectReader) {
+    return records
+  }
+
+  const organizationIds = [
+    ...new Set(
+      records.data.flatMap((application) =>
+        application.task?.organization_id ? [application.task.organization_id] : []
+      )
+    ),
+  ]
+  const organizations = orgReader
+    ? await orgReader.findOrganizationSummaries(organizationIds, trx)
+    : []
+  const organizationById = new Map(
+    organizations.map((organization) => [organization.id, organization])
+  )
+  const projectIds = [
+    ...new Set(
+      records.data.flatMap((application) =>
+        application.task?.project_id ? [application.task.project_id] : []
+      )
+    ),
+  ]
+  const projects = projectReader
+    ? await projectReader.findProjectSummaries(projectIds, trx)
+    : []
+  const projectById = new Map(projects.map((project) => [project.id, project]))
+
+  return {
+    ...records,
+    data: records.data.map((application) => {
+      if (!application.task) {
+        return application
+      }
+      const organization = organizationById.get(application.task.organization_id)
+      const project = application.task.project_id
+        ? projectById.get(application.task.project_id)
+        : undefined
+      return {
+        ...application,
+        task: {
+          ...application.task,
+          organization: organization
+            ? {
+                id: organization.id,
+                name: organization.name,
+                logo: organization.logo,
+              }
+            : null,
+          project: project
+            ? {
+                id: project.id,
+                name: project.name,
+              }
+            : null,
+        },
+      }
+    }),
+  }
 }
 
 export async function findPendingOwnedByApplicantWithTask(
@@ -116,7 +192,6 @@ export async function findPendingByIdWithTaskAndApplicant(
     .where('id', applicationId)
     .where('application_status', ApplicationStatus.PENDING)
     .preload('task')
-    .preload('applicant')
     .first()
 
   return model ? toTaskApplicationRecord(model) : null
@@ -147,6 +222,21 @@ export async function findExistingNonWithdrawnByTaskAndApplicant(
     .where('task_id', taskId)
     .where('applicant_id', applicantId)
     .whereNot('application_status', ApplicationStatus.WITHDRAWN)
+    .first()
+
+  return model ? toTaskApplicationRecord(model) : null
+}
+
+export async function findWithdrawnByTaskAndApplicant(
+  taskId: string,
+  applicantId: string,
+  trx?: TransactionClientContract
+): Promise<TaskApplicationRecord | null> {
+  const query = trx ? TaskApplication.query({ client: trx }) : TaskApplication.query()
+  const model = await query
+    .where('task_id', taskId)
+    .where('applicant_id', applicantId)
+    .where('application_status', ApplicationStatus.WITHDRAWN)
     .first()
 
   return model ? toTaskApplicationRecord(model) : null
