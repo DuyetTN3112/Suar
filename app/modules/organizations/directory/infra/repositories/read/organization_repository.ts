@@ -1,10 +1,10 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { OrganizationInfraMapper } from '#modules/organizations/infra/mapper/organization_infra_mapper'
-import Organization from '#modules/organizations/infra/models/organization'
-import type { OrganizationRecord } from '#modules/organizations/types/organization_records'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import { OrganizationInfraMapper } from '#modules/organizations/directory/infra/mapper/organization_infra_mapper'
+import Organization from '#modules/organizations/directory/infra/models/organization'
+import type { OrganizationRecord } from '#modules/organizations/directory/types/organization_records'
 import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
 const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null
@@ -31,7 +31,9 @@ const ORGANIZATION_SORT_COLUMN_MAP = {
   name: 'o.name',
 } as const
 
-function resolveOrganizationSortColumn(value: string | undefined): keyof typeof ORGANIZATION_SORT_COLUMN_MAP {
+function resolveOrganizationSortColumn(
+  value: string | undefined
+): keyof typeof ORGANIZATION_SORT_COLUMN_MAP {
   if (value === 'updated_at' || value === 'name') {
     return value
   }
@@ -88,12 +90,10 @@ export default class OrganizationRepository {
   }
 
   static async existsActive(orgId: string, trx?: TransactionClientContract): Promise<boolean> {
-    try {
-      await this.findActiveOrFail(orgId, trx)
-      return true
-    } catch {
-      return false
-    }
+    const query = trx ? Organization.query({ client: trx }) : Organization.query()
+    const organization = await query.where('id', orgId).whereNull('deleted_at').select('id').first()
+
+    return organization !== null
   }
 
   static async slugExists(slug: string, trx?: TransactionClientContract): Promise<boolean> {
@@ -202,15 +202,13 @@ export default class OrganizationRepository {
     const rows = Array.isArray(rowsRaw) ? rowsRaw : []
 
     return {
-      organizations: rows
-        .filter(isRecord)
-        .map((row) => ({
-          id: typeof row['id'] === 'string' ? row['id'] : '',
-          name: typeof row['name'] === 'string' ? row['name'] : '',
-          description: toNullableString(row['description']),
-          logo: toNullableString(row['logo']),
-          website: toNullableString(row['website']),
-        })) as Organization[],
+      organizations: rows.filter(isRecord).map((row) => ({
+        id: typeof row['id'] === 'string' ? row['id'] : '',
+        name: typeof row['name'] === 'string' ? row['name'] : '',
+        description: toNullableString(row['description']),
+        logo: toNullableString(row['logo']),
+        website: toNullableString(row['website']),
+      })) as Organization[],
       total,
     }
   }

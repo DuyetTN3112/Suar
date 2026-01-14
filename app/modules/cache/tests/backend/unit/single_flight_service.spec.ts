@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import * as SingleFlightService from '#modules/cache/infra/single_flight_service'
+import * as InProcessSingleFlightExecutor from '#modules/cache/infra/in_process_single_flight_executor'
 
-test.group('SingleFlightService', (group) => {
+test.group('InProcessSingleFlightExecutor', (group) => {
   group.each.setup(() => {
-    SingleFlightService.clear()
+    InProcessSingleFlightExecutor.clear()
   })
 
   test('executes the callback only once for concurrent requests sharing a key', async ({
@@ -19,9 +19,9 @@ test.group('SingleFlightService', (group) => {
     }
 
     const results = await Promise.all([
-      SingleFlightService.execute('test-key', expensiveOperation),
-      SingleFlightService.execute('test-key', expensiveOperation),
-      SingleFlightService.execute('test-key', expensiveOperation),
+      InProcessSingleFlightExecutor.execute('test-key', expensiveOperation),
+      InProcessSingleFlightExecutor.execute('test-key', expensiveOperation),
+      InProcessSingleFlightExecutor.execute('test-key', expensiveOperation),
     ])
 
     assert.equal(results[0], 'result-1')
@@ -46,17 +46,17 @@ test.group('SingleFlightService', (group) => {
       return 'completed'
     }
 
-    assert.isFalse(SingleFlightService.isInFlight('long-key'))
-    assert.equal(SingleFlightService.getInFlightCount(), 0)
+    assert.isFalse(InProcessSingleFlightExecutor.isInFlight('long-key'))
+    assert.equal(InProcessSingleFlightExecutor.getInFlightCount(), 0)
 
-    const promise = SingleFlightService.execute('long-key', longRunningOperation)
+    const promise = InProcessSingleFlightExecutor.execute('long-key', longRunningOperation)
 
-    assert.isTrue(SingleFlightService.isInFlight('long-key'))
-    assert.equal(SingleFlightService.getInFlightCount(), 1)
+    assert.isTrue(InProcessSingleFlightExecutor.isInFlight('long-key'))
+    assert.equal(InProcessSingleFlightExecutor.getInFlightCount(), 1)
 
     const [result1, result2] = await Promise.all([
-      SingleFlightService.execute('key-1', expensiveOperation),
-      SingleFlightService.execute('key-2', expensiveOperation),
+      InProcessSingleFlightExecutor.execute('key-1', expensiveOperation),
+      InProcessSingleFlightExecutor.execute('key-2', expensiveOperation),
     ])
 
     assert.match(result1, /^result-\d+$/)
@@ -65,8 +65,8 @@ test.group('SingleFlightService', (group) => {
 
     await promise
 
-    assert.isFalse(SingleFlightService.isInFlight('long-key'))
-    assert.equal(SingleFlightService.getInFlightCount(), 0)
+    assert.isFalse(InProcessSingleFlightExecutor.isInFlight('long-key'))
+    assert.equal(InProcessSingleFlightExecutor.getInFlightCount(), 0)
   })
 
   test('shares a single failure for concurrent callers and clears the key afterward', async ({
@@ -80,13 +80,13 @@ test.group('SingleFlightService', (group) => {
     }
 
     const results = await Promise.all([
-      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+      InProcessSingleFlightExecutor.execute('error-key', failingOperation).catch((err: unknown) =>
         err instanceof Error ? err.message : String(err)
       ),
-      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+      InProcessSingleFlightExecutor.execute('error-key', failingOperation).catch((err: unknown) =>
         err instanceof Error ? err.message : String(err)
       ),
-      SingleFlightService.execute('error-key', failingOperation).catch((err: unknown) =>
+      InProcessSingleFlightExecutor.execute('error-key', failingOperation).catch((err: unknown) =>
         err instanceof Error ? err.message : String(err)
       ),
     ])
@@ -95,6 +95,6 @@ test.group('SingleFlightService', (group) => {
     assert.equal(results[1], 'Operation failed')
     assert.equal(results[2], 'Operation failed')
     assert.equal(executionCount, 1)
-    assert.isFalse(SingleFlightService.isInFlight('error-key'))
+    assert.isFalse(InProcessSingleFlightExecutor.isInFlight('error-key'))
   })
 })

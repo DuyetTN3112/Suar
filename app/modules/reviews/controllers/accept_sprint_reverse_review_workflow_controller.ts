@@ -1,28 +1,33 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-import db from '@adonisjs/lucid/services/db'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import AcceptSprintReverseReviewWorkflowCommand from '#modules/reviews/actions/commands/accept_sprint_reverse_review_workflow_command'
-import { requireRouteParam } from '#modules/reviews/controllers/support/route_params'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
+import { requireRouteParam } from '#modules/reviews/controllers/mappers/request/route_params'
+import { resolveSprintReverseReviewBoardRedirectPath } from '#modules/reviews/controllers/mappers/response/reverse_review_board_redirect_mapper'
 
+@inject()
 export default class AcceptSprintReverseReviewWorkflowController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const workflowId = requireRouteParam(ctx.params, 'workflowId')
-    const workflow = (await db
-      .from('sprint_reverse_review_workflows')
-      .where('id', workflowId)
-      .select('sprint_id', 'target_type')
-      .firstOrFail()) as { sprint_id: string; target_type: string }
+    const outcome = await this.actions
+      .makeAcceptSprintReverseReviewWorkflowCommand(actionContextFromHttp(ctx))
+      .execute({ workflow_id: workflowId })
 
-    await new AcceptSprintReverseReviewWorkflowCommand(actionContextFromHttp(ctx)).execute({
-      workflow_id: workflowId,
-    })
-
-    const reviewType = workflow.target_type === 'environment' ? 'environment' : 'manager'
+    const reviewType = outcome.targetType === 'environment' ? 'environment' : 'manager'
 
     ctx.session.flash('success', 'Đã đồng ý review sau sprint')
-    ctx.response.redirect().toPath(
-      `/reviews/sprint-reverse-board?review_type=${reviewType}&sprint_id=${workflow.sprint_id}`
-    )
+    ctx.response
+      .redirect()
+      .toPath(
+        resolveSprintReverseReviewBoardRedirectPath(
+          ctx,
+          reviewType,
+          outcome.sprintId,
+          outcome.projectId
+        )
+      )
   }
 }
