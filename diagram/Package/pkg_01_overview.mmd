@@ -1,25 +1,28 @@
-%% Package Diagram: Suar Platform — High-Level Layer Overview
-%% Shows the 6 main layers and their dependencies at a glance.
-%% See pkg_02 through pkg_05 for detailed views of each layer.
-%% ✅ Updated 2026-03: Domain is 100% pure, rules live in Domain
+%% Package Diagram: Suar Platform - High-Level Layer Overview
+%% Updated 2026-05-12.
 
 graph TD
-    external["📦 External Dependencies\n(AdonisJS, Lucid, VineJS, Svelte 5,\nInertia.js, Transmit, Mongoose, Ally)"]
-    presentation["📦 Presentation Layer\n(Routes · Controllers · Middleware\nSvelte Pages · Stores · Components)"]
-    application["📦 Application Layer (CQRS)\n(Commands · Queries · DTOs\nRequest/Response · Mapper\nenforcePolicy · Validators\nPermissionService)"]
-    domain["📦 Domain Layer (100% Pure)\n(Entities · Repository Interfaces\nDomain Mapper · Rules · Policies\nPolicyResult · Types · id_utils)"]
-    infra["📦 Infrastructure Layer\n(app/infra/ — ORM Refs · Repo Impl\nInfra Mapper · RepositoryFactory\n⚠️ + Legacy repos still in use)"]
-    data["📦 Data Layer\n(PostgreSQL · MongoDB · Redis)"]
-    crosscutting["📦 Cross-Cutting Concerns\n(EventBus · 7 Listeners\nCache · WebSocket/SSE)"]
+    external["External Dependencies\nAdonisJS, Lucid, VineJS, Svelte, Inertia, Mongoose, Ally"]
+    presentation["Presentation Layer\nroutes, controllers, middleware\nSvelte pages, stores, components"]
+    application["Application Layer\nCQRS commands/queries\nmodule public APIs\nDTOs, mappers, module services"]
+    domain["Domain Layer\nentities, formulas, policies\nstate rules, repository interfaces"]
+    infra["Infrastructure Layer\napp/infra repositories\nLucid/Mongo/cache/logger adapters\nrepository providers + barrels"]
+    data["Data Layer\nPostgreSQL, MongoDB, Redis"]
+    crosscutting["Cross-Cutting Runtime\nevents, listeners, cache invalidation\nrealtime configured but inactive"]
+    drained["Drained legacy boundaries\napp/actions/shared + app/services\nno active TS files"]
 
-    presentation -->|"call with DTO"| application
-    application -->|"call pure rules"| domain
-    domain -->|"implemented by"| infra
-    infra -->|"persist"| data
-    application -->|"emit events"| crosscutting
-    crosscutting -->|"audit / cache / notify"| data
+    presentation --> application
+    application --> domain
+    application --> infra
+    infra --> data
+    application --> crosscutting
+    crosscutting --> application
+    crosscutting --> infra
     presentation --> external
     infra --> external
+    application -.-> drained
 
     classDef layerStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#0D47A1
+    classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238,stroke-dasharray: 5 5
     class external,presentation,application,domain,infra,data,crosscutting layerStyle
+    class drained drainedStyle
