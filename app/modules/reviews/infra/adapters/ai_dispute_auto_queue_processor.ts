@@ -1,12 +1,12 @@
 import db from '@adonisjs/lucid/services/db'
 
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
-import StartAiDisputeEvaluationCommand from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
-import type { AiDisputeSourceType } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import type { AiDisputeAutoQueueProcessor } from '#modules/reviews/actions/ports/outbound/ai_dispute_auto_queue_intent_repository'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { buildReviewDisputeEvent } from '#modules/reviews/observability/review_event_factory'
+import type { AiDisputeSourceType } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
 
+// Infrastructure adapter for resolving the automation actor before delegating the use case.
 const DEFAULT_PROVIDER = 'clawagent'
 const ADMIN_ROLES = ['superadmin', 'system_admin']
 const AUTO_QUEUE_SKIPPED_EVENT = 'review.dispute.ai_evaluation.auto_queue_skipped'
@@ -17,6 +17,18 @@ interface QueueAiDisputeEvaluationAfterReportInput {
   sourceType: AiDisputeSourceType
   requestContext: ReviewActionContext
 }
+
+export interface StartAutoQueuedAiDisputeEvaluationInput {
+  actorId: string
+  disputeId: string
+  sourceType: AiDisputeSourceType
+  provider: string
+  requestContext: ReviewActionContext
+}
+
+export type StartAutoQueuedAiDisputeEvaluation = (
+  input: StartAutoQueuedAiDisputeEvaluationInput
+) => Promise<void>
 
 async function findAutomationActorId(): Promise<string | null> {
   const envActorId = process.env['SUAR_AI_DISPUTE_AUTO_ACTOR_ID']
@@ -55,29 +67,34 @@ function logAutoQueueWarning(
   stage: 'skipped' | 'failed',
   error: unknown
 ): void {
-  platformOperationalLogger.log(
-    'warn',
-    buildReviewDisputeEvent(input.requestContext, {
-      eventName,
-      eventFamily: 'dispute',
-      subsystem: 'ai_dispute_auto_queue',
-      workflow: 'review_dispute_ai_evaluation',
-      stage,
-      outcome: stage === 'skipped' ? 'warning' : 'failure',
-      severity: 'warn',
-      disputeId: input.disputeId,
-      change: {
-        source_type: input.sourceType,
-        provider: process.env['SUAR_AI_DISPUTE_AUTO_PROVIDER'] ?? DEFAULT_PROVIDER,
-      },
-      error,
-      retentionClass: 'transient_runtime',
-    })
-  )
+  try {
+    platformOperationalLogger.log(
+      'warn',
+      buildReviewDisputeEvent(input.requestContext, {
+        eventName,
+        eventFamily: 'dispute',
+        subsystem: 'ai_dispute_auto_queue',
+        workflow: 'review_dispute_ai_evaluation',
+        stage,
+        outcome: stage === 'skipped' ? 'warning' : 'failure',
+        severity: 'warn',
+        disputeId: input.disputeId,
+        change: {
+          source_type: input.sourceType,
+          provider: process.env['SUAR_AI_DISPUTE_AUTO_PROVIDER'] ?? DEFAULT_PROVIDER,
+        },
+        error,
+        retentionClass: 'transient_runtime',
+      })
+    )
+  } catch {
+    // Telemetry failure must not change the outcome of an already committed report.
+  }
 }
 
-export async function queueAiDisputeEvaluationAfterReport(
-  input: QueueAiDisputeEvaluationAfterReportInput
+async function queueAiDisputeEvaluationAfterReport(
+  input: QueueAiDisputeEvaluationAfterReportInput,
+  startEvaluation: StartAutoQueuedAiDisputeEvaluation
 ): Promise<void> {
   try {
     if (await hasExistingEvaluation(input.sourceType, input.disputeId)) {
@@ -95,21 +112,21 @@ export async function queueAiDisputeEvaluationAfterReport(
       return
     }
 
-    await new StartAiDisputeEvaluationCommand({
-      ...makeSystemReviewActionContext(actorId),
-      ip: input.requestContext.ip,
-      userAgent: 'system:ai-dispute-auto-queue',
-      organizationId: input.requestContext.organizationId,
-      requestId: input.requestContext.requestId ?? null,
-      traceId: input.requestContext.traceId ?? null,
-      workflowId: input.requestContext.workflowId ?? null,
-    }).execute({
-      dispute_id: input.disputeId,
+    await startEvaluation({
+      actorId,
+      disputeId: input.disputeId,
       provider: process.env['SUAR_AI_DISPUTE_AUTO_PROVIDER'] ?? DEFAULT_PROVIDER,
-      source_type: input.sourceType,
+      sourceType: input.sourceType,
+      requestContext: input.requestContext,
     })
   } catch (error) {
     logAutoQueueWarning(input, AUTO_QUEUE_FAILED_EVENT, 'failed', error)
     // Report delivery must not fail because the downstream AI queue is unavailable.
   }
+}
+
+export function createAiDisputeAutoQueueProcessor(
+  startEvaluation: StartAutoQueuedAiDisputeEvaluation
+): AiDisputeAutoQueueProcessor {
+  return (input) => queueAiDisputeEvaluationAfterReport(input, startEvaluation)
 }
