@@ -3,10 +3,12 @@ import crypto from 'node:crypto'
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ProcessAiDisputeCallbackCommand from '#modules/reviews/actions/commands/process_ai_dispute_callback_command'
+import LucidAiDisputeUnitOfWork from '#modules/reviews/infra/adapters/lucid_ai_dispute_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
@@ -22,6 +24,9 @@ function signCallback(
     .update(`${timestamp}:${evaluationId}:${status}`)
     .digest('hex')
 }
+
+const reviewCryptography = new NodeReviewCryptography()
+const aiDisputeUnitOfWork = new LucidAiDisputeUnitOfWork()
 
 async function seedEvaluation(
   input: {
@@ -290,7 +295,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = secret
     const { disputeId, evaluationId } = await seedEvaluation()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     const result = await command.execute({
       evaluation_id: evaluationId,
@@ -329,7 +334,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = secret
     const { evaluationId } = await seedEvaluation()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await command.execute({
       evaluation_id: evaluationId,
@@ -376,7 +381,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = 'callback-secret'
     const { evaluationId } = await seedEvaluation()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await assert.rejects(
       () =>
@@ -401,7 +406,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = secret
     const { evaluationId } = await seedEvaluation()
     const timestamp = Math.floor(Date.now() / 1000) - 601
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await assert.rejects(
       () =>
@@ -428,7 +433,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = secret
     const missingEvaluationId = testId()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     const beforeCount = (await db.from('ai_dispute_evaluations').count('* as total').first()) as {
       total: number | string
@@ -462,7 +467,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     process.env['AI_CALLBACK_SECRET'] = secret
     const { disputeId, evaluationId } = await seedEvaluation({ evaluationStatus: 'processing' })
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     const result = await command.execute({
       evaluation_id: evaluationId,
@@ -497,7 +502,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     const disputeId = testId()
     const evaluationId = testId()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await db.table('sprint_review_disputes').insert({
       id: disputeId,
@@ -568,7 +573,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     const workflowId = testId()
     const evaluationId = testId()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await db.table('sprint_reverse_review_workflows').insert({
       id: workflowId,
@@ -710,7 +715,7 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
   test('missing secret is rejected', async ({ assert }) => {
     const { evaluationId } = await seedEvaluation()
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     await assert.rejects(
       () =>
@@ -730,12 +735,14 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
     assert.equal(evaluation?.status, 'queued')
   })
 
-  test('duplicate callback on finished evaluation is rejected', async ({ assert }) => {
+  test('duplicate callback on finished evaluation is idempotent and does not rewrite state', async ({
+    assert,
+  }) => {
     const secret = 'callback-secret'
     process.env['AI_CALLBACK_SECRET'] = secret
     const { evaluationId } = await seedEvaluation({ evaluationStatus: 'completed' })
     const timestamp = Math.floor(Date.now() / 1000)
-    const command = new ProcessAiDisputeCallbackCommand()
+    const command = new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork)
 
     const before = (await db
       .from('ai_dispute_evaluations')
@@ -743,22 +750,49 @@ test.group('Integration | Public | AI Dispute Callback', (group) => {
       .select('status', 'completed_at')
       .first()) as { status: string; completed_at: string | null } | null
 
-    await assert.rejects(
-      () =>
-        command.execute({
-          evaluation_id: evaluationId,
-          status: 'completed',
-          timestamp,
-          signature: signCallback(timestamp, evaluationId, 'completed', secret),
-        }),
-      BusinessLogicException
-    )
+    const result = await command.execute({
+      evaluation_id: evaluationId,
+      status: 'completed',
+      timestamp,
+      signature: signCallback(timestamp, evaluationId, 'completed', secret),
+    })
 
     const after = (await db
       .from('ai_dispute_evaluations')
       .where('id', evaluationId)
       .select('status', 'completed_at')
       .first()) as { status: string; completed_at: string | null } | null
+    assert.deepInclude(result, {
+      id: evaluationId,
+      status: 'completed',
+    })
     assert.deepEqual(after, before)
+  })
+
+  test('callback rejects a conflicting terminal status without rewriting state', async ({
+    assert,
+  }) => {
+    const secret = 'callback-secret'
+    process.env['AI_CALLBACK_SECRET'] = secret
+    const { evaluationId } = await seedEvaluation({ evaluationStatus: 'completed' })
+    const timestamp = Math.floor(Date.now() / 1000)
+
+    await assert.rejects(
+      () =>
+        new ProcessAiDisputeCallbackCommand(reviewCryptography, aiDisputeUnitOfWork).execute({
+          evaluation_id: evaluationId,
+          status: 'failed',
+          timestamp,
+          signature: signCallback(timestamp, evaluationId, 'failed', secret),
+        }),
+      ConflictException
+    )
+
+    const evaluation = (await db
+      .from('ai_dispute_evaluations')
+      .where('id', evaluationId)
+      .select('status')
+      .first()) as { status: string } | null
+    assert.equal(evaluation?.status, 'completed')
   })
 })
