@@ -19,10 +19,16 @@ export default class ReviewSessionRepository {
 
   static async findPendingForReviewerCursor(
     userId: string,
+    projectTaskAssignmentIds: string[],
     options?: { limit?: number; after?: string | null; before?: string | null },
     trx?: TransactionClientContract
   ) {
-    return reviewSessionQueries.findPendingForReviewerCursor(userId, options, trx)
+    return reviewSessionQueries.findPendingForReviewerCursor(
+      userId,
+      projectTaskAssignmentIds,
+      options,
+      trx
+    )
   }
 
   static async findByIdWithRelations(
@@ -54,6 +60,18 @@ export default class ReviewSessionRepository {
     trx?: TransactionClientContract
   ): Promise<ReviewSession | null> {
     return reviewSessionQueries.findByIdWithAllowedStatuses(sessionId, statuses, trx)
+  }
+
+  static async findByIdWithAllowedStatusesForUpdate(
+    sessionId: string,
+    statuses: string[],
+    trx: TransactionClientContract
+  ): Promise<ReviewSession | null> {
+    return reviewSessionQueries.findByIdWithAllowedStatusesForUpdate(
+      sessionId,
+      statuses,
+      trx
+    )
   }
 
   static async findByTaskAssignment(
@@ -95,24 +113,17 @@ export default class ReviewSessionRepository {
     return reviewSessionMutations.save(session, trx)
   }
 
-  static async hasAnyForTask(
-    taskId: string,
+  static async hasAnyForTaskAssignmentIds(
+    taskAssignmentIds: string[],
     trx?: TransactionClientContract
   ): Promise<boolean> {
-    return reviewSessionQueries.hasAnyForTask(taskId, trx)
+    return reviewSessionQueries.hasAnyForTaskAssignmentIds(taskAssignmentIds, trx)
   }
 
-  static async countPendingForProject(
-    projectId: string,
+  static async countPendingForTaskAssignmentIds(
+    taskAssignmentIds: string[],
     trx?: TransactionClientContract
   ): Promise<number> {
-    return reviewSessionQueries.countPendingForProject(projectId, trx)
-  }
-
-  static async hasAnyForTasksWithStatus(
-    taskStatusId: string,
-    trx?: TransactionClientContract
-  ): Promise<boolean> {
-    return reviewSessionQueries.hasAnyForTasksWithStatus(taskStatusId, trx)
+    return reviewSessionQueries.countPendingForTaskAssignmentIds(taskAssignmentIds, trx)
   }
 }
