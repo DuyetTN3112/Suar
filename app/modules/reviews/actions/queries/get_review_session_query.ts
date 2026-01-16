@@ -1,10 +1,21 @@
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
+import { reviewSessionCacheKey } from '#modules/cache/public_contracts/cache_contract'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import { BaseQuery } from '#modules/reviews/actions/base_query'
 import type { GetReviewSessionDTO } from '#modules/reviews/actions/dtos/request/review_dtos'
-import { loadReviewSessionActorAccessContext } from '#modules/reviews/actions/support/review_session_actor_access'
+import type { ReviewSessionProjection } from '#modules/reviews/actions/dtos/response/review_session_projection'
+import {
+  assembleReviewSessionProjections,
+  collectReviewSessionProjectionIds,
+} from '#modules/reviews/actions/mappers/review_session_projection_mapper'
+import type {
+  ReviewAssignmentProjectionReader,
+  ReviewModeratorIdentityProjectionReader,
+  ReviewSkillIdentityReader,
+} from '#modules/reviews/actions/ports/outbound/review_projection_enrichment_readers'
+import type { ReviewSessionReadStore } from '#modules/reviews/actions/ports/outbound/review_session_readers'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { canAccessReviewSessionAsActor } from '#modules/reviews/domain/review_policy'
-import ReviewSessionRepository from '#modules/reviews/infra/repositories/review_session_repository'
-import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
 
 /**
  * GetReviewSessionQuery
@@ -13,29 +24,29 @@ import type { ReviewSessionRecord } from '#modules/reviews/types/review_records'
  */
 export default class GetReviewSessionQuery extends BaseQuery<
   GetReviewSessionDTO,
-  ReviewSessionRecord
+  ReviewSessionProjection
 > {
-  async handle(dto: GetReviewSessionDTO): Promise<ReviewSessionRecord> {
+  constructor(
+    execCtx: ReviewActionContext,
+    private readonly assignmentProjectionReader: ReviewAssignmentProjectionReader,
+    private readonly moderatorIdentityReader: ReviewModeratorIdentityProjectionReader,
+    private readonly skillIdentityReader: ReviewSkillIdentityReader,
+    private readonly sessions: ReviewSessionReadStore
+  ) {
+    super(execCtx)
+  }
+
+  async handle(dto: GetReviewSessionDTO): Promise<ReviewSessionProjection> {
     const actorId = this.getCurrentUserId()
     if (!actorId) {
       throw new ForbiddenException('You do not have permission to access this review session')
     }
 
-    const cacheKey = this.generateCacheKey('review:session', {
-      sessionId: dto.review_session_id,
-    })
-
-    const session = await this.executeWithCache(cacheKey, 300, async () => {
-      return ReviewSessionRepository.findByIdWithRelations(dto.review_session_id)
-    })
-
-    const access = await loadReviewSessionActorAccessContext(dto.review_session_id, actorId)
+    const access = await this.sessions.loadActorAccess(dto.review_session_id, actorId)
     const policy = canAccessReviewSessionAsActor({
       sessionExists: !!access,
       actorId,
-      actorSystemRole: access?.actorSystemRole ?? null,
       sessionRevieweeId: access?.sessionRevieweeId ?? '',
-      sessionTaskOrgId: access?.sessionTaskOrgId ?? '',
       managerReviewerIds: access?.managerReviewerIds ?? [],
       peerReviewerIds: access?.peerReviewerIds ?? [],
       isOrgAdminOrOwner: access?.isOrgAdminOrOwner ?? false,
@@ -45,6 +56,35 @@ export default class GetReviewSessionQuery extends BaseQuery<
       throw new ForbiddenException('You do not have permission to access this review session')
     }
 
-    return session
+    const cacheKey = reviewSessionCacheKey(dto.review_session_id)
+
+    return this.executeWithCache(cacheKey, 300, async () => {
+      const session = await this.sessions.findProjectionSource(dto.review_session_id)
+      const projectionOptions = {
+        includeReviewerIdentity: true,
+        includeRevieweeIdentity: true,
+        assignmentProjection: 'detail' as const,
+      }
+      const { skillIds, identityIds, assignmentIds } = collectReviewSessionProjectionIds(
+        [session],
+        projectionOptions
+      )
+      const [skills, identities, assignments] = await Promise.all([
+        this.skillIdentityReader.findSkillsByIds(skillIds),
+        this.moderatorIdentityReader.findByIds(identityIds),
+        this.assignmentProjectionReader.findReviewAssignmentContextsV1(assignmentIds),
+      ])
+      const [projection] = assembleReviewSessionProjections(
+        [session],
+        { skills, identities, assignments },
+        projectionOptions
+      )
+      if (!projection) {
+        throw new InvariantViolationException(
+          `Review session ${dto.review_session_id} projection could not be assembled`
+        )
+      }
+      return projection
+    })
   }
 }

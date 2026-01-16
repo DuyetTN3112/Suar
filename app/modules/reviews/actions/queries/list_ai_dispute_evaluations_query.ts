@@ -1,36 +1,25 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import type {
   AiDisputeEvaluationResult,
   AiDisputeRequestPayload,
-  AiDisputeSourceType,
 } from '#modules/reviews/actions/commands/start_ai_dispute_evaluation_command'
+import type {
+  AiDisputeEvaluationRecordSource,
+  AiDisputeEvaluationSourceReader,
+} from '#modules/reviews/actions/ports/outbound/ai_dispute_evaluation_source_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import type { AiDisputeSourceType } from '#modules/reviews/public_contracts/ai_dispute_auto_queue'
 
 export interface ListAiDisputeEvaluationsDTO {
   dispute_id: string
   source_type?: AiDisputeSourceType
 }
 
-type AiDisputeEvaluationRow = Record<string, unknown> & {
-  id: string
-  dispute_id: string
-  case_file_id: string | null
-  source_type?: AiDisputeSourceType | null
-  source_id?: string | null
-  provider: string
-  external_run_id: string | null
-  status: string
+type AiDisputeEvaluationRow = AiDisputeEvaluationRecordSource & {
   request_payload: string | AiDisputeRequestPayload
-  recommendation?: string | null
-  confidence_score?: number | string | null
-  summary?: string | null
   response_payload?: string | Record<string, unknown> | null
-  error_message?: string | null
-  completed_at?: unknown
 }
 
 function requireUserId(ctx: ReviewActionContext): string {
@@ -81,29 +70,27 @@ function toIsoLike(value: unknown): string {
 }
 
 export default class ListAiDisputeEvaluationsQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private execCtx: ReviewActionContext,
+    private readonly sources: AiDisputeEvaluationSourceReader
+  ) {}
 
   async execute(dto: ListAiDisputeEvaluationsDTO): Promise<AiDisputeEvaluationResult[]> {
     const actorId = requireUserId(this.execCtx)
-    const [actor, reviewDispute, sprintDispute, reverseWorkflow, taskWorkflow] = (await Promise.all([
-      db.from('users').where('id', actorId).select('system_role').first(),
-      db.from('review_disputes').where('id', dto.dispute_id).select('id').first(),
-      db.from('sprint_review_disputes').where('id', dto.dispute_id).select('id').first(),
-      db.from('sprint_reverse_review_workflows').where('id', dto.dispute_id).select('id').first(),
-      db.from('task_review_workflows').where('id', dto.dispute_id).select('id').first(),
-    ])) as [
-      { system_role?: string } | undefined,
-      { id: string } | undefined,
-      { id: string } | undefined,
-      { id: string } | undefined,
-      { id: string } | undefined,
-    ]
+    const [actorRole, reviewDispute, sprintDispute, reverseWorkflow, taskWorkflow] =
+      await Promise.all([
+        this.sources.findActorSystemRole(actorId),
+        this.sources.findReviewDispute(dto.dispute_id),
+        this.sources.findSprintReviewDispute(dto.dispute_id),
+        this.sources.findSprintReverseReviewWorkflow(dto.dispute_id),
+        this.sources.findTaskReviewWorkflow(dto.dispute_id),
+      ])
 
-    if (!actor) {
+    if (!actorRole) {
       throw new NotFoundException('User not found')
     }
 
-    if (actor.system_role !== 'system_admin' && actor.system_role !== 'superadmin') {
+    if (actorRole !== 'system_admin' && actorRole !== 'superadmin') {
       throw new ForbiddenException('Only system admin can view AI dispute evaluations')
     }
 
@@ -132,17 +119,10 @@ export default class ListAiDisputeEvaluationsQuery {
       throw new NotFoundException('Review dispute not found')
     }
 
-    const query = db.from('ai_dispute_evaluations')
-    if (sourceType === 'review_dispute') {
-      void query.where('dispute_id', dto.dispute_id)
-    } else {
-      void query.where('source_type', sourceType).where('source_id', dto.dispute_id)
-    }
-
-    const rows = (await query
-      .orderBy('created_at', 'desc')
-      .orderBy('id', 'desc')
-      .select('*')) as AiDisputeEvaluationRow[]
+    const rows = (await this.sources.listEvaluationRecords(
+      sourceType,
+      dto.dispute_id
+    )) as AiDisputeEvaluationRow[]
 
     return rows.map(normalize)
   }
