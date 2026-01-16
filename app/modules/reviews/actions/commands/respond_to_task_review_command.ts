@@ -1,7 +1,12 @@
 import { DateTime } from 'luxon'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { BaseCommand } from '#modules/reviews/actions/base_command'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { BACKEND_NOTIFICATION_TYPES } from '#modules/notifications/public_contracts/notification_constants'
+import type { TaskReviewWorkflowOutcome } from '#modules/reviews/actions/dtos/task_review_workflow_outcome'
+import type { ReviewTaskWorkflowUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_task_workflow_unit_of_work'
+import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { TASK_REVIEW_WORKFLOW_STATUSES } from '#modules/reviews/domain/task_review_workflow'
 
 interface RespondToTaskReviewDTO {
@@ -9,40 +14,67 @@ interface RespondToTaskReviewDTO {
   body: string
 }
 
-interface RevieweeResponseWorkflowRow {
-  reviewee_id: string
-}
+export default class RespondToTaskReviewCommand {
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly unitOfWork: ReviewTaskWorkflowUnitOfWork
+  ) {}
 
-export default class RespondToTaskReviewCommand extends BaseCommand<RespondToTaskReviewDTO, void> {
-  async handle(dto: RespondToTaskReviewDTO): Promise<void> {
-    const userId = this.getCurrentUserId()
-    await this.executeInTransaction(async (trx) => {
-      const workflow = (await trx
-        .from('task_review_workflows')
-        .where('id', dto.workflowId)
-        .firstOrFail()) as RevieweeResponseWorkflowRow
+  handle(dto: RespondToTaskReviewDTO): Promise<TaskReviewWorkflowOutcome> {
+    return this.execute(dto)
+  }
 
-      if (workflow.reviewee_id !== userId) {
-        throw new BusinessLogicException('Chỉ người được review mới được phản hồi review')
+  execute(dto: RespondToTaskReviewDTO): Promise<TaskReviewWorkflowOutcome> {
+    const userId = this.requireUserId()
+
+    return this.unitOfWork.run(async (session) => {
+      const workflow = await session.loadWorkflow(dto.workflowId)
+      if (!workflow) {
+        throw new NotFoundException('Task review workflow not found')
+      }
+      if (workflow.revieweeId !== userId) {
+        throw new ForbiddenException('Chỉ người được review mới được phản hồi review')
       }
 
-      await trx.table('task_review_messages').insert({
-        workflow_id: dto.workflowId,
-        author_id: userId,
-        message_type: 'reviewee_response',
+      const now = DateTime.now().toJSDate()
+      await session.appendMessage({
+        workflowId: dto.workflowId,
+        authorId: userId,
+        messageType: 'reviewee_response',
         body: dto.body,
       })
-      await trx
-        .from('task_review_workflows')
-        .where('id', dto.workflowId)
-        .update({
+      await session.markDisputed(dto.workflowId, now)
+      const reviewerIds = await session.listReviewerIds(dto.workflowId)
+      await session.stageNotification({
+        eventName: 'task_review.dispute_raised',
+        businessEventId: dto.workflowId,
+        type: BACKEND_NOTIFICATION_TYPES.REVIEW_RECEIVED,
+        organizationId: workflow.organizationId,
+        actorId: userId,
+        taskId: workflow.taskId,
+        parameters: {
+          workflowId: dto.workflowId,
+          taskId: workflow.taskId,
+          reviewKind: 'task_review',
           status: TASK_REVIEW_WORKFLOW_STATUSES.DISPUTED,
-          updated_at: DateTime.now().toSQL(),
-        })
+        },
+        recipientIds: reviewerIds,
+        occurredAt: now,
+        ...(this.execCtx.requestId ? { correlationId: this.execCtx.requestId } : {}),
+      })
+
+      return {
+        workflowId: dto.workflowId,
+        taskId: workflow.taskId,
+        projectId: workflow.projectId,
+      }
     })
   }
 
-  async execute(dto: RespondToTaskReviewDTO): Promise<void> {
-    return this.handle(dto)
+  private requireUserId(): string {
+    if (!this.execCtx.userId) {
+      throw new UnauthorizedException('User must be authenticated to execute this command')
+    }
+    return this.execCtx.userId
   }
 }
