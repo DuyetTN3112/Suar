@@ -5,41 +5,30 @@ import { middleware } from '../kernel.js'
 
 import { throttle } from '#start/limiter'
 
-// Users — use-case controllers
-const ListUsersController = () => import('#modules/users/controllers/list_users_controller')
-const CreateUserController = () => import('#modules/users/controllers/create_user_controller')
-const StoreUserController = () => import('#modules/users/controllers/store_user_controller')
-const ShowUserController = () => import('#modules/users/controllers/show_user_controller')
-const EditUserController = () => import('#modules/users/controllers/edit_user_controller')
-const UpdateUserController = () => import('#modules/users/controllers/update_user_controller')
-const DeleteUserController = () => import('#modules/users/controllers/delete_user_controller')
-const ApproveUserController = () => import('#modules/users/controllers/approve_user_controller')
-const UpdateUserRoleController = () =>
-  import('#modules/users/controllers/update_user_role_controller')
-const PendingApprovalUsersController = () =>
-  import('#modules/users/controllers/pending_approval_users_controller')
-const PendingApprovalUsersApiController = () =>
-  import('#modules/users/controllers/pending_approval_users_api_controller')
-const PendingApprovalCountApiController = () =>
-  import('#modules/users/controllers/pending_approval_count_api_controller')
-const SystemUsersApiController = () =>
-  import('#modules/users/controllers/system_users_api_controller')
-const TalentsSearchController = () =>
-  import('#modules/users/controllers/talents_search_controller')
-const TalentDetailController = () =>
-  import('#modules/users/controllers/talent_detail_controller')
+// Legacy user-directory page routes are redirects only. Organization membership
+// management lives under /org; system user administration lives under /admin.
+const TalentsSearchController = () => import('#modules/users/controllers/talents_search_controller')
+const TalentDetailController = () => import('#modules/users/controllers/talent_detail_controller')
 const OrgTalentsPageController = () =>
   import('#modules/users/controllers/org_talents_page_controller')
 const OrgBookmarksPageController = () =>
   import('#modules/users/controllers/org_bookmarks_page_controller')
 const RecruiterBookmarksController = () =>
   import('#modules/users/controllers/recruiter_bookmarks_controller')
+const PendingApprovalUsersApiController = () =>
+  import('#modules/users/controllers/pending_approval_users_api_controller')
+const PendingApprovalCountApiController = () =>
+  import('#modules/users/controllers/pending_approval_count_api_controller')
+const ApprovePendingMemberController = () =>
+  import('#modules/organizations/members/controllers/approve_pending_member_controller')
 
 // Profile — use-case controllers
 const ShowProfileController = () => import('#modules/users/controllers/show_profile_controller')
 const EditProfileController = () => import('#modules/users/controllers/edit_profile_controller')
 const UpdateProfileDetailsController = () =>
   import('#modules/users/controllers/update_profile_details_controller')
+const UpdateProfileDiscoverabilityController = () =>
+  import('#modules/users/controllers/update_profile_discoverability_controller')
 const AddProfileSkillController = () =>
   import('#modules/users/controllers/add_profile_skill_controller')
 const UpdateProfileSkillController = () =>
@@ -50,6 +39,8 @@ const ViewUserProfileController = () =>
   import('#modules/users/controllers/view_user_profile_controller')
 const PublishProfileSnapshotController = () =>
   import('#modules/users/controllers/publish_profile_snapshot_controller')
+const ProfileSnapshotsPageController = () =>
+  import('#modules/users/controllers/profile_snapshots_page_controller')
 const GetPublicProfileSnapshotController = () =>
   import('#modules/users/controllers/get_public_profile_snapshot_controller')
 const GetCurrentProfileSnapshotController = () =>
@@ -63,23 +54,32 @@ const RotateProfileSnapshotShareLinkController = () =>
 
 router
   .group(() => {
-    // Users routes (use-case controllers)
-    router.get('/users', [ListUsersController, 'handle']).as('users.index')
-    router.get('/users/create', [CreateUserController, 'handle']).as('users.create')
+    // Retired user-directory pages. Keep GET aliases so old bookmarks land on
+    // the canonical User/Organization realm surfaces.
     router
-      .get('/users/pending-approval', [PendingApprovalUsersController, 'handle'])
+      .get('/users', ({ response }: HttpContext) => response.redirect('/org/members'))
+      .as('users.index')
+    router
+      .get('/users/create', ({ response }: HttpContext) => response.redirect('/org/invitations'))
+      .as('users.create')
+    router
+      .get('/users/pending-approval', ({ response }: HttpContext) =>
+        response.redirect('/org/invitations/requests')
+      )
       .as('users.pending_approvals.index')
-    router.post('/users', [StoreUserController, 'handle']).as('users.store')
-    router.get('/users/:userId', [ShowUserController, 'handle']).as('users.show')
-    router.get('/users/:userId/edit', [EditUserController, 'handle']).as('users.edit')
-    router.put('/users/:userId', [UpdateUserController, 'handle']).as('users.update')
-    router.delete('/users/:userId', [DeleteUserController, 'handle']).as('users.destroy')
     router
-      .put('/users/:userId/approve', [ApproveUserController, 'handle'])
+      .get('/users/:userId/edit', ({ response }: HttpContext) =>
+        response.redirect('/org/members')
+      )
+      .as('users.edit')
+    router
+      .put('/users/:userId/approve', [ApprovePendingMemberController, 'handle'])
       .as('users.approvals.store')
     router
-      .put('/users/:userId/role', [UpdateUserRoleController, 'handle'])
-      .as('users.update_role')
+      .get('/users/:userId', ({ response, params }: HttpContext) =>
+        response.redirect(`/users/${String(params['userId'])}/profile`)
+      )
+      .as('users.show')
 
     router.get('/org/bookmarks', [OrgBookmarksPageController, 'handle']).as('org.bookmarks')
     router.get('/org/talents', [OrgTalentsPageController, 'index']).as('org.talents.index')
@@ -91,15 +91,19 @@ router
     router
       .put('/profile/details', [UpdateProfileDetailsController, 'handle'])
       .as('profile.details.update')
+    router
+      .patch('/profile/discoverability', [UpdateProfileDiscoverabilityController, 'handle'])
+      .as('profile.discoverability.update')
 
     // Invitations
-    const MyInvitationsPageController = () => import('#modules/users/controllers/my_invitations_page_controller')
-    router.get('/profile/invitations', [MyInvitationsPageController, 'handle']).as('profile.invitations.index')
+    const MyInvitationsPageController = () =>
+      import('#modules/users/controllers/my_invitations_page_controller')
+    router
+      .get('/profile/invitations', [MyInvitationsPageController, 'handle'])
+      .as('profile.invitations.index')
 
     // Profile skills management
-    router
-      .post('/profile/skills', [AddProfileSkillController, 'handle'])
-      .as('profile.skills.store')
+    router.post('/profile/skills', [AddProfileSkillController, 'handle']).as('profile.skills.store')
     router
       .put('/profile/skills/:skillId', [UpdateProfileSkillController, 'handle'])
       .as('profile.skills.update')
@@ -113,6 +117,9 @@ router
       .as('profile.user.show')
 
     // Profile snapshots
+    router
+      .get('/profile/snapshots', [ProfileSnapshotsPageController, 'handle'])
+      .as('profile.snapshots.index')
     router
       .post('/profile/snapshots/publish', [PublishProfileSnapshotController, 'handle'])
       .as('profile.snapshots.store')
@@ -180,9 +187,6 @@ router
       .get('/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
       .as('api.users.pending_approvals.count.show')
     router
-      .get('/system-users', [SystemUsersApiController, 'handle'])
-      .as('api.users.system_users.index')
-    router
       .get('/talents/search', [TalentsSearchController, 'handle'])
       .as('api.talents.search.index')
     router
@@ -228,11 +232,8 @@ router
       .get('/users/pending-approvals/count', [PendingApprovalCountApiController, 'handle'])
       .as('api.v1.users.pending_approvals.count.show')
     router
-      .put('/users/:userId/approve', [ApproveUserController, 'handle'])
+      .put('/users/:userId/approve', [ApprovePendingMemberController, 'handle'])
       .as('api.v1.users.approvals.store')
-    router
-      .get('/system-users', [SystemUsersApiController, 'handle'])
-      .as('api.v1.users.system_users.index')
     router
       .get('/talents/search', [TalentsSearchController, 'handle'])
       .as('api.v1.talents.search.index')
@@ -283,11 +284,17 @@ router
       .as('api.v1.me.profile_snapshots.share_link.rotate')
 
     // Invitations
-    const AcceptMyInvitationController = () => import('#modules/users/controllers/accept_my_invitation_controller')
-    const RejectMyInvitationController = () => import('#modules/users/controllers/reject_my_invitation_controller')
+    const AcceptMyInvitationController = () =>
+      import('#modules/organizations/invitations/controllers/accept_my_invitation_controller')
+    const RejectMyInvitationController = () =>
+      import('#modules/organizations/invitations/controllers/reject_my_invitation_controller')
 
-    router.put('/me/invitations/:organizationId/accept', [AcceptMyInvitationController, 'handle']).as('api.v1.me.invitations.accept')
-    router.put('/me/invitations/:organizationId/reject', [RejectMyInvitationController, 'handle']).as('api.v1.me.invitations.reject')
+    router
+      .put('/me/invitations/:organizationId/accept', [AcceptMyInvitationController, 'handle'])
+      .as('api.v1.me.invitations.accept')
+    router
+      .put('/me/invitations/:organizationId/reject', [RejectMyInvitationController, 'handle'])
+      .as('api.v1.me.invitations.reject')
   })
   .prefix('/api/v1')
   .use([
