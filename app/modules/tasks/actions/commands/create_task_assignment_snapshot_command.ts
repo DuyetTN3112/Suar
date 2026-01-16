@@ -1,7 +1,6 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import { canCreateTaskAssignmentSnapshot } from '#modules/tasks/domain/task_assignment_snapshot_rules'
 
 export interface CreateTaskAssignmentSnapshotDTO {
@@ -51,57 +50,39 @@ function normalizeSnapshot(row: Record<string, unknown>): TaskAssignmentSnapshot
 }
 
 export default class CreateTaskAssignmentSnapshotCommand {
-  async execute(dto: CreateTaskAssignmentSnapshotDTO): Promise<TaskAssignmentSnapshotResult> {
-    const trx = await db.transaction()
+  constructor(private readonly dependencies: TaskExternalDependencies) {}
 
-    try {
-      const assignment = (await trx
-        .from('task_assignments')
-        .where('id', dto.task_assignment_id)
-        .forUpdate()
-        .first()) as { id: string; task_id: string } | undefined
+  async execute(dto: CreateTaskAssignmentSnapshotDTO): Promise<TaskAssignmentSnapshotResult> {
+    return this.dependencies.transactions.run(async (trx) => {
+      const assignment = await this.dependencies.assignments.findWithTaskForUpdate(
+        dto.task_assignment_id,
+        trx
+      )
 
       if (!assignment) {
         throw new NotFoundException('Task assignment not found')
       }
 
-      const task = (await trx
-        .from('tasks')
-        .where('id', dto.task_id)
-        .forUpdate()
-        .first()) as
-        | {
-            id: string
-            title: string
-            description: string
-            status: string
-            task_status_id: string
-            verification_method: string
-            acceptance_criteria: string
-            task_type: string
-            difficulty: string
-            expected_deliverables: string | unknown[]
-            organization_id: string
-            project_id: string
-            deleted_at: Date | string | null
-          }
-        | undefined
+      const task = await this.dependencies.completion.lockSubmissionTask(
+        dto.task_id,
+        trx
+      )
 
       if (!task) {
         throw new NotFoundException('Task not found')
       }
 
-      const existing = (await trx
-        .from('task_assignment_snapshots')
-        .where('task_assignment_id', dto.task_assignment_id)
-        .where('snapshot_reason', dto.snapshot_reason)
-        .first()) as Record<string, unknown> | null | undefined
+      const existing = await this.dependencies.completion.assignmentSnapshotExists(
+        dto.task_assignment_id,
+        dto.snapshot_reason,
+        trx
+      )
 
       const policyResult = canCreateTaskAssignmentSnapshot({
         assignmentExists: true,
         taskDeleted: task.deleted_at !== null,
         taskMatchesAssignment: assignment.task_id === task.id,
-        hasDuplicateReason: existing !== null && existing !== undefined,
+        hasDuplicateReason: existing,
         snapshotReason: dto.snapshot_reason,
       })
 
@@ -109,14 +90,10 @@ export default class CreateTaskAssignmentSnapshotCommand {
         throw new BusinessLogicException(policyResult.reason)
       }
 
-      const requiredSkills = (await trx
-        .from('task_required_skills')
-        .where('task_id', task.id)
-        .select('*')) as Record<string, unknown>[]
+      const requiredSkills =
+        await this.dependencies.completion.listRequiredSkillSnapshots(task.id, trx)
 
-      const [created] = (await trx
-        .table('task_assignment_snapshots')
-        .insert({
+      const created = await this.dependencies.completion.createAssignmentSnapshot({
           task_assignment_id: assignment.id,
           task_id: task.id,
           snapshot_reason: dto.snapshot_reason,
@@ -143,14 +120,9 @@ export default class CreateTaskAssignmentSnapshotCommand {
             status: task.status,
             task_status_id: task.task_status_id,
           }),
-        })
-        .returning('*')) as [Record<string, unknown>]
+        }, trx)
 
-      await trx.commit()
       return normalizeSnapshot(created)
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 }
