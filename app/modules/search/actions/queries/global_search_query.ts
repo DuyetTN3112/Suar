@@ -1,4 +1,3 @@
-
 import {
   buildGlobalSearchResultFromSources,
   emptyGlobalSearchResult,
@@ -14,18 +13,22 @@ import {
   normalizeRawSearchQuery,
   resolveTargetSources,
 } from './global_search/source_runner.js'
-import type {
-  GlobalSearchResult,
-  GlobalSearchSourceName,
-  GlobalSearchSourceStatus, GlobalSearchQueryOptions 
-} from './global_search/types.js'
 
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
 import {
   platformOperationalLogger,
   type PlatformOperationalLogger,
 } from '#modules/observability/public_contracts/platform_observability'
-import { buildSearchQueryEvent } from '#modules/search/observability/search_event_factory'
+import {
+  buildSearchQueryEvent,
+  buildSearchQueryFailureEvent,
+} from '#modules/search/observability/search_event_factory'
+import type {
+  GlobalSearchResult,
+  GlobalSearchSourceName,
+  GlobalSearchSourceStatus,
+  GlobalSearchQueryOptions,
+} from '#modules/search/public_contracts/global_search_contract'
 
 export type {
   GlobalSearchCenterResult,
@@ -39,7 +42,7 @@ export type {
   HighlightedSnippet,
   SearchMatchStrength,
   SearchResultTotalsByType,
-} from './global_search/types.js'
+} from '#modules/search/public_contracts/global_search_contract'
 
 interface GlobalSearchQueryDependencies extends GlobalSearchSourceDependencies {
   readonly operationalLogger?: Pick<PlatformOperationalLogger, 'log'>
@@ -97,11 +100,7 @@ export class GlobalSearchQuery {
     } catch (error) {
       operationalLogger.log(
         'error',
-        buildSearchQueryEvent(this.execCtx, query, 'search.query.failed', 'failed', 'failure', {
-          surface: 'api_search',
-          duration_ms: Date.now() - startedAt,
-          error_message: error instanceof Error ? error.message : String(error),
-        })
+        buildSearchQueryFailureEvent(this.execCtx, query, error, Date.now() - startedAt)
       )
 
       throw error
@@ -141,24 +140,50 @@ export class GlobalSearchQuery {
     startedAt: number,
     flags: { skipped?: boolean; degraded: boolean }
   ) {
+    const sourceHealth = result.sourceStatuses.reduce(
+      (summary, status) => {
+        summary[status.status] += 1
+        summary.total_duration_ms += status.durationMs
+        summary.slowest_duration_ms = Math.max(summary.slowest_duration_ms, status.durationMs)
+        return summary
+      },
+      {
+        ok: 0,
+        failed: 0,
+        timed_out: 0,
+        skipped: 0,
+        total_duration_ms: 0,
+        slowest_duration_ms: 0,
+      }
+    )
+
     operationalLogger.log(
-      'info',
-      buildSearchQueryEvent(this.execCtx, query, 'search.query.completed', 'completed', 'success', {
-        surface: 'api_search',
-        result_counts: {
-          talents: result.talents.length,
-          tasks: result.tasks.length,
-          projects: result.projects.length,
-          skills: result.skills.length,
-          organizations: result.organizations.length,
-          comments: result.comments.length,
-          results: result.results.length,
-        },
-        source_statuses: result.sourceStatuses,
-        skipped: flags.skipped,
-        degraded: flags.degraded,
-        duration_ms: Date.now() - startedAt,
-      })
+      flags.degraded ? 'warn' : 'info',
+      buildSearchQueryEvent(
+        this.execCtx,
+        query,
+        'search.query.completed',
+        'completed',
+        flags.degraded ? 'warning' : 'success',
+        {
+          surface: 'api_search',
+          ranking_algorithm: 'weighted_rrf_v1',
+          result_counts: {
+            talents: result.talents.length,
+            tasks: result.tasks.length,
+            projects: result.projects.length,
+            skills: result.skills.length,
+            organizations: result.organizations.length,
+            comments: result.comments.length,
+            results: result.results.length,
+          },
+          source_health: sourceHealth,
+          source_statuses: result.sourceStatuses,
+          skipped: flags.skipped,
+          degraded: flags.degraded,
+          duration_ms: Date.now() - startedAt,
+        }
+      )
     )
   }
 }
