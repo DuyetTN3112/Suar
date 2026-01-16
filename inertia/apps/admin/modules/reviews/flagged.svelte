@@ -8,7 +8,7 @@
   import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
   import { currentDocumentLocale } from '@/apps/admin/shared/lib/date_locale'
-  import type { CursorPagePagination } from '@/apps/admin/shared/lib/pagination'
+  import type { PagePagination } from '@/apps/admin/shared/lib/pagination'
   import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
   import SimplePagination from '@/apps/admin/modules/reviews/components/simple_pagination.svelte'
   
@@ -38,7 +38,7 @@
 
   interface Props {
     reviews: Review[]
-    pagination: CursorPagePagination
+    pagination: PagePagination
     filters?: {
       search?: string
       after?: string | null
@@ -51,17 +51,25 @@
 
   const { reviews, pagination, filters }: Props = $props()
   const { t } = useTranslation()
-  const pageTitle = $derived(t('task.reviews.admin_flagged.title', {}, 'Flagged reviews'))
+  const pageTitle = $derived(t('admin_ui.reviews.flagged.title', {}, 'Flagged reviews'))
+  let resolveNotesByReviewId = $state<Record<string, string>>({})
 
   function resolveReview(id: string, action: 'confirm' | 'dismiss') {
-    router.put(`/admin/reviews/${id}/resolve`, { action }, {
-      preserveState: true,
-      preserveScroll: true,
-    })
+    router.put(
+      `/admin/reviews/${id}/resolve`,
+      { action, notes: (resolveNotesByReviewId[id] ?? '').trim() },
+      {
+        preserveState: true,
+        preserveScroll: true,
+      }
+    )
   }
 
-  function localizedReviewMeta(keyPrefix: string, value: string): string {
-    return t(`${keyPrefix}.${value}`, {}, value)
+  function localizedReviewMeta(
+    group: 'anomaly_type' | 'severity' | 'status',
+    value: string
+  ): string {
+    return t(`admin_ui.reviews.${group}.${value}`, {}, value)
   }
 
   function formatReviewDate(value: string): string {
@@ -72,15 +80,15 @@
   <div class="space-y-6">
     <div>
       <div>
-        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('task.reviews.admin_flagged.eyebrow', {}, 'Admin / Flagged reviews')}</p>
+        <p class="font-medium uppercase tracking-wider text-xs text-muted-foreground">{t('admin_ui.reviews.flagged.eyebrow', {}, 'Admin / Flagged reviews')}</p>
         <h1 class="text-4xl font-bold tracking-tight">{pageTitle}</h1>
-        <p class="mt-2 text-sm text-muted-foreground">{t('task.reviews.admin_flagged.pending_count', { count: pagination.total }, ':count reviews awaiting moderation.')}</p>
+        <p class="mt-2 text-sm text-muted-foreground">{t('admin_ui.reviews.flagged.pending_count', { count: pagination.total }, ':count reviews awaiting moderation.')}</p>
       </div>
     </div>
 
     <Card>
       <CardHeader>
-        <CardTitle>{t('task.reviews.admin_flagged.list_title', { count: pagination.total }, 'Moderation reviews (:count)')}</CardTitle>
+        <CardTitle>{t('admin_ui.reviews.flagged.list_title', { count: pagination.total }, 'Moderation reviews (:count)')}</CardTitle>
       </CardHeader>
       <CardContent>
         {#if reviews.length === 0}
@@ -101,9 +109,9 @@
                   />
                 </svg>
               </div>
-              <h3 class="mb-2 text-lg font-semibold text-foreground">{t('task.reviews.admin_flagged.empty_title', {}, 'No flagged reviews')}</h3>
+              <h3 class="mb-2 text-lg font-semibold text-foreground">{t('admin_ui.reviews.flagged.empty_title', {}, 'No flagged reviews')}</h3>
               <p class="text-muted-foreground">
-                {t('task.reviews.admin_flagged.empty_description', {}, 'No reviews need system admin handling right now.')}
+                {t('admin_ui.reviews.flagged.empty_description', {}, 'No reviews need system admin handling right now.')}
               </p>
             </div>
           </div>
@@ -112,11 +120,11 @@
             <table class="w-full border-collapse">
               <thead>
                 <tr>
-                  <th>Review</th>
-                  <th>{t('task.reviews.admin_flagged.flag', {}, 'Flag')}</th>
-                  <th>{t('task.reviews.admin_flagged.status', {}, 'Status')}</th>
-                  <th>{t('task.reviews.admin_flagged.time', {}, 'Time')}</th>
-                  <th>{t('task.reviews.admin_flagged.actions', {}, 'Actions')}</th>
+                  <th>{t('admin_ui.reviews.flagged.review', {}, 'Review')}</th>
+                  <th>{t('admin_ui.reviews.flagged.flag', {}, 'Flag')}</th>
+                  <th>{t('admin_ui.reviews.flagged.status', {}, 'Status')}</th>
+                  <th>{t('admin_ui.reviews.flagged.time', {}, 'Time')}</th>
+                  <th>{t('admin_ui.reviews.flagged.actions', {}, 'Actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -124,26 +132,43 @@
                   <tr class="text-sm">
                     <td>
                       <div class="font-medium">
-                        {review.reviewer?.username ?? t('task.reviews.admin_flagged.unknown', {}, 'Unknown')} → {review.reviewee?.username ?? t('task.reviews.admin_flagged.unknown', {}, 'Unknown')}
+                        {review.reviewer?.username ?? t('admin_ui.reviews.flagged.unknown', {}, 'Unknown')} → {review.reviewee?.username ?? t('admin_ui.reviews.flagged.unknown', {}, 'Unknown')}
                       </div>
                       <div class="mt-1 text-xs text-muted-foreground">
-                        {review.comment ?? t('task.reviews.admin_flagged.no_comment', {}, 'No comment')}
+                        {review.comment ?? t('admin_ui.reviews.flagged.no_comment', {}, 'No comment')}
                       </div>
                     </td>
                     <td>
                       <div class="flex items-center gap-2">
-                        <Badge variant="outline">{localizedReviewMeta('task.reviews.anomaly_type', review.flag_type)}</Badge>
-                        <Badge variant="secondary">{localizedReviewMeta('task.reviews.severity', review.severity)}</Badge>
+                        <Badge variant="outline">{localizedReviewMeta('anomaly_type', review.flag_type)}</Badge>
+                        <Badge variant="secondary">{localizedReviewMeta('severity', review.severity)}</Badge>
                       </div>
                     </td>
                     <td>
                       <Badge variant={review.status === 'pending' ? 'secondary' : 'outline'}>
-                        {localizedReviewMeta('task.reviews.flagged_status', review.status)}
+                        {localizedReviewMeta('status', review.status)}
                       </Badge>
                     </td>
                     <td class="text-muted-foreground">{formatReviewDate(review.created_at)}</td>
                     <td>
-                      <div class="flex gap-2">
+                      <div class="space-y-2">
+                        <textarea
+                          value={resolveNotesByReviewId[review.id] ?? ''}
+                          oninput={(event) => {
+                            resolveNotesByReviewId[review.id] = (
+                              event.currentTarget as HTMLTextAreaElement
+                            ).value
+                          }}
+                          rows="2"
+                          class="w-full min-w-[240px] rounded-md border border-input bg-background px-2 py-1 text-xs
+                            placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          placeholder={t(
+                            'admin_ui.reviews.flagged.notes_placeholder',
+                            {},
+                            'Moderation note'
+                          )}
+                        ></textarea>
+                        <div class="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
@@ -151,24 +176,25 @@
                             router.visit(`/admin/reviews/${review.id}`)
                           }}
                         >
-                          {t('task.reviews.admin_flagged.view_detail', {}, 'View detail')}
+                          {t('admin_ui.reviews.flagged.view_detail', {}, 'View detail')}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={review.status !== 'pending'}
+                          disabled={review.status !== 'pending' || (resolveNotesByReviewId[review.id] ?? '').trim().length === 0}
                           onclick={() => { resolveReview(review.id, 'confirm'); }}
                         >
-                          {t('task.reviews.admin_flagged.confirm', {}, 'Confirm')}
+                          {t('admin_ui.reviews.flagged.confirm', {}, 'Confirm')}
                         </Button>
                         <Button
                           variant="destructive"
                           size="sm"
-                          disabled={review.status !== 'pending'}
+                          disabled={review.status !== 'pending' || (resolveNotesByReviewId[review.id] ?? '').trim().length === 0}
                           onclick={() => { resolveReview(review.id, 'dismiss'); }}
                         >
-                          {t('task.reviews.admin_flagged.dismiss', {}, 'Dismiss flag')}
+                          {t('admin_ui.reviews.flagged.dismiss', {}, 'Dismiss flag')}
                         </Button>
+                        </div>
                       </div>
                     </td>
                   </tr>
