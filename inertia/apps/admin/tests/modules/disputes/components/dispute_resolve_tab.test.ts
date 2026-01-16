@@ -60,10 +60,10 @@ describe('DisputeResolveTab', () => {
       },
     })
 
-    expect(screen.getByText('Case file v2')).toBeInTheDocument()
+    expect(screen.getByText('Hồ sơ vụ việc v2')).toBeInTheDocument()
     expect(screen.getByText('adjust_score')).toBeInTheDocument()
     expect(screen.getByText('Reviewer missed benchmark evidence')).toBeInTheDocument()
-    expect(screen.getByText('Task comments')).toBeInTheDocument()
+    expect(screen.getByText('Bình luận công việc')).toBeInTheDocument()
     expect(
       screen.getByText('Benchmarks were attached in previous sprint thread.')
     ).toBeInTheDocument()
@@ -74,7 +74,7 @@ describe('DisputeResolveTab', () => {
     expect(screen.getByText('Dữ liệu khuyến nghị thiếu')).toBeInTheDocument()
     expect(screen.getByText('self_assessment')).toBeInTheDocument()
     expect(screen.getByText('status')).toBeInTheDocument()
-    expect(screen.getByText('in_progress -> done')).toBeInTheDocument()
+    expect(screen.getByText('in_progress → done')).toBeInTheDocument()
   })
 
   it('locks normal resolve when required dossier data is missing until admin override has a reason', async () => {
@@ -123,7 +123,7 @@ describe('DisputeResolveTab', () => {
     expect(resolveButton).toBeDisabled()
     expect(screen.getByText('Dossier chưa đủ dữ liệu bắt buộc')).toBeInTheDocument()
 
-    await fireEvent.click(screen.getByLabelText('Override'))
+    await fireEvent.click(screen.getByLabelText('Ghi đè'))
     expect(resolveButton).toBeDisabled()
 
     await fireEvent.input(screen.getByLabelText(/Lý do override/), {
@@ -167,7 +167,7 @@ describe('DisputeResolveTab', () => {
       },
     })
 
-    expect(screen.getAllByText('Runtime context').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
     expect(screen.getByText('Project Mercury')).toBeInTheDocument()
     expect(screen.getByText('Peer task in same sprint')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Lập snapshot' })).not.toBeInTheDocument()
@@ -219,8 +219,8 @@ describe('DisputeResolveTab', () => {
     })
 
     expect(screen.getByText('Lần gọi gần nhất đang ở trạng thái failed.')).toBeInTheDocument()
-    const aiSignal = screen.getByText('AI council').closest('div')
-    expect(aiSignal).toHaveTextContent('WAITING')
+    const aiSignal = screen.getByText('Hội đồng AI').closest('div')
+    expect(aiSignal).toHaveTextContent('ĐANG CHỜ')
   })
 
   it('uses task review workflow runtime context without requiring a classic case file', () => {
@@ -260,8 +260,8 @@ describe('DisputeResolveTab', () => {
       },
     })
 
-    expect(screen.getAllByText('Runtime context').length).toBeGreaterThan(0)
-    expect(screen.getByText('Task review workflow')).toBeInTheDocument()
+    expect(screen.getAllByText('Ngữ cảnh thực thi').length).toBeGreaterThan(0)
+    expect(screen.getByText('Quy trình công việc')).toBeInTheDocument()
     expect(screen.getByText('Task under disputed review')).toBeInTheDocument()
     expect(screen.getByText('Peer task in same project')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Lập snapshot' })).not.toBeInTheDocument()

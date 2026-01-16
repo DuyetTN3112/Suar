@@ -1,16 +1,11 @@
-import type {
-  UserDirectorySearchDocumentReader,
-  UserDirectorySearchDocumentRecord,
-} from '#modules/users/application/ports/user_directory_search_document_reader'
 import User from '#modules/users/infra/models/user'
 
-export class LucidUserDirectorySearchDocumentReader
-  implements UserDirectorySearchDocumentReader
-{
-  async findUserDirectorySearchDocumentRecord(
-    userId: string
-  ): Promise<UserDirectorySearchDocumentRecord> {
-    const user = await User.findOrFail(userId)
+export class LucidUserDirectorySearchDocumentReader {
+  async findUserDirectorySearchDocumentRecord(userId: string) {
+    const user = await User.find(userId)
+    if (!user) {
+      return null
+    }
 
     return {
       userId: user.id,

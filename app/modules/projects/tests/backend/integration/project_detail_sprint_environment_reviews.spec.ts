@@ -2,7 +2,7 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetProjectDetailQuery from '#modules/projects/actions/queries/get_project_detail_query'
+import { getProjectDetail } from '#composition/project_detail_composition'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -76,12 +76,15 @@ test.group('Integration | Project detail sprint environment reviews', (group) =>
       updated_at: '2026-07-14T02:00:00.000Z',
     })
 
-    const result = await new GetProjectDetailQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '127.0.0.1',
-      userAgent: 'test',
-    }).handle({ projectId: project.id, organizationId: org.id })
+    const result = await getProjectDetail(
+      { projectId: project.id, organizationId: org.id },
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '127.0.0.1',
+        userAgent: 'test',
+      }
+    )
 
     assert.lengthOf(result.project_reverse_reviews.recent, 1)
     const [recentReview] = result.project_reverse_reviews.recent

@@ -1,18 +1,25 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { requireProjectAccessUserId } from './project_access_guard.js'
-import { camelizeResponseValue } from './support/camelize_response.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
+import { SkillProjectAccessGuard } from './project_access_guard.js'
 
-import { ProjectSkillService } from '#modules/skills/actions/services/project_skill_service'
+import ListProjectSkillsQuery from '#modules/skills/actions/queries/list_project_skills_query'
 
+@inject()
 export default class ListProjectSkillsController {
+  constructor(
+    private readonly projectAccess: SkillProjectAccessGuard,
+    private readonly listProjectSkills: ListProjectSkillsQuery
+  ) {}
+
   async handle(ctx: HttpContext) {
     const { params } = ctx
     const projectId = params['projectId'] as string
 
-    await requireProjectAccessUserId(ctx, projectId, false)
+    await this.projectAccess.requireUserId(ctx, projectId, false)
 
-    const skills = await ProjectSkillService.getProjectSkills(projectId)
+    const skills = await this.listProjectSkills.execute(projectId)
 
     return {
       data: camelizeResponseValue(
