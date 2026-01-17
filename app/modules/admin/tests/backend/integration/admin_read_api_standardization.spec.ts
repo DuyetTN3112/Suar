@@ -1,8 +1,6 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import { makeSystemAdminActionContext } from '#modules/admin/actions/admin_action_context'
-import ToggleAdminModeCommand from '#modules/admin/actions/commands/toggle_admin_mode_command'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { cleanupTestData, OrganizationFactory, UserFactory } from '#tests/helpers/factories'
 
@@ -164,73 +162,14 @@ test.group('Integration | Admin read API standardization', (group) => {
     assert.notProperty(body, 'data')
   })
 
-  test('admin mode toggle denies regular users without returning an admin-mode success payload', async ({
-    assert,
-    client,
-  }) => {
+  test('does not expose a cross-realm admin mode toggle route', async ({ client }) => {
     const user = await UserFactory.create({ system_role: 'registered_user' })
-
-    const response = await client.post('/admin/toggle').loginAs(user).form({ enabled: 'true' })
-    response.assertStatus(403)
-
-    const body = response.body() as Record<string, unknown>
-    assert.notEqual(body['success'], true)
-    assert.notProperty(body, 'enabled')
-    assert.notProperty(body, 'data')
-  })
-
-  test('admin mode toggle allows system admins and resolves shell redirects by org context', async ({
-    assert,
-    client,
-  }) => {
     const superadmin = await UserFactory.createSuperadmin()
-    const { org, owner: orgSuperadmin } = await OrganizationFactory.createWithOwner(
-      { name: 'Admin Toggle Org' },
-      { system_role: 'superadmin' }
-    )
+    const userResponse = await client.post('/admin/toggle').loginAs(user)
+    const systemResponse = await client.post('/admin/toggle').loginAs(superadmin)
 
-    const enableResult = await new ToggleAdminModeCommand(
-      makeSystemAdminActionContext(superadmin.id)
-    ).handle({
-      enabled: true,
-    })
-    assert.deepInclude(enableResult, {
-      enabled: true,
-      redirectPath: '/admin',
-      successMessage: 'Đã bật Admin Mode',
-    })
-
-    const disableWithoutOrgResult = await new ToggleAdminModeCommand(
-      makeSystemAdminActionContext(superadmin.id)
-    ).handle({
-      enabled: false,
-    })
-    assert.deepInclude(disableWithoutOrgResult, {
-      enabled: false,
-      redirectPath: '/organizations',
-      successMessage: 'Đã tắt Admin Mode',
-    })
-
-    const disableWithOrgResult = await new ToggleAdminModeCommand({
-      ...makeSystemAdminActionContext(orgSuperadmin.id),
-      organizationId: org.id,
-    }).handle({
-      enabled: false,
-    })
-    assert.deepInclude(disableWithOrgResult, {
-      enabled: false,
-      redirectPath: '/org',
-      successMessage: 'Đã tắt Admin Mode',
-    })
-
-    const response = await client
-      .post('/admin/toggle')
-      .loginAs(superadmin)
-      .form({ enabled: 'true' })
-      .redirects(0)
-    response.assertStatus(302)
-    assert.equal(response.header('location'), '/admin')
-    assert.notInclude(response.text(), 'E_INTERNAL_ERROR')
+    userResponse.assertStatus(404)
+    systemResponse.assertStatus(404)
   })
 
   test('admin users API returns wrapped list with pagination and camelCase fields', async ({
