@@ -1,131 +1,81 @@
-%% ─────────────────────────────────────────────────────────────
 %% pkg_03_business_rules: Business Rules Packages
-%% ─────────────────────────────────────────────────────────────
-%% Scope: All pure business rule modules — zero DB dependencies.
-%% Pattern: PolicyResult (allow/deny) + enforcePolicy() bridge.
-%% ✅ Updated 2026-03: Rules live in app/domain/*/ (100% pure)
-%% ✅ enforcePolicy() moved to app/actions/shared/ (Application layer)
-%% ⚠️ Note: Business logic also lives INSIDE Domain Entities
-%%    (methods on entity classes in app/domain/*/entities/).
-%%    These standalone rules complement entity-level logic.
-%% Related: pkg_02_application_layer.mmd — callers of these rules
-%% ─────────────────────────────────────────────────────────────
+%% Updated 2026-04-29.
+%% Scope: pure domain rules, formulas, and policy results.
 
 graph TD
-    subgraph note["⚠️ Business Logic Distribution"]
-        NOTE["Business logic lives in TWO places:
-        1. Domain Entities (app/domain/*/entities/)
-           — methods on entity classes
-        2. Pure Rule Functions (below)
-           — standalone, 0 DB deps"]
+    subgraph policies["app/domain/policies/"]
+        POLICY_RESULT["policy_result.ts\nPolicyResult allow/deny"]
     end
 
-    subgraph shared_rules["shared/rules/ (app/domain/shared/)"]
-        POLICY_RESULT["PolicyResult
-        (discriminated union:
-        { allowed: true } |
-        { allowed: false, reason, code })"]
-        ID_UTILS["id_utils.ts
-        isSameId() — pure"]
+    subgraph authz["app/domain/authorization/"]
+        SYS_ACCESS["system_user_access_policy.ts"]
     end
 
-    subgraph enforce_bridge["Application Layer Bridge (app/actions/shared/)"]
-        ENFORCE["enforcePolicy()
-        (exception bridge:
-        PolicyResult → throw)
-        ✅ Moved out of Domain"]
+    subgraph tasks["app/domain/tasks/"]
+        TASK_STATE["task_state_machine.ts"]
+        TASK_ASSIGN["task_assignment_rules.ts"]
+        TASK_PERMISSION["task_permission_policy.ts"]
+        TASK_STATUS["task_status_rules.ts"]
+        TASK_TYPES["task_types.ts"]
     end
 
-    subgraph task_rules["tasks/rules/"]
-        TSM["task_state_machine.ts
-        ALLOWED_TRANSITIONS map
-        isTerminalStatus()"]
-        TAR["task_assignment_rules.ts
-        canAssignTask()
-        validateBatchStatusUpdate()"]
-        TPP["task_permission_policy.ts
-        canCreateTask()
-        canUpdateTask()
-        canDeleteTask()
-        canUpdateTaskStatus()"]
-        TSR["task_status_rules.ts
-        canEditStatus()
-        canDeleteStatus()
-        isValidSlug()
-        isValidCategory()
-        validateWorkflowTransition()"]
-        TTY["task_types.ts
-        (shared type aliases)"]
+    subgraph projects["app/domain/projects/"]
+        PROJECT_PERMISSION["project_permission_policy.ts"]
+        PROJECT_STATE["project_state_rules.ts"]
+        PROJECT_TYPES["project_types.ts"]
     end
 
-    subgraph project_rules["projects/rules/"]
-        PPP["project_permission_policy.ts
-        canCreateProject()
-        canUpdateProject()
-        canDeleteProject()
-        canAddProjectMember()
-        canRemoveProjectMember()"]
-        PSR["project_state_rules.ts
-        canDeleteProjectWithTasks()"]
+    subgraph organizations["app/domain/organizations/"]
+        ORG_PERMISSION["org_permission_policy.ts"]
+        ORG_ACCESS["org_access_rules.ts"]
+        ORG_RULES["organization_rules.ts"]
+        ORG_TYPES["org_types.ts"]
     end
 
-    subgraph org_rules["organizations/rules/"]
-        OPP["org_permission_policy.ts
-        canCreateOrg()
-        canInviteUser()
-        canUpdateMemberRole()
-        canTransferOwnership()
-        canDeleteOrg()"]
+    subgraph reviews["app/domain/reviews/"]
+        REVIEW_POLICY["review_policy.ts"]
+        REVIEW_FORMULAS["review_formulas.ts\nincludes getLevelCodeFromPercentage"]
+        REVIEW_TYPES["review_types.ts"]
     end
 
-    subgraph review_rules_pkg["reviews/rules/"]
-        RP["review_policy.ts
-        canSubmitReview()
-        canConfirmReview()
-        canResolveFlaggedReview()"]
-        RF["review_formulas.ts
-        calculateTrustScore()
-        calculateSpiderChart()
-        detectAnomaly()"]
+    subgraph users["app/domain/users/"]
+        USER_MANAGEMENT["user_management_rules.ts"]
+        SUBSCRIPTION["subscription_rules.ts"]
+        PROFILE_METRICS["profile_metrics_rules.ts"]
+        PROFILE_AGGREGATE["profile_aggregate_rules.ts"]
+        PROFILE_SNAPSHOT["profile_snapshot_rules.ts"]
+        USER_TYPES["user_types.ts"]
     end
 
-    subgraph conv_rules["conversations/rules/"]
-        CPP["conversation_permission_policy.ts
-        canSendMessage()
-        canRecallMessage()
-        canAddParticipant()"]
-        CSR["conversation_state_rules.ts
-        isMessageRecallable()"]
+    subgraph audit["app/domain/audit/"]
+        CHANGE_FORMATTER["audit_change_formatter.ts"]
     end
 
-    subgraph user_rules["users/rules/"]
-        UMR["user_management_rules.ts
-        canApproveUser()
-        canDeactivateUser()
-        canUpdateUserRole()"]
+    subgraph identifiers["app/domain/identifiers/"]
+        ID_UTILS["id_utils.ts"]
     end
 
-    %% All rules feed PolicyResult
-    TSM --> POLICY_RESULT
-    TAR --> POLICY_RESULT
-    TPP --> POLICY_RESULT
-    TSR --> POLICY_RESULT
-    PPP --> POLICY_RESULT
-    PSR --> POLICY_RESULT
-    OPP --> POLICY_RESULT
-    RP --> POLICY_RESULT
-    RF --> POLICY_RESULT
-    CPP --> POLICY_RESULT
-    CSR --> POLICY_RESULT
-    UMR --> POLICY_RESULT
-    POLICY_RESULT --> ENFORCE
+    SYS_ACCESS --> POLICY_RESULT
+    TASK_STATE --> POLICY_RESULT
+    TASK_ASSIGN --> POLICY_RESULT
+    TASK_PERMISSION --> POLICY_RESULT
+    TASK_STATUS --> POLICY_RESULT
+    PROJECT_PERMISSION --> POLICY_RESULT
+    PROJECT_STATE --> POLICY_RESULT
+    ORG_PERMISSION --> POLICY_RESULT
+    ORG_ACCESS --> POLICY_RESULT
+    ORG_RULES --> POLICY_RESULT
+    REVIEW_POLICY --> POLICY_RESULT
+    USER_MANAGEMENT --> POLICY_RESULT
+    PROFILE_SNAPSHOT --> POLICY_RESULT
 
-    classDef sharedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px
-    classDef ruleStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px
-    classDef noteStyle fill:#FFF3E0,stroke:#E65100,stroke-width:2px
-    classDef bridgeStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px
+    TASK_PERMISSION --> ID_UTILS
+    PROJECT_PERMISSION --> ID_UTILS
+    ORG_ACCESS --> ID_UTILS
 
-    class POLICY_RESULT,ID_UTILS sharedStyle
-    class ENFORCE bridgeStyle
-    class TSM,TAR,TPP,TSR,TTY,PPP,PSR,OPP,RP,RF,CPP,CSR,UMR ruleStyle
-    class NOTE noteStyle
+    classDef policy fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef rule fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
+    classDef util fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    class POLICY_RESULT policy
+    class SYS_ACCESS,TASK_STATE,TASK_ASSIGN,TASK_PERMISSION,TASK_STATUS,TASK_TYPES,PROJECT_PERMISSION,PROJECT_STATE,PROJECT_TYPES,ORG_PERMISSION,ORG_ACCESS,ORG_RULES,ORG_TYPES,REVIEW_POLICY,REVIEW_FORMULAS,REVIEW_TYPES,USER_MANAGEMENT,SUBSCRIPTION,PROFILE_METRICS,PROFILE_AGGREGATE,PROFILE_SNAPSHOT,USER_TYPES,CHANGE_FORMATTER rule
+    class ID_UTILS util
