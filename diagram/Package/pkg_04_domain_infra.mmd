@@ -1,110 +1,73 @@
-%% Package Diagram: Suar Platform — Domain & Infrastructure Layers (Detail)
-%% Shows domain entities, repository interfaces, domain mappers, infra layer, and data stores.
-%% Clean Architecture + DDD: Domain defines contracts, Infrastructure implements them.
-%% Domain is consumed by Application Layer (pkg_03).
-%% ✅ Updated 2026-03: Domain is 100% pure (no framework deps)
-%% ✅ PermissionService & Validators moved to correct layers (not Domain)
-%% ⚠️ Legacy repos (app/repositories/) still in use — migration in progress
-%% ✅ Firebase phone auth removed khỏi codebase (2026-03)
+%% Package Diagram: Suar Platform - Domain & Infrastructure Layers
+%% Updated 2026-05-12.
+%% Domain remains framework-free; infra owns persistence access.
 
 graph TD
-    subgraph domain["📦 Domain Layer (100% Pure — 0 framework deps)"]
-        direction LR
-        subgraph entities_pkg["app/domain/*/entities/"]
-            ENTITIES["Domain Entities\n(pure business logic\nas entity methods\n+ factory methods)"]
-        end
-        subgraph repo_iface_pkg["app/domain/*/repositories/"]
-            REPO_IFACE["Repository Interfaces\n(abstract contracts\nno implementation)"]
-        end
-        subgraph domain_mapper_pkg["app/domain/*/mapper/"]
-            DOMAIN_MAPPER["Domain Mapper\n(Props ↔ Entity\nconversion)"]
-        end
-        subgraph rules_pkg["app/domain/*/"]
-            RULES["Pure Rules + Policies\n(*_permission_policy.ts\n*_state_rules.ts\n*_state_machine.ts\nPolicyResult pattern)"]
-        end
-        subgraph domain_types_pkg["app/domain/*/"]
-            DOMAIN_TYPES["Types + ID Utils\n(*_types.ts\nshared/id_utils.ts\nshared/policy_result.ts)"]
-        end
+    subgraph app_boundary["Application Boundary"]
+        PUBLIC_API["Module public APIs\napp/actions/*/public_api.ts"]
+        ACTIONS["Commands + Queries\nexplicit cross-module imports"]
     end
 
-    subgraph app_services["📦 Application Services (NOT in Domain)"]
-        direction LR
-        subgraph services_pkg["app/services/"]
-            PERM_SVC["PermissionService\n(17 methods, cached)\n3-tier: System→Org→Project"]
-        end
-        subgraph validators_pkg["app/validators/"]
-            VALIDATORS["VineJS Validators\n(type-safe input)"]
-        end
+    subgraph domain["Domain Layer"]
+        ENTITIES["Entities + value props"]
+        FORMULAS["Formulas\nreview_formulas.ts"]
+        POLICIES["Policies + state rules\nPolicyResult pattern"]
+        REPO_IFACE["Repository interfaces"]
+        DOMAIN_MAPPER["Domain mappers"]
     end
 
-    subgraph infra["📦 Infrastructure Layer (app/infra/)"]
-        direction LR
-        subgraph orm_pkg["app/infra/*/orm/"]
-            ORM_REFS["ORM Entity References\n(references Thin ORM Models\nin app/models/)"]
-        end
-        subgraph repo_impl_pkg["app/infra/*/repositories/"]
-            REPO_IMPL["Repository Implementations\n(implements domain interfaces\nwith Lucid ORM queries)\n⚠️ Basic methods only"]
-        end
-        subgraph infra_mapper_pkg["app/infra/*/mapper/"]
-            INFRA_MAPPER["Infra Mapper\n(ORM Entity ↔\nDomain Entity)"]
-        end
-        subgraph legacy_repos_pkg["app/repositories/ ⚠️ LEGACY"]
-            LEGACY_REPOS["22 Legacy Repositories\n(~3900 lines, static methods)\n⚠️ Still used by 95 files\nMigrating → infra/"]
-        end
-        subgraph repo_factory_pkg["app/repositories/"]
-            REPOS["RepositoryFactory\n(toggle PG ↔ MongoDB\nfor audit + notification)"]
-        end
+    subgraph infra["Infrastructure Layer"]
+        REPO_IMPL["Repository implementations\napp/infra/*/repositories"]
+        INFRA_MAPPER["Infra mappers"]
+        CACHE_LOGGER["Cache + logger adapters\napp/infra/cache, app/infra/logger"]
+        REPO_PROVIDERS["Repository providers + barrels\nMongo providers, Lucid read/write repositories"]
     end
 
-    subgraph models_pkg["📦 Thin ORM Models (app/models/)"]
-        MODELS["23 Lucid + 3 Mongoose\nModels\n(column definitions,\nrelations, scopes\n— no business logic)"]
+    subgraph models["Model Layer"]
+        LUCID_MODELS["Lucid models\nPostgreSQL tables"]
+        MONGO_MODELS["Mongo models\naudit, notification, activity"]
     end
 
-    subgraph data["📦 Data Layer"]
-        direction LR
-        PG[("PostgreSQL\n23 tables\nUUIDv7")]
-        MONGO[("MongoDB Atlas\naudit_logs\nnotifications\nuser_activity_logs")]
-        REDIS[("Redis\nDB0: Sessions + Locks\nDB1: App Cache")]
+    subgraph data["Data Layer"]
+        PG[("PostgreSQL")]
+        MONGO[("MongoDB")]
+        REDIS[("Redis")]
     end
 
-    subgraph external["📦 External Dependencies"]
-        direction LR
-        LUCID["Lucid ORM\n(PostgreSQL driver)"]
-        VINE["VineJS\n(Validation)"]
-        MONGOOSE["Mongoose\n(MongoDB ODM)"]
-        ALLY["@adonisjs/ally\n(OAuth: Google, GitHub)"]
+    subgraph drained["Drained Legacy Boundaries"]
+        SERVICES["app/services\nno active TS files"]
+        SHARED["app/actions/shared\nno active TS files"]
     end
 
-    %% Domain → Infrastructure (interface → implementation)
-    REPO_IFACE -->|"implemented by"| REPO_IMPL
-    REPO_IMPL -->|"ORM ↔ domain"| INFRA_MAPPER
-    REPO_IMPL -->|"references"| ORM_REFS
-    ORM_REFS -->|"wraps"| MODELS
-    RULES -->|"use types"| DOMAIN_TYPES
+    PUBLIC_API --> ACTIONS
+    ACTIONS --> ENTITIES
+    ACTIONS --> FORMULAS
+    ACTIONS --> POLICIES
+    ACTIONS --> REPO_IFACE
+    ACTIONS --> REPO_IMPL
 
-    %% Mapper flow: Write: Request DTO → Domain Entity → ORM Entity
-    %% Read: ORM Entity → Domain Entity → Response DTO
-    ENTITIES -->|"props ↔ entity"| DOMAIN_MAPPER
+    ENTITIES --> DOMAIN_MAPPER
+    REPO_IFACE --> REPO_IMPL
+    REPO_IMPL --> INFRA_MAPPER
+    REPO_IMPL --> LUCID_MODELS
+    REPO_PROVIDERS --> MONGO_MODELS
+    CACHE_LOGGER --> REDIS
 
-    %% Legacy repos still in use
-    LEGACY_REPOS -->|"⚠️ direct Lucid\nqueries"| MODELS
+    LUCID_MODELS --> PG
+    MONGO_MODELS --> MONGO
 
-    %% Models → Data
-    MODELS --> LUCID --> PG
-    REPOS --> MONGOOSE --> MONGO
-    PERM_SVC --> REDIS
+    PUBLIC_API -.-> SERVICES
+    PUBLIC_API -.-> SHARED
 
-    classDef extStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#263238
-    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#B71C1C
-    classDef appSvcStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
-    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#1B5E20
-    classDef legacyStyle fill:#FFEBEE,stroke:#D32F2F,stroke-width:2px,color:#B71C1C,stroke-dasharray: 5 5
-    classDef modelStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#E65100
-    classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#4A148C
-    class LUCID,VINE,MONGOOSE,ALLY extStyle
-    class ENTITIES,REPO_IFACE,DOMAIN_MAPPER,RULES,DOMAIN_TYPES domStyle
-    class PERM_SVC,VALIDATORS appSvcStyle
-    class ORM_REFS,REPO_IMPL,INFRA_MAPPER,REPOS infraStyle
-    class LEGACY_REPOS legacyStyle
-    class MODELS modelStyle
+    classDef appStyle fill:#FFF9C4,stroke:#F57F17,stroke-width:2px,color:#333
+    classDef domStyle fill:#FCE4EC,stroke:#C62828,stroke-width:2px,color:#333
+    classDef infraStyle fill:#E8F5E9,stroke:#2E7D32,stroke-width:2px,color:#333
+    classDef modelStyle fill:#E3F2FD,stroke:#1565C0,stroke-width:2px,color:#333
+    classDef dataStyle fill:#F3E5F5,stroke:#6A1B9A,stroke-width:2px,color:#333
+    classDef drainedStyle fill:#ECEFF1,stroke:#546E7A,stroke-width:2px,color:#333,stroke-dasharray: 5 5
+    class PUBLIC_API,ACTIONS appStyle
+    class ENTITIES,FORMULAS,POLICIES,REPO_IFACE,DOMAIN_MAPPER domStyle
+    class REPO_IMPL,INFRA_MAPPER,CACHE_LOGGER,REPO_PROVIDERS infraStyle
+    class LUCID_MODELS,MONGO_MODELS modelStyle
     class PG,MONGO,REDIS dataStyle
+    class SERVICES,SHARED drainedStyle
