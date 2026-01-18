@@ -1,4 +1,8 @@
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseQuery } from '#modules/users/actions/base_query'
+import type { UserAssignmentDeliveryFactReader } from '#modules/users/actions/ports/outbound/user_assignment_delivery_fact_reader'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import {
   calculateDeliveryMetrics,
   calculateSkillAggregation,
@@ -11,7 +15,6 @@ import type {
   TaskAssignmentData,
   UserSkillData,
 } from '#modules/users/domain/profile_metrics_types'
-import * as userAnalyticsQueries from '#modules/users/infra/repositories/read/analytics_queries'
 
 /**
  * GetUserDeliveryMetricsDTO
@@ -48,39 +51,44 @@ export default class GetUserDeliveryMetricsQuery extends BaseQuery<
   GetUserDeliveryMetricsDTO,
   UserDeliveryMetricsResult
 > {
+  constructor(
+    execCtx: UserActionContext,
+    private readonly assignmentDeliveryFactReader: UserAssignmentDeliveryFactReader,
+    private readonly profiles: UserProfileRepository
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: GetUserDeliveryMetricsDTO): Promise<UserDeliveryMetricsResult> {
     const cacheKey = `users:delivery_metrics:${dto.user_id}`
 
     return await this.executeWithCache(cacheKey, 300, async () => {
       // Fetch from repository (Infra Layer)
-      const assignments = await userAnalyticsQueries.findTaskAssignmentsForMetrics(dto.user_id)
-      const userSkills = await userAnalyticsQueries.findUserSkillsForAggregation(dto.user_id)
-      const user = await userAnalyticsQueries.findUserCreatedAt(dto.user_id)
+      const assignments =
+        await this.assignmentDeliveryFactReader.listAssignmentDeliveryFacts(dto.user_id)
+      const userSkills = await this.profiles.findUserSkillsForAggregation(dto.user_id)
+      const user = await this.profiles.findUserCreatedAt(dto.user_id)
 
       if (!user) {
-        throw new Error(`User ${dto.user_id} not found`)
+        throw NotFoundException.user(dto.user_id)
       }
 
       // Transform to domain types
       const assignmentData: TaskAssignmentData[] = assignments.map((row) => ({
-        id: row.id,
-        task_id: row.task_id,
-        assignee_id: row.assignee_id,
-        assignment_status: row.assignment_status,
-        estimated_hours: this.toNullableNumber(row.estimated_hours),
-        actual_hours: this.toNullableNumber(row.actual_hours),
-        assigned_at: this.toDate(row.assigned_at),
-        completed_at: this.toNullableDate(row.completed_at),
-        task_due_date: this.toNullableDate(row.task_due_date),
+        id: row.assignmentId,
+        task_id: row.taskId,
+        assignee_id: row.assigneeId,
+        assignment_status: row.assignmentStatus,
+        estimated_hours: row.estimatedHours,
+        actual_hours: row.actualHours,
+        assigned_at: this.toDate(row.assignedAt),
+        completed_at: this.toNullableDate(row.completedAt),
+        task_due_date: this.toNullableDate(row.taskDueDate),
       }))
 
       const skillData: UserSkillData[] = userSkills.map((row) => ({
-        skill_id: row.skill_id,
-        skill_name: row.skill_name,
-        verified_public_proficiency_code: row.verified_public_proficiency_code,
         avg_percentage: this.toNullableNumber(row.avg_percentage),
         total_reviews: row.total_reviews,
-        category_code: row.category_code,
       }))
 
       const createdAt = user.created_at
