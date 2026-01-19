@@ -1,17 +1,20 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import type { AuthorizationTransaction } from '../ports/outbound/authorization_transaction.js'
 
-import { userIdentityReader } from '#modules/authorization/infra/adapters/user_identity_reader'
-import { organizationPublicApi } from '#modules/organizations/public_contracts/organization_public_api'
+import { authorizationOrganizationAccessReader } from '#modules/authorization/actions/ports/outbound/authorization_organization_access_reader'
+
 
 export const crossModulePermissionChecker = {
   async checkOrgPermission(
     userId: string,
     organizationId: string,
     permission: string,
-    trx?: TransactionClientContract
+    trx?: AuthorizationTransaction
   ): Promise<boolean> {
-    const isSuperadmin = await userIdentityReader.isSystemSuperadmin(userId, trx)
-    if (isSuperadmin) return true
-    return organizationPublicApi.checkOrgPermission(userId, organizationId, permission, trx)
+    return authorizationOrganizationAccessReader.checkPermission(
+      userId,
+      organizationId,
+      permission,
+      trx
+    )
   },
 }

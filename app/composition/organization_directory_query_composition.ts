@@ -1,0 +1,16 @@
+import {
+  organizationMembershipRepository,
+  organizationReader,
+} from './organization_persistence_composition.js'
+
+import GetUserOwnedOrganizationsQuery from '#modules/organizations/directory/actions/query/get_user_owned_organizations_query'
+import GetUsersInOrganizationQuery from '#modules/organizations/members/actions/query/get_users_in_organization_query'
+
+export const getUserOwnedOrganizationsQuery = new GetUserOwnedOrganizationsQuery(
+  organizationReader,
+  organizationMembershipRepository
+)
+
+export const getUsersInOrganizationQuery = new GetUsersInOrganizationQuery(
+  organizationMembershipRepository
+)

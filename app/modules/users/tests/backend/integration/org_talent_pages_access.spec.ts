@@ -1,7 +1,9 @@
 import { test } from '@japa/runner'
 
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import { reviewOrgDisputeReader } from '#composition/review_action_factory'
+import { reviewExternalDependencies } from '#composition/review_external_dependencies_composition'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import ListOrgReviewDisputesQuery from '#modules/reviews/actions/queries/list_org_review_disputes_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -18,7 +20,11 @@ test.group('Integration | Org Talent Pages Access', (group) => {
     const user = await UserFactory.create()
     const ctx = makeSystemReviewActionContext(user.id) // organizationId is null
 
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
     await assert.rejects(
       () => query.execute({ page: 1, perPage: 10 }),
       ForbiddenException
@@ -33,7 +39,11 @@ test.group('Integration | Org Talent Pages Access', (group) => {
       organizationId: 'some-org-id',
     }
 
-    const query = new ListOrgReviewDisputesQuery(ctx)
+    const query = new ListOrgReviewDisputesQuery(
+      ctx,
+      reviewExternalDependencies.organization,
+      reviewOrgDisputeReader
+    )
     await assert.rejects(
       () => query.execute({ page: 1, perPage: 10 }),
       UnauthorizedException

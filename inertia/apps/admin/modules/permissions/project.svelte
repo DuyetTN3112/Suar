@@ -5,6 +5,7 @@
   import CardHeader from '@/apps/admin/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/admin/shared/ui/card_title.svelte'
   import { groupByCategory } from '@/apps/admin/shared/lib/access_ui'
+  import { useTranslation } from '@/apps/admin/shared/stores/translation.svelte'
 
   interface PermissionPresentation {
     key: string
@@ -32,23 +33,24 @@
   }
 
   const { summary, roles, catalog }: Props = $props()
+  const { t } = useTranslation()
 
   const catalogGroups = $derived(groupByCategory(catalog))
 </script>
 
 <svelte:head>
-  <title>Admin - Vai trò dự án</title>
+  <title>{t('task.admin_permissions.project_roles', {}, 'Project roles')}</title>
 </svelte:head>
 
 <div class="space-y-6">
   <div>
-    <h1 class="text-4xl font-bold tracking-tight">Vai trò dự án</h1>
+    <h1 class="text-4xl font-bold tracking-tight">{t('task.admin_permissions.project_roles', {}, 'Project roles')}</h1>
   </div>
 
   <div class="grid gap-4 md:grid-cols-3">
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Nhóm vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.role_groups', {}, 'Role groups')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoleGroups}</div>
@@ -57,7 +59,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Tổng vai trò</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.total_roles', {}, 'Total roles')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalRoles}</div>
@@ -66,7 +68,7 @@
 
     <Card>
       <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium">Mã quyền</CardTitle>
+        <CardTitle class="text-sm font-medium">{t('task.admin_permissions.permission_codes', {}, 'Permission codes')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div class="text-3xl font-bold">{summary.totalUniquePermissions}</div>
@@ -77,7 +79,7 @@
   <div class="mt-4 space-y-4">
     <Card>
       <CardHeader>
-        <CardTitle>Danh sách vai trò dự án</CardTitle>
+        <CardTitle>{t('task.admin_permissions.project_role_list', {}, 'Project role list')}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         {#each roles as role}
@@ -91,7 +93,7 @@
                 <p class="text-sm text-muted-foreground">{role.description}</p>
               </div>
 
-              <Badge variant="secondary">{role.permissionCount} quyền</Badge>
+              <Badge variant="secondary">{t('task.admin_permissions.permission_count', { count: role.permissionCount }, ':count permissions')}</Badge>
             </div>
 
             <div class="mt-3 flex flex-wrap gap-2">
@@ -106,7 +108,7 @@
 
     <Card>
       <CardHeader>
-        <CardTitle>Danh mục quyền dự án</CardTitle>
+        <CardTitle>{t('task.admin_permissions.project_permission_catalog', {}, 'Project permission catalog')}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-4">
         {#each catalogGroups as group}

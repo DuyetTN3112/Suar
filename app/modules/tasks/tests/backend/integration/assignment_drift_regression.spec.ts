@@ -1,9 +1,10 @@
 import { test } from '@japa/runner'
 
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
 import AssignTaskCommand from '#modules/tasks/actions/commands/assign_task_command'
 import AssignTaskDTO from '#modules/tasks/actions/dtos/request/assign_task_dto'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
-import { taskExternalDeps } from '#modules/tasks/bootstrap/task_composition_root'
+import { InProcessTaskEventPublisher } from '#modules/tasks/infra/adapters/in_process_task_event_publisher'
 import { TaskCacheInvalidator } from '#modules/tasks/infra/cache/task_cache_invalidator'
 import Task from '#modules/tasks/infra/models/task'
 import TaskAssignment from '#modules/tasks/infra/models/task_assignment'
@@ -16,6 +17,8 @@ import {
   TaskFactory,
   UserFactory,
 } from '#tests/helpers/factories'
+
+const taskEvents = new InProcessTaskEventPublisher()
 
 function buildActionContext(userId: string, organizationId: string): TaskActionContext {
   return {
@@ -56,9 +59,10 @@ test.group('Integration | Assignment Drift Regression', (group) => {
 
     const cmd = new AssignTaskCommand(
       buildActionContext(owner.id, org.id),
-      { handle: () => Promise.resolve(null) },
+      { stage: () => Promise.resolve(null) },
       taskExternalDeps,
       new TaskCacheInvalidator(),
+      taskEvents
     )
 
     await cmd.execute(dto)
@@ -103,9 +107,10 @@ test.group('Integration | Assignment Drift Regression', (group) => {
     const makeCmd = () =>
       new AssignTaskCommand(
         buildActionContext(owner.id, org.id),
-        { handle: () => Promise.resolve(null) },
+        { stage: () => Promise.resolve(null) },
         taskExternalDeps,
         new TaskCacheInvalidator(),
+        taskEvents
       )
 
     // Assign to A
@@ -152,9 +157,10 @@ test.group('Integration | Assignment Drift Regression', (group) => {
     const makeCmd = () =>
       new AssignTaskCommand(
         buildActionContext(owner.id, org.id),
-        { handle: () => Promise.resolve(null) },
+        { stage: () => Promise.resolve(null) },
         taskExternalDeps,
         new TaskCacheInvalidator(),
+        taskEvents
       )
 
     // Assign
@@ -192,9 +198,10 @@ test.group('Integration | Assignment Drift Regression', (group) => {
     const makeCmd = () =>
       new AssignTaskCommand(
         buildActionContext(owner.id, org.id),
-        { handle: () => Promise.resolve(null) },
+        { stage: () => Promise.resolve(null) },
         taskExternalDeps,
         new TaskCacheInvalidator(),
+        taskEvents
       )
 
     // Assign to member

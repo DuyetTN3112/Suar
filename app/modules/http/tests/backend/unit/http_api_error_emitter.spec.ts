@@ -3,9 +3,7 @@ import { test } from '@japa/runner'
 
 import { emitApiError } from '#modules/http/boundary/http_api_error_emitter'
 
-function toHttpContext(
-  value: unknown
-): HttpContext {
+function toHttpContext(value: unknown): HttpContext {
   return value as HttpContext
 }
 
@@ -52,24 +50,22 @@ test.group('HTTP API error emitter', () => {
     })
 
     assert.equal(responseState.statusCode, 403)
-    assert.equal(
-      responseState.headers['content-type'],
-      'application/problem+json'
-    )
+    assert.equal(responseState.headers['content-type'], 'application/problem+json')
     assert.deepEqual(responseState.payload, {
       type: 'https://docs.suar.dev/problems/forbidden',
       title: 'Forbidden',
       status: 403,
       detail: 'Forbidden',
+      instance: 'urn:suar:problem:req_1',
       code: 'E_FORBIDDEN',
+      category: 'authorization',
+      retryable: false,
       requestId: 'req_1',
       correlationId: 'corr_1',
     })
   })
 
-  test('emits legacy compat envelope for compatibility API transport', ({
-    assert,
-  }) => {
+  test('emits legacy compat envelope for compatibility API transport', ({ assert }) => {
     const responseState: ResponseState = {
       statusCode: 200,
       headers: {},

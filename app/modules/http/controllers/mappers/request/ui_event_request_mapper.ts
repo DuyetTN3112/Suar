@@ -1,4 +1,4 @@
-import type { RecordPlatformUiEventInput } from '#modules/observability/public_contracts/platform_ui_events'
+import type { HttpPlatformUiEventInput } from '#modules/http/actions/dtos/platform_ui_event'
 
 function readOptionalString(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null
@@ -18,14 +18,14 @@ function readOptionalObject(value: unknown): Record<string, unknown> | null {
     : null
 }
 
-export function buildRecordPlatformUiEventInput(payload: unknown): RecordPlatformUiEventInput {
+export function buildRecordPlatformUiEventInput(payload: unknown): HttpPlatformUiEventInput {
   const body = (payload ?? {}) as Record<string, unknown>
-  const severity = readOptionalString(body['severity']) as
-    | NonNullable<RecordPlatformUiEventInput['severity']>
-    | null
-  const outcome = readOptionalString(body['outcome']) as
-    | NonNullable<RecordPlatformUiEventInput['outcome']>
-    | null
+  const severity = readOptionalString(body['severity']) as NonNullable<
+    HttpPlatformUiEventInput['severity']
+  > | null
+  const outcome = readOptionalString(body['outcome']) as NonNullable<
+    HttpPlatformUiEventInput['outcome']
+  > | null
 
   return {
     eventName: readOptionalString(body['eventName']) ?? 'ui.event.occurred',

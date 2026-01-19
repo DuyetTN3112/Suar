@@ -31,6 +31,7 @@
     minimum_level_id?: string
     target_level_id?: string
     assessment_ceiling_level_id?: string
+    rubric_version_id?: string | null
     minimum_level_code?: string | null
     target_level_code?: string | null
     assessment_ceiling_level_code?: string | null
@@ -45,6 +46,8 @@
     id: string
     name: string
     categoryCode?: string | null
+    rubricVersionId?: string | null
+    rubric_version_id?: string | null
   }
 
   interface Props {
@@ -112,10 +115,11 @@
   }
 
   function getLevelLabel(levelValue: string): string {
-    return (
+    const fallback =
       proficiencyLevels.find((level) => level.value === levelValue)?.label ??
       getFrontendCanonicalProficiencyLevelLabel(levelValue, levelValue)
-    )
+
+    return t(`user.proficiency_levels.labels.${levelValue}`, {}, fallback)
   }
 
   function getSkillRangeLabel(skill: Skill): string | null {
@@ -349,6 +353,7 @@
       name: skill.name,
       level: getSelectedLevel(category),
       categoryCode: category,
+      rubric_version_id: skill.rubricVersionId ?? skill.rubric_version_id ?? null,
     })
 
     resetCategoryInput(category)
@@ -466,7 +471,7 @@
               <select
                 id={`skill-select-${category}`}
                 value={selectedSkillIdByCategory[category]}
-                class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-orange focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
                 onchange={(event: Event) => {
                   handleSelectAvailableSkillId(category, (event.target as HTMLSelectElement).value)
                 }}
@@ -488,7 +493,7 @@
               <select
                 id={`level-select-${category}`}
                 value={selectedLevelByCategory[category]}
-                class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-orange focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
+                class="flex h-10 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm font-medium text-foreground shadow-suar-hairline focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/25 disabled:cursor-not-allowed disabled:opacity-50"
                 onchange={(event: Event) => {
                   selectedLevelByCategory = {
                     ...selectedLevelByCategory,
@@ -497,7 +502,7 @@
                 }}
               >
                 {#each proficiencyLevels as level (level.value)}
-                  <option value={level.value}>{level.label}</option>
+                  <option value={level.value}>{getLevelLabel(level.value)}</option>
                 {/each}
               </select>
             </div>
@@ -577,7 +582,7 @@
                       {/if}
                       {#if skill.importance}
                         <span class={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] ${importanceTone[skill.importance] ?? 'bg-muted text-foreground'}`}>
-                          {skill.importance}
+                          {t(`ui_misc.tasks.importance.${skill.importance}`, {}, skill.importance)}
                         </span>
                       {/if}
                       {#if getSkillRangeLabel(skill)}

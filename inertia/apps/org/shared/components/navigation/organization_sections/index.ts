@@ -1,21 +1,9 @@
 import { organizationManagementSection } from '@/apps/org/shared/components/navigation/organization_sections/management'
-import {
-  buildOrganizationProjectsSection,
-  type CurrentProjectNavigationContext,
-} from '@/apps/org/shared/components/navigation/organization_sections/projects'
-import { buildOrganizationSprintsSection } from '@/apps/org/shared/components/navigation/organization_sections/sprints'
-import { organizationTasksSection } from '@/apps/org/shared/components/navigation/organization_sections/tasks'
+import { organizationProjectsSection } from '@/apps/org/shared/components/navigation/organization_sections/projects'
 import type { NavGroup } from '@/apps/org/shared/components/navigation_types'
 
-export function buildOrganizationNavigationSections(
-  currentProject?: CurrentProjectNavigationContext | null
-): NavGroup[] {
-  return [
-    organizationManagementSection,
-    buildOrganizationProjectsSection(currentProject),
-    buildOrganizationSprintsSection(currentProject),
-    organizationTasksSection,
-  ]
+export function buildOrganizationNavigationSections(): NavGroup[] {
+  return [organizationManagementSection, organizationProjectsSection]
 }
 
 export const organizationNavigationSections: NavGroup[] = buildOrganizationNavigationSections()

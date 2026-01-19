@@ -1,3 +1,4 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 
@@ -7,24 +8,27 @@ import {
   mapJoinOrganizationSuccessApiBody,
 } from './mappers/response/join_organization_response_mapper.js'
 
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { OrganizationJoinRequestCommandFactory } from '#modules/organizations/invitations/actions/ports/inbound/organization_join_request_command_factory'
 
 /**
  * GET/POST /organizations/:id/join
  * Handle join request for an organization
  */
+@inject()
 export default class JoinOrganizationController {
+  constructor(private readonly commandFactory: OrganizationJoinRequestCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { params, auth, session, response, request } = ctx
     if (!auth.user) {
       throw new UnauthorizedException()
     }
     const input = buildJoinOrganizationRequestInput(request, params['organizationId'] as string)
-    const result = await new RequestOrganizationJoinCommand(actionContextFromHttp(ctx)).execute(
-      input.organizationId
-    )
+    const result = await this.commandFactory
+      .makeRequestJoin(actionContextFromHttp(ctx))
+      .execute(input.organizationId)
 
     if (input.responseMode === 'json') {
       return mapJoinOrganizationSuccessApiBody(result.organization)
