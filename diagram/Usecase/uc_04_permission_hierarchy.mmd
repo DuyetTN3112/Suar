@@ -19,6 +19,8 @@ flowchart LR
         orgSurface([Use organization admin workspace])
         projectSurface([Use project and task workspace])
         marketplaceSurface([Use marketplace and reviews])
+        settingsSurface([Use personal settings workspace])
+        notificationSurface([Use notification center workspace])
     end
 
     superadmin --> systemSurface
@@ -30,6 +32,8 @@ flowchart LR
     projectMember --> projectSurface
     projectViewer --> projectSurface
     projectMember --> marketplaceSurface
+    projectViewer --> settingsSurface
+    projectViewer --> notificationSurface
 
     superadmin -.->|generalization| systemAdmin
     orgOwner -.->|generalization| orgAdmin
@@ -40,4 +44,4 @@ flowchart LR
     classDef actor fill:#E3F2FD,stroke:#1565C0,color:#333
     classDef usecase fill:#FFF3E0,stroke:#E65100,color:#333
     class superadmin,systemAdmin,orgOwner,orgAdmin,projectOwner,projectManager,projectMember,projectViewer actor
-    class systemSurface,orgSurface,projectSurface,marketplaceSurface usecase
+    class systemSurface,orgSurface,projectSurface,marketplaceSurface,settingsSurface,notificationSurface usecase
