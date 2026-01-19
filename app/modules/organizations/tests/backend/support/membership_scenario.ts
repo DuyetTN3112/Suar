@@ -1,15 +1,26 @@
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { makeGetUserNotifications } from '#composition/notification_feed_composition'
+import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
+import { makeRemoveMemberCommand } from '#composition/organization_notification_composition'
+import {
+  organizationEventPublisher,
+  organizationMembershipRepository,
+  organizationReader,
+  organizationTransactionRunner,
+} from '#composition/organization_persistence_composition'
 import AuditLog from '#modules/audit/infra/models/audit_log'
-import CacheService from '#modules/cache/infra/cache_service'
-import GetUserNotifications from '#modules/notifications/actions/get_user_notifications'
-import { notificationPublicApi } from '#modules/notifications/public_contracts/notification_creator'
-import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/process_join_request_command'
-import RemoveMemberCommand from '#modules/organizations/actions/commands/remove_member_command'
-import UpdateMemberRoleCommand from '#modules/organizations/actions/commands/update_member_role_command'
-import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
-import { RemoveMemberDTO } from '#modules/organizations/actions/dtos/request/remove_member_dto'
-import { UpdateMemberRoleDTO } from '#modules/organizations/actions/dtos/request/update_member_role_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import type Organization from '#modules/organizations/infra/models/organization'
+import RedisCacheStore from '#modules/cache/infra/redis_cache_store'
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  organizationCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import type Organization from '#modules/organizations/directory/infra/models/organization'
+import ProcessJoinRequestCommand from '#modules/organizations/invitations/actions/command/process_join_request_command'
+import { ProcessJoinRequestDTO } from '#modules/organizations/invitations/actions/dtos/request/process_join_request_dto'
+import UpdateMemberRoleCommand from '#modules/organizations/members/actions/command/update_member_role_command'
+import { RemoveMemberDTO } from '#modules/organizations/members/actions/dtos/request/remove_member_dto'
+import { UpdateMemberRoleDTO } from '#modules/organizations/members/actions/dtos/request/update_member_role_dto'
 import type Project from '#modules/projects/infra/models/project'
 import type Task from '#modules/tasks/infra/models/task'
 import type User from '#modules/users/infra/models/user'
@@ -39,7 +50,7 @@ export class OrganizationMembershipScenario {
   }
 
   memberListCacheKey(): string {
-    return `organization:members:${this.org.id}:member-list`
+    return `org:members:org:${this.org.id}:page:1:limit:20:sort:created_at:desc`
   }
 
   async addMember(
@@ -61,8 +72,24 @@ export class OrganizationMembershipScenario {
     return user
   }
 
-  async seedMemberListCache(userIds: string[]): Promise<void> {
-    await CacheService.set(this.memberListCacheKey(), { userIds })
+  async resolveMemberListCacheKey(): Promise<string> {
+    const physicalKey = await RedisCacheStore.resolveVersionedKeyBestEffort(
+      organizationCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.organizationMembers,
+        this.org.id
+      ),
+      this.memberListCacheKey()
+    )
+    if (!physicalKey) {
+      throw new Error('Expected organization-member generation key to resolve')
+    }
+    return physicalKey
+  }
+
+  async seedMemberListCache(userIds: string[]): Promise<string> {
+    const physicalKey = await this.resolveMemberListCacheKey()
+    await RedisCacheStore.set(physicalKey, { userIds })
+    return physicalKey
   }
 
   async createOwnedProject(): Promise<Project> {
@@ -85,14 +112,18 @@ export class OrganizationMembershipScenario {
   async executeRoleChange(actorId: string, targetUserId: string, newRole: string): Promise<void> {
     const command = new UpdateMemberRoleCommand(
       makeSystemOrganizationActionContext(actorId),
-      notificationPublicApi
+      notificationPublicApi,
+      organizationTransactionRunner,
+      organizationReader,
+      organizationMembershipRepository,
+      organizationEventPublisher
     )
 
     await command.execute(new UpdateMemberRoleDTO(this.org.id, targetUserId, newRole))
   }
 
   async executeMemberRemoval(actorId: string, targetUserId: string, reason: string): Promise<void> {
-    const command = new RemoveMemberCommand(
+    const command = makeRemoveMemberCommand(
       makeSystemOrganizationActionContext(actorId),
       notificationPublicApi
     )
@@ -108,14 +139,18 @@ export class OrganizationMembershipScenario {
   ): Promise<void> {
     const command = new ProcessJoinRequestCommand(
       makeSystemOrganizationActionContext(actorId),
-      notificationPublicApi
+      notificationPublicApi,
+      organizationTransactionRunner,
+      organizationMembershipRepository,
+      organizationEventPublisher,
+      organizationCacheInvalidator
     )
 
     await command.execute(new ProcessJoinRequestDTO(this.org.id, targetUserId, approve, reason))
   }
 
   async getUserNotifications(userId: string) {
-    return new GetUserNotifications(makeSystemOrganizationActionContext(userId)).handle({
+    return makeGetUserNotifications(makeSystemOrganizationActionContext(userId)).handle({
       page: 1,
       limit: 20,
     })

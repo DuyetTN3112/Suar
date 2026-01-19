@@ -1,17 +1,23 @@
-/* eslint-disable import-x/order */
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import SearchPage from '@/apps/user/modules/search/index.svelte'
+import type {
+  FieldFacet,
+  SearchCenterResult,
+  SourceStatus,
+  TotalByType,
+} from '@/apps/user/modules/search/types'
 
 const { visitMock, postSearchTelemetryMock } = vi.hoisted(() => ({
   visitMock: vi.fn(),
   postSearchTelemetryMock: vi.fn().mockResolvedValue(undefined),
 }))
 
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   router: {
@@ -22,14 +28,6 @@ vi.mock('@inertiajs/svelte', () => ({
 vi.mock('@/apps/user/shared/lib/search_telemetry', () => ({
   postSearchTelemetry: postSearchTelemetryMock,
 }))
-
-import SearchPage from '@/apps/user/modules/search/index.svelte'
-import type {
-  FieldFacet,
-  SearchCenterResult,
-  SourceStatus,
-  TotalByType,
-} from '@/apps/user/modules/search/types'
 
 const totals: TotalByType = {
   all: 2,
@@ -95,6 +93,7 @@ const sourceStatuses: SourceStatus[] = [
 function renderSearchPage() {
   render(SearchPage, {
     props: {
+      shellMode: 'app',
       query: 'checkout',
       submittedQuery: 'checkout',
       activeType: 'all',
@@ -120,14 +119,14 @@ describe('SearchPage', () => {
   it('renders exact ranked results with facets and source health', () => {
     renderSearchPage()
 
-    expect(screen.getByRole('heading', { name: 'Search Center' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Trung tâm tìm kiếm' })).toBeInTheDocument()
     expect(screen.getByText('Checkout QA evidence package')).toBeInTheDocument()
     expect(screen.getByText('Checkout Quality Project')).toBeInTheDocument()
-    expect(screen.getAllByText('Exact match')).toHaveLength(2)
+    expect(screen.getAllByText('Khớp chính xác')).toHaveLength(2)
     expect(screen.getAllByText('Task title')).toHaveLength(2)
     expect(screen.getAllByText('Project name')).toHaveLength(2)
 
-    const sourceHealth = screen.getByLabelText('Search source health')
+    const sourceHealth = screen.getByLabelText('Tình trạng nguồn tìm kiếm')
     expect(within(sourceHealth).getByText('tasks')).toBeInTheDocument()
     expect(within(sourceHealth).getByText('projects')).toBeInTheDocument()
   })
@@ -135,14 +134,45 @@ describe('SearchPage', () => {
   it('navigates to domain and field-filtered search URLs', async () => {
     renderSearchPage()
 
-    await fireEvent.click(within(screen.getByLabelText('Search result filters')).getByText('Projects'))
+    await fireEvent.click(
+      within(screen.getByLabelText('Bộ lọc kết quả tìm kiếm')).getByText('Dự án')
+    )
     expect(visitMock).toHaveBeenCalledWith('/search?q=checkout&type=project', {
       preserveScroll: true,
       preserveState: true,
     })
 
-    await fireEvent.click(within(screen.getByLabelText('Search match field breakdown')).getByText('Task title'))
+    await fireEvent.click(
+      within(screen.getByLabelText('Phân tích trường khớp tìm kiếm')).getByText('Task title')
+    )
     expect(visitMock).toHaveBeenCalledWith('/search?q=checkout&field=Task+title', {
+      preserveScroll: true,
+      preserveState: true,
+    })
+  })
+
+  it('uses the organization shell search prefix when requested', async () => {
+    render(SearchPage, {
+      props: {
+        shellMode: 'organization',
+        query: 'checkout',
+        submittedQuery: 'checkout',
+        activeType: 'all',
+        activeFieldLabel: null,
+        results,
+        totalByType: totals,
+        fieldFacets: facets,
+        candidateResultCount: 2,
+        resultLimit: 10,
+        resultsTruncated: false,
+        sourceStatuses,
+      },
+    })
+
+    await fireEvent.click(
+      within(screen.getByLabelText('Bộ lọc kết quả tìm kiếm')).getByText('Dự án')
+    )
+    expect(visitMock).toHaveBeenCalledWith('/org/search?q=checkout&type=project', {
       preserveScroll: true,
       preserveState: true,
     })
@@ -151,7 +181,9 @@ describe('SearchPage', () => {
   it('submits trimmed query, records telemetry, and remembers recent searches', async () => {
     renderSearchPage()
 
-    const input = screen.getByPlaceholderText('Search tasks, projects, comments, talents, skills, organizations...')
+    const input = screen.getByPlaceholderText(
+      'Tìm task, project, comment, talent, skill, organization...'
+    )
     await fireEvent.input(input, { target: { value: '  Apollo risk  ' } })
     const form = input.closest('form')
     if (!form) {
@@ -183,6 +215,6 @@ describe('SearchPage', () => {
       },
     })
 
-    expect(screen.getByText('Type a keyword to search across Suar.')).toBeInTheDocument()
+    expect(screen.getByText('Nhập từ khóa để tìm kiếm trên Suar.')).toBeInTheDocument()
   })
 })

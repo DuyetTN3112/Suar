@@ -1,12 +1,10 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
-  assertHttpUrl,
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
+} from '#modules/tasks/actions/services/task_completion_access_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface AddTaskSubmissionEvidenceDTO {
@@ -31,20 +29,26 @@ export interface TaskSubmissionEvidenceResult extends AddTaskSubmissionEvidenceD
   uploaded_by: string
 }
 
+function assertHttpUrl(url: string): void {
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new BusinessLogicException('Invalid URL')
+  }
+  if (!['http:', 'https:'].includes(parsed.protocol)) {
+    throw new BusinessLogicException('Invalid URL')
+  }
+}
+
 export default class AddTaskSubmissionEvidenceCommand {
-  constructor(private execCtx: TaskActionContext) {}
+  constructor(
+    private execCtx: TaskActionContext,
+    private readonly dependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: AddTaskSubmissionEvidenceDTO): Promise<TaskSubmissionEvidenceResult> {
-    const submission = (await db
-      .from('task_submissions')
-      .where('id', dto.submission_id)
-      .first()) as
-      | {
-          status: string
-          task_id: string
-          submitted_by: string
-        }
-      | undefined
+    const submission = await this.dependencies.completion.findSubmissionById(dto.submission_id)
     if (!submission) {
       throw new NotFoundException('Task submission not found')
     }
@@ -55,22 +59,25 @@ export default class AddTaskSubmissionEvidenceCommand {
 
     assertHttpUrl(dto.url)
 
-    const task = await loadTaskForCompletionPackage(submission.task_id)
-    const actorId = await assertTaskCompletionPackageAccess(this.execCtx, task, [
-      submission.submitted_by,
-    ])
+    const task = await loadTaskForCompletionPackage(
+      submission.task_id,
+      this.dependencies.completion
+    )
+    const actorId = await assertTaskCompletionPackageAccess(
+      this.execCtx,
+      task,
+      [submission.submitted_by],
+      this.dependencies.org
+    )
 
-    const [created] = (await db
-      .table('task_submission_evidences')
-      .insert({
-        submission_id: dto.submission_id,
-        evidence_type: dto.evidence_type,
-        url: dto.url,
-        title: dto.title ?? null,
-        description: dto.description ?? null,
-        uploaded_by: actorId,
-      })
-      .returning('*')) as Record<string, unknown>[]
+    const created = await this.dependencies.completion.createSubmissionEvidence({
+      submission_id: dto.submission_id,
+      evidence_type: dto.evidence_type,
+      url: dto.url,
+      title: dto.title ?? null,
+      description: dto.description ?? null,
+      uploaded_by: actorId,
+    })
 
     return created as unknown as TaskSubmissionEvidenceResult
   }

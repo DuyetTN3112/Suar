@@ -1,15 +1,11 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
-
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import {
-  loadSprintReviewDisputeAccessContext,
-  type SprintReviewDisputeAuthorContext,
-} from '#modules/reviews/actions/commands/sprint_review_dispute_access'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type {
+  SprintReviewDisputeAuthorContext,
+  SprintReviewDisputeUnitOfWork,
+} from '#modules/reviews/actions/ports/outbound/sprint_review_dispute_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export interface CreateSprintReviewDisputeCommentDTO {
@@ -31,14 +27,18 @@ export interface SprintReviewDisputeCommentResult {
 const CLOSED_STATUSES = new Set(['resolved', 'rejected', 'cancelled'])
 
 export default class CreateSprintReviewDisputeCommentCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly disputes: SprintReviewDisputeUnitOfWork
+  ) {}
 
-  async execute(dto: CreateSprintReviewDisputeCommentDTO): Promise<SprintReviewDisputeCommentResult> {
+  async execute(
+    dto: CreateSprintReviewDisputeCommentDTO
+  ): Promise<SprintReviewDisputeCommentResult> {
     const actorId = this.requireUserId()
-    const trx = await db.transaction()
-
-    try {
-      const access = await loadSprintReviewDisputeAccessContext(trx, dto.dispute_id, actorId)
+    return this.disputes.run(async (session) => {
+      const access = await session.loadAccess(dto.dispute_id, actorId)
       if (!access.isParticipant || !access.authorContext) {
         throw new ForbiddenException('Sprint review dispute participant context is required')
       }
@@ -49,29 +49,21 @@ export default class CreateSprintReviewDisputeCommentCommand {
         throw new BusinessLogicException('Sprint review dispute comment body is required')
       }
 
-      const [created] = (await trx
-        .table('sprint_review_dispute_comments')
-        .insert({
-          id: randomUUID(),
-          dispute_id: dto.dispute_id,
-          author_id: actorId,
-          body: dto.body.trim(),
-          visibility: dto.visibility ?? 'all_parties',
-          created_at: db.raw('NOW()'),
-          updated_at: db.raw('NOW()'),
-        })
-        .returning('*')) as Record<string, unknown>[]
-      if (!created) {
+      const created = await session.createComment({
+        id: this.cryptography.nextId(),
+        disputeId: dto.dispute_id,
+        authorId: actorId,
+        body: dto.body.trim(),
+        visibility: dto.visibility ?? 'all_parties',
+      })
+      if (!created['id']) {
         throw new BusinessLogicException('Sprint review dispute comment was not created')
       }
 
-      await trx.commit()
-
-      await auditPublicApi.write(this.execCtx, {
+      await session.writeAudit(this.execCtx, {
         action: 'create_sprint_review_dispute_comment',
-        entity_type: 'sprint_review_dispute',
-        entity_id: dto.dispute_id,
-        new_values: {
+        entityId: dto.dispute_id,
+        newValues: {
           comment_id: created['id'],
           visibility: created['visibility'],
         },
@@ -81,10 +73,7 @@ export default class CreateSprintReviewDisputeCommentCommand {
         ...(created as unknown as Omit<SprintReviewDisputeCommentResult, 'author_context'>),
         author_context: access.authorContext,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 
   private requireUserId(): string {
