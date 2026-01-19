@@ -1,64 +1,90 @@
-import { randomUUID } from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
 import { DateTime } from 'luxon'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import {
+  BACKEND_NOTIFICATION_ENTITY_TYPES,
+  BACKEND_NOTIFICATION_TYPES,
+} from '#modules/notifications/public_contracts/notification_constants'
+import type { SprintReverseReviewWorkflowOutcome } from '#modules/reviews/actions/dtos/sprint_reverse_review_workflow_outcome'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
+import type { ReviewSprintReverseWorkflowUnitOfWork } from '#modules/reviews/actions/ports/outbound/review_sprint_reverse_workflow_unit_of_work'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 
 export default class RespondSprintReverseReviewWorkflowCommand {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly cryptography: ReviewCryptography,
+    private readonly unitOfWork: ReviewSprintReverseWorkflowUnitOfWork
+  ) {}
 
-  async execute(dto: { workflow_id: string; body: string }): Promise<{ id: string; status: string }> {
+  async execute(dto: {
+    workflow_id: string
+    body: string
+  }): Promise<SprintReverseReviewWorkflowOutcome> {
     const actorId = this.requireUserId()
     const body = dto.body.trim()
     if (!body) {
       throw new BusinessLogicException('Review sau sprint response is required')
     }
-    const trx = await db.transaction()
-
-    try {
-      const workflow = (await trx
-        .from('sprint_reverse_review_workflows')
-        .where('id', dto.workflow_id)
-        .forUpdate()
-        .first()) as
-        | { id: string; reviewer_id: string; responder_id: string | null; status: string }
-        | undefined
+    return this.unitOfWork.run(async (session) => {
+      const workflow = await session.loadWorkflowForUpdate(dto.workflow_id)
       if (!workflow) {
         throw new NotFoundException('Review sau sprint workflow not found')
       }
-      if (workflow.reviewer_id !== actorId && workflow.responder_id !== actorId) {
-        throw new ForbiddenException('Only workflow participants can respond to review sau sprint')
+      if (workflow.responderId !== actorId) {
+        throw new ForbiddenException('Only workflow responder can dispute review sau sprint')
       }
-      if (['done', 'reported'].includes(workflow.status)) {
-        throw new BusinessLogicException('Review sau sprint workflow cannot receive responses now')
+      if (workflow.status !== 'awaiting_response') {
+        throw new BusinessLogicException(
+          'Review sau sprint workflow can only be disputed while awaiting response'
+        )
       }
 
       const now = DateTime.utc()
-      await trx.from('sprint_reverse_review_workflows').where('id', workflow.id).update({
-        status: 'disputed',
-        updated_at: now.toSQL(),
-      })
-      await trx.table('sprint_reverse_review_messages').insert({
-        id: randomUUID(),
-        workflow_id: workflow.id,
-        author_id: actorId,
-        message_type: 'response',
+      await session.markDisputed(workflow.id, now.toJSDate())
+      await session.appendMessage({
+        id: this.cryptography.nextId(),
+        workflowId: workflow.id,
+        authorId: actorId,
+        messageType: 'response',
         body,
-        metadata: JSON.stringify({}),
-        created_at: now.toSQL(),
+        metadata: {},
+        createdAt: now.toJSDate(),
       })
 
-      await trx.commit()
-      return { id: workflow.id, status: 'disputed' }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+      const occurredAt = now.toJSDate().toISOString()
+      await session.stageNotification({
+        eventName: 'sprint_reverse_review.disputed',
+        businessEventId: workflow.id,
+        type: BACKEND_NOTIFICATION_TYPES.REVERSE_REVIEW_RECEIVED,
+        scope: { kind: 'organization', id: workflow.organizationId },
+        actor: { type: 'user', id: actorId },
+        subject: {
+          type: BACKEND_NOTIFICATION_ENTITY_TYPES.PROJECT_SPRINT,
+          id: workflow.sprintId,
+        },
+        parameters: {
+          sprintId: workflow.sprintId,
+          workflowId: workflow.id,
+          targetType: workflow.targetType,
+        },
+        occurredAt,
+        correlationId: workflow.id,
+        recipientIds: [workflow.reviewerId],
+        now: now.toJSDate(),
+      })
+
+      return {
+        id: workflow.id,
+        status: 'disputed',
+        sprintId: workflow.sprintId,
+        projectId: workflow.projectId,
+        targetType: workflow.targetType,
+      }
+    })
   }
 
   private requireUserId(): string {

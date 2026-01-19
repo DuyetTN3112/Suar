@@ -2,10 +2,16 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { TaskApplicantMatchReaderAdapter } from '#composition/adapters/task_applicant_match_reader_adapter'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { talentExplainabilityProjectionListenerDependencies } from '#composition/user_talent_explainability_listener_composition'
+import ListTalentExplainabilityProjectionsV1Query from '#modules/reviews/actions/queries/list_talent_explainability_projections_v1_query'
+import { LucidTalentExplainabilityFactSourceReader } from '#modules/reviews/infra/adapters/lucid_review_fact_source_readers'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import GetApplicationMatchScoreQuery from '#modules/tasks/actions/queries/get_application_match_score_query'
 import GetTaskApplicationsRankingQuery from '#modules/tasks/actions/queries/get_task_applications_ranking_query'
 import UserWorkHistory from '#modules/users/infra/models/user_work_history'
+import { handleTalentExplainabilityProjectionChanged } from '#modules/users/listeners/talent_explainability_projection_listener'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -19,6 +25,8 @@ import {
   UserSkillFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
+
+const taskApplicantMatches = new TaskApplicantMatchReaderAdapter()
 
 async function getLevelId(code: string): Promise<string> {
   const canonicalCode = getCanonicalProficiencyLevelValue(code, code)
@@ -145,12 +153,16 @@ test.group('Integration | Application Match Score', (group) => {
       completed_at: DateTime.now().minus({ days: 2 }),
     })
 
-    const result = await new GetApplicationMatchScoreQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    }).handle({
+    const result = await new GetApplicationMatchScoreQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      taskExternalDeps.permission,
+      taskApplicantMatches
+    ).handle({
       task_id: task.id,
       application_id: application.id,
     })
@@ -194,12 +206,16 @@ test.group('Integration | Application Match Score', (group) => {
       verified_public_proficiency_code: 'l4',
     })
 
-    const query = new GetApplicationMatchScoreQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    })
+    const query = new GetApplicationMatchScoreQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      taskExternalDeps.permission,
+      taskApplicantMatches
+    )
     const legacyOnly = await query.handle({
       task_id: task.id,
       application_id: application.id,
@@ -280,12 +296,17 @@ test.group('Integration | Application Match Score', (group) => {
       applicant_id: lowApplicant.id,
     })
 
-    const ranked = await new GetTaskApplicationsRankingQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    }).handle({ task_id: task.id })
+    const ranked = await new GetTaskApplicationsRankingQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      taskExternalDeps.user,
+      taskExternalDeps.permission,
+      taskApplicantMatches
+    ).handle({ task_id: task.id })
 
     assert.equal(ranked[0]?.applicant_id, criticalApplicant.id)
     assert.equal(ranked[1]?.applicant_id, lowApplicant.id)
@@ -359,20 +380,38 @@ test.group('Integration | Application Match Score', (group) => {
       disputed_skill_reviews: JSON.stringify([{ skill_review_id: skillReview.id }]),
       requested_outcome: 'adjust_score',
     })
+    const projections = await new ListTalentExplainabilityProjectionsV1Query(
+      new LucidTalentExplainabilityFactSourceReader()
+    ).execute([applicant.id])
+    const projection = projections[0]
+    if (!projection) throw new Error('Expected a talent explainability projection')
+    await handleTalentExplainabilityProjectionChanged(
+      {
+        ...projection,
+        eventType: 'reviews.talent_explainability_projection_changed.v1',
+        occurredAt: new Date().toISOString(),
+      },
+      talentExplainabilityProjectionListenerDependencies
+    )
 
-    const ranked = await new GetTaskApplicationsRankingQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    }).handle({ task_id: task.id })
+    const ranked = await new GetTaskApplicationsRankingQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      taskExternalDeps.user,
+      taskExternalDeps.permission,
+      taskApplicantMatches
+    ).handle({ task_id: task.id })
 
     const result = ranked.find((item) => item.application_id === application.id)
     assert.isOk(result)
     assert.equal(result?.reviewed_skills_count, 1)
     assert.equal(result?.imported_skills_count, 1)
     assert.equal(result?.under_dispute_skills_count, 1)
-    assert.equal(result?.latest_confidence_signal, 'high')
+    assert.isNull(result?.latest_confidence_signal)
   })
 
   test('ranking query keeps rejected proposal evidence visible for review history', async ({
@@ -390,12 +429,17 @@ test.group('Integration | Application Match Score', (group) => {
       application_status: 'rejected',
     })
 
-    const ranked = await new GetTaskApplicationsRankingQuery({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    }).handle({ task_id: task.id })
+    const ranked = await new GetTaskApplicationsRankingQuery(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      taskExternalDeps.user,
+      taskExternalDeps.permission,
+      taskApplicantMatches
+    ).handle({ task_id: task.id })
 
     const result = ranked.find((item) => item.application_id === application.id)
     assert.isOk(result)
