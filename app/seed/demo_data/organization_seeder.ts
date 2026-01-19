@@ -21,7 +21,7 @@ export async function seedOrganizations(
       slug: spec.slug,
       description: spec.description,
       logo: `https://api.dicebear.com/9.x/shapes/svg?seed=${spec.slug}`,
-      website: `https://${spec.slug}.local`,
+      website: `https://${spec.slug}.suar.vn`,
       plan: spec.plan,
       owner_id: users[spec.owner].id,
       custom_roles: runtime.toJson([
@@ -35,7 +35,9 @@ export async function seedOrganizations(
       partner_verified_at: key === 'orgA' ? runtime.isoDaysAgo(45) : null,
       partner_verified_by: key === 'orgA' ? users.superadmin.id : null,
       partner_verification_proof:
-        key === 'orgA' ? 'Seeded verification proof for local admin testing' : null,
+        key === 'orgA'
+          ? 'Biên bản thẩm định đối tác chiến lược và quy trình quản trị chất lượng'
+          : null,
       partner_expires_at: key === 'orgA' ? runtime.isoDaysAhead(180) : null,
       partner_is_active: key === 'orgA',
       created_at: runtime.isoDaysAgo(90),
@@ -117,13 +119,6 @@ export async function seedOrganizationMemberships(
     { organization: 'orgC', user: 'peerReviewer', role: 'org_owner', status: 'approved' },
     {
       organization: 'orgC',
-      user: 'owner',
-      role: 'org_member',
-      status: 'approved',
-      invitedBy: 'peerReviewer',
-    },
-    {
-      organization: 'orgC',
       user: 'orgAdmin',
       role: 'org_admin',
       status: 'approved',
@@ -132,26 +127,12 @@ export async function seedOrganizationMemberships(
     { organization: 'orgD', user: 'externalContributorOne', role: 'org_owner', status: 'approved' },
     {
       organization: 'orgD',
-      user: 'owner',
-      role: 'org_member',
-      status: 'approved',
-      invitedBy: 'externalContributorOne',
-    },
-    {
-      organization: 'orgD',
       user: 'externalContributorTwo',
       role: 'org_member',
       status: 'approved',
       invitedBy: 'externalContributorOne',
     },
     { organization: 'orgE', user: 'externalContributorTwo', role: 'org_owner', status: 'approved' },
-    {
-      organization: 'orgE',
-      user: 'owner',
-      role: 'org_member',
-      status: 'approved',
-      invitedBy: 'externalContributorTwo',
-    },
     {
       organization: 'orgE',
       user: 'member',
@@ -165,6 +146,214 @@ export async function seedOrganizationMemberships(
       role: 'org_admin',
       status: 'approved',
       invitedBy: 'externalContributorTwo',
+    },
+    { organization: 'orgF', user: 'backendSpecialist', role: 'org_owner', status: 'approved' },
+    {
+      organization: 'orgF',
+      user: 'frontendSpecialist',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    {
+      organization: 'orgF',
+      user: 'qaAutomation',
+      role: 'org_admin',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    {
+      organization: 'orgF',
+      user: 'devopsEngineer',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    {
+      organization: 'orgF',
+      user: 'technicalWriter',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    {
+      organization: 'orgF',
+      user: 'securityEngineer',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    {
+      organization: 'orgF',
+      user: 'productResearcher',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'backendSpecialist',
+    },
+    { organization: 'orgG', user: 'civicServiceLead', role: 'org_owner', status: 'approved' },
+    {
+      organization: 'orgG',
+      user: 'uxDesigner',
+      role: 'org_admin',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    {
+      organization: 'orgG',
+      user: 'dataAnalyst',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    {
+      organization: 'orgG',
+      user: 'technicalWriter',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    {
+      organization: 'orgG',
+      user: 'qaAutomation',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    {
+      organization: 'orgG',
+      user: 'productResearcher',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    {
+      organization: 'orgG',
+      user: 'communityManager',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'civicServiceLead',
+    },
+    { organization: 'orgH', user: 'agriProductOwner', role: 'org_owner', status: 'approved' },
+    {
+      organization: 'orgH',
+      user: 'mobileEngineer',
+      role: 'org_admin',
+      status: 'approved',
+      invitedBy: 'agriProductOwner',
+    },
+    {
+      organization: 'orgH',
+      user: 'dataAnalyst',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'agriProductOwner',
+    },
+    {
+      organization: 'orgH',
+      user: 'devopsEngineer',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'agriProductOwner',
+    },
+    {
+      organization: 'orgH',
+      user: 'productResearcher',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'agriProductOwner',
+    },
+    {
+      organization: 'orgH',
+      user: 'technicalWriter',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'agriProductOwner',
+    },
+    { organization: 'orgI', user: 'securityOwner', role: 'org_owner', status: 'approved' },
+    {
+      organization: 'orgI',
+      user: 'securityEngineer',
+      role: 'org_admin',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    {
+      organization: 'orgI',
+      user: 'backendSpecialist',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    {
+      organization: 'orgI',
+      user: 'devopsEngineer',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    {
+      organization: 'orgI',
+      user: 'qaAutomation',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    {
+      organization: 'orgI',
+      user: 'mlEngineer',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    {
+      organization: 'orgI',
+      user: 'technicalWriter',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'securityOwner',
+    },
+    { organization: 'orgJ', user: 'commerceOwner', role: 'org_owner', status: 'approved' },
+    {
+      organization: 'orgJ',
+      user: 'communityManager',
+      role: 'org_admin',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
+    },
+    {
+      organization: 'orgJ',
+      user: 'uxDesigner',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
+    },
+    {
+      organization: 'orgJ',
+      user: 'frontendSpecialist',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
+    },
+    {
+      organization: 'orgJ',
+      user: 'productResearcher',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
+    },
+    {
+      organization: 'orgJ',
+      user: 'dataAnalyst',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
+    },
+    {
+      organization: 'orgJ',
+      user: 'technicalWriter',
+      role: 'org_member',
+      status: 'approved',
+      invitedBy: 'commerceOwner',
     },
   ]
 
@@ -208,9 +397,44 @@ export async function updateCurrentOrganizations(
     ['superadmin', null],
     ['externalContributorOne', null],
     ['externalContributorTwo', organizations.orgE.id],
+    ['securityOwner', organizations.orgI.id],
+    ['securityEngineer', organizations.orgI.id],
+    ['productResearcher', organizations.orgG.id],
+    ['frontendSpecialist', organizations.orgF.id],
+    ['backendSpecialist', organizations.orgF.id],
+    ['mobileEngineer', organizations.orgH.id],
+    ['dataAnalyst', organizations.orgG.id],
+    ['mlEngineer', organizations.orgI.id],
+    ['devopsEngineer', organizations.orgF.id],
+    ['uxDesigner', organizations.orgG.id],
+    ['qaAutomation', organizations.orgF.id],
+    ['technicalWriter', organizations.orgF.id],
+    ['communityManager', organizations.orgJ.id],
+    ['agriProductOwner', organizations.orgH.id],
+    ['civicServiceLead', organizations.orgG.id],
+    ['commerceOwner', organizations.orgJ.id],
   ]
 
   for (const [userKey, currentOrgId] of updates) {
+    if (userKey === 'owner') {
+      const existingUser = (await trx
+        .from('users')
+        .where('id', users[userKey].id)
+        .select('current_organization_id')
+        .first()) as { current_organization_id: string | null } | null
+
+      if (existingUser?.current_organization_id) {
+        const approvedCurrentMembership = await findRow(trx, 'organization_users', {
+          organization_id: existingUser.current_organization_id,
+          user_id: users[userKey].id,
+          status: 'approved',
+        })
+        if (approvedCurrentMembership) {
+          continue
+        }
+      }
+    }
+
     await trx
       .from('users')
       .where('id', users[userKey].id)
