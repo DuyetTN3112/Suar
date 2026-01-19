@@ -21,19 +21,18 @@ export default class AuditLogMiddleware {
     // Xác định entityId từ params nếu có
     let entityId: string | number | undefined = ctx.params.id as string | undefined
     // Nếu không có entityId trong params, thử lấy từ request body
-    if (entityId === undefined && ctx.request.body()) {
+    if (entityId === undefined) {
       entityId = ctx.request.input('id') as string | number | undefined
     }
 
     // Lấy thông tin request
-    const { method, url: requestUrl } = ctx.request
+    const methodValue = ctx.request.method()
+    const urlValue = ctx.request.url()
     const ipAddress = ctx.request.ip()
     const userAgent = ctx.request.header('user-agent')
 
     try {
       // Ghi log vào cơ sở dữ liệu
-      const methodValue = typeof method === 'function' ? method() : method
-      const urlValue = typeof requestUrl === 'function' ? requestUrl() : requestUrl
       await AuditLog.create({
         user_id: ctx.auth.user.id,
         action: options.action || methodValue,

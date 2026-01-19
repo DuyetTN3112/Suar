@@ -33,7 +33,7 @@ export default class LocaleMiddleware {
     // Lấy thông tin ngôn ngữ
     const langInfo = this.getLanguageInfo(selectedLocale)
     // Chia sẻ thông tin locale với tất cả views qua Inertia
-    ctx.inertia?.share({
+    ctx.inertia.share({
       locale: selectedLocale,
       localeInfo: langInfo,
     })

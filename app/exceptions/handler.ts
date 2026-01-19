@@ -3,115 +3,138 @@ import { ExceptionHandler } from '@adonisjs/core/http'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import type { StatusPageRange, StatusPageRenderer } from '@adonisjs/core/types/http'
+import type { AllowedSessionValues } from '@adonisjs/session/types'
 import Youch from 'youch'
 import YouchTerminal from 'youch-terminal'
 
-export default class HttpExceptionHandler extends ExceptionHandler {
-  /**
-   * In debug mode, the exception handler will display verbose errors
-   * with pretty printed stack traces.
-   */
-  protected override debug = !app.inProduction
+interface HttpError {
+  status: number
+  message?: string
+}
 
-  /**
-   * Status pages are used to display a custom HTML pages for certain error
-   * codes. You might want to enable them in production only, but feel
-   * free to enable them in development as well.
-   */
+interface YouchGroupData {
+  key: string
+  value: string
+}
+
+interface YouchInstance {
+  group: (name: string, data: Record<string, YouchGroupData[]>) => void
+  toHTML: (options: { title: string; ide?: string }) => Promise<string>
+  toJSON: () => Promise<Record<string, unknown>>
+}
+
+const isHttpError = (err: unknown): err is HttpError => {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'status' in err &&
+    typeof (err as HttpError).status === 'number'
+  )
+}
+
+const convertToString = (value: AllowedSessionValues): string => {
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value)
+  }
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+  return JSON.stringify(value)
+}
+
+export default class HttpExceptionHandler extends ExceptionHandler {
+  protected override debug = !app.inProduction
   protected override renderStatusPages = true
 
-  /**
-   * Status pages is a collection of error code range and a callback
-   * to return the HTML contents to send as a response.
-   */
   protected override statusPages: Record<StatusPageRange, StatusPageRenderer> = {
     '404': (error, { inertia }) => inertia.render('errors/not_found', { error }),
     '500..599': (error, { inertia }) => inertia.render('errors/server_error', { error }),
   }
 
-  /**
-   * The method is used for handling errors and returning
-   * response to the client
-   */
-  override async handle(error: unknown, ctx: HttpContext) {
+  override async handle(error: unknown, ctx: HttpContext): Promise<void> {
     const { request, response, session, inertia, auth } = ctx
 
-    // Nếu ở development mode và có lỗi thực sự, hiển thị với Youch
     if (!app.inProduction && error instanceof Error) {
-      // Kiểm tra nếu là API request hoặc không phải Inertia request
       const isApiRequest = request.url().startsWith('/api/')
       const isInertiaRequest = request.header('X-Inertia')
 
       if (!isInertiaRequest || isApiRequest) {
-        const youch = new Youch(error, request.request)
+        const youch = new Youch(error, request.request) as unknown as YouchInstance
 
-        // Thêm metadata về request
-        youch.group('Request', {
-          info: [
-            { key: 'URL', value: request.url() },
-            { key: 'Method', value: request.method() },
-            { key: 'IP', value: request.ip() },
-            { key: 'User Agent', value: request.header('user-agent') || 'N/A' },
-          ],
-        })
+        const requestInfo: YouchGroupData[] = [
+          { key: 'URL', value: request.url() },
+          { key: 'Method', value: request.method() },
+          { key: 'IP', value: request.ip() },
+          { key: 'User Agent', value: request.header('user-agent') || 'N/A' },
+        ]
+        youch.group('Request', { info: requestInfo })
 
-        // Thêm headers
         const headers = request.headers()
-        youch.group('Request', {
-          headers: Object.entries(headers).map(([key, value]) => ({
+        const headerData: YouchGroupData[] = Object.entries(headers).map(
+          ([key, value]: [string, string | string[] | undefined]) => ({
             key,
-            value: String(value),
-          })),
-        })
+            value: value === undefined ? '' : Array.isArray(value) ? value.join(', ') : value,
+          })
+        )
+        youch.group('Request', { headers: headerData })
 
-        // Thêm query params nếu có
         const queryParams = request.qs()
-        if (Object.keys(queryParams).length > 0) {
-          youch.group('Request', {
-            queryParams: Object.entries(queryParams).map(([key, value]) => ({
+        const queryKeys = Object.keys(queryParams)
+        if (queryKeys.length > 0) {
+          const queryData: YouchGroupData[] = Object.entries(queryParams).map(
+            ([key, value]: [string, string | string[] | Record<string, unknown>]) => ({
               key,
-              value: JSON.stringify(value),
-            })),
-          })
-        }
-
-        // Thêm body nếu có (và không phải file upload)
-        const body = request.all()
-        if (Object.keys(body).length > 0) {
-          youch.group('Request', {
-            body: Object.entries(body)
-              .filter(([key]) => !key.toLowerCase().includes('password'))
-              .map(([key, value]) => ({
-                key,
-                value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-              })),
-          })
-        }
-
-        // Thêm thông tin user nếu đã đăng nhập
-        if (auth.user) {
-          youch.group('Auth', {
-            user: [
-              { key: 'ID', value: String(auth.user.id) },
-              { key: 'Email', value: auth.user.email },
-              { key: 'Name', value: auth.user.fullName || 'N/A' },
-            ],
-          })
-        }
-
-        // Thêm session data
-        if (session) {
-          const sessionData = session.all()
-          if (Object.keys(sessionData).length > 0) {
-            youch.group('Session', {
-              data: Object.entries(sessionData)
-                .filter(([key]) => !key.includes('_token') && !key.includes('password'))
-                .map(([key, value]) => ({
-                  key,
-                  value: typeof value === 'object' ? JSON.stringify(value) : String(value),
-                })),
+              value: typeof value === 'string' ? value : JSON.stringify(value),
             })
-          }
+          )
+          youch.group('Request', { queryParams: queryData })
+        }
+
+        const body = request.all()
+        const bodyKeys = Object.keys(body)
+        if (bodyKeys.length > 0) {
+          const bodyData: YouchGroupData[] = Object.entries(body)
+            .filter(([key]) => !key.toLowerCase().includes('password'))
+            .map(
+              ([key, value]: [
+                string,
+                string | number | boolean | Record<string, unknown> | null,
+              ]) => ({
+                key,
+                value:
+                  value !== null && typeof value === 'object'
+                    ? JSON.stringify(value)
+                    : String(value),
+              })
+            )
+          youch.group('Request', { body: bodyData })
+        }
+
+        if (auth.user) {
+          const userData: YouchGroupData[] = [
+            { key: 'ID', value: String(auth.user.id) },
+            { key: 'Email', value: auth.user.email },
+            { key: 'Username', value: auth.user.username },
+          ]
+          youch.group('Auth', { user: userData })
+        }
+
+        const sessionData = session.all() as Record<string, AllowedSessionValues | undefined>
+        const sessionKeys = Object.keys(sessionData)
+        if (sessionKeys.length > 0) {
+          const sessionDataFormatted: YouchGroupData[] = sessionKeys
+            .filter((key) => !key.includes('_token') && !key.includes('password'))
+            .map((key) => {
+              const value = sessionData[key]
+              return {
+                key,
+                value: value !== undefined ? convertToString(value) : 'undefined',
+              }
+            })
+          youch.group('Session', { data: sessionDataFormatted })
         }
 
         const html = await youch.toHTML({
@@ -123,44 +146,38 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       }
     }
 
-    // Xử lý lỗi token CSRF hết hạn
-    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 419) {
+    if (isHttpError(error) && error.status === 419) {
       session.flash('errors', { form: 'Trang đã hết hạn, vui lòng thử lại' })
       response.redirect().back()
       return
     }
 
-    // Xử lý lỗi không có quyền truy cập
-    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 401) {
+    if (isHttpError(error) && error.status === 401) {
       if (request.header('X-Inertia')) {
-        return inertia.location('/login')
+        await inertia.location('/login')
+        return
       }
       session.flash('errors', { form: 'Vui lòng đăng nhập để tiếp tục' })
       response.redirect('/login')
       return
     }
 
-    // Xử lý lỗi không đủ quyền
-    if (typeof error === 'object' && error !== null && 'status' in error && error.status === 403) {
+    if (isHttpError(error) && error.status === 403) {
       session.flash('errors', { form: 'Bạn không có quyền thực hiện hành động này' })
       response.redirect().back()
       return
     }
 
-    return super.handle(error, ctx)
+    await super.handle(error, ctx)
   }
 
-  /**
-   * Report error to logging service or other monitoring tools
-   */
-  override async report(error: unknown, ctx: HttpContext) {
-    // In lỗi đẹp ra terminal trong development mode
+  override async report(error: unknown, ctx: HttpContext): Promise<void> {
     if (!app.inProduction && error instanceof Error) {
-      const youch = new Youch(error, ctx.request.request)
+      const youch = new Youch(error, ctx.request.request) as unknown as YouchInstance
       const output = await youch.toJSON()
       console.log(YouchTerminal(output))
     }
 
-    return super.report(error, ctx)
+    await super.report(error, ctx)
   }
 }

@@ -46,14 +46,14 @@ export default class AuthMiddleware {
         await ctx.auth.user.load('system_role')
         await ctx.auth.user.load('organizations')
         // Kiểm tra vai trò và thiết lập isAdmin
-        const systemRoleName = ctx.auth.user.system_role?.name?.toLowerCase()
+        const systemRoleName = ctx.auth.user.system_role.name.toLowerCase()
         const isAdmin =
           systemRoleName === 'superadmin' ||
           systemRoleName === 'system_admin' ||
-          [1, 2].includes(ctx.auth.user.system_role_id ?? 0)
+          [1, 2].includes(ctx.auth.user.system_role_id)
 
         // Lấy current_organization_id từ session hoặc từ model user
-        const currentOrganizationId = (ctx.session.get('current_organization_id') ??
+        const currentOrganizationId = (ctx.session.get('current_organization_id') ||
           ctx.auth.user.current_organization_id) as number | undefined
 
         // Nếu có current_organization_id, load thêm thông tin về vai trò trong tổ chức hiện tại
@@ -62,21 +62,21 @@ export default class AuthMiddleware {
           await ctx.auth.user.load('organization_users', (query) => {
             void query.where('organization_id', currentOrganizationId)
           })
-          organizationUsers = ctx.auth.user.organization_users ?? []
+          organizationUsers = ctx.auth.user.organization_users
         }
 
         // Chia sẻ thông tin người dùng với inertia
-        ctx.inertia?.share({
+        ctx.inertia.share({
           auth: {
             user: {
               ...ctx.auth.user.serialize(),
               username: ctx.auth.user.username,
               email: ctx.auth.user.email,
-              system_role: ctx.auth.user.system_role?.serialize(),
+              system_role: ctx.auth.user.system_role.serialize(),
               isAdmin,
               current_organization_id: currentOrganizationId,
               organization_users: organizationUsers,
-              organizations: ctx.auth.user.organizations?.map((org) => ({
+              organizations: ctx.auth.user.organizations.map((org) => ({
                 id: org.id,
                 name: org.name,
                 logo: org.logo,
@@ -108,7 +108,7 @@ export default class AuthMiddleware {
       })
 
       if (ctx.request.header('x-inertia')) {
-        ctx.inertia.location(this.redirectTo)
+        await ctx.inertia.location(this.redirectTo)
         return
       }
 
