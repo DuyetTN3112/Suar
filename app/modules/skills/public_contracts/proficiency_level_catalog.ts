@@ -5,8 +5,8 @@ import {
   listExactProficiencyLevelDescriptors,
   normalizeProficiencyLevelToken,
   type LegacyProficiencyBandCode,
-} from '#modules/skills/constants/proficiency_level_constants'
-import { toLegacyProficiencyBandCode } from '#modules/skills/controllers/support/build_proficiency_framework_descriptor'
+} from '#modules/skills/public_contracts/proficiency_level_constants'
+import { toLegacyProficiencyBandCode } from '#modules/skills/public_contracts/proficiency_level_mapping'
 
 export interface CanonicalProficiencyLevelOption {
   value: string
@@ -23,11 +23,12 @@ export interface CanonicalProficiencyLevelOption {
 }
 
 const TOTAL_CANONICAL_PROFICIENCY_LEVELS = listExactProficiencyLevelDescriptors().length
-const LEGACY_BAND_TO_CANONICAL_VALUE: Record<LegacyProficiencyBandCode, string> = Object.fromEntries(
-  Object.entries(LEGACY_PROFICIENCY_BAND_TO_REPRESENTATIVE_CANONICAL_CODE).map(
-    ([legacyBandCode, canonicalLevelCode]) => [legacyBandCode, canonicalLevelCode.toLowerCase()]
-  )
-) as Record<LegacyProficiencyBandCode, string>
+const LEGACY_BAND_TO_CANONICAL_VALUE: Record<LegacyProficiencyBandCode, string> =
+  Object.fromEntries(
+    Object.entries(LEGACY_PROFICIENCY_BAND_TO_REPRESENTATIVE_CANONICAL_CODE).map(
+      ([legacyBandCode, canonicalLevelCode]) => [legacyBandCode, canonicalLevelCode.toLowerCase()]
+    )
+  ) as Record<LegacyProficiencyBandCode, string>
 
 const CANONICAL_PROFICIENCY_LEVEL_OPTIONS: CanonicalProficiencyLevelOption[] =
   listExactProficiencyLevelDescriptors().map((descriptor, index) => ({
@@ -40,11 +41,9 @@ const CANONICAL_PROFICIENCY_LEVEL_OPTIONS: CanonicalProficiencyLevelOption[] =
     order: index + 1,
     aliases: descriptor.aliases,
     minPercentage: Number(((index / TOTAL_CANONICAL_PROFICIENCY_LEVELS) * 100).toFixed(1)),
-    maxPercentage: Number(
-      ((((index + 1) / TOTAL_CANONICAL_PROFICIENCY_LEVELS) * 100)).toFixed(1)
-    ),
+    maxPercentage: Number((((index + 1) / TOTAL_CANONICAL_PROFICIENCY_LEVELS) * 100).toFixed(1)),
     midpointPercentage: Number(
-      ((((index + 0.5) / TOTAL_CANONICAL_PROFICIENCY_LEVELS) * 100)).toFixed(1)
+      (((index + 0.5) / TOTAL_CANONICAL_PROFICIENCY_LEVELS) * 100).toFixed(1)
     ),
   }))
 
@@ -70,7 +69,9 @@ export function findCanonicalProficiencyLevelOption(
         return true
       }
 
-      return option.aliases.some((alias) => normalizeProficiencyLevelToken(alias) === normalizedValue)
+      return option.aliases.some(
+        (alias) => normalizeProficiencyLevelToken(alias) === normalizedValue
+      )
     }) ?? null
 
   if (exactMatch) {
@@ -106,7 +107,9 @@ export function getCanonicalProficiencyLevelValue(
 }
 
 export function getPreferredTaskRequirementLevelValue(
-  options: Array<Pick<CanonicalProficiencyLevelOption, 'value'>> = CANONICAL_PROFICIENCY_LEVEL_OPTIONS
+  options: Array<
+    Pick<CanonicalProficiencyLevelOption, 'value'>
+  > = CANONICAL_PROFICIENCY_LEVEL_OPTIONS
 ): string {
   const preferredValues = ['l4', 'l3', 'l1']
 
@@ -139,16 +142,14 @@ export function getCanonicalProficiencyMidpointPercentage(
 
 export function getCanonicalProficiencyLevelValueFromPercentage(
   percentage: number,
-  fallback: string = CANONICAL_PROFICIENCY_LEVEL_OPTIONS[CANONICAL_PROFICIENCY_LEVEL_OPTIONS.length - 1]
-    ?.value ?? 'l14'
+  fallback: string = CANONICAL_PROFICIENCY_LEVEL_OPTIONS[
+    CANONICAL_PROFICIENCY_LEVEL_OPTIONS.length - 1
+  ]?.value ?? 'l14'
 ): string {
   const boundedPercentage = Math.max(0, Math.min(100, percentage))
 
   for (const option of CANONICAL_PROFICIENCY_LEVEL_OPTIONS) {
-    if (
-      boundedPercentage >= option.minPercentage &&
-      boundedPercentage < option.maxPercentage
-    ) {
+    if (boundedPercentage >= option.minPercentage && boundedPercentage < option.maxPercentage) {
       return option.value
     }
   }
@@ -169,3 +170,6 @@ export function isHighCanonicalProficiencyLevel(
 
   return levelOrder >= thresholdOrder
 }
+/**
+ * Stable provider-owned proficiency presentation options and normalization helpers.
+ */

@@ -1,15 +1,14 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
-import { BaseQuery } from '#modules/admin/actions/base_query'
-import type { AdminUserSearchCandidateReader } from '#modules/admin/actions/ports/admin_search_candidate_readers'
-import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
-import { EngineAdminUserSearchCandidateReader } from '#modules/admin/infra/adapters/engine_admin_search_candidate_readers'
-import { AdminUserReadOps } from '#modules/admin/infra/repositories/read/admin_user_queries'
+import type { AdminActionContext } from '#modules/admin/users/actions/action_context'
+import { ADMIN_PAGINATION } from '#modules/admin/users/actions/dtos/common/admin_pagination'
+import type { AdminUserSearchCandidateReader } from '#modules/admin/users/actions/ports/outbound/admin_search_candidate_readers'
+import type { AdminUserDirectory } from '#modules/admin/users/actions/ports/outbound/admin_user_administration'
+import { BaseQuery } from '#modules/admin/users/actions/query/base_query'
 import {
   buildPaginationMeta,
   normalizePagination,
   toWindowLimit,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 /**
  * ListUsersQuery (System Admin)
@@ -48,19 +47,15 @@ export interface ListUsersResult {
 export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersResult> {
   constructor(
     execCtx: AdminActionContext,
-    private userRepo = AdminUserReadOps,
-    private readonly userSearchCandidateReader: AdminUserSearchCandidateReader = new EngineAdminUserSearchCandidateReader()
+    private readonly userSearchCandidateReader: AdminUserSearchCandidateReader,
+    private readonly userDirectory: AdminUserDirectory
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListUsersDTO): Promise<ListUsersResult> {
     const pagination = normalizePagination(dto, ADMIN_PAGINATION, { perPage: 50 })
-    const userIds = await this.resolveEngineUserIds(
-      dto.search,
-      pagination.page,
-      pagination.perPage
-    )
+    const userIds = await this.resolveSearchUserIds(dto.search, pagination.page, pagination.perPage)
 
     const baseFilters = {
       ...(userIds || !dto.search ? {} : { search: dto.search }),
@@ -71,7 +66,7 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
 
     // Prefer engine-ranked candidates when available, but fall back to direct DB
     // search if the index is stale and yields no live rows.
-    let result = await this.userRepo.listUsers(
+    let result = await this.userDirectory.listUsers(
       {
         ...baseFilters,
       },
@@ -80,7 +75,7 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
     )
 
     if (userIds && result.users.length === 0 && dto.search?.trim()) {
-      result = await this.userRepo.listUsers(
+      result = await this.userDirectory.listUsers(
         {
           search: dto.search,
           ...(dto.systemRole ? { systemRole: dto.systemRole } : {}),
@@ -98,11 +93,11 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
         id: user.id,
         username: user.username,
         email: user.email,
-        system_role: user.system_role,
+        system_role: user.systemRole,
         status: user.status,
-        current_organization_id: user.current_organization_id,
-        is_external_contributor: user.is_external_contributor,
-        created_at: user.created_at.toISO() ?? new Date().toISOString(),
+        current_organization_id: user.currentOrganizationId,
+        is_external_contributor: user.isExternalContributor,
+        created_at: user.createdAt,
       })),
       meta: {
         total: meta.total,
@@ -113,12 +108,12 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
     }
   }
 
-  private async resolveEngineUserIds(
+  private async resolveSearchUserIds(
     search: string | undefined,
     page: number,
     perPage: number
   ): Promise<string[] | null> {
-    if (!search?.trim() || !isSearchRuntimeEnabled()) {
+    if (!search?.trim() || !this.userSearchCandidateReader.isEnabled()) {
       return null
     }
 
@@ -133,7 +128,8 @@ export default class ListUsersQuery extends BaseQuery<ListUsersDTO, ListUsersRes
       }
 
       return hits.map((hit) => hit.userId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'admin.users.list', error })
       return null
     }
   }
