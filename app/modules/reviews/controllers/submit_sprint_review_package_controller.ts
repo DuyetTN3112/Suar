@@ -1,25 +1,32 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapReviewDataApiBody } from './mappers/response/review_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import SubmitSprintReviewPackageCommand, {
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import {
   type SubmitSprintEnvironmentReviewInput,
   type SubmitSprintManagerReviewInput,
 } from '#modules/reviews/actions/commands/submit_sprint_review_package_command'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
+@inject()
 export default class SubmitSprintReviewPackageController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
-    const result = await new SubmitSprintReviewPackageCommand(actionContextFromHttp(ctx)).execute({
-      package_id: ctx.params['packageId'] as string,
-      manager_reviews: normalizeManagerReviews(
-        readAliased(ctx, 'managerReviews', 'manager_reviews', [])
-      ),
-      environment_reviews: normalizeEnvironmentReviews(
-        readAliased(ctx, 'environmentReviews', 'environment_reviews', [])
-      ),
-    })
+    const result = await this.actions
+      .makeSubmitSprintReviewPackageCommand(actionContextFromHttp(ctx))
+      .execute({
+        package_id: ctx.params['packageId'] as string,
+        manager_reviews: normalizeManagerReviews(
+          readAliased(ctx, 'managerReviews', 'manager_reviews', [])
+        ),
+        environment_reviews: normalizeEnvironmentReviews(
+          readAliased(ctx, 'environmentReviews', 'environment_reviews', [])
+        ),
+      })
 
     ctx.response.status(HttpStatus.CREATED)
     return mapReviewDataApiBody(result)

@@ -1,9 +1,10 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import CalculateTrustScoreCommand from '#modules/reviews/actions/commands/calculate_trust_score_command'
+import { makeCalculateTrustScoreCommand } from '#composition/review_action_factory'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -66,7 +67,7 @@ test.group('Integration | Trust Score', (group) => {
       assigned_public_proficiency_code: getCanonicalProficiencyLevelValue('senior'),
     })
 
-    const command = new CalculateTrustScoreCommand(makeSystemReviewActionContext(reviewee.id))
+    const command = makeCalculateTrustScoreCommand(makeSystemReviewActionContext(reviewee.id))
     const result = await command.handle({ userId: reviewee.id })
 
     const updated = await User.findOrFail(reviewee.id)
@@ -80,5 +81,25 @@ test.group('Integration | Trust Score', (group) => {
     assert.equal(updated.trust_data?.total_verified_reviews, 1)
     assert.equal(updated.trust_data?.scoring_version, 'trust_v2')
     assert.equal(updated.trust_data?.calculated_score, result.calculatedScore)
+  })
+
+  test('caller-owned transaction rejects an aborted trust calculation before persisting', async ({
+    assert,
+  }) => {
+    const user = await UserFactory.create()
+    const persistedUser = await User.findOrFail(user.id)
+    const originalTrustData = persistedUser.trust_data
+    const command = makeCalculateTrustScoreCommand(makeSystemReviewActionContext(user.id))
+    const controller = new AbortController()
+    controller.abort()
+
+    await assert.rejects(() =>
+      db.transaction((trx) =>
+        command.handleInTransaction({ userId: user.id }, trx, { signal: controller.signal })
+      )
+    )
+
+    const unchanged = await User.findOrFail(user.id)
+    assert.deepEqual(unchanged.trust_data, originalTrustData)
   })
 })
