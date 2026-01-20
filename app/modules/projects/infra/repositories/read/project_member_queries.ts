@@ -28,13 +28,6 @@ const getCountTotal = (row: CountTotalRow | null): number => {
   return toNumberValue(row?.$extras?.['total'] ?? row?.total)
 }
 
-function applyStableProjectMemberOrder(
-  query: ReturnType<typeof ProjectMember.query>,
-  sortOrder: 'asc' | 'desc'
-): void {
-  void query.orderBy('created_at', sortOrder).orderBy('user_id', sortOrder)
-}
-
 export const findMember = async (
   projectId: string,
   userId: string,
@@ -109,20 +102,34 @@ export const isMember = async (
   return !!member
 }
 
-export const findMembersWithUser = async (
-  projectId: string,
-  trx?: TransactionClientContract
-) => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
-  return query.where('project_id', projectId).preload('user')
-}
-
 export const findActiveByUser = async (
   userId: string,
   trx?: TransactionClientContract
 ) => {
   const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
   return query.where('user_id', userId).preload('project')
+}
+
+export const listProjectIdsForMember = async (
+  userId: string,
+  trx?: TransactionClientContract
+): Promise<string[]> => {
+  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const memberships = await query
+    .where('user_id', userId)
+    .select('project_id')
+    .orderBy('project_id', 'asc')
+
+  return [...new Set(memberships.map((membership) => membership.project_id))]
+}
+
+export const listMemberUserIds = async (
+  projectId: string,
+  trx?: TransactionClientContract
+): Promise<string[]> => {
+  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
+  const memberships = await query.where('project_id', projectId).select('user_id')
+  return memberships.map((membership) => membership.user_id)
 }
 
 export const countByProject = async (
@@ -133,17 +140,6 @@ export const countByProject = async (
   const result = await query.where('project_id', projectId).count('* as total').first()
   const countRow: CountTotalRow | null = result
   return getCountTotal(countRow)
-}
-
-export const listPaged = async (
-  projectId: string,
-  page: number,
-  trx?: TransactionClientContract
-) => {
-  const query = trx ? ProjectMember.query({ client: trx }) : ProjectMember.query()
-  void query.where('project_id', projectId).preload('user')
-  applyStableProjectMemberOrder(query, 'desc')
-  return query.paginate(page, 10)
 }
 
 interface MemberRow {

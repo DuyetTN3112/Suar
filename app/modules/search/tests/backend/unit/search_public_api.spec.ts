@@ -1,13 +1,16 @@
 import { test } from '@japa/runner'
 
-import { SearchPublicApi } from '#modules/search/public_contracts/search_public_api'
+import { SearchPublicApiAdapter } from '#composition/adapters/search_public_api_adapter'
 
 test.group('Unit | Search Public API', () => {
-  test('delegates runtime and projection operations to focused search services', async ({
+  test('delegates runtime and projection operations to Search command handlers', async ({
     assert,
   }) => {
     const calls: string[] = []
-    const deps: ConstructorParameters<typeof SearchPublicApi>[0] = {
+    const controller = new AbortController()
+    let observedTalentSignal: AbortSignal | undefined
+    let observedProjectContext: unknown
+    const deps: ConstructorParameters<typeof SearchPublicApiAdapter>[0] = {
       runtime: {
         isEnabled: () => true,
         ping: () => {
@@ -25,8 +28,13 @@ test.group('Unit | Search Public API', () => {
           calls.push('talents:reset')
           return Promise.resolve()
         },
-        reindexDocument: (id: string) => {
+        reindexDocument: (id: string, signal?: AbortSignal) => {
+          observedTalentSignal = signal
           calls.push(`talents:reindex:${id}`)
+          return Promise.resolve()
+        },
+        reindexDocumentFenced: (id: string) => {
+          calls.push(`talents:reindexFenced:${id}`)
           return Promise.resolve()
         },
         reindexDocumentQuietly: (id: string) => {
@@ -68,6 +76,11 @@ test.group('Unit | Search Public API', () => {
           calls.push(`projects:removeQuiet:${id}`)
           return Promise.resolve()
         },
+        removeDocument: (id: string, context) => {
+          observedProjectContext = context
+          calls.push(`projects:remove:${id}`)
+          return Promise.resolve()
+        },
         reindexAll: () => Promise.resolve({ indexed: 0, skipped: 0 }),
       },
       skills: {
@@ -104,6 +117,10 @@ test.group('Unit | Search Public API', () => {
           calls.push(`users:reindex:${id}`)
           return Promise.resolve()
         },
+        reindexDocumentFenced: (id: string) => {
+          calls.push(`users:reindexFenced:${id}`)
+          return Promise.resolve()
+        },
         reindexDocumentQuietly: (id: string) => {
           calls.push(`users:reindexQuiet:${id}`)
           return Promise.resolve()
@@ -114,9 +131,12 @@ test.group('Unit | Search Public API', () => {
         },
         reindexAll: () => Promise.resolve({ indexed: 0, skipped: 0 }),
       },
+      makeGlobalSearchQuery: () => ({
+        handle: () => Promise.reject(new Error('Global search is outside this delegation case')),
+      }),
     }
 
-    const api = new SearchPublicApi(deps)
+    const api = new SearchPublicApiAdapter(deps)
 
     assert.isTrue(api.isEnabled())
     assert.isTrue(await api.ping())
@@ -129,18 +149,30 @@ test.group('Unit | Search Public API', () => {
 
     await api.ensureTalentIndex()
     await api.resetTalentIndex()
-    await api.reindexTalentDocument('user-1')
+    await api.reindexTalentDocument('user-1', controller.signal)
     await api.reindexTaskDocumentQuietly('task-1')
+    await api.removeProjectDocument('project-1', {
+      signal: controller.signal,
+      externalVersion: 73,
+      tombstoneAt: '2026-07-26T10:00:00.000Z',
+    })
     await api.removeProjectDocumentQuietly('project-1')
     const result = await api.reindexAllTalents()
 
     assert.deepEqual(result, { indexed: 1, skipped: 0 })
+    assert.strictEqual(observedTalentSignal, controller.signal)
+    assert.deepEqual(observedProjectContext, {
+      signal: controller.signal,
+      externalVersion: 73,
+      tombstoneAt: '2026-07-26T10:00:00.000Z',
+    })
     assert.deepEqual(calls, [
       'runtime:ping',
       'talents:ensure',
       'talents:reset',
       'talents:reindex:user-1',
       'tasks:reindexQuiet:task-1',
+      'projects:remove:project-1',
       'projects:removeQuiet:project-1',
       'talents:reindexAll',
     ])
