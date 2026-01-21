@@ -24,20 +24,9 @@ function getNestedValue(source: unknown, keys: string[]): unknown {
 }
 
 export function useTranslation() {
-  let currentLocale = $state('')
-  let currentTranslations = $state<Record<string, unknown>>({})
-
-  const unsubscribe = page.subscribe(($page) => {
-    const props = $page.props as TranslationProps
-    currentLocale = props.locale ?? 'vi'
-    currentTranslations = props.translations ?? {}
-  })
-
-  $effect(() => {
-    return () => {
-      unsubscribe()
-    }
-  })
+  const translationProps = $derived(page.props as TranslationProps)
+  const currentLocale = $derived(translationProps.locale ?? 'vi')
+  const currentTranslations = $derived(translationProps.translations ?? {})
 
   function t(key: string, params: Record<string, unknown> = {}, fallback?: string): string {
     const keys = key.split('.')
