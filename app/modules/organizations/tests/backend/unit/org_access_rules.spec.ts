@@ -4,8 +4,9 @@ import {
   ORG_ROLE_PRESETS,
   buildOrganizationDepartmentCoverage,
   getAssignableOrganizationRoles,
+  hasOrganizationRolePermission,
   sanitizeCustomRoleDefinitions,
-} from '#modules/organizations/domain/org_access_rules'
+} from '#modules/organizations/access/domain/org_access_rules'
 
 test.group('Organization access rules', () => {
   test('sanitize custom roles normalizes names, removes duplicates and built-ins, and trims payloads', ({
@@ -71,5 +72,25 @@ test.group('Organization access rules', () => {
     assert.equal(leadership?.estimatedHeadcount, 2)
     assert.deepEqual(delivery?.matchedRoles, ['pm'])
     assert.equal(delivery?.estimatedHeadcount, 2)
+  })
+
+  test('permission checks support built-in and organization-scoped custom roles', ({ assert }) => {
+    const customRoles = [
+      {
+        name: 'compliance_reviewer',
+        permissions: ['can_view_audit_logs'],
+      },
+    ]
+
+    assert.isTrue(hasOrganizationRolePermission('org_owner', customRoles, 'can_view_audit_logs'))
+    assert.isTrue(
+      hasOrganizationRolePermission('compliance_reviewer', customRoles, 'can_view_audit_logs')
+    )
+    assert.isFalse(
+      hasOrganizationRolePermission('compliance_reviewer', customRoles, 'can_manage_settings')
+    )
+    assert.isFalse(
+      hasOrganizationRolePermission('unknown_role', customRoles, 'can_view_audit_logs')
+    )
   })
 })

@@ -1,3 +1,7 @@
+import {
+  PlatformAuditLogger,
+  platformAuditLogger,
+} from '#modules/observability/public_contracts/platform_audit_logger'
 import type {
   PlatformComplianceContext,
   PlatformEvent,
@@ -7,24 +11,29 @@ import type {
   PlatformRetentionClass,
   PlatformTargetContext,
   PlatformTraceContext,
-} from '#modules/observability/contracts/platform_event'
-import { PLATFORM_EVENT_NAMES, type PlatformEventName } from '#modules/observability/contracts/platform_event_names'
-import { PlatformAuditLogger, platformAuditLogger } from '#modules/observability/services/platform_audit_logger'
+} from '#modules/observability/public_contracts/platform_event'
+import {
+  PLATFORM_EVENT_NAMES,
+  type PlatformEventName,
+} from '#modules/observability/public_contracts/platform_event_names'
 import {
   PlatformOperationalLogger,
   platformOperationalLogger,
-} from '#modules/observability/services/platform_operational_logger'
-import { redactSensitiveObject, redactSensitiveValue } from '#modules/observability/services/platform_redaction'
+} from '#modules/observability/public_contracts/platform_operational_logger'
+import {
+  redactSensitiveObject,
+  redactSensitiveValue,
+} from '#modules/observability/public_contracts/platform_redaction'
 import {
   buildPlatformTraceContext,
   buildPlatformTraceContextFromAudit,
   buildPlatformTraceContextFromHttp,
   createCorrelationKey,
-} from '#modules/observability/services/platform_trace_context'
+} from '#modules/observability/public_contracts/platform_trace_context'
 import {
   PlatformWorkflowLogger,
   platformWorkflowLogger,
-} from '#modules/observability/services/platform_workflow_logger'
+} from '#modules/observability/public_contracts/platform_workflow_logger'
 
 export type {
   PlatformComplianceContext,

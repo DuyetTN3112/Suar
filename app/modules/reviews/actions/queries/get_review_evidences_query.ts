@@ -1,11 +1,13 @@
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import { normalizePagination, fromLegacySnakePagination  } from '#modules/pagination/public_contracts/pagination_public_api'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import {
+  normalizePagination,
+  fromLegacySnakePagination,
+} from '#modules/pagination/public_contracts/pagination_public_api'
 import type { CanonicalMetaLike } from '#modules/pagination/public_contracts/pagination_public_api'
+import type { ReviewSessionReadStore } from '#modules/reviews/actions/ports/outbound/review_session_readers'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
-import { loadReviewSessionActorAccessContext } from '#modules/reviews/actions/support/review_session_actor_access'
-import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
 import { canAccessReviewSessionAsActor } from '#modules/reviews/domain/review_policy'
-import ReviewEvidenceRepository from '#modules/reviews/infra/repositories/review_evidence_repository'
+import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 import type { ReviewEvidenceRecord } from '#modules/reviews/types/review_records'
 
 export interface GetReviewEvidencesInput {
@@ -22,7 +24,10 @@ export interface GetReviewEvidencesResult {
  * Query: list evidences for a review session.
  */
 export default class GetReviewEvidencesQuery {
-  constructor(private execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly sessions: ReviewSessionReadStore
+  ) {}
 
   async execute(
     reviewSessionId: string,
@@ -32,13 +37,11 @@ export default class GetReviewEvidencesQuery {
       throw new ForbiddenException('You do not have permission to access this review session')
     }
 
-    const access = await loadReviewSessionActorAccessContext(reviewSessionId, this.execCtx.userId)
+    const access = await this.sessions.loadActorAccess(reviewSessionId, this.execCtx.userId)
     const policy = canAccessReviewSessionAsActor({
       sessionExists: !!access,
       actorId: this.execCtx.userId,
-      actorSystemRole: access?.actorSystemRole ?? null,
       sessionRevieweeId: access?.sessionRevieweeId ?? '',
-      sessionTaskOrgId: access?.sessionTaskOrgId ?? '',
       managerReviewerIds: access?.managerReviewerIds ?? [],
       peerReviewerIds: access?.peerReviewerIds ?? [],
       isOrgAdminOrOwner: access?.isOrgAdminOrOwner ?? false,
@@ -49,7 +52,7 @@ export default class GetReviewEvidencesQuery {
     }
 
     const pagination = normalizePagination(input, REVIEW_PAGINATION, { perPage: 10 })
-    const result = await ReviewEvidenceRepository.paginateBySession(reviewSessionId, pagination)
+    const result = await this.sessions.paginateEvidence(reviewSessionId, pagination)
 
     return {
       data: result.data,
