@@ -39,7 +39,7 @@
   const pageTitle = $derived(t('profile.edit', {}, 'Chỉnh sửa hồ sơ'))
 
   // Flash messages
-  const flash = $derived(($page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
+  const flash = $derived((page as { props: { flash?: { success?: string; error?: string } } }).props.flash)
 
   // Profile form state
   let bio = $state('')
