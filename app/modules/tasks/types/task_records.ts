@@ -1,4 +1,6 @@
 
+import type { TaskRequirementProjection } from '#modules/tasks/actions/dtos/response/task_requirement_projection'
+
 export type SerializedDateTime = string | null
 
 export interface TaskRecord {
@@ -50,10 +52,36 @@ export interface TaskRecord {
     id: string
     status: 'pending' | 'approved' | 'rejected'
   }
+  required_skills_rel?: TaskRequirementProjection[]
   sort_order?: number
   assignee?: {
+    id: string
     username: string
-    [key: string]: unknown
+    email: string | null
+  } | null
+  creator?: {
+    id: string
+    username: string
+    email?: string | null
+  } | null
+  updater?: {
+    id: string
+    username: string
+    email: string | null
+  } | null
+  organization?: {
+    id: string
+    name: string
+    logo: string | null
+  } | null
+  project?: {
+    id: string
+    name: string
+    owner_id?: string | null
+    owner?: {
+      id: string
+      username: string
+    } | null
   } | null
 }
 
@@ -127,7 +155,7 @@ export interface TaskWorkflowTransitionRecord {
   toStatus?: TaskStatusRecord | Record<string, unknown>
 }
 
-export interface TaskAssignmentWithDetailsRecord {
+export interface TaskAssignmentWithTaskRecord {
   id: string
   task_id: string
   assignee_id: string
@@ -135,9 +163,4 @@ export interface TaskAssignmentWithDetailsRecord {
   assignment_type: 'member' | 'external_contributor' | 'volunteer'
   assignment_status: 'active' | 'completed' | 'cancelled'
   task: TaskRecord
-  assignee: {
-    id: string
-    username: string
-    [key: string]: unknown
-  }
 }

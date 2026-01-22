@@ -122,6 +122,42 @@ test.group('Review DTO contracts', () => {
           reviewer_type: 'peer',
           skill_ratings: [{ skill_id: VALID_UUID_2, assigned_public_proficiency_code: 'senior' }],
         }),
+      () =>
+        new SubmitSkillReviewDTO({
+          review_session_id: VALID_UUID,
+          reviewer_type: 'peer',
+          skill_ratings: [],
+        }),
+      () =>
+        new SubmitSkillReviewDTO({
+          review_session_id: VALID_UUID,
+          reviewer_type: 'peer',
+          skill_ratings: Array.from({ length: 501 }, (_, index) => ({
+            skill_id: `${VALID_UUID_2}-${String(index)}`,
+            assigned_public_proficiency_code: 'l4',
+          })),
+        }),
+      () =>
+        new SubmitSkillReviewDTO({
+          review_session_id: VALID_UUID,
+          reviewer_type: 'peer',
+          skill_ratings: [
+            { skill_id: VALID_UUID_2, assigned_public_proficiency_code: 'l4' },
+            { skill_id: VALID_UUID_2.toUpperCase(), assigned_public_proficiency_code: 'l7' },
+          ],
+        }),
+      () =>
+        new SubmitSkillReviewDTO({
+          review_session_id: VALID_UUID,
+          reviewer_type: 'peer',
+          skill_ratings: [
+            {
+              skill_id: VALID_UUID_2,
+              assigned_public_proficiency_code: 'l4',
+              evidence_ids: ['not-a-uuid'],
+            },
+          ],
+        }),
       () => new AddReviewEvidenceDTO({ review_session_id: VALID_UUID, evidence_type: '' }),
       () =>
         new AddReviewEvidenceDTO({ review_session_id: VALID_UUID, evidence_type: 'invalid_type' }),

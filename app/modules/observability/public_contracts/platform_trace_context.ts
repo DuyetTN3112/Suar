@@ -1,8 +1,7 @@
-import { createHash, randomUUID } from 'node:crypto'
-
 import type { AuditActionContext } from '#modules/audit/public_contracts/audit_action_context'
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { HttpActionContext } from '#modules/http/public_contracts/http_action_context'
-import type { PlatformTraceContext } from '#modules/observability/contracts/platform_event'
+import type { PlatformTraceContext } from '#modules/observability/public_contracts/platform_event'
 
 export interface BuildPlatformTraceContextInput {
   readonly requestId?: string | null
@@ -13,11 +12,33 @@ export interface BuildPlatformTraceContextInput {
   readonly correlationKey?: string | null
 }
 
+export interface PlatformTraceIdentityProvider {
+  nextId(): string
+  digest(value: string): string
+}
+
+let provider: PlatformTraceIdentityProvider | null = null
+
+export function registerPlatformTraceIdentityProvider(
+  implementation: PlatformTraceIdentityProvider
+): void {
+  provider = implementation
+}
+
+function identityProvider(): PlatformTraceIdentityProvider {
+  if (!provider) {
+    throw new InvariantViolationException(
+      'Platform trace identity provider has not been registered'
+    )
+  }
+  return provider
+}
+
 export function buildPlatformTraceContext(
   input: BuildPlatformTraceContextInput
 ): PlatformTraceContext {
   return {
-    id: input.traceId ?? input.requestId ?? randomUUID(),
+    id: input.traceId ?? input.requestId ?? identityProvider().nextId(),
     workflow_id: input.workflow,
     parent_id: input.parentId ?? null,
     frontend_submission_id: input.frontendSubmissionId ?? null,
@@ -52,6 +73,9 @@ export function buildPlatformTraceContextFromAudit(
 }
 
 export function createCorrelationKey(parts: Array<string | null | undefined>): string {
-  const normalized = parts.map((part) => part?.trim()).filter(Boolean).join(':')
-  return createHash('sha256').update(normalized).digest('hex')
+  const normalized = parts
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(':')
+  return identityProvider().digest(normalized)
 }

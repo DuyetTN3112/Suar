@@ -1,14 +1,9 @@
 import { test } from '@japa/runner'
 
-import { searchConfig } from '#config/search'
-import type { OrganizationSearchSyncReader } from '#modules/organizations/application/ports/organization_search_sync_reader'
-import { OrganizationSearchProjectionService } from '#modules/search/actions/services/organization_search_projection_service'
+import { OrganizationSearchProjectionCommands } from '#modules/search/actions/commands/projections/organization_search_projection_commands'
+import type { OrganizationSearchSyncReader } from '#modules/search/actions/ports/outbound/organization_search_sync_reader'
 
-test.group('Unit | Organization Search Projection Service', (group) => {
-  group.each.setup(() => {
-    searchConfig.enabled = true
-  })
-
+test.group('Unit | Organization Search Projection Commands', () => {
   test('reindexAll consumes non-deleted organization ids from organization search sync reader', async ({
     assert,
   }) => {
@@ -22,14 +17,18 @@ test.group('Unit | Organization Search Projection Service', (group) => {
         calls.push('repo:reset')
         return Promise.resolve()
       },
-      bulkUpsertDocuments: (documents: Array<{ organization_id: string }>) => {
-        calls.push(`repo:bulk:${documents.map((document) => document.organization_id).join(',')}`)
+      replaceAllDocuments: (documents: Array<{ organization_id: string }>) => {
+        calls.push(
+          `repo:replace:${documents.map((document) => document.organization_id).join(',')}`
+        )
         return Promise.resolve()
       },
       deleteDocument: () => Promise.resolve(),
       upsertDocument: () => Promise.resolve(),
     }
-    const repository = rawRepository as unknown as ConstructorParameters<typeof OrganizationSearchProjectionService>[0]
+    const repository = rawRepository as unknown as ConstructorParameters<
+      typeof OrganizationSearchProjectionCommands
+    >[0]
     const rawBuilder = {
       build: (organizationId: string) => {
         calls.push(`builder:${organizationId}`)
@@ -39,9 +38,11 @@ test.group('Unit | Organization Search Projection Service', (group) => {
         })
       },
     }
-    const builder = rawBuilder as unknown as ConstructorParameters<typeof OrganizationSearchProjectionService>[1]
+    const builder = rawBuilder as unknown as ConstructorParameters<
+      typeof OrganizationSearchProjectionCommands
+    >[1]
 
-    const service = new OrganizationSearchProjectionService(
+    const service = new OrganizationSearchProjectionCommands(
       repository,
       builder,
       {
@@ -49,20 +50,21 @@ test.group('Unit | Organization Search Projection Service', (group) => {
           calls.push('reader:notDeleted')
           return Promise.resolve(['organization-1', 'deleted-organization', 'organization-2'])
         },
-      } satisfies OrganizationSearchSyncReader
+      } satisfies OrganizationSearchSyncReader,
+      {
+        isEnabled: () => true,
+      }
     )
 
     const result = await service.reindexAll()
 
     assert.deepEqual(result, { indexed: 2, skipped: 1 })
     assert.deepEqual(calls, [
-      'repo:reset',
-      'repo:ensure',
       'reader:notDeleted',
       'builder:organization-1',
       'builder:deleted-organization',
       'builder:organization-2',
-      'repo:bulk:organization-1,organization-2',
+      'repo:replace:organization-1,organization-2',
     ])
   })
 })
