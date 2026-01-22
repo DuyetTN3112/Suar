@@ -6,7 +6,9 @@ import type {
   NotificationCreateData,
   NotificationRecord,
   NotificationRepository,
-} from '#modules/notifications/infra/repositories/notification_repository_interface'
+} from '#modules/notifications/actions/ports/outbound/notification_repository'
+import type { NotificationActionDescriptor } from '#modules/notifications/domain/notification_catalog'
+import PostgresNotificationMutationRepository from '#modules/notifications/infra/repositories/postgres_notification_mutation_repository'
 import {
   decodeTimestampCursor,
   encodeTimestampCursor,
@@ -14,6 +16,7 @@ import {
 } from '#modules/pagination/public_contracts/pagination_public_api'
 interface NotificationRow {
   id: string
+  event_id: string
   user_id: string
   title: string
   message: string
@@ -22,12 +25,20 @@ interface NotificationRow {
   related_entity_type: string | null
   related_entity_id: string | null
   metadata: Record<string, unknown> | null
+  schema_version: number | string
+  category: string
+  priority: string
+  action: NotificationActionDescriptor | null
+  revision: number | string
+  occurred_at: Date
   created_at: Date
   updated_at: Date | null
   read_at: Date | null
 }
 
 export default class PostgresNotificationRepository implements NotificationRepository {
+  private readonly mutations = new PostgresNotificationMutationRepository()
+
   async create(data: NotificationCreateData): Promise<NotificationRecord | null> {
     const id = randomUUID()
 
@@ -42,7 +53,9 @@ export default class PostgresNotificationRepository implements NotificationRepos
       metadata: data.metadata ?? null,
     })
 
-    const row = (await db.from('notifications').where('id', id).first()) as NotificationRow | undefined
+    const row = (await db.from('notifications').where('id', id).first()) as
+      | NotificationRow
+      | undefined
     return row ? this.toRecord(row) : null
   }
 
@@ -59,8 +72,11 @@ export default class PostgresNotificationRepository implements NotificationRepos
       baseQuery = baseQuery.where('is_read', options.isRead)
     }
 
-    const rows = (await baseQuery.clone().orderBy('created_at', 'desc').offset(offset).limit(limit)) as
-      | NotificationRow[]
+    const rows = (await baseQuery
+      .clone()
+      .orderBy('created_at', 'desc')
+      .offset(offset)
+      .limit(limit)) as NotificationRow[]
     const totalResult = (await baseQuery.clone().count('* as count').first()) as
       | { count?: number | string }
       | undefined
@@ -94,19 +110,19 @@ export default class PostgresNotificationRepository implements NotificationRepos
 
     if (decodedCursor) {
       baseQuery = baseQuery.where((builder) => {
-        void builder
-          .where('created_at', '<', decodedCursor.createdAt)
-          .orWhere((nested) => {
-            void nested.where('created_at', decodedCursor.createdAt).where('id', '<', decodedCursor.id)
-          })
+        void builder.where('created_at', '<', decodedCursor.createdAt).orWhere((nested) => {
+          void nested
+            .where('created_at', decodedCursor.createdAt)
+            .where('id', '<', decodedCursor.id)
+        })
       })
     } else if (decodedBeforeCursor) {
       baseQuery = baseQuery.where((builder) => {
-        void builder
-          .where('created_at', '>', decodedBeforeCursor.createdAt)
-          .orWhere((nested) => {
-            void nested.where('created_at', decodedBeforeCursor.createdAt).where('id', '>', decodedBeforeCursor.id)
-          })
+        void builder.where('created_at', '>', decodedBeforeCursor.createdAt).orWhere((nested) => {
+          void nested
+            .where('created_at', decodedBeforeCursor.createdAt)
+            .where('id', '>', decodedBeforeCursor.id)
+        })
       })
     }
 
@@ -144,44 +160,19 @@ export default class PostgresNotificationRepository implements NotificationRepos
   }
 
   async markAsRead(notificationId: string, userId?: string): Promise<boolean> {
-    let query = db.from('notifications').where('id', notificationId)
-    if (userId !== undefined) {
-      query = query.where('user_id', userId)
-    }
-
-    const affected = Number(await query.update({
-      is_read: true,
-      read_at: new Date(),
-      updated_at: new Date(),
-    }))
-
-    return affected > 0
+    return this.mutations.markAsRead(notificationId, userId)
   }
 
   async markAllAsRead(userId: string): Promise<void> {
-    await db
-      .from('notifications')
-      .where('user_id', userId)
-      .where('is_read', false)
-      .update({
-        is_read: true,
-        read_at: new Date(),
-        updated_at: new Date(),
-      })
+    await this.mutations.markAllAsRead(userId)
   }
 
   async delete(notificationId: string, userId?: string): Promise<boolean> {
-    let query = db.from('notifications').where('id', notificationId)
-    if (userId !== undefined) {
-      query = query.where('user_id', userId)
-    }
-
-    const affected = Number(await query.delete())
-    return affected > 0
+    return this.mutations.delete(notificationId, userId)
   }
 
   async deleteAllRead(userId: string): Promise<void> {
-    await db.from('notifications').where('user_id', userId).where('is_read', true).delete()
+    await this.mutations.deleteAllRead(userId)
   }
 
   async getUnreadCount(userId: string): Promise<number> {
@@ -198,6 +189,7 @@ export default class PostgresNotificationRepository implements NotificationRepos
   private toRecord(row: NotificationRow): NotificationRecord {
     return {
       id: row.id,
+      event_id: row.event_id,
       user_id: row.user_id,
       title: row.title,
       message: row.message,
@@ -206,6 +198,12 @@ export default class PostgresNotificationRepository implements NotificationRepos
       related_entity_type: row.related_entity_type,
       related_entity_id: row.related_entity_id,
       metadata: row.metadata,
+      schema_version: Number(row.schema_version),
+      category: row.category,
+      priority: row.priority,
+      action: row.action,
+      revision: Number(row.revision),
+      occurred_at: new Date(row.occurred_at),
       created_at: new Date(row.created_at),
       updated_at: row.updated_at ? new Date(row.updated_at) : null,
       read_at: row.read_at ? new Date(row.read_at) : null,
