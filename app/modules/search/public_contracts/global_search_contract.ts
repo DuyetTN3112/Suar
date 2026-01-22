@@ -1,7 +1,6 @@
-import type { OrganizationDirectoryItem } from '#modules/organizations/public_contracts/organization_directory'
+import type { OrganizationDirectoryItem } from '#modules/organizations/directory/public_contracts/organization_directory'
 import type { GetProjectsListResult } from '#modules/projects/public_contracts/project_listing'
 import type { ActiveSkillCatalogItem } from '#modules/skills/public_contracts/active_skill_catalog'
-import type { PublicTaskListingResult } from '#modules/tasks/public_contracts/public_task_listing'
 import type { TalentSearchResult } from '#modules/users/public_contracts/talent_search'
 
 export type GlobalSearchEntityType =
@@ -37,6 +36,17 @@ export interface GlobalSearchTaskCommentResult {
   createdAt: string
 }
 
+export interface GlobalSearchTaskResult {
+  id: string
+  title: string
+  description?: string
+  acceptance_criteria?: string
+  context_background?: string | null
+  organization_name?: string
+  project_name?: string
+  [key: string]: unknown
+}
+
 export type SearchMatchStrength = 'exact' | 'strong' | 'partial' | 'fallback'
 
 export type HighlightedSnippet = Array<{
@@ -60,6 +70,13 @@ export interface GlobalSearchCenterResult {
   matchStrength: SearchMatchStrength
   rank: number
   score?: number | null
+  rankingAlgorithm?: 'weighted_rrf_v1'
+  rankingScore?: number
+  rankingSignals?: {
+    textRank: number
+    sourceRank: number
+    textScore: number
+  }
   primaryActionLabel: string
   secondaryMeta: string | null
 }
@@ -75,7 +92,7 @@ export type SearchResultTotalsByType = Record<GlobalSearchEntityType | 'all', nu
 export interface GlobalSearchResult {
   query: string
   talents: TalentSearchResult[]
-  tasks: PublicTaskListingResult['data']
+  tasks: GlobalSearchTaskResult[]
   projects: GetProjectsListResult['data']
   skills: ActiveSkillCatalogItem[]
   organizations: OrganizationDirectoryItem[]

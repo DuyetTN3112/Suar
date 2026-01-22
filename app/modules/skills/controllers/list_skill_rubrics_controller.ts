@@ -1,8 +1,11 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { SkillRubricRepository } from '#modules/skills/infra/repositories/skill_rubric_repository'
-import { findCanonicalProficiencyLevelOption, getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
+import ListSkillRubricVersionsQuery from '#modules/skills/actions/queries/list_skill_rubric_versions_query'
+import {
+  findCanonicalProficiencyLevelOption,
+  getCanonicalProficiencyLevelValue,
+} from '#modules/skills/public_contracts/proficiency_level_catalog'
 
 function mapCanonicalLevelDisplay(level: { code: string; display_name?: string | null }) {
   const option =
@@ -16,20 +19,14 @@ function mapCanonicalLevelDisplay(level: { code: string; display_name?: string |
   }
 }
 
+@inject()
 export default class ListSkillRubricsController {
+  constructor(private readonly listSkillRubrics: ListSkillRubricVersionsQuery) {}
+
   async handle({ params }: HttpContext) {
     const skillId = String(params['skillId'])
 
-    const skill = await SkillRubricRepository.findSkill(skillId)
-    if (skill?.is_active !== true) {
-      throw new NotFoundException('Skill not found')
-    }
-
-    const versions = await SkillRubricRepository.findVersionsBySkillWithLevels(skillId)
-
-    if (versions.length === 0) {
-      throw new NotFoundException('No rubric versions found for this skill')
-    }
+    const versions = await this.listSkillRubrics.execute(skillId)
 
     return {
       data: versions.map((version) => ({
