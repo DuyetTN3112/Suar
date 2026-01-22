@@ -1,12 +1,13 @@
-/* eslint-disable import-x/order */
+import { router } from '@inertiajs/svelte'
 import { cleanup, fireEvent, render, screen } from '@testing-library/svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import EmptyStub from '../test_stubs/empty_stub.svelte'
+import NavBar from '@/apps/user/shared/components/layout/nav_bar.svelte'
 
-vi.mock('@/apps/user/shared/components/layout/notification_dropdown.svelte', () => ({
-  default: EmptyStub,
-}))
+vi.mock('@/apps/user/shared/components/layout/notification_dropdown.svelte', async () => {
+  const stubModule = await import('../test_stubs/empty_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inertiajs/svelte')>()
@@ -32,9 +33,6 @@ vi.mock('@inertiajs/svelte', async (importOriginal) => {
   }
 })
 
-import { router } from '@inertiajs/svelte'
-import NavBar from '@/apps/user/shared/components/layout/nav_bar.svelte'
-
 const mockedRouter = vi.mocked(router)
 
 describe('NavBar', () => {
@@ -46,7 +44,7 @@ describe('NavBar', () => {
   it('submits trimmed search terms to the search route', async () => {
     render(NavBar)
 
-    const search = screen.getByPlaceholderText('Search everything...')
+    const search = screen.getByPlaceholderText('Tìm kiếm mọi thứ...')
     await fireEvent.input(search, { target: { value: '  quality gate  ' } })
     const form = search.closest('form')
     if (!form) {
@@ -54,7 +52,7 @@ describe('NavBar', () => {
     }
     await fireEvent.submit(form)
 
-    expect(mockedRouter.visit.mock.calls).toContainEqual(['/search?q=quality%20gate'])
+    expect(mockedRouter.visit.mock.calls).toContainEqual(['/search?q=quality+gate'])
   })
 
   it('opens the authenticated user menu and exposes account actions', async () => {
@@ -63,12 +61,12 @@ describe('NavBar', () => {
     await fireEvent.click(screen.getByRole('button', { name: /duyettn3112/i }))
 
     expect(screen.getAllByText('duyettn3112')).toHaveLength(2)
-    expect(screen.getByText('Ho so')).toBeInTheDocument()
-    expect(screen.getByText('Cai dat tai khoan')).toBeInTheDocument()
+    expect(screen.getByText('Hồ sơ')).toBeInTheDocument()
+    expect(screen.getByText('Cài đặt tài khoản')).toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: /dang xuat/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /đăng xuất/i }))
 
-    expect(screen.getByText('Ban co chac muon dang xuat?')).toBeInTheDocument()
+    expect(screen.getByText('Bạn có chắc muốn đăng xuất?')).toBeInTheDocument()
   })
 
   it('opens theme choices from the navbar theme button', async () => {
@@ -76,10 +74,10 @@ describe('NavBar', () => {
 
     expect(screen.queryByText('Sáng')).not.toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: /theme/i }))
+    await fireEvent.click(screen.getByRole('button', { name: /giao diện/i }))
 
     expect(screen.getByText('Sáng')).toBeInTheDocument()
     expect(screen.getByText('Tối')).toBeInTheDocument()
-    expect(screen.getByText('Hệ thống')).toBeInTheDocument()
+    expect(screen.getByText('Theo hệ thống')).toBeInTheDocument()
   })
 })

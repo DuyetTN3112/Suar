@@ -10,10 +10,10 @@ test.describe('Project Member Management E2E', () => {
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
     await navigateToProject(page, seeded.projectId)
 
-    await page.getByRole('tab', { name: /Thành viên/i }).click()
-    await expect(page.getByRole('button', { name: /Thêm thành viên/i })).toBeVisible()
+    await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
+    await expect(page.getByRole('button', { name: /Thêm thành viên|Add member/i })).toBeVisible()
 
-    await page.getByRole('button', { name: /Thêm thành viên/i }).click()
+    await page.getByRole('button', { name: /Thêm thành viên|Add member/i }).click()
 
     await expect(page.locator('#user_id')).toBeVisible()
     await expect(page.locator('#project_role')).toBeVisible()
@@ -25,12 +25,12 @@ test.describe('Project Member Management E2E', () => {
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
     await navigateToProject(page, seeded.projectId)
 
-    await page.getByRole('tab', { name: /Thành viên/i }).click()
-    await page.getByRole('button', { name: /Thêm thành viên/i }).click()
+    await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
+    await page.getByRole('button', { name: /Thêm thành viên|Add member/i }).click()
 
     await expect(page.locator('#user_id')).toBeVisible()
     await expect(page.locator('#user_id')).toHaveValue('')
-    await expect(page.getByRole('button', { name: 'Thêm', exact: true })).toBeDisabled()
+    await expect(page.getByRole('button', { name: /^(Thêm|Add)$/i })).toBeDisabled()
     await expect(page.locator('#project_role')).toHaveValue('project_member')
   })
 
@@ -39,9 +39,9 @@ test.describe('Project Member Management E2E', () => {
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
     await navigateToProject(page, seeded.projectId)
 
-    await page.getByRole('tab', { name: /Thành viên/i }).click()
+    await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
 
-    const membersPanel = page.getByRole('tabpanel', { name: /Thành viên/i })
+    const membersPanel = page.getByRole('tabpanel', { name: /Thành viên|Members/i })
     await expect(membersPanel).toBeVisible()
     await expect(membersPanel.getByText(seeded.ownerEmail, { exact: false })).toBeVisible()
   })
@@ -51,8 +51,8 @@ test.describe('Project Member Management E2E', () => {
     await ensurePersonaSession(page, seeded.ownerEmail, seeded.organizationId)
     await navigateToProject(page, seeded.projectId)
 
-    await page.getByRole('tab', { name: /Thành viên/i }).click()
-    await page.getByRole('button', { name: /Thêm thành viên/i }).click()
+    await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
+    await page.getByRole('button', { name: /Thêm thành viên|Add member/i }).click()
 
     await expect(page.locator('#user_id')).toBeVisible()
     await page.locator('#user_id').selectOption(seeded.candidateId)
@@ -61,12 +61,17 @@ test.describe('Project Member Management E2E', () => {
     const addMemberResponse = page.waitForResponse((response) =>
       response.url().includes('/projects/members') && response.request().method() === 'POST'
     )
-    await page.getByRole('button', { name: 'Thêm', exact: true }).click()
+    await page.getByRole('button', { name: /^(Thêm|Add)$/i }).click()
     const response = await addMemberResponse
     expect(response.status()).toBeLessThan(400)
 
     await expect(page.locator('#user_id')).toBeHidden()
+    await page.getByRole('tab', { name: /Thành viên|Members/i }).click()
 
-    await expect(page.getByRole('tabpanel', { name: /Thành viên/i }).getByText(seeded.candidateEmail)).toBeVisible()
+    await expect(
+      page
+        .getByRole('tabpanel', { name: /Thành viên|Members/i })
+        .getByText(seeded.candidateEmail)
+    ).toBeVisible()
   })
 })

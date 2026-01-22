@@ -1,5 +1,5 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
-
 
 import { buildLogoutUserDTO } from './mappers/request/auth_request_mapper.js'
 import {
@@ -9,7 +9,7 @@ import {
 } from './mappers/response/auth_response_mapper.js'
 
 import LogoutUserCommand from '#modules/auth/actions/commands/logout_user_command'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 
 /**
  * LogoutController
@@ -21,7 +21,10 @@ import { actionContextFromHttp } from '#modules/http/public_contracts/http_execu
  * - POST /logout - Process logout
  * - GET /logout - Process logout
  */
+@inject()
 export default class LogoutController {
+  constructor(private readonly logoutUser: LogoutUserCommand) {}
+
   /**
    * Handle logout request
    * Uses LogoutUserCommand for business logic
@@ -36,19 +39,19 @@ export default class LogoutController {
     }
 
     const dto = buildLogoutUserDTO(request, auth.user.id, session.sessionId)
-
-    // 2. Execute command (audit log + event emission)
-    const command = new LogoutUserCommand(actionContextFromHttp(ctx))
-    await command.handle(dto)
-
-    // 3. Handle HTTP-specific logout operations (auth, session, inertia)
-    await auth.use('web').logout()
-    session.forget('auth')
-    session.forget('show_organization_required_modal')
-    session.forget('intended_url')
+    await this.logoutUser.execute({
+      context: actionContextFromHttp(ctx),
+      dto,
+      revokeWebSession: async () => {
+        await auth.use('web').logout()
+        session.forget('auth')
+        session.forget('show_organization_required_modal')
+        session.forget('intended_url')
+      },
+    })
     inertia.share(mapLoggedOutAuthShare())
 
-    // 4. Redirect to login — always use inertia.location for full page redirect
+    // Redirect to login — always use inertia.location for full page redirect
     //    (session.flash won't work after session is cleared)
     const isInertia = request.header('X-Inertia')
     if (shouldUseInertiaLocation(isInertia)) {

@@ -1,7 +1,7 @@
 import { test } from '@japa/runner'
 
-import { DefaultUserDependencies } from '#modules/users/actions/ports/user_external_dependencies_impl'
-import type { UserSkillDetail } from '#modules/users/actions/ports/user_external_dependencies'
+import { userExternalDependencies } from '#composition/user_external_dependencies_composition'
+import type { UserSkillDetail } from '#modules/users/actions/ports/outbound/user_external_dependencies'
 import GetSpiderChartDataQuery, {
   GetSpiderChartDataDTO,
 } from '#modules/users/actions/queries/get_spider_chart_data_query'
@@ -44,19 +44,24 @@ function userSkillDetail(
 
 test.group('Get spider chart data query', () => {
   test('routes spider chart skills into four canonical category groups', async ({ assert }) => {
-    const originalListUserSkillDetails = DefaultUserDependencies.skill.listUserSkillDetails
+    const originalListUserSkillDetails =
+      userExternalDependencies.skill.listUserSkillDetails.bind(
+        userExternalDependencies.skill
+      )
 
-    DefaultUserDependencies.skill.listUserSkillDetails = async () => [
-      userSkillDetail('typescript', 'technology'),
-      userSkillDetail('api_design', 'engineering'),
-      userSkillDetail('communication', 'soft_skill'),
-      userSkillDetail('release_planning', 'delivery'),
-      userSkillDetail('legacy_list_item', 'technology', 'list'),
-    ]
+    userExternalDependencies.skill.listUserSkillDetails = () =>
+      Promise.resolve([
+        userSkillDetail('typescript', 'technology'),
+        userSkillDetail('api_design', 'engineering'),
+        userSkillDetail('communication', 'soft_skill'),
+        userSkillDetail('release_planning', 'delivery'),
+        userSkillDetail('legacy_list_item', 'technology', 'list'),
+      ])
 
     try {
       const result = await new UncachedGetSpiderChartDataQuery(
-        makeSystemUserActionContext('system-user')
+        makeSystemUserActionContext('system-user'),
+        userExternalDependencies.skill
       ).handle(new GetSpiderChartDataDTO('user-1'))
 
       assert.deepEqual(Object.keys(result), [
@@ -82,7 +87,7 @@ test.group('Get spider chart data query', () => {
         ['release_planning']
       )
     } finally {
-      DefaultUserDependencies.skill.listUserSkillDetails = originalListUserSkillDetails
+      userExternalDependencies.skill.listUserSkillDetails = originalListUserSkillDetails
     }
   })
 })
