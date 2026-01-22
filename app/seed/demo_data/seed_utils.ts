@@ -41,11 +41,27 @@ export async function deleteTableIfExists(
   await trx.from(table).delete()
 }
 
-export async function resetPostgres(trx: TransactionClientContract): Promise<void> {
+export async function resetPostgres(
+  trx: TransactionClientContract,
+  preservedUserEmails: readonly string[] = []
+): Promise<void> {
   const tables = [
+    'domain_event_outbox_replay_history',
+    'domain_event_outbox',
+    'cache_invalidation_outbox',
+    'ai_dispute_auto_queue_intents',
+    'notification_projection_deliveries',
+    'notification_projection_runs',
+    'notification_projection_targets',
+    'notification_fanout_targets',
+    'notification_fanout_jobs',
+    'notification_outbox',
+    'notification_acceptance_ledger',
+    'notification_recipient_states',
+    'notification_tombstones',
+    'audit_event_scopes',
     'audit_events',
     'notifications',
-    'user_activity_events',
     'error_events',
     'ai_dispute_feedback',
     'ai_dispute_evaluations',
@@ -110,17 +126,39 @@ export async function resetPostgres(trx: TransactionClientContract): Promise<voi
     'organization_users',
     'projects',
     'organizations',
-    'user_oauth_providers',
+    'custom_system_roles',
     'skills',
     'proficiency_levels',
     'proficiency_scales',
     'remember_me_tokens',
-    'users',
   ]
 
   for (const table of tables) {
     await deleteTableIfExists(trx, table)
   }
+
+  if (preservedUserEmails.length === 0) {
+    await deleteTableIfExists(trx, 'user_oauth_providers')
+    await deleteTableIfExists(trx, 'users')
+    return
+  }
+
+  const preservedUsers = (await trx
+    .from('users')
+    .whereIn('email', [...preservedUserEmails])
+    .select('id')) as { id: string }[]
+  const preservedUserIds = preservedUsers.map((user) => user.id)
+
+  if (preservedUserIds.length > 0) {
+    await trx.from('user_oauth_providers').whereNotIn('user_id', preservedUserIds).delete()
+  } else {
+    await trx.from('user_oauth_providers').delete()
+  }
+
+  await trx
+    .from('users')
+    .whereNotIn('email', [...preservedUserEmails])
+    .delete()
 }
 
 export async function closeSeedConnections(): Promise<void> {

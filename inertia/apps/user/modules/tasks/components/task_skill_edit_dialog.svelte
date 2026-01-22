@@ -30,9 +30,11 @@
   interface TaskRequirement {
     id: string
     skillId: string
+    projectSkillId?: string | null
     minimumLevelId?: string | null
     targetLevelId?: string | null
     assessmentCeilingLevelId?: string | null
+    rubricVersionId?: string | null
     isMandatory: boolean
     importance: 'low' | 'medium' | 'high' | 'critical'
     weight: number
@@ -40,9 +42,15 @@
     requirementNotes?: string | null
   }
 
+  interface ProjectSkill {
+    id: string
+    rubricVersionId?: string | null
+  }
+
   interface Props {
     open: boolean
     requirement: TaskRequirement | null
+    projectSkills?: ProjectSkill[]
     proficiencyLevels: ProficiencyLevel[]
     taskId: string
     onEditSuccess: () => void
@@ -51,6 +59,7 @@
   let {
     open = $bindable(),
     requirement,
+    projectSkills = [],
     proficiencyLevels,
     taskId,
     onEditSuccess,
@@ -59,18 +68,27 @@
   let editMinLevelId = $state('')
   let editTargetLevelId = $state('')
   let editCeilingLevelId = $state('')
+  let editRubricVersionId = $state('')
   let editMandatory = $state(false)
   let editImportance = $state<'low' | 'medium' | 'high' | 'critical'>('medium')
   let editWeight = $state(1.0)
   let editNotes = $state('')
   let saving = $state(false)
   const { t } = useTranslation()
+  const projectDefaultRubricVersionId = $derived(
+    projectSkills.find((projectSkill) => projectSkill.id === requirement?.projectSkillId)
+      ?.rubricVersionId ?? null
+  )
+  const rubricOptions = $derived(
+    [...new Set([requirement?.rubricVersionId ?? null, projectDefaultRubricVersionId].filter(Boolean) as string[])]
+  )
 
   $effect(() => {
     if (open && requirement) {
       editMinLevelId = requirement.minimumLevelId ?? ''
       editTargetLevelId = requirement.targetLevelId ?? ''
       editCeilingLevelId = requirement.assessmentCeilingLevelId ?? ''
+      editRubricVersionId = requirement.rubricVersionId ?? projectDefaultRubricVersionId ?? ''
       editMandatory = requirement.isMandatory
       editImportance = requirement.importance
       editWeight = requirement.weight
@@ -87,6 +105,7 @@
         minimumLevelId: editMinLevelId || null,
         targetLevelId: editTargetLevelId || null,
         assessmentCeilingLevelId: editCeilingLevelId || null,
+        rubricVersionId: editRubricVersionId || null,
         isMandatory: editMandatory,
         importance: editImportance,
         weight: editWeight,
@@ -117,6 +136,24 @@
           bind:ceilingLevelId={editCeilingLevelId}
         />
 
+        <div class="space-y-1.5">
+          <Label for="edit-rubric">{t('task.skill_requirements.rubric_label', {}, 'Rubric')}</Label>
+          <select
+            id="edit-rubric"
+            bind:value={editRubricVersionId}
+            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="">{t('task.skill_requirements.no_rubric_option', {}, 'No rubric binding')}</option>
+            {#each rubricOptions as rubricVersionId (rubricVersionId)}
+              <option value={rubricVersionId}>
+                {rubricVersionId === projectDefaultRubricVersionId
+                  ? t('task.skill_requirements.project_default_rubric', {}, 'Project default rubric')
+                  : t('task.skill_requirements.current_rubric', {}, 'Current rubric')}
+              </option>
+            {/each}
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <Label for="edit-imp">{t('task.skill_requirements.importance_label', {}, 'Importance')}</Label>
@@ -125,10 +162,10 @@
               bind:value={editImportance}
               class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="low">{t('ui_misc.tasks.importance.low', {}, 'Low')}</option>
+              <option value="medium">{t('ui_misc.tasks.importance.medium', {}, 'Medium')}</option>
+              <option value="high">{t('ui_misc.tasks.importance.high', {}, 'High')}</option>
+              <option value="critical">{t('ui_misc.tasks.importance.critical', {}, 'Critical')}</option>
             </select>
           </div>
           <div class="space-y-1.5">

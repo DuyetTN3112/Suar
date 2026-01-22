@@ -85,13 +85,9 @@
   const isAdmin = $derived(userRole === 'org_owner' || userRole === 'org_admin')
   // Check if user is organization owner
   const isSuperAdmin = $derived(userRole === 'org_owner')
-  const canOpenReverseReviewCenter = $derived(
-    userRole === 'org_owner' || userRole === 'org_admin' || userRole === 'org_manager'
-  )
   const reverseReviewTargetEntries = $derived(
     Object.entries(reverseReviewGovernance.byTargetType ?? {}).sort((left, right) => right[1] - left[1])
   )
-  const uuidLikePattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
 
   function targetTypeLabel(type: string): string {
@@ -103,13 +99,6 @@
     }
 
     return t(`organization.show.review_target.${type}`, {}, fallbacks[type] ?? type)
-  }
-
-  function reviewerLabel(value: string | null, isAnonymous: boolean): string {
-    if (isAnonymous) return t('organization.show.reviewer_anonymous', {}, 'Anonymous')
-    if (!value) return t('organization.show.reviewer_member', {}, 'Member')
-    if (uuidLikePattern.test(value)) return t('organization.show.reviewer_org_member', {}, 'Organization member')
-    return value
   }
 
   function organizationDateLabel(value: string): string {
@@ -235,7 +224,7 @@
                     <TableHeader>
                       <TableRow>
                         <TableHead>{t('organization.show.member_name_header', {}, 'Name')}</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>{t('ui_misc.organizations.email', {}, 'Email')}</TableHead>
                         <TableHead>{t('organization.show.member_role_header', {}, 'Role')}</TableHead>
                         {#if isSuperAdmin}
                           <TableHead class="w-[100px]">{t('organization.show.member_actions_header', {}, 'Actions')}</TableHead>
@@ -253,7 +242,7 @@
                           <TableCell>{member.role_name}</TableCell>
                           {#if isSuperAdmin}
                             <TableCell>
-                              <Link href="/users/{member.id}">
+                              <Link href="/users/{member.id}/profile">
                                 <Button variant="ghost" size="sm">{t('organization.show.view_user', {}, 'View user')}</Button>
                               </Link>
                             </TableCell>
@@ -303,11 +292,6 @@
                       {t('organization.show.reviews_description', {}, 'Collect recorded work-environment and manager reviews. The new flow runs after sprint closure instead of after each task.')}
                     </p>
                   </div>
-                  {#if canOpenReverseReviewCenter}
-                    <Link href="/org/reviews/sprint-reverse-board?review_type=environment">
-                      <Button variant="outline" size="sm">{t('organization.show.open_reverse_review_center', {}, 'Open environment review center')}</Button>
-                    </Link>
-                  {/if}
                 </div>
               </CardHeader>
               <CardContent class="space-y-4">
@@ -354,32 +338,6 @@
                   {/if}
                 </div>
 
-                {#if organizationReviews.recent.length === 0}
-                  <div class="rounded-xl border border-dashed border-border p-6 text-sm text-muted-foreground">
-                    {t('organization.show.reviews_empty', {}, 'No organization reviews from reverse task reviews yet.')}
-                  </div>
-                {:else}
-                  <div class="space-y-3">
-                    {#each organizationReviews.recent as review (review.id)}
-                      <div class="rounded-xl border border-border p-4">
-                        <div class="flex flex-wrap items-center justify-between gap-2">
-                          <div class="text-sm font-semibold">
-                            {reviewerLabel(review.reviewerId, review.isAnonymous)}
-                          </div>
-                          <div class="flex items-center gap-3 text-sm">
-                            <span class="rounded-full bg-primary/10 px-3 py-1 font-semibold text-primary">
-                              {review.rating}/5
-                            </span>
-                            <span class="text-muted-foreground">{organizationDateLabel(review.createdAt)}</span>
-                          </div>
-                        </div>
-                        <p class="mt-3 text-sm whitespace-pre-wrap text-muted-foreground">
-                          {review.comment ?? t('organization.show.no_review_comment', {}, 'No detailed comment.')}
-                        </p>
-                      </div>
-                    {/each}
-                  </div>
-                {/if}
               </CardContent>
             </Card>
           </TabsContent>

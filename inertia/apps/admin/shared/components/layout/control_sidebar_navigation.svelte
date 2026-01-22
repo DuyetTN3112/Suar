@@ -1,5 +1,6 @@
 <script lang="ts">
   import { ChevronRight } from 'lucide-svelte'
+  import { tick } from 'svelte'
 
   import type { NavCollapsible, NavGroup } from '@/apps/admin/shared/components/navigation_types'
   import {
@@ -20,6 +21,7 @@
   const { t } = $derived(useTranslation())
 
   let expandedItems = $state<Record<string, boolean>>({})
+  let navElement: HTMLElement | null = null
 
   function getExpandKey(groupTitle: string, itemTitle: string) {
     return `${groupTitle}::${itemTitle}`
@@ -47,22 +49,39 @@
       [key]: !isExpanded(groupTitle, item),
     }
   }
+
+  async function scrollActiveItemIntoView() {
+    await tick()
+    const activeItem = navElement?.querySelector('[data-sidebar-active="true"]')
+    if (activeItem instanceof HTMLElement) {
+      activeItem.scrollIntoView({ block: 'nearest' })
+    }
+  }
+
+  $effect(() => {
+    if (currentUrl) {
+      void scrollActiveItemIntoView()
+    }
+  })
 </script>
 
-<nav class="flex-1 overflow-y-auto px-3 pb-4">
+<nav bind:this={navElement} class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
   {#each navigation as navGroup}
-    <div class="mb-4">
-      <p class="mb-2 px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+    <div class="mb-3">
+      <p class="mb-1.5 px-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
         {getNavLabel(navGroup)}
       </p>
       <ul class="space-y-0.5">
         {#each navGroup.items as item}
           {#if isNavLink(item)}
             {@const Icon = item.icon}
+            {@const active = isNavUrlActive(currentUrl, item.url)}
             <li>
               <button
-                class:active={isNavUrlActive(currentUrl, item.url)}
-                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors {isNavUrlActive(currentUrl, item.url) ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}"
+                class:active={active}
+                data-sidebar-active={active ? 'true' : undefined}
+                aria-current={active ? 'page' : undefined}
+                class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors {active ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}"
                 type="button"
                 onclick={() => {
                   onNavigate(item.url)
@@ -79,7 +98,7 @@
           {:else if isNavCollapsible(item)}
             {@const ParentIcon = item.icon}
             <li
-              class={`rounded-xl border px-2 py-2 ${
+              class={`rounded-xl border px-2 py-1.5 ${
                 isNavItemActive(currentUrl, item)
                   ? 'border-primary/25 bg-primary/5'
                   : 'border-border/70 bg-muted/20'
@@ -87,7 +106,9 @@
             >
               <button
                 type="button"
-                class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left text-sm font-semibold text-foreground"
+                aria-expanded={isExpanded(navGroup.title, item)}
+                aria-haspopup="menu"
+                class="flex w-full items-center gap-2.5 rounded-lg px-1 py-1 text-left text-sm font-semibold text-foreground"
                 onclick={() => {
                   toggleItem(navGroup.title, item)
                 }}
@@ -106,12 +127,15 @@
               </button>
 
               {#if isExpanded(navGroup.title, item)}
-                <div class="mt-2 space-y-1 border-l border-border pl-3">
+                <div class="mt-1.5 space-y-1 border-l border-border pl-3">
                   {#each item.items as subItem}
                     {@const SubIcon = subItem.icon ?? item.icon}
+                    {@const active = isNavUrlActive(currentUrl, subItem.url)}
                     <button
-                      class:active={isNavUrlActive(currentUrl, subItem.url)}
-                      class="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors {isNavUrlActive(currentUrl, subItem.url) ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}"
+                      class:active={active}
+                      data-sidebar-active={active ? 'true' : undefined}
+                      aria-current={active ? 'page' : undefined}
+                      class="flex w-full items-center gap-2.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors {active ? 'bg-primary text-primary-foreground' : 'text-foreground hover:bg-accent'}"
                       type="button"
                       onclick={() => {
                         onNavigate(subItem.url)
@@ -122,7 +146,7 @@
                           <SubIcon class="h-4 w-4" />
                         {/if}
                       </span>
-                      <span class="truncate">{getNavLabel(subItem)}</span>
+                      <span class="min-w-0 flex-1 whitespace-normal break-words text-left leading-4">{getNavLabel(subItem)}</span>
                     </button>
                   {/each}
                 </div>
