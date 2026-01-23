@@ -1,12 +1,7 @@
-import { BaseModel, column, manyToMany, hasMany, belongsTo } from '@adonisjs/lucid/orm'
-import type { ManyToMany, HasMany, BelongsTo } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column } from '@adonisjs/lucid/orm'
 import { DateTime } from 'luxon'
 
-import Project from '../../../projects/infra/models/project.js'
-import Task from '../../../tasks/infra/models/task.js'
-import User from '../../../users/infra/models/user.js'
-
-import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/types/custom_role_definition'
+import type { OrganizationCustomRoleDefinition as CustomRoleDefinition } from '#modules/organizations/access/public_contracts/custom_role_definition'
 
 
 
@@ -73,23 +68,4 @@ export default class Organization extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updated_at: DateTime
 
-  @manyToMany(() => User, {
-    pivotTable: 'organization_users',
-    pivotColumns: ['org_role'],
-    pivotTimestamps: true,
-  })
-  declare users: ManyToMany<typeof User>
-
-  @belongsTo(() => User, {
-    foreignKey: 'owner_id',
-  })
-  declare owner: BelongsTo<typeof User>
-
-  @hasMany(() => Task)
-  declare tasks: HasMany<typeof Task>
-
-  @hasMany(() => Project, {
-    foreignKey: 'organization_id',
-  })
-  declare projects: HasMany<typeof Project>
 }
