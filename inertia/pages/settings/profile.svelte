@@ -48,7 +48,7 @@
     user_urls: []
   }
 
-  const pageProps = $derived($page.props as SettingsProfilePageProps)
+  const pageProps = $derived(page.props as SettingsProfilePageProps)
   const user = $derived(pageProps.auth?.user ?? defaultUser)
 
   let formInitialized = $state(false)
