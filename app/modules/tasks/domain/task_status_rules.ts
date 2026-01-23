@@ -9,8 +9,6 @@
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import { TaskStatusCategory } from '#modules/tasks/public_contracts/task_constants'
-
 // ============================================================================
 // canEditStatus — Check if a status can be modified
 // ============================================================================
@@ -56,24 +54,6 @@ export function canDeleteStatus(ctx: DeleteStatusContext): PolicyResult {
     )
   }
   return PR.allow()
-}
-
-// ============================================================================
-// validateStatusSlug — Check slug format
-// ============================================================================
-
-const SLUG_PATTERN = /^[a-z0-9_]+$/
-
-export function isValidSlug(slug: string): boolean {
-  return SLUG_PATTERN.test(slug) && slug.length >= 2 && slug.length <= 50
-}
-
-// ============================================================================
-// validateStatusCategory — Check category is valid
-// ============================================================================
-
-export function isValidCategory(category: string): boolean {
-  return (Object.values(TaskStatusCategory) as string[]).includes(category)
 }
 
 // ============================================================================

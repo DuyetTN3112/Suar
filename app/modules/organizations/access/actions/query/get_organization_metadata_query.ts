@@ -1,6 +1,5 @@
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 
 interface RoleRecord {
   name: string
@@ -86,25 +85,13 @@ export default class GetOrganizationMetadataQuery {
    * Get from Redis cache
    */
   private async getFromCache(key: string): Promise<MetadataResult | null> {
-    try {
-      const cached = await cacheStore.get<MetadataResult>(key)
-      if (cached) {
-        return cached
-      }
-    } catch (error) {
-      loggerService.error('[GetOrganizationMetadataQuery] Cache get error:', error)
-    }
-    return null
+    return cacheStore.get<MetadataResult>(key)
   }
 
   /**
    * Save to Redis cache
    */
   private async saveToCache(key: string, data: MetadataResult, ttl: number): Promise<void> {
-    try {
-      await cacheStore.set(key, data, ttl)
-    } catch (error) {
-      loggerService.error('[GetOrganizationMetadataQuery] Cache set error:', error)
-    }
+    await cacheStore.setBestEffort(key, data, ttl)
   }
 }

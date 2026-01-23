@@ -3,6 +3,7 @@ import { test } from '@japa/runner'
 import { SEED_ORGANIZATIONS_SPECS } from '../../../../../seed/demo_data/organization_seeds_specs.js'
 import { SEED_USERS_SPECS } from '../../../../../seed/demo_data/user_seeds_specs.js'
 
+import { organizationMembershipRepository } from '#composition/organization_persistence_composition'
 import User from '#modules/users/infra/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -189,31 +190,23 @@ test.group('Integration | Testing Auth State', (group) => {
         loginResponse.assertStatus(200)
 
         const user = await User.findByOrFail('email', mainUser.email)
-        const memberships = (await user
-          .related('organizations')
-          .query()
-          .pivotColumns(['org_role', 'status'])
-          .orderBy('organizations.slug')) as unknown as {
-          id: string
-          slug: string
-          $extras: { pivot_org_role: string; pivot_status: string }
-        }[]
+        const memberships = await organizationMembershipRepository.listSummariesByUser(user.id)
 
         assert.equal(user.system_role, 'registered_user')
         assert.isTrue(
           memberships.some(
             (org) =>
               org.slug === primaryOrgSpec.slug &&
-              org.$extras.pivot_org_role === 'org_owner' &&
-              org.$extras.pivot_status === 'approved'
+              org.org_role === 'org_owner' &&
+              org.status === 'approved'
           )
         )
         assert.isTrue(
           memberships.some(
             (org) =>
               org.slug === secondaryOrgSpec.slug &&
-              org.$extras.pivot_org_role === 'org_member' &&
-              org.$extras.pivot_status === 'approved'
+              org.org_role === 'org_member' &&
+              org.status === 'approved'
           )
         )
         assert.equal(

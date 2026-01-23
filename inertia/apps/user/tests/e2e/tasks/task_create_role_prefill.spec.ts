@@ -17,8 +17,8 @@ function isAbortedNavigation(error: unknown): boolean {
   return error instanceof Error && error.message.includes('net::ERR_ABORTED')
 }
 
-async function gotoTaskCreate(page: Page, projectId?: string): Promise<void> {
-  const path = projectId ? `/tasks/create?project_id=${projectId}` : '/tasks/create'
+async function gotoTaskCreate(page: Page, projectId: string): Promise<void> {
+  const path = `/projects/${projectId}/tasks?create=1`
   let lastError: unknown = null
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -32,7 +32,7 @@ async function gotoTaskCreate(page: Page, projectId?: string): Promise<void> {
       }
     }
 
-    if (page.url().includes('/tasks/create')) {
+    if (page.url().includes(`/projects/${projectId}/tasks`)) {
       await expectTaskCreateReady(page)
       return
     }
@@ -42,7 +42,7 @@ async function gotoTaskCreate(page: Page, projectId?: string): Promise<void> {
     throw lastError
   }
 
-  await expect(page).toHaveURL(/\/tasks\/create/)
+  await expect(page).toHaveURL(new RegExp(`/projects/${projectId}/tasks`))
   await expectTaskCreateReady(page)
 }
 
@@ -51,8 +51,9 @@ test.describe('Task Create Role Prefill E2E', () => {
     await login(page, E2E_USER)
   })
 
-  test('task create page loads with project selector', async ({ page }) => {
-    await gotoTaskCreate(page)
+  test('task create modal loads on the Project board', async ({ page }) => {
+    const projectId = await createProject(page, 'E2E Task Board Modal', { navigate: false })
+    await gotoTaskCreate(page, projectId)
 
     await expect(getProjectSummary(page)).toBeVisible()
     await expect(page.getByText('Task access')).toBeVisible()
@@ -64,7 +65,7 @@ test.describe('Task Create Role Prefill E2E', () => {
     const projectId = await createProject(page, 'E2E Task Prefill Test', { navigate: false })
     await expect(page).toHaveURL(/\/org\/projects$/)
 
-    // Navigate to task create with project_id
+    // Open the create modal on the canonical Project board.
     await gotoTaskCreate(page, projectId)
 
     // Wait for roles to load
@@ -101,8 +102,7 @@ test.describe('Task Create Role Prefill E2E', () => {
 
     // Should show validation error, stay on form
     await expect(page.locator('input[name="title"]')).toBeVisible()
-    // URL should still be /tasks/create
-    expect(page.url()).toContain('/tasks/create')
+    expect(page.url()).toContain(`/projects/${projectId}/tasks`)
   })
 
   test('task create form validation rejects missing required skills', async ({ page }) => {
@@ -118,6 +118,6 @@ test.describe('Task Create Role Prefill E2E', () => {
 
     // Should stay on form with error
     await expect(page.locator('input[name="title"]')).toBeVisible()
-    expect(page.url()).toContain('/tasks/create')
+    expect(page.url()).toContain(`/projects/${projectId}/tasks`)
   })
 })

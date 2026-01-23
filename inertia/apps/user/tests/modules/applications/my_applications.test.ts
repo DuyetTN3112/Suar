@@ -1,8 +1,7 @@
-/* eslint-disable import-x/order */
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/svelte'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import MyApplicationsPage from '@/apps/user/modules/applications/my-applications.svelte'
 
 const inertiaMocks = vi.hoisted(() => ({
   router: {
@@ -21,21 +20,18 @@ vi.mock('@inertiajs/svelte', () => ({
   router: inertiaMocks.router,
 }))
 
-vi.mock('@/apps/user/shared/layouts/app_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/user/shared/layouts/app_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@/apps/user/shared/lib/ui_toast', () => ({
   uiToast: toastMocks,
 }))
 
-vi.mock('@/apps/user/shared/stores/translation.svelte', () => ({
-  useTranslation: () => ({
-    t: (_key: string, _params: Record<string, unknown>, fallback: string) => fallback,
-  }),
-}))
-
-import MyApplicationsPage from '@/apps/user/modules/applications/my-applications.svelte'
+vi.mock('@/apps/user/shared/stores/translation.svelte', async () => {
+  return import('#tests/frontend/translation_mock')
+})
 
 const pendingApplication = {
   id: 'application-1',

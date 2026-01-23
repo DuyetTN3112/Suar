@@ -75,4 +75,23 @@ export const ProjectSkillRepository = {
     }
     return ProjectSkill.create(payload)
   },
+
+  async updateProjectSkill(
+    id: string,
+    payload: {
+      display_name_override?: string | null
+      description_override?: string | null
+      rubric_version_id?: string | null
+      is_active?: boolean
+      is_selectable_for_tasks?: boolean
+    },
+    trx?: TransactionClientContract
+  ): Promise<ProjectSkill | null> {
+    const projectSkill = await this.findProjectSkillById(id, trx)
+    if (!projectSkill) return null
+
+    projectSkill.merge(payload)
+    await projectSkill.save()
+    return projectSkill
+  },
 }

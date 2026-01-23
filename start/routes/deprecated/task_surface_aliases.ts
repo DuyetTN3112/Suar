@@ -10,8 +10,6 @@ const ListTasksGroupedController = () =>
   import('#modules/tasks/controllers/list_tasks_grouped_controller')
 const ListTasksTimelineController = () =>
   import('#modules/tasks/controllers/list_tasks_timeline_controller')
-const PatchTaskStatusBoardPocController = () =>
-  import('#modules/tasks/controllers/patch_task_status_board_poc_controller')
 const PrefillTaskRequirementsFromRoleController = () =>
   import('#modules/tasks/controllers/v1/prefill_task_requirements_from_role_controller')
 
@@ -46,15 +44,6 @@ router
       .use([
         middleware.markDeprecatedRoute({
           replacementPath: '/api/tasks/timeline-items',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-    router
-      .patch('/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
-      .as('api.tasks.board_state.alias.update')
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/tasks/board-state',
           sunsetDate: '2026-12-31',
         }),
       ])
@@ -94,15 +83,6 @@ router
       .use([
         middleware.markDeprecatedRoute({
           replacementPath: '/api/v1/tasks/timeline-items',
-          sunsetDate: '2026-12-31',
-        }),
-      ])
-    router
-      .patch('/tasks/status-board', [PatchTaskStatusBoardPocController, 'handle'])
-      .as('api.v1.tasks.board_state.alias.update')
-      .use([
-        middleware.markDeprecatedRoute({
-          replacementPath: '/api/v1/tasks/board-state',
           sunsetDate: '2026-12-31',
         }),
       ])
