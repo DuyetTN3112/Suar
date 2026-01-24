@@ -2,13 +2,8 @@ import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-
-import User from '../../../users/infra/models/user.js'
-
-import Organization from './organization.js'
-
-import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
-
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
+import Organization from '#modules/organizations/directory/infra/models/organization'
 
 // Class chứa thông tin quan hệ giữa User và Organization
 export default class OrganizationUser extends BaseModel {
@@ -40,20 +35,10 @@ export default class OrganizationUser extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updated_at: DateTime
 
-  @belongsTo(() => User, {
-    foreignKey: 'user_id',
-  })
-  declare user: BelongsTo<typeof User>
-
   @belongsTo(() => Organization, {
     foreignKey: 'organization_id',
   })
   declare organization: BelongsTo<typeof Organization>
-
-  @belongsTo(() => User, {
-    foreignKey: 'invited_by',
-  })
-  declare inviter: BelongsTo<typeof User>
 
   // ===== Instance Helpers =====
 

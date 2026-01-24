@@ -1,9 +1,11 @@
-import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/commands/internal/create_task_transaction'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
-import { persistTaskCreateWithinTransaction } from '#modules/tasks/actions/support/task_create_persistence_support'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskTransaction } from '#modules/tasks/actions/ports/outbound/task_transaction'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import type { TaskRecord, TaskStatusRecord } from '#modules/tasks/types/task_records'
 
@@ -70,14 +72,12 @@ function makeExecCtx(): TaskActionContext {
   }
 }
 
-function makeTransaction(): TransactionClientContract {
-  const trx = {
-    commit: () => Promise.resolve(),
-    rollback: () => Promise.resolve(),
-  }
+function makeTransaction(): TaskTransaction {
+  return {}
+}
 
-  // @ts-expect-error - partial transaction client mock for unit tests
-  return trx
+function makeExternalDependencies(): TaskExternalDependencies {
+  return taskExternalDeps
 }
 
 test.group('Task create persistence support', () => {
@@ -96,6 +96,7 @@ test.group('Task create persistence support', () => {
         dto,
         userId: VALID_UUID_2,
         trx: makeTransaction(),
+        externalDependencies: makeExternalDependencies(),
       },
       {
         ensureTaskCreationPreconditions: async (userId, incomingDto) => {
@@ -186,6 +187,7 @@ test.group('Task create persistence support', () => {
         dto,
         userId: VALID_UUID_2,
         trx: makeTransaction(),
+        externalDependencies: makeExternalDependencies(),
       },
       {
         ensureTaskCreationPreconditions: () => Promise.resolve(),

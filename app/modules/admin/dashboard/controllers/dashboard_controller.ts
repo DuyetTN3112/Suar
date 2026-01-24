@@ -1,13 +1,13 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 
-import GetDashboardStatsQuery from '#modules/admin/actions/dashboard/get_dashboard_stats_query'
-import ListSubscriptionsQuery from '#modules/admin/actions/packages/queries/list_subscriptions_query'
-import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
-import { mapAdminDashboardStatsResponse } from '#modules/admin/controllers/mappers/response/admin_api_response_mapper'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/dashboard/actions/dtos/common/admin_pagination'
+import { AdminDashboardActionFactory } from '#modules/admin/dashboard/actions/ports/inbound/admin_dashboard_action_factory'
+import { mapAdminDashboardStatsResponse } from '#modules/admin/dashboard/controllers/mappers/response/admin_api_response_mapper'
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { wrapApiV1Data } from '#modules/http/api_v1/response_mappers'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { wrapApiV1Data } from '#modules/http/boundary/api_v1_response'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { normalizePagination, toCanonicalPagePagination  } from '#modules/pagination/public_contracts/pagination_public_api'
 
 /**
@@ -15,10 +15,13 @@ import { normalizePagination, toCanonicalPagePagination  } from '#modules/pagina
  *
  * System Admin dashboard - overview of platform statistics
  */
+@inject()
 export default class AdminDashboardController {
+  constructor(private readonly actions: AdminDashboardActionFactory) {}
+
   private async getStats(ctx: HttpContext) {
     const execCtx = actionContextFromHttp(ctx)
-    const query = new GetDashboardStatsQuery(execCtx)
+    const query = this.actions.makeGetDashboardStatsQuery(execCtx)
 
     return query.handle()
   }
@@ -65,7 +68,7 @@ export default class AdminDashboardController {
     const { inertia, request } = ctx
     const stats = await this.getStats(ctx)
     const execCtx = actionContextFromHttp(ctx)
-    const subscriptionsQuery = new ListSubscriptionsQuery(execCtx)
+    const subscriptionsQuery = this.actions.makeListSubscriptionsQuery(execCtx)
     const pagination = normalizePagination(
       {
         page: request.input('page', PAGINATION.DEFAULT_PAGE) as unknown,

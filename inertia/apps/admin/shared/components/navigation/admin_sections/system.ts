@@ -1,4 +1,4 @@
-import type { NavGroup } from '@/apps/org/shared/components/navigation_types'
+import type { NavGroup } from '@/apps/admin/shared/components/navigation_types'
 
 export const adminSystemSection: NavGroup = {
   title: 'System',
@@ -16,13 +16,13 @@ export const adminSystemSection: NavGroup = {
           iconName: 'Shield',
         },
         {
-          title: 'Organization roles',
+          title: 'Organization role catalog',
           titleKey: 'common.navigation.organization_roles',
           url: '/admin/permissions/organization',
           iconName: 'Building2',
         },
         {
-          title: 'Project roles',
+          title: 'Project role catalog',
           titleKey: 'common.navigation.project_roles',
           url: '/admin/permissions/project',
           iconName: 'Briefcase',
@@ -30,12 +30,12 @@ export const adminSystemSection: NavGroup = {
       ],
     },
     {
-      title: 'Audit Logs',
+      title: 'System observability',
       titleKey: 'common.navigation.audit_logs',
       iconName: 'FolderKanban',
       items: [
         {
-          title: 'Audit logs',
+          title: 'System audit logs',
           titleKey: 'common.admin.audit_logs',
           url: '/admin/audit-logs',
           iconName: 'FileText',
@@ -43,7 +43,7 @@ export const adminSystemSection: NavGroup = {
       ],
     },
     {
-      title: 'Review Moderation',
+      title: 'Review moderation',
       titleKey: 'common.navigation.review_moderation',
       iconName: 'Flag',
       items: [
@@ -54,13 +54,7 @@ export const adminSystemSection: NavGroup = {
           iconName: 'Flag',
         },
         {
-          title: 'Environment review history',
-          titleKey: 'common.navigation.environment_review_history',
-          url: '/admin/reverse-reviews',
-          iconName: 'Star',
-        },
-        {
-          title: 'Review disputes',
+          title: 'AI dispute board',
           titleKey: 'common.admin.disputes',
           url: '/admin/disputes',
           iconName: 'AlertTriangle',

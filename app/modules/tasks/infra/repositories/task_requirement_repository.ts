@@ -38,7 +38,10 @@ export const TaskRequirementRepository = {
     taskId: string,
     trx?: TransactionClientContract
   ): Promise<TaskRequiredSkill[]> {
-    return queryTaskRequiredSkill(trx).where('task_id', taskId)
+    return queryTaskRequiredSkill(trx)
+      .where('task_id', taskId)
+      .orderBy('created_at', 'asc')
+      .orderBy('id', 'asc')
   },
 
   async create(
@@ -61,20 +64,6 @@ export const TaskRequirementRepository = {
       items.push(created)
     }
     return items
-  },
-
-  async findByTaskWithRelations(
-    taskId: string,
-    trx?: TransactionClientContract
-  ): Promise<TaskRequiredSkill[]> {
-    return queryTaskRequiredSkill(trx)
-      .where('task_id', taskId)
-      .preload('skill')
-      .preload('projectSkill')
-      .preload('minimumLevel')
-      .preload('targetLevel')
-      .preload('assessmentCeilingLevel')
-      .preload('rubricVersion')
   },
 
   // ── TaskRequirementVersion ──

@@ -1,10 +1,9 @@
+import type { StoredUserSettingData } from './stored_user_setting_data.js'
 import type {
   UserCredibilityData,
   UserProfileSettings,
   UserTrustData,
 } from './user_profile_data.js'
-
-import type { UserSettingData } from '#modules/settings/types/user_setting'
 
 export type SerializedDateTime = string | null
 export interface DateTimeLike {
@@ -29,7 +28,7 @@ export interface UserRecord {
   external_contributor_rating: number | null
   external_contributor_completed_tasks_count: number
   profile_settings: UserProfileSettings | null
-  user_setting: UserSettingData | null
+  user_setting: StoredUserSettingData | null
   trust_data: UserTrustData | null
   credibility_data: UserCredibilityData | null
   reverse_review_summary?: {
@@ -58,11 +57,22 @@ export interface UserSkillRecord {
   evidence_count?: number
   last_calculated_at?: DateTimeLike | null
   last_reviewed_at?: DateTimeLike | null
-  skill?: { skill_name: string; category_code: string; [key: string]: unknown }
+  skill?: {
+    skill_name: string
+    skill_code: string
+    category_code: string
+    display_type: string
+    is_active: boolean
+  }
 }
 
 export interface UserProfileRecord extends UserRecord {
-  current_organization: { id: string; [key: string]: unknown } | null
+  current_organization: {
+    id: string
+    name: string
+    slug: string
+    logo: string | null
+  } | null
   skills: UserSkillRecord[]
 }
 

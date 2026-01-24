@@ -128,13 +128,19 @@
 
           <!-- Slug -->
           <div class="grid gap-2">
-            <Label for="slug" class="font-bold">Slug</Label>
+            <Label for="slug" class="font-bold">
+              {t('ui_misc.organizations.create.slug_label', {}, 'Slug')}
+            </Label>
             <Input
               id="slug"
               name="slug"
               value={formData.slug}
               oninput={handleSlugChange}
-              placeholder="ten-to-chuc"
+              placeholder={t(
+                'ui_misc.organizations.create.slug_placeholder',
+                {},
+                'organization-slug'
+              )}
               class={errors.slug ? 'border-destructive' : ''}
             />
             <p class="text-xs text-muted-foreground">{t('organization.create.slug_hint', {}, 'Generated from the name; you can edit it.')}</p>
@@ -161,14 +167,20 @@
 
           <!-- Website -->
           <div class="grid gap-2">
-            <Label for="website" class="font-bold">Website</Label>
+            <Label for="website" class="font-bold">
+              {t('ui_misc.organizations.create.website_label', {}, 'Website')}
+            </Label>
             <Input
               id="website"
               name="website"
               type="url"
               value={formData.website}
               onchange={handleChange}
-              placeholder="https://example.com"
+              placeholder={t(
+                'ui_misc.organizations.create.website_placeholder',
+                {},
+                'https://example.com'
+              )}
             />
             {#if errors.website}
               <p class="text-xs font-bold text-destructive">{errors.website}</p>
