@@ -8,6 +8,9 @@
   import CardHeader from '@/apps/org/shared/ui/card_header.svelte'
   import CardTitle from '@/apps/org/shared/ui/card_title.svelte'
   import CardContent from '@/apps/org/shared/ui/card_content.svelte'
+  import Tabs from '@/apps/org/shared/ui/tabs.svelte'
+  import TabsList from '@/apps/org/shared/ui/tabs_list.svelte'
+  import TabsTrigger from '@/apps/org/shared/ui/tabs_trigger.svelte'
   import { FRONTEND_ROUTES } from '@/apps/org/shared/constants'
   import { resolveBrowserCurrentUrl } from '@/apps/org/shared/components/navigation_helpers'
   import OrganizationLayout from '@/apps/org/shared/layouts/organization_layout.svelte'
@@ -82,7 +85,8 @@
   })
 
   const currentUrl = $derived(resolveBrowserCurrentUrl(page.url))
-  const focusMode = $derived(new URLSearchParams(currentUrl.split('?')[1] ?? '').get('focus'))
+  const currentQuery = $derived(new URLSearchParams(currentUrl.split('?')[1] ?? ''))
+  const focusMode = $derived(currentQuery.get('focus') ?? currentQuery.get('tab'))
   const activeProfessionalRoles = $derived(projectProfessionalRoles.filter((role) => role.isActive !== false))
   const staffedProfessionalRoleIds = $derived(
     [...new Set(
@@ -249,6 +253,25 @@
       candidateFocusKey = `${roleId}:${Date.now()}`
     }
   }
+
+  function setActiveProjectTab(value: string) {
+    const nextTab = value as ProjectTab
+    activeTab = nextTab
+    const params = new URLSearchParams(currentUrl.split('?')[1] ?? '')
+    if (nextTab === 'details') {
+      params.delete('focus')
+      params.delete('tab')
+    } else {
+      params.set('focus', nextTab)
+      params.delete('tab')
+    }
+    const query = params.toString()
+    router.visit(`${baseRoute}/${project.id}${query ? `?${query}` : ''}`, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    })
+  }
 </script>
 
 <svelte:head>
@@ -257,17 +280,17 @@
 
 <OrganizationLayout title={projectState.name}>
   <div class="space-y-6 p-4 sm:p-6">
-    {#if activeTab === 'details'}
-      <div class="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6 lg:flex-row lg:items-start lg:justify-between">
-        <div class="min-w-0">
-          <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
-            {shellMode === 'organization' ? t('project.show_page.shell_org_detail', {}, 'Org project detail') : t('project.show_page.shell_user_detail', {}, 'User project detail')}
-          </p>
-          <h1 class="mt-2 truncate text-3xl font-black tracking-tight sm:text-4xl">{projectState.name}</h1>
-          <p class="mt-2 text-sm text-muted-foreground">{projectState.organization_name}</p>
-        </div>
+    <div class="flex flex-col gap-4 rounded-3xl border border-border bg-card p-5 shadow-suar-xs sm:p-6 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0">
+        <p class="font-mono text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">
+          {shellMode === 'organization' ? t('project.show_page.shell_org_detail', {}, 'Org project detail') : t('project.show_page.shell_user_detail', {}, 'User project detail')}
+        </p>
+        <h1 class="mt-2 truncate text-3xl font-black tracking-tight sm:text-4xl">{projectState.name}</h1>
+        <p class="mt-2 text-sm text-muted-foreground">{projectState.organization_name}</p>
+      </div>
 
-        <div class="flex flex-wrap items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        {#if activeTab === 'details'}
           {#if permissions.canEdit}
             {#if editing}
               <Button variant="outline" onclick={() => { editing = false }} disabled={saving || deleting}>
@@ -287,9 +310,22 @@
               {t('project.show_page.delete', {}, 'Delete')}
             </Button>
           {/if}
-        </div>
+        {/if}
       </div>
-    {/if}
+    </div>
+
+    <Tabs value={activeTab} onValueChange={setActiveProjectTab}>
+      <div class="overflow-x-auto rounded-2xl border border-border bg-card p-2">
+        <TabsList>
+          <TabsTrigger value="details">{t('project.show_page.tab_details', {}, 'Details')}</TabsTrigger>
+          <TabsTrigger value="members">{t('project.show_page.tab_members', {}, 'Members')}</TabsTrigger>
+          <TabsTrigger value="skills">{t('project.show_page.tab_skills', {}, 'Skills')}</TabsTrigger>
+          <TabsTrigger value="roles">{t('project.show_page.tab_roles', {}, 'Roles')}</TabsTrigger>
+          <TabsTrigger value="operating_model">{t('project.show_page.tab_operating_model', {}, 'Operating model')}</TabsTrigger>
+          <TabsTrigger value="sprints">{t('project.show_page.tab_sprints', {}, 'Sprints')}</TabsTrigger>
+        </TabsList>
+      </div>
+    </Tabs>
 
     {#if activeTab === 'details'}
       <ProjectDetailsTab
@@ -330,7 +366,7 @@
           <ProjectRolesTab
             projectId={project.id}
             canEdit={permissions.canEdit ?? (permissions.isCreator || permissions.isManager)}
-            taskLaunchBaseUrl={shellMode === 'organization' ? '/org/tasks/board' : FRONTEND_ROUTES.TASKS}
+              taskLaunchBaseUrl={`/projects/${encodeURIComponent(project.id)}/tasks`}
             {candidateFocusRoleId}
             {candidateFocusKey}
             projectMembers={safeMembers.map((member) => ({
@@ -358,7 +394,7 @@
         <CardContent>
           <ProjectOperatingModelTab
             projectId={project.id}
-            taskLaunchBaseUrl={shellMode === 'organization' ? '/org/tasks/board' : FRONTEND_ROUTES.TASKS}
+              taskLaunchBaseUrl={`/projects/${encodeURIComponent(project.id)}/tasks`}
             roles={activeProfessionalRoles}
             canLaunchTask={permissions.canEdit || permissions.isOwner || permissions.isManager}
           />
@@ -368,7 +404,7 @@
       <section class="space-y-4" aria-label={t('project.show_page.sprint_section_label', {}, 'Project sprints')}>
         <div class="border-b border-border pb-4">
           <p class="text-xs font-black uppercase tracking-[0.16em] text-muted-foreground">{t('project.show_page.sprint_eyebrow', {}, 'Project management')}</p>
-          <h1 class="mt-1 text-3xl font-black text-foreground">{t('project.show_page.sprint_title', {}, 'Project sprints')}</h1>
+          <h2 class="mt-1 text-3xl font-black text-foreground">{t('project.show_page.sprint_title', {}, 'Project sprints')}</h2>
           <p class="mt-2 text-sm text-muted-foreground">
             {t('project.show_page.sprint_desc', {}, 'End the current sprint, open post-sprint review, and move to the next sprint.')}
           </p>
