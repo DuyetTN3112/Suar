@@ -51,7 +51,7 @@
       const key = grouping === 'trace' ? row.investigation.traceId ?? 'no-trace' : row.workflowLabel
       const label =
         grouping === 'trace'
-          ? row.investigation.traceId ?? 'No trace correlation'
+          ? row.investigation.traceId ?? t('admin_ui.audit_logs.no_trace_correlation', {}, 'No trace correlation')
           : row.workflowLabel
 
       const existing = acc.get(key)
@@ -171,7 +171,14 @@
                 {t('task.admin_audit_logs.incident_detected', {}, 'Incident detected')}
               </div>
             <div class="text-sm text-rose-700 dark:text-rose-300">
-              {consoleModel.summary.failedCount} failure · {consoleModel.summary.warningCount} warning.
+              {t(
+                'admin_ui.audit_logs.incident_counts',
+                {
+                  failures: consoleModel.summary.failedCount,
+                  warnings: consoleModel.summary.warningCount,
+                },
+                ':failures failures · :warnings warnings.'
+              )}
             </div>
           </div>
           <div class="flex flex-wrap gap-2">
@@ -212,7 +219,7 @@
                 <div class="mt-1 truncate font-['JetBrains_Mono'] text-sm text-foreground">{group.label}</div>
               </div>
               <Badge variant="outline" class="border-border bg-card text-muted-foreground">
-                {group.rows.length} event
+                {t('admin_ui.audit_logs.group_event_count', { count: group.rows.length }, ':count events')}
               </Badge>
             </div>
           {/if}

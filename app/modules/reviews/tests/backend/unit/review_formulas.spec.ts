@@ -1,6 +1,5 @@
 import { test } from '@japa/runner'
 
-import { ReviewSessionStatus } from '#modules/reviews/constants/review_constants'
 import {
   calculateWeightedTrustScore,
   calculateCredibilityScore,
@@ -16,7 +15,8 @@ import {
   calculatePerformanceScore,
   calculateTrustScoreV2,
 } from '#modules/reviews/domain/review_formulas'
-import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/constants/user_constants'
+import { ReviewSessionStatus } from '#modules/reviews/public_contracts/review_constants'
+import { TrustTierCode, TRUST_TIER_WEIGHTS } from '#modules/users/public_contracts/user_constants'
 
 test.group('Review formulas', () => {
   test('trust, credibility, raw score, and tier math preserve canonical weighting contracts', ({
@@ -136,9 +136,17 @@ test.group('Review formulas', () => {
       evidenceCount: 0,
       reviewerCredibilityAverage: 20,
     })
+    const noSignal = calculateSkillConfidence({
+      reviewCount: 0,
+      hasManager: false,
+      hasPeer: false,
+      evidenceCount: 0,
+      reviewerCredibilityAverage: 0,
+    })
 
     assert.isAbove(highSignal, lowSignal)
     assert.isAtMost(highSignal, 100)
+    assert.equal(noSignal, 0)
     assert.equal(
       calculatePerformanceScore({
         qualityScore: 100,

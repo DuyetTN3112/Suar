@@ -1,8 +1,9 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import ListFlaggedReviewsQuery from '#modules/admin/actions/reviews/queries/list_flagged_reviews_query'
-import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { ADMIN_PAGINATION as PAGINATION } from '#modules/admin/reviews/actions/dtos/common/admin_pagination'
+import { AdminReviewActionFactory } from '#modules/admin/reviews/actions/ports/inbound/admin_review_action_factory'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { normalizePagination,
   toCanonicalPagePagination } from '#modules/pagination/public_contracts/pagination_public_api'
 
@@ -15,7 +16,10 @@ const ADMIN_FLAGGED_REVIEWS_PER_PAGE = 50
  *
  * GET /admin/reviews
  */
+@inject()
 export default class ListFlaggedReviewsController {
+  constructor(private readonly actions: AdminReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const { inertia, request } = ctx
 
@@ -24,7 +28,7 @@ export default class ListFlaggedReviewsController {
     }
 
     const execCtx = actionContextFromHttp(ctx)
-    const query = new ListFlaggedReviewsQuery(execCtx)
+    const query = this.actions.makeListFlaggedReviewsQuery(execCtx)
     const after = toOptionalString(request.input('after', null) as unknown) ?? null
     const before = toOptionalString(request.input('before', null) as unknown) ?? null
     const pagination = normalizePagination(
