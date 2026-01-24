@@ -89,7 +89,7 @@
         { count: stats.tasks?.in_progress ?? 0 },
         ':count in progress'
       ),
-      href: FRONTEND_ROUTES.ORG_TASKS_LIST,
+      href: FRONTEND_ROUTES.ORG_PROJECTS,
       icon: ClipboardList,
     },
     {
@@ -100,7 +100,7 @@
         { count: stats.members?.under_dispute_members ?? 0 },
         ':count members with disputes'
       ),
-      href: FRONTEND_ROUTES.ORG_TASK_REVIEW_BOARD,
+      href: FRONTEND_ROUTES.ORG_PROJECTS,
       icon: ShieldCheck,
     },
   ])
@@ -131,10 +131,10 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
-          <Link href={FRONTEND_ROUTES.ORG_TASKS_BOARD}>
+          <Link href={FRONTEND_ROUTES.ORG_PROJECTS}>
             <Button variant="primary" class="gap-2">
               <ClipboardList class="h-4 w-4" />
-              {t('organization.dashboard.actions.task_board', {}, 'Task board')}
+              {t('common.navigation.project_portfolio', {}, 'Project portfolio')}
             </Button>
           </Link>
           <Link href={FRONTEND_ROUTES.ORG_SETTINGS}>
@@ -147,7 +147,10 @@
       </div>
     </section>
 
-    <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Org dashboard metrics">
+    <section
+      class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      aria-label={t('ui_misc.dashboard.org_metrics_aria', {}, 'Organization dashboard metrics')}
+    >
       {#each metricCards as metric (metric.label)}
         {@const Icon = metric.icon}
         <Link href={metric.href} class="block">

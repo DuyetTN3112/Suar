@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { router } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
 
   import { cn } from "$lib/utils-svelte"
 
@@ -9,10 +9,17 @@
     supportedLocales?: string[]
     translations?: Record<string, unknown>
   }
-  const { class: className, locale = "vi", supportedLocales = ["vi", "en"], translations: _translations }: Props = $props()
+  const { class: className, locale = "en", supportedLocales = ["en", "vi"], translations: _translations }: Props = $props()
 
   function switchLocale(loc: string) {
-    router.get(`/lang/${loc}`, {}, { preserveState: true, preserveScroll: true })
+    const currentUrl = new URL(page.url, 'http://localhost')
+    currentUrl.searchParams.set('locale', loc)
+
+    router.get(
+      `${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`,
+      {},
+      { preserveState: true, preserveScroll: true }
+    )
   }
 </script>
 

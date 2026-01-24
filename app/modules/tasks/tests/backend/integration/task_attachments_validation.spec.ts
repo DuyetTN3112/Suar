@@ -1,7 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import CreateTaskAttachmentCommand from '#modules/tasks/actions/commands/create_task_attachment_command'
 import { makeSystemTaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -28,7 +29,10 @@ test.group('Integration | Task attachments validation', (group) => {
       assigned_to: owner.id,
       title: 'Attachment validation task',
     })
-    const command = new CreateTaskAttachmentCommand(makeSystemTaskActionContext(owner.id))
+    const command = new CreateTaskAttachmentCommand(
+      makeSystemTaskActionContext(owner.id),
+      taskExternalDeps
+    )
 
     await assert.rejects(
       () =>
@@ -40,7 +44,7 @@ test.group('Integration | Task attachments validation', (group) => {
           mime_type: 'application/pdf',
           attachment_type: 'reference',
         }),
-      BusinessLogicException,
+      ValidationException,
       'Task attachment file size cannot be negative'
     )
 
@@ -54,7 +58,7 @@ test.group('Integration | Task attachments validation', (group) => {
           mime_type: 'application/pdf',
           attachment_type: 'malware' as never,
         }),
-      BusinessLogicException,
+      ValidationException,
       'Task attachment type is invalid'
     )
 

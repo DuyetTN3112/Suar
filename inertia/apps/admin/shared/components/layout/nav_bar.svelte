@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { page, router, Link } from '@inertiajs/svelte'
+  import { page, router } from '@inertiajs/svelte'
   import { Check, Earth, Laptop, Menu, Moon, Search, Sun } from 'lucide-svelte'
 
   import ConfirmDialog from '@/apps/admin/shared/components/confirm_dialog.svelte'
@@ -9,6 +9,7 @@
   import { uiToast } from '@/apps/admin/shared/lib/ui_toast'
   import { useTheme, type Theme } from '@/apps/admin/shared/stores/theme.svelte'
   import type { SharedAuthUser, SharedData } from '@/apps/admin/shared/types/shared_data'
+  import { buildSearchPageUrl } from '@/apps/shared/navigation/shell_search_links'
   import DropdownMenu from '@/apps/admin/shared/ui/dropdown_menu.svelte'
   import DropdownMenuContent from '@/apps/admin/shared/ui/dropdown_menu_content.svelte'
   import DropdownMenuItem from '@/apps/admin/shared/ui/dropdown_menu_item.svelte'
@@ -33,8 +34,10 @@
 
   function toggleLanguage() {
     const nextLocale = locale === 'vi' ? 'en' : 'vi'
-    router.visit(window.location.pathname, {
-      data: { locale: nextLocale },
+    const currentUrl = new URL(window.location.href)
+    currentUrl.searchParams.set('locale', nextLocale)
+
+    router.visit(`${currentUrl.pathname}${currentUrl.search}${currentUrl.hash}`, {
       preserveState: true,
       preserveScroll: true,
     })
@@ -43,7 +46,7 @@
   function handleSearchSubmit(e: SubmitEvent) {
     e.preventDefault()
     const value = searchValue.trim()
-    router.visit(value ? `/search?q=${encodeURIComponent(value)}` : '/search')
+    router.visit(buildSearchPageUrl('admin', value))
   }
   function setThemePreference(value: Theme) {
     setTheme(value)
@@ -138,8 +141,6 @@
         {#if userMenuOpen}
         <div class="absolute top-full right-0 mt-1 w-56 rounded-xl border border-border bg-popover text-popover-foreground shadow-suar-sm p-2 z-50">
           <strong class="block px-3 py-2 text-sm font-medium">{displayName}</strong>
-          <Link href={FRONTEND_ROUTES.PROFILE} class="block px-3 py-2 text-sm rounded-lg hover:bg-accent" onclick={() => { userMenuOpen = false }}>{t('common.profile', {}, 'Profile')}</Link>
-          <Link href={FRONTEND_ROUTES.SETTINGS_ACCOUNT} class="block px-3 py-2 text-sm rounded-lg hover:bg-accent" onclick={() => { userMenuOpen = false }}>{t('common.account_settings', {}, 'Account settings')}</Link>
           <button type="button" onclick={handleLogoutClick} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-accent">{t('common.logout', {}, 'Logout')}</button>
         </div>
         {/if}

@@ -14,7 +14,6 @@ import {
 
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import type { PatchTaskStatusBoardPocInput } from '#modules/tasks/actions/commands/patch_task_status_board_poc_command'
 import CreateTaskDTO from '#modules/tasks/actions/dtos/request/create_task_dto'
 import type { RequiredSkillInput } from '#modules/tasks/actions/dtos/request/create_task_dto_state_builder'
 import DeleteTaskDTO from '#modules/tasks/actions/dtos/request/delete_task_dto'
@@ -329,18 +328,6 @@ export function buildDeleteTaskDTO(
     reason: request.input('reason') as string | undefined,
     permanent: request.input('permanent', false) as boolean,
   }))
-}
-
-export function buildPatchTaskStatusBoardPocInput(
-  request: HttpContext['request'],
-  organizationId: string
-): PatchTaskStatusBoardPocInput {
-  return omitUndefined({
-    organizationId,
-    total: toOptionalNumericValue(request.input('total') as unknown),
-    simulateConflict: (request.input('simulateConflict') ??
-      request.input('simulate_conflict', false)) as boolean,
-  })
 }
 
 export function buildGetTaskAuditLogsInput(

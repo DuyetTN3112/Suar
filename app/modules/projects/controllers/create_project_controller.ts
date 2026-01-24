@@ -1,13 +1,17 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import GetProjectCreatePageQuery from '#modules/projects/actions/queries/get_project_create_page_query'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ProjectQueryFactory } from '#modules/projects/actions/ports/inbound/project_query_factory'
 
 /**
  * GET /projects/create → Show create project form
  */
+@inject()
 export default class CreateProjectController {
+  constructor(private readonly queries: ProjectQueryFactory) {}
+
   async handle(ctx: HttpContext) {
     const { inertia, auth } = ctx
     const user = auth.user
@@ -15,7 +19,7 @@ export default class CreateProjectController {
       throw new UnauthorizedException()
     }
 
-    const pageData = await new GetProjectCreatePageQuery(actionContextFromHttp(ctx)).execute()
+    const pageData = await this.queries.makeCreatePage(actionContextFromHttp(ctx)).execute()
 
     return inertia.render('projects/create', pageData)
   }

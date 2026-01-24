@@ -4,7 +4,6 @@
 
   import Button from '@/apps/org/shared/ui/button.svelte'
   import ProficiencyLevelBadge from '@/apps/org/modules/profile/components/proficiency_level_badge.svelte'
-  import { FRONTEND_ROUTES } from '@/apps/org/shared/constants'
   import { uiToast } from '@/apps/org/shared/lib/ui_toast'
   import { confirmDialogStore } from '@/apps/org/shared/stores/confirm_dialog_store.svelte'
   import { useTranslation } from '@/apps/org/shared/hooks/use_translation.svelte'
@@ -73,13 +72,16 @@
   const {
     projectId,
     canEdit,
-    taskLaunchBaseUrl = FRONTEND_ROUTES.TASKS,
+    taskLaunchBaseUrl,
     candidateFocusRoleId = null,
     candidateFocusKey = null,
     projectMembers = [],
   }: Props = $props()
 
   const { t } = $derived(useTranslation())
+  const taskBoardUrl = $derived(
+    taskLaunchBaseUrl ?? `/projects/${encodeURIComponent(projectId)}/tasks`
+  )
 
   let roles = $state<ProjectRole[]>([])
   let projectSkills = $state<ProjectSkill[]>([])
@@ -105,11 +107,8 @@
     const params = new URLSearchParams({
       project_id: projectId,
       roleId,
+      create: '1',
     })
-
-    if (baseUrl === taskLaunchBaseUrl) {
-      params.set('create', '1')
-    }
 
     if (inferredTaskType) {
       params.set('taskType', inferredTaskType)
@@ -366,7 +365,7 @@
                     {t('project.roles_tab.candidates', {}, 'Candidates')}
                   </Button>
                   <a
-                    href={buildRoleTaskLaunchHref(FRONTEND_ROUTES.TASKS_CREATE, role.id, role.code)}
+                    href={buildRoleTaskLaunchHref(taskBoardUrl, role.id, role.code)}
                     class="inline-flex h-7 items-center gap-1 rounded-md border border-border px-2 text-xs font-medium text-foreground hover:bg-secondary"
                   >
                     <Plus class="h-3 w-3" />

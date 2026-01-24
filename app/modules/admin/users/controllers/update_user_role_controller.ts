@@ -1,9 +1,10 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import UpdateUserSystemRoleCommand from '#modules/admin/actions/users/commands/update_user_system_role_command'
+import { AdminUserActionFactory } from '#modules/admin/users/actions/ports/inbound/admin_user_action_factory'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { ErrorMessages } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 
 const SYSTEM_ROLES = Object.values(SystemRoleName) as readonly string[]
@@ -20,7 +21,10 @@ const isSystemRole = (value: string): value is SystemRole => {
  *
  * PUT /admin/users/:id/role
  */
+@inject()
 export default class UpdateUserRoleController {
+  constructor(private readonly actions: AdminUserActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, response, params, session } = ctx
     const rawUserId: unknown = params['userId']
@@ -37,7 +41,7 @@ export default class UpdateUserRoleController {
     }
 
     const execCtx = actionContextFromHttp(ctx)
-    const command = new UpdateUserSystemRoleCommand(execCtx)
+    const command = this.actions.makeUpdateUserSystemRoleCommand(execCtx)
 
     await command.handle({
       userId: rawUserId,

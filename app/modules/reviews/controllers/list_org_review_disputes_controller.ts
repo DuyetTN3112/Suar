@@ -1,14 +1,18 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
 import { normalizePagination } from '#modules/pagination/public_contracts/pagination_public_api'
-import ListOrgReviewDisputesQuery from '#modules/reviews/actions/queries/list_org_review_disputes_query'
-import { REVIEW_PAGINATION } from '#modules/reviews/application/dtos/common/review_pagination'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 import {
   mapReviewDisputeListApiBody,
 } from '#modules/reviews/controllers/mappers/response/review_dispute_response_mapper'
+import { REVIEW_PAGINATION } from '#modules/reviews/public_contracts/review_pagination'
 
+@inject()
 export default class ListOrgReviewDisputesController {
+  constructor(private readonly queryFactory: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
     const after = ctx.request.input('after', null) as string | null
     const before = ctx.request.input('before', null) as string | null
@@ -25,7 +29,7 @@ export default class ListOrgReviewDisputesController {
       REVIEW_PAGINATION
     )
 
-    const result = await new ListOrgReviewDisputesQuery(actionContextFromHttp(ctx)).execute({
+    const result = await this.queryFactory.makeListOrgReviewDisputesQuery(actionContextFromHttp(ctx)).execute({
       page: after || before ? REVIEW_PAGINATION.DEFAULT_PAGE : pagination.page,
       perPage: pagination.perPage,
       after,

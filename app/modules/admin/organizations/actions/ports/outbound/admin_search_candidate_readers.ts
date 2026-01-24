@@ -8,8 +8,11 @@ export interface AdminUserSearchCandidate {
   score?: number
 }
 
-export interface AdminUserSearchCandidateReader {
-  searchUserCandidates(input: AdminUserSearchCandidatesInput): Promise<AdminUserSearchCandidate[]>
+export abstract class AdminUserSearchCandidateReader {
+  abstract isEnabled(): boolean
+  abstract searchUserCandidates(
+    input: AdminUserSearchCandidatesInput
+  ): Promise<AdminUserSearchCandidate[]>
 }
 
 export interface AdminOrganizationSearchCandidatesInput {
@@ -22,8 +25,9 @@ export interface AdminOrganizationSearchCandidate {
   score?: number
 }
 
-export interface AdminOrganizationSearchCandidateReader {
-  searchOrganizationCandidates(
+export abstract class AdminOrganizationSearchCandidateReader {
+  abstract isEnabled(): boolean
+  abstract searchOrganizationCandidates(
     input: AdminOrganizationSearchCandidatesInput
   ): Promise<AdminOrganizationSearchCandidate[]>
 }

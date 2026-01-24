@@ -1,18 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
-import { throwTaskRequirementBoundaryError } from '#modules/tasks/controllers/v1/support/task_requirement_api_errors'
+import { throwHttpBoundaryError } from '#modules/http/boundary/http_boundary_errors'
+import RemoveTaskRequirementCommand from '#modules/tasks/actions/commands/remove_task_requirement_command'
 
+@inject()
 export default class RemoveTaskRequirementController {
+  constructor(private readonly removeTaskRequirement: RemoveTaskRequirementCommand) {}
+
   async handle({ params, response }: HttpContext) {
     const requirementId = String(params['requirementId'])
 
     try {
-      await TaskSkillRequirementService.removeRequirement(requirementId)
+      await this.removeTaskRequirement.execute(requirementId)
       response.noContent()
       return
     } catch (err) {
-      throwTaskRequirementBoundaryError(err)
+      throwHttpBoundaryError(err)
     }
   }
 }
