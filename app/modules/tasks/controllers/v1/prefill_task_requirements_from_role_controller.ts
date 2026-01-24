@@ -1,13 +1,14 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 import vine from '@vinejs/vine'
 
-import { TaskSkillRequirementService } from '#modules/tasks/actions/services/task_skill_requirement_service'
-import { camelizeResponseValue } from '#modules/tasks/controllers/v1/support/camelize_response'
-import { readAliasedInput } from '#modules/tasks/controllers/v1/support/read_aliased_input'
+import { readAliasedInput } from '#modules/http/boundary/aliased_input'
+import { camelizeResponseValue } from '#modules/http/boundary/camelize_response'
 import {
-  throwTaskRequirementBoundaryError,
-  throwTaskRequirementValidationError,
-} from '#modules/tasks/controllers/v1/support/task_requirement_api_errors'
+  throwHttpBoundaryError,
+  throwHttpValidationError,
+} from '#modules/http/boundary/http_boundary_errors'
+import PrefillTaskRequirementsFromRoleCommand from '#modules/tasks/actions/commands/prefill_task_requirements_from_role_command'
 
 const prefillSchema = vine.create({
   projectProfessionalRoleId: vine.string().uuid(),
@@ -15,7 +16,12 @@ const prefillSchema = vine.create({
 
 type PrefillPayload = Awaited<ReturnType<typeof prefillSchema.validate>>
 
+@inject()
 export default class PrefillTaskRequirementsFromRoleController {
+  constructor(
+    private readonly prefillTaskRequirements: PrefillTaskRequirementsFromRoleCommand
+  ) {}
+
   async handle({ params, request }: HttpContext) {
     const taskId = String(params['taskId'])
 
@@ -29,17 +35,17 @@ export default class PrefillTaskRequirementsFromRoleController {
         ),
       })
     } catch (err) {
-      throwTaskRequirementValidationError(err)
+      throwHttpValidationError(err)
     }
 
     try {
-      const result = await TaskSkillRequirementService.prefillFromProjectRole(
+      const result = await this.prefillTaskRequirements.execute({
         taskId,
-        payload.projectProfessionalRoleId
-      )
+        projectProfessionalRoleId: payload.projectProfessionalRoleId,
+      })
       return { data: camelizeResponseValue(result) }
     } catch (err) {
-      throwTaskRequirementBoundaryError(err)
+      throwHttpBoundaryError(err)
     }
   }
 }

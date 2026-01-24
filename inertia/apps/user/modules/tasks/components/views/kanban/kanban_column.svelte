@@ -14,7 +14,7 @@
     tasks: TaskDetail[]
     displayProperties: TaskDisplayProperties
     metadata: {
-      statuses: { value: string; label: string; color?: string }[]
+      statuses: { value: string; label: string; color?: string; slug?: string; category?: string }[]
       labels: { value: string; label: string; color?: string }[]
       priorities: { value: string; label: string; color?: string }[]
     }
@@ -60,19 +60,19 @@
   const { t } = useTranslation()
   let isDragOver = $state(false)
 
-  const statusLaneColors: Record<string, string | undefined> = {
-    todo: '#6b7280',
-    in_progress: '#3b82f6',
-    in_review: '#f59e0b',
-    done: '#10b981',
-    cancelled: '#9ca3af',
+  const statusLaneClasses: Record<string, string | undefined> = {
+    todo: 'border-t-muted-foreground/50',
+    in_progress: 'border-t-primary',
+    in_review: 'border-t-accent-foreground/70',
+    done: 'border-t-secondary-foreground/70',
+    cancelled: 'border-t-destructive',
   }
 
-  const laneColor = $derived(
-    metadata.statuses.find((statusOption) => statusOption.value === status)?.color ??
-      statusLaneColors[status] ??
-      'var(--suar-orange)'
-  )
+  const laneClass = $derived.by(() => {
+    const statusOption = metadata.statuses.find((statusOption) => statusOption.value === status)
+    const laneKey = statusOption?.category ?? statusOption?.slug ?? status
+    return statusLaneClasses[laneKey] ?? statusLaneClasses[status] ?? 'border-t-primary'
+  })
 
   function isKanbanDebugEnabled(): boolean {
     if (import.meta.env.DEV) return true
@@ -214,11 +214,10 @@
 </script>
 
 <section
-  class={`flex min-h-[420px] w-full flex-col overflow-hidden rounded-2xl border bg-muted/30 shadow-sm ${
+  class={`flex min-h-[420px] w-full flex-col overflow-hidden rounded-2xl border border-t-4 bg-muted/30 shadow-sm ${laneClass} ${
     isDragOver ? 'border-primary bg-primary/10' : 'border-border'
   }`}
-  style={`border-top: 4px solid ${laneColor}`}
-  aria-label="{label} column"
+  aria-label={t('ui_misc.tasks.kanban.column_aria', { label }, ':label column')}
   ondragover={handleDragOver}
   ondragleave={handleDragLeave}
   ondrop={handleDrop}

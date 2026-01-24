@@ -1,29 +1,8 @@
 import db from '@adonisjs/lucid/services/db'
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
-import { loadTaskCommentMentions } from '#modules/tasks/public_contracts/task_comment_mentions'
-
-export interface ReviewRelatedTaskCommentMention {
-  userId: string
-  username: string
-  mentionToken: string
-}
-
-export interface ReviewRelatedTaskComment {
-  id: string
-  taskId: string
-  parentCommentId: string | null
-  authorId: string
-  authorUsername: string | null
-  body: string
-  commentType: string
-  visibility: string
-  reviewRelevance: boolean
-  editedAt: string | null
-  createdAt: string
-  updatedAt: string
-  mentions: ReviewRelatedTaskCommentMention[]
-}
+import type { ReviewRelatedTaskComment } from '#modules/reviews/actions/dtos/response/review_related_task_comment'
+import type { ReviewTaskCommentMentionReader } from '#modules/reviews/actions/ports/outbound/review_task_comment_mention_reader'
 
 export interface LoadReviewTaskCommentsOptions {
   scope?: 'review_relevant' | 'all'
@@ -58,6 +37,7 @@ function toIsoLike(value: string | Date | null): string | null {
 
 export async function loadReviewRelatedTaskComments(
   taskId: string | null | undefined,
+  mentionReader: ReviewTaskCommentMentionReader,
   trx?: TransactionClientContract,
   options: LoadReviewTaskCommentsOptions = {}
 ): Promise<ReviewRelatedTaskComment[]> {
@@ -86,7 +66,7 @@ export async function loadReviewRelatedTaskComments(
     return []
   }
 
-  const mentionsByCommentId = await loadTaskCommentMentions(
+  const mentionsByCommentId = await mentionReader.loadByCommentIds(
     comments.map((comment) => comment.id),
     trx
   )

@@ -2,8 +2,10 @@ import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import GetOrganizationShowPageQuery from '#modules/organizations/actions/queries/get_organization_show_page_query'
+import { makeGetOrganizationShowPageQuery } from '#composition/organization_portfolio_composition'
 import CloseProjectSprintReviewCommand from '#modules/reviews/actions/commands/close_project_sprint_review_command'
+import LucidReviewSprintPackageMutationUnitOfWork from '#modules/reviews/infra/adapters/lucid_review_sprint_package_mutation_unit_of_work'
+import { NodeReviewCryptography } from '#modules/reviews/infra/adapters/node_review_cryptography'
 import ProjectSprint from '#modules/reviews/infra/models/project_sprint'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
@@ -19,6 +21,9 @@ import {
   UserFactory,
 } from '#tests/helpers/factories'
 import { testId } from '#tests/helpers/test_utils'
+
+const reviewCryptography = new NodeReviewCryptography()
+const sprintPackageMutationUnitOfWork = new LucidReviewSprintPackageMutationUnitOfWork()
 
 async function markSprintReverseReviewWorkflowsDone(sprintId: string): Promise<void> {
   const timestamp = '2026-07-14T03:00:00.000Z'
@@ -76,7 +81,7 @@ test.group('Integration | Organization show page reviews', (group) => {
       is_anonymous: true,
     })
 
-    const query = new GetOrganizationShowPageQuery({
+    const query = makeGetOrganizationShowPageQuery({
       userId: member.id,
       organizationId: org.id,
       ip: '0.0.0.0',
@@ -153,12 +158,16 @@ test.group('Integration | Organization show page reviews', (group) => {
       assigned_by: owner.id,
       assignment_status: 'completed',
     })
-    await new CloseProjectSprintReviewCommand({
-      userId: owner.id,
-      organizationId: org.id,
-      ip: '0.0.0.0',
-      userAgent: 'test',
-    }).execute({ sprint_id: sprint.id })
+    await new CloseProjectSprintReviewCommand(
+      {
+        userId: owner.id,
+        organizationId: org.id,
+        ip: '0.0.0.0',
+        userAgent: 'test',
+      },
+      reviewCryptography,
+      sprintPackageMutationUnitOfWork
+    ).execute({ sprint_id: sprint.id })
     const packages = (await db
       .from('sprint_review_packages')
       .where('sprint_id', sprint.id)) as Array<{ id: string; reviewer_id: string }>
@@ -195,7 +204,7 @@ test.group('Integration | Organization show page reviews', (group) => {
       .json({})
     closeResponse.assertStatus(201)
 
-    const query = new GetOrganizationShowPageQuery({
+    const query = makeGetOrganizationShowPageQuery({
       userId: member.id,
       organizationId: org.id,
       ip: '0.0.0.0',

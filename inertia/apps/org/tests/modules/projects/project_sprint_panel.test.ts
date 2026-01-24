@@ -209,13 +209,13 @@ describe('ProjectSprintPanel', () => {
     await waitFor(() => expect(screen.getByText('Sprint One')).toBeInTheDocument())
     expect(screen.getByText('11-20 / 24')).toBeInTheDocument()
 
-    await fireEvent.click(screen.getByRole('button', { name: 'End sprint' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Kết thúc sprint' }))
 
     expect(mockedAxios.post.mock.calls[0]).toEqual([
       '/api/v1/projects/project-1/sprints/sprint-1/open-review',
       {},
     ])
-    await waitFor(() => expect(screen.getByText('In review')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Đang review')).toBeInTheDocument())
   })
 
   it('loads sprint board and moves tasks between backlog and selected sprint', async () => {
@@ -231,10 +231,10 @@ describe('ProjectSprintPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Backlog task')).toBeInTheDocument())
     expect(screen.getByText('Sprint task')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Backlog' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Danh sách chờ' })).toBeInTheDocument()
     expect(screen.getAllByText('Ship sprint planning without hiding review debt').length).toBeGreaterThan(0)
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Move to sprint' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Đưa vào sprint' }))
 
     expect(mockedAxios.patch.mock.calls[0]).toEqual([
       '/api/v1/projects/project-1/tasks/task-backlog/sprint',
@@ -254,10 +254,10 @@ describe('ProjectSprintPanel', () => {
 
     await waitFor(() => expect(screen.getByText('Backlog task')).toBeInTheDocument())
     expect(screen.getByText('Sprint task')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Create sprint' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo sprint' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Mở review' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Move to sprint' })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Move to backlog' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Đưa vào sprint' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Về backlog' })).not.toBeInTheDocument()
   })
 
   it('keeps sprint planning copy concise in the main workbench', async () => {
@@ -291,7 +291,7 @@ describe('ProjectSprintPanel', () => {
       },
     })
 
-    await waitFor(() => expect(screen.getByRole('heading', { name: 'Plan' })).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Kế hoạch' })).toBeInTheDocument())
     expect(screen.queryByText('Agile Scrum')).not.toBeInTheDocument()
     expect(screen.queryByText(/Tạo sprint active/)).not.toBeInTheDocument()
     expect(screen.queryByText('Sprint Backlog')).not.toBeInTheDocument()
@@ -329,20 +329,20 @@ describe('ProjectSprintPanel', () => {
       },
     })
 
-    await waitFor(() => expect(screen.getByPlaceholderText('Sprint name')).toBeInTheDocument())
-    await fireEvent.input(screen.getByPlaceholderText('Sprint name'), {
+    await waitFor(() => expect(screen.getByPlaceholderText('Tên sprint')).toBeInTheDocument())
+    await fireEvent.input(screen.getByPlaceholderText('Tên sprint'), {
       target: { value: 'Sprint Two' },
     })
-    await fireEvent.input(screen.getByPlaceholderText('Sprint goal'), {
+    await fireEvent.input(screen.getByPlaceholderText('Mục tiêu sprint'), {
       target: { value: 'Make sprint planning usable before review opens' },
     })
-    await fireEvent.input(screen.getByLabelText('Sprint start'), {
+    await fireEvent.input(screen.getByLabelText('Bắt đầu sprint'), {
       target: { value: '2026-07-16T09:00' },
     })
-    await fireEvent.input(screen.getByLabelText('Sprint end'), {
+    await fireEvent.input(screen.getByLabelText('Kết thúc sprint'), {
       target: { value: '2026-07-30T18:00' },
     })
-    await fireEvent.click(screen.getByRole('button', { name: 'Create sprint' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Tạo sprint' }))
 
     const anyString: unknown = expect.any(String)
     expect(mockedAxios.post.mock.calls[0]).toEqual([
