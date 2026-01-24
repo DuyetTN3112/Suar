@@ -8,8 +8,7 @@
  *   Write: Domain Entity → ORM Entity (partial, for create/update)
  */
 
-import type User from '../../../users/infra/models/user.js'
-
+import InvariantViolationException from '#modules/errors/public_contracts/invariant_violation_exception'
 import type { TaskEntityProps } from '#modules/tasks/domain/entities/task_entity'
 import { TaskEntity } from '#modules/tasks/domain/entities/task_entity'
 import type Task from '#modules/tasks/infra/models/task'
@@ -17,7 +16,7 @@ import type TaskApplication from '#modules/tasks/infra/models/task_application'
 import type TaskAssignment from '#modules/tasks/infra/models/task_assignment'
 import type {
   TaskApplicationRecord,
-  TaskAssignmentWithDetailsRecord,
+  TaskAssignmentWithTaskRecord,
   TaskAuditValues,
   TaskDetailRecord,
   TaskListRecord,
@@ -90,6 +89,7 @@ export class TaskInfraMapper {
       actual_time: model.actual_time,
       organization_id: model.organization_id,
       project_id: model.project_id,
+      project_sprint_id: model.project_sprint_id,
       task_visibility: model.task_visibility,
       application_deadline: serializeDateTime(model.application_deadline),
       task_type: model.task_type,
@@ -128,8 +128,6 @@ export class TaskInfraMapper {
 
   static toApplicationRecord(model: TaskApplication): TaskApplicationRecord {
     const task = model.$preloaded['task'] as Task | undefined
-    const applicant = model.$preloaded['applicant'] as User | undefined
-    const reviewer = model.$preloaded['reviewer'] as User | undefined
 
     const record: TaskApplicationRecord = {
       id: model.id,
@@ -143,26 +141,19 @@ export class TaskInfraMapper {
       reviewed_by: model.reviewed_by,
       reviewed_at: serializeDateTime(model.reviewed_at),
       rejection_reason: model.rejection_reason,
-      reviewer: reviewer ? this.toUserSummaryRecord(reviewer) : null,
+      reviewer: null,
     }
 
     if (task !== undefined) {
       record.task = this.toDetailRecord(task)
     }
-    if (applicant !== undefined) {
-      record.applicant = this.toUserSummaryRecord(applicant)
-    }
-
     return record
   }
 
-  static toAssignmentWithDetailsRecord(
-    model: TaskAssignment
-  ): TaskAssignmentWithDetailsRecord {
+  static toAssignmentWithTaskRecord(model: TaskAssignment): TaskAssignmentWithTaskRecord {
     const task = model.$preloaded['task'] as Task | undefined
-    const assignee = model.$preloaded['assignee'] as User | undefined
-    if (!task || !assignee) {
-      throw new Error('Task assignment details must be preloaded before mapping')
+    if (!task) {
+      throw new InvariantViolationException('Task assignment task must be preloaded before mapping')
     }
 
     return {
@@ -173,19 +164,6 @@ export class TaskInfraMapper {
       assignment_type: model.assignment_type,
       assignment_status: model.assignment_status,
       task: this.toRecord(task),
-      assignee: {
-        id: assignee.id,
-        username: assignee.username,
-      },
-    }
-  }
-
-  private static toUserSummaryRecord(model: User): Record<string, unknown> {
-    return {
-      id: model.id,
-      username: model.username,
-      email: model.email,
-      avatar_url: model.avatar_url,
     }
   }
 

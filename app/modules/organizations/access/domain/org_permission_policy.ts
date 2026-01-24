@@ -15,13 +15,12 @@ import type {
   OrgMemberAddContext,
   OrgJoinRequestProcessContext,
   OrgJoinRequestEligibility,
-  OrgRole,
 } from './org_types.js'
 import { isOrgAdminOrAbove, isOrgOwner, toOrgRole } from './org_types.js'
 
 import type { PolicyResult } from '#modules/authorization/public_contracts/policy_result'
 import { PolicyResult as PR } from '#modules/authorization/public_contracts/policy_result'
-import { OrganizationRole } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationRole } from '#modules/organizations/access/public_contracts/organization_constants'
 
 const isSameId = (a: string, b: string): boolean => a === b
 
@@ -93,16 +92,24 @@ export function canRemoveMember(ctx: OrgMemberRemovalContext): PolicyResult {
  *
  * Rules:
  * 1. Actor must be org owner
- * 2. Cannot delete org with active projects
+ * 2. Soft delete requires every active project to be archived/deleted
+ * 3. Permanent delete requires every retained project record to be purged first
  */
 export function canDeleteOrganization(ctx: OrgDeletionContext): PolicyResult {
   if (!isOrgOwner(toOrgRole(ctx.actorOrgRole))) {
     return PR.deny('Chỉ chủ sở hữu tổ chức mới có thể xóa tổ chức')
   }
 
-  if (ctx.activeProjectCount > 0) {
+  if (ctx.blockingProjectCount > 0) {
+    if (ctx.deletionType === 'permanent') {
+      return PR.deny(
+        `Không thể xóa vĩnh viễn tổ chức còn ${ctx.blockingProjectCount} bản ghi dự án. Hãy purge toàn bộ dữ liệu dự án trước.`,
+        'BUSINESS_RULE'
+      )
+    }
+
     return PR.deny(
-      `Không thể xóa tổ chức có ${ctx.activeProjectCount} dự án đang hoạt động. Hãy lưu trữ hoặc xóa tất cả dự án trước.`,
+      `Không thể xóa tổ chức có ${ctx.blockingProjectCount} dự án đang hoạt động. Hãy lưu trữ hoặc xóa tất cả dự án trước.`,
       'BUSINESS_RULE'
     )
   }
@@ -290,23 +297,4 @@ export function checkJoinEligibility(membershipStatus: string | null): {
     eligible: false,
     message: 'Trạng thái không xác định. Vui lòng liên hệ quản trị viên.',
   }
-}
-
-/**
- * Check whether an org role can access the organization admin shell.
- */
-export function canAccessOrganizationAdminShell(actorOrgRole: OrgRole | null): PolicyResult {
-  if (isOrgAdminOrAbove(actorOrgRole)) {
-    return PR.allow()
-  }
-
-  return PR.deny('Bạn không có quyền truy cập khu vực quản trị tổ chức')
-}
-
-export function canAccessOrganizationOwnerControls(actorOrgRole: OrgRole | null): PolicyResult {
-  if (isOrgOwner(actorOrgRole)) {
-    return PR.allow()
-  }
-
-  return PR.deny('Chỉ chủ sở hữu tổ chức mới có thể truy cập khu vực này')
 }

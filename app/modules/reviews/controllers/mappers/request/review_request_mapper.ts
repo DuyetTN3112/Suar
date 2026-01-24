@@ -35,7 +35,7 @@ import {
   FlaggedReviewStatus,
   ReverseReviewTargetType,
   ReviewerType,
-} from '#modules/reviews/constants/review_constants'
+} from '#modules/reviews/public_contracts/review_constants'
 
 interface PendingReviewsInput {
   page: number
@@ -84,6 +84,16 @@ function readAliasedRatingValue(rating: Record<string, unknown>, ...keys: string
     }
   }
   return undefined
+}
+
+function readOptionalStrictStringArray(value: unknown): string[] {
+  if (value === undefined || value === null) {
+    return []
+  }
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throwInvalidInput()
+  }
+  return value as string[]
 }
 
 export function buildCreateReviewSessionDTO(
@@ -151,6 +161,12 @@ export function buildSubmitSkillReviewDTO(
       'levelCode'
     )
     const confidence = record['confidence']
+    const observableBehaviors = readOptionalStrictStringArray(
+      readAliasedRatingValue(record, 'observableBehaviors', 'observable_behaviors')
+    )
+    const evidenceIds = readOptionalStrictStringArray(
+      readAliasedRatingValue(record, 'evidenceIds', 'evidence_ids')
+    )
 
     if (typeof skillId !== 'string' || typeof levelCode !== 'string') {
       throwInvalidInput()
@@ -183,22 +199,8 @@ export function buildSubmitSkillReviewDTO(
       ),
       confidence: normalizedConfidence,
       rationale: toOptionalString(record['rationale']),
-      observable_behaviors: Array.isArray(
-        readAliasedRatingValue(record, 'observableBehaviors', 'observable_behaviors')
-      )
-        ? (
-            readAliasedRatingValue(
-              record,
-              'observableBehaviors',
-              'observable_behaviors'
-            ) as unknown[]
-          ).filter((item): item is string => typeof item === 'string')
-        : [],
-      evidence_ids: Array.isArray(readAliasedRatingValue(record, 'evidenceIds', 'evidence_ids'))
-        ? (readAliasedRatingValue(record, 'evidenceIds', 'evidence_ids') as unknown[]).filter(
-            (item): item is string => typeof item === 'string'
-          )
-        : [],
+      observable_behaviors: observableBehaviors,
+      evidence_ids: evidenceIds,
     })
   })
 

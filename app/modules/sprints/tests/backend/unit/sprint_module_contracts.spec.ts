@@ -1,20 +1,13 @@
 import { test } from '@japa/runner'
 
 import {
-  makeCreateProjectSprintCommand,
-  makeMoveTaskToSprintCommand,
-  makeUpdateProjectSprintCommand,
-} from '#modules/sprints/bootstrap/sprint_action_factory'
-import {
-  makeGetProjectSprintQuery,
-  makeGetSprintBoardQuery,
-  makeListProjectSprintsQuery,
-} from '#modules/sprints/bootstrap/sprint_query_factory'
+  sprintCommandFactory,
+  sprintQueryFactory,
+} from '#composition/sprint_application_composition'
 import { mapSprintListApiBody } from '#modules/sprints/controllers/mappers/sprint_response_mapper'
-import { SprintPublicApi, sprintPublicApi } from '#modules/sprints/public_contracts/sprint_public_api'
 
 test.group('Sprint module contracts', () => {
-  test('bootstrap factories expose sprint application actions', ({ assert }) => {
+  test('application factories expose sprint actions without module bootstrap', ({ assert }) => {
     const ctx = {
       userId: 'user-1',
       organizationId: 'org-1',
@@ -22,22 +15,12 @@ test.group('Sprint module contracts', () => {
       userAgent: 'sprint-module-contract-test',
     }
 
-    assert.equal(typeof makeMoveTaskToSprintCommand(ctx).execute, 'function')
-    assert.equal(typeof makeCreateProjectSprintCommand(ctx).execute, 'function')
-    assert.equal(typeof makeUpdateProjectSprintCommand(ctx).execute, 'function')
-    assert.equal(typeof makeGetSprintBoardQuery(ctx).handle, 'function')
-    assert.equal(typeof makeListProjectSprintsQuery(ctx).handle, 'function')
-    assert.equal(typeof makeGetProjectSprintQuery(ctx).handle, 'function')
-  })
-
-  test('public contract exports stable sprint API singleton and class', ({ assert }) => {
-    assert.instanceOf(sprintPublicApi, SprintPublicApi)
-    assert.equal(typeof sprintPublicApi.createProjectSprint, 'function')
-    assert.equal(typeof sprintPublicApi.listProjectSprints, 'function')
-    assert.equal(typeof sprintPublicApi.getProjectSprint, 'function')
-    assert.equal(typeof sprintPublicApi.updateProjectSprint, 'function')
-    assert.equal(typeof sprintPublicApi.getSprintBoard, 'function')
-    assert.equal(typeof sprintPublicApi.moveTaskToSprint, 'function')
+    assert.equal(typeof sprintCommandFactory.makeMoveTask(ctx).execute, 'function')
+    assert.equal(typeof sprintCommandFactory.makeCreate(ctx).execute, 'function')
+    assert.equal(typeof sprintCommandFactory.makeUpdate(ctx).execute, 'function')
+    assert.equal(typeof sprintQueryFactory.makeBoard(ctx).handle, 'function')
+    assert.equal(typeof sprintQueryFactory.makeList(ctx).handle, 'function')
+    assert.equal(typeof sprintQueryFactory.makeDetail(ctx).handle, 'function')
   })
 
   test('response mapper camelizes keys without erasing Date values', ({ assert }) => {

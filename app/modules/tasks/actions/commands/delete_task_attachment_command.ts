@@ -1,11 +1,9 @@
-import db from '@adonisjs/lucid/services/db'
-import { DateTime } from 'luxon'
-
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
+} from '#modules/tasks/actions/services/task_completion_access_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface DeleteTaskAttachmentDTO {
@@ -13,24 +11,28 @@ export interface DeleteTaskAttachmentDTO {
 }
 
 export default class DeleteTaskAttachmentCommand {
-  constructor(private execCtx: TaskActionContext) {}
+  constructor(
+    private execCtx: TaskActionContext,
+    private readonly dependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: DeleteTaskAttachmentDTO): Promise<void> {
-    const attachment = (await db
-      .from('task_attachments')
-      .where('id', dto.attachment_id)
-      .whereNull('deleted_at')
-      .first()) as { task_id: string; uploaded_by: string } | undefined
+    const attachment = await this.dependencies.completion.findAttachment(dto.attachment_id)
     if (!attachment) {
       throw new NotFoundException('Task attachment not found')
     }
 
-    const task = await loadTaskForCompletionPackage(attachment.task_id)
-    await assertTaskCompletionPackageAccess(this.execCtx, task, [attachment.uploaded_by])
+    const task = await loadTaskForCompletionPackage(
+      attachment.task_id,
+      this.dependencies.completion
+    )
+    await assertTaskCompletionPackageAccess(
+      this.execCtx,
+      task,
+      [attachment.uploaded_by],
+      this.dependencies.org
+    )
 
-    await db
-      .from('task_attachments')
-      .where('id', dto.attachment_id)
-      .update({ deleted_at: DateTime.now().toSQL() })
+    await this.dependencies.completion.softDeleteAttachment(dto.attachment_id, new Date())
   }
 }

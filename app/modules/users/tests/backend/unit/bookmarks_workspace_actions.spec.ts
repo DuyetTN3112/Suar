@@ -1,6 +1,42 @@
 import { test } from '@japa/runner'
 
+import { userRecruiterBookmarkActionFactory } from '#composition/user_action_factory'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
+
 test.group('Bookmarks Workspace Actions', () => {
+  test('bookmark commands classify an invalid rating as validation before database work', async ({
+    assert,
+  }) => {
+    const context = makeSystemUserActionContext('11111111-1111-4111-8111-111111111111')
+    const commands = [
+      () =>
+        userRecruiterBookmarkActionFactory.makeCreate(context).handle({
+          talent_user_id: '22222222-2222-4222-8222-222222222222',
+          rating: 0,
+        }),
+      () =>
+        userRecruiterBookmarkActionFactory.makeUpdate(context).handle({
+          id: '33333333-3333-4333-8333-333333333333',
+          rating: 6,
+        }),
+    ]
+
+    for (const execute of commands) {
+      let caught: unknown
+      try {
+        await execute()
+      } catch (error) {
+        caught = error
+      }
+      assert.instanceOf(caught, ValidationException)
+      assert.equal((caught as ValidationException).status, 422)
+      assert.deepEqual((caught as ValidationException).errors, {
+        rating: 'Rating must be between 1 and 5',
+      })
+    }
+  })
+
   test('recruiter can edit own bookmark', ({ assert }) => {
     const canEdit = (ownerId: string, userId: string) => ownerId === userId
     assert.isTrue(canEdit('user-1', 'user-1'))
