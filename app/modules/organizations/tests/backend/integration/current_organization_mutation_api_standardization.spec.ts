@@ -1,10 +1,10 @@
 import { test } from '@japa/runner'
 
-import OrganizationUser from '#modules/organizations/infra/models/organization_user'
 import {
   OrganizationRole,
   OrganizationUserStatus,
-} from '#modules/organizations/public_contracts/organization_constants'
+} from '#modules/organizations/access/public_contracts/organization_constants'
+import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
 import Project from '#modules/projects/infra/models/project'
 import TaskStatus from '#modules/tasks/infra/models/task_status'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -262,6 +262,69 @@ test.group('Integration | Current organization mutation API standardization', (g
       .firstOrFail()
 
     assert.equal(membership.status, OrganizationUserStatus.APPROVED)
+  })
+
+  test('bulk add members JSON path returns 204 and adds every selected user', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const first = await UserFactory.create({ email: 'org-bulk-add-1@example.com' })
+    const second = await UserFactory.create({ email: 'org-bulk-add-2@example.com' })
+
+    const response = await client
+      .post('/org/members/add')
+      .loginAs(owner)
+      .header('accept', 'application/json')
+      .json({
+        userIds: [first.id, second.id],
+      })
+
+    response.assertStatus(204)
+
+    const memberships = await OrganizationUser.query()
+      .where('organization_id', org.id)
+      .whereIn('user_id', [first.id, second.id])
+      .orderBy('user_id', 'asc')
+
+    assert.lengthOf(memberships, 2)
+    assert.sameDeepMembers(
+      memberships.map((membership) => ({
+        userId: membership.user_id,
+        status: membership.status,
+        invitedBy: membership.invited_by,
+      })),
+      [
+        { userId: first.id, status: OrganizationUserStatus.APPROVED, invitedBy: owner.id },
+        { userId: second.id, status: OrganizationUserStatus.APPROVED, invitedBy: owner.id },
+      ]
+    )
+  })
+
+  test('canonical v1 bulk add members JSON path preserves 204 contract', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const first = await UserFactory.create({ email: 'org-bulk-add-v1-1@example.com' })
+
+    const response = await client
+      .post('/api/v1/me/organizations/current/members/add')
+      .loginAs(owner)
+      .json({
+        userIds: [first.id],
+      })
+
+    response.assertStatus(204)
+
+    const membership = await OrganizationUser.query()
+      .where('organization_id', org.id)
+      .where('user_id', first.id)
+      .first()
+
+    assert.isNotNull(membership)
+    assert.equal(membership?.status, OrganizationUserStatus.APPROVED)
+    assert.equal(membership?.invited_by, owner.id)
   })
 
   test('update roles JSON path returns 204 without legacy success envelope', async ({
