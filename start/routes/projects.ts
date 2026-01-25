@@ -36,6 +36,11 @@ const MoveTaskToSprintController = () =>
   import('#modules/sprints/controllers/move_task_to_sprint_controller')
 const GetSprintBoardController = () =>
   import('#modules/sprints/controllers/get_sprint_board_controller')
+const ListTasksController = () => import('#modules/tasks/controllers/list_tasks_controller')
+const ShowTaskReviewBoardController = () =>
+  import('#modules/reviews/controllers/show_task_review_board_controller')
+const ShowSprintReverseReviewBoardController = () =>
+  import('#modules/reviews/controllers/show_sprint_reverse_review_board_controller')
 
 // Nhóm routes cho dự án, yêu cầu đăng nhập và có tổ chức hiện tại
 router
@@ -46,13 +51,39 @@ router
     router
       .post('/switch-project', [SwitchProjectApiController, 'handle'])
       .as('projects.switch')
-      .use([middleware.bindHttpTransport('api-compat')])
+      .use([
+        middleware.bindHttpTransport('api-compat'),
+        middleware.requireProjectWorkspace(),
+      ])
     // Form tạo dự án mới
     router.get('/projects/create', [CreateProjectController, 'handle']).as('projects.create')
     // Lưu dự án mới
     router.post('/projects', [CreateProjectWithStaffingController, 'handle']).as('projects.store')
+    // Canonical project workspace boards
+    router
+      .get('/projects/:projectId/tasks', [ListTasksController, 'handle'])
+      .as('projects.tasks.board')
+      .use([middleware.requireProjectWorkspace()])
+    router
+      .get('/projects/:projectId/reviews/tasks', [ShowTaskReviewBoardController, 'handle'])
+      .as('projects.reviews.tasks.board')
+    router
+      .get('/projects/:projectId/reviews/assigners', [
+        ShowSprintReverseReviewBoardController,
+        'handle',
+      ])
+      .as('projects.reviews.assigners.board')
+    router
+      .get('/projects/:projectId/reviews/environment', [
+        ShowSprintReverseReviewBoardController,
+        'handle',
+      ])
+      .as('projects.reviews.environment.board')
     // Xem chi tiết dự án
-    router.get('/projects/:projectId', [ShowProjectController, 'handle']).as('projects.show')
+    router
+      .get('/projects/:projectId', [ShowProjectController, 'handle'])
+      .as('projects.show')
+      .use([middleware.requireProjectWorkspace()])
     // Xóa dự án
     router.delete('/projects/:projectId', [DeleteProjectController, 'handle']).as('projects.destroy')
     // Thêm thành viên vào dự án
@@ -83,6 +114,7 @@ router
     middleware.bindApiAuthContract('bearer-or-session'),
     middleware.auth(),
     middleware.requireOrg(),
+    middleware.requireProjectWorkspace(),
   ])
 
 router

@@ -1,33 +1,16 @@
 import { test } from '@japa/runner'
 
-import { searchConfig } from '#config/search'
-import ListProjectsQuery from '#modules/organizations/actions/current/projects/queries/list_projects_query'
-import OrganizationProjectRepository from '#modules/organizations/infra/current/repositories/organization_project_repository'
+import ListProjectsQuery from '#modules/organizations/projects/actions/query/list_projects_query'
 
-test.group('Unit | Organization Current Projects List Query', (group) => {
-  group.each.setup(() => {
-    searchConfig.enabled = true
-  })
-
-  test('uses engine project ids and clears SQL search when engine returns hits', async ({
+test.group('Unit | Organization Current Projects List Query', () => {
+  test('passes the organization-owned request to the project capability', async ({
     assert,
   }) => {
     const calls: string[] = []
-    const projectRepo = Object.assign(new OrganizationProjectRepository(), {
-      listProjects: (
-        organizationId: string,
-        filters: { search?: string; status?: string; projectIds?: string[] },
-        page: number,
-        perPage: number
-      ) => {
-        calls.push(`repo:list:${JSON.stringify({ organizationId, filters, page, perPage })}`)
+    const projects: ConstructorParameters<typeof ListProjectsQuery>[1] = {
+      list: (input) => {
+        calls.push(`capability:list:${JSON.stringify(input)}`)
         return Promise.resolve({ projects: [], total: 0 })
-      },
-    }) as ConstructorParameters<typeof ListProjectsQuery>[1]
-    const searchReader: ConstructorParameters<typeof ListProjectsQuery>[2] = {
-      searchProjectCandidates: ({ q, limit }: { q: string; limit: number }) => {
-        calls.push(`engine:${q}:${limit}`)
-        return Promise.resolve([{ projectId: 'project-2' }, { projectId: 'project-1' }])
       },
     }
 
@@ -38,8 +21,7 @@ test.group('Unit | Organization Current Projects List Query', (group) => {
         ip: '0.0.0.0',
         userAgent: 'system',
       },
-      projectRepo,
-      searchReader
+      projects
     )
 
     await query.handle({
@@ -50,8 +32,7 @@ test.group('Unit | Organization Current Projects List Query', (group) => {
     })
 
     assert.deepEqual(calls, [
-      'engine:search:15',
-      'repo:list:{"organizationId":"organization-1","filters":{"status":"active","projectIds":["project-2","project-1"]},"page":3,"perPage":5}',
+      'capability:list:{"organizationId":"organization-1","actorId":"owner-user","page":3,"perPage":5,"search":"search","status":"active"}',
     ])
   })
 })

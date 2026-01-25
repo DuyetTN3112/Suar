@@ -1,8 +1,29 @@
-import type {
-  AuditActionContext,
-  AuthenticatedAuditActionContext,
-} from '#modules/audit/actions/audit_action_context'
-import { makeSystemAuditActionContext } from '#modules/audit/actions/audit_action_context'
+export interface AuditActionContext {
+  readonly userId: string | null
+  readonly ip: string
+  readonly userAgent: string
+  readonly organizationId: string | null
+  readonly actorRoleSurface?: string | null
+  readonly requestId?: string | null
+  readonly traceId?: string | null
+  readonly workflowId?: string | null
+}
 
-export type { AuditActionContext, AuthenticatedAuditActionContext }
-export { makeSystemAuditActionContext }
+export interface AuthenticatedAuditActionContext extends AuditActionContext {
+  readonly userId: string
+}
+
+export function makeSystemAuditActionContext(
+  systemUserId: string
+): AuthenticatedAuditActionContext {
+  return {
+    userId: systemUserId,
+    ip: '0.0.0.0',
+    userAgent: 'system',
+    organizationId: null,
+    actorRoleSurface: null,
+    requestId: null,
+    traceId: null,
+    workflowId: null,
+  }
+}

@@ -81,6 +81,16 @@
   const { task, metadata, permissions }: Props = $props()
   
   const { t } = useTranslation()
+  const taskVisibilityOptions = ['internal', 'external', 'all'] as const
+
+  type TaskTaxonomyGroup = 'task_type' | 'business_domain' | 'problem_category' | 'role_in_task'
+
+  function taxonomyLabel(
+    group: TaskTaxonomyGroup,
+    option: { value: string; label: string }
+  ): string {
+    return t(`task.taxonomy.${group}.${option.value}`, {}, option.label)
+  }
 
   const buildInitialFormData = (): TaskEditFormData => ({
     title: task.title,
@@ -226,8 +236,22 @@
             <p class="mt-2 text-sm text-foreground">{t('task.edit.organization_scope_label', {}, 'Organization-level public/private access is not configured. Tasks are always created inside the current organization.')}</p>
           </div>
           <div class="rounded-2xl border border-border bg-background/80 p-3">
-            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('task.edit.task_access', {}, 'Task access')}</p>
-            <p class="mt-2 text-sm text-foreground">{taskVisibilityLabel(formData.task_visibility)}</p>
+            <Label for="task_visibility" class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('task.edit.task_access', {}, 'Task access')}
+            </Label>
+            <select
+              id="task_visibility"
+              name="task_visibility"
+              class="mt-2 h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={formData.task_visibility}
+              onchange={(event: Event) => {
+                handleSelectChange('task_visibility', (event.target as HTMLSelectElement).value)
+              }}
+            >
+              {#each taskVisibilityOptions as option (option)}
+                <option value={option}>{taskVisibilityLabel(option)}</option>
+              {/each}
+            </select>
           </div>
           <div class="rounded-2xl border border-border bg-background/80 p-3">
             <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t('task.edit.assignee', {}, 'Assignee')}</p>
@@ -357,7 +381,7 @@
                     }}
                   >
                     {#each TASK_TYPE_OPTIONS as option (option.value)}
-                      <option value={option.value}>{option.label}</option>
+                      <option value={option.value}>{taxonomyLabel('task_type', option)}</option>
                     {/each}
                   </select>
                 </div>
@@ -448,7 +472,7 @@
                   >
                     <option value="">{t('task.edit.no_selection', {}, 'No selection')}</option>
                     {#each ROLE_IN_TASK_OPTIONS as option (option.value)}
-                      <option value={option.value}>{option.label}</option>
+                      <option value={option.value}>{taxonomyLabel('role_in_task', option)}</option>
                     {/each}
                   </select>
                 </div>
@@ -469,7 +493,7 @@
                   >
                     <option value="">{t('task.edit.no_selection', {}, 'No selection')}</option>
                     {#each PROBLEM_CATEGORY_OPTIONS as option (option.value)}
-                      <option value={option.value}>{option.label}</option>
+                      <option value={option.value}>{taxonomyLabel('problem_category', option)}</option>
                     {/each}
                   </select>
                 </div>
@@ -489,7 +513,7 @@
                   >
                     <option value="">{t('task.edit.no_selection', {}, 'No selection')}</option>
                     {#each BUSINESS_DOMAIN_OPTIONS as option (option.value)}
-                      <option value={option.value}>{option.label}</option>
+                      <option value={option.value}>{taxonomyLabel('business_domain', option)}</option>
                     {/each}
                   </select>
                 </div>
