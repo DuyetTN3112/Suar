@@ -1,13 +1,12 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import ProjectsIndexPage from '@/apps/org/modules/projects/index.svelte'
 
-
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -26,8 +25,6 @@ vi.mock('@inertiajs/svelte', () => ({
     reload: vi.fn(),
   },
 }))
-
-import ProjectsIndexPage from '@/apps/org/modules/projects/index.svelte'
 
 describe('ProjectsIndexPage', () => {
   it('preserves project filters in pagination links', () => {
@@ -68,7 +65,7 @@ describe('ProjectsIndexPage', () => {
       },
     })
 
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/projects?search=apollo&page=1'
     )

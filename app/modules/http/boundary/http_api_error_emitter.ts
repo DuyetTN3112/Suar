@@ -1,6 +1,9 @@
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { createApiV1ProblemDetails } from '../../../contracts/api/v1/errors.js'
+import {
+  createApiV1ProblemDetails,
+  type ApiV1ProblemCategory,
+} from '../../../contracts/api/v1/errors.js'
 
 import type { HttpTransportKind } from './http_transport.js'
 
@@ -11,15 +14,14 @@ interface EmitApiErrorInput {
   status: number
   code: string
   detail: string
+  category?: ApiV1ProblemCategory
+  retryable?: boolean
   errors?: Record<string, string>
   redirectTo?: string
   includeLegacyMeta?: boolean
 }
 
-export function emitApiError(
-  ctx: HttpContext,
-  input: EmitApiErrorInput
-): void {
+export function emitApiError(ctx: HttpContext, input: EmitApiErrorInput): void {
   if (input.transport === 'api-canonical') {
     ctx.response
       .status(input.status)
@@ -29,6 +31,8 @@ export function emitApiError(
           status: input.status,
           code: input.code,
           detail: input.detail,
+          ...(input.category !== undefined ? { category: input.category } : {}),
+          ...(input.retryable !== undefined ? { retryable: input.retryable } : {}),
           requestId: ctx.requestContext.requestId,
           correlationId: ctx.requestContext.correlationId,
           ...(input.errors !== undefined ? { errors: input.errors } : {}),

@@ -282,6 +282,9 @@ export async function seedReviewData(
         disputed_dimensions: runtime.toJson(['code_quality_score', 'overall_quality_score']),
         disputed_skill_reviews: runtime.toJson([]),
         reported_to_admin_at: runtime.isoDaysAgo(1),
+        reported_to_admin_by: assignment.assigneeId,
+        escalation_reason:
+          'Điểm đánh giá chưa phản ánh đầy đủ các chứng cứ đã liên kết; cần hội đồng xem xét cả rubric và trao đổi hai phía.',
         created_at: runtime.isoDaysAgo(2),
         updated_at: runtime.isoDaysAgo(1),
       }
@@ -295,13 +298,19 @@ export async function seedReviewData(
           .insert({ id: disputeId, ...disputeWhere, ...disputePayload })
 
         // Create comments
+        const counterpartyKey = runtime.requireValue(
+          spec.skills.find(
+            (skillReview) => users[skillReview.reviewer].id !== assignment.assigneeId
+          )?.reviewer,
+          `dispute-counterparty:${spec.key}`
+        )
         const comments = [
           {
             author_id: assignment.assigneeId,
             body: 'Tôi không đồng ý với mức đánh giá này vì các yêu cầu chưa rõ ràng từ đầu.',
           },
           {
-            author_id: users.orgAdmin.id,
+            author_id: users[counterpartyKey].id,
             body: 'Các tiêu chí đã được thảo luận trong buổi kickoff. Tuy nhiên chúng tôi sẽ xem xét lại.',
           },
         ]
@@ -337,8 +346,8 @@ export async function seedReviewData(
       reviewed_by: isReviewedScenario ? users.superadmin.id : null,
       reviewed_at: isReviewedScenario ? runtime.isoDaysAgo(0) : null,
       notes: isReviewedScenario
-        ? 'Moderated review case already resolved by the platform administrator.'
-        : 'Flagged review awaiting moderation due to rubric variance.',
+        ? 'Vụ việc đã được quản trị viên nền tảng kiểm duyệt và xử lý xong.'
+        : 'Đánh giá bị gắn cờ đang chờ kiểm duyệt do chênh lệch so với rubric.',
       created_at: runtime.isoDaysAgo(1),
       updated_at: runtime.isoDaysAgo(1),
     }
