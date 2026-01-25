@@ -1,19 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapPendingApprovalUsersApiBody } from './mappers/response/user_response_mapper.js'
-import { requireSystemUserAdminAccess } from './support/system_user_admin_access.js'
 
-import GetPendingApprovalUsersQuery from '#modules/users/actions/queries/get_pending_approval_users_query'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { UserAdministrationQueryFactory } from '#modules/users/actions/ports/inbound/user_administration_query_factory'
 
 /**
  * GET /api/users/pending-approval → JSON list of pending approval users
  */
+@inject()
 export default class PendingApprovalUsersApiController {
-  async handle(ctx: HttpContext) {
-    const accessContext = await requireSystemUserAdminAccess(ctx)
+  constructor(private readonly administrationQueries: UserAdministrationQueryFactory) {}
 
-    const query = new GetPendingApprovalUsersQuery()
-    const formattedUsers = await query.getList(accessContext.organizationId)
+  async handle(ctx: HttpContext) {
+    const formattedUsers = await this.administrationQueries
+      .makePendingApprovals(actionContextFromHttp(ctx))
+      .getList()
 
     return mapPendingApprovalUsersApiBody(formattedUsers)
   }

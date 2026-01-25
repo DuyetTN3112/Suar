@@ -1,6 +1,6 @@
 import { test } from '@japa/runner'
 
-import { buildCurrentOrganizationTasksIndexPageInput } from '#modules/organizations/controllers/current/tasks/mappers/request/current_task_request_mapper'
+import { buildCurrentOrganizationTasksIndexPageInput } from '#modules/organizations/tasks/controllers/mappers/request/current_task_request_mapper'
 
 function fakeRequest(body: Record<string, unknown>) {
   return {
@@ -19,7 +19,6 @@ test.group('Current task request mapper', () => {
         status: 'status-1',
         priority: 'high',
       }) as never,
-      'org-1',
       20
     )
 
@@ -28,12 +27,6 @@ test.group('Current task request mapper', () => {
       limit: 100,
       task_status_id: ['status-1'],
       priority: ['high'],
-      label: undefined,
-      assigned_to: undefined,
-      parent_task_id: undefined,
-      requested_project_id: undefined,
-      search: undefined,
-      organization_id: 'org-1',
       sort_by: 'due_date',
       sort_order: 'asc',
     })
@@ -49,7 +42,6 @@ test.group('Current task request mapper', () => {
         sortBy: 'updated_at',
         sortOrder: 'desc',
       }) as never,
-      'org-1',
       20
     )
 
@@ -57,13 +49,9 @@ test.group('Current task request mapper', () => {
       page: 1,
       limit: 20,
       task_status_id: ['status-2'],
-      priority: undefined,
-      label: undefined,
       assigned_to: ['user-1'],
       parent_task_id: null,
       requested_project_id: 'project-1',
-      search: undefined,
-      organization_id: 'org-1',
       sort_by: 'updated_at',
       sort_order: 'desc',
     })

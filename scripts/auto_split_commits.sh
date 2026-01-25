@@ -162,13 +162,8 @@ if (( ${#g9d[@]} > 0 )); then
   commit_group "refactor(users): clean up remaining module files" "${g9d[@]}"
 fi
 
-# ─── GROUP 10: user_activity & settings & skills ───
-echo "[10/17] user_activity / settings / skills..."
-mapfile -t g10a < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/user_activity/")
-if (( ${#g10a[@]} > 0 )); then
-  commit_group "refactor(user-activity): align activity repository layer" "${g10a[@]}"
-fi
-
+# ─── GROUP 10: settings & skills ───
+echo "[10/17] settings / skills..."
 mapfile -t g10b < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/settings/")
 if (( ${#g10b[@]} > 0 )); then
   commit_group "refactor(settings): extract settings command handlers" "${g10b[@]}"
@@ -254,17 +249,17 @@ fi
 
 # ─── GROUP 15: Organizations ───
 echo "[15/17] Organizations module..."
-mapfile -t g15a < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/actions/")
+mapfile -t g15a < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/[^/]+/actions/")
 if (( ${#g15a[@]} > 0 )); then
   commit_group "refactor(org): restructure organization action handlers" "${g15a[@]}"
 fi
 
-mapfile -t g15b < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/infra/")
+mapfile -t g15b < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/[^/]+/infra/")
 if (( ${#g15b[@]} > 0 )); then
   commit_group "refactor(org): realign organization infra repositories" "${g15b[@]}"
 fi
 
-mapfile -t g15c < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/controllers/")
+mapfile -t g15c < <(git status --short | grep -v "^??" | awk '{print $2}' | grep -E "app/modules/organizations/[^/]+/controllers/")
 if (( ${#g15c[@]} > 0 )); then
   commit_group "refactor(org): normalize organization controller layer" "${g15c[@]}"
 fi

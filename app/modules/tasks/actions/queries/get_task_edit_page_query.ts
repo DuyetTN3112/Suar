@@ -5,7 +5,9 @@ import GetTaskDetailQuery from './get_task_detail_query.js'
 import GetTaskMetadataQuery from './get_task_metadata_query.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/task_external_dependencies'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
+import type { TaskReadRepository } from '#modules/tasks/actions/ports/outbound/task_read_repository'
+import type { TaskStatusQueryRepositoryPort } from '#modules/tasks/actions/ports/outbound/task_status_query_repository_port'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canAccessTaskEditPage } from '#modules/tasks/domain/task_permission_policy'
 
@@ -37,7 +39,9 @@ export interface TaskEditPageResult {
 export default class GetTaskEditPageQuery {
   constructor(
     protected execCtx: TaskActionContext,
-    private taskExternalDependencies: TaskExternalDependencies
+    private taskExternalDependencies: TaskExternalDependencies,
+    private readonly taskReadRepository: Pick<TaskReadRepository, 'findRootTaskOptions'>,
+    private readonly taskStatusRepository: Pick<TaskStatusQueryRepositoryPort, 'findByOrganization'>
   ) {}
 
   async execute(taskId: string, organizationId: string): Promise<TaskEditPageResult> {
@@ -45,7 +49,12 @@ export default class GetTaskEditPageQuery {
 
     const [taskData, metadata] = await Promise.all([
       new GetTaskDetailQuery(this.execCtx, this.taskExternalDependencies).execute(dto),
-      new GetTaskMetadataQuery(this.execCtx, this.taskExternalDependencies).execute(organizationId),
+      new GetTaskMetadataQuery(
+        this.execCtx,
+        this.taskExternalDependencies,
+        this.taskReadRepository,
+        this.taskStatusRepository
+      ).execute(organizationId),
     ])
 
     enforcePolicy(canAccessTaskEditPage({ canEdit: taskData.permissions.canEdit }))

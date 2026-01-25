@@ -1,6 +1,6 @@
 import { auditRepositoryProvider } from '../repositories/audit_repository_provider.js'
 
-import loggerService from '#modules/logger/public_contracts/logger_service'
+import loggerService from '#modules/logger/public_contracts/application_logger'
 
 interface AuditLogCreateData {
   user_id?: string | null
@@ -52,9 +52,7 @@ class AuditLogQueryBuilder implements PromiseLike<AuditLogQueryRecord[]> {
   }
 
   then<TResult1 = AuditLogQueryRecord[], TResult2 = never>(
-    onfulfilled?:
-      | ((value: AuditLogQueryRecord[]) => TResult1 | PromiseLike<TResult1>)
-      | null,
+    onfulfilled?: ((value: AuditLogQueryRecord[]) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
   ): PromiseLike<TResult1 | TResult2> {
     return this.exec().then(onfulfilled, onrejected)
@@ -79,9 +77,9 @@ async function createAuditLog(data: AuditLogCreateData): Promise<unknown> {
     loggerService.warn('[AuditLog] Failed to create audit log', {
       action: data.action,
       entity_type: data.entity_type,
-      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'UnknownError',
     })
-    return null
+    throw error
   }
 }
 
@@ -105,9 +103,9 @@ async function findAuditLogs(filter: AuditLogFilterData): Promise<unknown[]> {
     return data
   } catch (error) {
     loggerService.warn('[AuditLog] Failed to query audit logs', {
-      error: error instanceof Error ? error.message : String(error),
+      errorName: error instanceof Error ? error.name : 'UnknownError',
     })
-    return []
+    throw error
   }
 }
 

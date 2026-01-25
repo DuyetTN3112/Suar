@@ -1,13 +1,12 @@
-/* eslint-disable import-x/order */
 import { render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
-import LayoutStub from '../../shared/test_stubs/layout_stub.svelte'
+import OrgBookmarksPage from '@/apps/org/modules/bookmarks/index.svelte'
 
-
-vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', () => ({
-  default: LayoutStub,
-}))
+vi.mock('@/apps/org/shared/layouts/organization_layout.svelte', async () => {
+  const stubModule = await import('../../shared/test_stubs/layout_stub.svelte')
+  return { default: stubModule.default }
+})
 
 vi.mock('@inertiajs/svelte', () => ({
   page: {
@@ -32,8 +31,6 @@ vi.mock('@/apps/org/shared/stores/notification_store.svelte', () => ({
     success: vi.fn(),
   },
 }))
-
-import OrgBookmarksPage from '@/apps/org/modules/bookmarks/index.svelte'
 
 describe('OrgBookmarksPage', () => {
   it('uses unified pagination and preserves bookmark filters', () => {
@@ -83,7 +80,7 @@ describe('OrgBookmarksPage', () => {
       'href',
       '/org/talents/talent-1'
     )
-    expect(screen.getByRole('link', { name: /previous page/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /trang trước/i })).toHaveAttribute(
       'href',
       '/org/bookmarks?q=duyet&folder=Backend&page=1'
     )

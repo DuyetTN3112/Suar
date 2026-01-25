@@ -1,3 +1,4 @@
+import router from '@adonisjs/core/services/router'
 import { test } from '@japa/runner'
 
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -29,6 +30,20 @@ test.group('Contract | POST /org/projects', (group) => {
   })
   group.teardown(() => teardownApp())
   group.each.teardown(() => cleanupTestData())
+
+  test('resolves the create page instead of treating create as a project UUID', ({
+    assert,
+  }) => {
+    const matchedRoute = router.match('/org/projects/create', 'GET', true)
+    const matchedDetailRoute = router.match(
+      '/org/projects/00000000-0000-4000-8000-000000000000',
+      'GET',
+      true
+    )
+
+    assert.equal(matchedRoute?.route.name, 'org.projects.create')
+    assert.equal(matchedDetailRoute?.route.name, 'org.projects.show')
+  })
 
   test('creates project with each valid status and returns serialized payload', async ({
     assert,

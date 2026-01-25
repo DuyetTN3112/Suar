@@ -1,14 +1,21 @@
+import type { TalentSearchDocumentReader } from '#modules/search/actions/ports/outbound/talent_search_document_reader'
 import type { TalentSearchDocument } from '#modules/search/domain/talent_search_document'
-import type { TalentSearchDocumentReader } from '#modules/users/application/ports/talent_search_document_reader'
-import { talentSearchDocumentReader as defaultTalentSearchDocumentReader } from '#modules/users/public_contracts/user_search_indexing'
 
 export class TalentSearchDocumentBuilder {
   constructor(
-    private readonly talentSearchDocumentReader: TalentSearchDocumentReader = defaultTalentSearchDocumentReader
+    private readonly talentSearchDocumentReader: TalentSearchDocumentReader
   ) {}
 
-  async build(userId: string): Promise<TalentSearchDocument> {
+  async build(
+    userId: string,
+    signal?: AbortSignal
+  ): Promise<TalentSearchDocument | null> {
+    signal?.throwIfAborted()
     const user = await this.talentSearchDocumentReader.findTalentSearchDocumentRecord(userId)
+    signal?.throwIfAborted()
+    if (!user) {
+      return null
+    }
 
     return {
       user_id: user.userId,

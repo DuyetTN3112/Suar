@@ -1,23 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapTaskStatusDefinitionApiBody } from '../mappers/response/task_status_response_mapper.js'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { requireCurrentOrganizationId } from '#modules/http/public_contracts/http_execution_context'
-import { taskStatusQueryRepository } from '#modules/tasks/infra/repositories/read/task_status_query_repository'
+import { requireCurrentOrganizationId } from '#modules/http/boundary/http_execution_context'
+import GetTaskStatusQuery from '#modules/tasks/actions/queries/get_task_status_query'
 
+@inject()
 export default class ShowTaskStatusController {
+  constructor(private readonly getStatus: GetTaskStatusQuery) {}
+
   async handle(ctx: HttpContext) {
     const organizationId = requireCurrentOrganizationId(ctx)
 
-    const status = await taskStatusQueryRepository.findByIdAndOrgActive(
+    const status = await this.getStatus.execute(
       ctx.params['taskStatusId'] as string,
       organizationId
     )
-
-    if (!status) {
-      throw NotFoundException.resource('Task status', ctx.params['taskStatusId'] as string)
-    }
 
     return mapTaskStatusDefinitionApiBody(status)
   }

@@ -11,7 +11,6 @@
   import { formatDateTime } from '@/apps/user/modules/tasks/utils/task_formatter.svelte'
 
   type AuditLogEntry = TaskShowProps['auditLogs'][number]
-  type AuditLogChange = AuditLogEntry['changes'][string]
 
   interface Props {
     auditLogs: AuditLogEntry[]
@@ -36,21 +35,21 @@
           <div class="flex flex-col gap-1">
             <div class="flex flex-wrap items-center gap-2">
               <span class="font-bold text-sm">
-                {log.user?.username ?? t('common.system', {}, 'System')}
+                {log.user?.name?.trim() || t('common.system', {}, 'System')}
               </span>
               <Badge variant="outline" class="text-xs">{log.action}</Badge>
               <span class="text-xs text-muted-foreground">
-                {formatDateTime(log.created_at)}
+                {formatDateTime(log.timestamp) || '-'}
               </span>
             </div>
-            {#if Object.keys(log.changes).length > 0}
+            {#if log.changes.length > 0}
               <div class="mt-1 space-y-1">
-                {#each Object.entries(log.changes) as [field, change]}
+                {#each log.changes as change}
                   <div class="text-xs text-muted-foreground">
-                    <span class="font-bold">{field}:</span>
-                    <span class="line-through text-destructive">{formatAuditChangeValue((change as AuditLogChange).old)}</span>
+                    <span class="font-bold">{change.field}:</span>
+                    <span class="line-through text-destructive">{formatAuditChangeValue(change.oldValue)}</span>
                     →
-                    <span class="font-bold text-foreground">{formatAuditChangeValue((change as AuditLogChange).new)}</span>
+                    <span class="font-bold text-foreground">{formatAuditChangeValue(change.newValue)}</span>
                   </div>
                 {/each}
               </div>

@@ -1,21 +1,26 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapTaskSortOrderApiBody } from './mappers/response/task_response_mapper.js'
 
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import loggerService from '#modules/logger/public_contracts/logger_service'
-import { makeUpdateTaskSortOrderCommand } from '#modules/tasks/bootstrap/task_action_factory'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import loggerService from '#modules/logger/public_contracts/application_logger'
+import { TaskStatusWorkflowCommandFactory } from '#modules/tasks/actions/ports/inbound/task_status_workflow_command_factory'
 
 /**
  * PATCH /api/tasks/:taskId/sort-order
  * Update task sort order (drag & drop reorder)
  */
+@inject()
 export default class UpdateTaskSortOrderController {
+  constructor(private readonly statusCommands: TaskStatusWorkflowCommandFactory) {}
+
   async handle(ctx: HttpContext) {
     const { request, params } = ctx
     const taskIdRaw: unknown = params['taskId']
     if (typeof taskIdRaw !== 'string' || taskIdRaw.length === 0) {
-      throw new Error('Invalid task id')
+      throw ValidationException.field('taskId', 'Invalid task id')
     }
 
     const payload = request.only([
@@ -48,7 +53,7 @@ export default class UpdateTaskSortOrderController {
     })
 
     const execCtx = actionContextFromHttp(ctx)
-    const command = makeUpdateTaskSortOrderCommand(execCtx)
+    const command = this.statusCommands.makeUpdateSortOrder(execCtx)
     const task = await command.execute(taskIdRaw, sortOrder, taskStatusId)
 
     loggerService.info('[UpdateTaskSortOrderController] request completed', {
