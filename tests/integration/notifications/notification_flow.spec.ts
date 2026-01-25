@@ -1,9 +1,9 @@
 import { test } from '@japa/runner'
 
-import CreateNotification from '#actions/common/create_notification'
 import DeleteNotification from '#actions/notifications/delete_notification'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
 import MarkNotificationAsRead from '#actions/notifications/mark_notification_as_read'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import { BACKEND_NOTIFICATION_TYPES } from '#constants/notification_constants'
 import NotFoundException from '#exceptions/not_found_exception'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
@@ -31,7 +31,7 @@ test.group('Integration | Notification Flow', (group) => {
   test('creates and reads notifications from the active repository storage', async ({ assert }) => {
     const user = await UserFactory.create({ username: 'notification_reader' })
 
-    const created = await new CreateNotification().handle({
+    const created = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'Task assigned',
       message: 'You have a new task to review',
@@ -60,7 +60,7 @@ test.group('Integration | Notification Flow', (group) => {
   }) => {
     const user = await UserFactory.create({ username: 'notification_owner' })
 
-    const created = await new CreateNotification().handle({
+    const created = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'Join request approved',
       message: 'Your request was approved',
@@ -89,7 +89,7 @@ test.group('Integration | Notification Flow', (group) => {
     const owner = await UserFactory.create({ username: 'notification_real_owner' })
     const outsider = await UserFactory.create({ username: 'notification_outsider' })
 
-    const created = await new CreateNotification().handle({
+    const created = await notificationPublicApi.handle({
       user_id: owner.id,
       title: 'Review updated',
       message: 'A review session has changed',
@@ -117,7 +117,7 @@ test.group('Integration | Notification Flow', (group) => {
   }) => {
     const user = await UserFactory.create({ username: 'notification_delete_owner' })
 
-    const created = await new CreateNotification().handle({
+    const created = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'System notice',
       message: 'This will be deleted',
@@ -145,19 +145,19 @@ test.group('Integration | Notification Flow', (group) => {
   }) => {
     const user = await UserFactory.create({ username: 'notification_pagination_owner' })
 
-    const first = await new CreateNotification().handle({
+    const first = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'First',
       message: 'First notification',
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
-    const second = await new CreateNotification().handle({
+    const second = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'Second',
       message: 'Second notification',
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
-    const third = await new CreateNotification().handle({
+    const third = await notificationPublicApi.handle({
       user_id: user.id,
       title: 'Third',
       message: 'Third notification',
@@ -193,23 +193,25 @@ test.group('Integration | Notification Flow', (group) => {
     assert.deepEqual(new Set(paginatedIds), new Set(ids))
   })
 
-  test('markAllAsRead and deleteAllRead affect only current user notifications', async ({ assert }) => {
+  test('markAllAsRead and deleteAllRead affect only current user notifications', async ({
+    assert,
+  }) => {
     const owner = await UserFactory.create({ username: 'notification_bulk_owner' })
     const outsider = await UserFactory.create({ username: 'notification_bulk_outsider' })
 
-    await new CreateNotification().handle({
+    await notificationPublicApi.handle({
       user_id: owner.id,
       title: 'Owner A',
       message: 'Unread owner notification A',
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
-    await new CreateNotification().handle({
+    await notificationPublicApi.handle({
       user_id: owner.id,
       title: 'Owner B',
       message: 'Unread owner notification B',
       type: BACKEND_NOTIFICATION_TYPES.INFO,
     })
-    await new CreateNotification().handle({
+    await notificationPublicApi.handle({
       user_id: outsider.id,
       title: 'Outsider',
       message: 'Should remain untouched',
@@ -219,16 +221,20 @@ test.group('Integration | Notification Flow', (group) => {
     const ownerMarkAll = new MarkNotificationAsRead(ExecutionContext.system(owner.id))
     await ownerMarkAll.markAllAsRead()
 
-    const ownerAfterMark = await new GetUserNotifications(ExecutionContext.system(owner.id)).handle({
-      page: 1,
-      limit: 20,
-    })
+    const ownerAfterMark = await new GetUserNotifications(ExecutionContext.system(owner.id)).handle(
+      {
+        page: 1,
+        limit: 20,
+      }
+    )
     assert.equal(ownerAfterMark.unread_count, 0)
 
     const ownerDeleteAllRead = new DeleteNotification(ExecutionContext.system(owner.id))
     await ownerDeleteAllRead.deleteAllRead()
 
-    const ownerAfterDelete = await new GetUserNotifications(ExecutionContext.system(owner.id)).handle({
+    const ownerAfterDelete = await new GetUserNotifications(
+      ExecutionContext.system(owner.id)
+    ).handle({
       page: 1,
       limit: 20,
     })
