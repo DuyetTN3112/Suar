@@ -118,10 +118,17 @@ test.group('Integration | Marketplace module routes', (group) => {
       org_role: 'org_member',
       status: 'approved',
     })
+    const project = await ProjectFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      owner_id: owner.id,
+      name: 'Marketplace projection project',
+    })
 
     const visibleTask = await TaskFactory.create({
       organization_id: org.id,
       creator_id: owner.id,
+      project_id: project.id,
       title: 'Marketplace owned task',
       description: 'Visible through marketplace module route',
       task_visibility: 'external',
@@ -141,7 +148,19 @@ test.group('Integration | Marketplace module routes', (group) => {
     response.assertStatus(200)
 
     const body = response.body() as {
-      data: Array<{ id: string; title: string; can_review_applications?: boolean }>
+      data: Array<{
+        id: string
+        title: string
+        can_review_applications?: boolean
+        creator?: Record<string, unknown> | null
+        project?: {
+          id?: string
+          name?: string
+          owner_id?: string | null
+          owner?: Record<string, unknown> | null
+        } | null
+        organization?: Record<string, unknown> | null
+      }>
       pagination: { page: number; perPage: number; total: number }
     }
 
@@ -149,6 +168,31 @@ test.group('Integration | Marketplace module routes', (group) => {
     const visibleTaskBody = body.data.find((task) => task.id === visibleTask.id)
     assert.exists(visibleTaskBody)
     assert.isFalse(visibleTaskBody?.can_review_applications ?? true)
+    assert.deepInclude(visibleTaskBody?.creator ?? {}, {
+      id: owner.id,
+      username: owner.username,
+    })
+    assert.notProperty(visibleTaskBody?.creator ?? {}, 'email')
+    assert.notProperty(visibleTaskBody?.creator ?? {}, 'avatar_url')
+    assert.deepInclude(visibleTaskBody?.project ?? {}, {
+      id: project.id,
+      name: project.name,
+      owner_id: owner.id,
+    })
+    assert.deepInclude(visibleTaskBody?.project?.owner ?? {}, {
+      id: owner.id,
+      username: owner.username,
+    })
+    assert.notProperty(visibleTaskBody?.project?.owner ?? {}, 'email')
+    assert.notProperty(visibleTaskBody?.project?.owner ?? {}, 'avatar_url')
+    assert.deepInclude(visibleTaskBody?.organization ?? {}, {
+      id: org.id,
+      name: org.name,
+      logo: org.logo ?? null,
+    })
+    assert.notProperty(visibleTaskBody?.organization ?? {}, 'owner_id')
+    assert.notProperty(visibleTaskBody?.organization ?? {}, 'custom_roles')
+    assert.notProperty(visibleTaskBody?.organization ?? {}, 'partner_verification_proof')
     assert.notExists(body.data.find((task) => task.title === 'Marketplace hidden internal task'))
     assert.deepInclude(body.pagination, { page: 1, perPage: 20, total: 1 })
   })
@@ -687,7 +731,10 @@ test.group('Integration | Marketplace module routes', (group) => {
       .loginAs(viewer)
     response.assertStatus(200)
 
-    const body = response.body() as { data: Array<{ id: string }>; pagination: { total: number } }
+    const body = response.body() as {
+      data: Array<{ id: string; required_skills_rel?: Array<Record<string, unknown>> }>
+      pagination: { total: number }
+    }
 
     assert.equal(body.pagination.total, 1)
     assert.equal(body.data[0]?.id, matchingTask.id)
@@ -714,6 +761,11 @@ test.group('Integration | Marketplace module routes', (group) => {
       skill_name: 'Marketplace Soft Skill',
       category_code: 'soft_skill',
     })
+    const inactiveTechnologySkill = await SkillFactory.create({
+      skill_name: 'Historical Marketplace Technology Skill',
+      category_code: 'technology',
+      is_active: false,
+    })
 
     const matchingTask = await TaskFactory.create({
       organization_id: org.id,
@@ -726,6 +778,13 @@ test.group('Integration | Marketplace module routes', (group) => {
       organization_id: org.id,
       creator_id: owner.id,
       title: 'Soft skill category marketplace task',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    const historicalMatchingTask = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Historical technology category marketplace task',
       task_visibility: 'external',
       assigned_to: null,
     })
@@ -768,6 +827,25 @@ test.group('Integration | Marketplace module routes', (group) => {
         source_project_professional_role_id: null,
         source_role_skill_id: null,
       },
+      {
+        id: testId(),
+        task_id: historicalMatchingTask.id,
+        skill_id: inactiveTechnologySkill.id,
+        required_public_proficiency_code: 'l5',
+        is_mandatory: true,
+        importance: 'high',
+        weight: 1,
+        requirement_source: 'manual',
+        requirement_notes: null,
+        proficiency_level_id: null,
+        minimum_level_id: null,
+        target_level_id: null,
+        assessment_ceiling_level_id: null,
+        project_skill_id: null,
+        rubric_version_id: null,
+        source_project_professional_role_id: null,
+        source_role_skill_id: null,
+      },
     ])
 
     const response = await client
@@ -775,11 +853,49 @@ test.group('Integration | Marketplace module routes', (group) => {
       .loginAs(viewer)
     response.assertStatus(200)
 
-    const body = response.body() as { data: Array<{ id: string }>; pagination: { total: number } }
+    const body = response.body() as {
+      data: Array<{ id: string; required_skills_rel?: Array<Record<string, unknown>> }>
+      pagination: { total: number }
+    }
 
-    assert.equal(body.pagination.total, 1)
-    assert.equal(body.data[0]?.id, matchingTask.id)
+    assert.equal(body.pagination.total, 2)
+    assert.include(
+      body.data.map((task) => task.id),
+      matchingTask.id
+    )
+    assert.include(
+      body.data.map((task) => task.id),
+      historicalMatchingTask.id
+    )
     assert.notExists(body.data.find((task) => task.id === nonMatchingTask.id))
+    const matchingRequirement = body.data
+      .find((task) => task.id === matchingTask.id)
+      ?.required_skills_rel?.[0]
+    assert.deepInclude(matchingRequirement, {
+      task_id: matchingTask.id,
+      skill_id: technologySkill.id,
+      minimum_level: null,
+      target_level: null,
+      assessment_ceiling_level: null,
+    })
+    assert.deepInclude(matchingRequirement?.['skill'], {
+      id: technologySkill.id,
+      skill_name: 'Marketplace Technology Skill',
+      category_code: 'technology',
+    })
+    assert.notProperty(matchingRequirement ?? {}, 'projectSkill')
+    assert.notProperty(matchingRequirement ?? {}, 'rubricVersion')
+
+    const unknownCategoryResponse = await client
+      .get('/api/v1/marketplace/tasks?skill_categories=not-a-real-category')
+      .loginAs(viewer)
+    unknownCategoryResponse.assertStatus(200)
+    const unknownCategoryBody = unknownCategoryResponse.body() as {
+      data: Array<{ id: string }>
+      pagination: { total: number }
+    }
+    assert.equal(unknownCategoryBody.pagination.total, 0)
+    assert.isEmpty(unknownCategoryBody.data)
   })
 
   test('marketplace apply API stores applications in task_applications during phase 1', async ({
@@ -1151,6 +1267,97 @@ test.group('Integration | Marketplace module routes', (group) => {
     const response = await client.get(`/tasks/${task.id}/applications`).loginAs(manager)
 
     response.assertStatus(200)
+  })
+
+  test('organization applications inbox stays org-scoped and hides applicant-private data', async ({
+    assert,
+    client,
+  }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const { org: otherOrg, owner: otherOwner } = await OrganizationFactory.createWithOwner()
+    const member = await UserFactory.create({ current_organization_id: org.id })
+    const applicant = await UserFactory.create({
+      username: 'private-candidate',
+      email: 'private-candidate@example.com',
+    })
+    const otherApplicant = await UserFactory.create({
+      username: 'other-private-candidate',
+      email: 'other-private-candidate@example.com',
+    })
+    await OrganizationUserFactory.create({
+      organization_id: org.id,
+      user_id: member.id,
+      org_role: 'org_member',
+      status: 'approved',
+    })
+    const task = await TaskFactory.create({
+      organization_id: org.id,
+      creator_id: owner.id,
+      title: 'Org scoped inbox task',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    const otherTask = await TaskFactory.create({
+      organization_id: otherOrg.id,
+      creator_id: otherOwner.id,
+      title: 'Other org hidden inbox task',
+      task_visibility: 'external',
+      assigned_to: null,
+    })
+    await TaskApplication.create({
+      task_id: task.id,
+      applicant_id: applicant.id,
+      application_status: 'pending',
+      application_source: 'public_listing',
+      message: 'Private message for org scoped inbox',
+      portfolio_links: ['https://portfolio.example.com/private'],
+      applied_at: DateTime.fromISO('2026-04-08T08:00:00.000Z'),
+    })
+    await TaskApplication.create({
+      task_id: otherTask.id,
+      applicant_id: otherApplicant.id,
+      application_status: 'pending',
+      application_source: 'public_listing',
+      message: 'Other org private message',
+      portfolio_links: ['https://portfolio.example.com/other-private'],
+      applied_at: DateTime.fromISO('2026-04-09T09:00:00.000Z'),
+    })
+
+    const response = await client
+      .get('/org/applications')
+      .loginAs(owner)
+      .header('X-Inertia', 'true')
+      .header('X-Inertia-Version', '1')
+
+    response.assertStatus(200)
+    const page = response.body() as {
+      component: string
+      props: {
+        applications: Record<string, unknown>[]
+      }
+    }
+    assert.equal(page.component, 'applications/index')
+    assert.lengthOf(page.props.applications, 1)
+    assert.deepInclude(page.props.applications[0] ?? {}, {
+      task_id: task.id,
+      pending_count: 1,
+      total_count: 1,
+    })
+
+    const serializedPage = JSON.stringify(page)
+    assert.include(serializedPage, 'Org scoped inbox task')
+    assert.notInclude(serializedPage, 'Other org hidden inbox task')
+    assert.notInclude(serializedPage, 'private-candidate')
+    assert.notInclude(serializedPage, 'private-candidate@example.com')
+    assert.notInclude(serializedPage, 'Private message for org scoped inbox')
+    assert.notInclude(serializedPage, 'https://portfolio.example.com/private')
+
+    const memberResponse = await client
+      .get('/org/applications')
+      .loginAs(member)
+      .header('X-Inertia', 'true')
+      .header('X-Inertia-Version', '1')
+    memberResponse.assertStatus(403)
   })
 
   test('marketplace review APIs allow org admins for tasks in their organization', async ({
