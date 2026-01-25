@@ -1,11 +1,9 @@
-import crypto from 'node:crypto'
-
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
+import type { AiDisputeUnitOfWork } from '#modules/reviews/actions/ports/outbound/ai_dispute_unit_of_work'
+import type { ReviewCryptography } from '#modules/reviews/actions/ports/outbound/review_cryptography'
 
 export interface ProcessAiDisputeCallbackDTO {
   evaluation_id: string
@@ -107,6 +105,11 @@ function numberField(value: unknown): number | null {
 }
 
 export default class ProcessAiDisputeCallbackCommand {
+  constructor(
+    private readonly cryptography: ReviewCryptography,
+    private readonly disputes: AiDisputeUnitOfWork
+  ) {}
+
   async execute(dto: ProcessAiDisputeCallbackDTO): Promise<ProcessCallbackResult> {
     const secret = process.env['AI_CALLBACK_SECRET']
     if (!secret) {
@@ -122,57 +125,47 @@ export default class ProcessAiDisputeCallbackCommand {
     }
 
     // Verify signature
-    const expectedSignature = crypto
-      .createHmac('sha256', secret)
-      .update(`${dto.timestamp}:${dto.evaluation_id}:${dto.status}`)
-      .digest('hex')
-
-    // Constant-time comparison to prevent timing attacks
-    const expectedBuffer = Buffer.from(expectedSignature, 'utf8')
-    const actualBuffer = Buffer.from(dto.signature, 'utf8')
     if (
-      expectedBuffer.length !== actualBuffer.length ||
-      !crypto.timingSafeEqual(expectedBuffer, actualBuffer)
+      !this.cryptography.verifyHmac(
+        secret,
+        `${dto.timestamp}:${dto.evaluation_id}:${dto.status}`,
+        dto.signature
+      )
     ) {
       throw new UnauthorizedException('Callback signature mismatch')
     }
 
-    const trx = await db.transaction()
-
-    try {
-      const evaluation = (await trx
-        .from('ai_dispute_evaluations')
-        .where('id', dto.evaluation_id)
-        .forUpdate()
-        .first()) as
-        | {
-            id: string
-            status: string
-            dispute_id: string
-            case_file_id: string | null
-            source_type: string | null
-            source_id: string | null
-          }
-        | undefined
-
+    return this.disputes.run(async (session) => {
+      const evaluation = await session.loadEvaluation(dto.evaluation_id)
       if (!evaluation) {
         throw new NotFoundException('AI evaluation not found')
       }
 
       if (
         (hasIdentifier(dto.review_dispute_id) &&
-          dto.review_dispute_id.trim() !== evaluation.dispute_id) ||
+          dto.review_dispute_id.trim() !== evaluation.disputeId) ||
         (hasIdentifier(dto.case_file_id) &&
-          evaluation.case_file_id !== null &&
-          dto.case_file_id.trim() !== evaluation.case_file_id) ||
+          evaluation.caseFileId !== null &&
+          dto.case_file_id.trim() !== evaluation.caseFileId) ||
         (hasIdentifier(dto.source_id) &&
-          dto.source_id.trim() !== (evaluation.source_id ?? evaluation.dispute_id))
+          dto.source_id.trim() !== (evaluation.sourceId ?? evaluation.disputeId))
       ) {
         throw new UnauthorizedException('Callback identifier mismatch')
       }
 
       if (evaluation.status !== 'queued' && evaluation.status !== 'processing') {
-        throw new BusinessLogicException('AI evaluation already completed')
+        if (evaluation.status === dto.status) {
+          return {
+            id: evaluation.id,
+            dispute_id: evaluation.disputeId,
+            status: evaluation.status,
+          }
+        }
+
+        throw new ConflictException('AI evaluation is already terminal with a different status', {
+          currentStatus: evaluation.status,
+          callbackStatus: dto.status,
+        })
       }
 
       const responsePayload = normalizeResponsePayload(dto.response_payload)
@@ -193,93 +186,31 @@ export default class ProcessAiDisputeCallbackCommand {
         stringField(verdict['summary']) ??
         stringField(verdict['rationale'])
 
-      // Update evaluation
-      await trx
-        .from('ai_dispute_evaluations')
-        .where('id', dto.evaluation_id)
-        .update({
-          status: dto.status,
-          recommendation: recommendation ?? null,
-          confidence_score: confidenceScore ?? null,
-          summary: summary ?? null,
-          response_payload: JSON.stringify(responsePayload),
-          error_message: dto.error_message ?? null,
-          completed_at: db.raw('NOW()'),
-        })
+      await session.updateEvaluation(dto.evaluation_id, {
+        status: dto.status,
+        recommendation: recommendation ?? null,
+        confidenceScore: confidenceScore ?? null,
+        summary: summary ?? null,
+        responsePayload,
+        errorMessage: dto.error_message ?? null,
+      })
 
-      const sourceType = evaluation.source_type ?? 'review_dispute'
-      const sourceId = evaluation.source_id ?? evaluation.dispute_id
-      if (sourceType === 'sprint_review_dispute') {
-        const dispute = (await trx.from('sprint_review_disputes').where('id', sourceId).first()) as
-          | { id: string; status: string }
-          | undefined
-
-        if (dispute?.status === 'ai_reviewing') {
-          await trx
-            .from('sprint_review_disputes')
-            .where('id', dispute.id)
-            .update({
-              status: 'admin_reviewing',
-              updated_at: db.raw('NOW()'),
-            })
-        }
-      } else if (sourceType === 'sprint_reverse_review_workflow') {
-        const workflow = (await trx
-          .from('sprint_reverse_review_workflows')
-          .where('id', sourceId)
-          .first()) as { id: string; status: string } | undefined
-
-        if (workflow?.status === 'ai_reviewing') {
-          await trx
-            .from('sprint_reverse_review_workflows')
-            .where('id', workflow.id)
-            .update({
-              status: 'reported',
-              updated_at: db.raw('NOW()'),
-            })
-        }
-      } else if (sourceType === 'task_review_workflow') {
-        const workflow = (await trx
-          .from('task_review_workflows')
-          .where('id', sourceId)
-          .first()) as { id: string; status: string } | undefined
-
-        if (workflow?.status === 'ai_reviewing') {
-          await trx
-            .from('task_review_workflows')
-            .where('id', workflow.id)
-            .update({
-              status: 'reported',
-              updated_at: db.raw('NOW()'),
-            })
-        }
-      } else {
-        // Also optionally transition dispute status if needed
-        const dispute = (await trx
-          .from('review_disputes')
-          .where('id', evaluation.dispute_id)
-          .first()) as { id: string; status: string } | undefined
-
-        if (dispute?.status === 'ai_reviewing') {
-          await trx
-            .from('review_disputes')
-            .where('id', dispute.id)
-            .update({
-              status: 'admin_reviewing',
-              updated_at: db.raw('NOW()'),
-            })
-        }
+      const sourceType = evaluation.sourceType ?? 'review_dispute'
+      const sourceId = evaluation.sourceId ?? evaluation.disputeId
+      const sourceStatus = await session.loadSourceStatus(sourceType, sourceId)
+      if (sourceStatus === 'ai_reviewing') {
+        const nextStatus =
+          sourceType === 'sprint_reverse_review_workflow' || sourceType === 'task_review_workflow'
+            ? 'reported'
+            : 'admin_reviewing'
+        await session.transitionSourceStatus(sourceType, sourceId, 'ai_reviewing', nextStatus)
       }
 
-      await trx.commit()
       return {
         id: evaluation.id,
-        dispute_id: evaluation.dispute_id,
+        dispute_id: evaluation.disputeId,
         status: dto.status,
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 }

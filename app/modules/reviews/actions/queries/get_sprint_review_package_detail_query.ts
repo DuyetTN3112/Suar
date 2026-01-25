@@ -1,8 +1,12 @@
-import db from '@adonisjs/lucid/services/db'
-
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type {
+  ReviewSprintEnvironmentReviewSource,
+  ReviewSprintManagerReviewSource,
+  ReviewSprintPackageDetailSource,
+  ReviewSprintPackageReader,
+} from '#modules/reviews/actions/ports/outbound/review_sprint_package_reader'
 import type { ReviewActionContext } from '#modules/reviews/actions/review_action_context'
 import { resolveEligibleManagerTargets } from '#modules/reviews/domain/sprint_review_rules'
 
@@ -24,27 +28,9 @@ export interface SprintReviewPackageDetail {
   dispute: SprintReviewPackageDispute | null
 }
 
-interface SubmittedManagerReview {
-  id: string
-  target_user_id: string
-  target_role: string
-  rating: number
-  dimensions: unknown
-  comment: string | null
-  is_anonymous_to_target: boolean
-  created_at: string
-}
+type SubmittedManagerReview = ReviewSprintManagerReviewSource
 
-interface SubmittedEnvironmentReview {
-  id: string
-  target_type: string
-  target_id: string
-  rating: number
-  dimensions: unknown
-  comment: string | null
-  is_anonymous_publicly: boolean
-  created_at: string
-}
+type SubmittedEnvironmentReview = ReviewSprintEnvironmentReviewSource
 
 interface SprintReviewPackageDispute {
   id: string
@@ -62,22 +48,11 @@ interface SprintReviewPackageDispute {
   }>
 }
 
-interface PackageDetailRow {
-  id: string
-  sprint_id: string
-  reviewer_id: string
-  status: string
-  sprint_name: string
-  project_id: string
-  project_name: string
-  organization_id: string
-  organization_name: string
-  owner_id: string | null
-  manager_id: string | null
-}
-
 export default class GetSprintReviewPackageDetailQuery {
-  constructor(private readonly execCtx: ReviewActionContext) {}
+  constructor(
+    private readonly execCtx: ReviewActionContext,
+    private readonly packages: ReviewSprintPackageReader
+  ) {}
 
   async handle(packageId: string): Promise<SprintReviewPackageDetail> {
     const userId = this.execCtx.userId
@@ -85,27 +60,7 @@ export default class GetSprintReviewPackageDetailQuery {
       throw new UnauthorizedException()
     }
 
-    const row = (await db
-      .from('sprint_review_packages as srp')
-      .innerJoin('project_sprints as ps', 'ps.id', 'srp.sprint_id')
-      .joinRaw('inner join projects as p on p.id::text = ps.project_id')
-      .joinRaw('inner join organizations as o on o.id::text = ps.organization_id')
-      .where('srp.id', packageId)
-      .whereNull('p.deleted_at')
-      .select(
-        'srp.id',
-        'srp.sprint_id',
-        'srp.reviewer_id',
-        'srp.status',
-        'ps.name as sprint_name',
-        'p.id as project_id',
-        'p.name as project_name',
-        'ps.organization_id',
-        'o.name as organization_name',
-        'p.owner_id',
-        'p.manager_id'
-      )
-      .first()) as PackageDetailRow | undefined
+    const row = await this.packages.findDetail(packageId)
 
     if (!row) {
       throw new NotFoundException('Sprint review package not found')
@@ -147,20 +102,7 @@ export default class GetSprintReviewPackageDetailQuery {
   }
 
   private async findSubmittedManagerReviews(packageId: string): Promise<SubmittedManagerReview[]> {
-    const rows = (await db
-      .from('sprint_manager_reviews')
-      .where('package_id', packageId)
-      .orderBy('created_at', 'asc')
-      .select(
-        'id',
-        'target_user_id',
-        'target_role',
-        'rating',
-        'dimensions',
-        'comment',
-        'is_anonymous_to_target',
-        'created_at'
-      )) as SubmittedManagerReview[]
+    const rows = await this.packages.listManagerReviews(packageId)
 
     return rows.map((row) => ({
       ...row,
@@ -171,20 +113,7 @@ export default class GetSprintReviewPackageDetailQuery {
   private async findSubmittedEnvironmentReviews(
     packageId: string
   ): Promise<SubmittedEnvironmentReview[]> {
-    const rows = (await db
-      .from('sprint_environment_reviews')
-      .where('package_id', packageId)
-      .orderBy('target_type', 'asc')
-      .select(
-        'id',
-        'target_type',
-        'target_id',
-        'rating',
-        'dimensions',
-        'comment',
-        'is_anonymous_publicly',
-        'created_at'
-      )) as SubmittedEnvironmentReview[]
+    const rows = await this.packages.listEnvironmentReviews(packageId)
 
     return rows.map((row) => ({
       ...row,
@@ -192,38 +121,8 @@ export default class GetSprintReviewPackageDetailQuery {
     }))
   }
 
-  private async findEligibleManagerTargets(row: PackageDetailRow) {
-    const evidenceRowsResult: unknown = await db.rawQuery(
-      `
-        select
-          user_id,
-          sum(assigned_task_count)::int as assigned_task_count,
-          sum(created_task_count)::int as created_task_count
-        from (
-          select assigned_by as user_id, count(*) as assigned_task_count, 0 as created_task_count
-          from task_assignments ta
-          inner join tasks t on t.id = ta.task_id
-          where t.project_id::text = ?
-          group by assigned_by
-          union all
-          select creator_id as user_id, 0 as assigned_task_count, count(*) as created_task_count
-          from tasks
-          where project_id::text = ?
-          group by creator_id
-        ) evidence
-        where user_id is not null
-        group by user_id
-      `,
-      [row.project_id, row.project_id]
-    )
-    const evidenceRows = evidenceRowsResult as {
-      rows?: {
-        user_id: string
-        assigned_task_count: number | string
-        created_task_count: number | string
-      }[]
-    }
-
+  private async findEligibleManagerTargets(row: ReviewSprintPackageDetailSource) {
+    const evidenceRows = await this.packages.listManagerEvidence(row.project_id)
     const candidates = new Map<
       string,
       {
@@ -236,7 +135,7 @@ export default class GetSprintReviewPackageDetailQuery {
       }
     >()
 
-    for (const evidence of evidenceRows.rows ?? []) {
+    for (const evidence of evidenceRows) {
       candidates.set(evidence.user_id, {
         userId: evidence.user_id,
         assignedTaskCount: Number(evidence.assigned_task_count),
@@ -270,44 +169,13 @@ export default class GetSprintReviewPackageDetailQuery {
     packageId: string,
     reviewerId: string
   ): Promise<SprintReviewPackageDispute | null> {
-    const dispute = (await db
-      .from('sprint_review_disputes')
-      .where('package_id', packageId)
-      .select(
-        'id',
-        'package_id',
-        'status',
-        'dispute_reason',
-        'requested_outcome',
-        'reported_to_admin_at'
-      )
-      .first()) as
-      | {
-          id: string
-          package_id: string
-          status: string
-          dispute_reason: string
-          requested_outcome: string
-          reported_to_admin_at: string | null
-        }
-      | undefined
+    const dispute = await this.packages.findDispute(packageId)
 
     if (!dispute) {
       return null
     }
 
-    const comments = (await db
-      .from('sprint_review_dispute_comments')
-      .where('dispute_id', dispute.id)
-      .where('visibility', 'all_parties')
-      .whereNull('deleted_at')
-      .orderBy('created_at', 'asc')
-      .select('id', 'author_id', 'body', 'created_at')) as Array<{
-      id: string
-      author_id: string
-      body: string
-      created_at: string
-    }>
+    const comments = dispute.comments
 
     const hasReviewerMessage = comments.some((comment) => comment.author_id === reviewerId)
     const hasCounterpartyMessage = comments.some((comment) => comment.author_id !== reviewerId)
