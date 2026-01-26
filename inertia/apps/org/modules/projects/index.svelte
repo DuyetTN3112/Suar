@@ -26,7 +26,6 @@
 
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-  import ProjectDetailModal from './components/project_detail_modal.svelte'
   import type { Project, ProjectUserSummary } from './types'
 
   const { t } = useTranslation()
@@ -66,7 +65,6 @@
   interface AuthProjectsUser extends ProjectUserSummary {
     current_organization_id: string | null
     current_organization_role: string | null
-    isAdmin: boolean
   }
 
   const {
@@ -88,7 +86,6 @@
     email: '',
     current_organization_id: null,
     current_organization_role: null,
-    isAdmin: false,
   })
 
   // Guard against undefined
@@ -105,26 +102,12 @@
     }
   })
 
-  // Project detail modal state
-  let detailModalOpen = $state(false)
-  let selectedProjectId = $state<string | undefined>(undefined)
-
-
-
   function handleViewProject(id: string) {
-    selectedProjectId = id
-    detailModalOpen = true
+    router.visit(`/projects/${encodeURIComponent(id)}`)
   }
 
   function handleOpenProjectTasks(id: string) {
-    router.visit(`/org/tasks/list?project_id=${id}`)
-  }
-
-  function handleProjectDeleted() {
-    detailModalOpen = false
-    selectedProjectId = undefined
-    // Refresh projects list
-    router.visit(FRONTEND_ROUTES.PROJECTS, { replace: true })
+    router.visit(`/projects/${encodeURIComponent(id)}/tasks`)
   }
 
   function handleGoToOrganizations() {
@@ -333,7 +316,7 @@
             <TableHeader class="bg-secondary/60">
               <TableRow class="hover:bg-transparent">
                 <TableHead class="font-bold uppercase tracking-wider text-foreground/70">{t('project.name', {}, 'Project Name')}</TableHead>
-                <TableHead class="hidden font-bold uppercase tracking-wider text-foreground/70 2xl:table-cell">{t('organization.organization', {}, 'Organization')}</TableHead>
+                <TableHead class="hidden font-bold uppercase tracking-wider text-foreground/70 2xl:table-cell">{t('organization.label', {}, 'Organization')}</TableHead>
                 <TableHead class="hidden font-bold uppercase tracking-wider text-foreground/70 2xl:table-cell">{t('project.visibility', {}, 'Visibility')}</TableHead>
                 <TableHead class="w-32 font-bold uppercase tracking-wider text-foreground/70">{t('common.status', {}, 'Status')}</TableHead>
                 <TableHead class="hidden font-bold uppercase tracking-wider text-foreground/70 xl:table-cell">{t('project.manager', {}, 'Manager')}</TableHead>
@@ -432,16 +415,4 @@
       </DialogFooter>
     </DialogContent>
   </Dialog>
-
-  <ProjectDetailModal
-    bind:open={detailModalOpen}
-    projectId={selectedProjectId}
-    onOpenChange={(open: boolean) => {
-      detailModalOpen = open
-      if (!open) {
-        selectedProjectId = undefined
-      }
-    }}
-    onDeleted={handleProjectDeleted}
-  />
 </OrganizationLayout>

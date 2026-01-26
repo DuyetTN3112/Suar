@@ -31,6 +31,7 @@
     id: string
     skill: Skill
     isActive: boolean
+    rubricVersionId?: string | null
   }
 
   interface Props {
@@ -53,18 +54,27 @@
   let addMinLevelId = $state('')
   let addTargetLevelId = $state('')
   let addCeilingLevelId = $state('')
+  let addRubricVersionId = $state('')
   let addMandatory = $state(true)
   let addImportance = $state<'low' | 'medium' | 'high' | 'critical'>('medium')
   let addWeight = $state(1.0)
   let addNotes = $state('')
   let adding = $state(false)
   const { t } = useTranslation()
+  const selectedProjectSkill = $derived(
+    activeProjectSkills.find((projectSkill) => projectSkill.id === selectedProjectSkillId) ?? null
+  )
+
+  $effect(() => {
+    addRubricVersionId = selectedProjectSkill?.rubricVersionId ?? ''
+  })
 
   function resetAdd() {
     selectedProjectSkillId = ''
     addMinLevelId = ''
     addTargetLevelId = ''
     addCeilingLevelId = ''
+    addRubricVersionId = ''
     addMandatory = true
     addImportance = 'medium'
     addWeight = 1.0
@@ -74,7 +84,6 @@
   async function handleAdd(e: Event) {
     e.preventDefault()
     if (!selectedProjectSkillId) return
-    const selectedProjectSkill = activeProjectSkills.find((p) => p.id === selectedProjectSkillId)
     if (!selectedProjectSkill) return
 
     adding = true
@@ -85,6 +94,7 @@
         minimumLevelId: addMinLevelId || null,
         targetLevelId: addTargetLevelId || null,
         assessmentCeilingLevelId: addCeilingLevelId || null,
+        rubricVersionId: addRubricVersionId || null,
         isMandatory: addMandatory,
         importance: addImportance,
         weight: addWeight,
@@ -136,6 +146,22 @@
           bind:ceilingLevelId={addCeilingLevelId}
         />
 
+        <div class="space-y-1.5">
+          <Label for="add-rubric">{t('task.skill_requirements.rubric_label', {}, 'Rubric')}</Label>
+          <select
+            id="add-rubric"
+            bind:value={addRubricVersionId}
+            class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+          >
+            <option value="">{t('task.skill_requirements.no_rubric_option', {}, 'No rubric binding')}</option>
+            {#if selectedProjectSkill?.rubricVersionId}
+              <option value={selectedProjectSkill.rubricVersionId}>
+                {t('task.skill_requirements.project_default_rubric', {}, 'Project default rubric')}
+              </option>
+            {/if}
+          </select>
+        </div>
+
         <div class="grid grid-cols-2 gap-3">
           <div class="space-y-1.5">
             <Label for="add-importance">{t('task.skill_requirements.importance_label', {}, 'Importance')}</Label>
@@ -144,10 +170,10 @@
               bind:value={addImportance}
               class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
             >
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
+              <option value="low">{t('ui_misc.tasks.importance.low', {}, 'Low')}</option>
+              <option value="medium">{t('ui_misc.tasks.importance.medium', {}, 'Medium')}</option>
+              <option value="high">{t('ui_misc.tasks.importance.high', {}, 'High')}</option>
+              <option value="critical">{t('ui_misc.tasks.importance.critical', {}, 'Critical')}</option>
             </select>
           </div>
           <div class="space-y-1.5">
