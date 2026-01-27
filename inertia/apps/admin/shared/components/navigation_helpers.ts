@@ -4,6 +4,7 @@ import {
   type LucideIconName,
 } from '@/apps/admin/shared/components/lucide_icon_map'
 import type { NavCollapsible, NavGroup, NavItem, NavLink } from '@/apps/admin/shared/components/navigation_types'
+import { canSeeAdminNavigationUrl } from '@/apps/shared/navigation/can_see'
 
 export function getIconByName(name?: string): LucideIconComponent | undefined {
   if (!name || !(name in lucideIconMap)) return undefined
@@ -63,34 +64,27 @@ export function isNavItemActive(currentUrl: string, item: NavItem): boolean {
   return item.items.some((child) => isNavUrlActive(currentUrl, child.url))
 }
 
-export function filterMainNavigationByRole(groups: NavGroup[], role: string | null): NavGroup[] {
-  const canRecruit = role === 'org_owner' || role === 'org_admin'
-  const canSeeItem = (item: NavLink): boolean => {
-    if (item.url === '/org/talents' || item.url === '/org/bookmarks') {
-      return canRecruit
-    }
-
-    return true
-  }
-
+export function filterAdminNavigationByRole(
+  groups: NavGroup[],
+  systemRole: string | null,
+  systemPermissions: readonly string[] | null = null
+): NavGroup[] {
   return groups
     .map((group) => ({
       ...group,
       items: group.items
         .map((item): NavItem | null => {
           if (isNavLink(item)) {
-            return canSeeItem(item) ? item : null
+            return canSeeAdminNavigationUrl(item.url, { systemRole, systemPermissions })
+              ? item
+              : null
           }
 
-          const visibleChildren = item.items.filter(canSeeItem)
-          if (visibleChildren.length === 0) {
-            return null
-          }
+          const visibleChildren = item.items.filter((child) =>
+            canSeeAdminNavigationUrl(child.url, { systemRole, systemPermissions })
+          )
 
-          return {
-            ...item,
-            items: visibleChildren,
-          }
+          return visibleChildren.length > 0 ? { ...item, items: visibleChildren } : null
         })
         .filter((item): item is NavItem => item !== null),
     }))

@@ -1,10 +1,11 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
+import { DateTime } from 'luxon'
 
-import { SKILL_RUBRIC_VERSION_STATUSES } from '#modules/skills/constants/skill_constants'
 import Skill from '#modules/skills/infra/models/skill'
 import SkillAlias from '#modules/skills/infra/models/skill_alias'
 import SkillRubricLevel from '#modules/skills/infra/models/skill_rubric_level'
 import SkillRubricVersion from '#modules/skills/infra/models/skill_rubric_version'
+import { SKILL_RUBRIC_VERSION_STATUSES } from '#modules/skills/public_contracts/skill_constants'
 
 const querySkill = (trx?: TransactionClientContract) =>
   trx ? Skill.query({ client: trx }) : Skill.query()
@@ -168,6 +169,35 @@ export const SkillRubricRepository = {
       return SkillRubricLevel.create(createPayload, { client: trx })
     }
     return SkillRubricLevel.create(createPayload)
+  },
+
+  async publishVersion(
+    versionId: string,
+    effectiveFrom: string,
+    trx: TransactionClientContract
+  ): Promise<SkillRubricVersion | null> {
+    const version = await this.findRubricVersion(versionId, trx)
+    if (!version) return null
+
+    version.useTransaction(trx)
+    version.status = SKILL_RUBRIC_VERSION_STATUSES.PUBLISHED
+    version.effective_from = DateTime.fromISO(effectiveFrom)
+    await version.save()
+    return version
+  },
+
+  async archivePublishedVersions(
+    skillId: string,
+    excludeId: string,
+    effectiveTo: string,
+    trx: TransactionClientContract
+  ): Promise<void> {
+    const versions = await this.findPublishedVersionsBySkill(skillId, excludeId, trx)
+    for (const version of versions) {
+      version.useTransaction(trx)
+      version.effective_to = DateTime.fromISO(effectiveTo)
+      await version.save()
+    }
   },
 
   async findVersionsBySkillWithLevels(

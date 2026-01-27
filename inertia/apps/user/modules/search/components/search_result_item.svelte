@@ -7,6 +7,7 @@
     UserRoundSearch,
     Sparkles,
   } from 'lucide-svelte'
+  import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
   import type { SearchCenterResult, EntityType, MatchStrength, HighlightSegment } from '../types'
 
   interface Props {
@@ -15,6 +16,7 @@
   }
 
   const { result, onclick }: Props = $props()
+  const { t } = useTranslation()
 
   function iconFor(type: EntityType) {
     switch (type) {
@@ -36,13 +38,13 @@
   function matchLabel(strength: MatchStrength | undefined): string {
     switch (strength) {
       case 'exact':
-        return 'Exact match'
+        return t('workspace.search.result.match.exact', {}, 'Exact match')
       case 'strong':
-        return 'Strong match'
+        return t('workspace.search.result.match.strong', {}, 'Strong match')
       case 'partial':
-        return 'Partial match'
+        return t('workspace.search.result.match.partial', {}, 'Partial match')
       default:
-        return 'Context match'
+        return t('workspace.search.result.match.context', {}, 'Context match')
     }
   }
 
@@ -67,7 +69,11 @@
 
   function matchedFieldCountLabel(result: SearchCenterResult): string {
     const count = result.matchedFields.length
-    return `${count} ${count === 1 ? 'field' : 'fields'}`
+    return t('workspace.search.result.field_count', { count }, ':count fields')
+  }
+
+  function entityTypeLabel(type: EntityType): string {
+    return t(`workspace.search.tabs.${type}`, {}, type)
   }
 
   const Icon = $derived(iconFor(result.entityType))
@@ -94,7 +100,9 @@
         <span class="rounded-lg border border-border px-2.5 py-1 text-xs font-semibold text-foreground">
           {result.sourceLabel}
         </span>
-        <span class="text-xs uppercase text-muted-foreground">{result.entityType}</span>
+        <span class="text-xs uppercase text-muted-foreground">
+          {entityTypeLabel(result.entityType)}
+        </span>
       </span>
 
       <span class="mt-3 block text-lg font-black text-foreground group-hover:underline">
@@ -139,23 +147,27 @@
 
       <span
         class="mt-3 flex flex-wrap items-center gap-2 border-t border-border/70 pt-3 text-xs"
-        aria-label="Result evidence"
+        aria-label={t('workspace.search.result.evidence_aria', {}, 'Result evidence')}
       >
         {#if typeof result.score === 'number'}
           <span class="rounded-lg bg-muted px-2.5 py-1 font-semibold text-foreground">
-            Relevance {result.score}
+            {t(
+              'workspace.search.result.relevance',
+              { score: result.score },
+              'Relevance :score'
+            )}
           </span>
         {/if}
         <span class="rounded-lg bg-muted px-2.5 py-1 font-semibold text-foreground">
           {matchedFieldCountLabel(result)}
         </span>
         <span class="rounded-lg border border-border px-2.5 py-1 font-bold text-foreground">
-          {result.primaryActionLabel ?? 'Open'}
+          {result.primaryActionLabel ?? t('workspace.search.result.open', {}, 'Open')}
         </span>
       </span>
     </span>
     <span class="hidden shrink-0 rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground sm:block">
-      {result.primaryActionLabel ?? 'Open'}
+      {result.primaryActionLabel ?? t('workspace.search.result.open', {}, 'Open')}
     </span>
   </div>
 </a>

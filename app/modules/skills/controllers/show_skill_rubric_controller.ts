@@ -1,12 +1,18 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { buildProficiencyFrameworkDescriptor } from './support/build_proficiency_framework_descriptor.js'
+import ShowPublishedSkillRubricQuery from '#modules/skills/actions/queries/show_published_skill_rubric_query'
+import {
+  findCanonicalProficiencyLevelOption,
+  getCanonicalProficiencyLevelValue,
+} from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { buildProficiencyFrameworkDescriptor } from '#modules/skills/public_contracts/proficiency_level_mapping'
 
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import { SkillRubricService } from '#modules/skills/actions/services/skill_rubric_service'
-import { findCanonicalProficiencyLevelOption, getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
-
-function mapCanonicalLevelDisplay(level: { code: string; display_name?: string | null; short_name?: string | null }) {
+function mapCanonicalLevelDisplay(level: {
+  code: string
+  display_name?: string | null
+  short_name?: string | null
+}) {
   const option =
     findCanonicalProficiencyLevelOption(level.code) ??
     findCanonicalProficiencyLevelOption(level.display_name) ??
@@ -19,20 +25,14 @@ function mapCanonicalLevelDisplay(level: { code: string; display_name?: string |
   }
 }
 
+@inject()
 export default class ShowSkillRubricController {
+  constructor(private readonly showSkillRubric: ShowPublishedSkillRubricQuery) {}
+
   async handle({ params }: HttpContext) {
     const skillId = String(params['skillId'])
 
-    const skill = await SkillRubricService.resolveSkill(skillId)
-    if (skill?.is_active !== true) {
-      throw new NotFoundException('Skill not found')
-    }
-
-    const version = await SkillRubricService.getPublishedVersion(skill.id)
-
-    if (!version) {
-      throw new NotFoundException('No published rubric found for this skill')
-    }
+    const version = await this.showSkillRubric.execute(skillId)
 
     return {
       data: {

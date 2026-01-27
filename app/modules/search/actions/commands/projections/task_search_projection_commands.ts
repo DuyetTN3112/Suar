@@ -1,26 +1,27 @@
 import { platformOperationalLogger } from '#modules/observability/public_contracts/platform_observability'
-import { buildTaskSearchIndexName } from '#modules/search/domain/search_index_names'
+import type {
+  TaskSearchDocumentBuilderPort,
+  TaskSearchStore,
+} from '#modules/search/actions/ports/outbound/search_projection_store'
+import type { SearchRuntimeStatusPort } from '#modules/search/actions/ports/outbound/search_runtime_status_port'
+import type { TaskSearchSyncReader } from '#modules/search/actions/ports/outbound/task_search_sync_reader'
 import type { TaskSearchDocument } from '#modules/search/domain/task_search_document'
-import { TaskSearchDocumentBuilder } from '#modules/search/infra/tasks/task_search_document_builder'
-import { TaskSearchIndexRepository } from '#modules/search/infra/tasks/task_search_index_repository'
 import { buildSearchProjectionFailureEvent } from '#modules/search/observability/search_event_factory'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
-import type { TaskSearchSyncReader } from '#modules/tasks/application/ports/task_search_sync_reader'
-import { taskSearchSyncReader as defaultTaskSearchSyncReader } from '#modules/tasks/public_contracts/task_search_indexing'
 
-export class TaskSearchProjectionService {
+export class TaskSearchProjectionCommands {
   constructor(
-    private readonly repository: TaskSearchIndexRepository = new TaskSearchIndexRepository(),
-    private readonly builder: TaskSearchDocumentBuilder = new TaskSearchDocumentBuilder(),
-    private readonly taskSearchSyncReader: TaskSearchSyncReader = defaultTaskSearchSyncReader
+    private readonly repository: TaskSearchStore,
+    private readonly builder: TaskSearchDocumentBuilderPort,
+    private readonly taskSearchSyncReader: TaskSearchSyncReader,
+    private readonly runtime: SearchRuntimeStatusPort
   ) {}
 
   indexName(): string {
-    return buildTaskSearchIndexName()
+    return this.repository.indexName
   }
 
   async reindexDocument(taskId: string): Promise<void> {
-    if (!isSearchRuntimeEnabled()) {
+    if (!this.runtime.isEnabled()) {
       return
     }
 
@@ -86,12 +87,9 @@ export class TaskSearchProjectionService {
   }
 
   async reindexAll(): Promise<{ indexed: number; skipped: number }> {
-    if (!isSearchRuntimeEnabled()) {
+    if (!this.runtime.isEnabled()) {
       return { indexed: 0, skipped: 0 }
     }
-
-    await this.repository.resetIndex()
-    await this.repository.ensureIndex()
 
     const taskIds = await this.taskSearchSyncReader.listNotDeletedTaskIds()
     const publicDocuments: TaskSearchDocument[] = []
@@ -106,7 +104,7 @@ export class TaskSearchProjectionService {
       publicDocuments.push(document)
     }
 
-    await this.repository.bulkUpsertDocuments(publicDocuments)
+    await this.repository.replaceAllDocuments(publicDocuments)
 
     return { indexed: publicDocuments.length, skipped }
   }
