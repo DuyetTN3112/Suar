@@ -1,15 +1,15 @@
-import CreateNotification from '#actions/common/create_notification'
 import GetUserNotifications from '#actions/notifications/get_user_notifications'
+import { notificationPublicApi } from '#actions/notifications/public_api'
 import RemoveMemberCommand from '#actions/organizations/commands/remove_member_command'
 import UpdateMemberRoleCommand from '#actions/organizations/commands/update_member_role_command'
 import { RemoveMemberDTO } from '#actions/organizations/dtos/request/remove_member_dto'
 import { UpdateMemberRoleDTO } from '#actions/organizations/dtos/request/update_member_role_dto'
+import AuditLog from '#infra/audit/models/audit_log'
 import CacheService from '#infra/cache/cache_service'
-import AuditLog from '#models/mongo/audit_log'
-import type Organization from '#models/organization'
-import type Project from '#models/project'
-import type Task from '#models/task'
-import type User from '#models/user'
+import type Organization from '#infra/organizations/models/organization'
+import type Project from '#infra/projects/models/project'
+import type Task from '#infra/tasks/models/task'
+import type User from '#infra/users/models/user'
 import {
   OrganizationFactory,
   OrganizationUserFactory,
@@ -40,12 +40,14 @@ export class OrganizationMembershipScenario {
     return `organization:members:${this.org.id}:member-list`
   }
 
-  async addMember(input: {
-    role?: string
-    status?: 'approved' | 'pending'
-    invitedById?: string | null
-    user?: User
-  } = {}): Promise<User> {
+  async addMember(
+    input: {
+      role?: string
+      status?: 'approved' | 'pending'
+      invitedById?: string | null
+      user?: User
+    } = {}
+  ): Promise<User> {
     const user = input.user ?? (await UserFactory.create())
     await OrganizationUserFactory.create({
       organization_id: this.org.id,
@@ -81,7 +83,7 @@ export class OrganizationMembershipScenario {
   async executeRoleChange(actorId: string, targetUserId: string, newRole: string): Promise<void> {
     const command = new UpdateMemberRoleCommand(
       ExecutionContext.system(actorId),
-      new CreateNotification()
+      notificationPublicApi
     )
 
     await command.execute(new UpdateMemberRoleDTO(this.org.id, targetUserId, newRole))
@@ -90,7 +92,7 @@ export class OrganizationMembershipScenario {
   async executeMemberRemoval(actorId: string, targetUserId: string, reason: string): Promise<void> {
     const command = new RemoveMemberCommand(
       ExecutionContext.system(actorId),
-      new CreateNotification()
+      notificationPublicApi
     )
 
     await command.execute(new RemoveMemberDTO(this.org.id, targetUserId, reason))
