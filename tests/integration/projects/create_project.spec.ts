@@ -3,9 +3,9 @@ import { DateTime } from 'luxon'
 
 import CreateProjectCommand from '#actions/projects/commands/create_project_command'
 import { CreateProjectDTO } from '#actions/projects/dtos/request/create_project_dto'
+import AuditLog from '#infra/audit/models/audit_log'
+import Project from '#infra/projects/models/project'
 import ProjectMemberRepository from '#infra/projects/repositories/project_member_repository'
-import AuditLog from '#models/mongo/audit_log'
-import Project from '#models/project'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
