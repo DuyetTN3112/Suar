@@ -4,7 +4,12 @@ import { login } from '../../shared/e2e/helpers.js'
 
 const REGULAR_USER = 'tranngocduyet31@gmail.com'
 const BASE_URL = `http://127.0.0.1:${process.env.PORT ?? '3333'}`
-const PROFILE_CATEGORY_LABELS = ['Công nghệ', 'Kỹ thuật phần mềm', 'Kỹ năng mềm', 'Thực thi']
+const PROFILE_CATEGORY_LABELS = [
+  /^(Technology|Công nghệ)$/,
+  /^(Software engineering|Kỹ thuật phần mềm)$/,
+  /^(Soft skills|Kỹ năng mềm)$/,
+  /^(Delivery|Thực thi)$/,
+]
 
 test.describe('Profile Trust & Evidence Explanation', () => {
   test.beforeEach(async ({ page }) => {
@@ -24,13 +29,23 @@ test.describe('Profile Trust & Evidence Explanation', () => {
     await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('domcontentloaded')
 
-    await page.getByRole('link', { name: 'Năng lực' }).click()
+    await page.getByRole('tab', { name: /^(Capabilities|Năng lực)$/ }).click()
     const skillsSection = page.locator('#profile-skills')
 
-    await expect(skillsSection.getByRole('heading', { name: 'Bản đồ năng lực' })).toBeVisible()
-    await expect(skillsSection.getByRole('heading', { name: 'Toàn bộ kỹ năng theo nhóm' })).toBeVisible()
-    await expect(skillsSection.getByText(/\d+ kỹ năng reviewed/)).toBeVisible()
-    await expect(skillsSection.getByText(/\d+ imported claims?/).first()).toBeVisible()
+    await expect(
+      skillsSection.getByRole('heading', { name: /^(Capability map|Bản đồ năng lực)$/ })
+    ).toBeVisible()
+    await expect(
+      skillsSection.getByRole('heading', {
+        name: /^(All skills by group|Toàn bộ kỹ năng theo nhóm)$/,
+      })
+    ).toBeVisible()
+    await expect(
+      skillsSection.getByText(/\d+ (reviewed skills|kỹ năng đã review)/).first()
+    ).toBeVisible()
+    await expect(
+      skillsSection.getByText(/\d+ (imported claims?|khai báo nhập tay)/).first()
+    ).toBeVisible()
     for (const label of PROFILE_CATEGORY_LABELS) {
       await expect(skillsSection.getByText(label).first()).toBeVisible()
     }
@@ -42,15 +57,24 @@ test.describe('Profile Trust & Evidence Explanation', () => {
     await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('domcontentloaded')
 
-    await page.getByRole('link', { name: 'Evidence' }).click()
+    await page.getByRole('tab', { name: /^(Evidence|Bằng chứng)$/ }).click()
     const reviewsSection = page.locator('#profile-evidence')
 
-    await expect(reviewsSection.getByText('Đánh giá hai chiều', { exact: true })).toBeVisible()
-    await expect(reviewsSection.getByText(/\d+ kỹ năng đã được đánh giá/)).toBeVisible()
+    await expect(
+      reviewsSection.getByText(/^(Two-way reviews|Đánh giá hai chiều)$/, { exact: true })
+    ).toBeVisible()
+    await expect(
+      reviewsSection.getByText(/\d+ (reviewed skills|kỹ năng đã được đánh giá)/)
+    ).toBeVisible()
     await expect(
       reviewsSection
-        .getByRole('heading', { name: 'Đánh giá nhận được' })
-        .or(reviewsSection.getByText('Chưa có đánh giá nổi bật để hiển thị.', { exact: true }))
+        .getByRole('heading', { name: /^(Reviews received|Đánh giá nhận được)$/ })
+        .or(
+          reviewsSection.getByText(
+            /^(No featured reviews to show yet\.|Chưa có đánh giá nổi bật để hiển thị\.)$/,
+            { exact: true }
+          )
+        )
         .or(reviewsSection.locator('[aria-label$=" stars"]').first())
     ).toBeVisible()
   })
@@ -59,10 +83,14 @@ test.describe('Profile Trust & Evidence Explanation', () => {
     await page.goto(`${BASE_URL}/profile`)
     await page.waitForLoadState('domcontentloaded')
 
-    await page.getByRole('link', { name: 'Kinh nghiệm' }).click()
+    await page.getByRole('tab', { name: /^(Experience|Kinh nghiệm)$/ }).click()
     const workHistorySection = page.locator('#profile-work-history')
 
-    await expect(workHistorySection.getByRole('heading', { name: /^Tổ chức \(\d+\)$/ })).toBeVisible()
-    await expect(workHistorySection.getByRole('heading', { name: /^Dự án \(\d+\)$/ })).toBeVisible()
+    await expect(
+      workHistorySection.getByRole('heading', { name: /^(Organizations|Tổ chức) \(\d+\)$/ })
+    ).toBeVisible()
+    await expect(
+      workHistorySection.getByRole('heading', { name: /^(Projects|Dự án) \(\d+\)$/ })
+    ).toBeVisible()
   })
 })
