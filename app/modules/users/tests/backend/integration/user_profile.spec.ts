@@ -1,16 +1,18 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
-import { CanonicalProficiencyLevelCode } from '#modules/skills/constants/proficiency_level_constants'
-import { getCanonicalProficiencyLevelValue } from '#modules/skills/support/proficiency_level_catalog'
-import AddUserSkillCommand from '#modules/users/actions/commands/add_user_skill_command'
+import {
+  makeAddUserSkillCommand,
+  makeGetUserProfileQuery,
+} from '#composition/user_action_factory'
+import { cacheStore } from '#modules/cache/public_contracts/cache_store'
+import { getCanonicalProficiencyLevelValue } from '#modules/skills/public_contracts/proficiency_level_catalog'
+import { CanonicalProficiencyLevelCode } from '#modules/skills/public_contracts/proficiency_level_constants'
 import { AddUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
-import GetUserProfileQuery, {
-  GetUserProfileDTO,
-} from '#modules/users/actions/queries/get_user_profile_query'
+import { GetUserProfileDTO } from '#modules/users/actions/queries/get_user_profile_query'
 import { makeSystemUserActionContext } from '#modules/users/actions/user_action_context'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
 import UserRepository from '#modules/users/infra/repositories/user_repository'
+import { SystemRoleName } from '#modules/users/public_contracts/user_constants'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
@@ -37,10 +39,12 @@ test.group('Integration | User Profile', (group) => {
     await UserSkillFactory.create({
       user_id: user.id,
       skill_id: skill.id,
-      verified_public_proficiency_code: getCanonicalProficiencyLevelValue(CanonicalProficiencyLevelCode.L10),
+      verified_public_proficiency_code: getCanonicalProficiencyLevelValue(
+        CanonicalProficiencyLevelCode.L10
+      ),
     })
 
-    const profile = await new GetUserProfileQuery(makeSystemUserActionContext(user.id)).handle(
+    const profile = await makeGetUserProfileQuery(makeSystemUserActionContext(user.id)).handle(
       new GetUserProfileDTO(user.id)
     )
     const [profileSkill] = profile.user.skills
@@ -65,22 +69,22 @@ test.group('Integration | User Profile', (group) => {
       getCanonicalProficiencyLevelValue(CanonicalProficiencyLevelCode.L10)
     )
     assert.isAbove(profile.completeness, 0)
+    const profileCachePage = await cacheStore.scanKeys('users:profile:*', '0', 100)
+    assert.lengthOf(profileCachePage.keys, 0)
   })
 
-  test('profile query invalidates cached skill data after user skill mutations', async ({
-    assert,
-  }) => {
+  test('profile query returns fresh skill data after user skill mutations', async ({ assert }) => {
     const user = await UserFactory.create()
     const organization = await OrganizationFactory.create({ owner_id: user.id })
     const skill = await SkillFactory.create({ skill_name: 'TypeScript' })
     await user.merge({ current_organization_id: organization.id }).save()
 
-    const query = new GetUserProfileQuery(makeSystemUserActionContext(user.id))
+    const query = makeGetUserProfileQuery(makeSystemUserActionContext(user.id))
 
     const cachedProfile = await query.handle(new GetUserProfileDTO(user.id))
     assert.lengthOf(cachedProfile.user.skills, 0)
 
-    await new AddUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
+    await makeAddUserSkillCommand(makeSystemUserActionContext(user.id)).handle(
       new AddUserSkillDTO(skill.id, CanonicalProficiencyLevelCode.L4)
     )
 
