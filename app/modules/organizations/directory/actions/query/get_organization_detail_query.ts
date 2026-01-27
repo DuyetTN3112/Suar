@@ -1,15 +1,21 @@
 
 import type { GetOrganizationDetailDTO } from '../dtos/request/get_organization_detail_dto.js'
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
 
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
+import {
+  CACHE_COLLECTION_GENERATION_NAMESPACES,
+  organizationCacheGenerationNamespaces,
+} from '#modules/cache/public_contracts/cache_contract'
 import { cacheStore } from '#modules/cache/public_contracts/cache_store'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import { canViewOrganization } from '#modules/organizations/domain/org_permission_policy'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import { canViewOrganization } from '#modules/organizations/access/domain/org_permission_policy'
+import type { OrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import type { OrganizationUserReaderWriter } from '#modules/organizations/directory/actions/ports/outbound/organization_external_dependencies'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
+import type { OrganizationPortfolioStatsReader } from '#modules/organizations/directory/actions/ports/outbound/organization_portfolio_stats_reader'
 
 interface OwnerRecord {
   id: string
@@ -52,7 +58,13 @@ interface OrganizationDetail {
  * const org = await query.execute(dto)
  */
 export default class GetOrganizationDetailQuery {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly portfolioStats: OrganizationPortfolioStatsReader,
+    private readonly userReaderWriter: OrganizationUserReaderWriter,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {}
 
   /**
    * Execute query: Get organization detail
@@ -75,14 +87,21 @@ export default class GetOrganizationDetailQuery {
     await this.checkMembership(dto.organizationId, userId)
 
     // 2. Try cache first
-    const cacheKey = dto.getCacheKey()
-    const cached = await cacheStore.get<OrganizationDetail>(cacheKey)
+    const logicalCacheKey = dto.getCacheKey()
+    const cacheKey = await cacheStore.resolveVersionedKeyBestEffort(
+      organizationCacheGenerationNamespaces(
+        CACHE_COLLECTION_GENERATION_NAMESPACES.organizationDetail,
+        dto.organizationId
+      ),
+      logicalCacheKey
+    )
+    const cached = cacheKey ? await cacheStore.get<OrganizationDetail>(cacheKey) : null
     if (cached) {
       return cached
     }
 
     // 3. Get organization
-    const organization = await OrganizationRepository.findActiveOrFailRecord(dto.organizationId)
+    const organization = await this.organizations.findActiveOrFail(dto.organizationId)
 
     const result: OrganizationDetail = { ...organization }
 
@@ -104,7 +123,9 @@ export default class GetOrganizationDetailQuery {
 
     // 5. Cache result with dynamic TTL
     const cacheTTL = dto.getCacheTTL()
-    await cacheStore.set(cacheKey, result, cacheTTL)
+    if (cacheKey) {
+      await cacheStore.setBestEffort(cacheKey, result, cacheTTL)
+    }
 
     return result
   }
@@ -113,12 +134,12 @@ export default class GetOrganizationDetailQuery {
    * Helper: Check if user is member of organization
    */
   private async checkMembership(organizationId: string, userId: string): Promise<void> {
-    const isSuperadmin = await DefaultOrganizationDependencies.user.isSystemSuperadmin(userId)
+    const isSuperadmin = await this.userReaderWriter.isSystemSuperadmin(userId)
     if (isSuperadmin) {
       return
     }
 
-    const actorMembership = await membershipQueries.getMembershipContext(
+    const actorMembership = await this.memberships.getContext(
       organizationId,
       userId,
       undefined,
@@ -132,7 +153,7 @@ export default class GetOrganizationDetailQuery {
    * Helper: Get owner details
    */
   private async getOwner(ownerId: string): Promise<OwnerRecord | null> {
-    const owner = await DefaultOrganizationDependencies.user.findUserIdentity(ownerId)
+    const owner = await this.userReaderWriter.findUserIdentity(ownerId)
     if (!owner) return null
     return { id: owner.id, email: owner.email ?? '' }
   }
@@ -146,11 +167,11 @@ export default class GetOrganizationDetailQuery {
     task_count: number
   }> {
     const [memberCount, projectCount, taskCount] = await Promise.all([
-      listingQueries.countMembers(organizationId),
-      DefaultOrganizationDependencies.projectTask
-        .countProjectsByOrganizationIds([organizationId])
+      this.memberships.countMembers(organizationId),
+      this.portfolioStats
+        .countNonDeletedProjectsByOrganizationIds([organizationId])
         .then((m) => m.get(organizationId) ?? 0),
-      DefaultOrganizationDependencies.projectTask.countTasksByOrganization(organizationId),
+      this.portfolioStats.countNonDeletedTasksByOrganization(organizationId),
     ])
 
     return {
@@ -167,12 +188,12 @@ export default class GetOrganizationDetailQuery {
     organizationId: string,
     limit: number
   ): Promise<MemberPreview[]> {
-    const members = await listingQueries.getMembersPreview(organizationId, limit)
+    const members = await this.memberships.getMembersPreview(organizationId, limit)
     return members.map((m) => ({
       id: m.user.id,
       email: m.user.email,
       org_role: m.org_role,
-      joined_at: m.created_at.toJSDate(),
+      joined_at: m.created_at,
     }))
   }
 }

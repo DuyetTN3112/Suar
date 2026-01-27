@@ -1,10 +1,10 @@
 import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 
+import Skill from '#modules/skills/infra/models/skill'
 import {
   SKILL_DISPLAY_TYPES,
   SKILL_RUBRIC_VERSION_STATUSES,
-} from '#modules/skills/constants/skill_constants'
-import Skill from '#modules/skills/infra/models/skill'
+} from '#modules/skills/public_contracts/skill_constants'
 
 export const activeSkills = () => {
   return Skill.query().where('is_active', true).orderBy('sort_order', 'asc')
@@ -39,6 +39,28 @@ export const byCategory = (categoryCode: string) => {
     .orderBy('sort_order', 'asc')
 }
 
+export const findActiveSkillIdsByCategoryCodes = async (
+  categoryCodes: string[]
+): Promise<{ id: string }[]> => {
+  if (categoryCodes.length === 0) return []
+
+  const skills = await Skill.query()
+    .where('is_active', true)
+    .whereIn('category_code', categoryCodes)
+    .select('id')
+
+  return skills.map((skill) => ({ id: skill.id }))
+}
+
+export const findSkillIdsByCategoryCodes = async (
+  categoryCodes: string[]
+): Promise<{ id: string }[]> => {
+  if (categoryCodes.length === 0) return []
+
+  const skills = await Skill.query().whereIn('category_code', categoryCodes).select('id')
+  return skills.map((skill) => ({ id: skill.id }))
+}
+
 export const getSpiderChartSkillIds = async (
   trx?: TransactionClientContract
 ): Promise<{ id: string }[]> => {
@@ -60,7 +82,7 @@ export const findActiveByIds = async (
   return query.whereIn('id', ids).where('is_active', true)
 }
 
-export const findActiveByName = async (
+export const findActiveByNormalizedName = async (
   name: string,
   trx?: TransactionClientContract
 ): Promise<Skill | null> => {
@@ -68,28 +90,29 @@ export const findActiveByName = async (
   return query
     .whereRaw('LOWER(skill_name) = ?', [name.trim().toLowerCase()])
     .where('is_active', true)
+    .orderBy('created_at', 'asc')
+    .orderBy('id', 'asc')
     .first()
 }
 
-export const createCustomSkill = async (
-  payload: {
-    id: string
-    skill_code: string
-    skill_name: string
-    category_code: string
-    display_type: string
-    description: string | null
-    icon_url: string | null
-    is_active: boolean
-    sort_order: number
-  },
+export const findInactiveByNormalizedName = async (
+  name: string,
   trx?: TransactionClientContract
-): Promise<Skill> => {
-  if (trx) {
-    return Skill.create(payload, { client: trx })
-  }
+): Promise<Skill[]> => {
+  const query = trx ? Skill.query({ client: trx }) : Skill.query()
+  return query
+    .whereRaw('LOWER(skill_name) = ?', [name.trim().toLowerCase()])
+    .where('is_active', false)
+    .orderBy('created_at', 'asc')
+    .orderBy('id', 'asc')
+}
 
-  return Skill.create(payload)
+export const findByCode = async (
+  skillCode: string,
+  trx?: TransactionClientContract
+): Promise<Skill | null> => {
+  const query = trx ? Skill.query({ client: trx }) : Skill.query()
+  return query.where('skill_code', skillCode).first()
 }
 
 export const findByIds = async (
