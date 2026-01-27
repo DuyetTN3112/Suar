@@ -1,11 +1,10 @@
-import db from '@adonisjs/lucid/services/db'
-
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import type { TaskExternalDependencies } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   assertTaskCompletionPackageAccess,
   loadTaskForCompletionPackage,
-} from '#modules/tasks/actions/commands/task_completion_package_access'
+} from '#modules/tasks/actions/services/task_completion_access_resolver'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 
 export interface DeleteTaskSubmissionEvidenceDTO {
@@ -13,21 +12,18 @@ export interface DeleteTaskSubmissionEvidenceDTO {
 }
 
 export default class DeleteTaskSubmissionEvidenceCommand {
-  constructor(private execCtx: TaskActionContext) {}
+  constructor(
+    private execCtx: TaskActionContext,
+    private readonly dependencies: TaskExternalDependencies
+  ) {}
 
   async execute(dto: DeleteTaskSubmissionEvidenceDTO): Promise<void> {
-    const evidence = (await db
-      .from('task_submission_evidences')
-      .where('id', dto.evidence_id)
-      .first()) as { submission_id: string; uploaded_by: string } | undefined
+    const evidence = await this.dependencies.completion.findSubmissionEvidence(dto.evidence_id)
     if (!evidence) {
       throw new NotFoundException('Task submission evidence not found')
     }
 
-    const submission = (await db
-      .from('task_submissions')
-      .where('id', evidence.submission_id)
-      .first()) as { status: string; task_id: string; submitted_by: string } | undefined
+    const submission = await this.dependencies.completion.findSubmissionById(evidence.submission_id)
     if (!submission) {
       throw new NotFoundException('Task submission not found')
     }
@@ -36,12 +32,17 @@ export default class DeleteTaskSubmissionEvidenceCommand {
       throw new BusinessLogicException('Task submission is locked')
     }
 
-    const task = await loadTaskForCompletionPackage(submission.task_id)
-    await assertTaskCompletionPackageAccess(this.execCtx, task, [
-      submission.submitted_by,
-      evidence.uploaded_by,
-    ])
+    const task = await loadTaskForCompletionPackage(
+      submission.task_id,
+      this.dependencies.completion
+    )
+    await assertTaskCompletionPackageAccess(
+      this.execCtx,
+      task,
+      [submission.submitted_by, evidence.uploaded_by],
+      this.dependencies.org
+    )
 
-    await db.from('task_submission_evidences').where('id', dto.evidence_id).delete()
+    await this.dependencies.completion.deleteSubmissionEvidence(dto.evidence_id)
   }
 }

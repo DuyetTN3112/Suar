@@ -1,24 +1,37 @@
-import { buildTalentExplainabilitySummaryByUserId } from '#modules/users/actions/support/talent_explainability_summary'
-import type {
-  TalentSearchDocumentReader,
-  TalentSearchDocumentRecord,
-} from '#modules/users/application/ports/talent_search_document_reader'
+import type { UserSkillCatalog } from '#modules/users/actions/ports/outbound/user_skill_catalog'
+import type { UserTalentRepository } from '#modules/users/actions/ports/outbound/user_talent_repository'
+import { hydrateUserSkillProfileRecords } from '#modules/users/actions/queries/hydrate_user_skill_profile_records_query'
 import User from '#modules/users/infra/models/user'
+import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
 
-export class LucidTalentSearchDocumentReader implements TalentSearchDocumentReader {
-  async findTalentSearchDocumentRecord(userId: string): Promise<TalentSearchDocumentRecord> {
-    const user = await User.query()
-      .where('id', userId)
-      .preload('skills', (query) => {
-        void query.preload('skill')
-      })
-      .firstOrFail()
+export class LucidTalentSearchDocumentReader {
+  constructor(
+    private readonly skillCatalog: UserSkillCatalog,
+    private readonly talents: UserTalentRepository
+  ) {}
 
-    const explainabilitySummary = await buildTalentExplainabilitySummaryByUserId([user.id])
+  async findTalentSearchDocumentRecord(userId: string) {
+    const user = await User.query().where('id', userId).first()
+    if (!user || user.deleted_at) {
+      return null
+    }
+
+    const [explainabilitySummary, rawSkills] = await Promise.all([
+      this.talents.getExplainabilitySummaries([user.id]),
+      userSkillQueries.listByUser(user.id),
+    ])
+    const hydratedSkills = await hydrateUserSkillProfileRecords(
+      rawSkills,
+      this.skillCatalog
+    )
     const explainability = explainabilitySummary.get(user.id)
     const profileSettings = user.profile_settings
     const trustData = user.trust_data
-    const skills = user.skills.map((userSkill) => userSkill.skill)
+    const skills = hydratedSkills.flatMap((userSkill) =>
+      userSkill.skill
+        ? [{ id: userSkill.skill_id, skill_name: userSkill.skill.skill_name }]
+        : []
+    )
 
     return {
       userId: user.id,
