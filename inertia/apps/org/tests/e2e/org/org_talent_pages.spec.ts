@@ -12,7 +12,9 @@ interface SeedTalentResponse {
 }
 
 async function expectOrgTalentsReady(page: import('@playwright/test').Page) {
-  await expect(page.getByRole('heading', { name: /Danh bạ Talent/i })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /Danh bạ Talent|Organization talent directory/i })
+  ).toBeVisible()
   await expect(page.getByTestId('talent-search-keyword')).toBeVisible()
 }
 
@@ -34,10 +36,10 @@ test.describe('Org Talent Pages E2E', () => {
     await expectOrgTalentsReady(page)
 
     await expect
-      .poll(async () => page.getByRole('link', { name: /^Hồ sơ$/ }).count())
+      .poll(async () => page.getByRole('link', { name: /^(Hồ sơ|Profile)$/i }).count())
       .toBeGreaterThan(0)
 
-    await page.getByRole('link', { name: /^Hồ sơ$/ }).first().click()
+    await page.getByRole('link', { name: /^(Hồ sơ|Profile)$/i }).first().click()
     await expect(page.locator('textarea#bookmark-notes')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
   })
@@ -55,10 +57,10 @@ test.describe('Org Talent Pages E2E', () => {
     await expectOrgTalentsReady(page)
 
     await expect
-      .poll(async () => page.getByRole('link', { name: /^Hồ sơ$/ }).count())
+      .poll(async () => page.getByRole('link', { name: /^(Hồ sơ|Profile)$/i }).count())
       .toBeGreaterThan(0)
 
-    await page.getByRole('link', { name: /^Hồ sơ$/ }).first().click()
+    await page.getByRole('link', { name: /^(Hồ sơ|Profile)$/i }).first().click()
     await expect(page.locator('textarea#bookmark-notes')).toBeVisible()
 
     // Verify bookmark form fields
@@ -68,12 +70,20 @@ test.describe('Org Talent Pages E2E', () => {
     await page.fill('textarea#bookmark-notes', 'E2E testing bookmark notes')
     await page.fill('input#bookmark-folder', 'E2E Test Group')
 
-    const saveBtn = page.locator('button:has-text("Lưu talent"), button:has-text("Cập nhật bookmark")').first()
+    const saveBtn = page
+      .getByRole('button', {
+        name: /Lưu talent|Cập nhật bookmark|Save talent|Update bookmark/i,
+      })
+      .first()
     await saveBtn.click()
 
     // Verify saved state is reflected in page behavior
-    await expect(page.getByText(/Đã lưu talent này trong recruiter bookmarks/i)).toBeVisible()
-    await expect(page.getByRole('button', { name: /Cập nhật bookmark/i })).toBeVisible()
+    await expect(
+      page.getByText(/Đã lưu talent này trong recruiter bookmarks|Saved in recruiter bookmarks/i)
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', { name: /Cập nhật bookmark|Update bookmark/i })
+    ).toBeVisible()
   })
 
   // ─── SAFETY: org talent shell renders stable listing state ───
@@ -82,7 +92,10 @@ test.describe('Org Talent Pages E2E', () => {
     await expectOrgTalentsReady(page)
 
     await expect(
-      page.getByRole('link', { name: /^Hồ sơ$/ }).first().or(page.getByText(/Không tìm thấy talent nào/i))
+      page
+        .getByRole('link', { name: /^(Hồ sơ|Profile)$/i })
+        .first()
+        .or(page.getByText(/Không tìm thấy talent nào|No talent found/i))
     ).toBeVisible()
   })
 
@@ -93,7 +106,7 @@ test.describe('Org Talent Pages E2E', () => {
     await expectOrgTalentsReady(page)
 
     // Page should render without crashing
-    await expect(page.locator('text=500|Server Error|Lỗi hệ thống')).toHaveCount(0)
+    await expect(page.locator('text=500|Server Error|Lỗi hệ thống|System error')).toHaveCount(0)
   })
 
   // ─── UNHAPPY: empty search result renders explicit state ───
@@ -103,13 +116,17 @@ test.describe('Org Talent Pages E2E', () => {
 
     // Search for non-existent talent
     await page.getByTestId('talent-search-keyword').fill('ZZZZNONEXISTENT_USER_XYZ')
-    await page.getByRole('button', { name: /Tìm kiếm/i }).click()
+    await page.getByRole('button', { name: /Tìm kiếm|Search/i }).click()
     await expect(page).toHaveURL(/q=ZZZZNONEXISTENT_USER_XYZ/)
 
     await expect
       .poll(async () => {
-        const emptyStateCount = await page.getByText(/Không tìm thấy talent nào/i).count()
-        const resultCount = await page.getByRole('link', { name: /^Hồ sơ$/ }).count()
+        const emptyStateCount = await page
+          .getByText(/Không tìm thấy talent nào|No talent found/i)
+          .count()
+        const resultCount = await page
+          .getByRole('link', { name: /^(Hồ sơ|Profile)$/i })
+          .count()
         return { emptyStateCount, resultCount }
       })
       .toEqual({ emptyStateCount: 1, resultCount: 0 })
