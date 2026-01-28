@@ -2,7 +2,7 @@ import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
 import DetectAnomalyCommand from '#actions/reviews/commands/detect_anomaly_command'
-import User from '#models/user'
+import User from '#infra/users/models/user'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
