@@ -1,21 +1,18 @@
-import emitter from '@adonisjs/core/services/emitter'
-import db from '@adonisjs/lucid/services/db'
-
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
-
 import { AuditAction, EntityType } from '#modules/audit/public_contracts/audit_constants'
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
-import type { OrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import {
-  canAccessOrganizationAdminShell,
-  canSwitchOrganization,
-} from '#modules/organizations/domain/org_permission_policy'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
+import type { OrganizationActionContext } from '#modules/organizations/access/actions/action_context'
+import type { OrganizationUserReaderWriter } from '#modules/organizations/access/actions/ports/outbound/organization_external_dependencies'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/access/actions/ports/outbound/organization_persistence'
+import type { OrganizationTransactionRunner } from '#modules/organizations/access/actions/ports/outbound/organization_transaction'
+import { canSwitchOrganization } from '#modules/organizations/access/domain/org_permission_policy'
+import { canAccessOrganizationAdminShell } from '#modules/organizations/access/public_contracts/organization_access'
 
 /**
  * Command: Switch Organization
@@ -31,7 +28,13 @@ import OrganizationRepository from '#modules/organizations/infra/repositories/re
  * await command.execute(organizationId)
  */
 export default class SwitchOrganizationCommand {
-  constructor(protected execCtx: OrganizationActionContext) {}
+  constructor(
+    protected execCtx: OrganizationActionContext,
+    private readonly userReaderWriter: OrganizationUserReaderWriter,
+    private readonly transactionRunner: OrganizationTransactionRunner,
+    private readonly organizations: OrganizationReader,
+    private readonly memberships: OrganizationMembershipRepository
+  ) {}
 
   /**
    * Execute command: Switch user's current organization
@@ -51,18 +54,16 @@ export default class SwitchOrganizationCommand {
     if (!userId) {
       throw new UnauthorizedException('Unauthorized')
     }
-    const trx = await db.transaction()
-
-    try {
-      const organization = await OrganizationRepository.findBasicInfo(organizationId, trx)
-      const membershipContext = await membershipQueries.getMembershipContext(
+    return this.transactionRunner.run(async (trx) => {
+      const organization = await this.organizations.findBasicInfo(organizationId, trx)
+      const membershipContext = await this.memberships.getContext(
         organizationId,
         userId,
         trx,
         true
       )
       const actorOrgRole = membershipContext?.role ?? null
-      const user = await DefaultOrganizationDependencies.user.findUserIdentity(userId, trx)
+      const user = await this.userReaderWriter.findUserIdentity(userId, trx)
 
       if (!organization) {
         throw NotFoundException.resource('Tổ chức', organizationId)
@@ -72,7 +73,7 @@ export default class SwitchOrganizationCommand {
         throw NotFoundException.resource('Người dùng', userId)
       }
 
-      const isActiveUser = await DefaultOrganizationDependencies.user.isActiveUser(userId, trx)
+      const isActiveUser = await this.userReaderWriter.isActiveUser(userId, trx)
       if (!isActiveUser) {
         throw new ForbiddenException('Suspended users cannot switch organization')
       }
@@ -83,7 +84,7 @@ export default class SwitchOrganizationCommand {
       const currentOrganizationId = user.current_organization_id
 
       // 3. Update user's current organization
-      await DefaultOrganizationDependencies.user.updateCurrentOrganization(
+      await this.userReaderWriter.updateCurrentOrganization(
         userId,
         organizationId,
         trx
@@ -99,28 +100,17 @@ export default class SwitchOrganizationCommand {
           old_values: { current_organization_id: currentOrganizationId },
           new_values: { current_organization_id: organizationId },
         },
-        this.execCtx
+        this.execCtx,
+        { trx, critical: true }
       )
-
-      await trx.commit()
-
-      // Emit cache invalidation for user permissions
-      void emitter.emit('cache:invalidate', {
-        entityType: 'user',
-        entityId: userId,
-        patterns: [`user:${userId}:*`],
-      })
 
       return {
         organization: {
           id: organization.id,
           name: organization.name,
         },
-        redirectPath: canAccessOrganizationAdminShell(actorOrgRole).allowed ? '/org' : '/tasks',
+        redirectPath: canAccessOrganizationAdminShell(actorOrgRole).allowed ? '/org' : '/projects',
       }
-    } catch (error) {
-      await trx.rollback()
-      throw error
-    }
+    })
   }
 }
