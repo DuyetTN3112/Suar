@@ -2,8 +2,8 @@ import { test } from '@japa/runner'
 
 import CreateReviewSessionCommand from '#actions/reviews/commands/create_review_session_command'
 import { CreateReviewSessionDTO } from '#actions/reviews/dtos/request/review_dtos'
-import AuditLog from '#models/mongo/audit_log'
-import ReviewSession from '#models/review_session'
+import AuditLog from '#infra/audit/models/audit_log'
+import ReviewSession from '#infra/reviews/models/review_session'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   OrganizationFactory,
