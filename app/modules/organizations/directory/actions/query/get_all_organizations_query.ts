@@ -1,14 +1,18 @@
-import { DefaultOrganizationDependencies } from '../ports/organization_external_dependencies_impl.js'
-
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import type { OrganizationSearchCandidateReader } from '#modules/organizations/actions/ports/organization_search_candidate_reader'
-import { EngineOrganizationSearchCandidateReader } from '#modules/organizations/infra/adapters/engine_organization_search_candidate_reader'
-import * as listingQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/listing_queries'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import OrganizationRepository from '#modules/organizations/infra/repositories/read/organization_repository'
-import { buildPaginationMeta, toWindowLimit } from '#modules/pagination/public_contracts/pagination_public_api'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
-
+import type { OrganizationUserReaderWriter } from '#modules/organizations/directory/actions/ports/outbound/organization_external_dependencies'
+import type {
+  OrganizationMembershipRepository,
+  OrganizationReader,
+} from '#modules/organizations/directory/actions/ports/outbound/organization_persistence'
+import {
+  disabledOrganizationSearchCandidateReader,
+  type OrganizationSearchCandidateReader,
+} from '#modules/organizations/directory/actions/ports/outbound/organization_search_candidate_reader'
+import {
+  buildPaginationMeta,
+  toWindowLimit,
+} from '#modules/pagination/public_contracts/pagination_public_api'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 interface EnhancedOrganization {
   id: string
@@ -42,16 +46,16 @@ interface PaginatedOrganizationsWithMembership {
   }
 }
 
-interface GetAllOrganizationsQueryDeps {
+export interface GetAllOrganizationsQueryDeps {
   searchCandidateReader: OrganizationSearchCandidateReader
-  findAllActive: typeof OrganizationRepository.findAllActive
-  findAllActiveBasicList: typeof OrganizationRepository.findAllActiveBasicList
-  findActiveBasicListByIds: typeof OrganizationRepository.findActiveBasicListByIds
-  paginateActiveBasicList: typeof OrganizationRepository.paginateActiveBasicList
-  searchActiveBasicList: typeof OrganizationRepository.searchActiveBasicList
-  findMembershipsByUser: typeof membershipQueries.findMembershipsByUser
-  countMembersByOrgIds: typeof listingQueries.countMembersByOrgIds
-  findOwnerNamesByIds: typeof DefaultOrganizationDependencies.user.findOwnerNamesByIds
+  findAllActive: OrganizationReader['findAllActive']
+  findAllActiveBasicList: OrganizationReader['findAllActiveBasicList']
+  findActiveBasicListByIds: OrganizationReader['findActiveBasicListByIds']
+  paginateActiveBasicList: OrganizationReader['paginateActiveBasicList']
+  searchActiveBasicList: OrganizationReader['searchActiveBasicList']
+  findMembershipsByUser: OrganizationMembershipRepository['listByUser']
+  countMembersByOrgIds: OrganizationMembershipRepository['countMembersByOrganizationIds']
+  findOwnerNamesByIds: OrganizationUserReaderWriter['findOwnerNamesByIds']
 }
 
 /**
@@ -61,21 +65,28 @@ interface GetAllOrganizationsQueryDeps {
  * depending on the caller's needs.
  */
 export default class GetAllOrganizationsQuery {
+  private readonly deps: GetAllOrganizationsQueryDeps
+
   constructor(
-    private readonly deps: GetAllOrganizationsQueryDeps = {
-      searchCandidateReader: new EngineOrganizationSearchCandidateReader(),
-      findAllActive: (...args) => OrganizationRepository.findAllActive(...args),
-      findAllActiveBasicList: (...args) => OrganizationRepository.findAllActiveBasicList(...args),
-      findActiveBasicListByIds: (...args) => OrganizationRepository.findActiveBasicListByIds(...args),
-      paginateActiveBasicList: (...args) => OrganizationRepository.paginateActiveBasicList(...args),
-      searchActiveBasicList: (...args) => OrganizationRepository.searchActiveBasicList(...args),
-      findMembershipsByUser: membershipQueries.findMembershipsByUser,
-      countMembersByOrgIds: listingQueries.countMembersByOrgIds,
-      findOwnerNamesByIds: DefaultOrganizationDependencies.user.findOwnerNamesByIds.bind(
-        DefaultOrganizationDependencies.user
-      ),
+    userReaderWriter: OrganizationUserReaderWriter,
+    organizations: OrganizationReader,
+    memberships: OrganizationMembershipRepository,
+    deps: Partial<GetAllOrganizationsQueryDeps> = {}
+  ) {
+    this.deps = {
+      searchCandidateReader: disabledOrganizationSearchCandidateReader,
+      findAllActive: organizations.findAllActive.bind(organizations),
+      findAllActiveBasicList: organizations.findAllActiveBasicList.bind(organizations),
+      findActiveBasicListByIds: organizations.findActiveBasicListByIds.bind(organizations),
+      paginateActiveBasicList: organizations.paginateActiveBasicList.bind(organizations),
+      searchActiveBasicList: organizations.searchActiveBasicList.bind(organizations),
+      findMembershipsByUser: memberships.listByUser.bind(memberships),
+      countMembersByOrgIds:
+        memberships.countMembersByOrganizationIds.bind(memberships),
+      findOwnerNamesByIds: userReaderWriter.findOwnerNamesByIds.bind(userReaderWriter),
+      ...deps,
     }
-  ) {}
+  }
 
   /**
    * Get all organizations enhanced with owner names and member counts.
@@ -147,19 +158,23 @@ export default class GetAllOrganizationsQuery {
       input.page,
       input.perPage
     )
-    const result = await this.deps.paginateActiveBasicList(omitUndefined({
-      page: input.page,
-      perPage: input.perPage,
-      search: organizationIds ? undefined : input.search,
-      organizationIds: organizationIds ?? undefined,
-      plan: input.plan,
-      partnerType: input.partnerType,
-      partnerIsActive: input.partnerIsActive,
-      createdAtStart: input.createdAtStart,
-      createdAtEnd: input.createdAtEnd,
-    }))
+    const result = await this.deps.paginateActiveBasicList(
+      omitUndefined({
+        page: input.page,
+        perPage: input.perPage,
+        search: organizationIds ? undefined : input.search,
+        organizationIds: organizationIds ?? undefined,
+        plan: input.plan,
+        partnerType: input.partnerType,
+        partnerIsActive: input.partnerIsActive,
+        createdAtStart: input.createdAtStart,
+        createdAtEnd: input.createdAtEnd,
+      })
+    )
     const memberships = await this.deps.findMembershipsByUser(input.userId)
-    const membershipMap = new Map(memberships.map((membership) => [membership.organization_id, membership.status]))
+    const membershipMap = new Map(
+      memberships.map((membership) => [membership.organization_id, membership.status])
+    )
     const meta = buildPaginationMeta(result.total, {
       page: input.page,
       perPage: input.perPage,
@@ -224,32 +239,36 @@ export default class GetAllOrganizationsQuery {
       return this.getBasicList()
     }
 
-    if (isSearchRuntimeEnabled()) {
+    if (this.deps.searchCandidateReader.isEnabled()) {
+      let hits: Awaited<
+        ReturnType<OrganizationSearchCandidateReader['searchOrganizationCandidates']>
+      >
       try {
-        const hits = await this.deps.searchCandidateReader.searchOrganizationCandidates({
+        hits = await this.deps.searchCandidateReader.searchOrganizationCandidates({
           q: query,
           limit,
         })
+      } catch (error) {
+        searchFallbackObserver.record({ surface: 'organizations.basic_list', error })
+        hits = []
+      }
 
-        if (hits.length > 0) {
-          const ids = hits.map((hit) => hit.organizationId)
-          const organizations = await this.deps.findActiveBasicListByIds(ids)
+      if (hits.length > 0) {
+        const ids = hits.map((hit) => hit.organizationId)
+        const organizations = await this.deps.findActiveBasicListByIds(ids)
 
-          if (organizations.length > 0) {
-            const order = new Map(ids.map((id, index) => [id, index]))
-            return organizations
-              .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0))
-              .map((org) => ({
-                id: org.id,
-                name: org.name,
-                description: org.description,
-                logo: org.logo,
-                website: org.website,
-              }))
-          }
+        if (organizations.length > 0) {
+          const order = new Map(ids.map((id, index) => [id, index]))
+          return organizations
+            .sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0))
+            .map((org) => ({
+              id: org.id,
+              name: org.name,
+              description: org.description,
+              logo: org.logo,
+              website: org.website,
+            }))
         }
-      } catch {
-        // Fall back to database keyword search when engine is unavailable.
       }
     }
 
@@ -269,7 +288,7 @@ export default class GetAllOrganizationsQuery {
     perPage: number
   ): Promise<string[] | null> {
     const query = rawQuery?.trim()
-    if (!query || !isSearchRuntimeEnabled()) {
+    if (!query || !this.deps.searchCandidateReader.isEnabled()) {
       return null
     }
 
@@ -284,7 +303,8 @@ export default class GetAllOrganizationsQuery {
       }
 
       return hits.map((hit) => hit.organizationId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'organizations.list', error })
       return null
     }
   }

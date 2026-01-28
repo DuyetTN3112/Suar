@@ -1,96 +1,119 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { test } from '@japa/runner'
 
+import { GetCacheMetricsQuery } from '#modules/http/actions/queries/get_cache_metrics_query'
+import { GetHealthReportQuery } from '#modules/http/actions/queries/get_health_report_query'
 import HealthChecksController from '#modules/http/controllers/health_checks_controller'
-import env from '#start/env'
-import { healthChecks } from '#start/health'
 
 function toContext(value: unknown): HttpContext {
   return value as HttpContext
 }
 
-function toHealthReport(value: unknown): Awaited<ReturnType<typeof healthChecks.run>> {
-  return value as Awaited<ReturnType<typeof healthChecks.run>>
+function makeController(report: { isHealthy: boolean; [key: string]: unknown }) {
+  const runtime = {
+    runHealthChecks: () => Promise.resolve(report),
+    environmentName: () => 'test',
+    currentDate: () => new Date('2026-07-07T00:00:00.000Z'),
+    monotonicMilliseconds: () => 1_000,
+    cacheRuntimeMetrics: () => ({ reads: 1 }),
+    cachePrometheusMetrics: () => ({
+      contentType: 'text/plain; version=0.0.4; charset=utf-8',
+      body: '# TYPE suar_cache_reads_total counter\nsuar_cache_reads_total 1\n',
+    }),
+  }
+  return new HealthChecksController(
+    new GetHealthReportQuery(runtime),
+    new GetCacheMetricsQuery(runtime)
+  )
 }
 
 test.group('HealthChecksController', () => {
-  test('returns health report object directly when runtime is healthy', async ({ assert }) => {
-    const originalRun = Reflect.get(healthChecks, 'run')
-    const originalEnvGet = env.get.bind(env)
-    const healthyReport = toHealthReport({
-      isHealthy: true,
-      finishedAt: new Date('2026-07-07T00:00:00.000Z'),
-      checks: [],
-    })
+  test('serves cache metrics with the Prometheus content type', ({ assert }) => {
+    const controller = makeController({ isHealthy: true })
+    const headers: Array<[string, string]> = []
+    let body = ''
 
-    healthChecks.run = () => Promise.resolve(healthyReport)
-
-    ;env.get = (key: string, fallback?: string) => {
-      if (key === 'NODE_ENV') return 'test'
-      return fallback as string
-    }
-
-    try {
-      const controller = new HealthChecksController()
-      const result = await controller.handle(
-        toContext({
-          response: {
-            serviceUnavailable: () => {
-              throw new Error('serviceUnavailable should not be called for healthy report')
-            },
+    const result = controller.cacheMetrics(
+      toContext({
+        response: {
+          header: (name: string, value: string) => headers.push([name, value]),
+          send: (value: string) => {
+            body = value
+            return 'metrics-sent'
           },
-        })
-      )
+        },
+      })
+    )
 
-      assert.equal((result as { isHealthy: boolean }).isHealthy, true)
-      assert.equal(
-        (result as { environment: { environment: string } }).environment.environment,
-        'test'
-      )
-      assert.property(result, 'environment')
-    } finally {
-      healthChecks.run = originalRun
-      ;env.get = originalEnvGet
+    assert.equal(result, 'metrics-sent')
+    assert.deepEqual(headers, [['content-type', 'text/plain; version=0.0.4; charset=utf-8']])
+    assert.include(body, '# TYPE suar_cache_reads_total counter')
+    assert.notInclude(body, 'cache_key')
+  })
+
+  test('returns warning report directly when runtime remains healthy', async ({ assert }) => {
+    const healthyReport = {
+      isHealthy: true,
+      status: 'warning',
+      finishedAt: new Date('2026-07-07T00:00:00.000Z'),
+      checks: [
+        {
+          isCached: false,
+          name: 'optional cache',
+          message: 'Optional cache is degraded',
+          status: 'warning',
+          finishedAt: new Date('2026-07-07T00:00:00.000Z'),
+        },
+      ],
     }
+
+    const controller = makeController(healthyReport)
+    const result = await controller.handle(
+      toContext({
+        response: {
+          serviceUnavailable: () => {
+            throw new Error('serviceUnavailable should not be called for healthy report')
+          },
+        },
+      })
+    )
+
+    assert.equal((result as { isHealthy: boolean }).isHealthy, true)
+    assert.equal(
+      (result as { environment: { environment: string } }).environment.environment,
+      'test'
+    )
+    if (!result) {
+      throw new Error('Expected a healthy report payload')
+    }
+    assert.property(result, 'environment')
+    assert.property(result, 'runtime')
+    assert.property(result['runtime'], 'cache')
   })
 
   test('delegates unhealthy report to explicit 503 response handling', async ({ assert }) => {
-    const originalRun = Reflect.get(healthChecks, 'run')
-    const originalEnvGet = env.get.bind(env)
-    const unhealthyReport = toHealthReport({
+    const unhealthyReport = {
       isHealthy: false,
       finishedAt: new Date('2026-07-07T00:00:00.000Z'),
       checks: [],
-    })
-
-    healthChecks.run = () => Promise.resolve(unhealthyReport)
-
-    ;env.get = (key: string, fallback?: string) => {
-      if (key === 'NODE_ENV') return 'test'
-      return fallback as string
     }
 
-    try {
-      const controller = new HealthChecksController()
-      const calls: Array<{ isHealthy: boolean }> = []
+    const controller = makeController(unhealthyReport)
+    const calls: Array<{ isHealthy: boolean }> = []
 
-      const result = await controller.handle(
-        toContext({
-          response: {
-            serviceUnavailable: (payload: { isHealthy: boolean }) => {
-              calls.push(payload)
-              return '503-sent'
-            },
+    const result = await controller.handle(
+      toContext({
+        response: {
+          serviceUnavailable: (payload: { isHealthy: boolean }) => {
+            calls.push(payload)
+            return '503-sent'
           },
-        })
-      )
+        },
+      })
+    )
 
-      assert.equal(result, '503-sent')
-      assert.lengthOf(calls, 1)
-      assert.isFalse(calls[0]?.isHealthy ?? true)
-    } finally {
-      healthChecks.run = originalRun
-      ;env.get = originalEnvGet
-    }
+    assert.equal(result, '503-sent')
+    assert.lengthOf(calls, 1)
+    assert.isFalse(calls[0]?.isHealthy ?? true)
   })
 })
