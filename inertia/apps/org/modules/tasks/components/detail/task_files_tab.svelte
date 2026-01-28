@@ -47,6 +47,12 @@
   let savingAttachment = $state(false)
   let deletingAttachmentId = $state<string | null>(null)
   let detailError = $state('')
+  let selectedFile = $state<File | null>(null)
+
+  function handleAttachmentFileChange(event: Event) {
+    const input = event.currentTarget
+    selectedFile = input instanceof HTMLInputElement ? (input.files?.[0] ?? null) : null
+  }
   let attachmentForm = $state({
     fileName: '',
     filePath: '',
@@ -80,7 +86,10 @@
   }
 
   async function submitAttachment() {
-    if (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim() || savingAttachment) {
+    if (
+      savingAttachment ||
+      (!selectedFile && (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()))
+    ) {
       return
     }
 
@@ -88,13 +97,25 @@
     detailError = ''
 
     try {
-      await axios.post(`/api/v1/tasks/${taskId}/attachments`, {
-        fileName: attachmentForm.fileName.trim(),
-        filePath: attachmentForm.filePath.trim(),
-        attachmentType: attachmentForm.attachmentType,
-        mimeType: attachmentForm.mimeType.trim() || null,
-        fileSize: attachmentForm.fileSize.trim() ? Number(attachmentForm.fileSize) : null,
-      })
+      if (selectedFile) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
+        formData.append('attachmentType', attachmentForm.attachmentType)
+
+        await axios.post(`/api/v1/tasks/${taskId}/attachments`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        })
+      } else {
+        await axios.post(`/api/v1/tasks/${taskId}/attachments`, {
+          fileName: attachmentForm.fileName.trim(),
+          filePath: attachmentForm.filePath.trim(),
+          attachmentType: attachmentForm.attachmentType,
+          mimeType: attachmentForm.mimeType.trim() || null,
+          fileSize: attachmentForm.fileSize.trim() ? Number(attachmentForm.fileSize) : null,
+        })
+      }
       attachmentForm = {
         fileName: '',
         filePath: '',
@@ -102,6 +123,7 @@
         mimeType: '',
         fileSize: '',
       }
+      selectedFile = null
       await loadAttachments(1)
     } catch (error) {
       console.error('Error creating task attachment:', error)
@@ -169,6 +191,19 @@
         </select>
       </div>
       <div class="space-y-2 md:col-span-2">
+        <Label for="attachment-file">{t('task.files_tab.upload_file', {}, 'Upload file')}</Label>
+        <Input
+          id="attachment-file"
+          type="file"
+          onchange={handleAttachmentFileChange}
+        />
+        {#if selectedFile}
+          <p class="text-xs text-muted-foreground">
+            {selectedFile.name} · {formatBytes(selectedFile.size)}
+          </p>
+        {/if}
+      </div>
+      <div class="space-y-2 md:col-span-2">
         <Label for="attachment-path">{t('task.files_tab.path', {}, 'Path / URL')}</Label>
         <Input
           id="attachment-path"
@@ -177,7 +212,7 @@
         />
       </div>
       <div class="space-y-2">
-        <Label for="attachment-mime">MIME type</Label>
+        <Label for="attachment-mime">{t('task.files_tab.mime_type', {}, 'MIME type')}</Label>
         <Input
           id="attachment-mime"
           bind:value={attachmentForm.mimeType}
@@ -197,7 +232,7 @@
     <div class="flex justify-end">
       <Button
         onclick={submitAttachment}
-        disabled={savingAttachment || !attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()}
+        disabled={savingAttachment || (!selectedFile && (!attachmentForm.fileName.trim() || !attachmentForm.filePath.trim()))}
       >
         {savingAttachment
           ? t('task.files_tab.adding', {}, 'Adding...')

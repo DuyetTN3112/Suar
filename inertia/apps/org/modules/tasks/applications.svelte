@@ -6,6 +6,10 @@
   import Button from '@/apps/org/shared/ui/button.svelte'
   import Card from '@/apps/org/shared/ui/card.svelte'
   import CardContent from '@/apps/org/shared/ui/card_content.svelte'
+  import Select from '@/apps/org/shared/ui/select.svelte'
+  import SelectContent from '@/apps/org/shared/ui/select_content.svelte'
+  import SelectItem from '@/apps/org/shared/ui/select_item.svelte'
+  import SelectTrigger from '@/apps/org/shared/ui/select_trigger.svelte'
   import TalentExplainabilityBadges from '@/apps/org/modules/profile/components/talent_explainability_badges.svelte'
   import Table from '@/apps/org/shared/ui/table.svelte'
   import TableBody from '@/apps/org/shared/ui/table_body.svelte'
@@ -59,6 +63,8 @@
     latestConfidenceSignal?: 'low' | 'medium' | 'high' | null
   }
 
+  type AssignmentType = 'member' | 'external_contributor' | 'volunteer'
+
   interface Props {
     shellMode?: 'app' | 'organization'
     auth?: { user?: { current_organization_role?: string | null } }
@@ -75,6 +81,7 @@
   let processing = $state<string | null>(null)
   let rejectingAppId = $state<string | null>(null)
   let rejectionReasons = $state<Record<string, string>>({})
+  let assignmentTypes = $state<Record<string, AssignmentType>>({})
   let rankings = $state<Record<string, RankedApplication | undefined>>({})
   let rankingLoaded = $state(false)
   let rankingError = $state(false)
@@ -248,6 +255,28 @@
     return rejectionReasons[appId]?.trim() ?? ''
   }
 
+  function assignmentTypeFor(appId: string): AssignmentType {
+    return assignmentTypes[appId] ?? 'external_contributor'
+  }
+
+  function assignmentTypeLabel(value: AssignmentType): string {
+    switch (value) {
+      case 'member':
+        return t('task.applications.assignment_type.member', {}, 'Member')
+      case 'external_contributor':
+        return t('task.applications.assignment_type.external_contributor', {}, 'External contributor')
+      case 'volunteer':
+        return t('task.applications.assignment_type.volunteer', {}, 'Volunteer')
+    }
+  }
+
+  function setAssignmentType(appId: string, value: AssignmentType) {
+    assignmentTypes = {
+      ...assignmentTypes,
+      [appId]: value,
+    }
+  }
+
   async function handleProcess(appId: string, action: 'approve' | 'reject') {
     const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
     if (!csrfToken) {
@@ -275,7 +304,7 @@
         body: JSON.stringify(
           action === 'reject'
             ? { action, rejectionReason }
-            : { action }
+            : { action, assignmentType: assignmentTypeFor(appId) }
         ),
         credentials: 'same-origin',
       })
@@ -535,6 +564,30 @@
                     <TableCell>{formatDate(app.created_at)}</TableCell>
                     <TableCell class="text-right">
                       {#if app.status === APPLICATION_STATUSES.PENDING}
+                        <div class="ml-auto mb-2 grid max-w-[220px] gap-1 text-left">
+                          <label class="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground" for={`assignment-type-${app.id}`}>
+                            {t('task.applications.assignment_type.label', {}, 'Assignment type')}
+                          </label>
+                          <Select
+                            value={assignmentTypeFor(app.id)}
+                            onValueChange={(value: string) => setAssignmentType(app.id, value as AssignmentType)}
+                          >
+                            <SelectTrigger id={`assignment-type-${app.id}`}>
+                              <span>{assignmentTypeLabel(assignmentTypeFor(app.id))}</span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="member" label={t('task.applications.assignment_type.member', {}, 'Member')}>
+                                {t('task.applications.assignment_type.member', {}, 'Member')}
+                              </SelectItem>
+                              <SelectItem value="external_contributor" label={t('task.applications.assignment_type.external_contributor', {}, 'External contributor')}>
+                                {t('task.applications.assignment_type.external_contributor', {}, 'External contributor')}
+                              </SelectItem>
+                              <SelectItem value="volunteer" label={t('task.applications.assignment_type.volunteer', {}, 'Volunteer')}>
+                                {t('task.applications.assignment_type.volunteer', {}, 'Volunteer')}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                         {#if rejectingAppId === app.id}
                           <div class="ml-auto grid max-w-[280px] gap-2 text-left">
                             <label class="text-[11px] font-bold uppercase tracking-[0.14em] text-muted-foreground" for={`rejection-reason-${app.id}`}>

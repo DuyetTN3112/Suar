@@ -1,4 +1,3 @@
-
 export interface ProjectCreatedEvent {
   projectId: string
   creatorId: string
