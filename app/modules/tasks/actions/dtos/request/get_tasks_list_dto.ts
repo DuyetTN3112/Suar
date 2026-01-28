@@ -1,10 +1,11 @@
+import { privateCacheKeyDigest } from '#modules/cache/public_contracts/cache_contract'
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import ValidationException from '#modules/http/exceptions/validation_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   normalizeStrictPagination,
   toOffset,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/application/dtos/common/task_pagination'
+import { TASK_PAGINATION as PAGINATION } from '#modules/tasks/actions/dtos/common/task_pagination'
 
 type TaskListSortBy = 'due_date' | 'created_at' | 'updated_at' | 'title' | 'priority'
 type TaskListSortOrder = 'asc' | 'desc'
@@ -49,6 +50,12 @@ interface GetTasksListDTOState {
   due_date_start?: string
   due_date_end?: string
 }
+
+export type TaskListCacheAccessScope =
+  | { type: 'all' }
+  | { type: 'none' }
+  | { type: 'own_only'; userId: string }
+  | { type: 'own_or_assigned'; userId: string }
 
 function normalizeOrganizationId(value: string): string {
   if (!value) {
@@ -104,59 +111,55 @@ function normalizeSortOrder(value?: TaskListSortOrder): TaskListSortOrder {
   return value ?? 'asc'
 }
 
-function hashTaskSearch(str: string): string {
-  let hash = 0
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = (hash << 5) - hash + char
-    hash &= hash
+function buildTaskListAccessScopeKey(scope: TaskListCacheAccessScope): string {
+  switch (scope.type) {
+    case 'all':
+    case 'none':
+      return scope.type
+    case 'own_only':
+    case 'own_or_assigned':
+      return `${scope.type}:user:${scope.userId}`
   }
-
-  return Math.abs(hash).toString(36)
 }
 
-function buildTasksListCacheKey(dto: GetTasksListDTO): string {
-  const filterParts: string[] = [
+function sortedCopy(values: string[] | undefined): string[] | undefined {
+  return values === undefined ? undefined : [...values].sort()
+}
+
+function stableCacheHash(value: string): string {
+  return privateCacheKeyDigest(value, 'base64url')
+}
+
+function buildTasksListCacheKey(
+  dto: GetTasksListDTO,
+  accessScope: TaskListCacheAccessScope
+): string {
+  const canonicalQuery = omitUndefined({
+    page: dto.page,
+    limit: dto.limit,
+    task_status_id: sortedCopy(dto.task_status_id),
+    priority: sortedCopy(dto.priority),
+    label: sortedCopy(dto.label),
+    assigned_to: sortedCopy(dto.assigned_to),
+    parent_task_id: dto.parent_task_id,
+    project_id: dto.project_id,
+    project_sprint_id: dto.project_sprint_id,
+    search: dto.search,
+    sort_by: dto.sort_by,
+    sort_order: dto.sort_order,
+    created_at_start: dto.created_at_start,
+    created_at_end: dto.created_at_end,
+    due_date_start: dto.due_date_start,
+    due_date_end: dto.due_date_end,
+  })
+  const queryHash = stableCacheHash(JSON.stringify(canonicalQuery))
+
+  return [
+    'tasks:list:v2',
     `org:${dto.organization_id}`,
-    `page:${dto.page}`,
-    `limit:${dto.limit}`,
-  ]
-
-  if (dto.hasStatusFilter() && dto.task_status_id !== undefined) {
-    filterParts.push(`task_status_id:${dto.task_status_id.sort().join(',')}`)
-  }
-
-  if (dto.hasPriorityFilter() && dto.priority !== undefined) {
-    filterParts.push(`priority:${dto.priority.sort().join(',')}`)
-  }
-
-  if (dto.hasLabelFilter() && dto.label !== undefined) {
-    filterParts.push(`label:${dto.label.sort().join(',')}`)
-  }
-
-  if (dto.hasAssigneeFilter() && dto.assigned_to !== undefined) {
-    filterParts.push(`assignee:${dto.assigned_to.sort().join(',')}`)
-  }
-
-  if (dto.hasParentFilter() && dto.parent_task_id !== undefined) {
-    filterParts.push(`parent:${dto.parent_task_id ?? 'none'}`)
-  }
-
-  if (dto.hasProjectFilter() && dto.project_id !== undefined) {
-    filterParts.push(`project:${dto.project_id}`)
-  }
-
-  if (dto.hasProjectSprintFilter()) {
-    filterParts.push(`project_sprint:${dto.project_sprint_id ?? 'backlog'}`)
-  }
-
-  if (dto.hasSearch() && dto.search) {
-    filterParts.push(`search:${hashTaskSearch(dto.search)}`)
-  }
-
-  filterParts.push(`sort:${dto.sort_by}:${dto.sort_order}`)
-
-  return `tasks:list:${filterParts.join(':')}`
+    `scope:${buildTaskListAccessScopeKey(accessScope)}`,
+    `query:${queryHash}`,
+  ].join(':')
 }
 
 function buildTaskFilterSummary(dto: GetTasksListDTO): string {
@@ -332,8 +335,8 @@ export default class GetTasksListDTO {
     return toOffset(this.page, this.limit)
   }
 
-  public getCacheKey(): string {
-    return buildTasksListCacheKey(this)
+  public getCacheKey(accessScope: TaskListCacheAccessScope): string {
+    return buildTasksListCacheKey(this, accessScope)
   }
 
   public toObject(): Record<string, unknown> {
