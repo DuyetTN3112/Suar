@@ -1,5 +1,7 @@
 import { render, screen } from '@testing-library/svelte'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.unmock('@/apps/user/shared/stores/translation.svelte')
 
 import ProfileSkillsAndChartsSection from '@/apps/user/modules/profile/components/profile_skills_and_charts_section.svelte'
 
@@ -53,15 +55,15 @@ describe('ProfileSkillsAndChartsSection', () => {
       },
     })
 
-    expect(screen.getByText('2 nguồn chứng cứ')).toBeInTheDocument()
-    expect(screen.getByText(/Lần review cuối/i)).toBeInTheDocument()
+    expect(screen.getByText('2 evidence sources')).toBeInTheDocument()
+    expect(screen.getByText(/Last reviewed/i)).toBeInTheDocument()
     expect(screen.getByText('Refactor org dashboard')).toBeInTheDocument()
     expect(screen.getByText(/Strong maintainability/i)).toBeInTheDocument()
     expect(screen.getByText('manager')).toBeInTheDocument()
     expect(screen.getByText('Confidence: High')).toBeInTheDocument()
-    expect(screen.getByText('Review mới')).toBeInTheDocument()
-    expect(screen.getByText('Đang dispute')).toBeInTheDocument()
-    expect(screen.getByText('1 tranh chấp')).toBeInTheDocument()
+    expect(screen.getByText('Recent review')).toBeInTheDocument()
+    expect(screen.getByText('In dispute')).toBeInTheDocument()
+    expect(screen.getByText('1 disputed')).toBeInTheDocument()
   })
 
   it('summarizes reviewed, imported, and dispute coverage for the skill atlas', () => {
@@ -120,10 +122,10 @@ describe('ProfileSkillsAndChartsSection', () => {
       },
     })
 
-    expect(screen.getByText('3 kỹ năng')).toBeInTheDocument()
-    expect(screen.getByText('2 kỹ năng reviewed')).toBeInTheDocument()
+    expect(screen.getAllByText('3 skills').length).toBeGreaterThan(0)
+    expect(screen.getByText('2 reviewed skills')).toBeInTheDocument()
     expect(screen.getByText('1 imported claim')).toBeInTheDocument()
-    expect(screen.getByText('1 tranh chấp')).toBeInTheDocument()
+    expect(screen.getByText('1 disputed')).toBeInTheDocument()
   })
 
   it('renders four canonical chart groups from spider data', () => {
@@ -157,10 +159,10 @@ describe('ProfileSkillsAndChartsSection', () => {
       },
     })
 
-    expect(screen.getAllByText('Công nghệ').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Kỹ thuật phần mềm').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Kỹ năng mềm').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Thực thi').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Technology').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Software engineering').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Soft skills').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Delivery').length).toBeGreaterThan(0)
   })
 
   it('renders four canonical detailed inventory groups even when categories have no skills', () => {
@@ -194,11 +196,11 @@ describe('ProfileSkillsAndChartsSection', () => {
       },
     })
 
-    expect(screen.getByText('Công nghệ')).toBeInTheDocument()
-    expect(screen.getByText('Kỹ thuật phần mềm')).toBeInTheDocument()
-    expect(screen.getByText('Kỹ năng mềm')).toBeInTheDocument()
-    expect(screen.getByText('Thực thi')).toBeInTheDocument()
-    expect(screen.getAllByText('Chưa có kỹ năng trong nhóm này.')).toHaveLength(3)
+    expect(screen.getByText('Technology')).toBeInTheDocument()
+    expect(screen.getByText('Software engineering')).toBeInTheDocument()
+    expect(screen.getByText('Soft skills')).toBeInTheDocument()
+    expect(screen.getByText('Delivery')).toBeInTheDocument()
+    expect(screen.getAllByText('No skills in this group yet.')).toHaveLength(3)
   })
 
   it('keeps the four-category inventory visible for an empty skill profile', () => {
@@ -216,12 +218,12 @@ describe('ProfileSkillsAndChartsSection', () => {
       },
     })
 
-    expect(screen.getByRole('heading', { name: 'Chưa có skill được xác thực' })).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Toàn bộ kỹ năng theo nhóm' })).toBeInTheDocument()
-    expect(screen.getByText('Công nghệ')).toBeInTheDocument()
-    expect(screen.getByText('Kỹ thuật phần mềm')).toBeInTheDocument()
-    expect(screen.getByText('Kỹ năng mềm')).toBeInTheDocument()
-    expect(screen.getByText('Thực thi')).toBeInTheDocument()
-    expect(screen.getAllByText('Chưa có kỹ năng trong nhóm này.')).toHaveLength(4)
+    expect(screen.getByRole('heading', { name: 'No verified skills yet' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'All skills by group' })).toBeInTheDocument()
+    expect(screen.getByText('Technology')).toBeInTheDocument()
+    expect(screen.getByText('Software engineering')).toBeInTheDocument()
+    expect(screen.getByText('Soft skills')).toBeInTheDocument()
+    expect(screen.getByText('Delivery')).toBeInTheDocument()
+    expect(screen.getAllByText('No skills in this group yet.')).toHaveLength(4)
   })
 })

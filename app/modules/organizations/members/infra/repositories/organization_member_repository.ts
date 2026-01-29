@@ -1,8 +1,7 @@
 import db from '@adonisjs/lucid/services/db'
 
-import { OrganizationUserStatus } from '#modules/organizations/public_contracts/organization_constants'
+import { OrganizationUserStatus } from '#modules/organizations/access/public_contracts/organization_constants'
 import { toOffset } from '#modules/pagination/public_contracts/pagination_public_api'
-import { ACTIVE_REVIEW_DISPUTE_STATUSES } from '#modules/reviews/constants/review_constants'
 
 interface CountRow {
   total: number | string
@@ -92,9 +91,6 @@ export interface DashboardMemberStats {
     org_member: number
   }
   pendingInvitations: number
-  reviewedMembers: number
-  importedOnlyMembers: number
-  underDisputeMembers: number
 }
 
 export default class OrganizationMemberRepository {
@@ -203,52 +199,9 @@ export default class OrganizationMemberRepository {
       .whereNotNull('invited_by')
       .first()
 
-    const reviewedMembersRaw: unknown = await db
-      .from('organization_users as ou')
-      .join('user_skills as us', 'us.user_id', 'ou.user_id')
-      .countDistinct('ou.user_id as total')
-      .where('ou.organization_id', organizationId)
-      .where('ou.status', OrganizationUserStatus.APPROVED)
-      .where('us.source', 'reviewed')
-      .first()
-
-    const importedOnlyMembersRaw: unknown = await db
-      .from('organization_users as ou')
-      .where('ou.organization_id', organizationId)
-      .where('ou.status', OrganizationUserStatus.APPROVED)
-      .whereExists((query) => {
-        void query
-          .from('user_skills as imported_skills')
-          .select(db.raw('1'))
-          .whereRaw('imported_skills.user_id = ou.user_id')
-          .where('imported_skills.source', 'imported')
-      })
-      .whereNotExists((query) => {
-        void query
-          .from('user_skills as reviewed_skills')
-          .select(db.raw('1'))
-          .whereRaw('reviewed_skills.user_id = ou.user_id')
-          .where('reviewed_skills.source', 'reviewed')
-      })
-      .countDistinct('ou.user_id as total')
-      .first()
-
-    const underDisputeMembersRaw: unknown = await db
-      .from('organization_users as ou')
-      .join('review_disputes as rd', 'rd.reviewee_id', 'ou.user_id')
-      .where('ou.organization_id', organizationId)
-      .where('ou.status', OrganizationUserStatus.APPROVED)
-      .whereIn('rd.status', [...ACTIVE_REVIEW_DISPUTE_STATUSES])
-      .countDistinct('ou.user_id as total')
-      .first()
-
     const byRole = (Array.isArray(byRoleRaw) ? byRoleRaw : []) as unknown[]
     const total = (isRecord(totalRaw) ? totalRaw : null) as CountRow | null
     const pending = (isRecord(pendingRaw) ? pendingRaw : null) as CountRow | null
-    const reviewedMembers = (isRecord(reviewedMembersRaw) ? reviewedMembersRaw : null) as CountRow | null
-    const importedOnlyMembers = (isRecord(importedOnlyMembersRaw) ? importedOnlyMembersRaw : null) as CountRow | null
-    const underDisputeMembers = (isRecord(underDisputeMembersRaw) ? underDisputeMembersRaw : null) as CountRow | null
-
     // Build role counts
     const roleCounts = { org_owner: 0, org_admin: 0, org_member: 0 }
     for (const rowRaw of byRole) {
@@ -266,9 +219,6 @@ export default class OrganizationMemberRepository {
       total: toNumberValue(total?.total),
       byRole: roleCounts,
       pendingInvitations: toNumberValue(pending?.total),
-      reviewedMembers: toNumberValue(reviewedMembers?.total),
-      importedOnlyMembers: toNumberValue(importedOnlyMembers?.total),
-      underDisputeMembers: toNumberValue(underDisputeMembers?.total),
     }
   }
 }

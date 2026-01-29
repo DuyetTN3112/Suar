@@ -1,25 +1,22 @@
-import {
-  isSearchRuntimeEnabled,
-  searchSkillsViaEngine,
-} from '#modules/search/public_contracts/search_engine'
-import SkillRepository from '#modules/skills/infra/repositories/skill_repository'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
+import type { SkillCatalogRepository } from '#modules/skills/actions/ports/outbound/skill_catalog_repository'
+import type { SkillSearchCandidateReader } from '#modules/skills/actions/ports/outbound/skill_search_candidate_reader'
+import type {
+  ActiveSkillCatalogItem,
+  ListActiveSkillsCatalogDTO,
+} from '#modules/skills/public_contracts/active_skill_catalog'
 
-export interface ListActiveSkillsCatalogDTO {
-  q?: string
-  limit?: number
-}
-
-export interface ActiveSkillCatalogItem {
-  id: string
-  skillCode: string
-  skillName: string
-  categoryCode: string | null
-  displayType: string | null
-  description: string | null
-  publishedRubricVersionId: string | null
-}
+export type {
+  ActiveSkillCatalogItem,
+  ListActiveSkillsCatalogDTO,
+} from '#modules/skills/public_contracts/active_skill_catalog'
 
 export default class ListActiveSkillsCatalogQuery {
+  constructor(
+    private readonly searchCandidates: SkillSearchCandidateReader,
+    private readonly repository: SkillCatalogRepository
+  ) {}
+
   async handle(dto: ListActiveSkillsCatalogDTO = {}): Promise<ActiveSkillCatalogItem[]> {
     const q = dto.q?.trim()
 
@@ -27,7 +24,7 @@ export default class ListActiveSkillsCatalogQuery {
       return this.searchByKeyword(q, dto.limit)
     }
 
-    const skills = await SkillRepository.activeSkillsWithPublishedRubrics()
+    const skills = await this.repository.listActiveWithPublishedRubrics()
     return skills.map(mapSkillCatalogItem)
   }
 
@@ -35,16 +32,16 @@ export default class ListActiveSkillsCatalogQuery {
     keyword: string,
     limit?: number
   ): Promise<ActiveSkillCatalogItem[]> {
-    if (isSearchRuntimeEnabled()) {
+    if (this.searchCandidates.isEnabled()) {
       try {
-        const engineHits = await searchSkillsViaEngine({
+        const engineHits = await this.searchCandidates.searchSkillCandidates({
           q: keyword,
           limit: limit ?? 25,
         })
 
         if (engineHits.length > 0) {
           const ids = engineHits.map((hit) => hit.skillId)
-          const skills = await SkillRepository.findActiveByIdsWithPublishedRubrics(ids)
+          const skills = await this.repository.findActiveByIdsWithPublishedRubrics(ids)
           const order = new Map(ids.map((id, index) => [id, index]))
 
           if (skills.length > 0) {
@@ -53,12 +50,16 @@ export default class ListActiveSkillsCatalogQuery {
               .map(mapSkillCatalogItem)
           }
         }
-      } catch {
+      } catch (error) {
         // Fall through to database keyword search when engine is unavailable.
+        searchFallbackObserver.record({
+          surface: 'skills.catalog.list',
+          error,
+        })
       }
     }
 
-    const skills = await SkillRepository.searchActiveSkillsWithPublishedRubrics(keyword, limit)
+    const skills = await this.repository.searchActiveWithPublishedRubrics(keyword, limit)
     return skills.map(mapSkillCatalogItem)
   }
 }

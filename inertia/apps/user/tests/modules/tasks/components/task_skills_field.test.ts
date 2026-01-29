@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, within } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.unmock('@/apps/user/shared/stores/translation.svelte')
+
 import TaskSkillsField from '@/apps/user/modules/tasks/components/modals/create_task_form/task_skills_field.svelte'
 
 interface AddedSkillPayload {
@@ -10,6 +12,7 @@ interface AddedSkillPayload {
   categoryCode?: string | null
   custom_name?: string
   requirement_source?: string
+  rubric_version_id?: string | null
 }
 
 describe('TaskSkillsField', () => {
@@ -47,11 +50,11 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    expect(screen.getAllByText('Công nghệ').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Kỹ thuật phần mềm').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Kỹ năng mềm').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Thực thi').length).toBeGreaterThan(0)
-    expect(screen.getByText(/Áp role/i)).toBeInTheDocument()
+    expect(screen.getAllByText('Technology').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Software engineering').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Soft skills').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Delivery').length).toBeGreaterThan(0)
+    expect(screen.getByText(/Role prefill/i)).toBeInTheDocument()
     expect(screen.getByText(/Mandatory/i)).toBeInTheDocument()
     expect(screen.getByText(/critical/i)).toBeInTheDocument()
     expect(screen.getByText(/Weight 1.5/i)).toBeInTheDocument()
@@ -69,18 +72,23 @@ describe('TaskSkillsField', () => {
         onRemoveSkill: vi.fn(),
         availableSkills: [
           { id: 'skill-react', name: 'React', categoryCode: 'technology' },
-          { id: 'skill-redis', name: 'Redis Streams', categoryCode: 'technology' },
+          {
+            id: 'skill-redis',
+            name: 'Redis Streams',
+            categoryCode: 'technology',
+            rubricVersionId: 'rubric-version-redis',
+          },
           { id: 'skill-api', name: 'API Design', categoryCode: 'engineering' },
         ],
         proficiencyLevels: [{ value: 'l4', label: 'L4 · Junior Solid' }],
       },
     })
 
-    await fireEvent.input(screen.getByLabelText('Tìm skill Công nghệ'), {
+    await fireEvent.input(screen.getByLabelText('Search Technology skills'), {
       target: { value: 'redis' },
     })
 
-    const skillSelect = screen.getByLabelText('Skill Công nghệ')
+    const skillSelect = screen.getByLabelText('Technology skill')
 
     expect(skillSelect.tagName).toBe('SELECT')
     expect(within(skillSelect).getByRole('option', { name: 'Redis Streams' })).toBeInTheDocument()
@@ -103,7 +111,7 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    const skillSelect = screen.getByLabelText('Skill Công nghệ')
+    const skillSelect = screen.getByLabelText('Technology skill')
 
     expect(
       within(skillSelect).getAllByRole('option', { name: 'TypeScript QA Automation' })
@@ -120,7 +128,12 @@ describe('TaskSkillsField', () => {
         onRemoveSkill: vi.fn(),
         availableSkills: [
           { id: 'skill-react', name: 'React', categoryCode: 'technology' },
-          { id: 'skill-redis', name: 'Redis Streams', categoryCode: 'technology' },
+          {
+            id: 'skill-redis',
+            name: 'Redis Streams',
+            categoryCode: 'technology',
+            rubricVersionId: 'rubric-version-redis',
+          },
           { id: 'skill-api', name: 'API Design', categoryCode: 'engineering' },
         ],
         proficiencyLevels: [
@@ -130,13 +143,13 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    await fireEvent.change(screen.getByLabelText('Skill Công nghệ'), {
+    await fireEvent.change(screen.getByLabelText('Technology skill'), {
       target: { value: 'skill-redis' },
     })
-    await fireEvent.change(screen.getByLabelText('Mức Công nghệ'), {
+    await fireEvent.change(screen.getByLabelText('Technology level'), {
       target: { value: 'l7' },
     })
-    await fireEvent.click(screen.getByRole('button', { name: 'Thêm Công nghệ' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Add Technology' }))
 
     expect(onAddSkill).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -144,6 +157,7 @@ describe('TaskSkillsField', () => {
         name: 'Redis Streams',
         level: 'l7',
         categoryCode: 'technology',
+        rubric_version_id: 'rubric-version-redis',
       })
     )
   })
@@ -164,11 +178,11 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    const searchInput = screen.getByLabelText('Tìm skill Công nghệ')
+    const searchInput = screen.getByLabelText('Search Technology skills')
     await fireEvent.input(searchInput, { target: { value: 'React' } })
     await fireEvent.click(
       within(searchInput.closest('section') as HTMLElement).getByRole('button', {
-        name: 'Thêm Công nghệ',
+        name: 'Add Technology',
       })
     )
 
@@ -198,11 +212,11 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    const searchInput = screen.getByLabelText('Tìm skill Công nghệ')
+    const searchInput = screen.getByLabelText('Search Technology skills')
     await fireEvent.input(searchInput, { target: { value: 'redis' } })
     await fireEvent.click(
       within(searchInput.closest('section') as HTMLElement).getByRole('button', {
-        name: 'Thêm Công nghệ',
+        name: 'Add Technology',
       })
     )
 
@@ -229,11 +243,11 @@ describe('TaskSkillsField', () => {
       },
     })
 
-    await fireEvent.input(screen.getByLabelText('Tìm skill Công nghệ'), {
+    await fireEvent.input(screen.getByLabelText('Search Technology skills'), {
       target: { value: 'GraphQL Federation' },
     })
     await fireEvent.click(
-      screen.getByRole('button', { name: 'Thêm skill ngoài: GraphQL Federation' })
+      screen.getByRole('button', { name: 'Add custom skill: GraphQL Federation' })
     )
 
     expect(onAddSkill).toHaveBeenCalledWith(
