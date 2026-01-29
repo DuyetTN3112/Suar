@@ -1,62 +1,30 @@
 import { omitUndefined } from '#modules/contracts/public_contracts/optional_payload'
-import UnauthorizedException from '#modules/http/exceptions/unauthorized_exception'
+import UnauthorizedException from '#modules/errors/public_contracts/unauthorized_exception'
 import {
   buildPaginationMeta,
   normalizePagination,
 } from '#modules/pagination/public_contracts/pagination_public_api'
 import { BaseQuery } from '#modules/projects/actions/base_query'
-import type { ProjectSearchCandidateReader } from '#modules/projects/actions/ports/project_search_candidate_reader'
+import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/actions/dtos/common/project_pagination'
+import type {
+  ProjectAccessListFilters,
+  ProjectListRecord,
+  ProjectListRepository,
+} from '#modules/projects/actions/ports/outbound/project_list_repository'
+import type { ProjectMembershipRepository } from '#modules/projects/actions/ports/outbound/project_membership_repository'
+import type { ProjectSearchCandidateReader } from '#modules/projects/actions/ports/outbound/project_search_candidate_reader'
+import type { ProjectTaskStatsReader } from '#modules/projects/actions/ports/outbound/project_task_stats_reader'
 import type { ProjectActionContext } from '#modules/projects/actions/project_action_context'
-import { PROJECT_PAGINATION as PAGINATION } from '#modules/projects/application/dtos/common/project_pagination'
-import type { ProjectTaskStatsReader } from '#modules/projects/application/ports/project_task_stats_reader'
-import { EngineProjectSearchCandidateReader } from '#modules/projects/infra/adapters/engine_project_search_candidate_reader'
-import { TasksPublicApiProjectTaskStatsReader } from '#modules/projects/infra/adapters/tasks_public_api_project_task_stats_reader'
-import * as accessQueries from '#modules/projects/infra/repositories/read/access_queries'
-import * as projectMemberQueries from '#modules/projects/infra/repositories/read/project_member_queries'
-import type { ProjectVisibility } from '#modules/projects/public_contracts/project_constants'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
+import type {
+  GetProjectsListDTO,
+  GetProjectsListResult,
+} from '#modules/projects/public_contracts/project_listing'
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 /**
  * DTO for GetProjectsListQuery input
  */
-export interface GetProjectsListDTO {
-  page?: number
-  limit?: number
-  organization_id?: string
-  status?: string
-  creator_id?: string
-  manager_id?: string
-  visibility?: ProjectVisibility
-  search?: string
-  sort_by?: 'created_at' | 'name' | 'start_date' | 'end_date'
-  sort_order?: 'asc' | 'desc'
-  allow_external_contributors?: boolean
-  start_date_start?: string
-  start_date_end?: string
-  end_date_start?: string
-  end_date_end?: string
-  created_at_start?: string
-  created_at_end?: string
-}
-
-/**
- * Query result interface
- */
-export interface GetProjectsListResult {
-  data: unknown[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
-  filters: GetProjectsListDTO
-  stats: {
-    total_projects: number
-    active_projects: number
-    completed_projects: number
-  }
-}
+export type { GetProjectsListDTO, GetProjectsListResult }
 
 /**
  * Query to get paginated list of projects with filters
@@ -75,55 +43,16 @@ export interface GetProjectsListResult {
 /**
  * Project row interface for query results
  */
-interface ProjectRow {
-  id: string
-  name: string
-  description: string | null
-  organization_id: string | null
-  start_date: Date | null
-  end_date: Date | null
-  visibility: string | null
-  created_at: Date
-  updated_at: Date
-  status_name: string | null
-  status: string | null
-  organization_name: string | null
-  creator_name: string | null
-  creator_id: string | null
-  manager_name: string | null
-  manager_id: string | null
-}
-
-interface GetProjectsListQueryDeps {
-  searchCandidateReader: ProjectSearchCandidateReader
-  paginateByUserAccess: typeof accessQueries.paginateByUserAccess
-  getStatsByUserAccess: typeof accessQueries.getStatsByUserAccess
-  countProjectMembers: typeof projectMemberQueries.countByProjectIds
-}
-
-type ProjectAccessListFilters = Parameters<typeof accessQueries.paginateByUserAccess>[1] & {
-  allow_external_contributors?: boolean
-  start_date_start?: string
-  start_date_end?: string
-  end_date_start?: string
-  end_date_end?: string
-  created_at_start?: string
-  created_at_end?: string
-}
-
 export default class GetProjectsListQuery extends BaseQuery<
   GetProjectsListDTO,
   GetProjectsListResult
 > {
   constructor(
     execCtx: ProjectActionContext,
-    private readonly taskStatsReader: ProjectTaskStatsReader = new TasksPublicApiProjectTaskStatsReader(),
-    private readonly deps: GetProjectsListQueryDeps = {
-      searchCandidateReader: new EngineProjectSearchCandidateReader(),
-      paginateByUserAccess: accessQueries.paginateByUserAccess,
-      getStatsByUserAccess: accessQueries.getStatsByUserAccess,
-      countProjectMembers: projectMemberQueries.countByProjectIds,
-    }
+    private readonly taskStatsReader: ProjectTaskStatsReader,
+    private readonly projects: ProjectListRepository,
+    private readonly memberships: ProjectMembershipRepository,
+    private readonly searchCandidateReader: ProjectSearchCandidateReader
   ) {
     super(execCtx)
   }
@@ -144,11 +73,7 @@ export default class GetProjectsListQuery extends BaseQuery<
       },
       PAGINATION
     )
-    const projectIds = await this.resolveEngineProjectIds(
-      dto,
-      pagination.page,
-      pagination.perPage
-    )
+    const projectIds = await this.resolveSearchProjectIds(dto, pagination.page, pagination.perPage)
 
     // 1. Paginate projects → delegate to Project model
     const accessFilters: ProjectAccessListFilters = omitUndefined({
@@ -171,15 +96,21 @@ export default class GetProjectsListQuery extends BaseQuery<
       created_at_start: dto.created_at_start,
       created_at_end: dto.created_at_end,
     })
-    const { data: projects, total } = await this.deps.paginateByUserAccess(userId, accessFilters)
+    const { data: projects, total } = await this.projects.paginateByUserAccess(
+      userId,
+      accessFilters
+    )
 
     // 2. Enrich with stats → delegate to Models
-    const projectsWithStats = await this.enrichWithStats(projects as unknown as ProjectRow[])
+    const projectsWithStats = await this.enrichWithStats(projects)
 
     // 3. Get stats → delegate to Project model
-    const stats = await this.deps.getStatsByUserAccess(userId, omitUndefined({
-      organization_id: dto.organization_id,
-    }))
+    const stats = await this.projects.getStatsByUserAccess(
+      userId,
+      omitUndefined({
+        organization_id: dto.organization_id,
+      })
+    )
     const meta = buildPaginationMeta(total, pagination)
 
     return {
@@ -199,8 +130,8 @@ export default class GetProjectsListQuery extends BaseQuery<
    * Enrich projects with task counts and member counts → delegate to Model
    */
   private async enrichWithStats(
-    projects: ProjectRow[]
-  ): Promise<(ProjectRow & { task_count: number; member_count: number })[]> {
+    projects: ProjectListRecord[]
+  ): Promise<(ProjectListRecord & { task_count: number; member_count: number })[]> {
     if (projects.length === 0) return []
 
     const projectIds = projects.map((p) => p.id)
@@ -208,7 +139,7 @@ export default class GetProjectsListQuery extends BaseQuery<
     // Get task counts and member counts in parallel → delegate to Model
     const [taskCountMap, memberCountMap] = await Promise.all([
       this.taskStatsReader.countTasksByProjectIds(projectIds),
-      this.deps.countProjectMembers(projectIds),
+      this.memberships.countByProjectIds(projectIds),
     ])
 
     return projects.map((project) => ({
@@ -233,17 +164,17 @@ export default class GetProjectsListQuery extends BaseQuery<
     return 5 * 60 // 5 minutes
   }
 
-  private async resolveEngineProjectIds(
+  private async resolveSearchProjectIds(
     dto: GetProjectsListDTO,
     page: number,
     limit: number
   ): Promise<string[] | null> {
-    if (!dto.search?.trim() || !isSearchRuntimeEnabled()) {
+    if (!dto.search?.trim() || !this.searchCandidateReader.isEnabled()) {
       return null
     }
 
     try {
-      const results = await this.deps.searchCandidateReader.searchProjectCandidates({
+      const results = await this.searchCandidateReader.searchProjectCandidates({
         q: dto.search,
         limit: Math.max(page * limit, limit),
       })
@@ -253,7 +184,8 @@ export default class GetProjectsListQuery extends BaseQuery<
       }
 
       return results.map((result) => result.projectId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'projects.list', error })
       return null
     }
   }

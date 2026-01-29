@@ -59,6 +59,13 @@ interface SeedAuditLogOptions {
   requestId?: string
   traceId?: string
   retentionClass?: string
+  severity?: string
+  outcome?: string
+  actorType?: string
+  actorRoleSurface?: string
+  redactionApplied?: boolean
+  oldValues?: Record<string, unknown>
+  newValues?: Record<string, unknown>
   scopes?: SeedAuditScope[]
 }
 
@@ -99,6 +106,13 @@ async function seedAuditLog(
       requestId: options.requestId,
       traceId: options.traceId,
       retentionClass: options.retentionClass,
+      severity: options.severity,
+      outcome: options.outcome,
+      actorType: options.actorType,
+      actorRoleSurface: options.actorRoleSurface,
+      redactionApplied: options.redactionApplied,
+      oldValues: options.oldValues,
+      newValues: options.newValues,
       scopes: options.scopes,
     },
   })
@@ -180,7 +194,9 @@ async function openAuditSurface(
 
 async function expectEnterpriseAuditDetail(page: Page, seeded: SeededAuditLog) {
   await expect(page.getByTestId('audit-log-row')).toHaveCount(1)
-  await expect(page.getByTestId('audit-log-row').first()).toContainText(seeded.action)
+  await expect(page.getByTestId('audit-log-row').first()).toContainText(
+    seeded.eventName ?? seeded.action
+  )
   await expect(page.getByTestId('audit-log-row').first()).toContainText(seeded.entityType)
 
   await page.getByTestId('audit-log-row').first().click()
@@ -193,14 +209,24 @@ async function expectEnterpriseAuditDetail(page: Page, seeded: SeededAuditLog) {
   if (seeded.traceId) {
     await expect(page.getByTestId('audit-log-detail-panel')).toContainText(seeded.traceId)
   }
+  await expect(page.getByTestId('audit-log-detail-panel')).toContainText(
+    /Payload và tính toàn vẹn|Payload & integrity/i
+  )
+  await expect(page.getByTestId('audit-log-detail-panel')).toContainText(
+    /Đã xác minh|Verified/i
+  )
+  await expect(page.getByTestId('audit-log-detail-panel')).toContainText(
+    /Hash sự kiện|Event hash/i
+  )
 }
 
 async function expectScopedActivityWithoutForensics(
   page: Page,
-  seeded: SeededAuditLog,
-  visibleTitle: string
+  seeded: SeededAuditLog
 ) {
-  await expect(page.getByText(visibleTitle, { exact: true }).first()).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /View details|Xem chi tiết/i }).first()
+  ).toBeVisible()
 
   for (const forbiddenValue of [
     seeded.action,
@@ -259,39 +285,97 @@ test.describe('Admin Audit Logs Console E2E', () => {
 
   test('superadmin can inspect a seeded audit log and exact action filter', async ({
     page,
-  }, testInfo) => {
-    const seeded = await seedAuditLog(page)
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    const secretSentinel = `e2e-system-secret-${Date.now()}`
+    const seeded = await seedAuditLog(page, {
+      enterprise: true,
+      actionPrefix: 'e2e.system.audit.investigation',
+      eventName: 'system.policy.reviewed',
+      eventFamily: 'system.compliance',
+      module: 'admin',
+      workflow: 'system_audit_investigation',
+      severity: 'warn',
+      outcome: 'warning',
+      actorType: 'automation',
+      actorRoleSurface: 'superadmin',
+      requestId: `req-system-console-${Date.now()}`,
+      traceId: `trace-system-console-${Date.now()}`,
+      retentionClass: 'security_audit',
+      redactionApplied: false,
+      oldValues: {
+        status: 'queued',
+        api_token: secretSentinel,
+      },
+      newValues: {
+        status: 'reviewed',
+        api_token: secretSentinel,
+      },
+      scopes: [{ surface: 'system' }],
+    })
     await openAuditConsole(page, { action: seeded.action })
 
     await expect(
       page.getByRole('heading', { name: AUDIT_CONSOLE_HEADING })
     ).toBeVisible()
-    await expect(page.getByText('Hành động')).toBeVisible()
-    await expect(page.getByText('Event', { exact: true })).toBeVisible()
+    await expect(
+      page.getByText(/Bằng chứng hệ thống trên toàn nền tảng|Platform-wide system evidence/i)
+    ).toBeVisible()
+    await expect(
+      page.getByRole('heading', { name: /Dòng bằng chứng hệ thống|System evidence stream/i })
+    ).toBeVisible()
+    await expect(page.getByText(/Cảnh báo toàn vẹn|Integrity alerts/i)).toBeVisible()
     await expect(page.getByTestId('audit-log-row')).toHaveCount(1)
-    await expect(page.getByTestId('audit-log-row').first()).toContainText(seeded.action)
+    await expect(page.getByTestId('audit-log-row').first()).toContainText(
+      seeded.eventName ?? seeded.action
+    )
     await expect(page.getByTestId('audit-log-row').first()).toContainText(seeded.entityType)
-
-    await page.getByTestId('audit-log-row').first().click()
-    await expect(page.getByTestId('audit-log-detail-panel')).toBeVisible()
-    await expect(page.getByTestId('audit-log-detail-panel')).toContainText(seeded.action)
-    await expect(page.getByTestId('audit-log-detail-panel')).toContainText(seeded.entityType)
-    await expect(page.getByTestId('audit-log-detail-panel')).toContainText(seeded.entityId)
+    await expect(page.getByTestId('audit-log-row').first()).toContainText(
+      /Đã xác minh|Verified/i
+    )
 
     await page.screenshot({
-      path: testInfo.outputPath('admin-audit-console-overview.png'),
+      path: enterpriseAuditScreenshotPath('system-audit-log-desktop.png'),
       fullPage: true,
     })
 
+    await expectEnterpriseAuditDetail(page, seeded)
+    await expect(page.locator('body')).not.toContainText(secretSentinel)
+    await expect(page.getByTestId('audit-log-detail-panel')).toContainText('[REDACTED]')
+    await page.screenshot({
+      path: enterpriseAuditScreenshotPath('system-audit-log-desktop-detail.png'),
+      fullPage: false,
+    })
+
+    const detailPanel = page.getByTestId('audit-log-detail-panel')
+    await detailPanel
+      .getByRole('heading', { name: /Payload và tính toàn vẹn|Payload & integrity/i })
+      .scrollIntoViewIfNeeded()
+    await page.screenshot({
+      path: enterpriseAuditScreenshotPath('system-audit-log-desktop-integrity.png'),
+      fullPage: false,
+    })
+    await detailPanel.locator('.overflow-y-auto').evaluate((element) => {
+      element.scrollTop = 0
+    })
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    await expect(page.getByTestId('audit-log-detail-panel')).toBeVisible()
+    await page.screenshot({
+      path: enterpriseAuditScreenshotPath('system-audit-log-mobile-detail.png'),
+      fullPage: false,
+    })
+
+    await page.setViewportSize({ width: 1440, height: 1000 })
+    await page.getByRole('button', { name: /Đóng|Close/i }).click()
     await openAuditConsole(page, { action: `${seeded.action}.missing` })
-    await expect(page.getByText('Không có audit log.')).toBeVisible()
+    await expect(
+      page.getByText(
+        /Không có bằng chứng hệ thống phù hợp|No matching system evidence/i
+      )
+    ).toBeVisible()
     await expect(page.getByTestId('audit-log-row')).toHaveCount(0)
     await expect(page.getByText(seeded.action)).toHaveCount(0)
-
-    await page.screenshot({
-      path: testInfo.outputPath('admin-audit-console-filter-empty.png'),
-      fullPage: true,
-    })
   })
 
   test('enterprise audit events render scoped system organization and user logs', async ({
@@ -356,20 +440,24 @@ test.describe('Admin Audit Logs Console E2E', () => {
       organizationId,
       systemRole: 'registered_user',
     })
-    await openAuditSurface(page, '/org/audit-logs', /Audit log tổ chức/i)
-    await expectScopedActivityWithoutForensics(
+    await openAuditSurface(
       page,
-      orgAudit,
-      'Thiết lập tổ chức đã thay đổi'
+      '/org/audit-logs',
+      /Organization audit log|Audit log tổ chức|Nhật ký kiểm toán tổ chức/i
     )
+    await expectScopedActivityWithoutForensics(page, orgAudit)
     await page.screenshot({
       path: enterpriseAuditScreenshotPath('enterprise-organization-audit-console.png'),
       fullPage: true,
     })
 
     await login(page, REGULAR_EMAIL, { systemRole: 'registered_user' })
-    await openAuditSurface(page, '/settings/audit-logs', /Audit log của tôi/i)
-    await expectScopedActivityWithoutForensics(page, userAudit, 'Hoạt động tài khoản')
+    await openAuditSurface(
+      page,
+      '/settings/audit-logs',
+      /My audit log|Personal audit log|Audit log của tôi/i
+    )
+    await expectScopedActivityWithoutForensics(page, userAudit)
     await page.screenshot({
       path: enterpriseAuditScreenshotPath('enterprise-user-audit-console.png'),
       fullPage: true,
@@ -437,7 +525,7 @@ test.describe('Admin shell access boundaries E2E', () => {
     await page.waitForLoadState('domcontentloaded')
 
     await expect(page).toHaveURL(/\/login/)
-    await expect(page.getByRole('heading', { name: /Đăng nhập/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Login|Đăng nhập/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: AUDIT_CONSOLE_HEADING })).toHaveCount(0)
     await expect(page.getByTestId('audit-log-row')).toHaveCount(0)
   })
@@ -447,7 +535,7 @@ test.describe('Admin shell access boundaries E2E', () => {
     await page.waitForLoadState('domcontentloaded')
 
     await expect(page).toHaveURL(/\/login/)
-    await expect(page.getByRole('heading', { name: /Đăng nhập/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Login|Đăng nhập/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Admin Dashboard|Bảng điều khiển Admin/i })).toHaveCount(0)
   })
 })
