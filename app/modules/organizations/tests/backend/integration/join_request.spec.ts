@@ -1,18 +1,57 @@
+import db from '@adonisjs/lucid/services/db'
 import { test } from '@japa/runner'
 
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
-import ProcessJoinRequestCommand from '#modules/organizations/actions/commands/process_join_request_command'
-import RequestOrganizationJoinCommand from '#modules/organizations/actions/commands/request_organization_join_command'
-import { ProcessJoinRequestDTO } from '#modules/organizations/actions/dtos/request/process_join_request_dto'
-import { makeSystemOrganizationActionContext } from '#modules/organizations/actions/organization_action_context'
-import { OrganizationRole, OrganizationUserStatus } from '#modules/organizations/constants/organization_constants'
-import OrganizationUser from '#modules/organizations/infra/models/organization_user'
-import * as membershipQueries from '#modules/organizations/infra/repositories/organization_user_repository/read/membership_queries'
-import * as membershipMutations from '#modules/organizations/infra/repositories/organization_user_repository/write/mutation_queries'
+import { notificationApplication as notificationPublicApi } from '#composition/notification_composition'
+import { makeGetUserNotifications } from '#composition/notification_feed_composition'
+import { organizationCacheInvalidator } from '#composition/organization_cache_composition'
+import {
+  organizationEventPublisher,
+  organizationMembershipRepository,
+  organizationReader,
+  organizationTransactionRunner,
+} from '#composition/organization_persistence_composition'
+import { organizationUserReaderWriter } from '#composition/organization_user_composition'
+import { ForbiddenPolicyViolationException } from '#modules/authorization/public_contracts/policy_violation'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import {
+  OrganizationRole,
+  OrganizationUserStatus,
+} from '#modules/organizations/access/public_contracts/organization_constants'
+import { makeSystemOrganizationActionContext } from '#modules/organizations/directory/actions/organization_action_context'
+import ProcessJoinRequestCommand from '#modules/organizations/invitations/actions/command/process_join_request_command'
+import RequestOrganizationJoinCommand from '#modules/organizations/invitations/actions/command/request_organization_join_command'
+import { ProcessJoinRequestDTO } from '#modules/organizations/invitations/actions/dtos/request/process_join_request_dto'
+import OrganizationUser from '#modules/organizations/members/infra/models/organization_user'
+import * as membershipQueries from '#modules/organizations/members/infra/repositories/organization_user_repository/read/membership_queries'
+import * as membershipMutations from '#modules/organizations/members/infra/repositories/organization_user_repository/write/mutation_queries'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import { UserFactory, OrganizationFactory, cleanupTestData } from '#tests/helpers/factories'
+
+const makeRequestJoinCommand = (
+  context: ConstructorParameters<typeof RequestOrganizationJoinCommand>[0]
+) =>
+  new RequestOrganizationJoinCommand(
+    context,
+    organizationUserReaderWriter,
+    notificationPublicApi,
+    organizationTransactionRunner,
+    organizationReader,
+    organizationMembershipRepository
+  )
+
+const makeProcessJoinRequestCommand = (
+  context: ConstructorParameters<typeof ProcessJoinRequestCommand>[0],
+  notification: ConstructorParameters<typeof ProcessJoinRequestCommand>[1]
+) =>
+  new ProcessJoinRequestCommand(
+    context,
+    notification,
+    organizationTransactionRunner,
+    organizationMembershipRepository,
+    organizationEventPublisher,
+    organizationCacheInvalidator
+  )
 
 test.group('Integration | Organization Join Request (v3 - via organization_users)', (group) => {
   group.setup(async () => {
@@ -107,9 +146,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
 
   test('approved members cannot create duplicate join requests', async ({ assert }) => {
     const { org, owner } = await OrganizationFactory.createWithOwner()
-    const command = new RequestOrganizationJoinCommand(
-      makeSystemOrganizationActionContext(owner.id)
-    )
+    const command = makeRequestJoinCommand(makeSystemOrganizationActionContext(owner.id))
 
     await assert.rejects(() => command.execute(org.id), BusinessLogicException)
 
@@ -118,6 +155,70 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       .where('user_id', owner.id)
     assert.lengthOf(memberships, 1)
     assert.equal(memberships[0]?.status, OrganizationUserStatus.APPROVED)
+  })
+
+  test('join request notifies only approved owners and admins', async ({ assert }) => {
+    const { org, owner } = await OrganizationFactory.createWithOwner()
+    const approvedAdmin = await UserFactory.create({ username: 'approved_admin_request' })
+    const approvedMember = await UserFactory.create({ username: 'approved_member_request' })
+    const pendingAdmin = await UserFactory.create({ username: 'pending_admin_request' })
+    const requester = await UserFactory.create({ email: 'join_requester@example.com' })
+
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: approvedAdmin.id,
+      org_role: OrganizationRole.ADMIN,
+      status: OrganizationUserStatus.APPROVED,
+    })
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: approvedMember.id,
+      org_role: OrganizationRole.MEMBER,
+      status: OrganizationUserStatus.APPROVED,
+    })
+    await membershipMutations.addMember({
+      organization_id: org.id,
+      user_id: pendingAdmin.id,
+      org_role: OrganizationRole.ADMIN,
+      status: OrganizationUserStatus.PENDING,
+    })
+
+    const command = makeRequestJoinCommand(makeSystemOrganizationActionContext(requester.id))
+
+    await command.execute(org.id)
+
+    const ownerNotifications = await db
+      .from('notifications')
+      .where('user_id', owner.id)
+      .where('type', 'organization_join_request')
+      .where('related_entity_id', org.id)
+    const adminNotifications = await db
+      .from('notifications')
+      .where('user_id', approvedAdmin.id)
+      .where('type', 'organization_join_request')
+      .where('related_entity_id', org.id)
+    const memberNotifications = await db
+      .from('notifications')
+      .where('user_id', approvedMember.id)
+      .where('type', 'organization_join_request')
+      .where('related_entity_id', org.id)
+    const pendingAdminNotifications = await db
+      .from('notifications')
+      .where('user_id', pendingAdmin.id)
+      .where('type', 'organization_join_request')
+      .where('related_entity_id', org.id)
+    const requesterNotifications = await makeGetUserNotifications(
+      makeSystemOrganizationActionContext(requester.id)
+    ).handle({
+      page: 1,
+      limit: 20,
+    })
+
+    assert.lengthOf(ownerNotifications, 1)
+    assert.lengthOf(adminNotifications, 1)
+    assert.lengthOf(memberNotifications, 0)
+    assert.lengthOf(pendingAdminNotifications, 0)
+    assert.equal(requesterNotifications.unread_count, 0)
   })
 
   test('outsiders cannot process join requests and the request remains pending', async ({
@@ -135,10 +236,10 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       status: OrganizationUserStatus.PENDING,
     })
 
-    const command = new ProcessJoinRequestCommand(
+    const command = makeProcessJoinRequestCommand(
       makeSystemOrganizationActionContext(outsider.id),
       {
-        handle: (payload) => {
+        stage: (payload) => {
           notificationCalls.push(payload)
           return Promise.resolve(null)
         },
@@ -147,7 +248,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
 
     await assert.rejects(
       () => command.execute(new ProcessJoinRequestDTO(org.id, requester.id, true)),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     const membership = await membershipQueries.findMembership(org.id, requester.id)
@@ -177,10 +278,10 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
       status: OrganizationUserStatus.PENDING,
     })
 
-    const command = new ProcessJoinRequestCommand(
+    const command = makeProcessJoinRequestCommand(
       makeSystemOrganizationActionContext(pendingAdmin.id),
       {
-        handle: (payload) => {
+        stage: (payload) => {
           notificationCalls.push(payload)
           return Promise.resolve(null)
         },
@@ -189,7 +290,7 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
 
     await assert.rejects(
       () => command.execute(new ProcessJoinRequestDTO(org.id, requester.id, true)),
-      ForbiddenException
+      ForbiddenPolicyViolationException
     )
 
     const membership = await membershipQueries.findMembership(org.id, requester.id)
@@ -204,15 +305,12 @@ test.group('Integration | Organization Join Request (v3 - via organization_users
     const { org, owner } = await OrganizationFactory.createWithOwner()
     const requester = await UserFactory.create()
     const notificationCalls: unknown[] = []
-    const command = new ProcessJoinRequestCommand(
-      makeSystemOrganizationActionContext(owner.id),
-      {
-        handle: (payload) => {
-          notificationCalls.push(payload)
-          return Promise.resolve(null)
-        },
-      }
-    )
+    const command = makeProcessJoinRequestCommand(makeSystemOrganizationActionContext(owner.id), {
+      stage: (payload) => {
+        notificationCalls.push(payload)
+        return Promise.resolve(null)
+      },
+    })
 
     await assert.rejects(
       () => command.execute(new ProcessJoinRequestDTO(org.id, requester.id, true)),
