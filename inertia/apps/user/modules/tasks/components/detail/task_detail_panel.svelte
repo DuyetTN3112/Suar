@@ -6,7 +6,6 @@
     Circle,
     CircleX,
     Eye,
-    ArrowUpRight,
     Pencil,
     Sparkles,
   } from 'lucide-svelte'
@@ -24,10 +23,21 @@
   import TaskDetailMetadataSidebar from '@/apps/user/modules/tasks/components/detail/task_detail_metadata_sidebar.svelte'
   import TaskDiscussionTab from '@/apps/user/modules/tasks/components/detail/task_discussion_tab.svelte'
   import TaskExecutionBrief from '@/apps/user/modules/tasks/components/detail/task_execution_brief.svelte'
+  import TaskFilesTab from '@/apps/user/modules/tasks/components/detail/task_files_tab.svelte'
+  import TaskSubmissionPanel from '@/apps/user/modules/tasks/components/detail/task_submission_panel.svelte'
 
   interface CapabilityDecision {
     allowed: boolean
     reason?: string | null
+  }
+
+  interface WorkSurfacePermissions {
+    isCreator?: boolean
+    isAssignee?: boolean
+    canEdit?: boolean
+    canAssign?: boolean
+    canChangeStatus?: boolean
+    canOpenWorkTabs?: boolean
   }
 
   interface Props {
@@ -44,6 +54,8 @@
     onEdit?: (task: TaskDetail) => void
     onChangeStatus?: (task: TaskDetail, toStatusId: string) => void
     getStatusChangeDecision?: (task: TaskDetail, toStatusId: string) => CapabilityDecision
+    shellMode?: 'app' | 'organization' | 'project'
+    workSurfacePermissions?: WorkSurfacePermissions | null
   }
 
   const {
@@ -55,12 +67,13 @@
     onEdit,
     onChangeStatus,
     getStatusChangeDecision,
+    workSurfacePermissions = null,
   }: Props = $props()
 
   const { t } = useTranslation()
   const documentLocale = $derived(currentDocumentLocale() === 'vi' ? 'vi-VN' : 'en-US')
   const verificationMethods = $derived(
-    formatTaskVerificationMethodForDisplay(task?.verification_method)
+    formatTaskVerificationMethodForDisplay(task?.verification_method, t)
   )
 
   const statusConfig: Partial<Record<string, { icon: typeof Circle; color: string; bgColor: string }>> = {
@@ -148,7 +161,22 @@
   const currentUserId = $derived(
     (page as { props: { auth?: { user?: { id?: string } } } }).props.auth?.user?.id ?? null
   )
-
+  const taskPermissions = $derived((task?.permissions ?? null) as WorkSurfacePermissions | null)
+  const effectiveWorkSurfacePermissions = $derived(workSurfacePermissions ?? taskPermissions)
+  const canOpenWorkTabs = $derived(
+    effectiveWorkSurfacePermissions?.canOpenWorkTabs ??
+      Boolean(
+        effectiveWorkSurfacePermissions?.isCreator ||
+          effectiveWorkSurfacePermissions?.isAssignee ||
+          effectiveWorkSurfacePermissions?.canEdit ||
+          effectiveWorkSurfacePermissions?.canAssign ||
+          effectiveWorkSurfacePermissions?.canChangeStatus ||
+          (currentUserId &&
+            (task?.creator_id === currentUserId ||
+              task?.assigned_to === currentUserId ||
+              task?.assignee?.id === currentUserId))
+      )
+  )
   function handleStatusChange(newStatus: string) {
     if (!task || !onChangeStatus) return
 
@@ -162,6 +190,7 @@
     if (!task) return { allowed: false, reason: null }
     return getStatusChangeDecision?.(task, newStatus) ?? { allowed: true }
   }
+
 </script>
 
 <Dialog {open} onOpenChange={onOpenChange}>
@@ -184,10 +213,6 @@
                 {t('common.edit', {}, 'Edit')}
               </Button>
             {/if}
-              <Button size="sm" variant="outline" onclick={() => window.open(`/tasks/${task.id}`, '_blank')}>
-                <ArrowUpRight class="mr-1 h-3.5 w-3.5" />
-                {t('common.open', {}, 'Open')}
-              </Button>
               {#if isHydratingDetail}
                 <span class="text-xs text-muted-foreground">{t('task.detail_panel.hydrating_detail', {}, 'Loading full detail...')}</span>
               {/if}
@@ -374,7 +399,30 @@
                 </div>
               {/if}
 
-              {#if task.id}
+              {#if task.id && canOpenWorkTabs}
+                <div class="space-y-4 rounded-lg border bg-background/70 p-4" data-testid="task-drawer-work-surfaces">
+                  <section aria-labelledby="task-drawer-submission-heading">
+                    <h3 id="task-drawer-submission-heading" class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('task.tabs.submission', {}, 'Submission')}
+                    </h3>
+                    <TaskSubmissionPanel
+                      taskId={task.id}
+                      isAssignee={Boolean(effectiveWorkSurfacePermissions?.isAssignee || task.assigned_to === currentUserId || task.assignee?.id === currentUserId)}
+                      task={{
+                        verification_method: task.verification_method,
+                        acceptance_criteria: task.acceptance_criteria,
+                      }}
+                    />
+                  </section>
+
+                  <section aria-labelledby="task-drawer-files-heading">
+                    <h3 id="task-drawer-files-heading" class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      {t('task.tabs.files', {}, 'Files')}
+                    </h3>
+                    <TaskFilesTab taskId={task.id} {currentUserId} />
+                  </section>
+                </div>
+
                 <div class="rounded-lg border bg-background/70 p-4">
                   <TaskDiscussionTab taskId={task.id} {currentUserId} />
                 </div>
