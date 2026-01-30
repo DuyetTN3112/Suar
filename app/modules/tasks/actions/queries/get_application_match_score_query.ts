@@ -1,60 +1,16 @@
-import db from '@adonisjs/lucid/services/db'
-
 import { enforcePolicy } from '#modules/authorization/public_contracts/policy_enforcer'
-import ForbiddenException from '#modules/http/exceptions/forbidden_exception'
-import NotFoundException from '#modules/http/exceptions/not_found_exception'
+import ForbiddenException from '#modules/errors/public_contracts/forbidden_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
 import { BaseQuery } from '#modules/tasks/actions/base_query'
+import type { TaskApplicantMatchReader } from '#modules/tasks/actions/ports/outbound/task_applicant_match_reader'
+import type { TaskPermissionReader } from '#modules/tasks/actions/ports/outbound/task_external_dependencies'
 import {
   hasOrganizationApplicationReviewRole,
   hasProjectApplicationReviewRole,
-} from '#modules/tasks/actions/support/task_application_review_roles'
-import { calculateApplicantMatch, type MatchScoreResult } from '#modules/tasks/domain/match_formulas'
+} from '#modules/tasks/actions/services/task_application_review_access'
+import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import { canProcessApplication } from '#modules/tasks/domain/task_assignment_rules'
-
-interface TaskRow {
-  business_domain: string
-  problem_category: string
-  task_type: string
-  project_id: string | null
-  organization_id: string | null
-  creator_id: string
-  assigned_to: string | null
-}
-
-interface AppRow {
-  applicant_id: string
-}
-
-interface UserRow {
-  trust_data: unknown
-}
-
-interface TaskRequiredSkillRow {
-  skill_id: string
-  required_public_proficiency_code: string
-  is_mandatory: boolean
-  skill_name: string
-  minimum_level_id: string | null
-  target_level_id: string | null
-  assessment_ceiling_level_id: string | null
-  importance: string | null
-  weight: number | null
-  project_skill_id: string | null
-  rubric_version_id: string | null
-}
-
-interface UserSkillRow {
-  skill_id: string
-  verified_public_proficiency_code: string
-  source: string
-}
-
-interface WorkHistoryRow {
-  business_domain: string
-  problem_category: string
-  task_type: string
-  was_on_time: boolean
-}
+import { calculateApplicantMatch, type MatchScoreResult } from '#modules/tasks/public_contracts/applicant_match'
 
 export interface GetApplicationMatchScoreDTO {
   task_id: string
@@ -65,33 +21,34 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
   GetApplicationMatchScoreDTO,
   MatchScoreResult
 > {
+  constructor(
+    execCtx: TaskActionContext,
+    private readonly permissionReader: TaskPermissionReader,
+    private readonly matches: TaskApplicantMatchReader
+  ) {
+    super(execCtx)
+  }
+
   async handle(dto: GetApplicationMatchScoreDTO): Promise<MatchScoreResult> {
     const userId = this.getCurrentUserId()
     if (!userId) {
       throw new ForbiddenException('Authentication required to view task application match score')
     }
 
-    const taskRow = (await db
-      .from('tasks')
-      .where('id', dto.task_id)
-      .select(
-        'business_domain',
-        'problem_category',
-        'task_type',
-        'project_id',
-        'organization_id',
-        'creator_id',
-        'assigned_to'
-      )
-      .first()) as TaskRow | null
+    const context = await this.matches.load(dto.task_id, dto.application_id)
+    const taskRow = context.task
 
     if (!taskRow) {
       throw new NotFoundException('Task not found')
     }
 
     const [isProjectOwnerOrManager, isOrganizationOwnerOrAdmin] = await Promise.all([
-      hasProjectApplicationReviewRole(userId, taskRow.project_id),
-      hasOrganizationApplicationReviewRole(userId, taskRow.organization_id),
+      hasProjectApplicationReviewRole(userId, taskRow.project_id, this.permissionReader),
+      hasOrganizationApplicationReviewRole(
+        userId,
+        taskRow.organization_id,
+        this.permissionReader
+      ),
     ])
 
     enforcePolicy(
@@ -105,63 +62,14 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
       })
     )
 
-    const appRow = (await db
-      .from('task_applications')
-      .where('id', dto.application_id)
-      .where('task_id', dto.task_id)
-      .select('applicant_id')
-      .first()) as AppRow | null
-
-    if (!appRow) {
+    const applicant = context.applicants[0]
+    if (!applicant) {
       throw new NotFoundException('Task application not found')
     }
 
-    const applicant = (await db
-      .from('users')
-      .where('id', appRow.applicant_id)
-      .select('trust_data')
-      .first()) as UserRow | null
-
-    if (!applicant) {
-      throw new NotFoundException('Applicant not found')
-    }
-
-    const requiredSkills = (await db
-      .from('task_required_skills as trs')
-      .join('skills as s', 's.id', 'trs.skill_id')
-      .where('trs.task_id', dto.task_id)
-      .select(
-        'trs.skill_id',
-        'trs.required_public_proficiency_code',
-        'trs.is_mandatory',
-        's.skill_name',
-        'trs.minimum_level_id',
-        'trs.target_level_id',
-        'trs.assessment_ceiling_level_id',
-        'trs.importance',
-        'trs.weight',
-        'trs.project_skill_id',
-        'trs.rubric_version_id'
-      )) as TaskRequiredSkillRow[]
-
-    const userSkills = (await db
-      .from('user_skills')
-      .where('user_id', appRow.applicant_id)
-      .select('skill_id', 'verified_public_proficiency_code', 'source')) as UserSkillRow[]
-
-    const workHistory = (await db
-      .from('user_work_history')
-      .where('user_id', appRow.applicant_id)
-      .select('business_domain', 'problem_category', 'task_type', 'was_on_time')) as WorkHistoryRow[]
-
-    const trustData = (typeof applicant.trust_data === 'string'
-      ? JSON.parse(applicant.trust_data)
-      : (applicant.trust_data ?? {})) as { calculated_score?: unknown }
-    const trustScore = Number(trustData.calculated_score ?? 0)
-
     return calculateApplicantMatch(
       {
-        requiredSkills: requiredSkills.map((rs) => ({
+        requiredSkills: context.required_skills.map((rs) => ({
           skill_id: rs.skill_id,
           required_public_proficiency_code: rs.required_public_proficiency_code,
           is_mandatory: rs.is_mandatory,
@@ -179,18 +87,18 @@ export default class GetApplicationMatchScoreQuery extends BaseQuery<
         task_type: taskRow.task_type,
       },
       {
-        skills: userSkills.map((us) => ({
+        skills: applicant.skills.map((us) => ({
           skill_id: us.skill_id,
           verified_public_proficiency_code: us.verified_public_proficiency_code,
           source: us.source,
         })),
-        workHistory: workHistory.map((wh) => ({
+        workHistory: applicant.work_history.map((wh) => ({
           business_domain: wh.business_domain,
           problem_category: wh.problem_category,
           task_type: wh.task_type,
           was_on_time: wh.was_on_time,
         })),
-        trustScore,
+        trustScore: applicant.trust_score,
       }
     )
   }
