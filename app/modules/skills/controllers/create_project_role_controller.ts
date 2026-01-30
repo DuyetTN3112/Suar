@@ -1,46 +1,44 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
-import { requireProjectAccessUserId } from './project_access_guard.js'
-import { camelizeResponseValue } from './support/camelize_response.js'
-import { readAliasedInput } from './support/read_aliased_input.js'
+import { readAliasedInput } from './mappers/request/read_aliased_input.js'
+import { camelizeResponseValue } from './mappers/response/camelize_response.js'
+import { SkillProjectAccessGuard } from './project_access_guard.js'
 
-import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
+import BusinessLogicException from '#modules/errors/public_contracts/business_logic_exception'
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import { ProfessionalRoleService } from '#modules/skills/actions/services/professional_role_service'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import CloneProfessionalRoleTemplateCommand from '#modules/skills/actions/commands/clone_professional_role_template_command'
+import CreateCustomProjectRoleCommand from '#modules/skills/actions/commands/create_custom_project_role_command'
 
+@inject()
 export default class CreateProjectRoleController {
+  constructor(
+    private readonly projectAccess: SkillProjectAccessGuard,
+    private readonly cloneProfessionalRoleTemplate: CloneProfessionalRoleTemplateCommand,
+    private readonly createCustomProjectRole: CreateCustomProjectRoleCommand
+  ) {}
+
   async handle(ctx: HttpContext) {
     const { params, request, response } = ctx
     const projectId = params['projectId'] as string
     const templateId = readAliasedInput(request, 'templateId', 'template_id') as string | undefined
 
-    const userId = await requireProjectAccessUserId(ctx, projectId, true)
+    const userId = await this.projectAccess.requireUserId(ctx, projectId, true)
 
     if (templateId) {
-      const role = await ProfessionalRoleService.cloneTemplateToProject(
+      const role = await this.cloneProfessionalRoleTemplate.execute({
         projectId,
         templateId,
-        userId
-      )
-      await auditPublicApi.log(
-        {
-          user_id: userId,
-          action: 'create',
-          entity_type: 'project_professional_role',
-          entity_id: role.id,
-          old_values: null,
-          new_values: {
-            project_id: role.project_id,
-            code: role.code,
-            name: role.name,
-            source_template_id: role.source_template_id,
-          },
+        createdBy: userId,
+        audit: {
+          actorId: userId,
+          context: actionContextFromHttp(ctx),
         },
-        actionContextFromHttp(ctx)
-      )
-      response.status(HttpStatus.CREATED).json({ data: camelizeResponseValue(role.serialize()) })
+      })
+      response
+        .status(HttpStatus.CREATED)
+        .json({ data: camelizeResponseValue(this.toResponse(role)) })
       return
     }
 
@@ -52,31 +50,42 @@ export default class CreateProjectRoleController {
       throw new BusinessLogicException('code and name are required for custom project role')
     }
 
-    const role = await ProfessionalRoleService.createCustomProjectRole({
+    const role = await this.createCustomProjectRole.execute({
       projectId,
       code,
       name,
       ...(description !== undefined ? { description } : {}),
       createdBy: userId,
+      audit: {
+        actorId: userId,
+        context: actionContextFromHttp(ctx),
+      },
     })
 
-    await auditPublicApi.log(
-      {
-        user_id: userId,
-        action: 'create',
-        entity_type: 'project_professional_role',
-        entity_id: role.id,
-        old_values: null,
-        new_values: {
-          project_id: role.project_id,
-          code: role.code,
-          name: role.name,
-          source_template_id: null,
-        },
-      },
-      actionContextFromHttp(ctx)
-    )
+    response.status(HttpStatus.CREATED).json({ data: camelizeResponseValue(this.toResponse(role)) })
+  }
 
-    response.status(HttpStatus.CREATED).json({ data: camelizeResponseValue(role.serialize()) })
+  private toResponse(role: {
+    id: string
+    project_id: string
+    source_template_id: string | null
+    code: string
+    name: string
+    description: string | null
+    is_active: boolean
+    version: number
+    created_by: string | null
+  }) {
+    return {
+      id: role.id,
+      project_id: role.project_id,
+      source_template_id: role.source_template_id,
+      code: role.code,
+      name: role.name,
+      description: role.description,
+      is_active: role.is_active,
+      version: role.version,
+      created_by: role.created_by,
+    }
   }
 }

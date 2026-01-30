@@ -1,21 +1,18 @@
-import emitter from '@adonisjs/core/services/emitter'
-
 import { auditPublicApi } from '#modules/audit/public_contracts/audit_log_writer'
-import { del as deleteCacheKey } from '#modules/cache/public_contracts/cache_store'
-import BusinessLogicException from '#modules/http/exceptions/business_logic_exception'
+import ConflictException from '#modules/errors/public_contracts/conflict_exception'
+import NotFoundException from '#modules/errors/public_contracts/not_found_exception'
+import ValidationException from '#modules/errors/public_contracts/validation_exception'
 import {
   getCanonicalProficiencyLevelValue,
   isCanonicalProficiencyLevelCode,
-  proficiencyFrameworkPublicApi,
 } from '#modules/skills/public_contracts/proficiency_framework'
 import { BaseCommand } from '#modules/users/actions/base_command'
 import type { UpdateUserSkillDTO } from '#modules/users/actions/dtos/request/user_skill_dtos'
-import {
-  buildUserProfileCacheKeys,
-  buildUserSkillsCacheKeys,
-} from '#modules/users/actions/support/user_query_cache_keys'
-import * as userSkillQueries from '#modules/users/infra/repositories/read/user_skill_queries'
-import * as userSkillMutations from '#modules/users/infra/repositories/write/user_skill_mutations'
+import type { UserApplicationEventPublisher } from '#modules/users/actions/ports/outbound/user_application_event_publisher'
+import type { UserSkillReader } from '#modules/users/actions/ports/outbound/user_external_dependencies'
+import type { UserProfileRepository } from '#modules/users/actions/ports/outbound/user_profile_repository'
+import type { UserTransactionRunner } from '#modules/users/actions/ports/outbound/user_transaction'
+import type { UserActionContext } from '#modules/users/actions/user_action_context'
 import type { UserSkillRecord } from '#modules/users/types/user_records'
 
 /**
@@ -30,27 +27,33 @@ export default class UpdateUserSkillCommand extends BaseCommand<
   UpdateUserSkillDTO,
   UserSkillRecord
 > {
+  constructor(
+    execCtx: UserActionContext,
+    transactions: UserTransactionRunner,
+    private readonly profiles: UserProfileRepository,
+    private readonly skillReader: UserSkillReader,
+    private readonly events: UserApplicationEventPublisher
+  ) {
+    super(execCtx, transactions)
+  }
+
   async handle(dto: UpdateUserSkillDTO): Promise<UserSkillRecord> {
     const result = await this.executeInTransaction(async (trx) => {
       const userId = this.getCurrentUserId()
 
       // Find and verify ownership of the user skill
-      const userSkill = await userSkillQueries.findOwnedByIdWithSkill(
-        dto.user_skill_id,
-        userId,
-        trx
-      )
+      const userSkill = await this.profiles.findOwnedUserSkill(dto.user_skill_id, userId, trx)
 
       if (!userSkill) {
-        throw new BusinessLogicException('User skill không tồn tại')
+        throw new NotFoundException('User skill không tồn tại')
       }
 
       // v3.1: Skill source integrity guard
       // User không thể tự sửa reviewed score - chỉ review pipeline mới được cập nhật
       if (userSkill.source === 'reviewed') {
-        throw new BusinessLogicException(
+        throw new ConflictException(
           'Không thể tự cập nhật skill score từ reviewed source. ' +
-          'Reviewed score chỉ được cập nhật qua review pipeline.'
+            'Reviewed score chỉ được cập nhật qua review pipeline.'
         )
       }
 
@@ -60,46 +63,52 @@ export default class UpdateUserSkillCommand extends BaseCommand<
 
       // v3: Validate new proficiency level against enum
       if (!isCanonicalProficiencyLevelCode(dto.verified_public_proficiency_code)) {
-        throw new BusinessLogicException(
+        throw ValidationException.field(
+          'verified_public_proficiency_code',
           `Mức độ thành thạo không hợp lệ: ${dto.verified_public_proficiency_code}`
         )
       }
 
       // Resolve level ID
-      const matchedLevel = await proficiencyFrameworkPublicApi.mapCodeToLevel(
+      const proficiencyLevelId = await this.skillReader.resolveProficiencyLevelId(
         dto.verified_public_proficiency_code,
         trx
       )
-      const proficiencyLevelId = matchedLevel?.id ?? null
       const persistedLevelCode = getCanonicalProficiencyLevelValue(
         dto.verified_public_proficiency_code
       )
 
       // Update public proficiency code while keeping legacy column mapping intact
-      userSkill.verified_public_proficiency_code = persistedLevelCode
-      userSkill.proficiency_level_id = proficiencyLevelId
-      await userSkillMutations.save(userSkill, trx)
+      const updatedUserSkill = await this.profiles.updateUserSkill(
+        userSkill.id,
+        {
+          verified_public_proficiency_code: persistedLevelCode,
+          proficiency_level_id: proficiencyLevelId,
+        },
+        trx
+      )
 
       // Log audit
       if (this.execCtx.userId) {
-        await auditPublicApi.write(this.execCtx, {
-          user_id: this.execCtx.userId,
-          action: 'update_skill',
-          entity_type: 'user_skill',
-          entity_id: dto.user_skill_id,
-          old_values: oldValues,
-          new_values: {
-            verified_public_proficiency_code: persistedLevelCode,
+        await auditPublicApi.write(
+          this.execCtx,
+          {
+            user_id: this.execCtx.userId,
+            action: 'update_skill',
+            critical: true,
+            entity_type: 'user_skill',
+            entity_id: dto.user_skill_id,
+            old_values: oldValues,
+            new_values: {
+              verified_public_proficiency_code: persistedLevelCode,
+            },
           },
-        })
+          trx
+        )
       }
 
       return {
-        userSkill: userSkillQueries.toRecord(userSkill),
-        cacheKeys: [
-          ...buildUserProfileCacheKeys(userId),
-          ...buildUserSkillsCacheKeys(userId, [userSkill.skill.category_code]),
-        ],
+        userSkill: updatedUserSkill,
         skillScoreUpdatedEvent: {
           userId,
           skillId: userSkill.skill_id,
@@ -109,10 +118,14 @@ export default class UpdateUserSkillCommand extends BaseCommand<
       }
     })
 
-    for (const cacheKey of result.cacheKeys) {
-      await deleteCacheKey(cacheKey)
-    }
-    void emitter.emit('skill:score:updated', result.skillScoreUpdatedEvent)
+    await this.settlePostCommitEffect(
+      'user.skill_score.updated',
+      () => this.events.publishSkillScoreUpdated(result.skillScoreUpdatedEvent),
+      {
+        userId: result.skillScoreUpdatedEvent.userId,
+        actorId: this.execCtx.userId ?? result.skillScoreUpdatedEvent.userId,
+      }
+    )
 
     return result.userSkill
   }

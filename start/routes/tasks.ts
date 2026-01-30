@@ -6,9 +6,8 @@ import { throttle } from '#start/limiter'
 
 // Task use-case controllers
 const ListTasksController = () => import('#modules/tasks/controllers/list_tasks_controller')
+const ListMyWorkController = () => import('#modules/tasks/controllers/list_my_work_controller')
 const CreateTaskController = () => import('#modules/tasks/controllers/create_task_controller')
-const ShowTaskStatusBoardController = () =>
-  import('#modules/tasks/controllers/show_task_status_board_controller')
 const ShowTaskController = () => import('#modules/tasks/controllers/show_task_controller')
 const ShowTaskApiController = () => import('#modules/tasks/controllers/show_task_api_controller')
 const EditTaskController = () => import('#modules/tasks/controllers/edit_task_controller')
@@ -31,8 +30,6 @@ const UpdateTaskSortOrderController = () =>
   import('#modules/tasks/controllers/update_task_sort_order_controller')
 const BatchUpdateTaskStatusController = () =>
   import('#modules/tasks/controllers/batch_update_task_status_controller')
-const PatchTaskStatusBoardPocController = () =>
-  import('#modules/tasks/controllers/patch_task_status_board_poc_controller')
 
 // Task Status + Workflow controllers (Phase 4)
 const ListTaskStatusesController = () =>
@@ -46,6 +43,91 @@ const DeleteTaskStatusController = () =>
 const ListWorkflowController = () => import('#modules/tasks/controllers/list_workflow_controller')
 const ReplaceTaskWorkflowTransitionsController = () =>
   import('#modules/tasks/controllers/replace_task_workflow_transitions_controller')
+
+router
+  .group(() => {
+    router.get('/work', [ListMyWorkController, 'handle']).as('work.index')
+    router
+      .get('/work/tasks/:taskId', [ShowTaskController, 'handle'])
+      .where('taskId', router.matchers.uuid())
+      .as('work.tasks.show')
+
+    router
+      .group(() => {
+        router
+          .put('/tasks/:taskId/status', [UpdateTaskStatusController, 'handle'])
+          .as('work.api.tasks.status.update')
+        router
+          .get('/tasks/:taskId/submission', [TaskSubmissionController, 'show'])
+          .as('work.api.tasks.submission.show')
+        router
+          .post('/tasks/:taskId/submission', [TaskSubmissionController, 'saveDraft'])
+          .as('work.api.tasks.submission.store')
+        router
+          .patch('/tasks/:taskId/submission', [TaskSubmissionController, 'saveDraft'])
+          .as('work.api.tasks.submission.update')
+        router
+          .post('/tasks/:taskId/submission/submit', [TaskSubmissionController, 'submit'])
+          .as('work.api.tasks.submission.submit')
+        router
+          .post('/tasks/:taskId/submission/lock', [TaskSubmissionController, 'lock'])
+          .as('work.api.tasks.submission.lock')
+        router
+          .get('/tasks/submissions/:submissionId/evidences', [
+            TaskSubmissionController,
+            'listEvidences',
+          ])
+          .as('work.api.task_submissions.evidences.index')
+        router
+          .post('/tasks/submissions/:submissionId/evidences', [
+            TaskSubmissionController,
+            'addEvidence',
+          ])
+          .as('work.api.task_submissions.evidences.store')
+        router
+          .delete('/tasks/submissions/:submissionId/evidences/:evidenceId', [
+            TaskSubmissionController,
+            'deleteEvidence',
+          ])
+          .as('work.api.task_submissions.evidences.destroy')
+        router
+          .get('/tasks/:taskId/comments', [TaskSubmissionController, 'listComments'])
+          .as('work.api.tasks.comments.index')
+        router
+          .post('/tasks/:taskId/comments', [TaskSubmissionController, 'createComment'])
+          .as('work.api.tasks.comments.store')
+        router
+          .patch('/tasks/:taskId/comments/:commentId', [
+            TaskSubmissionController,
+            'updateComment',
+          ])
+          .as('work.api.tasks.comments.update')
+        router
+          .delete('/tasks/:taskId/comments/:commentId', [
+            TaskSubmissionController,
+            'deleteComment',
+          ])
+          .as('work.api.tasks.comments.destroy')
+        router
+          .get('/tasks/:taskId/attachments', [TaskSubmissionController, 'listAttachments'])
+          .as('work.api.tasks.attachments.index')
+        router
+          .post('/tasks/:taskId/attachments', [TaskSubmissionController, 'createAttachment'])
+          .as('work.api.tasks.attachments.store')
+        router
+          .delete('/tasks/:taskId/attachments/:attachmentId', [
+            TaskSubmissionController,
+            'deleteAttachment',
+          ])
+          .as('work.api.tasks.attachments.destroy')
+      })
+      .prefix('/work/api')
+      .use([
+        middleware.bindHttpTransport('api-compat'),
+        middleware.bindApiAuthContract('session-or-bearer'),
+      ])
+  })
+  .use([middleware.auth(), throttle])
 
 router
   .group(() => {
@@ -67,9 +149,6 @@ router
         router
           .patch('/api/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
           .as('api.tasks.statuses.batch.update')
-        router
-          .patch('/api/tasks/board-state', [PatchTaskStatusBoardPocController, 'handle'])
-          .as('api.tasks.board_state.update')
         router
           .patch('/api/tasks/:taskId/sort-order', [UpdateTaskSortOrderController, 'handle'])
           .as('api.tasks.sort_order.update')
@@ -160,9 +239,6 @@ router
           .patch('/tasks/batch-status', [BatchUpdateTaskStatusController, 'handle'])
           .as('tasks.statuses.batch.update')
         router
-          .patch('/tasks/board-state', [PatchTaskStatusBoardPocController, 'handle'])
-          .as('tasks.board_state.update')
-        router
           .patch('/tasks/:taskId/sort-order', [UpdateTaskSortOrderController, 'handle'])
           .as('tasks.sort_order.update')
         router
@@ -244,9 +320,6 @@ router
       ])
 
     router.get('/tasks/create', [CreateTaskController, 'showForm']).as('tasks.create')
-    router
-      .get('/tasks/status-board', [ShowTaskStatusBoardController, 'handle'])
-      .as('tasks.board_state.show')
     router.post('/tasks', [CreateTaskController, 'handle']).as('tasks.store')
     router
       .get('/tasks/:taskId', [ShowTaskController, 'handle'])
