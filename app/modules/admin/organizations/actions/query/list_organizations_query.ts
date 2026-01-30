@@ -1,38 +1,15 @@
-import type { AdminActionContext } from '#modules/admin/actions/admin_action_context'
-import { BaseQuery } from '#modules/admin/actions/base_query'
-import type { AdminOrganizationSearchCandidateReader } from '#modules/admin/actions/ports/admin_search_candidate_readers'
-import { ADMIN_PAGINATION } from '#modules/admin/application/dtos/common/admin_pagination'
-import { EngineAdminOrganizationSearchCandidateReader } from '#modules/admin/infra/adapters/engine_admin_search_candidate_readers'
-import { AdminOrganizationReadOps } from '#modules/admin/infra/repositories/read/admin_organization_queries'
-import type { PartnerType } from '#modules/organizations/public_contracts/organization_constants'
+import type { AdminActionContext } from '#modules/admin/organizations/actions/action_context'
+import { ADMIN_PAGINATION } from '#modules/admin/organizations/actions/dtos/common/admin_pagination'
+import type { AdminOrganizationRepository } from '#modules/admin/organizations/actions/ports/outbound/admin_operational_repository'
+import type { AdminOrganizationSearchCandidateReader } from '#modules/admin/organizations/actions/ports/outbound/admin_search_candidate_readers'
+import { BaseQuery } from '#modules/admin/organizations/actions/query/base_query'
+import type { PartnerType } from '#modules/organizations/access/public_contracts/organization_constants'
 import {
   buildPaginationMeta,
   normalizePagination,
   toWindowLimit,
 } from '#modules/pagination/public_contracts/pagination_public_api'
-import { isSearchRuntimeEnabled } from '#modules/search/public_contracts/search_engine'
-
-const toNumberValue = (value: unknown): number => {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : 0
-  }
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : 0
-  }
-  return 0
-}
-
-const getExtrasNumber = (value: unknown, key: string): number => {
-  if (typeof value !== 'object' || value === null) {
-    return 0
-  }
-  const extras = (value as { $extras?: unknown }).$extras
-  if (typeof extras !== 'object' || extras === null) {
-    return 0
-  }
-  return toNumberValue((extras as Record<string, unknown>)[key])
-}
+import { searchFallbackObserver } from '#modules/search/public_contracts/search_fallback_observer'
 
 /**
  * ListOrganizationsQuery (System Admin)
@@ -83,23 +60,23 @@ export default class ListOrganizationsQuery extends BaseQuery<
 > {
   constructor(
     execCtx: AdminActionContext,
-    private orgRepo = AdminOrganizationReadOps,
-    private readonly organizationSearchCandidateReader: AdminOrganizationSearchCandidateReader = new EngineAdminOrganizationSearchCandidateReader()
+    private readonly organizationSearchCandidateReader: AdminOrganizationSearchCandidateReader,
+    private readonly orgRepo: AdminOrganizationRepository
   ) {
     super(execCtx)
   }
 
   async handle(dto: ListOrganizationsDTO): Promise<ListOrganizationsResult> {
     const pagination = normalizePagination(dto, ADMIN_PAGINATION, { perPage: 50 })
-    const organizationIds = await this.resolveEngineOrganizationIds(
+    const organizationIds = await this.resolveSearchOrganizationIds(
       dto.search,
       pagination.page,
       pagination.perPage
     )
 
     // Fetch from repository (Infrastructure layer).
-      // Search index can lag behind freshly-created DB rows during tests/runtime; fall back to SQL
-      // search when engine candidates do not resolve to any active organizations.
+    // Search index can lag behind freshly-created DB rows during tests/runtime; fall back to SQL
+    // search when engine candidates do not resolve to any active organizations.
     let result = await this.orgRepo.listOrganizations(
       {
         ...(organizationIds || !dto.search ? {} : { search: dto.search }),
@@ -129,19 +106,19 @@ export default class ListOrganizationsQuery extends BaseQuery<
         name: org.name,
         slug: org.slug,
         description: org.description ?? null,
-        owner_id: org.owner_id,
+        owner_id: org.ownerId,
         owner: {
           id: org.owner.id,
           username: org.owner.username,
           email: org.owner.email ?? '',
         },
-        partner_type: org.partner_type,
-        partner_is_active: org.partner_is_active ?? false,
-        created_at: org.created_at.toISO() ?? new Date().toISOString(),
-        updated_at: org.updated_at.toISO() ?? new Date().toISOString(),
+        partner_type: org.partnerType,
+        partner_is_active: org.partnerIsActive,
+        created_at: org.createdAt,
+        updated_at: org.updatedAt,
         _count: {
-          members: getExtrasNumber(org, 'users_count'),
-          projects: getExtrasNumber(org, 'projects_count'),
+          members: org.usersCount,
+          projects: org.projectsCount,
         },
       })),
       meta: {
@@ -153,12 +130,12 @@ export default class ListOrganizationsQuery extends BaseQuery<
     }
   }
 
-  private async resolveEngineOrganizationIds(
+  private async resolveSearchOrganizationIds(
     search: string | undefined,
     page: number,
     perPage: number
   ): Promise<string[] | null> {
-    if (!search?.trim() || !isSearchRuntimeEnabled()) {
+    if (!search?.trim() || !this.organizationSearchCandidateReader.isEnabled()) {
       return null
     }
 
@@ -173,7 +150,8 @@ export default class ListOrganizationsQuery extends BaseQuery<
       }
 
       return hits.map((hit) => hit.organizationId)
-    } catch {
+    } catch (error) {
+      searchFallbackObserver.record({ surface: 'admin.organizations.list', error })
       return null
     }
   }
