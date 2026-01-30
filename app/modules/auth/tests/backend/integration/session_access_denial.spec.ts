@@ -62,6 +62,21 @@ test.group('Integration | Auth Inactive Credential Denial', (group) => {
     assert.notInclude(response.text(), owner.email ?? '')
   })
 
+  test('browser session for deactivated user is rejected before SSE can reconnect', async ({
+    assert,
+    client,
+  }) => {
+    const { owner } = await OrganizationFactory.createWithOwner()
+
+    await owner.merge({ status: 'inactive' }).save()
+
+    const response = await client.get('/tasks').loginAs(owner)
+
+    response.assertStatus(401)
+    assert.notInclude(response.text(), 'tasks/index')
+    assert.notInclude(response.text(), owner.id)
+  })
+
   test('browser session for deleted user is rejected without rendering protected task UI', async ({
     assert,
     client,

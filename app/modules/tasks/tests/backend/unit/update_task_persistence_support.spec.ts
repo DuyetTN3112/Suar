@@ -2,11 +2,11 @@ import type { TransactionClientContract } from '@adonisjs/lucid/types/database'
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import { taskExternalDeps } from '#composition/task_external_dependencies_composition'
+import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/commands/internal/update_task_transaction'
 import UpdateTaskDTO from '#modules/tasks/actions/dtos/request/update_task_dto'
-import { persistTaskUpdateWithinTransaction } from '#modules/tasks/actions/support/update_task_persistence_support'
 import type { TaskActionContext } from '#modules/tasks/actions/task_action_context'
 import type { TaskRecord } from '#modules/tasks/types/task_records'
-import { SystemRoleName } from '#modules/users/constants/user_constants'
 
 const VALID_UUID = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d'
 const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e'
@@ -81,10 +81,11 @@ test.group('Update task persistence support', () => {
         dto,
         userId: VALID_UUID_3,
         trx: makeTransaction(),
+        externalDependencies: taskExternalDeps,
       },
       {
         taskRepository: {
-          findActiveForUpdateAsRecord: () => Promise.resolve(task),
+          lockActiveTask: () => Promise.resolve(task),
           updateTask: (_taskId, data) => {
             updateCalls.push(data)
             return Promise.resolve({ ...task, ...data })
@@ -118,7 +119,6 @@ test.group('Update task persistence support', () => {
         buildTaskPermissionContext: () =>
           Promise.resolve({
             actorId: VALID_UUID_3,
-            actorSystemRole: SystemRoleName.SUPERADMIN,
             actorOrgRole: null,
             actorProjectRole: null,
             taskCreatorId: VALID_UUID_3,
@@ -169,10 +169,11 @@ test.group('Update task persistence support', () => {
             dto,
             userId: VALID_UUID_3,
             trx: makeTransaction(),
+            externalDependencies: taskExternalDeps,
           },
           {
             taskRepository: {
-              findActiveForUpdateAsRecord: () => Promise.resolve(task),
+              lockActiveTask: () => Promise.resolve(task),
               updateTask: (_taskId, data) => {
                 updateCalls.push(data)
                 return Promise.resolve({ ...task, ...data })
@@ -196,7 +197,6 @@ test.group('Update task persistence support', () => {
             buildTaskPermissionContext: () =>
               Promise.resolve({
                 actorId: VALID_UUID_3,
-                actorSystemRole: SystemRoleName.SUPERADMIN,
                 actorOrgRole: null,
                 actorProjectRole: null,
                 taskCreatorId: VALID_UUID_3,
@@ -233,10 +233,11 @@ test.group('Update task persistence support', () => {
             dto,
             userId: VALID_UUID_3,
             trx: makeTransaction(),
+            externalDependencies: taskExternalDeps,
           },
           {
             taskRepository: {
-              findActiveForUpdateAsRecord: () => Promise.resolve(task),
+              lockActiveTask: () => Promise.resolve(task),
               updateTask: (_taskId, data) => {
                 updateCalls.push(data)
                 return Promise.resolve({ ...task, ...data })
@@ -260,7 +261,6 @@ test.group('Update task persistence support', () => {
             buildTaskPermissionContext: () =>
               Promise.resolve({
                 actorId: VALID_UUID_3,
-                actorSystemRole: SystemRoleName.SUPERADMIN,
                 actorOrgRole: null,
                 actorProjectRole: null,
                 taskCreatorId: VALID_UUID_3,

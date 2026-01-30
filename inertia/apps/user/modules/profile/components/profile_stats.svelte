@@ -4,6 +4,7 @@
    */
   import { Award, Star, ChartColumn, Clock } from 'lucide-svelte'
   import { currentDocumentLocale } from '@/apps/user/shared/lib/date_locale'
+  import { useTranslation } from '@/apps/user/shared/stores/translation.svelte'
 
   import Card from '@/apps/user/shared/ui/card.svelte'
   import CardContent from '@/apps/user/shared/ui/card_content.svelte'
@@ -17,6 +18,7 @@
   }
 
   const { user, skills = [], class: className = '' }: Props = $props()
+  const { t } = useTranslation()
 
   const totalSkills = $derived(skills.length)
   const reviewedSkills = $derived(skills.filter((s) => s.total_reviews > 0).length)
@@ -47,25 +49,25 @@
   const stats = $derived.by(() => [
     {
       icon: Award,
-      label: 'Skills',
+      label: t('ui_misc.profile.stats.skills', {}, 'Skills'),
       value: `${totalSkills}`,
-      sub: `${reviewedSkills} reviewed`,
+      sub: t('ui_misc.profile.stats.reviewed_count', { count: reviewedSkills }, ':count reviewed'),
     },
     {
       icon: Star,
-      label: 'Average score',
+      label: t('ui_misc.profile.stats.average_score', {}, 'Average score'),
       value: avgPercentage !== null ? `${avgPercentage.toFixed(1)}%` : 'N/A',
-      sub: 'Based on reviews',
+      sub: t('ui_misc.profile.stats.based_on_reviews', {}, 'Based on reviews'),
     },
     {
       icon: ChartColumn,
-      label: 'Trust',
+      label: t('ui_misc.profile.stats.trust', {}, 'Trust'),
       value: typeof user.trust_score === 'number' ? user.trust_score.toFixed(1) : 'N/A',
-      sub: user.trust_tier_code ?? 'Unknown',
+      sub: user.trust_tier_code ?? t('ui_misc.profile.stats.unknown', {}, 'Unknown'),
     },
     {
       icon: Clock,
-      label: 'Member since',
+      label: t('ui_misc.profile.stats.member_since', {}, 'Member since'),
       value: memberSince,
       sub: '',
     },

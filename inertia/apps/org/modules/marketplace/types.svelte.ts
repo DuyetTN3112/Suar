@@ -147,16 +147,16 @@ export interface MarketplaceTasksProps {
 
 export const DIFFICULTY_CONFIG: Record<
   TaskDifficulty,
-  { label: string; labelVi: string; marker: string }
+  { label: string; marker: string }
 > = {
-  easy: { label: 'Easy', labelVi: 'Cơ bản', marker: '◇' },
-  medium: { label: 'Medium', labelVi: 'Trung bình', marker: '◆' },
-  hard: { label: 'Hard', labelVi: 'Nâng cao', marker: '◆◆' },
-  expert: { label: 'Expert', labelVi: 'Chuyên gia', marker: '◆◆◆' },
+  easy: { label: 'Easy', marker: '◇' },
+  medium: { label: 'Medium', marker: '◆' },
+  hard: { label: 'Hard', marker: '◆◆' },
+  expert: { label: 'Expert', marker: '◆◆◆' },
 }
 
 export const SORT_OPTIONS = [
-  { value: 'recommended', label: 'Phù hợp nhất' },
-  { value: 'created_at', label: 'Mới nhất' },
-  { value: 'due_date', label: 'Hạn chót' },
+  { value: 'recommended', label: 'Best match' },
+  { value: 'created_at', label: 'Newest' },
+  { value: 'due_date', label: 'Deadline' },
 ] as const

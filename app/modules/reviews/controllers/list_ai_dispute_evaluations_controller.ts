@@ -1,16 +1,22 @@
+import { inject } from '@adonisjs/core'
 import type { HttpContext } from '@adonisjs/core/http'
 
 import { mapReviewCollectionApiBody } from './mappers/response/review_response_mapper.js'
 
 import { HttpStatus } from '#modules/errors/public_contracts/error_constants'
-import { actionContextFromHttp } from '#modules/http/public_contracts/http_execution_context'
-import ListAiDisputeEvaluationsQuery from '#modules/reviews/actions/queries/list_ai_dispute_evaluations_query'
+import { actionContextFromHttp } from '#modules/http/boundary/http_execution_context'
+import { ReviewActionFactory } from '#modules/reviews/actions/ports/inbound/review_action_factory'
 
+@inject()
 export default class ListAiDisputeEvaluationsController {
+  constructor(private readonly actions: ReviewActionFactory) {}
+
   async handle(ctx: HttpContext) {
-    const evaluations = await new ListAiDisputeEvaluationsQuery(actionContextFromHttp(ctx)).execute({
-      dispute_id: ctx.params['disputeId'] as string,
-    })
+    const evaluations = await this.actions
+      .makeListAiDisputeEvaluationsQuery(actionContextFromHttp(ctx))
+      .execute({
+        dispute_id: ctx.params['disputeId'] as string,
+      })
 
     ctx.response.status(HttpStatus.OK)
     return mapReviewCollectionApiBody(evaluations)

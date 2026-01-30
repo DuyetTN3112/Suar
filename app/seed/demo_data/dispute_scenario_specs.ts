@@ -19,7 +19,7 @@ export interface DisputeScenarioSpec {
   taskGiver: UserKey
   worker: UserKey
   counterparty: UserKey
-  expectedDecision?: 'adjust_score' | 'uphold_review' | 'request_more_evidence' | 'partially_accept'
+  expectedDecision?: 'adjust_score' | 'uphold_review' | 'request_re_review' | 'partially_accept'
   evidenceSummary: string
 }
 
@@ -36,7 +36,8 @@ export const DISPUTE_SCENARIO_SPECS: DisputeScenarioSpec[] = [
     worker: 'owner',
     counterparty: 'peerReviewer',
     expectedDecision: 'adjust_score',
-    evidenceSummary: 'Submission evidence and related operations work support a score adjustment.',
+    evidenceSummary:
+      'Chứng cứ bàn giao, nhật ký nghiệm thu và các hạng mục liên quan cùng xác nhận phạm vi công việc rộng hơn phần điểm ban đầu.',
   },
   {
     key: 'managerSprintPlanningAmbiguity',
@@ -50,7 +51,8 @@ export const DISPUTE_SCENARIO_SPECS: DisputeScenarioSpec[] = [
     worker: 'member',
     counterparty: 'owner',
     expectedDecision: 'partially_accept',
-    evidenceSummary: 'Sprint handoff helped delivery, but rubric examples arrived late.',
+    evidenceSummary:
+      'Việc bàn giao sprint hỗ trợ tiến độ, nhưng ví dụ minh họa cho rubric được cung cấp muộn.',
   },
   {
     key: 'environmentOwnershipAmbiguity',
@@ -61,10 +63,10 @@ export const DISPUTE_SCENARIO_SPECS: DisputeScenarioSpec[] = [
     primaryTask: 'member-profile-proof',
     relatedTasks: ['member-org-switch', 'member-profile-live'],
     taskGiver: 'owner',
-    worker: 'member',
-    counterparty: 'orgAdmin',
-    expectedDecision: 'request_more_evidence',
+    worker: 'orgAdmin',
+    counterparty: 'owner',
+    expectedDecision: 'request_re_review',
     evidenceSummary:
-      'Environment review needs clearer ownership signals for sprint scoring governance.',
+      'Đánh giá môi trường làm việc cần được thực hiện lại sau khi làm rõ trách nhiệm chấm điểm và phản hồi.',
   },
 ]

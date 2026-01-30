@@ -1,6 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/svelte'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.unmock('@/apps/admin/shared/stores/translation.svelte')
+
 const routerMocks = vi.hoisted(() => ({
   put: vi.fn(),
 }))
@@ -83,17 +85,17 @@ describe('AdminPackagesPage', () => {
   it('renders package cards and subscription rows with exact visible values', () => {
     renderPackagesPage()
 
-    expect(screen.getByRole('heading', { name: 'Pro 12 user' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Pro 12 users' })).toBeInTheDocument()
     expect(screen.getByText('$10')).toBeInTheDocument()
     expect(screen.getByText('• Priority matching')).toBeInTheDocument()
     expect(screen.getByText('• Advanced reporting')).toBeInTheDocument()
-    expect(screen.getByText('12 user')).toBeInTheDocument()
+    expect(screen.getByText('12 users')).toBeInTheDocument()
 
     expect(screen.getByText('duyet')).toBeInTheDocument()
     expect(screen.getByText('duyet@example.com')).toBeInTheDocument()
     expect(screen.getAllByText('pro').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('active')).toBeInTheDocument()
-    expect(screen.getByText('1/8/2026')).toBeInTheDocument()
+    expect(screen.getByText('08/01/2026')).toBeInTheDocument()
   })
 
   it('sends exact subscription update payloads from row controls', async () => {
@@ -106,7 +108,7 @@ describe('AdminPackagesPage', () => {
       expect.objectContaining({ preserveScroll: true, preserveState: true })
     )
 
-    await fireEvent.click(screen.getByRole('button', { name: 'Hủy' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(routerMocks.put).toHaveBeenCalledWith(
       '/admin/packages/sub-1',
       { status: 'cancelled', auto_renew: false },
@@ -117,13 +119,13 @@ describe('AdminPackagesPage', () => {
   it('shows field errors from invalid custom plan and status without changing the visible row', async () => {
     renderPackagesPage()
 
-    await fireEvent.input(screen.getByLabelText('Plan tùy chỉnh cho duyet'), {
+    await fireEvent.input(screen.getByLabelText('Custom plan for duyet'), {
       target: { value: 'not-a-plan' },
     })
-    await fireEvent.input(screen.getByLabelText('Trạng thái tùy chỉnh cho duyet'), {
+    await fireEvent.input(screen.getByLabelText('Custom status for duyet'), {
       target: { value: 'not-a-status' },
     })
-    await fireEvent.click(screen.getByRole('button', { name: 'Áp dụng tùy chỉnh cho duyet' }))
+    await fireEvent.click(screen.getByRole('button', { name: 'Apply custom values for duyet' }))
 
     expect(routerMocks.put).toHaveBeenCalledWith(
       '/admin/packages/sub-1',
