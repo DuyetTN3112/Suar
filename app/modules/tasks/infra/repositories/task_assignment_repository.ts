@@ -8,23 +8,23 @@ import * as taskAssignmentQueries from './read/task_assignment_queries.js'
 import * as taskAssignmentMutations from './write/task_assignment_mutations.js'
 
 import { TaskInfraMapper } from '#modules/tasks/infra/mapper/task_infra_mapper'
-import type { TaskAssignmentWithDetailsRecord } from '#modules/tasks/types/task_records'
+import type { TaskAssignmentWithTaskRecord } from '#modules/tasks/types/task_records'
 
-const findActiveWithDetailsRecord = async (
-  ...args: Parameters<typeof taskAssignmentQueries.findActiveWithDetails>
-): Promise<TaskAssignmentWithDetailsRecord | null> => {
-  const assignment = await taskAssignmentQueries.findActiveWithDetails(...args)
+const findWithTaskForUpdateRecord = async (
+  ...args: Parameters<typeof taskAssignmentQueries.findWithTaskForUpdate>
+): Promise<TaskAssignmentWithTaskRecord | null> => {
+  const assignment = await taskAssignmentQueries.findWithTaskForUpdate(...args)
   if (!assignment) {
     return null
   }
 
-  return TaskInfraMapper.toAssignmentWithDetailsRecord(assignment)
+  return TaskInfraMapper.toAssignmentWithTaskRecord(assignment)
 }
 
 const TaskAssignmentRepository = {
   ...taskAssignmentQueries,
   ...taskAssignmentMutations,
-  findActiveWithDetails: findActiveWithDetailsRecord,
+  findWithTaskForUpdate: findWithTaskForUpdateRecord,
 }
 
 export default TaskAssignmentRepository

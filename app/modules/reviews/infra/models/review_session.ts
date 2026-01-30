@@ -1,10 +1,7 @@
-import { BaseModel, column, belongsTo, hasMany } from '@adonisjs/lucid/orm'
-import type { BelongsTo, HasMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
+import type { HasMany } from '@adonisjs/lucid/types/relations'
 import { DateTime } from 'luxon'
 
-
-import TaskAssignment from '../../../tasks/infra/models/task_assignment.js'
-import User from '../../../users/infra/models/user.js'
 
 import ReviewSessionReviewerAssignment from './review_session_reviewer_assignment.js'
 import SkillReview from './skill_review.js'
@@ -111,12 +108,6 @@ export default class ReviewSession extends BaseModel {
   declare updated_at: DateTime
 
   // Relationships
-  @belongsTo(() => TaskAssignment, { foreignKey: 'task_assignment_id' })
-  declare task_assignment: BelongsTo<typeof TaskAssignment>
-
-  @belongsTo(() => User, { foreignKey: 'reviewee_id' })
-  declare reviewee: BelongsTo<typeof User>
-
   @hasMany(() => SkillReview, { foreignKey: 'review_session_id' })
   declare skill_reviews: HasMany<typeof SkillReview>
 

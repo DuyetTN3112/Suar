@@ -1,12 +1,11 @@
-import type {
-  ProjectSearchDocumentReader,
-  ProjectSearchDocumentRecord,
-} from '#modules/projects/application/ports/project_search_document_reader'
 import Project from '#modules/projects/infra/models/project'
 
-export class LucidProjectSearchDocumentReader implements ProjectSearchDocumentReader {
-  async findProjectSearchDocumentRecord(projectId: string): Promise<ProjectSearchDocumentRecord> {
-    const project = await Project.findOrFail(projectId)
+export class LucidProjectSearchDocumentReader {
+  async findProjectSearchDocumentRecord(projectId: string) {
+    const project = await Project.find(projectId)
+    if (!project) {
+      return null
+    }
 
     return {
       projectId: project.id,

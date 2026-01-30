@@ -1,8 +1,12 @@
 import { test } from '@japa/runner'
 import { DateTime } from 'luxon'
 
+import { SkillReviewIdentityReaderAdapter } from '#composition/adapters/skill_review_identity_reader_adapter'
+import { TaskReviewAssignmentProjectionReaderAdapter } from '#composition/adapters/task_review_assignment_projection_reader_adapter'
+import { UserReviewModeratorIdentityProjectionReaderAdapter } from '#composition/adapters/user_review_moderator_identity_projection_reader_adapter'
 import GetFlaggedReviewsQuery from '#modules/reviews/actions/queries/get_flagged_reviews_query'
 import { makeSystemReviewActionContext } from '#modules/reviews/actions/review_action_context'
+import { LucidReviewFlaggedReviewReader } from '#modules/reviews/infra/adapters/lucid_review_session_readers'
 import { setupApp, teardownApp } from '#tests/helpers/bootstrap'
 import {
   cleanupTestData,
@@ -48,11 +52,11 @@ test.group('Integration | Flagged Reviews Cursor Pagination', (group) => {
       peer_reviews_count: 1,
       required_peer_reviews: 1,
     })
-    const skill = await SkillFactory.create()
     const baseTime = DateTime.fromISO('2026-07-05T12:00:00.000Z')
     const createdFlagIds: string[] = []
 
     for (let index = 0; index < 4; index++) {
+      const skill = await SkillFactory.create()
       const skillReview = await SkillReviewFactory.create({
         review_session_id: reviewSession.id,
         reviewer_id: reviewer.id,
@@ -72,7 +76,13 @@ test.group('Integration | Flagged Reviews Cursor Pagination', (group) => {
       createdFlagIds.push(flagged.id)
     }
 
-    const query = new GetFlaggedReviewsQuery(makeSystemReviewActionContext(superadmin.id))
+    const query = new GetFlaggedReviewsQuery(
+      makeSystemReviewActionContext(superadmin.id),
+      new TaskReviewAssignmentProjectionReaderAdapter(),
+      new UserReviewModeratorIdentityProjectionReaderAdapter(),
+      new SkillReviewIdentityReaderAdapter(),
+      new LucidReviewFlaggedReviewReader()
+    )
     const firstWindow = await query.handle({
       page: 1,
       per_page: 2,

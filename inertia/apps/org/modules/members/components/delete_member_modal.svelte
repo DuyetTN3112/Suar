@@ -8,22 +8,18 @@
   import DialogTitle from '@/apps/org/shared/ui/dialog_title.svelte'
   import { useTranslation } from '@/apps/org/shared/stores/translation.svelte'
 
-  import type { UserDirectoryRecord } from '../types'
-  import { getUserDisplayName } from '../utils/user_utils'
+  import { getMemberDisplayName } from '../member_display'
+  import type { OrganizationMemberIdentity } from '../types'
 
   interface Props {
     open: boolean
     onClose: () => void
-    user: UserDirectoryRecord | null
+    user: OrganizationMemberIdentity | null
     isDeleting: boolean
     onConfirm: () => void
   }
 
-  export let open = false
-  export let onClose: Props['onClose']
-  export let user: Props['user']
-  export let isDeleting: Props['isDeleting']
-  export let onConfirm: Props['onConfirm']
+  let { open = $bindable(false), onClose, user, isDeleting, onConfirm }: Props = $props()
 
   const { t } = useTranslation()
 </script>
@@ -34,7 +30,7 @@
       <DialogTitle>{t('common.confirm', {}, 'Confirm')}</DialogTitle>
       <DialogDescription>
         {#if user}
-          {t('user.confirm_remove', { name: getUserDisplayName(user) }, `Are you sure you want to remove ${getUserDisplayName(user)} from the organization?`)}
+          {t('user.confirm_remove', { name: getMemberDisplayName(user) }, `Are you sure you want to remove ${getMemberDisplayName(user)} from the organization?`)}
         {/if}
       </DialogDescription>
     </DialogHeader>

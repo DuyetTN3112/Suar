@@ -1,14 +1,17 @@
-import type { ProjectSearchDocumentReader } from '#modules/projects/application/ports/project_search_document_reader'
-import { projectSearchDocumentReader as defaultProjectSearchDocumentReader } from '#modules/projects/public_contracts/project_search_indexing'
+import type { ProjectSearchDocumentReader } from '#modules/search/actions/ports/outbound/project_search_document_reader'
 import type { ProjectSearchDocument } from '#modules/search/domain/project_search_document'
 
 export class ProjectSearchDocumentBuilder {
   constructor(
-    private readonly projectSearchDocumentReader: ProjectSearchDocumentReader = defaultProjectSearchDocumentReader
+    private readonly projectSearchDocumentReader: ProjectSearchDocumentReader
   ) {}
 
-  async build(projectId: string): Promise<ProjectSearchDocument> {
-    const project = await this.projectSearchDocumentReader.findProjectSearchDocumentRecord(projectId)
+  async build(projectId: string): Promise<ProjectSearchDocument | null> {
+    const project =
+      await this.projectSearchDocumentReader.findProjectSearchDocumentRecord(projectId)
+    if (!project) {
+      return null
+    }
     const tags = Array.isArray(project.tags) ? project.tags : []
 
     return {

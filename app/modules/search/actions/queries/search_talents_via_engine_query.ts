@@ -1,4 +1,4 @@
-import { TalentSearchIndexRepository } from '#modules/search/infra/talents/talent_search_index_repository'
+import type { TalentSearchStore } from '#modules/search/actions/ports/outbound/search_projection_store'
 
 export interface SearchTalentsViaEngineDTO {
   q: string
@@ -11,11 +11,12 @@ export interface EngineTalentCandidate {
 }
 
 export class SearchTalentsViaEngineQuery {
-  constructor(
-    private readonly repository: TalentSearchIndexRepository = new TalentSearchIndexRepository()
-  ) {}
+  constructor(private readonly repository: TalentSearchStore) {}
 
-  async handle(dto: SearchTalentsViaEngineDTO): Promise<EngineTalentCandidate[]> {
+  async handle(
+    dto: SearchTalentsViaEngineDTO,
+    signal?: AbortSignal
+  ): Promise<EngineTalentCandidate[]> {
     const q = dto.q.trim()
     if (!q) {
       return []
@@ -24,6 +25,6 @@ export class SearchTalentsViaEngineQuery {
     return this.repository.search({
       q,
       limit: dto.limit,
-    })
+    }, signal)
   }
 }

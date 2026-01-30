@@ -1,7 +1,17 @@
 <script lang="ts">
-  let { children } = $props<{ children?: import('svelte').Snippet; [key: string]: unknown }>()
+  let {
+    href = '#',
+    children,
+    ...attributes
+  } = $props<{
+    href?: string
+    children?: import('svelte').Snippet
+    [key: string]: unknown
+  }>()
 </script>
 
 {#if children}
-  {@render children()}
+  <a {href} {...attributes}>
+    {@render children()}
+  </a>
 {/if}
